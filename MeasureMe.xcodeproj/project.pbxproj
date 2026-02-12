@@ -41,7 +41,6 @@
 				.gitattributes,
 				Info.plist,
 				Premium.storekit,
-				PremiumLocal.storekit,
 			);
 			target = A3BAF7BB2F27B74C00269A9A /* MeasureMe */;
 		};
