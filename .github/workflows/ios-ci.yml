@@ -1,0 +1,111 @@
+name: iOS CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'codex/**'
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build & Test (iOS ${{ matrix.ios_runtime }})
+    runs-on: macos-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        ios_runtime:
+          - "18.0"
+          - "26.1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26.2
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.2"
+
+      - name: Resolve simulator destination
+        id: destination
+        env:
+          REQUESTED_IOS: ${{ matrix.ios_runtime }}
+        run: |
+          set -euo pipefail
+
+          SHOW_DESTINATIONS="$(xcodebuild -project MeasureMe.xcodeproj -scheme MeasureMe -showdestinations)"
+
+          DESTINATION="$(printf '%s\n' "$SHOW_DESTINATIONS" | awk -F'[{}]' -v requested="$REQUESTED_IOS" '
+            /platform:iOS Simulator/ {
+              line = $2
+              gsub(/, /, ",", line)
+              gsub(/^ +| +$/, "", line)
+              if (line ~ ("OS:" requested "(,|$)")) {
+                print line
+                exit
+              }
+            }
+          ')"
+
+          # Fallback: exact patch may be unavailable on the runner (e.g. 18.0 vs 18.6).
+          if [ -z "$DESTINATION" ]; then
+            REQUESTED_MAJOR="${REQUESTED_IOS%%.*}"
+            DESTINATION="$(printf '%s\n' "$SHOW_DESTINATIONS" | awk -F'[{}]' -v major="$REQUESTED_MAJOR" '
+              /platform:iOS Simulator/ {
+                line = $2
+                gsub(/, /, ",", line)
+                gsub(/^ +| +$/, "", line)
+                if (line ~ ("OS:" major "\\.")) {
+                  print line
+                  exit
+                }
+              }
+            ')"
+          fi
+
+          if [ -z "$DESTINATION" ]; then
+            echo "No compatible iOS Simulator runtime found for requested iOS $REQUESTED_IOS."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "destination=$DESTINATION" >> "$GITHUB_OUTPUT"
+          echo "Requested iOS: $REQUESTED_IOS"
+          echo "Using destination: $DESTINATION"
+
+      - name: Require iOS 26.1 runtime
+        if: matrix.ios_runtime == '26.1' && steps.destination.outputs.skip == 'true'
+        run: |
+          echo "iOS 26.1 runtime is required for this CI lane."
+          exit 1
+
+      - name: Build
+        if: steps.destination.outputs.skip != 'true'
+        run: |
+          xcodebuild \
+            -project MeasureMe.xcodeproj \
+            -scheme MeasureMe \
+            -destination "${{ steps.destination.outputs.destination }}" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Test
+        if: steps.destination.outputs.skip != 'true'
+        run: |
+          xcodebuild \
+            -project MeasureMe.xcodeproj \
+            -scheme MeasureMe \
+            -destination "${{ steps.destination.outputs.destination }}" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            test
+
+      - name: Skip note
+        if: steps.destination.outputs.skip == 'true'
+        run: |
+          echo "Skipped iOS ${{ matrix.ios_runtime }} lane: simulator runtime unavailable on this runner."

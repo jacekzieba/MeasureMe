@@ -2,6 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+<<<<<<< Updated upstream:MeasureMe.xcodeproj/xcuserdata/jacek.xcuserdatad/xcschemes/xcschememanagement.plist
 	<key>SchemeUserState</key>
 	<dict>
 		<key>MeasureMe.xcscheme_^#shared#^_</key>
@@ -10,5 +11,11 @@
 			<integer>0</integer>
 		</dict>
 	</dict>
+=======
+	<key>com.apple.developer.healthkit</key>
+	<true/>
+	<key>com.apple.developer.healthkit.background-delivery</key>
+	<true/>
+>>>>>>> Stashed changes:MeasureMe/MeasureMe.entitlements
 </dict>
 </plist>

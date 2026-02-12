@@ -12,6 +12,10 @@
           "value" : "dark"
         }
       ],
+<<<<<<< Updated upstream:MeasureMe/Assets.xcassets/AppIcon.appiconset/Contents.json
+=======
+      "filename" : "LOGO.png",
+>>>>>>> Stashed changes:Assets.xcassets/AppIcon.appiconset/Contents.json
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -23,6 +27,10 @@
           "value" : "tinted"
         }
       ],
+<<<<<<< Updated upstream:MeasureMe/Assets.xcassets/AppIcon.appiconset/Contents.json
+=======
+      "filename" : "LOGO.png",
+>>>>>>> Stashed changes:Assets.xcassets/AppIcon.appiconset/Contents.json
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
