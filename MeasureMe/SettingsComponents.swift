@@ -1,9 +1,11 @@
 import SwiftUI
 
-// MARK: - Settings Constants
+enum ProfileRoute: Hashable, Identifiable {
+    case age
+    case height
 
-fileprivate let settingsComponentsCardCornerRadius: CGFloat = 16
-fileprivate let settingsComponentsRowInsets = EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
+    var id: Self { self }
+}
 
 struct HealthSettingsSection: View {
     @Binding var isSyncEnabled: Bool
@@ -30,7 +32,7 @@ struct HealthSettingsSection: View {
         }
         .listRowSeparator(.hidden)
         .listSectionSeparator(.hidden)
-        .listRowInsets(settingsComponentsRowInsets)
+        .listRowInsets(settingsRowInsets)
         .listRowBackground(Color.clear)
         .onDisappear {
             // Anuluj task przy znikaniu widoku, aby uniknąć wycieku pamięci
@@ -51,9 +53,7 @@ struct HealthSettingsSection: View {
                 Toggle("", isOn: $isSyncEnabled)
                     .labelsHidden()
                     .tint(Color.appAccent)
-                    .frame(width: 52, alignment: .trailing)
             }
-            .frame(minHeight: 44)
             
             Text(AppLocalization.string("health.last.import", lastImportText ?? "—"))
                 .font(AppTypography.caption)
@@ -91,8 +91,11 @@ struct HealthSettingsSection: View {
                     isMetricsExpanded.toggle()
                 } label: {
                 HStack {
-                    Text(AppLocalization.string("Synced data"))
+                    Text(AppLocalization.string("Metrics"))
                     Spacer()
+                    Text(isSyncEnabled ? AppLocalization.string("Show") : AppLocalization.string("Disabled"))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(.secondary)
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.semibold))
                         .rotationEffect(.degrees(isMetricsExpanded ? 180 : 0))
@@ -100,10 +103,8 @@ struct HealthSettingsSection: View {
                 }
             }
             .buttonStyle(.plain)
-            .frame(minHeight: 44)
-
-                if isMetricsExpanded {
-                    VStack(spacing: 0) {
+            
+                VStack(spacing: 0) {
                     healthMetricRow(AppLocalization.string("metric.weight"), isOn: $hkWeight)
                     rowDivider
                     healthMetricRow(AppLocalization.string("metric.bodyfat"), isOn: $hkBodyFat)
@@ -121,7 +122,10 @@ struct HealthSettingsSection: View {
                 .onChange(of: hkLeanMass) { _, _ in HealthKitManager.shared.startObservingHealthKitUpdates() }
                 .onChange(of: hkWaist) { _, _ in HealthKitManager.shared.startObservingHealthKitUpdates() }
                 .padding(.top, 6)
-                }
+                .frame(maxHeight: isMetricsExpanded ? .infinity : 0, alignment: .top)
+                .clipped()
+                .opacity(isMetricsExpanded ? 1 : 0)
+                .animation(nil, value: isMetricsExpanded)
             }
         }
     
@@ -132,17 +136,12 @@ struct HealthSettingsSection: View {
     }
     
     private func healthMetricRow(_ title: String, isOn: Binding<Bool>) -> some View {
-        HStack(spacing: 10) {
+        Toggle(isOn: isOn) {
             Text(title)
-            Spacer()
-            Toggle("", isOn: isOn)
-                .labelsHidden()
-                .frame(width: 52, alignment: .trailing)
         }
         .tint(Color.appAccent)
         .onChange(of: isOn.wrappedValue) { _, _ in Haptics.selection() }
         .padding(.vertical, 10)
-        .frame(minHeight: 44)
     }
 }
 
@@ -163,395 +162,16 @@ struct UnitsSettingsSection: View {
         }
         .listRowSeparator(.hidden)
         .listSectionSeparator(.hidden)
-        .listRowInsets(settingsComponentsRowInsets)
+        .listRowInsets(settingsRowInsets)
         .listRowBackground(Color.clear)
-    }
-}
-
-struct ProfileSettingsDetailView: View {
-    @Binding var userName: String
-    @Binding var userGender: String
-    @Binding var userAge: Int
-    @Binding var manualHeight: Double
-    @Binding var unitsSystem: String
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-            List {
-                ProfileSettingsSection(
-                    userName: $userName,
-                    userGender: $userGender,
-                    userAge: $userAge,
-                    manualHeight: $manualHeight,
-                    unitsSystem: $unitsSystem
-                )
-            }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .padding(.top, 8)
-        }
-        .navigationTitle(AppLocalization.string("Profile"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-    }
-}
-
-struct HealthIndicatorsSettingsDetailView: View {
-    @Binding var showWHtROnHome: Bool
-    @Binding var showRFMOnHome: Bool
-    @Binding var showBMIOnHome: Bool
-    @Binding var showBodyFatOnHome: Bool
-    @Binding var showLeanMassOnHome: Bool
-    @Binding var showABSIOnHome: Bool
-    @Binding var showConicityOnHome: Bool
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-            List {
-                HealthIndicatorsSettingsSection(
-                    showWHtROnHome: $showWHtROnHome,
-                    showRFMOnHome: $showRFMOnHome,
-                    showBMIOnHome: $showBMIOnHome,
-                    showBodyFatOnHome: $showBodyFatOnHome,
-                    showLeanMassOnHome: $showLeanMassOnHome,
-                    showABSIOnHome: $showABSIOnHome,
-                    showConicityOnHome: $showConicityOnHome
-                )
-            }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .padding(.top, 8)
-        }
-        .navigationTitle(AppLocalization.string("Health indicators"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-    }
-}
-
-struct HomeSettingsDetailView: View {
-    @Binding var showMeasurementsOnHome: Bool
-    @Binding var showLastPhotosOnHome: Bool
-    @Binding var showHealthMetricsOnHome: Bool
-    @Binding var showOnboardingChecklistOnHome: Bool
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-            List {
-                HomeSettingsSection(
-                    showMeasurementsOnHome: $showMeasurementsOnHome,
-                    showLastPhotosOnHome: $showLastPhotosOnHome,
-                    showHealthMetricsOnHome: $showHealthMetricsOnHome,
-                    showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome
-                )
-            }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .padding(.top, 8)
-        }
-        .navigationTitle(AppLocalization.string("Home"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-    }
-}
-
-struct ExperienceSettingsDetailView: View {
-    @Binding var animationsEnabled: Bool
-    @Binding var hapticsEnabled: Bool
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-            List {
-                Section {
-                    SettingsCard(tint: Color.white.opacity(0.08)) {
-                        SettingsCardHeader(title: AppLocalization.string("Animations and haptics"), systemImage: "sparkles")
-                        Toggle(isOn: $animationsEnabled) {
-                            Text(AppLocalization.string("Animations"))
-                        }
-                        .tint(Color.appAccent)
-                        .onChange(of: animationsEnabled) { _, _ in Haptics.selection() }
-                        .frame(minHeight: 44)
-
-                        SettingsRowDivider()
-
-                        Toggle(isOn: $hapticsEnabled) {
-                            Text(AppLocalization.string("Haptics"))
-                        }
-                        .tint(Color.appAccent)
-                        .onChange(of: hapticsEnabled) { _, _ in Haptics.selection() }
-                        .frame(minHeight: 44)
-                    }
-                }
-                .listRowSeparator(.hidden)
-                .listSectionSeparator(.hidden)
-                .listRowInsets(settingsComponentsRowInsets)
-                .listRowBackground(Color.clear)
-            }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .padding(.top, 8)
-        }
-        .navigationTitle(AppLocalization.string("Animations and haptics"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-    }
-}
-
-struct LanguageSettingsDetailView: View {
-    @Binding var appLanguage: String
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-            List {
-                Section {
-                    SettingsCard(tint: Color.white.opacity(0.07)) {
-                        SettingsCardHeader(title: AppLocalization.string("Language"), systemImage: "globe")
-                        languageRow(title: AppLocalization.string("System"), value: "system")
-                        SettingsRowDivider()
-                        languageRow(title: AppLocalization.string("English"), value: "en")
-                        SettingsRowDivider()
-                        languageRow(title: AppLocalization.string("Polish"), value: "pl")
-                    }
-                }
-                .listRowSeparator(.hidden)
-                .listSectionSeparator(.hidden)
-                .listRowInsets(settingsComponentsRowInsets)
-                .listRowBackground(Color.clear)
-            }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .padding(.top, 8)
-        }
-        .navigationTitle(AppLocalization.string("Language"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-    }
-
-    private func languageRow(title: String, value: String) -> some View {
-        Button {
-            appLanguage = value
-            Haptics.selection()
-        } label: {
-            HStack(spacing: 12) {
-                Text(title)
-                    .foregroundStyle(.white)
-                Spacer()
-                languageAccessory(for: value)
-                    .frame(width: 16, alignment: .trailing)
-            }
-            .padding(.trailing, 2)
-            .frame(minHeight: 44)
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private func languageAccessory(for value: String) -> some View {
-        if appLanguage == value {
-            Image(systemName: "checkmark")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(Color.appAccent)
-        } else {
-            Color.clear
-        }
-    }
-}
-
-struct DataSettingsDetailView: View {
-    let onExport: () -> Void
-    let onDeleteAll: () -> Void
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-            List {
-                Section {
-                    SettingsCard(tint: Color.appAccent.opacity(0.10)) {
-                        SettingsCardHeader(title: AppLocalization.string("Data"), systemImage: "square.and.arrow.up")
-                        Button(action: onExport) {
-                            Text(AppLocalization.string("Export data"))
-                        }
-                        .frame(minHeight: 44, alignment: .leading)
-
-                        SettingsRowDivider()
-
-                        Button(role: .destructive, action: onDeleteAll) {
-                            Text(AppLocalization.string("Delete all data"))
-                        }
-                        .frame(minHeight: 44, alignment: .leading)
-                    }
-                }
-                .listRowSeparator(.hidden)
-                .listSectionSeparator(.hidden)
-                .listRowInsets(settingsComponentsRowInsets)
-                .listRowBackground(Color.clear)
-            }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .padding(.top, 8)
-        }
-        .navigationTitle(AppLocalization.string("Data"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-    }
-}
-
-struct HealthSettingsDetailView: View {
-    @Binding var isSyncEnabled: Bool
-    let lastImportText: String?
-    @Binding var hkWeight: Bool
-    @Binding var hkBodyFat: Bool
-    @Binding var hkHeight: Bool
-    @Binding var hkLeanMass: Bool
-    @Binding var hkWaist: Bool
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-            List {
-                HealthSettingsSection(
-                    isSyncEnabled: $isSyncEnabled,
-                    lastImportText: lastImportText,
-                    hkWeight: $hkWeight,
-                    hkBodyFat: $hkBodyFat,
-                    hkHeight: $hkHeight,
-                    hkLeanMass: $hkLeanMass,
-                    hkWaist: $hkWaist
-                )
-            }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .padding(.top, 8)
-        }
-        .navigationTitle(AppLocalization.string("Health"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-    }
-}
-
-struct UnitsSettingsDetailView: View {
-    @Binding var unitsSystem: String
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-            List {
-                UnitsSettingsSection(unitsSystem: $unitsSystem)
-            }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .padding(.top, 8)
-        }
-        .navigationTitle(AppLocalization.string("Units"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-    }
-}
-
-struct AIInsightsSettingsDetailView: View {
-    @EnvironmentObject private var premiumStore: PremiumStore
-    @Binding var appleIntelligenceEnabled: Bool
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-            List {
-                Section {
-                    SettingsCard(tint: Color.cyan.opacity(0.12)) {
-                        SettingsCardHeader(title: AppLocalization.string("AI Insights"), systemImage: "sparkles")
-                        if premiumStore.isPremium {
-                            if AppleIntelligenceSupport.isAvailable() {
-                                Toggle(isOn: $appleIntelligenceEnabled) {
-                                    Text(AppLocalization.string("Enable AI Insights"))
-                                }
-                                .tint(Color.appAccent)
-                                .onChange(of: appleIntelligenceEnabled) { _, _ in Haptics.selection() }
-                                .frame(minHeight: 44)
-                            } else {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(AppLocalization.string("AI Insights aren’t available right now."))
-                                        .font(AppTypography.caption)
-                                        .foregroundStyle(.secondary)
-                                    NavigationLink {
-                                        FAQView()
-                                    } label: {
-                                        Text(AppLocalization.string("Learn more in FAQ"))
-                                            .font(AppTypography.captionEmphasis)
-                                            .foregroundStyle(Color.appAccent)
-                                    }
-                                }
-                            }
-                        } else {
-                            HStack {
-                                Text(AppLocalization.string("Premium Edition required"))
-                                    .font(AppTypography.caption)
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                                Button(AppLocalization.string("Unlock")) {
-                                    premiumStore.presentPaywall(reason: .feature("AI Insights"))
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(Color.appAccent)
-                                .frame(minHeight: 44)
-                            }
-                        }
-                    }
-                }
-                .listRowSeparator(.hidden)
-                .listSectionSeparator(.hidden)
-                .listRowInsets(settingsComponentsRowInsets)
-                .listRowBackground(Color.clear)
-            }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .padding(.top, 8)
-        }
-        .navigationTitle(AppLocalization.string("AI Insights"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
     }
 }
 
 struct ProfileSettingsSection: View {
     @Binding var userName: String
     @Binding var userGender: String
-    @Binding var userAge: Int
-    @Binding var manualHeight: Double
-    @Binding var unitsSystem: String
-
-    @State private var ageInput: String = ""
-    @State private var heightInput: String = ""
+    let currentAgeText: String?
+    let currentHeightText: String?
 
     private var genderLabel: String {
         switch userGender {
@@ -562,10 +182,6 @@ struct ProfileSettingsSection: View {
         default:
             return AppLocalization.string("Not specified")
         }
-    }
-
-    private var heightUnitSymbol: String {
-        MetricKind.height.unitSymbol(unitsSystem: unitsSystem)
     }
     
     var body: some View {
@@ -611,87 +227,53 @@ struct ProfileSettingsSection: View {
 
                 SettingsRowDivider()
 
-                HStack(spacing: 12) {
-                    GlassPillIcon(systemName: "calendar")
-                        .frame(width: 60)
-                    Text(AppLocalization.string("Age"))
-                    Spacer()
-                    TextField("0", text: $ageInput)
-                        .multilineTextAlignment(.trailing)
-                        .keyboardType(.numberPad)
-                        .foregroundStyle(ageInput.isEmpty ? .secondary : Color.appAccent)
-                        .frame(minWidth: 48)
-                    Text(AppLocalization.string("profile.unit.age"))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .onChange(of: ageInput) { _, value in
-                    let digits = value.filter(\.isNumber)
-                    if digits != value {
-                        ageInput = digits
-                        return
+                NavigationLink(value: ProfileRoute.age) {
+                    HStack(spacing: 12) {
+                        GlassPillIcon(systemName: "calendar")
+                            .frame(width: 60)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(AppLocalization.string("Age"))
+                            if let ageText = currentAgeText {
+                                Text(ageText)
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
                     }
-                    userAge = Int(digits) ?? 0
                 }
-                .frame(minHeight: 44)
+                .buttonStyle(.plain)
 
                 SettingsRowDivider()
 
-                HStack(spacing: 12) {
-                    GlassPillIcon(systemName: "figure.stand")
-                        .frame(width: 60)
-                    Text(AppLocalization.string("Height"))
-                    Spacer()
-                    TextField("0", text: $heightInput)
-                        .multilineTextAlignment(.trailing)
-                        .keyboardType(.decimalPad)
-                        .foregroundStyle(heightInput.isEmpty ? .secondary : Color.appAccent)
-                        .frame(minWidth: 64)
-                    Text(heightUnitSymbol)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .onChange(of: heightInput) { _, value in
-                    let normalized = value.replacingOccurrences(of: ",", with: ".")
-                    if normalized != value {
-                        heightInput = normalized
-                        return
+                NavigationLink(value: ProfileRoute.height) {
+                    HStack(spacing: 12) {
+                        GlassPillIcon(systemName: "figure.stand")
+                            .frame(width: 60)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(AppLocalization.string("Height"))
+                            if let heightText = currentHeightText {
+                                Text(heightText)
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
                     }
-                    guard let parsed = Double(normalized), parsed > 0 else {
-                        manualHeight = 0
-                        return
-                    }
-                    manualHeight = MetricKind.height.valueToMetric(fromDisplay: parsed, unitsSystem: unitsSystem)
                 }
-                .onChange(of: unitsSystem) { _, _ in
-                    syncHeightInput()
-                }
-                .frame(minHeight: 44)
+                .buttonStyle(.plain)
             }
         }
         .listRowSeparator(.hidden)
         .listSectionSeparator(.hidden)
-        .listRowInsets(settingsComponentsRowInsets)
+        .listRowInsets(settingsRowInsets)
         .listRowBackground(Color.clear)
-        .onAppear {
-            syncAgeInput()
-            syncHeightInput()
-        }
-    }
-
-    private func syncAgeInput() {
-        ageInput = userAge > 0 ? "\(userAge)" : ""
-    }
-
-    private func syncHeightInput() {
-        guard manualHeight > 0 else {
-            heightInput = ""
-            return
-        }
-        let displayValue = MetricKind.height.valueForDisplay(fromMetric: manualHeight, unitsSystem: unitsSystem)
-        heightInput = unitsSystem == "imperial"
-            ? String(format: "%.1f", displayValue)
-            : String(format: "%.0f", displayValue)
     }
 }
 
@@ -699,7 +281,6 @@ struct HomeSettingsSection: View {
     @Binding var showMeasurementsOnHome: Bool
     @Binding var showLastPhotosOnHome: Bool
     @Binding var showHealthMetricsOnHome: Bool
-    @Binding var showOnboardingChecklistOnHome: Bool
     
     var body: some View {
         Section {
@@ -731,20 +312,11 @@ struct HomeSettingsSection: View {
                 }
                 .tint(Color.appAccent)
                 .onChange(of: showHealthMetricsOnHome) { _, _ in Haptics.selection() }
-                SettingsRowDivider()
-                Toggle(isOn: $showOnboardingChecklistOnHome) {
-                    HStack(spacing: 12) {
-                        GlassPillIcon(systemName: "list.bullet.clipboard")
-                        Text(AppLocalization.string("Show setup checklist on Home"))
-                    }
-                }
-                .tint(Color.appAccent)
-                .onChange(of: showOnboardingChecklistOnHome) { _, _ in Haptics.selection() }
             }
         }
         .listRowSeparator(.hidden)
         .listSectionSeparator(.hidden)
-        .listRowInsets(settingsComponentsRowInsets)
+        .listRowInsets(settingsRowInsets)
         .listRowBackground(Color.clear)
     }
 }
@@ -758,10 +330,30 @@ struct HealthIndicatorsSettingsSection: View {
     @Binding var showABSIOnHome: Bool
     @Binding var showConicityOnHome: Bool
 
+    @State private var isExpanded: Bool = false
+    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         Section {
             SettingsCard(tint: Color.appAccent.opacity(0.10)) {
                 SettingsCardHeader(title: AppLocalization.string("Health indicators"), systemImage: "heart.text.square.fill")
+
+                Button {
+                    isExpanded.toggle()
+                } label: {
+                    HStack(spacing: 12) {
+                        GlassPillIcon(systemName: "slider.horizontal.3")
+                        Text(AppLocalization.string("Choose indicators to show"))
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                            .font(.caption.weight(.semibold))
+                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+
                 VStack(spacing: 0) {
                     metricsGroupTitle("Core indicators")
                     metricToggle(AppLocalization.string("WHtR (Waist-to-Height Ratio)"), isOn: $showWHtROnHome)
@@ -781,12 +373,20 @@ struct HealthIndicatorsSettingsSection: View {
                     metricToggle(AppLocalization.string("Central Fat Risk (Conicity)"), isOn: $showConicityOnHome)
                 }
                 .padding(.top, 6)
+                .frame(maxHeight: isExpanded ? .infinity : 0, alignment: .top)
+                .clipped()
+                .opacity(isExpanded ? 1 : 0)
+                .animation(nil, value: isExpanded)
             }
         }
         .listRowSeparator(.hidden)
         .listSectionSeparator(.hidden)
-        .listRowInsets(settingsComponentsRowInsets)
+        .listRowInsets(settingsRowInsets)
         .listRowBackground(Color.clear)
+    }
+
+    private var shouldAnimate: Bool {
+        animationsEnabled && !reduceMotion
     }
 
     private func metricsGroupTitle(_ title: String) -> some View {
@@ -806,7 +406,6 @@ struct HealthIndicatorsSettingsSection: View {
         .tint(Color.appAccent)
         .onChange(of: isOn.wrappedValue) { _, _ in Haptics.selection() }
         .padding(.vertical, 10)
-        .frame(minHeight: 44)
     }
 
     private var rowDivider: some View {
@@ -834,11 +433,11 @@ struct SettingsCard<Content: View>: View {
         .background(
             AppGlassBackground(
                 depth: .base,
-                cornerRadius: settingsComponentsCardCornerRadius,
+                cornerRadius: settingsCardCornerRadius,
                 tint: tint
             )
         )
-        .clipShape(RoundedRectangle(cornerRadius: settingsComponentsCardCornerRadius, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: settingsCardCornerRadius, style: .continuous))
     }
 }
 

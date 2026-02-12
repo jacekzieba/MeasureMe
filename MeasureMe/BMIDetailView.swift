@@ -61,7 +61,6 @@ struct BMIDetailView: View {
         }
         .navigationTitle(AppLocalization.string("BMI"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
     }
     
     // MARK: - Components

@@ -23,25 +23,19 @@ struct AddPhotoView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                AppScreenBackground(topHeight: 220, tint: Color.cyan.opacity(0.18))
-
-                Form {
-                    photoSelectionSection
-                    
-                    if selectedImage != nil {
-                        photoPreviewSection
-                    }
-
-                    tagsSection
-                    dateSection
-                    measurementsSection
+            Form {
+                photoSelectionSection
+                
+                if selectedImage != nil {
+                    photoPreviewSection
                 }
-                .scrollContentBackground(.hidden)
+
+                tagsSection
+                dateSection
+                measurementsSection
             }
             .navigationTitle(AppLocalization.string("Add Photo"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Cancel")) {

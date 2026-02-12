@@ -27,7 +27,7 @@ struct AgeSettingsView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
+            AppScreenBackground(topHeight: 260)
 
             List {
                 Section {
@@ -158,10 +158,6 @@ struct AgeSettingsView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
             .navigationTitle(AppLocalization.string("Age"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)

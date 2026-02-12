@@ -1,7 +1,4 @@
 import SwiftUI
-import UIKit
-import Charts
-import StoreKit
 
 struct OnboardingView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
@@ -12,1028 +9,582 @@ struct OnboardingView: View {
     @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
     @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppStorage("onboarding_skipped_healthkit") private var onboardingSkippedHealthKit: Bool = false
-    @AppStorage("onboarding_skipped_reminders") private var onboardingSkippedReminders: Bool = false
-    @AppStorage("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
-    @AppStorage("onboarding_checklist_premium_explored") private var onboardingChecklistPremiumExplored: Bool = false
-    @AppStorage("onboarding_primary_goal") private var onboardingPrimaryGoalsRaw: String = ""
-
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
 
-    @State private var currentStepIndex: Int = 0
-    @FocusState private var focusedField: FocusField?
-
+    @State private var step: Step = .intro
     @State private var nameInput: String = ""
     @State private var ageInput: String = ""
     @State private var heightInput: String = ""
     @State private var feetInput: String = ""
     @State private var inchesInput: String = ""
 
+    @State private var healthKitToggle: Bool = false
+    @State private var notificationsToggle: Bool = false
     @State private var isRequestingHealthKit: Bool = false
+    @State private var isImportingHealthDataInBackground: Bool = false
     @State private var isRequestingNotifications: Bool = false
-    @State private var isReminderScheduled: Bool = false
-    @State private var showReminderSetupSheet: Bool = false
-    @State private var reminderWeekday: Int = 2
-    @State private var reminderTime: Date = .now
     @State private var healthKitStatusText: String?
     @State private var notificationsStatusText: String?
-    @State private var selectedWelcomeGoals: Set<WelcomeGoal> = []
-    @State private var onboardingSelectedPremiumProductID: String? = PremiumConstants.yearlyProductID
-
-    @State private var animateBackdrop: Bool = false
-
-    private enum FocusField: Hashable {
-        case name
-        case age
-        case height
-        case feet
-        case inches
-    }
-
-    private enum WelcomeGoal: String, CaseIterable {
-        case loseWeight
-        case buildMuscle
-        case trackHealth
-
-        var title: String {
-            switch self {
-            case .loseWeight:
-                return AppLocalization.systemString("Lose weight")
-            case .buildMuscle:
-                return AppLocalization.systemString("Build muscles")
-            case .trackHealth:
-                return AppLocalization.systemString("Improve my health")
-            }
-        }
-    }
-
-    private enum Step: Int, CaseIterable {
-        case welcome
-        case profile
-        case boosters
-        case premium
-
-        var title: String {
-            switch self {
-            case .welcome:
-                return AppLocalization.systemString("MeasureMe")
-            case .profile:
-                return AppLocalization.systemString("A few details")
-            case .boosters:
-                return AppLocalization.systemString("Boosters")
-            case .premium:
-                return AppLocalization.systemString("Premium Edition")
-            }
-        }
-
-        var subtitle: String {
-            switch self {
-            case .welcome:
-                return ""
-            case .profile:
-                return AppLocalization.systemString("Optional details for more accurate health indicators.")
-            case .boosters:
-                return AppLocalization.systemString("Optional automations to keep momentum.")
-            case .premium:
-                return ""
-            }
-        }
-    }
+    @State private var animateGlow: Bool = false
+    @State private var animateCelebration: Bool = false
+    @State private var animateHero: Bool = false
+    @State private var showQuickAddSheet: Bool = false
+    @State private var showAddPhotoSheet: Bool = false
 
     private var shouldAnimate: Bool {
         animationsEnabled && !reduceMotion
     }
 
-    private var currentStep: Step {
-        Step(rawValue: currentStepIndex) ?? .welcome
-    }
+    private enum Step: Int, CaseIterable {
+        case intro
+        case name
+        case age
+        case gender
+        case units
+        case height
+        case healthKit
+        case notifications
+        case measurements
+        case quickAdd
+        case chart
+        case photo
+        case settings
+        case premium
 
-    private var totalSteps: Int {
-        Step.allCases.count
-    }
-
-    private var stepStatusText: String? {
-        switch currentStep {
-        case .boosters:
-            return notificationsStatusText ?? healthKitStatusText
-        default:
-            return nil
+        var title: String {
+            switch self {
+            case .intro: return AppLocalization.systemString("MeasureMe")
+            case .measurements: return AppLocalization.systemString("Measurements Matter")
+            case .name: return AppLocalization.systemString("Welcome")
+            case .age: return AppLocalization.systemString("Your Age")
+            case .gender: return AppLocalization.systemString("Your Gender")
+            case .units: return AppLocalization.systemString("Your Units")
+            case .height: return AppLocalization.systemString("Your Height")
+            case .healthKit: return AppLocalization.systemString("Health Sync")
+            case .notifications: return AppLocalization.systemString("Notifications")
+            case .quickAdd: return AppLocalization.systemString("Add Your First Data")
+            case .chart: return AppLocalization.systemString("See the Trend")
+            case .photo: return AppLocalization.systemString("Photo Progress")
+            case .settings: return AppLocalization.systemString("Your Settings")
+            case .premium: return AppLocalization.systemString("Premium Edition")
+            }
         }
-    }
 
-    private var nextButtonTitle: String {
-        switch currentStep {
-        case .premium:
-            return AppLocalization.systemString("Continue free")
-        default:
-            return AppLocalization.systemString("Continue")
+        var subtitle: String {
+            switch self {
+            case .intro: return AppLocalization.systemString("Body tracking that feels grounded and motivating.")
+            case .measurements: return AppLocalization.systemString("Body changes show up in measurements first.")
+            case .name: return AppLocalization.systemString("Let’s personalize your experience.")
+            case .age: return AppLocalization.systemString("A quick detail for accurate metrics.")
+            case .gender: return AppLocalization.systemString("Used only for gender-specific formulas.")
+            case .units: return AppLocalization.systemString("Pick the units that feel natural.")
+            case .height: return AppLocalization.systemString("Used for core health calculations.")
+            case .healthKit: return AppLocalization.systemString("Keep measurements in sync with Apple Health.")
+            case .notifications: return AppLocalization.systemString("Get gentle reminders to stay consistent.")
+            case .quickAdd: return AppLocalization.systemString("Log a measurement in seconds.")
+            case .chart: return AppLocalization.systemString("Trends matter more than daily noise.")
+            case .photo: return AppLocalization.systemString("See changes that numbers miss.")
+            case .settings: return AppLocalization.systemString("Tune your tracking anytime.")
+            case .premium: return AppLocalization.systemString("Optional support, stronger insights.")
+            }
         }
-    }
 
-    private var sortedWelcomeGoals: [WelcomeGoal] {
-        selectedWelcomeGoals.sorted { $0.rawValue < $1.rawValue }
-    }
-
-    private var yearlyProduct: Product? {
-        premiumStore.products.first { $0.id == PremiumConstants.yearlyProductID }
-    }
-
-    private var monthlyProduct: Product? {
-        premiumStore.products.first { $0.id == PremiumConstants.monthlyProductID }
-    }
-
-    private var onboardingPremiumProducts: [Product] {
-        premiumStore.products
-            .filter { $0.id == PremiumConstants.monthlyProductID || $0.id == PremiumConstants.yearlyProductID }
-            .sorted { $0.price < $1.price }
-    }
-
-    private var onboardingSelectedPremiumProduct: Product? {
-        if let onboardingSelectedPremiumProductID {
-            return onboardingPremiumProducts.first { $0.id == onboardingSelectedPremiumProductID }
+        var explanation: String {
+            switch self {
+            case .intro:
+                return AppLocalization.systemString("You can skip any step and change everything later in Settings.")
+            case .measurements:
+                return AppLocalization.systemString("Waist and body composition often tell a clearer story than weight alone.")
+            case .name:
+                return AppLocalization.systemString("Why we ask: we use your name to personalize insights and goals.")
+            case .age:
+                return AppLocalization.systemString("Why we ask: age adjusts BMI and body composition ranges for accuracy.")
+            case .gender:
+                return AppLocalization.systemString("Why we ask: some formulas (like RFM and body fat ranges) differ by gender.")
+            case .units:
+                return AppLocalization.systemString("Why we ask: units keep measurements readable and consistent across the app.")
+            case .height:
+                return AppLocalization.systemString("Why we ask: height powers metrics like WHtR and BMI.")
+            case .healthKit:
+                return AppLocalization.systemString("Why we ask: HealthKit sync keeps measurements up to date automatically.")
+            case .notifications:
+                return AppLocalization.systemString("Why we ask: reminders help you build a consistent tracking habit.")
+            case .quickAdd:
+                return AppLocalization.systemString("Why we ask: consistent entries turn into reliable trends.")
+            case .chart:
+                return AppLocalization.systemString("Why we ask: a single data point never tells the full story.")
+            case .photo:
+                return AppLocalization.systemString("Why we ask: photos capture composition changes that scales miss.")
+            case .settings:
+                return AppLocalization.systemString("Why we ask: you’re always in control of what you track.")
+            case .premium:
+                return AppLocalization.systemString("Premium is optional, but it unlocks deeper insights and keeps MeasureMe growing.")
+            }
         }
-        return yearlyProduct ?? monthlyProduct
-    }
-
-    private var onboardingYearlySavingsPercent: Int? {
-        guard let monthlyProduct, let yearlyProduct else { return nil }
-        let yearlyFromMonthly = monthlyProduct.price * Decimal(12)
-        guard yearlyFromMonthly > 0 else { return nil }
-        let savings = (yearlyFromMonthly - yearlyProduct.price) / yearlyFromMonthly
-        guard savings > 0 else { return nil }
-        let percent = NSDecimalNumber(decimal: savings * Decimal(100)).doubleValue
-        return Int(percent.rounded())
     }
 
     var body: some View {
         ZStack {
             AppBackground()
-            backdrop
+            animatedBackdrop
 
-            GeometryReader { proxy in
-                let baseReserve: CGFloat = (stepStatusText == nil) ? 122 : 146
-                let keyboardReserve: CGFloat = focusedField == nil ? 0 : 44
-                let bottomReserve = baseReserve + keyboardReserve
-                let cardHeight = safeCardHeight(from: proxy.size.height, reserved: bottomReserve, extra: 20)
+            VStack(spacing: 0) {
+                header
 
-                VStack(spacing: 0) {
-                    topBar
+                VStack(alignment: .leading, spacing: 20) {
+                    Text(step.title)
+                        .font(AppTypography.displayMedium)
+                        .foregroundStyle(Color.appWhite)
 
-                    TabView(selection: $currentStepIndex) {
-                        slideCard {
-                            welcomeSlide
-                        }
-                        .tag(Step.welcome.rawValue)
+                    Text(step.subtitle)
+                        .font(AppTypography.body)
+                        .foregroundStyle(Color.appGray)
 
-                        slideCard {
-                            profileSlide
-                        }
-                        .tag(Step.profile.rawValue)
-
-                        slideCard {
-                            boostersSlide
-                        }
-                        .tag(Step.boosters.rawValue)
-
-                        slideCard {
-                            premiumSlide
-                        }
-                        .tag(Step.premium.rawValue)
+                    ZStack {
+                        stepContent
+                            .id(step)
+                            .transition(.opacity.combined(with: .move(edge: .trailing)))
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .frame(height: cardHeight)
 
-                    if let stepStatusText {
-                        Text(stepStatusText)
+                    Text(step.explanation)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(Color.appGray)
+                        .padding(.top, 6)
+
+                    if let statusText = statusText {
+                        Text(statusText)
                             .font(AppTypography.caption)
                             .foregroundStyle(Color.appAccent)
-                            .padding(.top, 10)
                     }
 
                     privacyNote
-                        .padding(.top, 6)
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 2)
                 }
-                .safeAreaPadding(.top, 10)
-            }
-        }
-        .onAppear {
-            hydrate()
-            animateBackdrop = true
-            if onboardingSelectedPremiumProductID == nil {
-                onboardingSelectedPremiumProductID = PremiumConstants.yearlyProductID
-            }
-        }
-        .onChange(of: currentStepIndex) { _, _ in
-            dismissKeyboard()
-            Haptics.selection()
-            if currentStep == .premium, onboardingPremiumProducts.isEmpty {
-                Task { await premiumStore.loadProducts() }
-            }
-        }
-        .sheet(isPresented: $showReminderSetupSheet) {
-            OnboardingReminderSetupSheet(
-                weekday: $reminderWeekday,
-                time: $reminderTime
-            ) {
-                showReminderSetupSheet = false
-                setupWeeklyReminder(weekday: reminderWeekday, time: reminderTime)
-            }
-        }
-        .preferredColorScheme(.dark)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(AppLocalization.systemString("Done")) {
-                    dismissKeyboard()
-                }
-            }
-        }
-        .safeAreaInset(edge: .bottom, spacing: 14) {
-            VStack(spacing: 10) {
-                if focusedField != nil {
-                    HStack {
-                        Spacer()
-                        Button(AppLocalization.systemString("Done")) {
-                            dismissKeyboard()
-                        }
-                        .font(AppTypography.captionEmphasis)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            Capsule(style: .continuous)
-                                .fill(Color.white.opacity(0.14))
-                        )
-                        .overlay(
-                            Capsule(style: .continuous)
-                                .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                        )
-                    }
-                    .padding(.horizontal, 24)
-                }
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+                .padding(.bottom, 16)
+
+                Spacer(minLength: 0)
 
                 footer
             }
-            .padding(.bottom, 8)
+            .safeAreaPadding(.top, 24)
         }
+        .onAppear {
+            hydrate()
+            animateGlow = true
+            animateHero = true
+        }
+        .sheet(isPresented: $showQuickAddSheet) {
+            QuickAddContainerView {
+                showQuickAddSheet = false
+            }
+            .environmentObject(metricsStore)
+        }
+        .sheet(isPresented: $showAddPhotoSheet) {
+            AddPhotoView(onSaved: {})
+                .environmentObject(metricsStore)
+        }
+        .animation(shouldAnimate ? .easeInOut(duration: 0.25) : nil, value: step)
+        .preferredColorScheme(.dark)
     }
 
-    private var backdrop: some View {
+    private var animatedBackdrop: some View {
         ZStack {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [Color.appAccent.opacity(0.30), .clear],
+                        colors: [Color.appAccent.opacity(0.35), .clear],
                         center: .center,
-                        startRadius: 30,
-                        endRadius: 240
+                        startRadius: 20,
+                        endRadius: 220
                     )
                 )
-                .frame(width: 320, height: 320)
-                .offset(x: animateBackdrop ? 120 : 70, y: animateBackdrop ? -210 : -160)
-                .blur(radius: 12)
-                .animation(shouldAnimate ? .easeInOut(duration: 4.2).repeatForever(autoreverses: true) : nil, value: animateBackdrop)
+                .frame(width: 300, height: 300)
+                .offset(x: animateGlow ? 140 : 80, y: animateGlow ? -220 : -160)
+                .blur(radius: 8)
+                .animation(shouldAnimate ? .easeInOut(duration: 6).repeatForever(autoreverses: true) : nil, value: animateGlow)
 
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [Color.white.opacity(0.08), .clear],
+                        colors: [Color.white.opacity(0.12), .clear],
                         center: .center,
-                        startRadius: 20,
-                        endRadius: 190
+                        startRadius: 10,
+                        endRadius: 180
                     )
                 )
-                .frame(width: 250, height: 250)
-                .offset(x: animateBackdrop ? -120 : -80, y: animateBackdrop ? 170 : 210)
-                .blur(radius: 12)
-                .animation(shouldAnimate ? .easeInOut(duration: 5.2).repeatForever(autoreverses: true) : nil, value: animateBackdrop)
+                .frame(width: 260, height: 260)
+                .offset(x: animateGlow ? -130 : -80, y: animateGlow ? 140 : 200)
+                .blur(radius: 10)
+                .animation(shouldAnimate ? .easeInOut(duration: 7).repeatForever(autoreverses: true) : nil, value: animateGlow)
         }
         .allowsHitTesting(false)
     }
 
-    private var topBar: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 6) {
-                ForEach(0..<totalSteps, id: \.self) { index in
-                    Capsule(style: .continuous)
-                        .fill(index <= currentStepIndex ? Color.appAccent : Color.white.opacity(0.16))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 5)
-                }
-            }
-            .frame(maxWidth: .infinity)
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ProgressView(value: Double(step.rawValue + 1), total: Double(Step.allCases.count))
+                .tint(Color.appAccent)
 
-            Button(AppLocalization.systemString("Skip")) {
-                skipCurrentStep()
+            HStack {
+                Text(AppLocalization.systemString("Step %d of %d", step.rawValue + 1, Step.allCases.count))
+                    .font(AppTypography.microEmphasis)
+                    .foregroundStyle(Color.appGray)
+
+                Spacer()
+
+                Button(AppLocalization.systemString("Skip")) {
+                    skipStep()
+                }
+                .font(AppTypography.microEmphasis)
+                .foregroundStyle(Color.appGray)
             }
-            .font(AppTypography.microEmphasis)
-            .foregroundStyle(Color.appGray)
-            .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
         }
         .padding(.horizontal, 24)
+        .padding(.top, 4)
     }
 
-    private func slideCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        AppGlassCard(
-            depth: .floating,
-            cornerRadius: 26,
-            tint: Color.appAccent.opacity(0.16),
-            contentPadding: 0
-        ) {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 16) {
-                    content()
+    @ViewBuilder
+    private var stepContent: some View {
+        switch step {
+        case .intro:
+            VStack(alignment: .leading, spacing: 16) {
+                Text(AppLocalization.systemString("\"What is measured is managed\"\n- Peter Drucker"))
+                    .font(AppTypography.captionEmphasis)
+                    .foregroundStyle(Color.appGray)
+
+                Text(AppLocalization.systemString("Built for real-life change"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
+
+                OnboardingHeroView(animate: animateHero)
+
+                VStack(spacing: 12) {
+                    OnboardingFeatureCard(
+                        icon: "chart.line.uptrend.xyaxis",
+                        title: AppLocalization.systemString("See trends that matter"),
+                        detail: AppLocalization.systemString("Track weight, waist, and body composition with clear signals - not noise.")
+                    )
+
+                    OnboardingFeatureCard(
+                        icon: "figure.walk",
+                        title: AppLocalization.systemString("Stay consistent"),
+                        detail: AppLocalization.systemString("Gentle check-ins help habits stick for diet, training, or health goals.")
+                    )
+
+                    OnboardingFeatureCard(
+                        icon: "sparkles",
+                        title: AppLocalization.systemString("Understand your body"),
+                        detail: AppLocalization.systemString("Smart metrics like WHtR and BMI give context to the numbers.")
+                    )
                 }
-                .padding(18)
+
+                Text(AppLocalization.systemString("Set a calm baseline, then focus on small, repeatable wins."))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(Color.appGray)
             }
-            .scrollDismissesKeyboard(.interactively)
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    dismissKeyboard()
-                }
-            )
-        }
-    }
+        case .measurements:
+            VStack(alignment: .leading, spacing: 16) {
+                Text(AppLocalization.systemString("Measurements beat the scale"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
 
-    private var welcomeSlide: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                slideHeader(title: Step.welcome.title, subtitle: Step.welcome.subtitle)
-                Spacer(minLength: 0)
-                Image("BrandMark")
-                    .renderingMode(.original)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 44, height: 44)
-                    .padding(.top, 6)
-                    .accessibilityHidden(true)
+                OnboardingFeatureCard(
+                    icon: "ruler.fill",
+                    title: AppLocalization.systemString("Waist + hips show real change"),
+                    detail: AppLocalization.systemString("You can build muscle and lose fat at the same time, so weight alone can mislead.")
+                )
+
+                OnboardingFeatureCard(
+                    icon: "figure.strengthtraining.traditional",
+                    title: AppLocalization.systemString("Composition beats weight"),
+                    detail: AppLocalization.systemString("Track body fat and lean mass to see your true progress.")
+                )
             }
+        case .name:
+            VStack(alignment: .leading, spacing: 12) {
+                Text(AppLocalization.systemString("What should we call you?"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
 
-            welcomeGoalSelector
-            welcomeTrendPreview
-            welcomeInsightPreview
-        }
-    }
-
-    private var profileSlide: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            slideHeader(title: Step.profile.title, subtitle: Step.profile.subtitle)
-
-            profileField(title: AppLocalization.systemString("Name")) {
-                TextField(AppLocalization.systemString("e.g., Jacek"), text: $nameInput)
+                TextField(AppLocalization.systemString("Your name"), text: $nameInput)
                     .textFieldStyle(.roundedBorder)
                     .textInputAutocapitalization(.words)
                     .autocorrectionDisabled()
-                    .focused($focusedField, equals: .name)
+                    .submitLabel(.done)
             }
+        case .age:
+            VStack(alignment: .leading, spacing: 12) {
+                Text(AppLocalization.systemString("How old are you?"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
 
-            profileField(title: AppLocalization.systemString("Height")) {
-                if unitsSystem == "imperial" {
-                    HStack(spacing: 10) {
-                        TextField(AppLocalization.systemString("Feet"), text: $feetInput)
-                            .keyboardType(.numberPad)
-                            .textFieldStyle(.roundedBorder)
-                            .focused($focusedField, equals: .feet)
-                        TextField(AppLocalization.systemString("Inches"), text: $inchesInput)
-                            .keyboardType(.numberPad)
-                            .textFieldStyle(.roundedBorder)
-                            .focused($focusedField, equals: .inches)
-                    }
-                } else {
-                    TextField(AppLocalization.systemString("Centimeters"), text: $heightInput)
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(.roundedBorder)
-                        .focused($focusedField, equals: .height)
-                }
-            }
-
-            HStack(spacing: 10) {
-                profileField(title: AppLocalization.systemString("Sex")) {
-                    Picker("", selection: $userGender) {
-                        Text(AppLocalization.systemString("Not specified")).tag("notSpecified")
-                        Text(AppLocalization.systemString("Male")).tag("male")
-                        Text(AppLocalization.systemString("Female")).tag("female")
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                }
-            }
-
-            profileField(title: AppLocalization.systemString("Age")) {
                 TextField(AppLocalization.systemString("Age in years"), text: $ageInput)
                     .keyboardType(.numberPad)
                     .textFieldStyle(.roundedBorder)
-                    .focused($focusedField, equals: .age)
             }
+        case .gender:
+            VStack(alignment: .leading, spacing: 12) {
+                Text(AppLocalization.systemString("Select your gender"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
 
-            VStack(alignment: .leading, spacing: 8) {
-                reasonRow(icon: "person.fill", text: AppLocalization.systemString("Name helps personalize your experience."))
-                reasonRow(icon: "figure.stand", text: AppLocalization.systemString("Height improves BMI and waist-to-height indicators."))
-                reasonRow(icon: "calendar", text: AppLocalization.systemString("Age and sex tune ranges for selected indicators."))
-            }
-            .padding(12)
-            .background(Color.white.opacity(0.05))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-            Text(AppLocalization.systemString("You can skip and fill this later."))
-                .font(AppTypography.caption)
-                .foregroundStyle(Color.appGray)
-        }
-    }
-
-    private var boostersSlide: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            slideHeader(title: Step.boosters.title, subtitle: Step.boosters.subtitle)
-
-            boosterCard(
-                icon: "heart.text.square",
-                title: AppLocalization.systemString("Sync with Apple Health"),
-                detail: AppLocalization.systemString("Import history and keep measurements updated automatically."),
-                why: AppLocalization.systemString("Why: your charts start with more context."),
-                buttonTitle: isSyncEnabled ? AppLocalization.systemString("Connected") : AppLocalization.systemString("Connect"),
-                isLoading: isRequestingHealthKit,
-                isComplete: isSyncEnabled,
-                action: requestHealthKitAccess
-            )
-
-            boosterCard(
-                icon: "bell.badge",
-                title: AppLocalization.systemString("Weekly reminder"),
-                detail: AppLocalization.systemString("One gentle nudge per week keeps momentum."),
-                why: AppLocalization.systemString("Why: consistency beats intensity."),
-                buttonTitle: isReminderScheduled ? AppLocalization.systemString("Scheduled") : AppLocalization.systemString("Set schedule"),
-                isLoading: isRequestingNotifications,
-                isComplete: isReminderScheduled,
-                action: { showReminderSetupSheet = true }
-            )
-        }
-    }
-
-    private var premiumSlide: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            slideHeader(title: Step.premium.title, subtitle: Step.premium.subtitle)
-
-            premiumUnlockBundleTile
-            onboardingPlanPicker
-
-            Button {
-                onboardingChecklistPremiumExplored = true
-                Haptics.light()
-                if let product = onboardingSelectedPremiumProduct {
-                    Task { await premiumStore.purchase(product) }
-                } else {
-                    premiumStore.presentPaywall(reason: .onboarding)
+                Picker(AppLocalization.systemString("Gender"), selection: $userGender) {
+                    Text(AppLocalization.systemString("Not specified")).tag("notSpecified")
+                    Text(AppLocalization.systemString("Male")).tag("male")
+                    Text(AppLocalization.systemString("Female")).tag("female")
                 }
-            } label: {
-                Text(AppLocalization.systemString("Start my 14-day free trial"))
+                .pickerStyle(.segmented)
             }
-            .buttonStyle(AppAccentButtonStyle(cornerRadius: 24))
+        case .units:
+            VStack(alignment: .leading, spacing: 12) {
+                Text(AppLocalization.systemString("Choose your units"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
 
-            onboardingBilledAfterTrialText
-                .font(AppTypography.micro)
-                .foregroundStyle(.white.opacity(0.72))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, alignment: .center)
-        }
-    }
-
-    private func slideHeader(title: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 42, weight: .bold, design: .rounded).monospacedDigit())
-                .minimumScaleFactor(0.72)
-                .lineLimit(2)
-                .foregroundStyle(Color.appWhite)
-
-            if !subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text(subtitle)
-                    .font(.system(.title3, design: .rounded).weight(.medium))
-                    .foregroundStyle(Color.appGray)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    private var welcomeGoalSelector: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(AppLocalization.systemString("What's your goal?"))
-                .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(Color.appWhite)
-
-            VStack(spacing: 8) {
-                ForEach(WelcomeGoal.allCases, id: \.self) { goal in
-                    welcomeGoalOptionRow(goal)
+                Picker(AppLocalization.systemString("Units"), selection: $unitsSystem) {
+                    Text(AppLocalization.systemString("Metric")).tag("metric")
+                    Text(AppLocalization.systemString("Imperial")).tag("imperial")
                 }
+                .pickerStyle(.segmented)
             }
-        }
-        .padding(12)
-        .background(Color.white.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.10), lineWidth: 1)
-        )
-    }
+        case .height:
+            VStack(alignment: .leading, spacing: 12) {
+                Text(AppLocalization.systemString("Enter your height"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
 
-    private func welcomeGoalOptionRow(_ goal: WelcomeGoal) -> some View {
-        let isSelected = selectedWelcomeGoals.contains(goal)
-        return Button {
-            toggleWelcomeGoal(goal)
-            Haptics.selection()
-        } label: {
-            HStack(spacing: 10) {
-                Text(goal.title)
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(isSelected ? 0.95 : 0.86))
-
-                Spacer(minLength: 0)
-
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(isSelected ? Color.appAccent : Color.white.opacity(0.35))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(isSelected ? Color.appAccent.opacity(0.14) : Color.white.opacity(0.04))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(isSelected ? Color.appAccent.opacity(0.7) : Color.white.opacity(0.12), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private struct WelcomeTrendPoint: Identifiable {
-        let id: Int
-        let week: Int
-        let value: Double
-    }
-
-    private var welcomeTrendPoints: [WelcomeTrendPoint] {
-        [
-            WelcomeTrendPoint(id: 0, week: 1, value: 82.4),
-            WelcomeTrendPoint(id: 1, week: 2, value: 82.3),
-            WelcomeTrendPoint(id: 2, week: 3, value: 82.0),
-            WelcomeTrendPoint(id: 3, week: 4, value: 82.1),
-            WelcomeTrendPoint(id: 4, week: 5, value: 81.8),
-            WelcomeTrendPoint(id: 5, week: 6, value: 81.6),
-            WelcomeTrendPoint(id: 6, week: 7, value: 81.7),
-            WelcomeTrendPoint(id: 7, week: 8, value: 81.3),
-            WelcomeTrendPoint(id: 8, week: 9, value: 81.1),
-            WelcomeTrendPoint(id: 9, week: 10, value: 81.0),
-            WelcomeTrendPoint(id: 10, week: 11, value: 80.9),
-            WelcomeTrendPoint(id: 11, week: 12, value: 80.6),
-            WelcomeTrendPoint(id: 12, week: 13, value: 80.7),
-            WelcomeTrendPoint(id: 13, week: 14, value: 80.4),
-            WelcomeTrendPoint(id: 14, week: 15, value: 80.2),
-            WelcomeTrendPoint(id: 15, week: 16, value: 80.1),
-            WelcomeTrendPoint(id: 16, week: 17, value: 79.9),
-            WelcomeTrendPoint(id: 17, week: 18, value: 79.7)
-        ]
-    }
-
-    private var welcomeGoalValue: Double {
-        79.0
-    }
-
-    private var welcomeXAxisValues: [Int] {
-        [1, 4, 7, 10, 13, 16, 18]
-    }
-
-    private var welcomeLastTrendPoint: WelcomeTrendPoint? {
-        welcomeTrendPoints.last
-    }
-
-    private var welcomeWeekDomain: ClosedRange<Int> {
-        guard let firstWeek = welcomeTrendPoints.first?.week,
-              let lastWeek = welcomeTrendPoints.last?.week,
-              firstWeek < lastWeek else {
-            return 1...2
-        }
-        return firstWeek...lastWeek
-    }
-
-    private var welcomeTrendDomain: ClosedRange<Double> {
-        let values = (welcomeTrendPoints.map(\.value) + [welcomeGoalValue]).filter(\.isFinite)
-        guard let minValue = values.min(), let maxValue = values.max() else {
-            return 0...1
-        }
-
-        let padding = max((maxValue - minValue) * 0.18, 0.5)
-        let lower = minValue - padding
-        let upper = maxValue + padding
-
-        guard lower.isFinite, upper.isFinite, lower < upper else {
-            return 0...1
-        }
-
-        return lower...upper
-    }
-
-    private var welcomeTrendPreview: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Spacer()
-                Text(AppLocalization.systemString("onboarding.trend.delta"))
-                    .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color(hex: "#22C55E"))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color(hex: "#22C55E").opacity(0.16))
-                    .clipShape(Capsule(style: .continuous))
-
-                Text(AppLocalization.systemString("onboarding.goal.badge", welcomeGoalValue))
-                    .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color(hex: "#22C55E"))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color(hex: "#22C55E").opacity(0.16))
-                    .clipShape(Capsule(style: .continuous))
-            }
-
-            Chart {
-                RuleMark(y: .value("Goal", welcomeGoalValue))
-                    .lineStyle(StrokeStyle(lineWidth: 1.1, dash: [5, 4]))
-                    .foregroundStyle(Color(hex: "#22C55E").opacity(0.9))
-
-                ForEach(welcomeTrendPoints) { point in
-                    AreaMark(
-                        x: .value("Week", point.week),
-                        yStart: .value("Baseline", welcomeTrendDomain.lowerBound),
-                        yEnd: .value("Weight", point.value)
-                    )
-                    .interpolationMethod(.catmullRom)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color.appAccent.opacity(0.28), Color.appAccent.opacity(0.02)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-
-                    LineMark(
-                        x: .value("Week", point.week),
-                        y: .value("Weight", point.value)
-                    )
-                    .interpolationMethod(.catmullRom)
-                    .foregroundStyle(Color.appAccent)
-                    .lineStyle(StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
-
-                    if let lastPoint = welcomeLastTrendPoint, lastPoint.id == point.id {
-                        PointMark(
-                            x: .value("Week", point.week),
-                            y: .value("Weight", point.value)
-                        )
-                        .symbolSize(44)
-                        .foregroundStyle(Color.appAccent)
-
-                        PointMark(
-                            x: .value("Week", point.week),
-                            y: .value("Goal", welcomeGoalValue)
-                        )
-                        .symbolSize(36)
-                        .foregroundStyle(Color(hex: "#22C55E"))
-                    }
-                }
-            }
-            .chartPlotStyle { plotArea in
-                plotArea
-                    .padding(.bottom, 8)
-            }
-            .chartXAxis {
-                AxisMarks(values: welcomeXAxisValues) { value in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.8))
-                        .foregroundStyle(Color.white.opacity(0.08))
-                    AxisTick(stroke: StrokeStyle(lineWidth: 0.8))
-                        .foregroundStyle(Color.white.opacity(0.18))
-                    AxisValueLabel {
-                        if let week = value.as(Int.self) {
-                            Text(AppLocalization.systemString("onboarding.week.label", week))
-                                .font(AppTypography.micro)
+                if unitsSystem == "imperial" {
+                    HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(AppLocalization.systemString("Feet"))
+                                .font(AppTypography.caption)
                                 .foregroundStyle(Color.appGray)
+                            TextField("0", text: $feetInput)
+                                .keyboardType(.numberPad)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(AppLocalization.systemString("Inches"))
+                                .font(AppTypography.caption)
+                                .foregroundStyle(Color.appGray)
+                            TextField("0", text: $inchesInput)
+                                .keyboardType(.numberPad)
+                                .textFieldStyle(.roundedBorder)
                         }
                     }
-                }
-            }
-            .chartYAxis {
-                AxisMarks(position: .leading, values: .stride(by: 1)) { value in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.8))
-                        .foregroundStyle(Color.white.opacity(0.08))
-                    AxisTick(stroke: StrokeStyle(lineWidth: 0.8))
-                        .foregroundStyle(Color.white.opacity(0.18))
-                }
-            }
-            .chartXScale(domain: welcomeWeekDomain)
-            .chartYScale(domain: welcomeTrendDomain)
-            .frame(height: 122)
-        }
-        .padding(12)
-        .background(Color.white.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.10), lineWidth: 1)
-        )
-    }
-
-    private var welcomeInsightPreview: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            MetricInsightCard(
-                text: AppLocalization.systemString("You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week."),
-                compact: false,
-                isLoading: false
-            )
-        }
-    }
-
-    private var premiumUnlockBundleTile: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(Color.appAccent.opacity(0.26))
-                    .frame(width: 24, height: 24)
-                    .overlay(
-                        Image(systemName: "crown.fill")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(Color.appAccent)
-                    )
-
-                Text(AppLocalization.string("premium.unlock.bundle.title"))
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(0.92))
-            }
-
-            premiumUnlockBenefitRow(icon: "sparkles", tint: Color(hex: "#4ADE80"), textKey: "premium.carousel.unlock.item.ai")
-            premiumUnlockBenefitRow(icon: "photo.on.rectangle.angled", tint: Color(hex: "#60A5FA"), textKey: "premium.carousel.unlock.item.compare")
-            premiumUnlockBenefitRow(icon: "heart.text.square.fill", tint: Color(hex: "#34D399"), textKey: "premium.carousel.unlock.item.health")
-            premiumUnlockBenefitRow(icon: "doc.text.fill", tint: Color(hex: "#FBBF24"), textKey: "premium.carousel.unlock.item.export")
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.09), Color.white.opacity(0.04)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                )
-        )
-    }
-
-    private func premiumUnlockBenefitRow(icon: String, tint: Color, textKey: String) -> some View {
-        HStack(alignment: .center, spacing: 9) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(width: 18, alignment: .leading)
-
-            Text(AppLocalization.string(textKey))
-                .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(.white.opacity(0.92))
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 8)
-
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color(hex: "#FCA311"))
-        }
-        .padding(.vertical, 2)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var onboardingPlanPicker: some View {
-        VStack(spacing: 10) {
-            if onboardingPremiumProducts.isEmpty {
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .tint(Color.appAccent)
-                    Text(AppLocalization.string("premium.subscription.loading"))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.white.opacity(0.75))
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.white.opacity(0.06))
-                )
-            } else {
-                ForEach(onboardingPremiumProducts, id: \.id) { product in
-                    onboardingPlanRow(product: product)
-                }
-            }
-        }
-    }
-
-    private func onboardingPlanRow(product: Product) -> some View {
-        let isSelected = product.id == onboardingSelectedPremiumProductID
-        let badge = onboardingPlanBadge(for: product)
-
-        return Button {
-            onboardingSelectedPremiumProductID = product.id
-            Haptics.selection()
-        } label: {
-            ZStack(alignment: .topTrailing) {
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(onboardingPlanTitle(for: product))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                        Text(onboardingPlanSubtitle(for: product))
+                } else {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(AppLocalization.systemString("Centimeters"))
                             .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.72))
+                            .foregroundStyle(Color.appGray)
+                        TextField("0.0", text: $heightInput)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(.roundedBorder)
                     }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text(onboardingPriceLine(for: product))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                            .minimumScaleFactor(0.9)
-
-                        if product.id == PremiumConstants.yearlyProductID,
-                           let onboardingYearlySavingsPercent {
-                            Text(AppLocalization.string("premium.plan.save.percent", onboardingYearlySavingsPercent))
-                                .font(AppTypography.micro)
-                                .foregroundStyle(.white.opacity(0.64))
-                        }
-                    }
-                    .padding(.top, badge == nil ? 0 : 16)
-                }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
-                .padding(.top, 12)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(isSelected ? Color.appAccent.opacity(0.16) : Color.white.opacity(0.05))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(isSelected ? Color.appAccent : Color.white.opacity(0.14), lineWidth: 1)
-                        )
-                )
-
-                if let badge {
-                    Text(badge.uppercased())
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(.black.opacity(0.92))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(
-                            Capsule(style: .continuous)
-                                .fill(Color.appAccent)
-                        )
-                        .offset(y: -9)
-                        .padding(.trailing, 10)
                 }
             }
-        }
-        .buttonStyle(.plain)
-    }
+        case .healthKit:
+            VStack(alignment: .leading, spacing: 12) {
+                Text(AppLocalization.systemString("Sync with Health"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
 
-    private func onboardingPlanTitle(for product: Product) -> String {
-        switch product.id {
-        case PremiumConstants.monthlyProductID:
-            return AppLocalization.string("premium.plan.monthly")
-        case PremiumConstants.yearlyProductID:
-            return AppLocalization.string("premium.plan.yearly")
-        default:
-            return product.displayName
-        }
-    }
+                Toggle(isOn: $healthKitToggle) {
+                    Text(healthKitToggle ? AppLocalization.systemString("Enabled") : AppLocalization.systemString("Not now"))
+                        .foregroundStyle(Color.appWhite)
+                }
+                .tint(Color.appAccent)
+                .disabled(isRequestingHealthKit)
+                .onChange(of: healthKitToggle) { _, newValue in
+                    handleHealthKitToggle(newValue)
+                }
 
-    private func onboardingPlanSubtitle(for product: Product) -> String {
-        switch product.id {
-        case PremiumConstants.monthlyProductID:
-            return AppLocalization.string("premium.plan.billing.monthly")
-        case PremiumConstants.yearlyProductID:
-            return AppLocalization.string("premium.plan.billing.yearly")
-        default:
-            return AppLocalization.string("premium.plan.billing.default")
-        }
-    }
-
-    private func onboardingPlanBadge(for product: Product) -> String? {
-        guard product.id == PremiumConstants.yearlyProductID else { return nil }
-        return AppLocalization.string("premium.plan.best.value")
-    }
-
-    private func onboardingPriceLine(for product: Product) -> String {
-        switch product.id {
-        case PremiumConstants.monthlyProductID:
-            return "\(product.displayPrice)/\(AppLocalization.string("premium.plan.period.month"))"
-        case PremiumConstants.yearlyProductID:
-            let monthlyEquivalent = product.price / Decimal(12)
-            let monthlyEquivalentDisplay = monthlyEquivalent.formatted(product.priceFormatStyle)
-            return AppLocalization.string("premium.plan.just.monthly.dynamic", monthlyEquivalentDisplay)
-        default:
-            return product.displayPrice
-        }
-    }
-
-    private var onboardingBilledAfterTrialText: Text {
-        let product = onboardingSelectedPremiumProduct ?? yearlyProduct ?? monthlyProduct
-        guard let product else {
-            return Text(AppLocalization.string("premium.cta.billed.after.trial.fallback"))
-        }
-
-        let periodLabel: String
-        if product.id == PremiumConstants.yearlyProductID {
-            periodLabel = AppLocalization.string("premium.plan.period.year")
-        } else {
-            periodLabel = AppLocalization.string("premium.plan.period.month")
-        }
-
-        let amountWithPeriod = "\(product.displayPrice)/\(periodLabel)"
-        let prefix = AppLocalization.string("premium.cta.billed.prefix")
-        let suffix = AppLocalization.string("premium.cta.billed.suffix")
-
-        var attributed = AttributedString("\(prefix)\(amountWithPeriod)\(suffix)")
-        if let emphasizedRange = attributed.range(of: amountWithPeriod) {
-            attributed[emphasizedRange].inlinePresentationIntent = .stronglyEmphasized
-        }
-        return Text(attributed)
-    }
-
-    private func profileField<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(AppTypography.captionEmphasis)
-                .foregroundStyle(Color.appWhite)
-            content()
-        }
-    }
-
-    private func reasonRow(icon: String, text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.appAccent)
-                .frame(width: 16)
-            Text(text)
-                .font(AppTypography.caption)
-                .foregroundStyle(Color.appGray)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private func boosterCard(
-        icon: String,
-        title: String,
-        detail: String,
-        why: String,
-        buttonTitle: String,
-        isLoading: Bool,
-        isComplete: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            OnboardingFeatureCard(icon: icon, title: title, detail: detail)
-
-            Text(why)
-                .font(AppTypography.caption)
-                .foregroundStyle(Color.appGray)
-
-            Button {
-                action()
-            } label: {
-                HStack(spacing: 8) {
-                    if isLoading {
+                if isImportingHealthDataInBackground {
+                    HStack(spacing: 8) {
                         ProgressView()
                             .controlSize(.small)
                             .tint(Color.appAccent)
+                        Text(AppLocalization.systemString("Importing Health data in background. You can continue."))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(Color.appGray)
                     }
-                    Text(buttonTitle)
-                        .frame(maxWidth: .infinity)
                 }
             }
-            .buttonStyle(.bordered)
-            .tint(Color.appAccent)
-            .disabled(isLoading || isComplete)
+        case .notifications:
+            VStack(alignment: .leading, spacing: 12) {
+                Text(AppLocalization.systemString("Allow notifications"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
+
+                Toggle(isOn: $notificationsToggle) {
+                    Text(notificationsToggle ? AppLocalization.systemString("Enabled") : AppLocalization.systemString("Not now"))
+                        .foregroundStyle(Color.appWhite)
+                }
+                .tint(Color.appAccent)
+                .disabled(isRequestingNotifications)
+                .onChange(of: notificationsToggle) { _, newValue in
+                    handleNotificationsToggle(newValue)
+                }
+
+                if animateCelebration {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Color.appAccent)
+                        Text(AppLocalization.systemString("You’re all set."))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(Color.appGray)
+                    }
+                    .transition(.opacity.combined(with: .scale))
+                }
+            }
+        case .quickAdd:
+            VStack(alignment: .leading, spacing: 16) {
+                Text(AppLocalization.systemString("Add a quick measurement"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
+
+                OnboardingFeatureCard(
+                    icon: "plus.circle.fill",
+                    title: AppLocalization.systemString("Log in seconds"),
+                    detail: AppLocalization.systemString("Quick Add lets you update multiple metrics without extra taps.")
+                )
+
+                OnboardingEmptyStateCard(
+                    icon: "chart.bar.doc.horizontal",
+                    title: AppLocalization.systemString("No measurements yet"),
+                    detail: AppLocalization.systemString("Add your first measurement to unlock trends and goal progress.")
+                )
+
+                Button {
+                    showQuickAddSheet = true
+                } label: {
+                    Text(AppLocalization.systemString("Add your first measurement"))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.appAccent)
+            }
+        case .chart:
+            VStack(alignment: .leading, spacing: 16) {
+                Text(AppLocalization.systemString("Charts show momentum"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
+
+                OnboardingFeatureCard(
+                    icon: "chart.line.uptrend.xyaxis",
+                    title: AppLocalization.systemString("Focus on trends"),
+                    detail: AppLocalization.systemString("We highlight 30-day changes so you can see what’s working.")
+                )
+
+                OnboardingEmptyStateCard(
+                    icon: "waveform.path.ecg",
+                    title: AppLocalization.systemString("No measurements yet."),
+                    detail: AppLocalization.systemString("Add your first measurement to unlock charts and progress.")
+                )
+            }
+        case .photo:
+            VStack(alignment: .leading, spacing: 16) {
+                Text(AppLocalization.systemString("Capture the visual wins"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
+
+                Text(AppLocalization.systemString("You’ll soon see changes with MeasureMe — capture them in photos."))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(Color.appGray)
+
+                OnboardingEmptyStateCard(
+                    icon: "photo.on.rectangle.angled",
+                    title: AppLocalization.systemString("No photos yet. Capture progress photos to see changes beyond the scale."),
+                    detail: AppLocalization.systemString("Photos make body-composition change easier to notice week to week.")
+                )
+
+                Button {
+                    showAddPhotoSheet = true
+                } label: {
+                    Text(AppLocalization.systemString("Add your first photo"))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.appAccent)
+            }
+        case .settings:
+            VStack(alignment: .leading, spacing: 16) {
+                Text(AppLocalization.systemString("You’re in control"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
+
+                OnboardingFeatureCard(
+                    icon: "slider.horizontal.3",
+                    title: AppLocalization.systemString("Choose your metrics"),
+                    detail: AppLocalization.systemString("Pick the measurements that matter most to you.")
+                )
+
+                OnboardingFeatureCard(
+                    icon: "bell.fill",
+                    title: AppLocalization.systemString("Set reminders"),
+                    detail: AppLocalization.systemString("Stay consistent with gentle nudges.")
+                )
+            }
+        case .premium:
+            VStack(alignment: .leading, spacing: 16) {
+                Text(AppLocalization.systemString("Premium stays optional"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.appWhite)
+
+                OnboardingFeatureCard(
+                    icon: "sparkles",
+                    title: AppLocalization.systemString("Deeper insights"),
+                    detail: AppLocalization.systemString("Apple Intelligence insights, Health Indicators, and photo comparison.")
+                )
+
+                Text(AppLocalization.systemString("Premium helps you stay consistent, hit your goals, and supports a small business from Poland."))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(Color.appGray)
+
+                Text(AppLocalization.systemString("Core tracking stays free. Premium unlocks deeper analysis only when you need it."))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(Color.appGray)
+
+                Button {
+                    premiumStore.presentPaywall(reason: .onboarding)
+                } label: {
+                    Text(AppLocalization.systemString("View Premium options"))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(Color.appAccent)
+            }
         }
-        .padding(12)
-        .background(Color.white.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
+    }
+
+    private var footer: some View {
+        HStack(spacing: 12) {
+            Button {
+                goBack()
+            } label: {
+                Text(AppLocalization.systemString("Back"))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .tint(Color.appGray.opacity(0.3))
+            .disabled(step == .intro)
+
+            Button {
+                goForward()
+            } label: {
+                Text(step == .premium ? AppLocalization.systemString("Finish") : AppLocalization.systemString("Continue"))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color.appAccent)
+            .disabled(!canContinue)
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 24)
     }
 
     private var privacyNote: some View {
@@ -1048,114 +599,107 @@ struct OnboardingView: View {
         }
     }
 
-    private var footer: some View {
-        HStack(spacing: 12) {
-            Button {
-                goToPreviousStep()
-            } label: {
-                Text(AppLocalization.systemString("Back"))
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 32)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .tint(Color.appGray.opacity(0.34))
-            .disabled(currentStepIndex == 0)
-
-            Button {
-                goToNextStep()
-            } label: {
-                Text(nextButtonTitle)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 32)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            .tint(Color.appAccent)
+    private var canContinue: Bool {
+        switch step {
+        case .name:
+            return !nameInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .age:
+            return isValidAge
+        case .height:
+            return isValidHeight
+        default:
+            return true
         }
-        .padding(.horizontal, 24)
     }
 
-    private func goToPreviousStep() {
-        dismissKeyboard()
-        guard currentStepIndex > 0 else { return }
-        animateToStep(currentStepIndex - 1)
+    private var isValidAge: Bool {
+        guard let age = Int(ageInput) else { return false }
+        return age >= 5 && age <= 120
     }
 
-    private func goToNextStep() {
-        dismissKeyboard()
-        switch currentStep {
-        case .welcome:
-            break
-        case .profile:
-            persistProfile()
-        case .boosters:
-            persistBoostersOutcome()
+    private var isValidHeight: Bool {
+        if unitsSystem == "imperial" {
+            guard let feet = Int(feetInput), let inches = Int(inchesInput) else { return false }
+            return feet >= 0 && inches >= 0 && inches < 12 && (feet > 0 || inches > 0)
+        }
+
+        guard let value = Double(heightInput) else { return false }
+        return value > 0
+    }
+
+    private var statusText: String? {
+        switch step {
+        case .healthKit:
+            return healthKitStatusText
+        case .notifications:
+            return notificationsStatusText
+        default:
+            return nil
+        }
+    }
+
+    private func goBack() {
+        guard step.rawValue > 0 else { return }
+        if let previous = Step(rawValue: step.rawValue - 1) {
+            transition(to: previous)
+        }
+    }
+
+    private func goForward() {
+        switch step {
+        case .name:
+            userName = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        case .age:
+            if let age = Int(ageInput) {
+                userAge = age
+            }
+        case .height:
+            saveHeight()
         case .premium:
-            finishOnboarding()
-            return
-        }
-
-        let next = min(currentStepIndex + 1, totalSteps - 1)
-        if next == currentStepIndex {
-            finishOnboarding()
-            return
-        }
-        animateToStep(next)
-    }
-
-    private func skipCurrentStep() {
-        dismissKeyboard()
-        if currentStep == .boosters {
-            persistBoostersOutcome()
-        }
-
-        if currentStep == .premium {
-            finishOnboarding()
-            return
-        }
-
-        let next = min(currentStepIndex + 1, totalSteps - 1)
-        if next == currentStepIndex {
-            finishOnboarding()
-            return
-        }
-        animateToStep(next)
-    }
-
-    private func animateToStep(_ index: Int) {
-        if shouldAnimate {
-            withAnimation(.easeOut(duration: 0.16)) {
-                currentStepIndex = index
+            if shouldAnimate {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                    animateCelebration = true
+                }
+            } else {
+                animateCelebration = true
             }
-        } else {
-            currentStepIndex = index
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-            dismissKeyboard()
-        }
-    }
-
-    private func finishOnboarding() {
-        persistWelcomeGoals()
-        persistProfile()
-        persistBoostersOutcome()
-        showOnboardingChecklistOnHome = true
-        onboardingChecklistPremiumExplored = onboardingChecklistPremiumExplored || premiumStore.isPremium
-        Haptics.success()
-
-        if shouldAnimate {
-            withAnimation(.easeInOut(duration: 0.18)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 hasCompletedOnboarding = true
             }
-        } else {
+        default:
+            break
+        }
+
+        if let next = Step(rawValue: step.rawValue + 1) {
+            transition(to: next)
+        }
+    }
+
+    private func skipStep() {
+        if step == .premium {
             hasCompletedOnboarding = true
+            return
+        }
+
+        if let next = Step(rawValue: step.rawValue + 1) {
+            transition(to: next)
+        }
+    }
+
+    private func transition(to next: Step) {
+        if shouldAnimate {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                step = next
+            }
+        } else {
+            step = next
         }
     }
 
     private func hydrate() {
-        nameInput = userName
-        selectedWelcomeGoals = parseWelcomeGoals(from: onboardingPrimaryGoalsRaw)
+        if !userName.isEmpty {
+            nameInput = userName
+        }
 
         if userAge > 0 {
             ageInput = "\(userAge)"
@@ -1172,95 +716,29 @@ struct OnboardingView: View {
             }
         }
 
-        let reminders = NotificationManager.shared.loadReminders()
-        if let weeklyReminder = reminders.first(where: { $0.repeatRule == .weekly }) {
-            let calendar = Calendar.current
-            reminderWeekday = calendar.component(.weekday, from: weeklyReminder.date)
-            reminderTime = weeklyReminder.date
-        } else {
-            let defaultReminder = defaultWeeklyReminderDate()
-            let calendar = Calendar.current
-            reminderWeekday = calendar.component(.weekday, from: defaultReminder)
-            reminderTime = defaultReminder
-        }
-        isReminderScheduled = NotificationManager.shared.notificationsEnabled && !reminders.isEmpty
+        healthKitToggle = isSyncEnabled
+        notificationsToggle = NotificationManager.shared.notificationsEnabled
     }
 
-    private func toggleWelcomeGoal(_ goal: WelcomeGoal) {
-        var updated = selectedWelcomeGoals
-        if updated.contains(goal) {
-            updated.remove(goal)
-        } else {
-            updated.insert(goal)
-            recordWelcomeGoalSelectionStat(for: goal)
-        }
-        selectedWelcomeGoals = updated
-        persistWelcomeGoals()
-    }
-
-    private func parseWelcomeGoals(from raw: String) -> Set<WelcomeGoal> {
-        let parts = raw
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        let values = parts.compactMap(WelcomeGoal.init(rawValue:))
-        return Set(values)
-    }
-
-    private func persistWelcomeGoals() {
-        onboardingPrimaryGoalsRaw = sortedWelcomeGoals.map(\.rawValue).joined(separator: ",")
-    }
-
-    private func safeCardHeight(from containerHeight: CGFloat, reserved: CGFloat, extra: CGFloat = 0) -> CGFloat {
-        guard containerHeight.isFinite, containerHeight > 0 else { return 1 }
-        let safeReserved = reserved.isFinite ? max(reserved, 0) : 82
-        let safeExtra = extra.isFinite ? extra : 0
-        let candidate = containerHeight - safeReserved + safeExtra
-        let minimumCardHeight = min(max(containerHeight * 0.55, 180), containerHeight)
-        let maximumCardHeight = max(containerHeight - 20, minimumCardHeight)
-        guard candidate.isFinite else {
-            return minimumCardHeight
-        }
-        return min(max(candidate, minimumCardHeight), maximumCardHeight)
-    }
-
-    private func recordWelcomeGoalSelectionStat(for goal: WelcomeGoal) {
-        let defaults = UserDefaults.standard
-        let key = "onboarding_goal_selection_stat_\(goal.rawValue)"
-        defaults.set(defaults.integer(forKey: key) + 1, forKey: key)
-    }
-
-    private func persistProfile() {
-        userName = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if let parsedAge = Int(ageInput), (5...120).contains(parsedAge) {
-            userAge = parsedAge
-        }
-
+    private func saveHeight() {
         if unitsSystem == "imperial" {
-            if let feet = Int(feetInput), let inches = Int(inchesInput), feet >= 0, inches >= 0, inches < 12, (feet > 0 || inches > 0) {
-                let totalInches = Double(feet * 12 + inches)
-                manualHeight = MetricKind.height.valueToMetric(fromDisplay: totalInches, unitsSystem: unitsSystem)
-            }
-        } else if let value = parseLocalizedDouble(heightInput), value > 0 {
+            let feet = Int(feetInput) ?? 0
+            let inches = Int(inchesInput) ?? 0
+            let totalInches = Double(feet * 12 + inches)
+            manualHeight = MetricKind.height.valueToMetric(fromDisplay: totalInches, unitsSystem: unitsSystem)
+        } else if let value = Double(heightInput) {
             manualHeight = MetricKind.height.valueToMetric(fromDisplay: value, unitsSystem: unitsSystem)
         }
     }
 
-    private func persistBoostersOutcome() {
-        onboardingSkippedHealthKit = !isSyncEnabled
-        onboardingSkippedReminders = !isReminderScheduled
-    }
+    private func handleHealthKitToggle(_ newValue: Bool) {
+        if !newValue {
+            isSyncEnabled = false
+            isImportingHealthDataInBackground = false
+            healthKitStatusText = nil
+            return
+        }
 
-    private func parseLocalizedDouble(_ raw: String) -> Double? {
-        let normalized = raw.replacingOccurrences(of: ",", with: ".")
-        return Double(normalized)
-    }
-
-    private func requestHealthKitAccess() {
-        guard !isSyncEnabled else { return }
-        guard !isRequestingHealthKit else { return }
-
-        dismissKeyboard()
         isRequestingHealthKit = true
         healthKitStatusText = AppLocalization.systemString("Requesting Health access...")
 
@@ -1268,209 +746,96 @@ struct OnboardingView: View {
             do {
                 try await HealthKitManager.shared.requestAuthorization()
                 isSyncEnabled = true
-                healthKitStatusText = AppLocalization.systemString("Health sync enabled. Importing data in background.")
-                Haptics.success()
+                healthKitStatusText = AppLocalization.systemString("Health sync enabled.")
                 isRequestingHealthKit = false
+                isImportingHealthDataInBackground = true
+                healthKitStatusText = AppLocalization.systemString("Health sync enabled. Importing data in background.")
+                importFromHealthKitIfPossibleInBackground()
             } catch {
                 isSyncEnabled = false
+                healthKitToggle = false
                 healthKitStatusText = AppLocalization.systemString("Health access denied. You can enable it later in Settings.")
-                Haptics.error()
                 isRequestingHealthKit = false
+                isImportingHealthDataInBackground = false
             }
         }
     }
 
-    private func setupWeeklyReminder(weekday: Int, time: Date) {
-        guard !isReminderScheduled else { return }
-        guard !isRequestingNotifications else { return }
+    private func handleNotificationsToggle(_ newValue: Bool) {
+        if !newValue {
+            NotificationManager.shared.notificationsEnabled = false
+            notificationsStatusText = nil
+            return
+        }
 
-        dismissKeyboard()
         isRequestingNotifications = true
         notificationsStatusText = AppLocalization.systemString("Requesting notification permission...")
 
         Task { @MainActor in
             let granted = await NotificationManager.shared.requestAuthorization()
-            guard granted else {
-                NotificationManager.shared.notificationsEnabled = false
-                notificationsStatusText = AppLocalization.systemString("Notifications denied. You can enable them later in Settings.")
-                isRequestingNotifications = false
-                Haptics.error()
-                return
-            }
-
-            NotificationManager.shared.notificationsEnabled = true
-            let weeklyDate = reminderDate(weekday: weekday, time: time)
-            var reminders = NotificationManager.shared.loadReminders()
-
-            if let weeklyIndex = reminders.firstIndex(where: { $0.repeatRule == .weekly }) {
-                let existing = reminders[weeklyIndex]
-                reminders[weeklyIndex] = MeasurementReminder(
-                    id: existing.id,
-                    date: weeklyDate,
-                    repeatRule: .weekly
-                )
+            NotificationManager.shared.notificationsEnabled = granted
+            if granted {
+                notificationsStatusText = AppLocalization.systemString("Notifications enabled.")
             } else {
-                reminders.append(MeasurementReminder(date: weeklyDate, repeatRule: .weekly))
+                notificationsToggle = false
+                notificationsStatusText = AppLocalization.systemString("Notifications denied. You can enable them later in Settings.")
             }
-
-            NotificationManager.shared.smartTime = time
-            NotificationManager.shared.saveReminders(reminders)
-            NotificationManager.shared.scheduleAllReminders(reminders)
-
-            isReminderScheduled = true
-            notificationsStatusText = AppLocalization.systemString("Weekly reminder is set.")
             isRequestingNotifications = false
-            Haptics.success()
         }
     }
 
-    private func defaultWeeklyReminderDate() -> Date {
-        reminderDate(weekday: 2, time: defaultReminderTime())
-    }
+    private func importFromHealthKitIfPossibleInBackground() {
+        Task {
+            do {
+                var importedAny = false
+                var importedAge: Int?
+                var importedHeight: Double?
 
-    private func defaultReminderTime() -> Date {
-        let calendar = Calendar.current
-        var components = calendar.dateComponents([.year, .month, .day], from: Date())
-        components.hour = 7
-        components.minute = 0
-        return calendar.date(from: components) ?? Date()
-    }
+                if userAge == 0, let birthDate = try HealthKitManager.shared.fetchDateOfBirth() {
+                    importedAge = HealthKitManager.calculateAge(from: birthDate)
+                    importedAny = importedAge != nil || importedAny
+                }
 
-    private func reminderDate(weekday: Int, time: Date, from now: Date = Date()) -> Date {
-        let calendar = Calendar.current
-        let clampedWeekday = min(max(weekday, 1), 7)
-        let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
-        let hour = timeComponents.hour ?? 7
-        let minute = timeComponents.minute ?? 0
+                if manualHeight == 0, let height = try await HealthKitManager.shared.fetchLatestHeightInCentimeters() {
+                    importedHeight = height.value
+                    importedAny = true
+                }
 
-        let components = DateComponents(hour: hour, minute: minute, weekday: clampedWeekday)
-        return calendar.nextDate(
-            after: now,
-            matching: components,
-            matchingPolicy: .nextTime,
-            direction: .forward
-        ) ?? now.addingTimeInterval(7 * 24 * 3600)
-    }
+                await MainActor.run {
+                    if let importedAge {
+                        userAge = importedAge
+                        ageInput = "\(importedAge)"
+                    }
 
-    private func dismissKeyboard() {
-        focusedField = nil
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    if let importedHeight {
+                        manualHeight = importedHeight
+                        let display = MetricKind.height.valueForDisplay(fromMetric: importedHeight, unitsSystem: unitsSystem)
+                        if unitsSystem == "imperial" {
+                            let totalInches = Int(display.rounded())
+                            feetInput = "\(totalInches / 12)"
+                            inchesInput = "\(totalInches % 12)"
+                        } else {
+                            heightInput = String(format: "%.1f", display)
+                        }
+                    }
+
+                    isImportingHealthDataInBackground = false
+                    if importedAny {
+                        healthKitStatusText = AppLocalization.systemString("Health data imported in background.")
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isImportingHealthDataInBackground = false
+                    healthKitStatusText = AppLocalization.systemString("Health sync enabled, but we couldn’t import data.")
+                }
+            }
+        }
     }
 }
 
-private struct OnboardingReminderSetupSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var weekday: Int
-    @Binding var time: Date
-    let onConfirm: () -> Void
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Picker(AppLocalization.systemString("Reminder day"), selection: $weekday) {
-                    ForEach(1...7, id: \.self) { index in
-                        Text(weekdayTitle(index)).tag(index)
-                    }
-                }
-
-                DatePicker(
-                    AppLocalization.systemString("Reminder time"),
-                    selection: $time,
-                    displayedComponents: .hourAndMinute
-                )
-            }
-            .navigationTitle(AppLocalization.systemString("Reminder schedule"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(AppLocalization.systemString("Cancel")) {
-                        dismiss()
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(AppLocalization.systemString("Set reminder")) {
-                        onConfirm()
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-
-    private func weekdayTitle(_ weekday: Int) -> String {
-        let symbols = Calendar.current.weekdaySymbols
-        return symbols[safe: weekday - 1] ?? symbols.first ?? "—"
-    }
-}
-
-private struct OnboardingRulerSlider: View {
-    @Binding var value: Double
-    let range: ClosedRange<Double>
-    let step: Double
-
-    @State private var dragStartValue: Double? = nil
-    @State private var lastHapticStep: Int? = nil
-
-    private let pointsPerStep: CGFloat = 10
-    private let horizontalInset: CGFloat = 10
-
-    var body: some View {
-        GeometryReader { proxy in
-            let width = max(proxy.size.width, 1)
-            let height = max(proxy.size.height, 1)
-            let drawableWidth = max(width - horizontalInset * 2, 1)
-            let span = max(range.upperBound - range.lowerBound, 0.0001)
-            let ratio = min(max((value - range.lowerBound) / span, 0), 1)
-            let indicatorX = horizontalInset + CGFloat(ratio) * drawableWidth
-
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.black.opacity(0.26))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                    )
-
-                let tickCount = max(8, min(50, Int(span / max(step * 5, 1)) + 1))
-                ForEach(0..<tickCount, id: \.self) { index in
-                    let tickX = horizontalInset + CGFloat(index) * (drawableWidth / CGFloat(max(tickCount - 1, 1)))
-                    let isMajor = index.isMultiple(of: 5)
-                    Rectangle()
-                        .fill(Color.white.opacity(isMajor ? 0.55 : 0.28))
-                        .frame(width: 1, height: isMajor ? height * 0.55 : height * 0.32)
-                        .position(x: tickX, y: height / 2)
-                }
-
-                Rectangle()
-                    .fill(Color.appAccent)
-                    .frame(width: 2, height: height * 0.72)
-                    .offset(x: indicatorX - 1)
-            }
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { gesture in
-                        if dragStartValue == nil {
-                            dragStartValue = value
-                        }
-                        let start = dragStartValue ?? value
-                        let deltaSteps = Double(gesture.translation.width / pointsPerStep)
-                        let rawValue = start + deltaSteps * step
-                        let stepped = (rawValue / step).rounded() * step
-                        let clamped = min(max(stepped, range.lowerBound), range.upperBound)
-                        value = clamped
-
-                        let stepIndex = Int((clamped - range.lowerBound) / step)
-                        if lastHapticStep != stepIndex {
-                            lastHapticStep = stepIndex
-                            Haptics.selection()
-                        }
-                    }
-                    .onEnded { _ in
-                        dragStartValue = nil
-                        lastHapticStep = nil
-                    }
-            )
-        }
-    }
+#Preview {
+    OnboardingView()
+        .environmentObject(ActiveMetricsStore())
+        .environmentObject(PremiumStore())
 }

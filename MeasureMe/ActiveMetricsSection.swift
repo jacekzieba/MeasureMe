@@ -9,18 +9,6 @@ struct ActiveMetricsSection: View {
 
     var body: some View {
         Section {
-            HStack {
-                Label(AppLocalization.string("Active"), systemImage: "checkmark.circle.fill")
-                Spacer()
-                Button(isEditing ? AppLocalization.string("Done") : AppLocalization.string("Edit")) {
-                    isEditing.toggle()
-                }
-                .buttonStyle(.plain)
-            }
-            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 4, trailing: 16))
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
-
             ForEach(store.activeKinds, id: \.self) { kind in
                 MetricRowView(
                     kind: kind,
@@ -41,7 +29,16 @@ struct ActiveMetricsSection: View {
                     scrollProxy.scrollTo(moved, anchor: .center)
                 }
             }
+
+        } header: {
+            HStack {
+                Label(AppLocalization.string("Active"), systemImage: "checkmark.circle.fill")
+                Spacer()
+                Button(isEditing ? "Done" : "Edit") {
+                    isEditing.toggle()
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .textCase(nil)
     }
 }

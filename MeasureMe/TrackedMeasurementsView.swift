@@ -8,12 +8,7 @@ struct TrackedMeasurementsView: View {
     @State private var showKeyMetricsLimitAlert = false
 
     var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(
-                topHeight: 380,
-                tint: Color.cyan.opacity(0.22)
-            )
-
+        NavigationStack {
             ScrollViewReader { proxy in
                 List {
                     KeyMetricsSection(
@@ -49,24 +44,16 @@ struct TrackedMeasurementsView: View {
                     )
                 }
                 .environment(\.editMode, .constant(isEditingActive ? .active : .inactive))
-                .scrollContentBackground(.hidden)
-                .listStyle(.plain)
-                .listSectionSpacing(20)
-                .listRowSeparator(.hidden)
-                .listSectionSeparator(.hidden)
-                .padding(.top, -8)
             }
-        }
-        .navigationTitle(AppLocalization.string("Tracked measurements"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .navigationDestination(item: $selectedKind) { kind in
-            MetricDetailView(kind: kind)
-        }
-        .alert(AppLocalization.string("Limit reached"), isPresented: $showKeyMetricsLimitAlert) {
-            Button(AppLocalization.string("OK"), role: .cancel) { }
-        } message: {
-            Text(AppLocalization.string("You can choose up to 3 key metrics for Home."))
+            .navigationTitle(AppLocalization.string("Tracked measurements"))
+            .navigationDestination(item: $selectedKind) { kind in
+                MetricDetailView(kind: kind)
+            }
+            .alert(AppLocalization.string("Limit reached"), isPresented: $showKeyMetricsLimitAlert) {
+                Button(AppLocalization.string("OK"), role: .cancel) { }
+            } message: {
+                Text(AppLocalization.string("You can choose up to 3 key metrics for Home."))
+            }
         }
     }
 }
@@ -77,22 +64,9 @@ private struct KeyMetricsSection: View {
 
     var body: some View {
         Section {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(AppLocalization.string("Home key metrics"))
-                Text(AppLocalization.string("Choose up to 3 to show on Home and Measurements."))
-                    .font(AppTypography.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 4, trailing: 16))
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
-
             if store.activeKinds.isEmpty {
                 Text(AppLocalization.string("Enable metrics below to pick key metrics for Home."))
                     .foregroundStyle(.secondary)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
             } else {
                 ForEach(store.activeKinds, id: \.self) { kind in
                     HStack(spacing: 12) {
@@ -121,14 +95,18 @@ private struct KeyMetricsSection: View {
                     }
                     .frame(maxWidth: .infinity, minHeight: MetricsLayout.rowHeight, alignment: .leading)
                     .padding(.horizontal, MetricsLayout.horizontalPadding)
-                    .padding(.vertical, 10)
-                    .padding(.vertical, 3)
+                    .background(Color(.secondarySystemGroupedBackground))
                     .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                    .listRowBackground(Color.clear)
+                    .listRowInsets(.init())
                 }
             }
+        } header: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(AppLocalization.string("Home key metrics"))
+                Text(AppLocalization.string("Choose up to 3 to show on Home and Measurements."))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
-        .textCase(nil)
     }
 }

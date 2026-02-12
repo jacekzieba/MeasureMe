@@ -101,28 +101,15 @@ final class PhotoFilters {
 // MARK: - Date Range Enum
 
 enum DateRange: String, CaseIterable, Identifiable {
-        case all
-        case last7Days
-        case last30Days
-        case last90Days
-        case custom
+        case all = "All Photos"
+        case last7Days = "Last 7 Days"
+        case last30Days = "Last 30 Days"
+        case last90Days = "Last 90 Days"
+        case custom = "Custom Range"
     
     var id: String { rawValue }
     
-    var title: String {
-        switch self {
-        case .all:
-            return AppLocalization.string("photos.dateRange.all")
-        case .last7Days:
-            return AppLocalization.string("photos.dateRange.last7Days")
-        case .last30Days:
-            return AppLocalization.string("photos.dateRange.last30Days")
-        case .last90Days:
-            return AppLocalization.string("photos.dateRange.last90Days")
-        case .custom:
-            return AppLocalization.string("photos.dateRange.custom")
-        }
-    }
+    var title: String { rawValue }
     
     func startDate(customStart: Date) -> Date? {
         let calendar = Calendar.current

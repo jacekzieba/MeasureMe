@@ -262,7 +262,7 @@ struct ComparePhotosView: View {
                     if newStatus == .authorized || newStatus == .limited {
                         performExport()
                     } else {
-                        saveMessage = AppLocalization.string("Photo access denied. Enable Photos access in Settings to save.")
+                        saveMessage = "Photo access denied. Enable Photos access in Settings to save."
                         showSaveAlert = true
                         isExporting = false
                     }
@@ -272,7 +272,7 @@ struct ComparePhotosView: View {
         }
         
         guard status == .authorized || status == .limited else {
-            saveMessage = AppLocalization.string("Photo access denied. Enable Photos access in Settings to save.")
+            saveMessage = "Photo access denied. Enable Photos access in Settings to save."
             showSaveAlert = true
             isExporting = false
             return
@@ -291,7 +291,7 @@ struct ComparePhotosView: View {
             await MainActor.run {
                 guard let mergedData,
                       let merged = UIImage(data: mergedData) else {
-                    saveMessage = AppLocalization.string("Failed to prepare the comparison image.")
+                    saveMessage = "Failed to prepare the comparison image."
                     showSaveAlert = true
                     isExporting = false
                     return
@@ -301,7 +301,7 @@ struct ComparePhotosView: View {
                     DispatchQueue.main.async {
                         switch result {
                         case .success:
-                            saveMessage = AppLocalization.string("Saved to Photos.")
+                            saveMessage = "Saved to Photos."
                         case .failure(let message):
                             saveMessage = message
                         }
@@ -541,8 +541,6 @@ private struct BeforeAfterSlider: View {
     @State private var cachedAfterImage: UIImage?
     
     var body: some View {
-        let clampedSlider = sliderPosition.isFinite ? min(max(sliderPosition, 0), 1) : 0.5
-
         ZStack {
             // Before image (background) - z cache
             if let beforeUIImage = cachedBeforeImage {
@@ -570,7 +568,7 @@ private struct BeforeAfterSlider: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .mask {
                         Rectangle()
-                            .frame(width: validSize.width * clampedSlider)
+                            .frame(width: validSize.width * sliderPosition)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
             }
@@ -601,7 +599,7 @@ private struct BeforeAfterSlider: View {
                         }
                 }
                 .frame(maxHeight: .infinity)
-                .position(x: validSize.width * clampedSlider, y: geometry.size.height / 2)
+                .position(x: validSize.width * sliderPosition, y: geometry.size.height / 2)
                 .gesture(
                     DragGesture()
                         .onChanged { value in
@@ -609,8 +607,7 @@ private struct BeforeAfterSlider: View {
                                 isDragging = true
                             }
                             
-                            let newPosition = value.location.x / max(validSize.width, 1)
-                            guard newPosition.isFinite else { return }
+                            let newPosition = value.location.x / validSize.width
                             sliderPosition = min(max(newPosition, 0), 1)
                         }
                         .onEnded { _ in
@@ -634,7 +631,7 @@ private struct BeforeAfterSlider: View {
                     .background(.black.opacity(0.6))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                     .padding()
-                    .opacity(clampedSlider > 0.2 ? 1 : 0.3)
+                    .opacity(sliderPosition > 0.2 ? 1 : 0.3)
                 
                 Spacer()
                 
@@ -646,7 +643,7 @@ private struct BeforeAfterSlider: View {
                     .background(.black.opacity(0.6))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                     .padding()
-                    .opacity(clampedSlider < 0.8 ? 1 : 0.3)
+                    .opacity(sliderPosition < 0.8 ? 1 : 0.3)
             }
             .frame(maxHeight: .infinity, alignment: .top)
         }

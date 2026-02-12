@@ -151,7 +151,6 @@ struct ConicityDetailView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
     }
     
     private var conicityRanges: [(title: String, range: String, color: String)] {

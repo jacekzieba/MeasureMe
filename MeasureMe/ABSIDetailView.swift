@@ -151,7 +151,6 @@ struct ABSIDetailView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
     }
     
     private var absiRanges: [(title: String, range: String, color: String)] {

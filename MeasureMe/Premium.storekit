@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "bundleID": "com.jacek.measureme",
+  "products": [
+    {
+      "productID": "com.measureme.premium.monthly",
+      "referenceName": "Premium Monthly",
+      "type": "auto-renewable-subscription",
+      "price": 11.99,
+      "currencyCode": "PLN",
+      "subscription": {
+        "subscriptionGroupID": "com.measureme.premium",
+        "subscriptionPeriod": "P1M",
+        "introductoryOffer": {
+          "type": "freeTrial",
+          "duration": "P14D"
+        }
+      }
+    },
+    {
+      "productID": "com.measureme.premium.yearly",
+      "referenceName": "Premium Yearly",
+      "type": "auto-renewable-subscription",
+      "price": 99.99,
+      "currencyCode": "PLN",
+      "subscription": {
+        "subscriptionGroupID": "com.measureme.premium",
+        "subscriptionPeriod": "P1Y",
+        "introductoryOffer": {
+          "type": "freeTrial",
+          "duration": "P14D"
+        }
+      }
+    }
+  ]
+}

@@ -117,8 +117,8 @@ struct FAQView: View {
                                 answer: "Only if you enable reminders in Settings → Notifications."
                             ),
                             faqItem(
-                                question: "What if AI Insights are unavailable?",
-                                answer: "AI Insights in MeasureMe use Apple Intelligence. You need a supported device and language, plus Apple Intelligence enabled in system settings."
+                                question: "What if Apple Intelligence is unavailable?",
+                                answer: "Apple Intelligence requires a supported device, supported language, and that Apple Intelligence is enabled in system settings. Check that your device and language are supported, update to the latest iOS, and enable Apple Intelligence in Settings → Apple Intelligence & Siri. If it’s still unavailable, restart your device and try again."
                             ),
                             faqItem(
                                 question: "Can I compare photos?",
@@ -130,7 +130,7 @@ struct FAQView: View {
                             ),
                             faqItem(
                                 question: "Can I disable animations or haptics?",
-                                answer: "Yes. In Settings → Animations and haptics you can turn off animations and haptics."
+                                answer: "Yes. In Settings → Experience you can turn off animations and haptics."
                             )
                         ]
                     )
@@ -140,7 +140,7 @@ struct FAQView: View {
                         items: [
                             faqItem(
                                 question: "What is Premium Edition?",
-                                answer: "Premium unlocks AI Insights, Health Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled."
+                                answer: "Premium unlocks Apple Intelligence insights, Health Indicators, data export, and photo comparison. It also supports a small business from Poland."
                             ),
                             faqItem(
                                 question: "Is there a free trial?",

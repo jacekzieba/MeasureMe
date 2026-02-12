@@ -87,7 +87,6 @@ struct MiniSparklineChart: View {
                 }
             }
         }
-        .accessibilityHidden(true)
     }
     
     /// Normalizuje punkty danych do wymiarów widoku

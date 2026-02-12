@@ -9,10 +9,8 @@ struct QuickAddSheetView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
-    @Environment(AppRouter.self) private var router
     @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
     @AppStorage("save_unchanged_quick_add") private var saveUnchangedValues: Bool = false
-    @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
 
     // One date used for all quick entries
     @State private var date: Date = .now
@@ -69,7 +67,6 @@ struct QuickAddSheetView: View {
                             }
 
                             dateCard
-                            trackedMetricsFooter
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 12)
@@ -83,7 +80,7 @@ struct QuickAddSheetView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !kinds.isEmpty && focusedKind == nil {
+                if !kinds.isEmpty {
                     saveBar
                 }
             }
@@ -269,32 +266,6 @@ struct QuickAddSheetView: View {
         .padding(.top, 10)
         .padding(.bottom, 12)
         .background(.thinMaterial)
-    }
-
-    private var trackedMetricsFooter: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(AppLocalization.string("Tracked metric visibility can be changed in Settings."))
-                .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.82))
-                .fixedSize(horizontal: false, vertical: true)
-
-            Button {
-                openTrackedMetricsSettings()
-            } label: {
-                HStack(spacing: 6) {
-                    Text(AppLocalization.string("Open tracked metrics settings"))
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(Color.appAccent)
-            .frame(minHeight: 44, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .padding(14)
-        .background(cardBackground(cornerRadius: 16))
     }
 
     private func cardBackground(cornerRadius: CGFloat) -> some View {
@@ -506,13 +477,6 @@ struct QuickAddSheetView: View {
             predicate: #Predicate { $0.kindRaw == kindValue }
         )
         return try? context.fetch(descriptor).first
-    }
-
-    private func openTrackedMetricsSettings() {
-        settingsOpenTrackedMeasurements = true
-        router.selectedTab = .settings
-        onSaved()
-        dismiss()
     }
 }
 

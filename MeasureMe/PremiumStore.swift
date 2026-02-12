@@ -13,12 +13,7 @@ final class PremiumStore: ObservableObject {
     }
 
     @Published var products: [Product] = []
-    @Published var productsLoadError: String? = nil
-    @Published var actionMessage: String? = nil
-    @Published var actionMessageIsError: Bool = false
     @Published var isPremium: Bool = false
-    @Published var showTrialThankYouAlert: Bool = false
-    @Published var showTrialReminderOptInPrompt: Bool = false
     @Published var isLoading: Bool = false
     @Published var isPaywallPresented: Bool = false
     @Published var paywallReason: PaywallReason = .settings
@@ -54,11 +49,6 @@ final class PremiumStore: ObservableObject {
         isPaywallPresented = false
     }
 
-    func clearActionMessage() {
-        actionMessage = nil
-        actionMessageIsError = false
-    }
-
     func checkSevenDayPromptIfNeeded() {
         guard !isPremium else { return }
         let defaults = UserDefaults.standard
@@ -80,16 +70,11 @@ final class PremiumStore: ObservableObject {
 
     func loadProducts() async {
         isLoading = true
-        productsLoadError = nil
         do {
             let fetched = try await Product.products(for: productIDs)
             products = fetched.sorted { $0.price < $1.price }
-            if products.isEmpty {
-                productsLoadError = AppLocalization.string("No products returned by StoreKit.")
-            }
         } catch {
             products = []
-            productsLoadError = error.localizedDescription
         }
         isLoading = false
     }
@@ -100,97 +85,22 @@ final class PremiumStore: ObservableObject {
             switch result {
             case .success(let verification):
                 let transaction = try verification.payloadValue
-                let startedIntroTrial = transaction.offer?.type == .introductory
                 await transaction.finish()
                 await refreshEntitlements()
-                if startedIntroTrial {
-                    await handleTrialActivated()
-                } else {
-                    actionMessage = AppLocalization.string("premium.purchase.success")
-                    actionMessageIsError = false
-                }
-            case .userCancelled:
-                actionMessage = AppLocalization.string("premium.purchase.cancelled")
-                actionMessageIsError = false
-            case .pending:
-                actionMessage = AppLocalization.string("premium.purchase.pending")
-                actionMessageIsError = false
             default:
                 break
             }
         } catch {
-            actionMessage = AppLocalization.string("premium.purchase.failed", error.localizedDescription)
-            actionMessageIsError = true
+            // ignore for now
         }
-    }
-
-    private func handleTrialActivated() async {
-        let notificationManager = NotificationManager.shared
-        let status = await notificationManager.authorizationStatus()
-        let isAuthorized = status == .authorized || status == .provisional || status == .ephemeral
-
-        if notificationManager.notificationsEnabled && isAuthorized {
-            showTrialThankYouAlert = true
-            notificationManager.scheduleTrialEndingReminder(daysFromNow: 12)
-            actionMessage = AppLocalization.string("premium.purchase.trial.success")
-            actionMessageIsError = false
-            return
-        }
-
-        showTrialReminderOptInPrompt = true
-    }
-
-    func confirmTrialReminderOptIn() async {
-        let notificationManager = NotificationManager.shared
-        let previousNotificationsPreference = notificationManager.notificationsEnabled
-        let status = await notificationManager.authorizationStatus()
-        let isAuthorized = status == .authorized || status == .provisional || status == .ephemeral
-
-        let granted: Bool
-        if isAuthorized {
-            granted = true
-        } else {
-            granted = await notificationManager.requestAuthorization()
-        }
-
-        if granted {
-            notificationManager.notificationsEnabled = true
-            notificationManager.scheduleTrialEndingReminder(daysFromNow: 12)
-            actionMessage = AppLocalization.string("premium.purchase.trial.success")
-        } else {
-            notificationManager.notificationsEnabled = previousNotificationsPreference
-            actionMessage = AppLocalization.string("premium.purchase.trial.enable.notifications")
-        }
-
-        showTrialReminderOptInPrompt = false
-        showTrialThankYouAlert = true
-        actionMessageIsError = false
-    }
-
-    func dismissTrialReminderOptIn() {
-        showTrialReminderOptInPrompt = false
-        showTrialThankYouAlert = true
-        actionMessage = AppLocalization.string("premium.purchase.trial.enable.notifications")
-        actionMessageIsError = false
     }
 
     func restorePurchases() async {
-        let wasPremium = isPremium
         do {
             try await AppStore.sync()
             await refreshEntitlements()
-            if isPremium {
-                actionMessage = wasPremium
-                    ? AppLocalization.string("premium.restore.already.active")
-                    : AppLocalization.string("premium.restore.success")
-                actionMessageIsError = false
-            } else {
-                actionMessage = AppLocalization.string("premium.restore.none")
-                actionMessageIsError = false
-            }
         } catch {
-            actionMessage = AppLocalization.string("premium.restore.failed", error.localizedDescription)
-            actionMessageIsError = true
+            // ignore
         }
     }
 

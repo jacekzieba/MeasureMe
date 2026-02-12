@@ -173,13 +173,6 @@ struct HealthMetricsSection: View {
         anyCoreMetricEnabled || anyBodyCompositionEnabled || anyRiskIndicatorEnabled
     }
 
-    private var hasSummaryMeasurementData: Bool {
-        [latestWeight, latestWaist, latestBodyFat, latestLeanMass].contains { value in
-            guard let value else { return false }
-            return value > 0
-        }
-    }
-
     private var supportsAppleIntelligence: Bool {
         premiumStore.isPremium && AppleIntelligenceSupport.isAvailable()
     }
@@ -208,13 +201,17 @@ struct HealthMetricsSection: View {
                             .foregroundStyle(Color(hex: "#FCA311"))
                         }
                     } else if !missingMetrics.isEmpty {
-                        HStack(spacing: 4) {
-                            Image(systemName: "exclamationmark.circle")
-                                .font(AppTypography.micro)
-                            Text(AppLocalization.string("Missing data"))
-                                .font(AppTypography.sectionAction)
+                        NavigationLink {
+                            FAQView()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "info.circle")
+                                    .font(AppTypography.micro)
+                                Text(AppLocalization.string("Learn more in FAQ"))
+                                    .font(AppTypography.sectionAction)
+                            }
+                            .foregroundStyle(Color(hex: "#FCA311"))
                         }
-                        .foregroundStyle(Color(hex: "#FCA311"))
                     }
                 }
             }
@@ -241,39 +238,28 @@ struct HealthMetricsSection: View {
         if !premiumStore.isPremium {
             EmptyView()
         } else if !AppleIntelligenceSupport.isAvailable() {
-            Text(AppLocalization.string("AI Insights aren’t available right now."))
+            Text(AppLocalization.string("Apple Intelligence isn’t available right now."))
                 .font(AppTypography.body)
                 .foregroundStyle(.white.opacity(0.7))
         } else if !hasAnyMetricEnabled {
             Text(AppLocalization.string("Enable health indicators in Settings to generate your summary."))
                 .font(AppTypography.body)
                 .foregroundStyle(.white.opacity(0.7))
-        } else if !hasSummaryMeasurementData {
-            Text(AppLocalization.string("AI summary needs measurement data. Add your first measurement to get personalized insights."))
-                .font(AppTypography.body)
-                .foregroundStyle(.white.opacity(0.7))
         } else {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color(hex: "#FCA311"))
-                        .padding(8)
-                        .background(Color.white.opacity(0.08))
-                        .clipShape(Circle())
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .padding(8)
+                    .background(Color.white.opacity(0.08))
+                    .clipShape(Circle())
 
-                    Text(healthInsightText ?? AppLocalization.string("Generating your health summary..."))
-                        .font(AppTypography.body)
-                        .foregroundStyle(.primary)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .redacted(reason: isLoadingInsight ? .placeholder : [])
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                Text(AppLocalization.string("AI generated"))
-                    .font(AppTypography.micro)
-                    .foregroundStyle(.secondary)
+                Text(healthInsightText ?? AppLocalization.string("Generating your health summary..."))
+                    .font(AppTypography.body)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .redacted(reason: isLoadingInsight ? .placeholder : [])
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(14)
             .background(
@@ -311,7 +297,7 @@ struct HealthMetricsSection: View {
                                             destination: WHtRDetailView(result: whtr)
                                         )
                                     } else {
-                                        missingMetricRow(kind: .whtr, title: AppLocalization.string("Waist-Height Ratio"))
+                                        missingMetricRow(title: AppLocalization.string("Waist-Height Ratio"))
                                     }
                                 }
                                 
@@ -326,7 +312,7 @@ struct HealthMetricsSection: View {
                                             destination: RFMDetailView(result: rfm)
                                         )
                                     } else {
-                                        missingMetricRow(kind: .rfm, title: AppLocalization.string("Relative Fat Mass"))
+                                        missingMetricRow(title: AppLocalization.string("Relative Fat Mass"))
                                     }
                                 }
                                 
@@ -341,7 +327,7 @@ struct HealthMetricsSection: View {
                                             destination: BMIDetailView(result: bmi)
                                         )
                                     } else {
-                                        missingMetricRow(kind: .bmi, title: AppLocalization.string("Body Mass Index"))
+                                        missingMetricRow(title: AppLocalization.string("Body Mass Index"))
                                     }
                                 }
                             }
@@ -367,7 +353,7 @@ struct HealthMetricsSection: View {
                                             destination: BodyFatDetailView(value: bodyFat, gender: userGender)
                                         )
                                     } else {
-                                        missingMetricRow(kind: .bodyFat, title: AppLocalization.string("Body Fat Percentage"))
+                                        missingMetricRow(title: AppLocalization.string("Body Fat Percentage"))
                                     }
                                 }
                                 
@@ -406,7 +392,7 @@ struct HealthMetricsSection: View {
                                             )
                                         }
                                     } else {
-                                        missingMetricRow(kind: .leanMass, title: AppLocalization.string("Lean Body Mass"))
+                                        missingMetricRow(title: AppLocalization.string("Lean Body Mass"))
                                     }
                                 }
                             }
@@ -432,7 +418,7 @@ struct HealthMetricsSection: View {
                                             destination: ABSIDetailView(result: absi)
                                         )
                                     } else {
-                                        missingMetricRow(kind: .absi, title: AppLocalization.string("Body Shape Risk"))
+                                        missingMetricRow(title: AppLocalization.string("Body Shape Risk"))
                                     }
                                 }
                                 
@@ -447,7 +433,7 @@ struct HealthMetricsSection: View {
                                             destination: ConicityDetailView(result: conicity)
                                         )
                                     } else {
-                                        missingMetricRow(kind: .conicity, title: AppLocalization.string("Central Fat Risk"))
+                                        missingMetricRow(title: AppLocalization.string("Central Fat Risk"))
                                     }
                                 }
                             }
@@ -528,70 +514,21 @@ struct HealthMetricsSection: View {
             }
         }
         .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color.white.opacity(0.05))
         )
     }
 
-    private enum MissingIndicatorKind {
-        case whtr
-        case rfm
-        case bmi
-        case bodyFat
-        case leanMass
-        case absi
-        case conicity
-    }
-
     @ViewBuilder
-    private func missingMetricRow(kind: MissingIndicatorKind, title: String) -> some View {
+    private func missingMetricRow(title: String) -> some View {
         HealthMetricRow(
             title: title,
             value: "—",
             category: AppLocalization.string("Add data"),
             categoryColor: "#FCA311",
-            destination: HealthIndicatorMissingDataView(
-                indicatorTitle: title,
-                missingItems: missingInputs(for: kind)
-            )
+            destination: FAQView()
         )
-    }
-
-    private func missingInputs(for kind: MissingIndicatorKind) -> [String] {
-        func appendIfMissing(_ value: Double?, key: String, into list: inout [String]) {
-            if value == nil {
-                list.append(AppLocalization.string(key))
-            }
-        }
-
-        var items: [String] = []
-
-        switch kind {
-        case .whtr:
-            appendIfMissing(latestWaist, key: "Waist", into: &items)
-            appendIfMissing(effectiveHeight, key: "Height", into: &items)
-        case .rfm:
-            appendIfMissing(latestWaist, key: "Waist", into: &items)
-            appendIfMissing(effectiveHeight, key: "Height", into: &items)
-        case .bmi:
-            appendIfMissing(latestWeight, key: "Weight", into: &items)
-            appendIfMissing(effectiveHeight, key: "Height", into: &items)
-        case .bodyFat:
-            appendIfMissing(latestBodyFat, key: "Body Fat Percentage", into: &items)
-        case .leanMass:
-            appendIfMissing(latestLeanMass, key: "Lean Body Mass", into: &items)
-        case .absi, .conicity:
-            appendIfMissing(latestWaist, key: "Waist", into: &items)
-            appendIfMissing(effectiveHeight, key: "Height", into: &items)
-            appendIfMissing(latestWeight, key: "Weight", into: &items)
-        }
-
-        if items.isEmpty {
-            return missingMetrics.map { AppLocalization.string($0) }
-        }
-        return items
     }
     
     private func bodyFatCategory(_ percent: Double) -> (name: String, color: String) {
@@ -616,7 +553,7 @@ struct HealthMetricsSection: View {
     }
 
     private var healthInsightInput: HealthInsightInput? {
-        guard supportsAppleIntelligence, hasAnyMetricEnabled, hasSummaryMeasurementData, displayMode != .indicatorsOnly else { return nil }
+        guard supportsAppleIntelligence, hasAnyMetricEnabled, displayMode != .indicatorsOnly else { return nil }
 
         return HealthInsightInput(
             userName: userName.isEmpty ? nil : userName,
@@ -628,9 +565,9 @@ struct HealthMetricsSection: View {
             latestLeanMassText: latestLeanMass.map { formatWeight($0) },
             weightDelta7dText: metricDeltaText(kind: .weight, days: 7),
             waistDelta7dText: metricDeltaText(kind: .waist, days: 7),
-            coreWHtRText: whtrResult.map { String(format: "%.2f", $0.ratio) },
-            coreBMIText: bmiResult.map { String(format: "%.1f", $0.bmi) },
-            coreRFMText: rfmResult.map { String(format: "%.1f%%", $0.rfm) }
+            coreWHtRText: whtrResult.map { String(format: "%.2f (%@)", $0.ratio, $0.category.rawValue) },
+            coreBMIText: bmiResult.map { String(format: "%.1f (%@)", $0.bmi, $0.category.rawValue) },
+            coreRFMText: rfmResult.map { String(format: "%.1f%% (%@)", $0.rfm, $0.category.rawValue) }
         )
     }
 
@@ -759,13 +696,19 @@ struct HealthMetricsSection: View {
                 }
             }
             
-            HStack(spacing: 8) {
-                Image(systemName: "info.circle.fill")
-                    .foregroundStyle(Color(hex: "#FCA311"))
-                Text(AppLocalization.string("health.indicator.missing.subtitle"))
-                    .font(AppTypography.caption)
-                    .foregroundStyle(.white.opacity(0.82))
-                    .fixedSize(horizontal: false, vertical: true)
+            NavigationLink {
+                FAQView()
+            } label: {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                    Text(AppLocalization.string("Learn more in FAQ"))
+                }
+                .font(AppTypography.bodyEmphasis)
+                .foregroundStyle(.black)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color(hex: "#FCA311"))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .padding(.top, 4)
         }
@@ -779,125 +722,6 @@ struct HealthMetricsSection: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
         )
-    }
-}
-
-private struct HealthIndicatorMissingDataView: View {
-    let indicatorTitle: String
-    let missingItems: [String]
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 340, tint: Color.cyan.opacity(0.2))
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(indicatorTitle)
-                            .font(AppTypography.sectionTitle)
-                            .foregroundStyle(.white)
-                        Text(AppLocalization.string("health.indicator.missing.subtitle"))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.75))
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "tray.and.arrow.down.fill")
-                                .foregroundStyle(Color(hex: "#FCA311"))
-                            Text(AppLocalization.string("health.indicator.missing.requirements.title"))
-                                .font(AppTypography.bodyEmphasis)
-                                .foregroundStyle(.white)
-                        }
-
-                        ForEach(missingItems, id: \.self) { item in
-                            HStack(alignment: .top, spacing: 8) {
-                                Circle()
-                                    .fill(Color(hex: "#FCA311"))
-                                    .frame(width: 6, height: 6)
-                                    .padding(.top, 6)
-                                Text(item)
-                                    .font(AppTypography.body)
-                                    .foregroundStyle(.white.opacity(0.88))
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                    }
-                    .padding(14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.white.opacity(0.06))
-                    )
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(AppLocalization.string("health.indicator.missing.info.title"))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                        Text(AppLocalization.string("health.indicator.missing.info.body"))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.8))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.white.opacity(0.05))
-                    )
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(AppLocalization.string("health.indicator.missing.legend.title"))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-
-                        legendRow(
-                            title: AppLocalization.string("In range"),
-                            subtitle: AppLocalization.string("health.indicator.missing.legend.inrange"),
-                            color: Color(hex: "#22C55E")
-                        )
-                        legendRow(
-                            title: AppLocalization.string("Above range"),
-                            subtitle: AppLocalization.string("health.indicator.missing.legend.above"),
-                            color: Color(hex: "#FCA311")
-                        )
-                        legendRow(
-                            title: AppLocalization.string("Higher range"),
-                            subtitle: AppLocalization.string("health.indicator.missing.legend.high"),
-                            color: Color(hex: "#F97316")
-                        )
-                    }
-                    .padding(14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.white.opacity(0.05))
-                    )
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 20)
-            }
-        }
-        .navigationTitle(indicatorTitle)
-        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func legendRow(title: String, subtitle: String, color: Color) -> some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(color)
-                .frame(width: 10, height: 10)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white)
-                Text(subtitle)
-                    .font(AppTypography.micro)
-                    .foregroundStyle(.white.opacity(0.72))
-            }
-        }
     }
 }
 

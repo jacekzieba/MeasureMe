@@ -14,19 +14,13 @@ struct MetricInsightCard: View {
                 .background(Color.white.opacity(0.08))
                 .clipShape(Circle())
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(text)
-                    .font(compact ? AppTypography.microEmphasis : .subheadline)
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .redacted(reason: isLoading ? .placeholder : [])
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Text(AppLocalization.string("AI generated"))
-                    .font(AppTypography.micro)
-                    .foregroundStyle(.secondary)
-            }
+            Text(text)
+                .font(compact ? AppTypography.caption : AppTypography.body)
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.leading)
+                .lineLimit(compact ? 4 : nil)
+                .redacted(reason: isLoading ? .placeholder : [])
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(compact ? 10 : 14)
         .background(
