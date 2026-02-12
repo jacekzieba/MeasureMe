@@ -112,7 +112,7 @@
          </BuildableReference>
       </BuildableProductRunnable>
       <StoreKitConfigurationFileReference
-         identifier = "../../MeasureMe/PremiumLocal.storekit">
+         identifier = "../../MeasureMe/Premium.storekit">
       </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
