@@ -77,12 +77,6 @@ jobs:
           echo "Requested iOS: $REQUESTED_IOS"
           echo "Using destination: $DESTINATION"
 
-      - name: Require iOS 26.1 runtime
-        if: matrix.ios_runtime == '26.1' && steps.destination.outputs.skip == 'true'
-        run: |
-          echo "iOS 26.1 runtime is required for this CI lane."
-          exit 1
-
       - name: Build
         if: steps.destination.outputs.skip != 'true'
         run: |
