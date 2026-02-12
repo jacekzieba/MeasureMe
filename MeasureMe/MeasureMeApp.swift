@@ -7,6 +7,15 @@ struct MeasureMeApp: App {
     @AppStorage("appLanguage") private var appLanguage: String = "system"
     // Konfiguracja kontenera modeli SwiftData
     var sharedModelContainer: ModelContainer = {
+        let fileManager = FileManager.default
+        if let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            do {
+                try fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
+            } catch {
+                AppLog.debug("⚠️ Failed to create Application Support directory: \(error)")
+            }
+        }
+
         let schema = Schema([
             WaistMeasurement.self,
             MetricSample.self,
