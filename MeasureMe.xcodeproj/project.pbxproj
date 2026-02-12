@@ -6,8 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-<<<<<<< Updated upstream
-=======
 /* Begin PBXBuildFile section */
 		A31FCE332F295FBB00E3253D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A31FCE322F295FBB00E3253D /* Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -29,15 +27,13 @@
 		};
 /* End PBXContainerItemProxy section */
 
->>>>>>> Stashed changes
 /* Begin PBXFileReference section */
+		A31FCE322F295FBB00E3253D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A3BAF7BC2F27B74C00269A9A /* MeasureMe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MeasureMe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000012F28000100000001 /* MeasureMeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeasureMeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000012F28000100000002 /* MeasureMeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeasureMeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-<<<<<<< Updated upstream
-=======
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		A3BAF7DF2F27D78900269A9A /* Exceptions for "MeasureMe" folder in "MeasureMe" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -51,10 +47,12 @@
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
->>>>>>> Stashed changes
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A3BAF7BE2F27B74C00269A9A /* MeasureMe */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A3BAF7DF2F27D78900269A9A /* Exceptions for "MeasureMe" folder in "MeasureMe" target */,
+			);
 			path = MeasureMe;
 			sourceTree = "<group>";
 		};
@@ -98,6 +96,7 @@
 		A3BAF7B32F27B74C00269A9A = {
 			isa = PBXGroup;
 			children = (
+				A31FCE322F295FBB00E3253D /* Assets.xcassets */,
 				A3BAF7BE2F27B74C00269A9A /* MeasureMe */,
 				B10000012F28000100000003 /* MeasureMeTests */,
 				B10000012F28000100000004 /* MeasureMeUITests */,
@@ -215,6 +214,7 @@
 			knownRegions = (
 				en,
 				Base,
+				pl,
 			);
 			mainGroup = A3BAF7B32F27B74C00269A9A;
 			minimizedProjectReferenceProxies = 1;
@@ -235,6 +235,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A31FCE332F295FBB00E3253D /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -416,16 +417,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MeasureMe/MeasureMe.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = K447N5AR8W;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					.gitattributes,
 					"*.storekit",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
-<<<<<<< Updated upstream
-=======
 				INFOPLIST_FILE = MeasureMe/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MeasureMe;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
@@ -434,7 +435,6 @@
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "MeasureMe writes measurements you add in the app to Health so your records stay consistent.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "MeasureMe saves exported comparison images to your photo library.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "MeasureMe accesses your photo library so you can choose progress photos and compare them.";
->>>>>>> Stashed changes
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -445,15 +445,19 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jacekzieba.MeasureMe;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -462,16 +466,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MeasureMe/MeasureMe.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = K447N5AR8W;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					.gitattributes,
 					"*.storekit",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
-<<<<<<< Updated upstream
-=======
 				INFOPLIST_FILE = MeasureMe/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MeasureMe;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
@@ -480,7 +484,6 @@
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "MeasureMe writes measurements you add in the app to Health so your records stay consistent.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "MeasureMe saves exported comparison images to your photo library.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "MeasureMe accesses your photo library so you can choose progress photos and compare them.";
->>>>>>> Stashed changes
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -491,15 +494,19 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jacekzieba.MeasureMe;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};

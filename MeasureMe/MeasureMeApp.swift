@@ -1,30 +1,36 @@
-//
-//  MeasureMeApp.swift
-//  MeasureMe
-//
-//  Created by Jacek Zięba on 26/01/2026.
-//
-
 import SwiftUI
 import SwiftData
+import UIKit
 
 @main
 struct MeasureMeApp: App {
+    @AppStorage("appLanguage") private var appLanguage: String = "system"
+    // Konfiguracja kontenera modeli SwiftData
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            WaistMeasurement.self,
+            MetricSample.self,
+            MetricGoal.self,
+            PhotoEntry.self  // ✅ DODANE!
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
+        // Primary persistent configuration
+        let configuration = ModelConfiguration(schema: schema)
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            DatabaseEncryption.applyRecommendedProtection()
+            return container
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            // Fallback to an in-memory store so the app can still launch, and log the error
+            AppLog.debug("⚠️ Failed to create persistent ModelContainer: \(error). Falling back to in-memory store.")
+            let memoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            do {
+                return try ModelContainer(for: schema, configurations: [memoryConfig])
+            } catch {
+                fatalError("❌ Failed to create even an in-memory ModelContainer: \(error)")
+            }
         }
     }()
 
-<<<<<<< Updated upstream
-=======
     init() {
         UserDefaults.standard.register(defaults: [
             "hasCompletedOnboarding": false,
@@ -93,11 +99,22 @@ struct MeasureMeApp: App {
     
     
 
->>>>>>> Stashed changes
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                .environment(\.locale, appLocale)
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    private var appLocale: Locale {
+        switch appLanguage {
+        case "pl":
+            return Locale(identifier: "pl")
+        case "en":
+            return Locale(identifier: "en")
+        default:
+            return Locale.current
+        }
     }
 }
