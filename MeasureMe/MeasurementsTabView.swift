@@ -2,12 +2,14 @@ import SwiftUI
 import Charts
 import SwiftData
 import Foundation
+import Accessibility
 
 struct MeasurementsTabView: View {
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
     @Environment(AppRouter.self) private var router
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
+    @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
     @State private var scrollOffset: CGFloat = 0
     @Query(sort: [SortDescriptor(\MetricSample.date, order: .reverse)])
     private var samples: [MetricSample]
@@ -138,6 +140,7 @@ struct MeasurementsTabView: View {
                                         .tint(Color.appAccent)
                                     }
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, 16)
                             }
 
@@ -148,6 +151,9 @@ struct MeasurementsTabView: View {
                                 )
                                 .padding(.horizontal, 16)
                             }
+
+                            trackedMetricsFooter
+                                .padding(.horizontal, 16)
                         } else {
                             if premiumStore.isPremium {
                                 HealthMetricsSection(
@@ -185,6 +191,38 @@ struct MeasurementsTabView: View {
         }
         .preferredColorScheme(.dark)
     }
+
+    private var trackedMetricsFooter: some View {
+        AppGlassCard(
+            depth: .base,
+            cornerRadius: 18,
+            tint: Color.appAccent.opacity(0.10),
+            contentPadding: 14
+        ) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(AppLocalization.string("Tracked metric visibility can be changed in Settings."))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(.white.opacity(0.82))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button {
+                    settingsOpenTrackedMeasurements = true
+                    router.selectedTab = .settings
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(AppLocalization.string("Open tracked metrics settings"))
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.appAccent)
+                .frame(minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+        }
+    }
 }
 
 
@@ -199,6 +237,7 @@ struct MetricChartTile: View {
 
     @State private var shortInsight: String?
     @State private var isLoadingInsight = false
+    @State private var scrubbedSample: MetricSample?
 
     init(kind: MetricKind, unitsSystem: String) {
         self.kind = kind
@@ -289,6 +328,7 @@ struct MetricChartTile: View {
                     Image(systemName: "chevron.right")
                         .font(.title3)
                         .foregroundStyle(.secondary)
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
             }
@@ -340,11 +380,8 @@ struct MetricChartTile: View {
                 }
 
                 if canUseAppleIntelligence, let shortInsight {
-                    let compactInsight = shortInsight.count > 140
-                        ? String(shortInsight.prefix(140))
-                        : shortInsight
                     MetricInsightCard(
-                        text: compactInsight,
+                        text: shortInsight,
                         compact: true,
                         isLoading: isLoadingInsight
                     )
@@ -356,7 +393,7 @@ struct MetricChartTile: View {
                     )
                 } else if premiumStore.isPremium && !appleIntelligenceAvailable {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(AppLocalization.string("Apple Intelligence isn’t available right now."))
+                        Text(AppLocalization.string("AI Insights aren’t available right now."))
                             .font(AppTypography.micro)
                             .foregroundStyle(.secondary)
                         NavigationLink {
@@ -375,12 +412,13 @@ struct MetricChartTile: View {
             }
 
             // Chart - z podwójnym maskowaniem
-            ZStack {
-                // Tło wykresu
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.black.opacity(0))
-                
-                Chart {
+            VStack(alignment: .leading, spacing: 8) {
+                ZStack {
+                    // Tło wykresu
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.black.opacity(0))
+                    
+                    Chart {
 
                     // 🔹 AREA – JEDEN mark, jeden gradient
                     ForEach(recentSamples) { s in
@@ -432,47 +470,103 @@ struct MetricChartTile: View {
                                     .offset(x: 6)
                             }
                     }
-                }
-                .padding(.horizontal, 2)
-                .padding(.vertical, 2)
-                .chartForegroundStyleScale([
-                    "fill": LinearGradient(
-                        colors: [
-                            Color(hex: "#FCA311").opacity(0.1),
-                            Color(hex: "#FCA311").opacity(0.1),
-                            Color(hex: "#FCA311").opacity(0.1)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                ])
-                .chartLegend(.hidden)
-                .chartYScale(domain: yDomain)
-                .chartXAxis {
-                    AxisMarks(values: .automatic(desiredCount: 3)) { _ in
-                        AxisGridLine().foregroundStyle(.white.opacity(0.12))
-                        AxisTick().foregroundStyle(.white.opacity(0.2))
-                        AxisValueLabel()
-                            .font(AppTypography.micro)
-                            .foregroundStyle(.white.opacity(0.5))
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { _ in
-                        AxisGridLine().foregroundStyle(.white.opacity(0.12))
-                        AxisTick().foregroundStyle(.white.opacity(0.2))
-                        AxisValueLabel()
-                            .font(AppTypography.micro)
-                            .foregroundStyle(.white.opacity(0.5))
-                    }
-                }
 
+                    if let scrubbedSample {
+                        let scrubbedValue = displayValue(scrubbedSample.value)
+                        RuleMark(x: .value("Selected Date", scrubbedSample.date))
+                            .foregroundStyle(Color.white.opacity(0.5))
+                            .lineStyle(StrokeStyle(lineWidth: 1))
+
+                        PointMark(
+                            x: .value("Selected Date", scrubbedSample.date),
+                            y: .value("Selected Value", scrubbedValue)
+                        )
+                        .symbolSize(54)
+                        .foregroundStyle(Color.white)
+                    }
+                    }
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 2)
+                    .chartForegroundStyleScale([
+                        "fill": LinearGradient(
+                            colors: [
+                                Color(hex: "#FCA311").opacity(0.1),
+                                Color(hex: "#FCA311").opacity(0.1),
+                                Color(hex: "#FCA311").opacity(0.1)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    ])
+                    .chartLegend(.hidden)
+                    .chartYScale(domain: yDomain)
+                    .chartXAxis {
+                        AxisMarks(values: .automatic(desiredCount: 3)) { _ in
+                            AxisGridLine().foregroundStyle(.white.opacity(0.12))
+                            AxisTick().foregroundStyle(.white.opacity(0.2))
+                            AxisValueLabel(format: .dateTime.month(.abbreviated))
+                                .font(AppTypography.micro)
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+                    }
+                    .chartYAxis {
+                        AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { _ in
+                            AxisGridLine().foregroundStyle(.white.opacity(0.12))
+                            AxisTick().foregroundStyle(.white.opacity(0.2))
+                            AxisValueLabel()
+                                .font(AppTypography.micro)
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+                    }
+                    .chartOverlay { proxy in
+                        GeometryReader { geometry in
+                            Rectangle()
+                                .fill(.clear)
+                                .contentShape(Rectangle())
+                                .gesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { value in
+                                            updateScrubbedSample(at: value.location, proxy: proxy, geometry: geometry)
+                                        }
+                                        .onEnded { _ in
+                                            scrubbedSample = nil
+                                        }
+                                )
+                        }
+                    }
+                    .accessibilityChartDescriptor(MetricChartAXDescriptor(descriptor: chartDescriptor))
+
+                }
+                .frame(height: 120)
+                .mask(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.white)
+                )
+
+                if let scrubbedSample {
+                    HStack(spacing: 8) {
+                        Text(scrubbedSample.date.formatted(date: .abbreviated, time: .omitted))
+                            .font(AppTypography.micro)
+                            .foregroundStyle(.white.opacity(0.72))
+                        Text(
+                            String(
+                                format: "%.1f %@",
+                                displayValue(scrubbedSample.value),
+                                kind.unitSymbol(unitsSystem: unitsSystem)
+                            )
+                        )
+                        .font(AppTypography.microEmphasis.monospacedDigit())
+                        .foregroundStyle(.white)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.black.opacity(0.35))
+                    )
+                }
             }
-            .frame(height: 120)
-            .mask(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.white)
-            )
         }
         .padding(14)
         .background(
@@ -537,7 +631,9 @@ struct MetricChartTile: View {
             sampleCount: recentSamples.count,
             delta7DaysText: deltaText(days: 7, in: recentSamples),
             delta30DaysText: deltaText(days: 30, in: recentSamples),
-            goalStatusText: goalStatusText
+            goalStatusText: goalStatusText,
+            goalDirectionText: currentGoal?.direction.rawValue,
+            defaultFavorableDirectionText: kind.defaultFavorableDirectionWhenNoGoal.rawValue
         )
     }
 
@@ -586,6 +682,97 @@ struct MetricChartTile: View {
         let generated = await MetricInsightService.shared.generateInsight(for: input)
         shortInsight = generated?.shortText
         isLoadingInsight = false
+    }
+
+    private func updateScrubbedSample(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
+        guard !recentSamples.isEmpty else {
+            scrubbedSample = nil
+            return
+        }
+
+        guard let plotFrame = proxy.plotFrame else {
+            scrubbedSample = nil
+            return
+        }
+
+        let plotOrigin = geometry[plotFrame].origin
+        let xPosition = location.x - plotOrigin.x
+
+        guard xPosition >= 0, xPosition <= proxy.plotSize.width else {
+            scrubbedSample = nil
+            return
+        }
+
+        guard let date: Date = proxy.value(atX: xPosition, as: Date.self) else {
+            scrubbedSample = nil
+            return
+        }
+
+        scrubbedSample = recentSamples.min {
+            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
+        }
+    }
+
+    private var chartDescriptor: AXChartDescriptor {
+        let unit = kind.unitSymbol(unitsSystem: unitsSystem)
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "MMM d"
+
+        let ordered = recentSamples.sorted(by: { $0.date < $1.date })
+        let points: [(String, Double)] = ordered.map { sample in
+            let label = dateFormatter.string(from: sample.date)
+            return (label, displayValue(sample.value))
+        }
+
+        let xAxis = AXCategoricalDataAxisDescriptor(
+            title: AppLocalization.string("Date"),
+            categoryOrder: points.map(\.0)
+        )
+
+        let values = points.map(\.1)
+        let minValue = values.min() ?? 0
+        let maxValue = values.max() ?? 1
+
+        let yAxis = AXNumericDataAxisDescriptor(
+            title: "\(kind.title) (\(unit))",
+            range: minValue...maxValue,
+            gridlinePositions: [],
+            valueDescriptionProvider: { value in
+                String(format: "%.1f %@", value, unit)
+            }
+        )
+
+        let series = AXDataSeriesDescriptor(
+            name: kind.title,
+            isContinuous: true,
+            dataPoints: points.map { AXDataPoint(x: $0.0, y: $0.1) }
+        )
+
+        let summary: String
+        if let first = values.first, let last = values.last {
+            let trend = last == first
+                ? AppLocalization.string("trend.steady")
+                : (last > first ? AppLocalization.string("trend.up") : AppLocalization.string("trend.down"))
+            summary = AppLocalization.string(
+                "chart.summary.metric",
+                kind.title,
+                AppLocalization.string("Last 30 days").lowercased(),
+                String(format: "%.1f", first),
+                String(format: "%.1f", last),
+                trend
+            )
+        } else {
+            summary = AppLocalization.string("chart.summary.empty", kind.title)
+        }
+
+        return AXChartDescriptor(
+            title: AppLocalization.string("chart.title.metric", kind.title),
+            summary: summary,
+            xAxis: xAxis,
+            yAxis: yAxis,
+            additionalAxes: [],
+            series: [series]
+        )
     }
 }
 

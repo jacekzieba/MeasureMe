@@ -56,6 +56,7 @@ struct PhotoView: View {
                             },
                             refreshToken: refreshToken
                         )
+                        .id(refreshToken)
                         
                         // Przycisk Compare jako overlay na dole
                         if isSelecting && selectedPhotos.count == 2 {
@@ -91,8 +92,14 @@ struct PhotoView: View {
                     )
                 }
             }
-            .sheet(item: $selectedPhotoForDetail) { photo in
-                PhotoDetailView(photo: photo)
+            .sheet(item: $selectedPhotoForDetail, onDismiss: {
+                refreshToken = UUID()
+            }) { photo in
+                PhotoDetailView(photo: photo) {
+                    selectedPhotos.remove(photo)
+                    selectedPhotoForDetail = nil
+                    refreshToken = UUID()
+                }
                     .environmentObject(metricsStore)
             }
             .alert(AppLocalization.string("Maximum Photos Selected"), isPresented: $showMaxPhotosAlert) {

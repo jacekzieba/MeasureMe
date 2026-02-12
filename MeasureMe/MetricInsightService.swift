@@ -13,6 +13,10 @@ nonisolated struct MetricInsightInput: Sendable, Hashable {
     let delta7DaysText: String?
     let delta30DaysText: String?
     let goalStatusText: String?
+    /// "increase" | "decrease" (nil means no active goal)
+    let goalDirectionText: String?
+    /// "increase" | "decrease" | "neutral"
+    let defaultFavorableDirectionText: String
 }
 
 struct MetricInsightPair: Sendable {
@@ -56,31 +60,33 @@ enum AppleIntelligenceSupport {
 #if DEBUG
     static func debugAvailabilityText() -> String {
         let enabled = UserDefaults.standard.object(forKey: "apple_intelligence_enabled") as? Bool ?? true
-        guard enabled else { return "Apple Intelligence: unavailable (disabled in app)" }
+        guard enabled else { return "AI Insights: unavailable (disabled in app)" }
         let premium = UserDefaults.standard.bool(forKey: "premium_entitlement")
-        guard premium else { return AppLocalization.string("Apple Intelligence: unavailable (Premium Edition required)") }
+        guard premium else { return AppLocalization.string("AI Insights: unavailable (Premium Edition required)") }
         #if targetEnvironment(simulator)
-        return "Apple Intelligence: unavailable (not supported in Simulator)"
+        return "AI Insights: unavailable (not supported in Simulator)"
         #else
         guard #available(iOS 26.0, *) else {
-            return "Apple Intelligence: unavailable (requires iOS 26+)"
+            return "AI Insights: unavailable (requires iOS 26+)"
         }
         #if canImport(FoundationModels)
         switch SystemLanguageModel.default.availability {
         case .available:
-            return "Apple Intelligence: available"
+            return "AI Insights: available"
         case .unavailable(let reason):
             switch reason {
             case .deviceNotEligible:
-                return "Apple Intelligence: unavailable (device not eligible)"
+                return "AI Insights: unavailable (device not eligible)"
             case .appleIntelligenceNotEnabled:
-                return "Apple Intelligence: unavailable (disabled in Settings)"
+                return "AI Insights: unavailable (disabled in Settings)"
             case .modelNotReady:
-                return "Apple Intelligence: unavailable (model not ready)"
+                return "AI Insights: unavailable (model not ready)"
+            @unknown default:
+                return "AI Insights: unavailable (unknown reason)"
             }
         }
         #else
-        return "Apple Intelligence: unavailable (FoundationModels missing)"
+        return "AI Insights: unavailable (FoundationModels missing)"
         #endif
         #endif
     }
@@ -167,12 +173,24 @@ actor MetricInsightService {
             Keep tone non-judgmental, practical, and concise.
             Address the user directly using "you" and "your".
             Never write in third person about the user.
-            Do not provide medical diagnosis.
-            Do not use markdown, hashtags, bullets, or bold markers.
-            Do not add greetings, preambles, or framing phrases.
+
+            Safety rules:
+            Do not provide medical diagnosis or medical advice.
+            Do not mention diseases, mortality, or clinical "risk of" outcomes.
+            Do not recommend supplements, medications, or extreme diets.
+            If some data is missing or ambiguous, do not guess; omit that detail.
+            Do not repeat placeholders like "unknown", "n/a", or "not enough data".
+
+            Format rules:
+            Do not use markdown, hashtags, bullets, quotes, or bold markers.
+            Do not add greetings, preambles, framing phrases, or meta text (e.g., "As an AI...").
             Return exactly two paragraphs separated by a single line containing only: <SEP>
-            Paragraph 1: 1-2 short sentences, max 140 characters.
-            Paragraph 2: 2-4 short sentences, max 360 characters.
+            Do not include any other line breaks.
+
+            Content rules:
+            Use the provided goal direction if present; otherwise use the default favorable direction hint.
+            Paragraph 1: 1 short sentence, max 88 characters, summarizing the recent trend.
+            Paragraph 2: 1-2 short sentences, max 180 characters, ending with one specific next step for the next 7 days.
             """
         )
 
@@ -185,7 +203,11 @@ actor MetricInsightService {
     }
 
     private func buildPrompt(for input: MetricInsightInput) -> String {
-        """
+        let trend7d = Self.trendDirection(from: input.delta7DaysText)
+        let trend30d = Self.trendDirection(from: input.delta30DaysText)
+        let goalDirection = input.goalDirectionText ?? "none"
+
+        return """
         Metric: \(input.metricTitle)
         User name: \(input.userName ?? "unknown")
         Latest value: \(input.latestValueText)
@@ -194,6 +216,10 @@ actor MetricInsightService {
         7-day change: \(input.delta7DaysText ?? "not enough data")
         30-day change: \(input.delta30DaysText ?? "not enough data")
         Goal status: \(input.goalStatusText ?? "no active goal")
+        Goal direction: \(goalDirection)
+        Default favorable direction (if no goal): \(input.defaultFavorableDirectionText)
+        Trend direction (7 days): \(trend7d)
+        Trend direction (30 days): \(trend30d)
 
         Write the two-paragraph insight using second person.
         """
@@ -212,12 +238,23 @@ actor MetricInsightService {
             Write in plain English.
             Address the user directly using "you" and "your".
             Never write in third person about the user.
-            Summarize current state, recent changes, trend direction, and one practical next-step advice.
+            Summarize current state, recent changes, and trend direction.
+            Include one concrete focus area and one practical next-step instruction.
             Keep it warm, encouraging, and non-alarming.
             Use positive framing and gentle reassurance.
-            Do not use markdown, hashtags, bullets, or bold markers.
-            Do not add greetings, preambles, or framing phrases.
-            Output 3-5 short sentences in one or two short paragraphs, max 480 characters.
+            Avoid judgmental labels.
+
+            Safety rules:
+            Do not provide medical diagnosis or medical advice.
+            Do not mention diseases, mortality, or clinical "risk of" outcomes.
+            Do not recommend supplements, medications, or extreme diets.
+            If some data is missing or ambiguous, do not guess; omit that detail.
+            Do not repeat placeholders like "unknown", "n/a", or "not enough data".
+
+            Format rules:
+            Do not use markdown, hashtags, bullets, quotes, or bold markers.
+            Do not add greetings, preambles, framing phrases, or meta text (e.g., "As an AI...").
+            Output 3-4 short sentences in one paragraph, max 360 characters.
             """
         )
 
@@ -246,10 +283,19 @@ actor MetricInsightService {
         let response = try await session.respond(to: prompt)
         let normalized = Self.sanitize(response.content)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        return String(normalized.prefix(520))
+        return String(normalized.prefix(360))
         #else
         throw MetricInsightError.notAvailable
         #endif
+    }
+
+    private static func trendDirection(from deltaText: String?) -> String {
+        guard let deltaText else { return "unknown" }
+        let trimmed = deltaText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let first = trimmed.first else { return "unknown" }
+        if first == "+" { return "up" }
+        if first == "-" { return "down" }
+        return "steady"
     }
 
     private static func parse(_ raw: String) -> MetricInsightPair {
@@ -262,12 +308,12 @@ actor MetricInsightService {
         if short.isEmpty { short = String(trimmed.prefix(220)).trimmingCharacters(in: .whitespacesAndNewlines) }
         if detail.isEmpty { detail = trimmed }
 
-        if short.count > 140 {
-            short = String(short.prefix(140)).trimmingCharacters(in: .whitespacesAndNewlines)
+        if short.count > 88 {
+            short = String(short.prefix(88)).trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
-        if detail.count > 420 {
-            detail = String(detail.prefix(420)).trimmingCharacters(in: .whitespacesAndNewlines)
+        if detail.count > 180 {
+            detail = String(detail.prefix(180)).trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
         if short.isEmpty {
@@ -294,9 +340,13 @@ actor MetricInsightService {
         output = output.replacingOccurrences(of: "\n• ", with: "\n")
         output = output.replacingOccurrences(of: "SHORT:", with: "", options: .caseInsensitive)
         output = output.replacingOccurrences(of: "DETAIL:", with: "", options: .caseInsensitive)
+        output = output.replacingOccurrences(of: "As an AI", with: "", options: .caseInsensitive)
         output = output.replacingOccurrences(of: "Certainly,", with: "", options: .caseInsensitive)
         output = output.replacingOccurrences(of: "Here is", with: "", options: .caseInsensitive)
         output = output.replacingOccurrences(of: "Here's", with: "", options: .caseInsensitive)
+        while output.contains("  ") {
+            output = output.replacingOccurrences(of: "  ", with: " ")
+        }
         while output.contains("\n\n\n") {
             output = output.replacingOccurrences(of: "\n\n\n", with: "\n\n")
         }

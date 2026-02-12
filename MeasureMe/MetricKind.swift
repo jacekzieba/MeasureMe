@@ -147,6 +147,21 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable {
         }
     }
 
+    enum DefaultFavorableDirection: String, Sendable {
+        case increase
+        case decrease
+        case neutral
+    }
+
+    var defaultFavorableDirectionWhenNoGoal: DefaultFavorableDirection {
+        switch self {
+        case .height:
+            return .neutral
+        default:
+            return favorsDecreaseWhenNoGoal ? .decrease : .increase
+        }
+    }
+
     func trendOutcome(from start: Double, to end: Double, goal: MetricGoal?) -> TrendOutcome {
         if let goal {
             let startDistance = abs(goal.targetValue - start)

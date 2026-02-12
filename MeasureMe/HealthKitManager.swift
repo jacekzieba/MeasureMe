@@ -42,6 +42,14 @@ protocol HealthStore {
 final class RealHealthStore: HealthStore {
     let store = HKHealthStore()  // Zmieniono na 'let' zamiast 'private let'
 
+    private enum HealthStoreError: LocalizedError {
+        case deleteFailed
+
+        var errorDescription: String? {
+            AppLocalization.string("Failed to delete HealthKit samples.")
+        }
+    }
+
     func isHealthDataAvailable() -> Bool {
         HKHealthStore.isHealthDataAvailable()
     }
@@ -173,21 +181,37 @@ final class RealHealthStore: HealthStore {
         let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end)
 
-        let query = HKSampleQuery(
-            sampleType: waistType,
-            predicate: predicate,
-            limit: HKObjectQueryNoLimit,
-            sortDescriptors: nil
-        ) { [store] _, samples, error in
-            if let error {
-                AppLog.debug("Delete error:", error)
-                return
+        let samplesToDelete: [HKObject] = try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: waistType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: nil
+            ) { _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                continuation.resume(returning: samples ?? [])
             }
-            if let samples {
-                store.delete(samples) { _, _ in }
+            store.execute(query)
+        }
+
+        guard !samplesToDelete.isEmpty else { return }
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            store.delete(samplesToDelete) { success, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                guard success else {
+                    continuation.resume(throwing: HealthStoreError.deleteFailed)
+                    return
+                }
+                continuation.resume(returning: ())
             }
         }
-        store.execute(query)
     }
 }
 
@@ -196,6 +220,22 @@ final class RealHealthStore: HealthStore {
 final class HealthKitManager {
 
     static let shared = HealthKitManager()
+
+    private struct NormalizedImportSample {
+        let date: Date
+        let value: Double
+        let sourceBundleID: String?
+    }
+
+    private struct ImportDeduplicationConfig {
+        let dateTolerance: TimeInterval
+        let valueTolerance: Double
+    }
+
+    private struct ImportComparisonSample {
+        let date: Date
+        let value: Double
+    }
 
     private let store: HealthStore
     private let quantityCacheTTL: TimeInterval = 60 * 30
@@ -211,6 +251,7 @@ final class HealthKitManager {
     private let initialHistoricalImportKey = "healthkit_initial_historical_import_v1"
     private let appBundleID = Bundle.main.bundleIdentifier
     private let initialHistoricalKinds: Set<MetricKind> = [.weight, .bodyFat, .leanBodyMass, .waist]
+    private let importDateTolerance: TimeInterval = 60
 
     // Produkcyjny init
     convenience init() {
@@ -244,14 +285,17 @@ final class HealthKitManager {
             read: [waistType, bmiType, heightType, weightType, bodyFatType, leanBodyMassType, dateOfBirthType]
         )
 
-        await importHistoricalDataIfNeeded()
         startObservingHealthKitUpdates()
+        Task(priority: .utility) { [weak self] in
+            await self?.importHistoricalDataIfNeeded()
+        }
     }
 
     func startObservingHealthKitUpdates() {
         guard let realStore = store as? RealHealthStore else { return }
         observerQueries.forEach { realStore.store.stop($0) }
         observerQueries.removeAll()
+        let initialImportCompleted = UserDefaults.standard.bool(forKey: initialHistoricalImportKey)
 
         for (identifier, kind, unit, isPercent01) in syncTypes {
             if !UserDefaults.standard.bool(forKey: "healthkit_sync_\(kind.rawValue)") {
@@ -268,7 +312,11 @@ final class HealthKitManager {
             realStore.store.enableBackgroundDelivery(for: type, frequency: .immediate) { _, _ in }
 
             // Catch up immediately in case updates happened while observer wasn't active.
-            Task { await self.importNewQuantities(identifier: identifier, kind: kind, unit: unit, percent01: isPercent01) }
+            if initialImportCompleted {
+                Task(priority: .utility) {
+                    await self.importNewQuantities(identifier: identifier, kind: kind, unit: unit, percent01: isPercent01)
+                }
+            }
         }
     }
 
@@ -282,10 +330,11 @@ final class HealthKitManager {
         ]
     }
 
-    @MainActor
     private func importHistoricalDataIfNeeded() async {
-        guard let _ = modelContainer else { return }
+        guard let container = modelContainer else { return }
         guard !UserDefaults.standard.bool(forKey: initialHistoricalImportKey) else { return }
+        let context = ModelContext(container)
+        context.autosaveEnabled = false
 
         var hadFailure = false
         for (identifier, kind, unit, isPercent01) in syncTypes where initialHistoricalKinds.contains(kind) {
@@ -295,7 +344,8 @@ final class HealthKitManager {
                     identifier: identifier,
                     kind: kind,
                     unit: unit,
-                    percent01: isPercent01
+                    percent01: isPercent01,
+                    context: context
                 )
             } catch {
                 hadFailure = true
@@ -305,18 +355,17 @@ final class HealthKitManager {
 
         if !hadFailure {
             UserDefaults.standard.set(true, forKey: initialHistoricalImportKey)
+            startObservingHealthKitUpdates()
         }
     }
 
-    @MainActor
     private func importAllHistoricalSamples(
         identifier: HKQuantityTypeIdentifier,
         kind: MetricKind,
         unit: HKUnit,
-        percent01: Bool
+        percent01: Bool,
+        context: ModelContext
     ) async throws {
-        guard let container = modelContainer else { return }
-
         let anchored = try await store.anchoredQuantitySamples(
             for: identifier,
             unit: unit,
@@ -325,28 +374,15 @@ final class HealthKitManager {
         )
 
         guard !anchored.samples.isEmpty || anchored.newAnchorData != nil else { return }
+        let importResult = try importSamples(
+            anchored.samples,
+            for: kind,
+            percent01: percent01,
+            context: context,
+            notifyExternalImports: false
+        )
 
-        let context = container.mainContext
-        var didInsertAny = false
-        var newestDate = Date.distantPast
-
-        for item in anchored.samples.sorted(by: { $0.date < $1.date }) {
-            let normalizedValue = percent01 ? item.value * 100.0 : item.value
-            let exists = (try? metricSampleExists(
-                kindRaw: kind.rawValue,
-                date: item.date,
-                value: normalizedValue,
-                in: context
-            )) ?? false
-
-            newestDate = max(newestDate, item.date)
-            guard !exists else { continue }
-
-            context.insert(MetricSample(kind: kind, value: normalizedValue, date: item.date))
-            didInsertAny = true
-        }
-
-        if didInsertAny {
+        if importResult.didInsertAny {
             try context.save()
             UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "healthkit_last_import")
         }
@@ -354,7 +390,7 @@ final class HealthKitManager {
         if let newAnchorData = anchored.newAnchorData {
             setStoredAnchorData(newAnchorData, for: kind)
         }
-        if newestDate > .distantPast {
+        if let newestDate = importResult.newestDate {
             setLastProcessedDate(newestDate, for: kind)
         }
     }
@@ -571,7 +607,6 @@ final class HealthKitManager {
         }
     }
     
-    @MainActor
     private func importNewQuantities(
         identifier: HKQuantityTypeIdentifier,
         kind: MetricKind,
@@ -594,34 +629,17 @@ final class HealthKitManager {
             let samples = anchored.samples
             guard !samples.isEmpty || anchored.newAnchorData != nil else { return }
 
-            let context = container.mainContext
-            var didInsertAny = false
-            var newestDate = migrationSince ?? .distantPast
+            let context = ModelContext(container)
+            context.autosaveEnabled = false
+            let importResult = try importSamples(
+                samples,
+                for: kind,
+                percent01: percent01,
+                context: context,
+                notifyExternalImports: true
+            )
 
-            for item in samples {
-                let normalizedValue = percent01 ? item.value * 100.0 : item.value
-                let isAlreadyImported = (try? metricSampleExists(
-                    kindRaw: kind.rawValue,
-                    date: item.date,
-                    value: normalizedValue,
-                    in: context
-                )) ?? false
-
-                newestDate = max(newestDate, item.date)
-
-                guard !isAlreadyImported else { continue }
-
-                let sample = MetricSample(kind: kind, value: normalizedValue, date: item.date)
-                context.insert(sample)
-                didInsertAny = true
-
-                // Notify about samples that came from outside MeasureMe (or unknown source).
-                if item.sourceBundleID == nil || item.sourceBundleID != appBundleID {
-                    NotificationManager.shared.sendImportNotification(kind: kind, date: item.date)
-                }
-            }
-
-            if didInsertAny {
+            if importResult.didInsertAny {
                 try context.save()
                 UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "healthkit_last_import")
             }
@@ -629,7 +647,9 @@ final class HealthKitManager {
             if let newAnchorData = anchored.newAnchorData {
                 setStoredAnchorData(newAnchorData, for: kind)
             }
-            setLastProcessedDate(newestDate, for: kind)
+            if let newestDate = importResult.newestDate {
+                setLastProcessedDate(newestDate, for: kind)
+            }
         } catch {
             AppLog.debug("⚠️ Failed to import \(kind.rawValue) from HealthKit: \(error)")
         }
@@ -653,19 +673,134 @@ final class HealthKitManager {
         UserDefaults.standard.set(date.timeIntervalSince1970, forKey: processedDatePrefix + kind.rawValue)
     }
 
-    @MainActor
-    private func metricSampleExists(
+    private func importSamples(
+        _ rawSamples: [(value: Double, date: Date, sourceBundleID: String?)],
+        for kind: MetricKind,
+        percent01: Bool,
+        context: ModelContext,
+        notifyExternalImports: Bool
+    ) throws -> (didInsertAny: Bool, newestDate: Date?) {
+        guard !rawSamples.isEmpty else { return (didInsertAny: false, newestDate: nil) }
+
+        let normalizedSamples = rawSamples
+            .map { item in
+                NormalizedImportSample(
+                    date: item.date,
+                    value: percent01 ? item.value * 100.0 : item.value,
+                    sourceBundleID: item.sourceBundleID
+                )
+            }
+            .sorted { $0.date < $1.date }
+
+        guard let firstDate = normalizedSamples.first?.date,
+              let lastDate = normalizedSamples.last?.date else {
+            return (didInsertAny: false, newestDate: nil)
+        }
+
+        let dedupeConfig = dedupeConfig(for: kind)
+        let fetchStart = firstDate.addingTimeInterval(-dedupeConfig.dateTolerance)
+        let fetchEnd = lastDate.addingTimeInterval(dedupeConfig.dateTolerance)
+
+        let existingSamples = try fetchSamplesForImportDedup(
+            kindRaw: kind.rawValue,
+            startDate: fetchStart,
+            endDate: fetchEnd,
+            in: context
+        )
+
+        let bucketSize = max(1, dedupeConfig.dateTolerance)
+        var indexByTimeBucket: [Int: [ImportComparisonSample]] = [:]
+        indexByTimeBucket.reserveCapacity(max(existingSamples.count, normalizedSamples.count))
+
+        for sample in existingSamples {
+            let bucket = importBucket(for: sample.date, bucketSize: bucketSize)
+            indexByTimeBucket[bucket, default: []].append(
+                ImportComparisonSample(date: sample.date, value: sample.value)
+            )
+        }
+
+        var didInsertAny = false
+        var newestDate = Date.distantPast
+
+        for sample in normalizedSamples {
+            newestDate = max(newestDate, sample.date)
+            let bucket = importBucket(for: sample.date, bucketSize: bucketSize)
+
+            if isDuplicateImportSample(
+                date: sample.date,
+                value: sample.value,
+                bucket: bucket,
+                indexByTimeBucket: indexByTimeBucket,
+                dateTolerance: dedupeConfig.dateTolerance,
+                valueTolerance: dedupeConfig.valueTolerance
+            ) {
+                continue
+            }
+
+            context.insert(MetricSample(kind: kind, value: sample.value, date: sample.date))
+            indexByTimeBucket[bucket, default: []].append(
+                ImportComparisonSample(date: sample.date, value: sample.value)
+            )
+            didInsertAny = true
+
+            if notifyExternalImports,
+               sample.sourceBundleID == nil || sample.sourceBundleID != appBundleID {
+                NotificationManager.shared.sendImportNotification(kind: kind, date: sample.date)
+            }
+        }
+
+        return (
+            didInsertAny: didInsertAny,
+            newestDate: newestDate > .distantPast ? newestDate : nil
+        )
+    }
+
+    private func dedupeConfig(for kind: MetricKind) -> ImportDeduplicationConfig {
+        let valueTolerance: Double = kind == .bodyFat ? 0.05 : 0.02
+        return ImportDeduplicationConfig(
+            dateTolerance: importDateTolerance,
+            valueTolerance: valueTolerance
+        )
+    }
+
+    private func fetchSamplesForImportDedup(
         kindRaw: String,
-        date: Date,
-        value: Double,
+        startDate: Date,
+        endDate: Date,
         in context: ModelContext
-    ) throws -> Bool {
+    ) throws -> [MetricSample] {
         let descriptor = FetchDescriptor<MetricSample>(
             predicate: #Predicate { sample in
-                sample.kindRaw == kindRaw && sample.date == date && sample.value == value
+                sample.kindRaw == kindRaw &&
+                sample.date >= startDate &&
+                sample.date <= endDate
             }
         )
-        let existing = try context.fetch(descriptor)
-        return !existing.isEmpty
+        return try context.fetch(descriptor)
+    }
+
+    private func importBucket(for date: Date, bucketSize: TimeInterval) -> Int {
+        Int(floor(date.timeIntervalSince1970 / bucketSize))
+    }
+
+    private func isDuplicateImportSample(
+        date: Date,
+        value: Double,
+        bucket: Int,
+        indexByTimeBucket: [Int: [ImportComparisonSample]],
+        dateTolerance: TimeInterval,
+        valueTolerance: Double
+    ) -> Bool {
+        for candidateBucket in (bucket - 1)...(bucket + 1) {
+            guard let candidates = indexByTimeBucket[candidateBucket] else { continue }
+            for candidate in candidates {
+                let isSameDate = abs(candidate.date.timeIntervalSince(date)) <= dateTolerance
+                let isSameValue = abs(candidate.value - value) <= valueTolerance
+                if isSameDate && isSameValue {
+                    return true
+                }
+            }
+        }
+        return false
     }
 }

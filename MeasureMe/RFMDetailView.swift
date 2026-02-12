@@ -150,6 +150,7 @@ struct RFMDetailView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
     
     private var rfmRanges: [(title: String, range: String, color: String)] {

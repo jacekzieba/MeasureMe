@@ -13,15 +13,20 @@ struct AddMetricSnapshotView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                metricSection
-                
-                if selectedMetricKind != nil {
-                    valueSection
+            ZStack {
+                AppScreenBackground(topHeight: 200, tint: Color.cyan.opacity(0.16))
+                Form {
+                    metricSection
+                    
+                    if selectedMetricKind != nil {
+                        valueSection
+                    }
                 }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle(AppLocalization.string("Add Metric"))
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Cancel")) {

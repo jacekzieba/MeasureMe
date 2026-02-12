@@ -161,6 +161,7 @@ struct BodyFatDetailView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
     
     private var category: (name: String, color: String) {

@@ -16,13 +16,18 @@ struct MetricRowView: View {
                 .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
                 .frame(width: MetricsLayout.iconWidth)
 
-            Text(kind.title)
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .minimumScaleFactor(0.85)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.trailing, 8)
+            ViewThatFits(in: .vertical) {
+                Text(kind.title)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                Text(kind.title)
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.trailing, 8)
 
             if case .normal = context {
                 Toggle("", isOn: isOn)
@@ -47,21 +52,20 @@ struct MetricRowView: View {
                 .padding(.leading, 4)
             }
         }
-        // ⬇️⬇️⬇️ TU DODAJEMY (DO CAŁEGO ROW)
         .offset(x: rowOffset)
-        // ⬆️⬆️⬆️ KONIEC DODATKÓW
         .frame(maxWidth: .infinity, minHeight: MetricsLayout.rowHeight, alignment: .leading)
         .padding(.horizontal, MetricsLayout.horizontalPadding)
+        .padding(.vertical, 10)
+        .padding(.vertical, 3)
         .contentShape(Rectangle())
-        .background(Color(.secondarySystemGroupedBackground))
-        .overlay(separator, alignment: .bottom)
         .onTapGesture {
             if case .active(_, let onTap) = context {
                 onTap()
             }
         }
         .listRowSeparator(.hidden)
-        .listRowInsets(.init())
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        .listRowBackground(Color.clear)
     }
 
     // MARK: - Helpers
@@ -85,8 +89,4 @@ struct MetricRowView: View {
         return 0
     }
 
-    private var separator: some View {
-        Divider()
-            .padding(.leading, MetricsLayout.separatorInset)
-    }
 }

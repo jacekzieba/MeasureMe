@@ -2,7 +2,6 @@ import SwiftUI
 import Combine
 
 struct NotificationSettingsView: View {
-    @Environment(\.dismiss) private var dismiss
     @StateObject private var store = ReminderStore()
     
     @State private var showAddSheet = false
@@ -17,64 +16,79 @@ struct NotificationSettingsView: View {
     @State private var smartTime: Date = NotificationManager.shared.smartTime
     
     var body: some View {
-        NavigationStack {
+        ZStack(alignment: .top) {
+            AppScreenBackground(
+                topHeight: 380,
+                tint: Color.cyan.opacity(0.22)
+            )
+
             List {
-                permissionsSection
-                remindersSection
-                otherSection
-                smartSection
+                sectionHeader(AppLocalization.string("Reminders"))
+                permissionsCard
+
+                sectionHeader(AppLocalization.string("Scheduled"))
+                remindersContent
+                sectionFooter(AppLocalization.string("Add one-time or repeatable reminders. You can edit or remove them any time."))
+
+                sectionHeader(AppLocalization.string("Smart Notifications"))
+                smartCard
+                sectionFooter(AppLocalization.string("Smart reminders only trigger after a period of inactivity. When you log a measurement, the timer resets."))
+
+                sectionHeader(AppLocalization.string("Other"))
+                otherCard
+                sectionFooter(AppLocalization.string("These notifications are sent when specific events happen."))
             }
-            .navigationTitle(AppLocalization.string("Notifications"))
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showAddSheet) {
-                AddReminderSheet { date, repeatRule in
-                    store.add(date: date, repeatRule: repeatRule)
-                }
-            }
-            .alert(AppLocalization.string("Notifications"), isPresented: $showPermissionAlert) {
-                Button(AppLocalization.string("OK"), role: .cancel) { }
-            } message: {
-                Text(permissionMessage)
+            .scrollContentBackground(.hidden)
+            .listStyle(.plain)
+            .listSectionSpacing(20)
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+            .padding(.top, -8)
+        }
+        .navigationTitle(AppLocalization.string("Notifications"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .sheet(isPresented: $showAddSheet) {
+            AddReminderSheet { date, repeatRule in
+                store.add(date: date, repeatRule: repeatRule)
             }
         }
-    }
-    
-    private var permissionsSection: some View {
-        Section(AppLocalization.string("Reminders")) {
-            GlassCard {
-                Toggle(isOn: $notificationsEnabled) {
-                    Label(AppLocalization.string("Enable reminders"), systemImage: "bell.badge")
-                }
-                .onChange(of: notificationsEnabled) { _, newValue in
-                    Task { @MainActor in
-                        if newValue {
-                            let granted = await NotificationManager.shared.requestAuthorization()
-                            if granted {
-                                NotificationManager.shared.notificationsEnabled = true
-                                store.rescheduleAll()
-                                NotificationManager.shared.scheduleSmartIfNeeded()
-                            } else {
-                                notificationsEnabled = false
-                                NotificationManager.shared.notificationsEnabled = false
-                                permissionMessage = "Permission denied. Enable notifications in Settings."
-                                showPermissionAlert = true
-                            }
-                        } else {
-                            NotificationManager.shared.notificationsEnabled = false
-                            NotificationManager.shared.cancelAllReminders()
-                            NotificationManager.shared.cancelSmartNotification()
-                        }
-                    }
-                }
-            }
+        .alert(AppLocalization.string("Notifications"), isPresented: $showPermissionAlert) {
+            Button(AppLocalization.string("OK"), role: .cancel) { }
+        } message: {
+            Text(permissionMessage)
         }
     }
-    
-    private var remindersSection: some View {
-        Section {
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(AppTypography.sectionTitle)
+            .foregroundStyle(.white.opacity(0.78))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+    }
+
+    private func sectionFooter(_ text: String) -> some View {
+        Text(text)
+            .font(AppTypography.caption)
+            .foregroundStyle(.white.opacity(0.74))
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 8, trailing: 16))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+    }
+
+    private var remindersContent: some View {
+        Group {
             if store.reminders.isEmpty {
                 Text(AppLocalization.string("No reminders yet"))
                     .foregroundStyle(.secondary)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
             } else {
                 ForEach(store.reminders) { reminder in
                     GlassCard {
@@ -91,78 +105,135 @@ struct NotificationSettingsView: View {
                             Spacer()
                         }
                     }
+                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
                 .onDelete(perform: store.delete)
             }
-            
+
             Button {
                 showAddSheet = true
             } label: {
                 Label(AppLocalization.string("Add reminder"), systemImage: "plus.circle.fill")
+                    .frame(minHeight: 44, alignment: .leading)
             }
-        } header: {
-            Text(AppLocalization.string("Scheduled"))
-        } footer: {
-            Text(AppLocalization.string("Add one-time or repeatable reminders. You can edit or remove them any time."))
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
         }
     }
     
-    private var smartSection: some View {
-        Section {
-            GlassCard {
+    private var permissionsCard: some View {
+        GlassCard {
+            Toggle(isOn: $notificationsEnabled) {
+                Label(AppLocalization.string("Enable reminders"), systemImage: "bell.badge")
+            }
+            .frame(minHeight: 44)
+            .onChange(of: notificationsEnabled) { _, newValue in
+                Task { @MainActor in
+                    if newValue {
+                        let granted = await NotificationManager.shared.requestAuthorization()
+                        if granted {
+                            NotificationManager.shared.notificationsEnabled = true
+                            store.rescheduleAll()
+                            NotificationManager.shared.scheduleSmartIfNeeded()
+                        } else {
+                            notificationsEnabled = false
+                            NotificationManager.shared.notificationsEnabled = false
+                            permissionMessage = AppLocalization.string("Permission denied. Enable notifications in Settings.")
+                            showPermissionAlert = true
+                        }
+                    } else {
+                        NotificationManager.shared.notificationsEnabled = false
+                        NotificationManager.shared.cancelAllReminders()
+                        NotificationManager.shared.cancelSmartNotification()
+                        NotificationManager.shared.cancelPhotoReminder()
+                    }
+                }
+            }
+        }
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+    }
+    
+    private var smartCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
                 Toggle(isOn: $smartEnabled) {
                     Label(AppLocalization.string("Smart reminders"), systemImage: "wand.and.stars")
                 }
+                .frame(minHeight: 44)
                 .onChange(of: smartEnabled) { _, newValue in
                     NotificationManager.shared.smartEnabled = newValue
                     NotificationManager.shared.scheduleSmartIfNeeded()
                 }
-                Stepper(value: $smartDays, in: 2...30) {
+
+                Divider()
+                    .overlay(Color.white.opacity(0.12))
+
+                HStack(spacing: 12) {
                     Text(AppLocalization.plural("notification.smart.after.days", smartDays))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                    Stepper("", value: $smartDays, in: 2...30)
+                        .labelsHidden()
                 }
                 .onChange(of: smartDays) { _, newValue in
                     NotificationManager.shared.smartDays = newValue
                     NotificationManager.shared.scheduleSmartIfNeeded()
                 }
-                
-                DatePicker(AppLocalization.string("Time of day"), selection: $smartTime, displayedComponents: .hourAndMinute)
-                    .onChange(of: smartTime) { _, newValue in
-                        NotificationManager.shared.smartTime = newValue
-                        NotificationManager.shared.scheduleSmartIfNeeded()
-                    }
-            }
-        } header: {
-            Text(AppLocalization.string("Smart Notifications"))
-        } footer: {
-            Text(AppLocalization.string("Smart reminders only trigger after a period of inactivity. When you log a measurement, the timer resets."))
-        }
-    }
 
-    private var otherSection: some View {
-        Section {
-            GlassCard {
-                Toggle(isOn: $photoRemindersEnabled) {
-                    Label(AppLocalization.string("Photo reminders"), systemImage: "camera.fill")
+                Divider()
+                    .overlay(Color.white.opacity(0.12))
+
+                HStack(spacing: 12) {
+                    Text(AppLocalization.string("Time of day"))
+                    Spacer()
+                    DatePicker("", selection: $smartTime, displayedComponents: .hourAndMinute)
+                        .labelsHidden()
                 }
-                .onChange(of: photoRemindersEnabled) { _, newValue in
-                    NotificationManager.shared.photoRemindersEnabled = newValue
+                .onChange(of: smartTime) { _, newValue in
+                    NotificationManager.shared.smartTime = newValue
                     NotificationManager.shared.scheduleSmartIfNeeded()
                 }
+            }
+        }
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+    }
 
-                Spacer().frame(height: 4)
-
-                Toggle(isOn: $goalAchievedEnabled) {
-                    Label(AppLocalization.string("Goal achieved"), systemImage: "checkmark.seal.fill")
-                }
-                .onChange(of: goalAchievedEnabled) { _, newValue in
-                    NotificationManager.shared.goalAchievedEnabled = newValue
+    private var otherCard: some View {
+        GlassCard {
+            Toggle(isOn: $photoRemindersEnabled) {
+                Label(AppLocalization.string("Photo reminders"), systemImage: "camera.fill")
+            }
+            .frame(minHeight: 44)
+            .onChange(of: photoRemindersEnabled) { _, newValue in
+                NotificationManager.shared.photoRemindersEnabled = newValue
+                if newValue {
+                    NotificationManager.shared.schedulePhotoReminderIfNeeded()
+                } else {
+                    NotificationManager.shared.cancelPhotoReminder()
                 }
             }
-        } header: {
-            Text(AppLocalization.string("Other"))
-        } footer: {
-            Text(AppLocalization.string("These notifications are sent when specific events happen."))
+
+            Spacer().frame(height: 4)
+
+            Toggle(isOn: $goalAchievedEnabled) {
+                Label(AppLocalization.string("Goal achieved"), systemImage: "checkmark.seal.fill")
+            }
+            .frame(minHeight: 44)
+            .onChange(of: goalAchievedEnabled) { _, newValue in
+                NotificationManager.shared.goalAchievedEnabled = newValue
+            }
         }
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 }
 
@@ -211,21 +282,26 @@ private struct AddReminderSheet: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                DatePicker(
-                    "Reminder time",
-                    selection: $date,
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                
-                Picker(AppLocalization.string("Repeat"), selection: $repeatRule) {
-                    ForEach(ReminderRepeat.allCases) { rule in
-                        Text(rule.title).tag(rule)
+            ZStack {
+                AppScreenBackground(topHeight: 180, tint: Color.cyan.opacity(0.16))
+                Form {
+                    DatePicker(
+                        AppLocalization.string("Reminder time"),
+                        selection: $date,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    
+                    Picker(AppLocalization.string("Repeat"), selection: $repeatRule) {
+                        ForEach(ReminderRepeat.allCases) { rule in
+                            Text(rule.title).tag(rule)
+                        }
                     }
                 }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle(AppLocalization.string("Add Reminder"))
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Cancel")) { dismiss() }
@@ -245,10 +321,10 @@ private struct GlassCard<Content: View>: View {
     @ViewBuilder let content: Content
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             content
         }
-        .padding(12)
+        .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(.ultraThinMaterial)

@@ -45,6 +45,7 @@ struct MetricDetailView: View {
     @State var showAllHistory = false
     @State var detailedInsight: String?
     @State var isLoadingInsight = false
+    @State private var scrubbedSample: MetricSample?
     
     @AppStorage("photos_filter_tag") var photosFilterTag: String = ""
 
@@ -261,7 +262,7 @@ struct MetricDetailView: View {
         if premiumStore.isPremium && !appleIntelligenceAvailable {
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(AppLocalization.string("Apple Intelligence isn’t available right now."))
+                    Text(AppLocalization.string("AI Insights aren’t available right now."))
                         .font(AppTypography.caption)
                         .foregroundStyle(.secondary)
                     NavigationLink {
@@ -568,13 +569,28 @@ struct MetricDetailView: View {
                     .lineStyle(StrokeStyle(lineWidth: 2))
                     .foregroundStyle(Color(hex: "#E5E5E5"))
             }
+
+            if let scrubbedSample {
+                let scrubbedValue = displayValue(scrubbedSample.value)
+                RuleMark(x: .value("Selected Date", scrubbedSample.date))
+                    .foregroundStyle(Color.white.opacity(0.55))
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+
+                PointMark(
+                    x: .value("Selected Date", scrubbedSample.date),
+                    y: .value("Selected Value", scrubbedValue)
+                )
+                .symbol(Circle())
+                .symbolSize(58)
+                .foregroundStyle(Color.white)
+            }
         }
         .chartYScale(domain: yDomain)
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 3)) { _ in
                 AxisGridLine().foregroundStyle(.white.opacity(0.12))
                 AxisTick().foregroundStyle(.white.opacity(0.2))
-                AxisValueLabel()
+                AxisValueLabel(format: .dateTime.month(.abbreviated))
                     .font(AppTypography.micro)
                     .foregroundStyle(.white.opacity(0.5))
             }
@@ -591,6 +607,42 @@ struct MetricDetailView: View {
         .frame(height: 168)
         .chartPlotStyle { plot in
             plot.clipped()
+        }
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                updateScrubbedSample(at: value.location, proxy: proxy, geometry: geometry)
+                            }
+                            .onEnded { _ in
+                                scrubbedSample = nil
+                            }
+                    )
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            if let scrubbedSample {
+                HStack(spacing: 8) {
+                    Text(scrubbedSample.date.formatted(date: .abbreviated, time: .omitted))
+                        .font(AppTypography.micro)
+                        .foregroundStyle(.white.opacity(0.72))
+                    Text(valueString(scrubbedSample.value))
+                        .font(AppTypography.microEmphasis.monospacedDigit())
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.black.opacity(0.38))
+                )
+                .padding(.top, 6)
+                .padding(.leading, 6)
+            }
         }
         .clipped()
         .accessibilityChartDescriptor(MetricChartAXDescriptor(descriptor: chartDescriptor))
@@ -675,6 +727,35 @@ struct MetricDetailView: View {
         let lower = minV - padding
         let upper = maxV + padding
         return lower...upper
+    }
+
+    private func updateScrubbedSample(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
+        guard !chartSamples.isEmpty else {
+            scrubbedSample = nil
+            return
+        }
+
+        guard let plotFrame = proxy.plotFrame else {
+            scrubbedSample = nil
+            return
+        }
+
+        let plotOrigin = geometry[plotFrame].origin
+        let xPosition = location.x - plotOrigin.x
+
+        guard xPosition >= 0, xPosition <= proxy.plotSize.width else {
+            scrubbedSample = nil
+            return
+        }
+
+        guard let date: Date = proxy.value(atX: xPosition, as: Date.self) else {
+            scrubbedSample = nil
+            return
+        }
+
+        scrubbedSample = chartSamples.min {
+            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
+        }
     }
 }
 // Extension methods are defined in MetricDetailComponents.swift

@@ -216,6 +216,7 @@ struct LeanMassDetailView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
     
     private var formattedValue: (value: String, unit: String) {

@@ -61,6 +61,7 @@ struct WHtRDetailView: View {
         }
         .navigationTitle(AppLocalization.string("WHtR"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
     
     // MARK: - Components

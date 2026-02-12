@@ -10,9 +10,9 @@ enum ReminderRepeat: String, Codable, CaseIterable, Identifiable {
     
     var title: String {
         switch self {
-        case .once: return "Once"
-        case .daily: return "Daily"
-        case .weekly: return "Weekly"
+        case .once: return AppLocalization.string("Once")
+        case .daily: return AppLocalization.string("Daily")
+        case .weekly: return AppLocalization.string("Weekly")
         }
     }
 }
@@ -47,6 +47,7 @@ final class NotificationManager {
     private let photoRemindersEnabledKey = "measurement_photo_reminders_enabled"
     private let goalAchievedEnabledKey = "measurement_goal_achieved_enabled"
     private let goalAchievementPrefix = "goal_achieved_"
+    private let trialEndingReminderId = "premium_trial_ending_reminder"
     
     private init() {}
     
@@ -110,6 +111,11 @@ final class NotificationManager {
         } catch {
             return false
         }
+    }
+
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        let settings = await center.notificationSettings()
+        return settings.authorizationStatus
     }
     
     func loadReminders() -> [MeasurementReminder] {
@@ -182,9 +188,15 @@ final class NotificationManager {
     }
     
     func scheduleSmartIfNeeded() {
-        guard notificationsEnabled, smartEnabled else {
+        guard notificationsEnabled else {
             cancelSmartNotification()
             cancelPhotoReminder()
+            return
+        }
+
+        guard smartEnabled else {
+            cancelSmartNotification()
+            schedulePhotoReminderIfNeeded()
             return
         }
         
@@ -194,6 +206,7 @@ final class NotificationManager {
             let since = now.timeIntervalSince(last)
             if since < TimeInterval(days) * 86400 {
                 cancelSmartNotification()
+                schedulePhotoReminderIfNeeded()
                 return
             }
         }
@@ -231,12 +244,18 @@ final class NotificationManager {
     }
 
     func schedulePhotoReminderIfNeeded(days: Int = 7) {
-        guard notificationsEnabled else { return }
+        guard notificationsEnabled else {
+            cancelPhotoReminder()
+            return
+        }
         guard photoRemindersEnabled else {
             cancelPhotoReminder()
             return
         }
-        guard let last = lastPhotoDate else { return }
+        guard let last = lastPhotoDate else {
+            cancelPhotoReminder()
+            return
+        }
 
         let now = Date()
         let since = now.timeIntervalSince(last)
@@ -267,6 +286,26 @@ final class NotificationManager {
 
     func cancelPhotoReminder() {
         center.removePendingNotificationRequests(withIdentifiers: [photoReminderId])
+    }
+
+    func scheduleTrialEndingReminder(daysFromNow: Int = 12) {
+        guard notificationsEnabled else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = AppLocalization.string("notification.trial.ends.soon.title")
+        content.body = AppLocalization.string("notification.trial.ends.soon.body")
+        content.sound = .default
+
+        let seconds = max(TimeInterval(daysFromNow * 24 * 60 * 60), 60)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: false)
+
+        center.removePendingNotificationRequests(withIdentifiers: [trialEndingReminderId])
+        let request = UNNotificationRequest(
+            identifier: trialEndingReminderId,
+            content: content,
+            trigger: trigger
+        )
+        center.add(request)
     }
 
     func sendImportNotification(kind: MetricKind, date: Date) {
@@ -342,7 +381,7 @@ final class NotificationManager {
     private func defaultSmartTime() -> Date {
         let cal = Calendar.current
         var comps = cal.dateComponents([.year, .month, .day], from: Date())
-        comps.hour = 19
+        comps.hour = 7
         comps.minute = 0
         return cal.date(from: comps) ?? Date()
     }

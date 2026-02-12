@@ -15,10 +15,19 @@ struct HomeView: View {
     @EnvironmentObject private var premiumStore: PremiumStore
     @AppStorage("userName") private var userName: String = ""
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
+    @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
     @AppStorage("showLastPhotosOnHome") private var showLastPhotosOnHome: Bool = true
     @AppStorage("showMeasurementsOnHome") private var showMeasurementsOnHome: Bool = true
     @AppStorage("showHealthMetricsOnHome") private var showHealthMetricsOnHome: Bool = true
     @AppStorage("home_tab_scroll_offset") private var homeTabScrollOffset: Double = 0.0
+    @AppStorage("onboarding_skipped_healthkit") private var onboardingSkippedHealthKit: Bool = false
+    @AppStorage("onboarding_skipped_reminders") private var onboardingSkippedReminders: Bool = false
+    @AppStorage("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
+    @AppStorage("onboarding_checklist_metrics_completed") private var onboardingChecklistMetricsCompleted: Bool = false
+    @AppStorage("onboarding_checklist_premium_explored") private var onboardingChecklistPremiumExplored: Bool = false
+    @AppStorage("onboarding_checklist_collapsed") private var onboardingChecklistCollapsed: Bool = false
+    @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
+    @AppStorage("settings_open_reminders") private var settingsOpenReminders: Bool = false
     
     @Environment(AppRouter.self) private var router
     
@@ -34,6 +43,11 @@ struct HomeView: View {
     @State private var selectedPhotoForFullScreen: PhotoEntry?
     @State private var scrollOffset: CGFloat = 0
     @State private var lastPhotosGridWidth: CGFloat = 0
+    @State private var checklistStatusText: String?
+    @State private var isChecklistConnectingHealth: Bool = false
+    @State private var reminderChecklistCompleted: Bool = false
+    @State private var showGoalHelpAlert: Bool = false
+    @State private var showMoreChecklistItems: Bool = false
     
     // HealthKit data
     @State private var latestBodyFat: Double?
@@ -41,12 +55,22 @@ struct HomeView: View {
     
     private let maxVisibleMetrics = 3
     private let maxVisiblePhotos = 6
+
+    private struct SetupChecklistItem: Identifiable {
+        let id: String
+        let title: String
+        let detail: String
+        let icon: String
+        let isCompleted: Bool
+        let isLoading: Bool
+    }
     
     private var lastPhotosGridSide: CGFloat {
         let spacing: CGFloat = 8
         let totalSpacing = spacing * 2
-        let width = lastPhotosGridWidth > 0 ? lastPhotosGridWidth : 0
-        let raw = (width - totalSpacing) / 3
+        guard lastPhotosGridWidth.isFinite, lastPhotosGridWidth > 0 else { return 86 }
+        let raw = (lastPhotosGridWidth - totalSpacing) / 3
+        guard raw.isFinite, raw > 0 else { return 86 }
         return max(floor(raw), 86)
     }
 
@@ -134,6 +158,10 @@ struct HomeView: View {
 
                     greetingCard
 
+                    if showOnboardingChecklistOnHome && !activeChecklistItems.isEmpty {
+                        setupChecklistSection
+                    }
+
                     // SEKCJA: MEASUREMENTS
                     if showMeasurementsOnHome {
                         measurementsSection
@@ -194,14 +222,47 @@ struct HomeView: View {
         .sheet(item: $selectedPhotoForFullScreen) { photo in
             PhotoDetailView(photo: photo)
         }
+        .alert(AppLocalization.string("How to set a weight goal"), isPresented: $showGoalHelpAlert) {
+            Button(AppLocalization.string("Open Measurements")) {
+                router.selectedTab = .measurements
+            }
+            Button(AppLocalization.string("OK"), role: .cancel) { }
+        } message: {
+            Text(AppLocalization.string("Open Measurements, choose Weight, tap Goal, then set your target value and direction."))
+        }
         .onAppear {
             fetchHealthKitData()
+            refreshChecklistState()
+        }
+        .onChange(of: isSyncEnabled) { _, _ in
+            refreshChecklistState()
+        }
+        .onChange(of: allPhotos.count) { _, _ in
+            refreshChecklistState()
+        }
+        .onChange(of: onboardingChecklistMetricsCompleted) { _, _ in
+            refreshChecklistState()
+        }
+        .onChange(of: onboardingChecklistPremiumExplored) { _, _ in
+            refreshChecklistState()
+        }
+        .onChange(of: onboardingSkippedHealthKit) { _, _ in
+            refreshChecklistState()
+        }
+        .onChange(of: onboardingSkippedReminders) { _, _ in
+            refreshChecklistState()
         }
     }
     
     // MARK: - HealthKit Data Fetching
     
     private func fetchHealthKitData() {
+        guard isSyncEnabled else {
+            latestBodyFat = nil
+            latestLeanMass = nil
+            return
+        }
+
         Task {
             do {
                 let composition = try await HealthKitManager.shared.fetchLatestBodyCompositionCached()
@@ -227,20 +288,264 @@ struct HomeView: View {
             tint: Color.appAccent.opacity(0.26),
             contentPadding: 16
         ) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: hasAnyMeasurements ? 10 : 8) {
+                HStack(spacing: 10) {
+                    Image("BrandButton")
+                        .renderingMode(.original)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+                        .accessibilityHidden(true)
+                    Text("MeasureMe")
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(.white.opacity(0.75))
+                    Spacer()
+                }
+
                 Text(greetingTitle)
                     .font(.system(.title2, design: .rounded).weight(.bold))
                     .foregroundStyle(.white)
 
-                Text(encouragementText)
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.72))
+                if hasAnyMeasurements {
+                    Text(encouragementText)
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.72))
+                }
 
-                Text(goalStatusText)
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(Color.white.opacity(0.8))
+                if goalStatus == .noGoals {
+                    Button {
+                        showGoalHelpAlert = true
+                    } label: {
+                        Text(goalStatusText)
+                            .font(AppTypography.captionEmphasis)
+                            .foregroundStyle(Color.white.opacity(0.86))
+                            .underline()
+                            .frame(minHeight: 44, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint(AppLocalization.string("Shows how to set your first weight goal"))
+                } else {
+                    Text(goalStatusText)
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(Color.white.opacity(0.8))
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var checklistItems: [SetupChecklistItem] {
+        var items: [SetupChecklistItem] = [
+            SetupChecklistItem(
+                id: "first_measurement",
+                title: AppLocalization.string("First measurement"),
+                detail: AppLocalization.string("Start your trend with one quick check-in."),
+                icon: "ruler.fill",
+                isCompleted: !samples.isEmpty,
+                isLoading: false
+            ),
+            SetupChecklistItem(
+                id: "first_photo",
+                title: AppLocalization.string("First Photo"),
+                detail: AppLocalization.string("Photos make progress easier to notice."),
+                icon: "camera.fill",
+                isCompleted: !allPhotos.isEmpty,
+                isLoading: false
+            )
+        ]
+
+        items.append(
+            SetupChecklistItem(
+                id: "healthkit",
+                title: AppLocalization.string("Connect Apple Health"),
+                detail: AppLocalization.string("Import history and keep data in sync."),
+                icon: "heart.text.square",
+                isCompleted: isSyncEnabled,
+                isLoading: isChecklistConnectingHealth
+            )
+        )
+
+        items.append(
+            SetupChecklistItem(
+                id: "choose_metrics",
+                title: AppLocalization.string("Choose metrics"),
+                detail: AppLocalization.string("Track only what matters to you."),
+                icon: "slider.horizontal.3",
+                isCompleted: onboardingChecklistMetricsCompleted,
+                isLoading: false
+            )
+        )
+
+        if onboardingSkippedReminders {
+            items.append(
+                SetupChecklistItem(
+                    id: "reminders",
+                    title: AppLocalization.string("Set reminders"),
+                    detail: AppLocalization.string("One weekly nudge helps keep the habit."),
+                    icon: "bell.badge",
+                    isCompleted: reminderChecklistCompleted,
+                    isLoading: false
+                )
+            )
+        }
+
+        items.append(
+            SetupChecklistItem(
+                id: "premium",
+                title: AppLocalization.string("Explore Premium"),
+                detail: AppLocalization.string("Try deeper insights and compare photos side-by-side."),
+                icon: "sparkles",
+                isCompleted: onboardingChecklistPremiumExplored || premiumStore.isPremium,
+                isLoading: false
+            )
+        )
+
+        return items
+    }
+
+    private var activeChecklistItems: [SetupChecklistItem] {
+        checklistItems.filter { !$0.isCompleted }
+    }
+
+    private var primaryChecklistIDs: [String] {
+        ["first_measurement", "first_photo", "healthkit"]
+    }
+
+    private var primaryChecklistItems: [SetupChecklistItem] {
+        activeChecklistItems.filter { primaryChecklistIDs.contains($0.id) }
+    }
+
+    private var secondaryChecklistItems: [SetupChecklistItem] {
+        activeChecklistItems.filter { !primaryChecklistIDs.contains($0.id) }
+    }
+
+    private var shownChecklistItems: [SetupChecklistItem] {
+        if showMoreChecklistItems {
+            return primaryChecklistItems + secondaryChecklistItems
+        }
+        return primaryChecklistItems
+    }
+
+    private var setupChecklistSection: some View {
+        AppGlassCard(
+            depth: .base,
+            cornerRadius: 24,
+            tint: Color.appAccent.opacity(0.16),
+            contentPadding: 16
+        ) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(AppLocalization.string("Finish setup"))
+                            .font(AppTypography.sectionTitle)
+                            .foregroundStyle(.white)
+                    }
+                    Spacer()
+                    Menu {
+                        Button(AppLocalization.string("Hide checklist")) {
+                            Haptics.selection()
+                            showOnboardingChecklistOnHome = false
+                        }
+                        Button(onboardingChecklistCollapsed ? AppLocalization.string("Expand checklist") : AppLocalization.string("Collapse checklist")) {
+                            Haptics.selection()
+                            onboardingChecklistCollapsed.toggle()
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel(AppLocalization.string("accessibility.setup.checklist.options"))
+                    .accessibilityHint(AppLocalization.string("accessibility.setup.checklist.options.hint"))
+                }
+
+                if onboardingChecklistCollapsed {
+                    Text(AppLocalization.string("Checklist collapsed. Open menu to expand."))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(.white.opacity(0.72))
+                } else {
+                    ForEach(shownChecklistItems) { item in
+                        Button {
+                            performChecklistAction(item.id)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: item.icon)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(item.isCompleted ? Color(hex: "#22C55E") : Color.appAccent)
+                                    .frame(width: 28, height: 28)
+                                    .background(Color.white.opacity(0.08))
+                                    .clipShape(Circle())
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.title)
+                                        .font(AppTypography.bodyEmphasis)
+                                        .foregroundStyle(.white)
+                                    Text(item.detail)
+                                        .font(AppTypography.micro)
+                                        .foregroundStyle(.white.opacity(0.68))
+                                        .lineLimit(2)
+                                }
+
+                                Spacer(minLength: 10)
+
+                                if item.isLoading {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                        .tint(Color.appAccent)
+                                } else if item.isCompleted {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundStyle(Color(hex: "#22C55E"))
+                                } else {
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundStyle(.white.opacity(0.45))
+                                }
+                            }
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.white.opacity(0.04))
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(item.isLoading)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("\(item.title). \(item.detail)")
+                        .accessibilityValue(
+                            item.isLoading
+                            ? AppLocalization.string("accessibility.setup.checklist.loading")
+                            : (item.isCompleted
+                               ? AppLocalization.string("accessibility.setup.checklist.completed")
+                               : AppLocalization.string("accessibility.setup.checklist.incomplete"))
+                        )
+                    }
+
+                    if !showMoreChecklistItems, secondaryChecklistItems.count >= 3 {
+                        Button {
+                            Haptics.selection()
+                            showMoreChecklistItems = true
+                        } label: {
+                            Text(AppLocalization.string("Show %d more", 3))
+                                .font(AppTypography.captionEmphasis)
+                                .foregroundStyle(Color.appAccent)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 2)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                if let checklistStatusText {
+                    Text(checklistStatusText)
+                        .font(AppTypography.micro)
+                        .foregroundStyle(Color.appAccent)
+                }
+            }
         }
     }
 
@@ -283,6 +588,10 @@ struct HomeView: View {
         AppLocalization.string("home.encouragement")
     }
 
+    private var hasAnyMeasurements: Bool {
+        !samples.isEmpty
+    }
+
     private enum GoalStatusLevel {
         case onTrack
         case slightlyOff
@@ -323,6 +632,61 @@ struct HomeView: View {
             return AppLocalization.string("home.metric.accessibility.value", kind.title, valueText)
         }
         return AppLocalization.string("home.metric.accessibility.nodata", kind.title)
+    }
+
+    private func refreshChecklistState() {
+        let reminders = NotificationManager.shared.loadReminders()
+        reminderChecklistCompleted = NotificationManager.shared.notificationsEnabled && !reminders.isEmpty
+    }
+
+    private func performChecklistAction(_ id: String) {
+        switch id {
+        case "first_measurement":
+            Haptics.selection()
+            showQuickAddSheet = true
+        case "first_photo":
+            Haptics.selection()
+            router.selectedTab = .photos
+        case "choose_metrics":
+            Haptics.selection()
+            onboardingChecklistMetricsCompleted = true
+            settingsOpenTrackedMeasurements = true
+            router.selectedTab = .settings
+        case "reminders":
+            Haptics.selection()
+            settingsOpenReminders = true
+            router.selectedTab = .settings
+        case "healthkit":
+            connectHealthKitFromChecklist()
+        case "premium":
+            Haptics.light()
+            onboardingChecklistPremiumExplored = true
+            premiumStore.presentPaywall(reason: .onboarding)
+        default:
+            break
+        }
+    }
+
+    private func connectHealthKitFromChecklist() {
+        guard !isSyncEnabled, !isChecklistConnectingHealth else { return }
+
+        checklistStatusText = AppLocalization.string("Requesting Health access...")
+        isChecklistConnectingHealth = true
+
+        Task { @MainActor in
+            defer { isChecklistConnectingHealth = false }
+            do {
+                try await HealthKitManager.shared.requestAuthorization()
+                isSyncEnabled = true
+                onboardingSkippedHealthKit = true
+                checklistStatusText = AppLocalization.string("Connected to Apple Health.")
+                Haptics.success()
+                refreshChecklistState()
+            } catch {
+                checklistStatusText = AppLocalization.string("Health access denied. You can enable it later in Settings.")
+                Haptics.error()
+            }
+        }
     }
     
     // MARK: - Measurements Section
@@ -470,9 +834,16 @@ struct HomeView: View {
                 .background(
                     GeometryReader { geo in
                         Color.clear
-                            .onAppear { lastPhotosGridWidth = geo.size.width }
+                            .onAppear {
+                                let width = geo.size.width
+                                if width.isFinite, width > 0 {
+                                    lastPhotosGridWidth = width
+                                }
+                            }
                             .onChange(of: geo.size.width) { _, newValue in
-                                lastPhotosGridWidth = newValue
+                                if newValue.isFinite, newValue > 0 {
+                                    lastPhotosGridWidth = newValue
+                                }
                             }
                     }
                 )
@@ -549,11 +920,18 @@ struct HomeKeyMetricRow: View {
                         .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
                         .frame(width: 16, height: 16)
 
-                    Text(kind.title)
-                        .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
+                    ViewThatFits(in: .vertical) {
+                        Text(kind.title)
+                            .font(AppTypography.bodyEmphasis)
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                        Text(kind.title)
+                            .font(AppTypography.bodyEmphasis)
+                            .foregroundStyle(.white)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
 
                 if let latest {

@@ -48,9 +48,17 @@ struct HealthMetricRow<Destination: View>: View {
             HStack(spacing: 12) {
                 // Lewa strona - tytuł
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(AppTypography.body)
-                        .foregroundStyle(.white)
+                    ViewThatFits(in: .vertical) {
+                        Text(title)
+                            .font(AppTypography.body)
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                        Text(title)
+                            .font(AppTypography.body)
+                            .foregroundStyle(.white)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     
                     Text(category)
                         .font(AppTypography.micro)
@@ -74,12 +82,14 @@ struct HealthMetricRow<Destination: View>: View {
                         .foregroundStyle(.white.opacity(0.5))
                 }
             }
+            .frame(minHeight: 44)
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color.white.opacity(0.05))
             )
         }
+        .contentShape(Rectangle())
         .buttonStyle(.plain)
     }
 }

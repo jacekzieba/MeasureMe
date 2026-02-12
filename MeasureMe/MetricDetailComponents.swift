@@ -17,7 +17,7 @@ extension MetricDetailView {
         }
 
         let xAxis = AXCategoricalDataAxisDescriptor(
-            title: "Date",
+            title: AppLocalization.string("Date"),
             categoryOrder: points.map(\.0)
         )
 
@@ -42,11 +42,21 @@ extension MetricDetailView {
 
         let minText = String(format: "%.1f %@", minValue, unit)
         let maxText = String(format: "%.1f %@", maxValue, unit)
-        let trendText = trendlineSegment?.endValue == trendlineSegment?.startValue ? "steady" :
-        ((trendlineSegment?.endValue ?? 0) > (trendlineSegment?.startValue ?? 0) ? "trending up" : "trending down")
-        let summary = "\(kind.title), \(timeframeLabel.lowercased()), from \(minText) to \(maxText), \(trendText)."
+        let trendText = trendlineSegment?.endValue == trendlineSegment?.startValue
+            ? AppLocalization.string("trend.steady")
+            : ((trendlineSegment?.endValue ?? 0) > (trendlineSegment?.startValue ?? 0)
+               ? AppLocalization.string("trend.up")
+               : AppLocalization.string("trend.down"))
+        let summary = AppLocalization.string(
+            "chart.summary.metric",
+            kind.title,
+            timeframeLabel.lowercased(),
+            minText,
+            maxText,
+            trendText
+        )
         return AXChartDescriptor(
-            title: "\(kind.title) trend",
+            title: AppLocalization.string("chart.title.metric", kind.title),
             summary: summary,
             xAxis: xAxis,
             yAxis: yAxis,
@@ -92,14 +102,16 @@ extension MetricDetailView {
             sampleCount: chartSamples.count,
             delta7DaysText: deltaText(days: 7, in: chartSamples),
             delta30DaysText: deltaText(days: 30, in: chartSamples),
-            goalStatusText: goalStatusText
+            goalStatusText: goalStatusText,
+            goalDirectionText: currentGoal?.direction.rawValue,
+            defaultFavorableDirectionText: kind.defaultFavorableDirectionWhenNoGoal.rawValue
         )
     }
 
     var goalStatusText: String? {
         guard let goal = currentGoal, let latest = samples.last else { return nil }
         if goal.isAchieved(currentValue: latest.value) {
-            return "Goal reached"
+            return AppLocalization.string("Goal reached")
         }
         let remaining = displayValue(abs(goal.remainingToGoal(currentValue: latest.value)))
         let unit = kind.unitSymbol(unitsSystem: unitsSystem)
@@ -112,7 +124,7 @@ extension MetricDetailView {
               let trend = trendlineSegment else { return nil }
 
         if goal.isAchieved(currentValue: latest.value) {
-            return "Goal already achieved."
+            return AppLocalization.string("Goal already achieved.")
         }
 
         let slope = (trend.endValue - trend.startValue) / trend.endDate.timeIntervalSince(trend.startDate)
@@ -161,11 +173,11 @@ extension MetricDetailView {
 
     var timeframeLabel: String {
         switch timeframe {
-        case .week: return "Last 7 days"
-        case .month: return "Last 30 days"
-        case .threeMonths: return "Last 90 days"
-        case .year: return "Last year"
-        case .all: return "All time"
+        case .week: return AppLocalization.string("Last 7 days")
+        case .month: return AppLocalization.string("Last 30 days")
+        case .threeMonths: return AppLocalization.string("Last 90 days")
+        case .year: return AppLocalization.string("Last year")
+        case .all: return AppLocalization.string("All time")
         }
     }
 
@@ -540,26 +552,31 @@ struct EditMetricSampleView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section(AppLocalization.string("Value")) {
-                    HStack {
-                        TextField(AppLocalization.string("Value"), value: $displayValue, format: .number)
-                            .keyboardType(.decimalPad)
-                            .font(.body.monospacedDigit())
-                        Text(kind.unitSymbol(unitsSystem: unitsSystem))
-                            .foregroundStyle(.secondary)
-                    }
+            ZStack {
+                AppScreenBackground(topHeight: 220, tint: Color.cyan.opacity(0.18))
+                Form {
+                    Section(AppLocalization.string("Value")) {
+                        HStack {
+                            TextField(AppLocalization.string("Value"), value: $displayValue, format: .number)
+                                .keyboardType(.decimalPad)
+                                .font(.body.monospacedDigit())
+                            Text(kind.unitSymbol(unitsSystem: unitsSystem))
+                                .foregroundStyle(.secondary)
+                        }
 
-                    if kind.unitCategory == .percent {
-                        Text(AppLocalization.string("Enter value in 0–100 range"))
-                            .font(AppTypography.micro)
-                            .foregroundStyle(.secondary)
-                    }
+                        if kind.unitCategory == .percent {
+                            Text(AppLocalization.string("Enter value in 0–100 range"))
+                                .font(AppTypography.micro)
+                                .foregroundStyle(.secondary)
+                        }
 
-                    DatePicker(AppLocalization.string("Date"), selection: $date, displayedComponents: [.date, .hourAndMinute])
+                        DatePicker(AppLocalization.string("Date"), selection: $date, displayedComponents: [.date, .hourAndMinute])
+                    }
                 }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle(AppLocalization.string("metric.edit.title", kind.title))
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Cancel")) { dismiss() }
@@ -634,51 +651,56 @@ struct SetGoalView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                // Wybór kierunku celu
-                Section {
-                    Picker(AppLocalization.string("Goal type"), selection: $direction) {
-                        Label(AppLocalization.string("Decrease"), systemImage: "arrow.down")
-                            .tag(MetricGoal.Direction.decrease)
-                        Label(AppLocalization.string("Increase"), systemImage: "arrow.up")
-                            .tag(MetricGoal.Direction.increase)
-                    }
-                    .pickerStyle(.segmented)
-                } header: {
-                    Text(AppLocalization.string("Direction"))
-                } footer: {
-                    Text(AppLocalization.string("Choose whether you want to increase or decrease this metric."))
-                }
-                
-                // Wartość celu
-                Section {
-                    HStack {
-                        TextField(AppLocalization.string("Goal Value"), value: $displayValue, format: .number)
-                            .keyboardType(.decimalPad)
-                            .font(.body.monospacedDigit())
-                        Text(kind.unitSymbol(unitsSystem: unitsSystem))
-                            .foregroundStyle(.secondary)
+            ZStack {
+                AppScreenBackground(topHeight: 220, tint: Color.cyan.opacity(0.18))
+                Form {
+                    // Wybór kierunku celu
+                    Section {
+                        Picker(AppLocalization.string("Goal type"), selection: $direction) {
+                            Label(AppLocalization.string("Decrease"), systemImage: "arrow.down")
+                                .tag(MetricGoal.Direction.decrease)
+                            Label(AppLocalization.string("Increase"), systemImage: "arrow.up")
+                                .tag(MetricGoal.Direction.increase)
+                        }
+                        .pickerStyle(.segmented)
+                    } header: {
+                        Text(AppLocalization.string("Direction"))
+                    } footer: {
+                        Text(AppLocalization.string("Choose whether you want to increase or decrease this metric."))
                     }
                     
-                    if kind.unitCategory == .percent {
-                        Text(AppLocalization.string("Enter value in 0–100 range"))
-                            .font(AppTypography.micro)
-                            .foregroundStyle(.secondary)
+                    // Wartość celu
+                    Section {
+                        HStack {
+                            TextField(AppLocalization.string("Goal Value"), value: $displayValue, format: .number)
+                                .keyboardType(.decimalPad)
+                                .font(.body.monospacedDigit())
+                            Text(kind.unitSymbol(unitsSystem: unitsSystem))
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        if kind.unitCategory == .percent {
+                            Text(AppLocalization.string("Enter value in 0–100 range"))
+                                .font(AppTypography.micro)
+                                .foregroundStyle(.secondary)
+                        }
+                    } header: {
+                        Text(AppLocalization.string("Target Value"))
+                    } footer: {
+                        Text(AppLocalization.string("metric.goal.set.help", kind.title.lowercased()))
                     }
-                } header: {
-                    Text(AppLocalization.string("Target Value"))
-                } footer: {
-                    Text(AppLocalization.string("metric.goal.set.help", kind.title.lowercased()))
                 }
+                .scrollContentBackground(.hidden)
             }
-            .navigationTitle(currentGoal == nil ? "Set Goal" : "Update Goal")
+            .navigationTitle(currentGoal == nil ? AppLocalization.string("Set Goal") : AppLocalization.string("Update Goal"))
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(currentGoal == nil ? "Set" : "Update") {
+                    Button(currentGoal == nil ? AppLocalization.string("Set") : AppLocalization.string("Update")) {
                         let metric = kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
                         onSet(metric, direction)
                         dismiss()

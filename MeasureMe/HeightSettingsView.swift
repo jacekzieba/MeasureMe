@@ -39,7 +39,7 @@ struct HeightSettingsView: View {
     
     var body: some View {
         ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 260)
+            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
             
             // Zawartość
             List {
@@ -195,6 +195,10 @@ struct HeightSettingsView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .listStyle(.plain)
+            .listSectionSpacing(24)
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
             .navigationTitle(AppLocalization.string("Height"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -259,7 +263,7 @@ struct ManualHeightInputView: View {
     
     var body: some View {
         ZStack(alignment: .top) {
-            AppScreenBackground()
+            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
             
             // Zawartość
             List {
@@ -325,6 +329,10 @@ struct ManualHeightInputView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .listStyle(.plain)
+            .listSectionSpacing(24)
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
             .navigationTitle(AppLocalization.string("Set Height"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)

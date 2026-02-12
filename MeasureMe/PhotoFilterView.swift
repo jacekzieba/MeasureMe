@@ -21,14 +21,19 @@ struct PhotoFilterView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                dateRangeSection
-                if !availableTags.isEmpty {
-                    tagsSection
+            ZStack {
+                AppScreenBackground(topHeight: 220, tint: Color.cyan.opacity(0.16))
+                Form {
+                    dateRangeSection
+                    if !availableTags.isEmpty {
+                        tagsSection
+                    }
                 }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle(AppLocalization.string("Filter Photos"))
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Cancel")) {

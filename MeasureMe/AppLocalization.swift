@@ -83,8 +83,34 @@ enum AppLocalization {
 
     static func plural(_ key: String, _ count: Int) -> String {
         let language = currentLanguage
-        guard language == .pl else {
-            return string(key, count)
+        let preferred = Locale.preferredLanguages.first?.lowercased() ?? ""
+        let resolvedBundle: Bundle
+        let resolvedLocale: Locale
+
+        switch language {
+        case .system:
+            if preferred.hasPrefix("pl"),
+               let path = Bundle.main.path(forResource: "pl", ofType: "lproj"),
+               let bundle = Bundle(path: path) {
+                resolvedBundle = bundle
+                resolvedLocale = Locale(identifier: "pl")
+            } else if let path = Bundle.main.path(forResource: "en", ofType: "lproj"),
+                      let bundle = Bundle(path: path) {
+                resolvedBundle = bundle
+                resolvedLocale = Locale(identifier: "en")
+            } else {
+                resolvedBundle = .main
+                resolvedLocale = .current
+            }
+        case .en, .pl:
+            resolvedBundle = language.bundle
+            resolvedLocale = language.locale
+        }
+
+        let shouldUsePolishRules = resolvedLocale.identifier.lowercased().hasPrefix("pl")
+        guard shouldUsePolishRules else {
+            let format = resolvedBundle.localizedString(forKey: key, value: key, table: nil)
+            return String(format: format, locale: resolvedLocale, arguments: [count])
         }
 
         let suffix: String
@@ -99,7 +125,11 @@ enum AppLocalization {
         }
 
         let pluralKey = "\(key).\(suffix)"
-        let format = language.bundle.localizedString(forKey: pluralKey, value: pluralKey, table: nil)
-        return String(format: format, locale: language.locale, arguments: [count])
+        let format = resolvedBundle.localizedString(forKey: pluralKey, value: pluralKey, table: nil)
+        if format == pluralKey {
+            let fallback = resolvedBundle.localizedString(forKey: key, value: key, table: nil)
+            return String(format: fallback, locale: resolvedLocale, arguments: [count])
+        }
+        return String(format: format, locale: resolvedLocale, arguments: [count])
     }
 }

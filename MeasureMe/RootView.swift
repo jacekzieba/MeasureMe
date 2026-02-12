@@ -26,5 +26,27 @@ struct RootView: View {
                     .zIndex(2)
             }
         }
+        .confirmationDialog(
+            AppLocalization.string("premium.trial.reminder.prompt.title"),
+            isPresented: $premiumStore.showTrialReminderOptInPrompt,
+            titleVisibility: .visible
+        ) {
+            Button(AppLocalization.string("Not now"), role: .cancel) {
+                premiumStore.dismissTrialReminderOptIn()
+            }
+            Button(AppLocalization.string("Enable reminders")) {
+                Task { await premiumStore.confirmTrialReminderOptIn() }
+            }
+        } message: {
+            Text(AppLocalization.string("premium.trial.reminder.prompt.message"))
+        }
+        .alert(
+            AppLocalization.string("premium.trial.thankyou.title"),
+            isPresented: $premiumStore.showTrialThankYouAlert
+        ) {
+            Button(AppLocalization.string("OK"), role: .cancel) {}
+        } message: {
+            Text(AppLocalization.string("premium.trial.thankyou.message"))
+        }
     }
 }

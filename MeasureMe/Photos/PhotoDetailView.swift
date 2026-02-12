@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Photos
 
 /// Szczegółowy widok pojedynczego zdjęcia z możliwością edycji i pełnoekranowego wyświetlania
 struct PhotoDetailView: View {
@@ -12,15 +13,19 @@ struct PhotoDetailView: View {
     @State private var showFullScreen = false
     @State private var isEditing = false
     @State private var showSaveAlert = false
+    @State private var saveAlertTitle = AppLocalization.string("Photo Saved")
     @State private var saveAlertMessage = ""
+    @State private var isSavingToPhotos = false
     
     // Edit mode state
     @State private var editedDate: Date
     @State private var editedTags: Set<PhotoTag>
     @State private var editedMetrics: [MetricValueSnapshot]
+    let onDeleted: (() -> Void)?
     
-    init(photo: PhotoEntry) {
+    init(photo: PhotoEntry, onDeleted: (() -> Void)? = nil) {
         self.photo = photo
+        self.onDeleted = onDeleted
         _editedDate = State(initialValue: photo.date)
         _editedTags = State(initialValue: Set(photo.tags))
         _editedMetrics = State(initialValue: photo.linkedMetrics)
@@ -69,7 +74,9 @@ struct PhotoDetailView: View {
                         } label: {
                             Label(AppLocalization.string("Save to Photos"), systemImage: "square.and.arrow.down")
                         }
+                        .disabled(isSavingToPhotos)
                         .accessibilityLabel(AppLocalization.string("Save photo to gallery"))
+                        .accessibilityHint(AppLocalization.string("accessibility.save.photo.to.gallery.hint"))
                     }
                 }
                 
@@ -87,7 +94,7 @@ struct PhotoDetailView: View {
                     cacheID: String(describing: photo.id)
                 )
             }
-            .alert(AppLocalization.string("Photo Saved"), isPresented: $showSaveAlert) {
+            .alert(saveAlertTitle, isPresented: $showSaveAlert) {
                 Button(AppLocalization.string("OK"), role: .cancel) { }
             } message: {
                 Text(saveAlertMessage)
@@ -177,20 +184,47 @@ private extension PhotoDetailView {
     func deletePhoto() {
         context.delete(photo)
         try? context.save()
+        context.processPendingChanges()
+        onDeleted?()
         dismiss()
     }
 
     func saveToPhotos() {
-        guard let image = UIImage(data: photo.imageData) else {
-            saveAlertMessage = "Unable to save this image."
-            showSaveAlert = true
-            Haptics.error()
-            return
+        Task { @MainActor in
+            guard !isSavingToPhotos else { return }
+            isSavingToPhotos = true
+            defer { isSavingToPhotos = false }
+
+            guard let image = UIImage(data: photo.imageData) else {
+                presentSaveFailure(message: AppLocalization.string("Unable to save this image."))
+                return
+            }
+
+            let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+            guard status == .authorized || status == .limited else {
+                presentSaveFailure(message: AppLocalization.string("Permission denied. Enable Photos access in Settings."))
+                return
+            }
+
+            do {
+                try await PHPhotoLibrary.shared().performChanges {
+                    PHAssetChangeRequest.creationRequestForAsset(from: image)
+                }
+                saveAlertTitle = AppLocalization.string("Photo Saved")
+                saveAlertMessage = AppLocalization.string("Saved to Photos.")
+                showSaveAlert = true
+                Haptics.success()
+            } catch {
+                presentSaveFailure(message: error.localizedDescription)
+            }
         }
-        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-        saveAlertMessage = "Saved to Photos."
+    }
+
+    func presentSaveFailure(message: String) {
+        saveAlertTitle = AppLocalization.string("Save Failed")
+        saveAlertMessage = message
         showSaveAlert = true
-        Haptics.success()
+        Haptics.error()
     }
 }
 

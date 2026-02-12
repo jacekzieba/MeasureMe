@@ -1,64 +1,109 @@
 import SwiftUI
 
 struct TabBarContainer: View {
-    @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @State private var router = AppRouter()
     @AppStorage("home_tab_scroll_offset") private var homeTabScrollOffset: Double = 0.0
 
     var body: some View {
         @Bindable var router = router
         let tabBarShouldBeVisible = router.selectedTab != .home || homeTabScrollOffset < -14
-        
+
         ZStack {
             Color.black
                 .ignoresSafeArea()
-            
-            TabView(selection: $router.selectedTab) {
-                // HOME
-                Tab(value: AppTab.home) {
+
+            if #available(iOS 18.0, *) {
+                TabView(selection: $router.selectedTab) {
+                    // HOME
+                    Tab(value: AppTab.home) {
+                        NavigationStack {
+                            HomeView()
+                        }
+                    } label: {
+                        Label(AppLocalization.string("Home"), systemImage: "house.fill")
+                    }
+
+                    // MEASUREMENTS
+                    Tab(value: AppTab.measurements) {
+                        MeasurementsTabView()
+                    } label: {
+                        Label(AppLocalization.string("Measurements"), systemImage: "ruler")
+                    }
+
+                    // COMPOSE
+                    Tab(value: AppTab.compose, role: .search) {
+                        Color.clear
+                    } label: {
+                        Label(AppLocalization.string("Add"), systemImage: "plus")
+                    }
+
+                    // PHOTOS
+                    Tab(value: AppTab.photos) {
+                        PhotoView()
+                    } label: {
+                        Label(AppLocalization.string("Photos"), systemImage: "photo")
+                    }
+
+                    // SETTINGS
+                    Tab(value: AppTab.settings) {
+                        SettingsView()
+                    } label: {
+                        Label(AppLocalization.string("Settings"), systemImage: "gearshape")
+                    }
+                }
+                .tint(Color(hex: "#FCA311"))
+                .toolbarBackground(tabBarShouldBeVisible ? .visible : .hidden, for: .tabBar)
+                .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+                .applyTabBarMinimizeBehaviorIfAvailable()
+                .onChange(of: router.selectedTab) { oldTab, newTab in
+                    if newTab == .compose {
+                        router.presentedSheet = .composer(mode: .newPost)
+                        router.selectedTab = oldTab
+                    }
+                }
+            } else {
+                TabView(selection: $router.selectedTab) {
                     NavigationStack {
                         HomeView()
                     }
-                } label: {
-                    Label(AppLocalization.string("Home"), systemImage: "house.fill")
-                }
-                
-                // MEASUREMENTS
-                Tab(value: AppTab.measurements) {
+                    .tabItem {
+                        Label(AppLocalization.string("Home"), systemImage: "house.fill")
+                    }
+                    .tag(AppTab.home)
+
                     MeasurementsTabView()
-                } label: {
-                    Label(AppLocalization.string("Measurements"), systemImage: "ruler")
-                }
-                
-                // COMPOSE
-                Tab(value: AppTab.compose, role: .search) {
+                        .tabItem {
+                            Label(AppLocalization.string("Measurements"), systemImage: "ruler")
+                        }
+                        .tag(AppTab.measurements)
+
                     Color.clear
-                } label: {
-                    Label(AppLocalization.string("Add"), systemImage: "plus")
-                }
-                
-                // PHOTOS
-                Tab(value: AppTab.photos) {
+                        .tabItem {
+                            Label(AppLocalization.string("Add"), systemImage: "plus")
+                        }
+                        .tag(AppTab.compose)
+
                     PhotoView()
-                } label: {
-                    Label(AppLocalization.string("Photos"), systemImage: "photo")
-                }
-                
-                // SETTINGS
-                Tab(value: AppTab.settings) {
+                        .tabItem {
+                            Label(AppLocalization.string("Photos"), systemImage: "photo")
+                        }
+                        .tag(AppTab.photos)
+
                     SettingsView()
-                } label: {
-                    Label(AppLocalization.string("Settings"), systemImage: "gearshape")
+                        .tabItem {
+                            Label(AppLocalization.string("Settings"), systemImage: "gearshape")
+                        }
+                        .tag(AppTab.settings)
                 }
-            }
-            .tint(Color(hex: "#FCA311"))
-            .toolbarBackground(tabBarShouldBeVisible ? .visible : .hidden, for: .tabBar)
-            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
-            .applyTabBarMinimizeBehaviorIfAvailable()
-            .onChange(of: router.selectedTab) { oldTab, newTab in
-                if newTab == .compose {
-                    router.presentedSheet = .composer(mode: .newPost)
-                    router.selectedTab = oldTab
+                .tint(Color(hex: "#FCA311"))
+                .toolbarBackground(tabBarShouldBeVisible ? .visible : .hidden, for: .tabBar)
+                .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+                .applyTabBarMinimizeBehaviorIfAvailable()
+                .onChange(of: router.selectedTab) { oldTab, newTab in
+                    if newTab == .compose {
+                        router.presentedSheet = .composer(mode: .newPost)
+                        router.selectedTab = oldTab
+                    }
                 }
             }
         }
