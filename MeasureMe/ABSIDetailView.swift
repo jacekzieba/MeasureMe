@@ -105,7 +105,7 @@ struct ABSIDetailView: View {
                                     .frame(width: 12, height: 12)
                                 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(range.title)
+                                    Text(AppLocalization.string(range.title))
                                         .font(AppTypography.bodyEmphasis)
                                         .foregroundStyle(.white)
                                     

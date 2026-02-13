@@ -614,9 +614,17 @@ struct MetricDetailView: View {
                     .fill(.clear)
                     .contentShape(Rectangle())
                     .gesture(
-                        DragGesture(minimumDistance: 0)
+                        LongPressGesture(minimumDuration: 0.2)
+                            .sequenced(before: DragGesture(minimumDistance: 0))
                             .onChanged { value in
-                                updateScrubbedSample(at: value.location, proxy: proxy, geometry: geometry)
+                                switch value {
+                                case .second(true, let drag):
+                                    if let drag {
+                                        updateScrubbedSample(at: drag.location, proxy: proxy, geometry: geometry)
+                                    }
+                                default:
+                                    break
+                                }
                             }
                             .onEnded { _ in
                                 scrubbedSample = nil
@@ -689,14 +697,15 @@ struct MetricDetailView: View {
         let slope = (count * sumXY - sumX * sumY) / denominator
         let intercept = (sumY - slope * sumX) / count
         
-        guard let startTime = times.first, let endTime = times.last else { return nil }
+        guard let startTime = times.first, let endTime = times.last,
+              let firstSample = sorted.first, let lastSample = sorted.last else { return nil }
         let startValue = slope * startTime + intercept
         let endValue = slope * endTime + intercept
-        
+
         return (
-            startDate: sorted.first!.date,
+            startDate: firstSample.date,
             startValue: startValue,
-            endDate: sorted.last!.date,
+            endDate: lastSample.date,
             endValue: endValue
         )
     }

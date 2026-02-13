@@ -103,7 +103,7 @@ struct BodyFatDetailView: View {
                 
                 // Ranges
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(AppLocalization.string("reference.ranges.gender", AppLocalization.string(gender.displayName)))
+                    Text(AppLocalization.string("reference.ranges.gender", gender.displayName))
                         .font(AppTypography.bodyEmphasis)
                         .foregroundStyle(.white)
                     

@@ -6,6 +6,10 @@
 "notification.photo.body" = "It’s been %d days since your last photo—images reveal changes the scale misses.";
 "notification.import.title" = "New %@ from Health";
 "notification.import.body" = "Added automatically to MeasureMe.";
+"notification.import.summary.title" = "New Health data";
+"notification.import.summary.body.single" = "Imported: %@.";
+"notification.import.summary.body.double" = "Imported: %@ and %@.";
+"notification.import.summary.body.multiple" = "Imported: %@, %@, and other metrics.";
 "notification.goal.title" = "Goal achievement notification%@";
 "notification.goal.body" = "You hit your %@ goal. Nice work.";
 "notification.smart.after.days" = "After %d days of inactivity";
@@ -221,6 +225,7 @@
 "Inches" = "Inches";
 "Centimeters" = "Centimeters";
 "Sync with Health" = "Sync with Health";
+"Health import notifications" = "Health import notifications";
 "Enabled" = "Enabled";
 "Enable reminders" = "Enable reminders";
 "Not now" = "Not now";
@@ -453,6 +458,134 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Weight" = "Weight";
 "WHR Ranges (Male)" = "WHR Ranges (Male)";
 "WHR Ranges (Female)" = "WHR Ranges (Female)";
+"WHtR Ranges" = "WHtR Ranges";
+
+/* Health metric categories */
+"Normal weight" = "Normal weight";
+"Increased weight" = "Increased weight";
+"High weight" = "High weight";
+"Normal fat level" = "Normal fat level";
+"Increased fat level" = "Increased fat level";
+"High fat level" = "High fat level";
+"Underweight" = "Underweight";
+"Overweight" = "Overweight";
+"Obese" = "Obese";
+"Low risk" = "Low risk";
+"Moderate risk" = "Moderate risk";
+"High risk" = "High risk";
+"Child/Adolescent" = "Child/Adolescent";
+"Adult" = "Adult";
+"Senior" = "Senior";
+
+/* Health metric category descriptions */
+"Your waist-to-height ratio is within the healthy range." = "Your waist-to-height ratio is within the healthy range.";
+"Your waist-to-height ratio indicates increased health risks." = "Your waist-to-height ratio indicates increased health risks.";
+"Your waist-to-height ratio indicates high health risks." = "Your waist-to-height ratio indicates high health risks.";
+"Your waist-to-hip ratio is within the healthy range." = "Your waist-to-hip ratio is within the healthy range.";
+"Your waist-to-hip ratio indicates overweight." = "Your waist-to-hip ratio indicates overweight.";
+"Your waist-to-hip ratio indicates obesity." = "Your waist-to-hip ratio indicates obesity.";
+"Your relative fat mass is within a healthy range." = "Your relative fat mass is within a healthy range.";
+"Your relative fat mass indicates increased body fat." = "Your relative fat mass indicates increased body fat.";
+"Your relative fat mass indicates high body fat." = "Your relative fat mass indicates high body fat.";
+"Your body shape indicates low health risk from abdominal fat distribution." = "Your body shape indicates low health risk from abdominal fat distribution.";
+"Your body shape indicates moderate health risk from abdominal fat distribution." = "Your body shape indicates moderate health risk from abdominal fat distribution.";
+"Your body shape indicates high health risk from abdominal fat distribution." = "Your body shape indicates high health risk from abdominal fat distribution.";
+"Your central fat distribution indicates low health risk." = "Your central fat distribution indicates low health risk.";
+"Your central fat distribution indicates moderate health risk." = "Your central fat distribution indicates moderate health risk.";
+"Your central fat distribution indicates high health risk." = "Your central fat distribution indicates high health risk.";
+"BMI is below the typical range for this age." = "BMI is below the typical range for this age.";
+"Your BMI is below the healthy range." = "Your BMI is below the healthy range.";
+"BMI is within the typical range for this age." = "BMI is within the typical range for this age.";
+"Your BMI is within the healthy range." = "Your BMI is within the healthy range.";
+"BMI is above the typical range for this age." = "BMI is above the typical range for this age.";
+"Your BMI indicates overweight." = "Your BMI indicates overweight.";
+"BMI is significantly above the typical range for this age." = "BMI is significantly above the typical range for this age.";
+"Your BMI indicates obesity." = "Your BMI indicates obesity.";
+
+/* Health metric legend descriptions */
+"Low health risk" = "Low health risk";
+"Increased health risk" = "Increased health risk";
+"High health risk" = "High health risk";
+"Moderate health risk" = "Moderate health risk";
+"Below healthy weight" = "Below healthy weight";
+"Healthy weight range" = "Healthy weight range";
+"Above healthy weight" = "Above healthy weight";
+"Below typical range" = "Below typical range";
+"Typical range" = "Typical range";
+"Above typical range" = "Above typical range";
+"Significantly above range" = "Significantly above range";
+
+/* Missing data strings */
+"Missing waist or height measurement" = "Missing waist or height measurement";
+"Missing waist or hip measurement" = "Missing waist or hip measurement";
+
+/* WHtR Detail View */
+"Waist-to-Height Ratio" = "Waist-to-Height Ratio";
+"WHtR" = "WHtR";
+"About WHtR" = "About WHtR";
+"Cardio health" = "Cardio health";
+"WHtR reflects central fat, a strong signal for cardiovascular risk." = "WHtR reflects central fat, a strong signal for cardiovascular risk.";
+"Metabolic risk" = "Metabolic risk";
+"Higher ratios are linked to insulin resistance and metabolic strain." = "Higher ratios are linked to insulin resistance and metabolic strain.";
+"Actionable" = "Actionable";
+"Waist changes can move this ratio quickly, making it useful for progress." = "Waist changes can move this ratio quickly, making it useful for progress.";
+
+/* WHR Detail View */
+"Waist-to-Hip Ratio" = "Waist-to-Hip Ratio";
+"WHR" = "WHR";
+"About WHR" = "About WHR";
+"Gender not specified" = "Gender not specified";
+"WHR thresholds differ between males and females. Set your gender in Settings for more accurate ranges." = "WHR thresholds differ between males and females. Set your gender in Settings for more accurate ranges.";
+"Currently showing female ranges (more conservative)." = "Currently showing female ranges (more conservative).";
+
+/* BMI Detail View */
+"Body Mass Index" = "Body Mass Index";
+"BMI" = "BMI";
+"About BMI" = "About BMI";
+"BMI Ranges" = "BMI Ranges";
+"Quick context" = "Quick context";
+"BMI gives a fast, broad view of weight status over time." = "BMI gives a fast, broad view of weight status over time.";
+"Risk signal" = "Risk signal";
+"Large shifts can correlate with cardiometabolic risk." = "Large shifts can correlate with cardiometabolic risk.";
+"Use with context" = "Use with context";
+"Pair it with waist and body fat for a fuller picture." = "Pair it with waist and body fat for a fuller picture.";
+
+/* RFM Detail View */
+"Relative Fat Mass" = "Relative Fat Mass";
+"What is RFM?" = "What is RFM?";
+"Relative Fat Mass (RFM) is an estimate of total body fat percentage based on your height and waist circumference. It provides a simple way to assess body composition without specialized equipment." = "Relative Fat Mass (RFM) is an estimate of total body fat percentage based on your height and waist circumference. It provides a simple way to assess body composition without specialized equipment.";
+"Body composition" = "Body composition";
+"RFM gives a quick read on fat percentage without special equipment." = "RFM gives a quick read on fat percentage without special equipment.";
+"Metabolic health" = "Metabolic health";
+"Higher fat levels can increase metabolic strain over time." = "Higher fat levels can increase metabolic strain over time.";
+"Tracking change" = "Tracking change";
+"Waist updates help you see meaningful shifts in composition." = "Waist updates help you see meaningful shifts in composition.";
+"Reference Ranges" = "Reference Ranges";
+"Important" = "Important";
+"RFM is an estimation tool and may not be accurate for athletes, pregnant women, or people with certain medical conditions. For the most accurate body composition analysis, consult with a healthcare professional." = "RFM is an estimation tool and may not be accurate for athletes, pregnant women, or people with certain medical conditions. For the most accurate body composition analysis, consult with a healthcare professional.";
+
+/* ABSI Detail View */
+"Body Shape Risk" = "Body Shape Risk";
+"What is Body Shape Risk?" = "What is Body Shape Risk?";
+"A Body Shape Index (ABSI) measures the health risk associated with your abdominal fat distribution, independent of your total body weight. It focuses on health outcomes rather than appearance." = "A Body Shape Index (ABSI) measures the health risk associated with your abdominal fat distribution, independent of your total body weight. It focuses on health outcomes rather than appearance.";
+"Higher ABSI values indicate more abdominal fat relative to your BMI and height, which is associated with increased cardiovascular and metabolic health risks." = "Higher ABSI values indicate more abdominal fat relative to your BMI and height, which is associated with increased cardiovascular and metabolic health risks.";
+"ABSI highlights abdominal fat, which is linked to cardiometabolic risk." = "ABSI highlights abdominal fat, which is linked to cardiometabolic risk.";
+"It adds context beyond scale weight or BMI alone." = "It adds context beyond scale weight or BMI alone.";
+"Waist changes can shift risk category over time." = "Waist changes can shift risk category over time.";
+"Risk Categories" = "Risk Categories";
+"Health Note" = "Health Note";
+"ABSI is a research-based indicator and should be considered alongside other health metrics. It is not a medical diagnosis. Consult with healthcare professionals for personalized health assessments and recommendations." = "ABSI is a research-based indicator and should be considered alongside other health metrics. It is not a medical diagnosis. Consult with healthcare professionals for personalized health assessments and recommendations.";
+
+/* Conicity Detail View */
+"Central Fat Risk" = "Central Fat Risk";
+"What is Central Fat Risk?" = "What is Central Fat Risk?";
+"The Conicity Index is an indicator of central (abdominal) fat accumulation. It evaluates how your body mass is distributed around your waist relative to your height and weight." = "The Conicity Index is an indicator of central (abdominal) fat accumulation. It evaluates how your body mass is distributed around your waist relative to your height and weight.";
+"Higher values indicate more fat concentrated in the abdominal area, which is associated with increased risk of cardiovascular disease, type 2 diabetes, and metabolic syndrome." = "Higher values indicate more fat concentrated in the abdominal area, which is associated with increased risk of cardiovascular disease, type 2 diabetes, and metabolic syndrome.";
+"Conicity highlights abdominal fat linked to cardiometabolic risk." = "Conicity highlights abdominal fat linked to cardiometabolic risk.";
+"It can reveal risk even when weight looks stable." = "It can reveal risk even when weight looks stable.";
+"Waist changes help move this index in a healthier direction." = "Waist changes help move this index in a healthier direction.";
+"The Conicity Index is a screening tool and should be interpreted alongside other health indicators. It is not a medical diagnosis. Consult with healthcare professionals for comprehensive health assessments." = "The Conicity Index is a screening tool and should be interpreted alongside other health indicators. It is not a medical diagnosis. Consult with healthcare professionals for comprehensive health assessments.";
+
 "Visible" = "Visible";
 "Hidden" = "Hidden";
 "Go deeper when you need it." = "Go deeper when you need it.";

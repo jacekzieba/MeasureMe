@@ -271,22 +271,23 @@ private struct MetricValueField: View {
 }
 
 // MARK: - Preview
+private func makePreviewContainer() -> ModelContainer {
+    do {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        return try ModelContainer(for: PhotoEntry.self, configurations: config)
+    } catch {
+        fatalError("Preview ModelContainer failed: \(error)")
+    }
+}
+
 #Preview("Empty State") {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: PhotoEntry.self, configurations: config)
-    let metricsStore = ActiveMetricsStore()
-    
-    return AddPhotoView()
-        .modelContainer(container)
-        .environmentObject(metricsStore)
+    AddPhotoView()
+        .modelContainer(makePreviewContainer())
+        .environmentObject(ActiveMetricsStore())
 }
 
 #Preview("With Image") {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: PhotoEntry.self, configurations: config)
-    let metricsStore = ActiveMetricsStore()
-    
-    return AddPhotoView(previewImage: UIImage(systemName: "photo.fill"))
-        .modelContainer(container)
-        .environmentObject(metricsStore)
+    AddPhotoView(previewImage: UIImage(systemName: "photo.fill"))
+        .modelContainer(makePreviewContainer())
+        .environmentObject(ActiveMetricsStore())
 }

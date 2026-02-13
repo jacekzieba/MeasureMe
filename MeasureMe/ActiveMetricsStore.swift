@@ -28,14 +28,18 @@ final class ActiveMetricsStore: ObservableObject {
     private let keyMetricsKey = "home_key_metrics"
     private let maxKeyMetrics = 3
     
-    /// Debouncing - zapobiega nadmiarowym publikacjom zmian
-    private var pendingPublish: Task<Void, Never>?
+    /// Debouncing - zapobiega nadmiarowym publikacjom zmian.
+    /// `nonisolated(unsafe)` allows safe access from `deinit` which is not
+    /// isolated to MainActor.  `Task.cancel()` is itself thread-safe (atomic),
+    /// and all *writes* to this property happen exclusively on @MainActor,
+    /// so the only cross-isolation access is the final `.cancel()` in deinit.
+    nonisolated(unsafe) private var pendingPublish: Task<Void, Never>?
 
     // MARK: - Initialization
-    
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        
+
         // Nasłuchuj zmian w UserDefaults (także z innych miejsc w aplikacji)
         defaultsObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
@@ -52,7 +56,6 @@ final class ActiveMetricsStore: ObservableObject {
     }
 
     deinit {
-        // Wyczyść obserwator przy dealokacji
         pendingPublish?.cancel()
         if let token = defaultsObserver {
             NotificationCenter.default.removeObserver(token)
@@ -123,11 +126,13 @@ final class ActiveMetricsStore: ObservableObject {
     /// Zwraca kluczowe metryki na Home (maks 3), zawsze będące podzbiorem aktywnych.
     var keyMetrics: [MetricKind] {
         let active = activeKinds
-        let stored = loadKeyMetricsKinds().filter { active.contains($0) }
-        if stored.isEmpty {
+        let storedSet = Set(loadKeyMetricsKinds().filter { active.contains($0) })
+        if storedSet.isEmpty {
             return Array(active.prefix(maxKeyMetrics))
         }
-        return Array(stored.prefix(maxKeyMetrics))
+        // Keep Home key metrics in the same order as active metrics configured in Settings.
+        let orderedByActive = active.filter { storedSet.contains($0) }
+        return Array(orderedByActive.prefix(maxKeyMetrics))
     }
 
     /// Sprawdza czy metryka jest oznaczona jako kluczowa (Home)

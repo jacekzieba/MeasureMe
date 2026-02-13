@@ -386,11 +386,11 @@ struct QuickAddSheetView: View {
     private func validRange(for kind: MetricKind) -> ClosedRange<Double> {
         switch kind.unitCategory {
         case .percent:
-            return 0...100
+            return 0.1...100
         case .weight:
-            return unitsSystem == "imperial" ? 0...660 : 0...300
+            return unitsSystem == "imperial" ? 0.1...660 : 0.1...300
         case .length:
-            return unitsSystem == "imperial" ? 0...100 : 0...250
+            return unitsSystem == "imperial" ? 0.1...100 : 0.1...250
         }
     }
 

@@ -33,9 +33,9 @@ enum Gender: String, CaseIterable {
     
     var displayName: String {
         switch self {
-        case .male: return "Male"
-        case .female: return "Female"
-        case .notSpecified: return "Not specified"
+        case .male: return AppLocalization.string("Male")
+        case .female: return AppLocalization.string("Female")
+        case .notSpecified: return AppLocalization.string("Not specified")
         }
     }
 }
@@ -295,9 +295,9 @@ final class HealthMetricsCalculator {
             
             var displayName: String {
                 switch self {
-                case .child: return "Child/Adolescent"
-                case .adult: return "Adult"
-                case .senior: return "Senior"
+                case .child: return AppLocalization.string("Child/Adolescent")
+                case .adult: return AppLocalization.string("Adult")
+                case .senior: return AppLocalization.string("Senior")
                 }
             }
         }
@@ -629,15 +629,7 @@ final class HealthMetricsCalculator {
 struct HealthMetricsReference {
     
     // MARK: - WHtR Reference
-    
-    static let whtrDescription = """
-The waist-to-height ratio (WHtR) is a measure of body fat distribution. It is calculated by dividing waist circumference by height.
 
-Research suggests that WHtR is a good predictor of cardiovascular disease risk and metabolic syndrome.
-
-A WHtR of 0.5 or less is considered healthy for most adults, meaning your waist circumference should be less than half your height.
-"""
-    
     static let whtrRanges: [(title: String, range: String, description: String)] = [
         ("Normal weight", "< 0.5", "Low health risk"),
         ("Increased weight", "0.5 - 0.6", "Increased health risk"),
@@ -645,15 +637,7 @@ A WHtR of 0.5 or less is considered healthy for most adults, meaning your waist 
     ]
     
     // MARK: - WHR Reference
-    
-    static let whrDescription = """
-The waist-to-hip ratio (WHR) is a measure of body fat distribution. It is calculated by dividing waist circumference by hip circumference.
 
-WHR is used as a measurement of obesity, which in turn is a possible indicator of health risk. A higher WHR suggests more abdominal fat, which is associated with increased health risks.
-
-The thresholds differ between males and females due to different body compositions.
-"""
-    
     static let whrRangesMale: [(title: String, range: String, description: String)] = [
         ("Normal weight", "< 0.90", "Low health risk"),
         ("Overweight", "0.90 - 1.0", "Moderate health risk"),
@@ -667,20 +651,7 @@ The thresholds differ between males and females due to different body compositio
     ]
     
     // MARK: - BMI Reference
-    
-    static let bmiDescription = """
-Body Mass Index (BMI) is a measure of body fat based on height and weight. It is calculated by dividing weight in kilograms by height in meters squared.
 
-BMI is a useful screening tool for identifying weight categories that may lead to health problems, but it's not diagnostic of body fatness or health.
-
-BMI interpretation varies by age:
-• Children & adolescents (< 18): Simplified ranges are used (ideally percentile charts)
-• Adults (18-65): Standard WHO ranges apply
-• Seniors (> 65): Slightly higher ranges may be healthier
-
-BMI does not distinguish between muscle and fat mass, so athletes or people with high muscle mass may have a high BMI despite having low body fat.
-"""
-    
     static let bmiRangesAdult: [(title: String, range: String, description: String)] = [
         ("Underweight", "< 18.5", "Below healthy weight"),
         ("Normal weight", "18.5 - 25.0", "Healthy weight range"),

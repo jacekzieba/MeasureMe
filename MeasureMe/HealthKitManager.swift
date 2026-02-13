@@ -217,6 +217,7 @@ final class RealHealthStore: HealthStore {
 
 // MARK: - HealthKitManager (z możliwością wstrzyknięcia store)
 
+@MainActor
 final class HealthKitManager {
 
     static let shared = HealthKitManager()
@@ -293,6 +294,11 @@ final class HealthKitManager {
 
     func startObservingHealthKitUpdates() {
         guard let realStore = store as? RealHealthStore else { return }
+        guard UserDefaults.standard.bool(forKey: "isSyncEnabled") else {
+            stopObservingHealthKitUpdates()
+            return
+        }
+
         observerQueries.forEach { realStore.store.stop($0) }
         observerQueries.removeAll()
         let initialImportCompleted = UserDefaults.standard.bool(forKey: initialHistoricalImportKey)
@@ -317,6 +323,18 @@ final class HealthKitManager {
                     await self.importNewQuantities(identifier: identifier, kind: kind, unit: unit, percent01: isPercent01)
                 }
             }
+        }
+    }
+
+    /// Stops all active HealthKit observer queries and disables background delivery.
+    func stopObservingHealthKitUpdates() {
+        guard let realStore = store as? RealHealthStore else { return }
+        observerQueries.forEach { realStore.store.stop($0) }
+        observerQueries.removeAll()
+
+        for (identifier, _, _, _) in syncTypes {
+            guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else { continue }
+            realStore.store.disableBackgroundDelivery(for: type) { _, _ in }
         }
     }
 
@@ -410,7 +428,7 @@ final class HealthKitManager {
     }
     
     /// Oblicza wiek na podstawie daty urodzenia
-    static func calculateAge(from birthDate: Date) -> Int? {
+    nonisolated static func calculateAge(from birthDate: Date) -> Int? {
         let now = Date()
         let calendar = Calendar.current
         let ageComponents = calendar.dateComponents([.year], from: birthDate, to: now)
@@ -470,7 +488,6 @@ final class HealthKitManager {
     
     // MARK: - Cached Body Composition Fetch
     
-    @MainActor
     func fetchLatestBodyCompositionCached(forceRefresh: Bool = false) async throws -> (bodyFat: Double?, leanMass: Double?) {
         let bodyFat = try await fetchLatestBodyFatPercentageCached(forceRefresh: forceRefresh)?.value
         let leanMass = try await fetchLatestLeanBodyMassInKilogramsCached(forceRefresh: forceRefresh)?.value
@@ -479,42 +496,36 @@ final class HealthKitManager {
     
     // MARK: - Cached Quantity Fetches
     
-    @MainActor
     func fetchLatestBMICached(forceRefresh: Bool = false) async throws -> (value: Double, date: Date)? {
         try await cachedQuantity(for: .bodyMassIndex, forceRefresh: forceRefresh) {
             try await fetchLatestBMI()
         }
     }
     
-    @MainActor
     func fetchLatestHeightInCentimetersCached(forceRefresh: Bool = false) async throws -> (value: Double, date: Date)? {
         try await cachedQuantity(for: .height, forceRefresh: forceRefresh) {
             try await fetchLatestHeightInCentimeters()
         }
     }
     
-    @MainActor
     func fetchLatestWeightInKilogramsCached(forceRefresh: Bool = false) async throws -> (value: Double, date: Date)? {
         try await cachedQuantity(for: .bodyMass, forceRefresh: forceRefresh) {
             try await fetchLatestWeightInKilograms()
         }
     }
     
-    @MainActor
     func fetchLatestBodyFatPercentageCached(forceRefresh: Bool = false) async throws -> (value: Double, date: Date)? {
         try await cachedQuantity(for: .bodyFatPercentage, forceRefresh: forceRefresh) {
             try await fetchLatestBodyFatPercentage()
         }
     }
     
-    @MainActor
     func fetchLatestLeanBodyMassInKilogramsCached(forceRefresh: Bool = false) async throws -> (value: Double, date: Date)? {
         try await cachedQuantity(for: .leanBodyMass, forceRefresh: forceRefresh) {
             try await fetchLatestLeanBodyMassInKilograms()
         }
     }
     
-    @MainActor
     private func cachedQuantity(
         for identifier: HKQuantityTypeIdentifier,
         forceRefresh: Bool,
@@ -541,7 +552,6 @@ final class HealthKitManager {
     
     // MARK: - Cached Waist Fetch
     
-    @MainActor
     func fetchWaistMeasurementsCached(forceRefresh: Bool = false) async throws -> [(value: Double, date: Date)] {
         let now = Date()
         if !forceRefresh,
@@ -745,7 +755,7 @@ final class HealthKitManager {
 
             if notifyExternalImports,
                sample.sourceBundleID == nil || sample.sourceBundleID != appBundleID {
-                NotificationManager.shared.sendImportNotification(kind: kind, date: sample.date)
+                NotificationManager.shared.queueImportNotification(kind: kind)
             }
         }
 

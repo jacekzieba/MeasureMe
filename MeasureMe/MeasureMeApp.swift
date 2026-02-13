@@ -17,10 +17,9 @@ struct MeasureMeApp: App {
         }
 
         let schema = Schema([
-            WaistMeasurement.self,
             MetricSample.self,
             MetricGoal.self,
-            PhotoEntry.self  // ✅ DODANE!
+            PhotoEntry.self
         ])
         // Primary persistent configuration
         let configuration = ModelConfiguration(schema: schema)

@@ -89,8 +89,7 @@ struct BMIDetailView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "person.fill")
                         .font(AppTypography.caption)
-                    let ageGroupName = AppLocalization.string(result.ageGroup.displayName)
-                    Text(AppLocalization.string("bmi.age.group", age, ageGroupName))
+                    Text(AppLocalization.string("bmi.age.group", age, result.ageGroup.displayName))
                         .font(AppTypography.caption)
                 }
                 .foregroundStyle(.white.opacity(0.7))
@@ -167,7 +166,7 @@ struct BMIDetailView: View {
                         .font(AppTypography.bodyEmphasis)
                         .foregroundStyle(.white)
                     
-                    Text(AppLocalization.string("bmi.for.agegroup", AppLocalization.string(result.ageGroup.displayName)))
+                    Text(AppLocalization.string("bmi.for.agegroup", result.ageGroup.displayName))
                         .font(AppTypography.caption)
                         .foregroundStyle(.white.opacity(0.7))
                 }

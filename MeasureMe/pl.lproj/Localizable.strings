@@ -11,6 +11,10 @@
 "notification.photo.body.many" = "Minęło %d dni od ostatniego zdjęcia — zdjęcia pokazują zmiany, których nie widać na wadze.";
 "notification.import.title" = "Nowe %@ z Zdrowia";
 "notification.import.body" = "Dodano automatycznie do MeasureMe.";
+"notification.import.summary.title" = "Nowe dane ze Zdrowia";
+"notification.import.summary.body.single" = "Zaimportowano: %@.";
+"notification.import.summary.body.double" = "Zaimportowano: %@ i %@.";
+"notification.import.summary.body.multiple" = "Zaimportowano: %@, %@ i inne metryki.";
 "notification.goal.title" = "Powiadomienie o osiągnięciu celu%@";
 "notification.goal.body" = "Udało Ci się osiągnąć cel dla %@. Świetna robota.";
 "notification.smart.after.days.one" = "Po %d dniu braku aktywności";
@@ -290,6 +294,7 @@
 "Goal type" = "Typ celu";
 "Haptics" = "Haptyka";
 "Health Metrics" = "Wskaźniki zdrowia";
+"Health import notifications" = "Powiadomienia o imporcie z Zdrowia";
 "Health Note" = "Notatka zdrowotna";
 "Height" = "Wzrost";
 "Height (cm)" = "Wzrost (cm)";

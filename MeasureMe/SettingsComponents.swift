@@ -64,23 +64,25 @@ struct HealthSettingsSection: View {
             Haptics.selection()
             // Anuluj poprzedni task autoryzacji jeśli istnieje
             authorizationTask?.cancel()
-            
-            // Tylko gdy użytkownik włącza synchronizację
+
             if newValue {
                 // Uruchom autoryzację z małym opóźnieniem, aby UI był responsywny
                 authorizationTask = Task { @MainActor in
                     // Opóźnienie 100ms zapewnia płynne przełączenie toggle
                     try? await Task.sleep(for: .milliseconds(100))
-                    
+
                     // Sprawdź czy task nie został anulowany
                     guard !Task.isCancelled else { return }
-                    
+
                     do {
                         try await HealthKitManager.shared.requestAuthorization()
                     } catch {
                         AppLog.debug("⚠️ HealthKit authorization failed: \(error.localizedDescription)")
                     }
                 }
+            } else {
+                // Sync disabled — stop observer queries and background delivery
+                HealthKitManager.shared.stopObservingHealthKitUpdates()
             }
         }
     }
@@ -349,6 +351,7 @@ struct LanguageSettingsDetailView: View {
     private func languageRow(title: String, value: String) -> some View {
         Button {
             appLanguage = value
+            AppLocalization.reloadLanguage()
             Haptics.selection()
         } label: {
             HStack(spacing: 12) {

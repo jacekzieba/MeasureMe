@@ -31,6 +31,7 @@ final class PremiumStore: ObservableObject {
     private let firstLaunchKey = "premium_first_launch_date"
     private let lastNagKey = "premium_last_nag_date"
     private let entitlementKey = "premium_entitlement"
+    private var updateListenerTask: Task<Void, Never>?
 
     init() {
         let defaults = UserDefaults.standard
@@ -38,11 +39,15 @@ final class PremiumStore: ObservableObject {
             defaults.set(Date().timeIntervalSince1970, forKey: firstLaunchKey)
         }
 
-        Task {
+        updateListenerTask = Task {
             await loadProducts()
             await refreshEntitlements()
             await listenForUpdates()
         }
+    }
+
+    deinit {
+        updateListenerTask?.cancel()
     }
 
     func presentPaywall(reason: PaywallReason) {

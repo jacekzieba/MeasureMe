@@ -524,9 +524,17 @@ struct MetricChartTile: View {
                                 .fill(.clear)
                                 .contentShape(Rectangle())
                                 .gesture(
-                                    DragGesture(minimumDistance: 0)
+                                    LongPressGesture(minimumDuration: 0.2)
+                                        .sequenced(before: DragGesture(minimumDistance: 0))
                                         .onChanged { value in
-                                            updateScrubbedSample(at: value.location, proxy: proxy, geometry: geometry)
+                                            switch value {
+                                            case .second(true, let drag):
+                                                if let drag {
+                                                    updateScrubbedSample(at: drag.location, proxy: proxy, geometry: geometry)
+                                                }
+                                            default:
+                                                break
+                                            }
                                         }
                                         .onEnded { _ in
                                             scrubbedSample = nil

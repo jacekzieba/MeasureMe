@@ -71,7 +71,6 @@ struct SettingsView: View {
     @State private var navigateToTrackedMeasurements: Bool = false
     @State private var navigateToReminders: Bool = false
     @State private var settingsSearchQuery: String = ""
-    @State private var isSettingsSearchPresented: Bool = false
     
     private var lastImportText: String? {
         guard lastHealthImportTimestamp > 0 else { return nil }
@@ -587,10 +586,9 @@ struct SettingsView: View {
             .listRowSeparatorTint(.clear)
             .listSectionSeparatorTint(.clear)
             .listStyle(.plain)
-            .padding(.top, -36)
+            .padding(.top, -8)
             .searchable(
                 text: $settingsSearchQuery,
-                isPresented: $isSettingsSearchPresented,
                 placement: .navigationBarDrawer(displayMode: .automatic),
                 prompt: AppLocalization.string("Search Settings")
             )
@@ -909,9 +907,17 @@ struct SettingsView: View {
         for row in rows {
             let valueString = String(format: "%.2f", row.displayValue)
             let dateString = formatter.string(from: row.date)
-            lines.append("\(row.metricTitle),\(valueString),\(row.unit),\(dateString)")
+            lines.append("\(csvField(row.metricTitle)),\(valueString),\(csvField(row.unit)),\(dateString)")
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// Escapuje pole CSV zgodnie z RFC 4180 — otacza cudzysłowami jeśli zawiera przecinek, cudzysłów lub nową linię.
+    private nonisolated static func csvField(_ value: String) -> String {
+        let needsQuoting = value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")
+        guard needsQuoting else { return value }
+        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
+        return "\"\(escaped)\""
     }
 
     private nonisolated static func buildDiagnosticsJSON(

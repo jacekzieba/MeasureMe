@@ -621,7 +621,7 @@ struct HealthMetricsSection: View {
         return HealthInsightInput(
             userName: userName.isEmpty ? nil : userName,
             ageText: userAge.map { "\($0)" },
-            genderText: userGender.displayName,
+            genderText: userGender.rawValue,
             latestWeightText: latestWeight.map { formatWeight($0) },
             latestWaistText: latestWaist.map { formatLength($0, kind: .waist) },
             latestBodyFatText: latestBodyFat.map { String(format: "%.1f%%", $0) },

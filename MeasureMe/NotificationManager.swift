@@ -46,14 +46,25 @@ final class NotificationManager {
     private let photoReminderId = "photo_smart_reminder"
     private let photoRemindersEnabledKey = "measurement_photo_reminders_enabled"
     private let goalAchievedEnabledKey = "measurement_goal_achieved_enabled"
+    private let importNotificationsEnabledKey = "measurement_import_notifications_enabled"
     private let goalAchievementPrefix = "goal_achieved_"
+    private let importSummaryNotificationId = "measurement_import_summary"
+    private let importNotificationBufferSeconds: TimeInterval = 15
     private let trialEndingReminderId = "premium_trial_ending_reminder"
+    private var pendingImportKinds: [MetricKind] = []
+    private var pendingImportKindsSet: Set<MetricKind> = []
+    private var pendingImportTask: Task<Void, Never>?
     
     private init() {}
     
     var notificationsEnabled: Bool {
         get { UserDefaults.standard.bool(forKey: notificationsEnabledKey) }
-        set { UserDefaults.standard.set(newValue, forKey: notificationsEnabledKey) }
+        set {
+            UserDefaults.standard.set(newValue, forKey: notificationsEnabledKey)
+            if !newValue {
+                cancelImportNotifications()
+            }
+        }
     }
     
     var smartEnabled: Bool {
@@ -98,6 +109,16 @@ final class NotificationManager {
     var goalAchievedEnabled: Bool {
         get { UserDefaults.standard.object(forKey: goalAchievedEnabledKey) as? Bool ?? true }
         set { UserDefaults.standard.set(newValue, forKey: goalAchievedEnabledKey) }
+    }
+
+    var importNotificationsEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: importNotificationsEnabledKey) as? Bool ?? true }
+        set {
+            UserDefaults.standard.set(newValue, forKey: importNotificationsEnabledKey)
+            if !newValue {
+                cancelImportNotifications()
+            }
+        }
     }
 
     private var lastPhotoDate: Date? {
@@ -308,27 +329,80 @@ final class NotificationManager {
         center.add(request)
     }
 
-    func sendImportNotification(kind: MetricKind, date: Date) {
-        Task {
-            let settings = await center.notificationSettings()
-            guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
-                return
-            }
-            
-            let content = UNMutableNotificationContent()
-            content.title = AppLocalization.string("notification.import.title", kind.title)
-            content.body = AppLocalization.string("notification.import.body")
-            content.sound = .default
-            
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-            let request = UNNotificationRequest(
-                identifier: "measurement_import_\(kind.rawValue)_\(date.timeIntervalSince1970)",
-                content: content,
-                trigger: trigger
-            )
-            
-            try? await center.add(request)
+    func queueImportNotification(kind: MetricKind) {
+        guard notificationsEnabled else { return }
+        guard importNotificationsEnabled else { return }
+
+        if pendingImportKindsSet.insert(kind).inserted {
+            pendingImportKinds.append(kind)
         }
+
+        guard pendingImportTask == nil else { return }
+        let bufferSeconds = importNotificationBufferSeconds
+        pendingImportTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(bufferSeconds))
+            await self?.flushQueuedImportNotification()
+        }
+    }
+
+    func cancelImportNotifications() {
+        pendingImportTask?.cancel()
+        pendingImportTask = nil
+        clearPendingImportBuffer()
+        center.removePendingNotificationRequests(withIdentifiers: [importSummaryNotificationId])
+    }
+
+    private func flushQueuedImportNotification() async {
+        defer { pendingImportTask = nil }
+
+        let kinds = pendingImportKinds
+        clearPendingImportBuffer()
+
+        guard notificationsEnabled else { return }
+        guard importNotificationsEnabled else { return }
+        guard !kinds.isEmpty else { return }
+
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = AppLocalization.string("notification.import.summary.title")
+        content.body = importSummaryBody(for: kinds)
+        content.sound = .default
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: importSummaryNotificationId,
+            content: content,
+            trigger: trigger
+        )
+
+        try? await center.add(request)
+    }
+
+    private func clearPendingImportBuffer() {
+        pendingImportKinds.removeAll(keepingCapacity: true)
+        pendingImportKindsSet.removeAll(keepingCapacity: true)
+    }
+
+    private func importSummaryBody(for kinds: [MetricKind]) -> String {
+        let titles = kinds.map(\.title)
+        guard let first = titles.first else {
+            return AppLocalization.string("notification.import.body")
+        }
+
+        if titles.count == 1 {
+            return AppLocalization.string("notification.import.summary.body.single", first)
+        }
+
+        let second = titles[1]
+        if titles.count == 2 {
+            return AppLocalization.string("notification.import.summary.body.double", first, second)
+        }
+
+        return AppLocalization.string("notification.import.summary.body.multiple", first, second)
     }
 
     func sendGoalAchievedNotification(kind: MetricKind, goalCreatedDate: Date, goalValue: Double) {

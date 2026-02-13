@@ -72,7 +72,7 @@ struct WHRDetailView: View {
             }
             
             // Opis kategorii
-            Text(result.category.description)
+            Text(AppLocalization.string(result.category.description))
                 .font(AppTypography.body)
                 .foregroundStyle(.white.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)

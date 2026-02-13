@@ -10,6 +10,7 @@ struct NotificationSettingsView: View {
     
     @State private var notificationsEnabled: Bool = NotificationManager.shared.notificationsEnabled
     @State private var smartEnabled: Bool = NotificationManager.shared.smartEnabled
+    @State private var importNotificationsEnabled: Bool = NotificationManager.shared.importNotificationsEnabled
     @State private var photoRemindersEnabled: Bool = NotificationManager.shared.photoRemindersEnabled
     @State private var goalAchievedEnabled: Bool = NotificationManager.shared.goalAchievedEnabled
     @State private var smartDays: Int = max(NotificationManager.shared.smartDays, 5)
@@ -208,6 +209,16 @@ struct NotificationSettingsView: View {
 
     private var otherCard: some View {
         GlassCard {
+            Toggle(isOn: $importNotificationsEnabled) {
+                Label(AppLocalization.string("Health import notifications"), systemImage: "heart.text.square.fill")
+            }
+            .frame(minHeight: 44)
+            .onChange(of: importNotificationsEnabled) { _, newValue in
+                NotificationManager.shared.importNotificationsEnabled = newValue
+            }
+
+            Spacer().frame(height: 4)
+
             Toggle(isOn: $photoRemindersEnabled) {
                 Label(AppLocalization.string("Photo reminders"), systemImage: "camera.fill")
             }

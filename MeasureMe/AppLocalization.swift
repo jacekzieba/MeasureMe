@@ -31,14 +31,43 @@ enum AppLanguage: String {
 }
 
 enum AppLocalization {
+    /// Cached language + bundle to avoid reading UserDefaults and creating
+    /// Bundle(path:) on every call to `string()`.  Invalidated via
+    /// `reloadLanguage()` when the user changes the app language setting.
+    private static var _cachedLanguage: AppLanguage?
+    private static var _cachedBundle: Bundle?
+
     static var currentLanguage: AppLanguage {
+        if let cached = _cachedLanguage { return cached }
+        let lang = loadLanguageFromDefaults()
+        _cachedLanguage = lang
+        _cachedBundle = lang.bundle
+        return lang
+    }
+
+    private static var currentBundle: Bundle {
+        if let cached = _cachedBundle { return cached }
+        let lang = currentLanguage
+        let bundle = lang.bundle
+        _cachedBundle = bundle
+        return bundle
+    }
+
+    private static func loadLanguageFromDefaults() -> AppLanguage {
         let raw = UserDefaults.standard.string(forKey: "appLanguage") ?? "system"
         return AppLanguage(rawValue: raw) ?? .system
     }
 
+    /// Call when the user changes the app language to flush the cached bundle.
+    static func reloadLanguage() {
+        _cachedLanguage = nil
+        _cachedBundle = nil
+    }
+
     static func string(_ key: String, _ args: CVarArg...) -> String {
         let language = currentLanguage
-        let format = language.bundle.localizedString(forKey: key, value: key, table: nil)
+        let bundle = currentBundle
+        let format = bundle.localizedString(forKey: key, value: key, table: nil)
         guard !args.isEmpty else { return format }
         return String(format: format, locale: language.locale, arguments: args)
     }
@@ -103,7 +132,7 @@ enum AppLocalization {
                 resolvedLocale = .current
             }
         case .en, .pl:
-            resolvedBundle = language.bundle
+            resolvedBundle = currentBundle
             resolvedLocale = language.locale
         }
 

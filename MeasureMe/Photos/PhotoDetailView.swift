@@ -229,29 +229,34 @@ private extension PhotoDetailView {
 }
 
 // MARK: - Preview
+private func makePhotoDetailPreviewContainer() -> (ModelContainer, PhotoEntry) {
+    do {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: PhotoEntry.self, configurations: config)
+        let context = container.mainContext
+
+        let sampleImage = UIImage(systemName: "photo")!
+        let imageData = sampleImage.pngData()!
+
+        let samplePhoto = PhotoEntry(
+            imageData: imageData,
+            date: Date(),
+            tags: [.wholeBody, .waist],
+            linkedMetrics: [
+                MetricValueSnapshot(kind: .weight, value: 75.5, unit: "kg"),
+                MetricValueSnapshot(kind: .waist, value: 85.0, unit: "cm")
+            ]
+        )
+        context.insert(samplePhoto)
+        return (container, samplePhoto)
+    } catch {
+        fatalError("Preview ModelContainer failed: \(error)")
+    }
+}
+
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: PhotoEntry.self, configurations: config)
-    let context = container.mainContext
-    
-    let sampleImage = UIImage(systemName: "photo")!
-    let imageData = sampleImage.pngData()!
-    
-    let samplePhoto = PhotoEntry(
-        imageData: imageData,
-        date: Date(),
-        tags: [.wholeBody, .waist],
-        linkedMetrics: [
-            MetricValueSnapshot(kind: .weight, value: 75.5, unit: "kg"),
-            MetricValueSnapshot(kind: .waist, value: 85.0, unit: "cm")
-        ]
-    )
-    
-    context.insert(samplePhoto)
-    
-    let metricsStore = ActiveMetricsStore()
-    
-    return PhotoDetailView(photo: samplePhoto)
+    let (container, photo) = makePhotoDetailPreviewContainer()
+    PhotoDetailView(photo: photo)
         .modelContainer(container)
-        .environmentObject(metricsStore)
+        .environmentObject(ActiveMetricsStore())
 }

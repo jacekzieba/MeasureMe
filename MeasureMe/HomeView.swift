@@ -52,7 +52,12 @@ struct HomeView: View {
     // HealthKit data
     @State private var latestBodyFat: Double?
     @State private var latestLeanMass: Double?
-    
+
+    // Cached derived data — rebuilt via onChange instead of recomputing on every render
+    @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
+    @State private var cachedLatestByKind: [MetricKind: MetricSample] = [:]
+    @State private var cachedGoalsByKind: [MetricKind: MetricGoal] = [:]
+
     private let maxVisibleMetrics = 3
     private let maxVisiblePhotos = 6
 
@@ -88,52 +93,51 @@ struct HomeView: View {
     
     /// Słownik próbek dla każdego rodzaju metryki
     private func samplesForKind(_ kind: MetricKind) -> [MetricSample] {
-        samplesByKind[kind] ?? []
+        cachedSamplesByKind[kind] ?? []
     }
     
     /// Najnowsze pomiary dla wskaźników zdrowotnych
     private var latestWaist: Double? {
-        latestByKind[.waist]?.value
-    }
-    
-    private var latestHeight: Double? {
-        latestByKind[.height]?.value
-    }
-    
-    private var latestWeight: Double? {
-        latestByKind[.weight]?.value
+        cachedLatestByKind[.waist]?.value
     }
 
-    /// Próbki pogrupowane per metryka (malejąco po dacie - zgodnie z @Query)
-    private var samplesByKind: [MetricKind: [MetricSample]] {
+    private var latestHeight: Double? {
+        cachedLatestByKind[.height]?.value
+    }
+
+    private var latestWeight: Double? {
+        cachedLatestByKind[.weight]?.value
+    }
+
+    // MARK: - Cache Rebuild Helpers
+
+    /// Rebuilds samplesByKind and latestByKind from the @Query samples array.
+    private func rebuildSamplesCache() {
         var grouped: [MetricKind: [MetricSample]] = [:]
         for sample in samples {
             guard let kind = MetricKind(rawValue: sample.kindRaw) else { continue }
             grouped[kind, default: []].append(sample)
         }
-        return grouped
-    }
-    
-    /// Najnowsza próbka dla każdego rodzaju
-    private var latestByKind: [MetricKind: MetricSample] {
+        cachedSamplesByKind = grouped
+
         var latest: [MetricKind: MetricSample] = [:]
-        for (kind, list) in samplesByKind {
+        for (kind, list) in grouped {
             if let first = list.first {
                 latest[kind] = first
             }
         }
-        return latest
+        cachedLatestByKind = latest
     }
-    
-    /// Cele dla każdego rodzaju
-    private var goalsByKind: [MetricKind: MetricGoal] {
+
+    /// Rebuilds goalsByKind from the @Query goals array.
+    private func rebuildGoalsCache() {
         var dict: [MetricKind: MetricGoal] = [:]
         for goal in goals {
             if let kind = MetricKind(rawValue: goal.kindRaw) {
                 dict[kind] = goal
             }
         }
-        return dict
+        cachedGoalsByKind = dict
     }
 
     var body: some View {
@@ -212,7 +216,7 @@ struct HomeView: View {
             QuickAddSheetView(
                 kinds: metricsStore.activeKinds,
                 latest: Dictionary(
-                    uniqueKeysWithValues: latestByKind.map { ($0.key, ($0.value.value, $0.value.date)) }
+                    uniqueKeysWithValues: cachedLatestByKind.map { ($0.key, ($0.value.value, $0.value.date)) }
                 ),
                 unitsSystem: unitsSystem
             ) {
@@ -231,8 +235,16 @@ struct HomeView: View {
             Text(AppLocalization.string("Open Measurements, choose Weight, tap Goal, then set your target value and direction."))
         }
         .onAppear {
+            rebuildSamplesCache()
+            rebuildGoalsCache()
             fetchHealthKitData()
             refreshChecklistState()
+        }
+        .onChange(of: samples.count) { _, _ in
+            rebuildSamplesCache()
+        }
+        .onChange(of: goals.count) { _, _ in
+            rebuildGoalsCache()
         }
         .onChange(of: isSyncEnabled) { _, _ in
             refreshChecklistState()
@@ -601,7 +613,7 @@ struct HomeView: View {
 
     private var goalStatus: GoalStatusLevel {
         let statuses: [GoalStatusLevel] = visibleMetrics.compactMap { kind in
-            guard let goal = goalsByKind[kind], let latest = latestByKind[kind] else { return nil }
+            guard let goal = cachedGoalsByKind[kind], let latest = cachedLatestByKind[kind] else { return nil }
             if goal.isAchieved(currentValue: latest.value) { return .onTrack }
             let remaining = abs(goal.remainingToGoal(currentValue: latest.value))
             let target = max(abs(goal.targetValue), 0.0001)
@@ -625,7 +637,7 @@ struct HomeView: View {
     }
 
     private func homeMetricAccessibilityLabel(kind: MetricKind) -> String {
-        if let latest = latestByKind[kind] {
+        if let latest = cachedLatestByKind[kind] {
             let shown = kind.valueForDisplay(fromMetric: latest.value, unitsSystem: unitsSystem)
             let unit = kind.unitSymbol(unitsSystem: unitsSystem)
             let valueText = String(format: "%.1f %@", shown, unit)
@@ -739,8 +751,8 @@ struct HomeView: View {
                             } label: {
                                 HomeKeyMetricRow(
                                     kind: kind,
-                                    latest: latestByKind[kind],
-                                    goal: goalsByKind[kind],
+                                    latest: cachedLatestByKind[kind],
+                                    goal: cachedGoalsByKind[kind],
                                     samples: samplesForKind(kind),
                                     unitsSystem: unitsSystem
                                 )
