@@ -1273,7 +1273,7 @@ struct OnboardingView: View {
                 isRequestingHealthKit = false
             } catch {
                 isSyncEnabled = false
-                healthKitStatusText = AppLocalization.systemString("Health access denied. You can enable it later in Settings.")
+                healthKitStatusText = HealthKitManager.userFacingSyncErrorMessage(for: error)
                 Haptics.error()
                 isRequestingHealthKit = false
             }

@@ -17,6 +17,7 @@ import SwiftData
 protocol HealthStore {
     func isHealthDataAvailable() -> Bool
     func requestAuthorization(toShare: Set<HKSampleType>, read: Set<HKObjectType>) async throws
+    func authorizationStatus(for identifier: HKQuantityTypeIdentifier) throws -> HKAuthorizationStatus
 
     // Quantity helpers
     func latestQuantity(for identifier: HKQuantityTypeIdentifier, unit: HKUnit) async throws -> (value: Double, date: Date)?
@@ -37,6 +38,23 @@ protocol HealthStore {
     func deleteWaistMeasurements(inDay date: Date) async throws
 }
 
+enum HealthKitAuthorizationError: LocalizedError, Equatable {
+    case notAvailable
+    case denied
+    case typeUnavailable(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .notAvailable:
+            return AppLocalization.string("Health data is not available on this device.")
+        case .denied:
+            return AppLocalization.string("Health access denied. You can enable it later in Settings.")
+        case .typeUnavailable:
+            return AppLocalization.string("Some Health data types are unavailable on this device.")
+        }
+    }
+}
+
 // MARK: - Implementacja produkcyjna oparta o HKHealthStore
 
 final class RealHealthStore: HealthStore {
@@ -44,9 +62,15 @@ final class RealHealthStore: HealthStore {
 
     private enum HealthStoreError: LocalizedError {
         case deleteFailed
+        case invalidDateRange
 
         var errorDescription: String? {
-            AppLocalization.string("Failed to delete HealthKit samples.")
+            switch self {
+            case .deleteFailed:
+                return AppLocalization.string("Failed to delete HealthKit samples.")
+            case .invalidDateRange:
+                return AppLocalization.string("Health date range is invalid.")
+            }
         }
     }
 
@@ -58,8 +82,13 @@ final class RealHealthStore: HealthStore {
         try await store.requestAuthorization(toShare: toShare, read: read)
     }
 
+    func authorizationStatus(for identifier: HKQuantityTypeIdentifier) throws -> HKAuthorizationStatus {
+        let type = try quantityType(for: identifier)
+        return store.authorizationStatus(for: type)
+    }
+
     func latestQuantity(for identifier: HKQuantityTypeIdentifier, unit: HKUnit) async throws -> (value: Double, date: Date)? {
-        let type = HKQuantityType.quantityType(forIdentifier: identifier)!
+        let type = try quantityType(for: identifier)
 
         return try await withCheckedThrowingContinuation { continuation in
             let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
@@ -91,7 +120,7 @@ final class RealHealthStore: HealthStore {
         samples: [(value: Double, date: Date, sourceBundleID: String?)],
         newAnchorData: Data?
     ) {
-        let type = HKQuantityType.quantityType(forIdentifier: identifier)!
+        let type = try quantityType(for: identifier)
         let predicate: NSPredicate?
         if let since {
             // Strictly newer than last processed point to avoid duplicate imports.
@@ -134,14 +163,14 @@ final class RealHealthStore: HealthStore {
     }
 
     func saveQuantity(_ value: Double, unit: HKUnit, identifier: HKQuantityTypeIdentifier, date: Date) async throws {
-        let type = HKQuantityType.quantityType(forIdentifier: identifier)!
+        let type = try quantityType(for: identifier)
         let quantity = HKQuantity(unit: unit, doubleValue: value)
         let sample = HKQuantitySample(type: type, quantity: quantity, start: date, end: date)
         try await store.save(sample)
     }
 
     func fetchWaistMeasurements() async throws -> [(value: Double, date: Date)] {
-        let waistType = HKQuantityType.quantityType(forIdentifier: .waistCircumference)!
+        let waistType = try quantityType(for: .waistCircumference)
         let predicate = HKQuery.predicateForSamples(withStart: .distantPast, end: Date())
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
 
@@ -169,16 +198,18 @@ final class RealHealthStore: HealthStore {
     }
 
     func saveWaistMeasurement(value: Double, date: Date) async throws {
-        let waistType = HKQuantityType.quantityType(forIdentifier: .waistCircumference)!
+        let waistType = try quantityType(for: .waistCircumference)
         let quantity = HKQuantity(unit: .meterUnit(with: .centi), doubleValue: value)
         let sample = HKQuantitySample(type: waistType, quantity: quantity, start: date, end: date)
         try await store.save(sample)
     }
 
     func deleteWaistMeasurements(inDay date: Date) async throws {
-        let waistType = HKQuantityType.quantityType(forIdentifier: .waistCircumference)!
+        let waistType = try quantityType(for: .waistCircumference)
         let start = Calendar.current.startOfDay(for: date)
-        let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!
+        guard let end = Calendar.current.date(byAdding: .day, value: 1, to: start) else {
+            throw HealthStoreError.invalidDateRange
+        }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end)
 
         let samplesToDelete: [HKObject] = try await withCheckedThrowingContinuation { continuation in
@@ -212,6 +243,13 @@ final class RealHealthStore: HealthStore {
                 continuation.resume(returning: ())
             }
         }
+    }
+
+    private func quantityType(for identifier: HKQuantityTypeIdentifier) throws -> HKQuantityType {
+        guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else {
+            throw HealthKitAuthorizationError.typeUnavailable(identifier.rawValue)
+        }
+        return type
     }
 }
 
@@ -271,25 +309,64 @@ final class HealthKitManager {
     // MARK: - Permissions
 
     func requestAuthorization() async throws {
-        guard store.isHealthDataAvailable() else { return }
+        #if DEBUG
+        let launchArgs = ProcessInfo.processInfo.arguments
+        if launchArgs.contains("-uiTestHealthAuthDenied") {
+            throw HealthKitAuthorizationError.denied
+        }
+        if launchArgs.contains("-uiTestHealthAuthUnavailable") {
+            throw HealthKitAuthorizationError.notAvailable
+        }
+        #endif
 
-        let waistType = HKQuantityType.quantityType(forIdentifier: .waistCircumference)!
-        let bmiType = HKQuantityType.quantityType(forIdentifier: .bodyMassIndex)!
-        let heightType = HKQuantityType.quantityType(forIdentifier: .height)!
-        let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass)!
-        let bodyFatType = HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage)!
-        let leanBodyMassType = HKQuantityType.quantityType(forIdentifier: .leanBodyMass)!
-        let dateOfBirthType = HKObjectType.characteristicType(forIdentifier: .dateOfBirth)!
+        guard store.isHealthDataAvailable() else {
+            throw HealthKitAuthorizationError.notAvailable
+        }
+
+        let quantityIdentifiers: [HKQuantityTypeIdentifier] = [
+            .waistCircumference,
+            .bodyMassIndex,
+            .height,
+            .bodyMass,
+            .bodyFatPercentage,
+            .leanBodyMass
+        ]
+        let quantityTypes = try quantityIdentifiers.map { identifier in
+            guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else {
+                throw HealthKitAuthorizationError.typeUnavailable(identifier.rawValue)
+            }
+            return type
+        }
+        guard let dateOfBirthType = HKObjectType.characteristicType(forIdentifier: .dateOfBirth) else {
+            throw HealthKitAuthorizationError.typeUnavailable(HKCharacteristicTypeIdentifier.dateOfBirth.rawValue)
+        }
+
+        let typesToShare = Set(quantityTypes.map { $0 as HKSampleType })
+        let typesToRead = Set(quantityTypes.map { $0 as HKObjectType } + [dateOfBirthType])
 
         try await store.requestAuthorization(
-            toShare: [waistType, bmiType, heightType, weightType, bodyFatType, leanBodyMassType],
-            read: [waistType, bmiType, heightType, weightType, bodyFatType, leanBodyMassType, dateOfBirthType]
+            toShare: typesToShare,
+            read: typesToRead
         )
+
+        let statuses = try quantityIdentifiers.map { try store.authorizationStatus(for: $0) }
+        let hasAnyAuthorizedType = statuses.contains(.sharingAuthorized)
+        if !hasAnyAuthorizedType {
+            throw HealthKitAuthorizationError.denied
+        }
 
         startObservingHealthKitUpdates()
         Task(priority: .utility) { [weak self] in
             await self?.importHistoricalDataIfNeeded()
         }
+    }
+
+    @MainActor
+    static func userFacingSyncErrorMessage(for error: Error) -> String {
+        if let authError = error as? HealthKitAuthorizationError {
+            return authError.errorDescription ?? AppLocalization.string("Could not enable Health sync. Please try again.")
+        }
+        return AppLocalization.string("Could not enable Health sync. Please try again.")
     }
 
     func startObservingHealthKitUpdates() {

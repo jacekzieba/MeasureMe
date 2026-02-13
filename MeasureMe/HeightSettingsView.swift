@@ -22,6 +22,8 @@ struct HeightSettingsView: View {
     
     @Query(sort: [SortDescriptor(\MetricSample.date, order: .reverse)])
     private var samples: [MetricSample]
+    @State private var isImportingHeight = false
+    @State private var healthImportMessage: String?
     
     
     // Pobierz najnowszy wzrost ze śledzonych metryk
@@ -143,11 +145,16 @@ struct HeightSettingsView: View {
                     if isSyncEnabled {
                         Button {
                             Task {
-                                try? await HealthKitManager.shared.importHeightFromHealthKit(to: context)
+                                await importLatestHeightFromHealth()
                             }
                         } label: {
                             HStack(spacing: 12) {
-                                GlassPillIcon(systemName: "arrow.down.circle")
+                                if isImportingHeight {
+                                    ProgressView()
+                                        .frame(width: 40, height: 40)
+                                } else {
+                                    GlassPillIcon(systemName: "arrow.down.circle")
+                                }
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(AppLocalization.string("Import latest from Health"))
                                         .font(.body)
@@ -156,6 +163,14 @@ struct HeightSettingsView: View {
                                         .foregroundStyle(.secondary)
                                 }
                             }
+                        }
+                        .disabled(isImportingHeight)
+
+                        if let healthImportMessage {
+                            Text(healthImportMessage)
+                                .font(AppTypography.caption)
+                                .foregroundStyle(Color.red.opacity(0.9))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 } header: {
@@ -222,6 +237,22 @@ struct HeightSettingsView: View {
             return "\(feet)'\(inches)\""
         } else {
             return String(format: "%.1f", display)
+        }
+    }
+
+    @MainActor
+    private func importLatestHeightFromHealth() async {
+        guard !isImportingHeight else { return }
+        isImportingHeight = true
+        healthImportMessage = nil
+        defer { isImportingHeight = false }
+
+        do {
+            try await HealthKitManager.shared.importHeightFromHealthKit(to: context)
+        } catch {
+            healthImportMessage = AppLocalization.string("Could not import height from Health.")
+            AppLog.debug("⚠️ Height import failed: \(error.localizedDescription)")
+            Haptics.error()
         }
     }
 }
@@ -308,6 +339,13 @@ struct ManualHeightInputView: View {
                         }
                         .padding(.vertical, 8)
                     }
+
+                    if shouldShowValidationError, !heightValidation.isValid, let message = heightValidation.message {
+                        Text(message)
+                            .font(AppTypography.micro)
+                            .foregroundStyle(Color.red.opacity(0.9))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 } header: {
                     Text(AppLocalization.string("Enter your height"))
                 } footer: {
@@ -347,20 +385,36 @@ struct ManualHeightInputView: View {
     }
     
     private var isValidInput: Bool {
+        heightValidation.isValid
+    }
+
+    private var shouldShowValidationError: Bool {
         if unitsSystem == "imperial" {
-            guard let feet = Int(feetInput), let inches = Int(inchesInput) else {
-                return false
-            }
-            return feet >= 0 && inches >= 0 && inches < 12 && (feet > 0 || inches > 0)
-        } else {
-            guard let height = Double(heightInput) else {
-                return false
-            }
-            return height > 0
+            return !feetInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !inchesInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
+        return !heightInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var heightValidation: MetricInputValidator.ValidationResult {
+        if unitsSystem == "imperial" {
+            return MetricInputValidator.validateHeightImperial(
+                feet: Int(feetInput),
+                inches: Int(inchesInput)
+            )
+        }
+        guard let height = Double(heightInput) else {
+            return MetricInputValidator.ValidationResult(
+                isValid: false,
+                message: AppLocalization.string("Height must be between 50 and 300 cm.")
+            )
+        }
+        return MetricInputValidator.validateHeightMetricValue(height)
     }
     
     private func saveHeight() {
+        guard heightValidation.isValid else { return }
+
         if unitsSystem == "imperial" {
             let feet = Int(feetInput) ?? 0
             let inches = Int(inchesInput) ?? 0

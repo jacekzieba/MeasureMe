@@ -5,7 +5,7 @@ struct PhotoFilterView: View {
     
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @Bindable var filters: PhotoFilters
+    @ObservedObject var filters: PhotoFilters
     
     @Query private var allPhotos: [PhotoEntry]
     

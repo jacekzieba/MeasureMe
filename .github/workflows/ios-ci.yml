@@ -24,6 +24,58 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Detect changed Swift files
+        id: changed_swift
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT_NAME" = "pull_request" ] && [ -n "${PR_BASE_SHA:-}" ]; then
+            BASE_SHA="$PR_BASE_SHA"
+          else
+            BASE_SHA="${BEFORE_SHA:-}"
+          fi
+
+          if [ -z "${BASE_SHA:-}" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA="$(git rev-list --max-parents=0 HEAD)"
+          fi
+
+          if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            git fetch --no-tags --depth=1 origin "$BASE_SHA" || true
+          fi
+
+          CHANGED_SWIFT_FILES="$(git diff --name-only "$BASE_SHA" "$GITHUB_SHA" -- '*.swift')"
+          {
+            echo "files<<EOF"
+            echo "$CHANGED_SWIFT_FILES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: SwiftLint changed files (blocking)
+        run: |
+          set -euo pipefail
+          FILES="${{ steps.changed_swift.outputs.files }}"
+          if [ -z "$FILES" ]; then
+            echo "No changed Swift files to lint."
+            exit 0
+          fi
+
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            echo "Linting $file"
+            swiftlint lint --config .swiftlint.yml --strict --path "$file"
+          done <<< "$FILES"
+
+      - name: SwiftLint full report (non-blocking)
+        continue-on-error: true
+        run: swiftlint lint --config .swiftlint.yml --reporter github-actions-logging
+
       - name: Select Xcode 26.2
         uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -87,6 +139,18 @@ jobs:
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             build
+
+      - name: Static Analyze (non-blocking)
+        if: steps.destination.outputs.skip != 'true'
+        continue-on-error: true
+        run: |
+          xcodebuild \
+            -project MeasureMe.xcodeproj \
+            -scheme MeasureMe \
+            -destination "${{ steps.destination.outputs.destination }}" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            analyze
 
       - name: Test
         if: steps.destination.outputs.skip != 'true'

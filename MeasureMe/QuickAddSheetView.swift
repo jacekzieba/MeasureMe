@@ -9,7 +9,7 @@ struct QuickAddSheetView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
-    @Environment(AppRouter.self) private var router
+    @EnvironmentObject private var router: AppRouter
     @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
     @AppStorage("save_unchanged_quick_add") private var saveUnchangedValues: Bool = false
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
@@ -22,6 +22,7 @@ struct QuickAddSheetView: View {
     @State private var editedKinds: Set<MetricKind> = []
     @State private var isSaving = false
     @State private var showNoChangesAlert = false
+    @State private var saveErrorMessage: String?
     @FocusState private var focusedKind: MetricKind?
     @State private var rulerBaseValues: [MetricKind: Double] = [:]
 
@@ -91,6 +92,16 @@ struct QuickAddSheetView: View {
                 Button(AppLocalization.string("OK"), role: .cancel) { }
             } message: {
                 Text(AppLocalization.string("Add at least one value before saving."))
+            }
+            .alert(AppLocalization.string("Save Failed"), isPresented: Binding(
+                get: { saveErrorMessage != nil },
+                set: { if !$0 { saveErrorMessage = nil } }
+            )) {
+                Button(AppLocalization.string("OK"), role: .cancel) {
+                    saveErrorMessage = nil
+                }
+            } message: {
+                Text(saveErrorMessage ?? "")
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -189,6 +200,14 @@ struct QuickAddSheetView: View {
                             .stroke(Color.white.opacity(focusedKind == kind ? 0.36 : 0.16), lineWidth: 1)
                     )
             )
+
+            if let validationMessage = validationMessage(for: kind) {
+                Text(validationMessage)
+                    .font(AppTypography.micro)
+                    .foregroundStyle(Color.red.opacity(0.9))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .padding(14)
         .background(cardBackground(cornerRadius: 16))
@@ -260,7 +279,7 @@ struct QuickAddSheetView: View {
             .opacity(isSaving ? 0.64 : 1)
 
             if cannotSave {
-                Text(AppLocalization.string("Add at least one valid value to save."))
+                Text(cannotSaveReasonText)
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.66))
             }
@@ -384,14 +403,7 @@ struct QuickAddSheetView: View {
     }
 
     private func validRange(for kind: MetricKind) -> ClosedRange<Double> {
-        switch kind.unitCategory {
-        case .percent:
-            return 0.1...100
-        case .weight:
-            return unitsSystem == "imperial" ? 0.1...660 : 0.1...300
-        case .length:
-            return unitsSystem == "imperial" ? 0.1...100 : 0.1...250
-        }
+        MetricInputValidator.metricDisplayRange(for: kind, unitsSystem: unitsSystem)
     }
 
     private func formatted(_ value: Double, for kind: MetricKind) -> String {
@@ -409,27 +421,58 @@ struct QuickAddSheetView: View {
         guard !values.isEmpty else { return true }
 
         return values.contains { kind, value in
-            !validRange(for: kind).contains(value)
+            !MetricInputValidator
+                .validateMetricDisplayValue(value, kind: kind, unitsSystem: unitsSystem)
+                .isValid
         }
+    }
+
+    private var hasInvalidPreparedEntries: Bool {
+        let values = preparedEntries(includeUnchanged: saveUnchangedValues)
+        return values.contains { kind, value in
+            !MetricInputValidator
+                .validateMetricDisplayValue(value, kind: kind, unitsSystem: unitsSystem)
+                .isValid
+        }
+    }
+
+    private var cannotSaveReasonText: String {
+        if hasInvalidPreparedEntries {
+            return AppLocalization.string("Fix highlighted values before saving.")
+        }
+        return AppLocalization.string("Add at least one valid value to save.")
+    }
+
+    private func validationMessage(for kind: MetricKind) -> String? {
+        guard let value = inputs[kind] ?? nil else { return nil }
+        let result = MetricInputValidator.validateOptionalMetricDisplayValue(
+            value,
+            kind: kind,
+            unitsSystem: unitsSystem
+        )
+        if result.isValid {
+            return nil
+        }
+        return result.message
     }
 
     private func metricValue(for kind: MetricKind, displayValue: Double) -> Double {
         kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
     }
 
-    private func saveToHealthKit(kind: MetricKind, metricValue: Double, date: Date) async {
+    private func saveToHealthKit(kind: MetricKind, metricValue: Double, date: Date) async throws {
         guard isSyncEnabled, kind.isHealthSynced else { return }
         switch kind {
         case .weight:
-            try? await HealthKitManager.shared.saveWeight(kilograms: metricValue, date: date)
+            try await HealthKitManager.shared.saveWeight(kilograms: metricValue, date: date)
         case .height:
-            try? await HealthKitManager.shared.saveHeight(centimeters: metricValue, date: date)
+            try await HealthKitManager.shared.saveHeight(centimeters: metricValue, date: date)
         case .bodyFat:
-            try? await HealthKitManager.shared.saveBodyFatPercentage(percent: metricValue, date: date)
+            try await HealthKitManager.shared.saveBodyFatPercentage(percent: metricValue, date: date)
         case .leanBodyMass:
-            try? await HealthKitManager.shared.saveLeanBodyMass(kilograms: metricValue, date: date)
+            try await HealthKitManager.shared.saveLeanBodyMass(kilograms: metricValue, date: date)
         case .waist:
-            try? await HealthKitManager.shared.saveWaistMeasurement(value: metricValue, date: date)
+            try await HealthKitManager.shared.saveWaistMeasurement(value: metricValue, date: date)
         default:
             break
         }
@@ -471,13 +514,19 @@ struct QuickAddSheetView: View {
         } catch {
             await MainActor.run {
                 isSaving = false
+                saveErrorMessage = AppLocalization.string("Could not save measurements. Please try again.")
+                Haptics.error()
             }
             AppLog.debug("❌ QuickAdd save failed: \(error.localizedDescription)")
             return
         }
 
         for entry in preparedEntries {
-            await saveToHealthKit(kind: entry.kind, metricValue: entry.metricValue, date: date)
+            do {
+                try await saveToHealthKit(kind: entry.kind, metricValue: entry.metricValue, date: date)
+            } catch {
+                AppLog.debug("⚠️ QuickAdd HealthKit sync failed for \(entry.kind.rawValue): \(error.localizedDescription)")
+            }
         }
 
         await MainActor.run {

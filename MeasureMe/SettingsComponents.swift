@@ -16,6 +16,7 @@ struct HealthSettingsSection: View {
     
     @State private var authorizationTask: Task<Void, Never>?
     @State private var isMetricsExpanded: Bool = false
+    @State private var syncStatusMessage: String?
     @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
@@ -52,6 +53,7 @@ struct HealthSettingsSection: View {
                     .labelsHidden()
                     .tint(Color.appAccent)
                     .frame(width: 52, alignment: .trailing)
+                    .accessibilityIdentifier("settings.health.sync.toggle")
             }
             .frame(minHeight: 44)
             
@@ -59,29 +61,38 @@ struct HealthSettingsSection: View {
                 .font(AppTypography.caption)
                 .foregroundStyle(.secondary)
                 .padding(.leading, 44)
+
+            if let syncStatusMessage {
+                Text(syncStatusMessage)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(Color.red.opacity(0.9))
+                    .padding(.leading, 44)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("settings.health.sync.error")
+            }
         }
         .onChange(of: isSyncEnabled) { oldValue, newValue in
+            guard oldValue != newValue else { return }
             Haptics.selection()
-            // Anuluj poprzedni task autoryzacji jeśli istnieje
             authorizationTask?.cancel()
 
             if newValue {
-                // Uruchom autoryzację z małym opóźnieniem, aby UI był responsywny
+                syncStatusMessage = nil
                 authorizationTask = Task { @MainActor in
-                    // Opóźnienie 100ms zapewnia płynne przełączenie toggle
                     try? await Task.sleep(for: .milliseconds(100))
-
-                    // Sprawdź czy task nie został anulowany
                     guard !Task.isCancelled else { return }
 
                     do {
                         try await HealthKitManager.shared.requestAuthorization()
+                        syncStatusMessage = nil
                     } catch {
+                        isSyncEnabled = false
+                        syncStatusMessage = HealthKitManager.userFacingSyncErrorMessage(for: error)
                         AppLog.debug("⚠️ HealthKit authorization failed: \(error.localizedDescription)")
+                        Haptics.error()
                     }
                 }
             } else {
-                // Sync disabled — stop observer queries and background delivery
                 HealthKitManager.shared.stopObservingHealthKitUpdates()
             }
         }

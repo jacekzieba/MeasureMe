@@ -50,10 +50,15 @@ actor DiskImageCache {
         try? fileManager.removeItem(at: url)
     }
 
-    func removeAll() {
-        guard let items = try? fileManager.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: nil) else { return }
+    func removeAll() throws {
+        let items: [URL]
+        do {
+            items = try fileManager.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: nil)
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+            return
+        }
         for url in items {
-            try? fileManager.removeItem(at: url)
+            try fileManager.removeItem(at: url)
         }
     }
 

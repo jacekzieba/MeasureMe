@@ -19,15 +19,21 @@ struct MetricInsightCard: View {
                     .font(compact ? AppTypography.microEmphasis : .subheadline)
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.leading)
+                    .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
                     .redacted(reason: isLoading ? .placeholder : [])
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier(compact ? "insight.card.text.compact" : "insight.card.text.detail")
 
                 Text(AppLocalization.string("AI generated"))
                     .font(AppTypography.micro)
                     .foregroundStyle(.secondary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
         .padding(compact ? 10 : 14)
         .background(
             RoundedRectangle(cornerRadius: compact ? 12 : 14, style: .continuous)

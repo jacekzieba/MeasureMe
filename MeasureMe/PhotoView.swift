@@ -10,7 +10,7 @@ struct PhotoView: View {
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
     
-    @State private var filters = PhotoFilters()
+    @StateObject private var filters = PhotoFilters()
     @State private var showFilters = false
     @State private var showAddPhoto = false
     @State private var showCompare = false

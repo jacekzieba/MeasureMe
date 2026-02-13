@@ -1,18 +1,18 @@
 import Foundation
 import SwiftData
+import Combine
 
 // MARK: - Photo Filters Model
 
-@Observable
-final class PhotoFilters {
+final class PhotoFilters: ObservableObject {
     
     // MARK: - Date Range
-    var dateRange: DateRange = .all
-    var customStartDate: Date = Calendar.current.date(byAdding: .day, value: -30, to: .now) ?? .now
-    var customEndDate: Date = .now
+    @Published var dateRange: DateRange = .all
+    @Published var customStartDate: Date = Calendar.current.date(byAdding: .day, value: -30, to: .now) ?? .now
+    @Published var customEndDate: Date = .now
     
     // MARK: - Tags
-    var selectedTags: Set<PhotoTag> = []
+    @Published var selectedTags: Set<PhotoTag> = []
     
     // MARK: - Computed
     var isActive: Bool {

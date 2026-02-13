@@ -47,10 +47,14 @@ final class MetricGoal {
         self.createdDate = createdDate
     }
     
-    /// Wygodny accessor do konwersji String -> MetricKind
-    var kind: MetricKind {
-        get { MetricKind(rawValue: kindRaw) ?? .weight }
-        set { kindRaw = newValue.rawValue }
+    /// Wygodny accessor do konwersji String -> MetricKind.
+    /// Zwraca nil dla uszkodzonych rekordów zamiast cichego fallbacku.
+    var kind: MetricKind? {
+        get { MetricKind(rawValue: kindRaw) }
+        set {
+            guard let newValue else { return }
+            kindRaw = newValue.rawValue
+        }
     }
     
     /// Wygodny accessor do konwersji String -> Direction

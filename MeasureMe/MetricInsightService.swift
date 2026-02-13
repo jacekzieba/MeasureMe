@@ -41,6 +41,11 @@ nonisolated struct HealthInsightInput: Sendable, Hashable {
 
 enum AppleIntelligenceSupport {
     static func isAvailable() -> Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-uiTestForceAIAvailable") {
+            return true
+        }
+        #endif
         let enabled = UserDefaults.standard.object(forKey: "apple_intelligence_enabled") as? Bool ?? true
         guard enabled else { return false }
         let premium = UserDefaults.standard.bool(forKey: "premium_entitlement")
@@ -102,6 +107,14 @@ actor MetricInsightService {
     private var healthInFlight: [HealthInsightInput: Task<String?, Never>] = [:]
 
     func generateInsight(for input: MetricInsightInput) async -> MetricInsightPair? {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-uiTestLongInsight") {
+            return MetricInsightPair(
+                shortText: "UI_TEST_LONG_INSIGHT_MARKER You are moving in a positive direction with stable momentum across recent entries and better consistency.",
+                detailedText: "UI_TEST_LONG_INSIGHT_MARKER Keep this pace for the next 7 days by logging at the same time every day and adding one more structured check-in before the week ends."
+            )
+        }
+        #endif
         guard await MainActor.run(body: { AppleIntelligenceSupport.isAvailable() }) else { return nil }
 
         if let cached = cache[input] {

@@ -771,7 +771,17 @@ struct SettingsView: View {
     }
 
     private func deleteAllUserData() {
+        Task { @MainActor in
+            await performDeleteAllUserData()
+        }
+    }
+
+    @MainActor
+    private func performDeleteAllUserData() async {
         do {
+            HealthKitManager.shared.stopObservingHealthKitUpdates()
+            isSyncEnabled = false
+
             try deleteAllEntities(of: MetricSample.self)
             try deleteAllEntities(of: MetricGoal.self)
             try deleteAllEntities(of: PhotoEntry.self)
@@ -781,14 +791,19 @@ struct SettingsView: View {
             NotificationManager.shared.cancelAllReminders()
             NotificationManager.shared.cancelSmartNotification()
             NotificationManager.shared.cancelPhotoReminder()
+            NotificationManager.shared.cancelImportNotifications()
 
             clearHealthKitSyncMetadata()
             clearUserDataDefaults()
+
+            ImageCache.shared.removeAll()
+            try await DiskImageCache.shared.removeAll()
 
             deleteAllDataResultMessage = AppLocalization.string("All local app data has been deleted.")
             showDeleteAllDataResult = true
             Haptics.success()
         } catch {
+            AppLog.debug("⚠️ Failed to delete all app data: \(error)")
             deleteAllDataResultMessage = AppLocalization.string("Could not delete all data. Please try again.")
             showDeleteAllDataResult = true
             Haptics.error()

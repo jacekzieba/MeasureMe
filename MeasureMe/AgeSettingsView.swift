@@ -20,9 +20,8 @@ struct AgeSettingsView: View {
     @State private var isLoadingHealthKit = false
     @State private var healthKitError: String?
 
-    private var isValidAge: Bool {
-        guard let age = Int(ageInput) else { return false }
-        return age >= 5 && age <= 120
+    private var ageValidation: MetricInputValidator.ValidationResult {
+        MetricInputValidator.validateAgeValue(Int(ageInput))
     }
 
     var body: some View {
@@ -110,6 +109,13 @@ struct AgeSettingsView: View {
                         TextField(AppLocalization.string("Age in years"), text: $ageInput)
                             .keyboardType(.numberPad)
                             .textFieldStyle(.roundedBorder)
+
+                        if !ageValidation.isValid, !ageInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, let message = ageValidation.message {
+                            Text(message)
+                                .font(AppTypography.micro)
+                                .foregroundStyle(Color.red.opacity(0.9))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     .padding(.vertical, 6)
 
@@ -123,7 +129,7 @@ struct AgeSettingsView: View {
                             Spacer()
                         }
                     }
-                    .disabled(!isValidAge)
+                    .disabled(!ageValidation.isValid)
                 } header: {
                     Text(AppLocalization.string("Options"))
                 }

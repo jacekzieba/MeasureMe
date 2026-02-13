@@ -13,6 +13,7 @@ struct HomeView: View {
 
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
+    @Environment(\.modelContext) private var modelContext
     @AppStorage("userName") private var userName: String = ""
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
     @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
@@ -29,10 +30,9 @@ struct HomeView: View {
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
     @AppStorage("settings_open_reminders") private var settingsOpenReminders: Bool = false
     
-    @Environment(AppRouter.self) private var router
+    @EnvironmentObject private var router: AppRouter
     
-    @Query(sort: [SortDescriptor(\MetricSample.date, order: .reverse)])
-    private var samples: [MetricSample]
+    @Query private var recentSamples: [MetricSample]
     
     @Query private var goals: [MetricGoal]
     
@@ -52,6 +52,7 @@ struct HomeView: View {
     // HealthKit data
     @State private var latestBodyFat: Double?
     @State private var latestLeanMass: Double?
+    @State private var hasAnyMeasurements = false
 
     // Cached derived data — rebuilt via onChange instead of recomputing on every render
     @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
@@ -60,6 +61,14 @@ struct HomeView: View {
 
     private let maxVisibleMetrics = 3
     private let maxVisiblePhotos = 6
+
+    init() {
+        let recentWindowStart = Calendar.current.date(byAdding: .day, value: -120, to: Date()) ?? .distantPast
+        _recentSamples = Query(
+            filter: #Predicate<MetricSample> { $0.date >= recentWindowStart },
+            sort: [SortDescriptor(\.date, order: .reverse)]
+        )
+    }
 
     private struct SetupChecklistItem: Identifiable {
         let id: String
@@ -111,22 +120,56 @@ struct HomeView: View {
 
     // MARK: - Cache Rebuild Helpers
 
-    /// Rebuilds samplesByKind and latestByKind from the @Query samples array.
+    private var recentSamplesSignature: Int {
+        var hasher = Hasher()
+        for sample in recentSamples {
+            hasher.combine(sample.persistentModelID)
+            hasher.combine(sample.value.bitPattern)
+            hasher.combine(sample.date.timeIntervalSinceReferenceDate)
+        }
+        return hasher.finalize()
+    }
+
+    /// Rebuilds samplesByKind from the recent @Query window.
     private func rebuildSamplesCache() {
         var grouped: [MetricKind: [MetricSample]] = [:]
-        for sample in samples {
-            guard let kind = MetricKind(rawValue: sample.kindRaw) else { continue }
+        for sample in recentSamples {
+            guard let kind = MetricKind(rawValue: sample.kindRaw) else {
+                AppLog.debug("⚠️ Ignoring MetricSample with invalid kindRaw: \(sample.kindRaw)")
+                continue
+            }
             grouped[kind, default: []].append(sample)
         }
         cachedSamplesByKind = grouped
+    }
 
+    private func refreshLatestSamplesCache() {
         var latest: [MetricKind: MetricSample] = [:]
-        for (kind, list) in grouped {
-            if let first = list.first {
-                latest[kind] = first
+        let kindsToFetch = Set(metricsStore.activeKinds).union([.waist, .height, .weight, .bodyFat, .leanBodyMass])
+        for kind in kindsToFetch {
+            let kindValue = kind.rawValue
+            var descriptor = FetchDescriptor<MetricSample>(
+                predicate: #Predicate { $0.kindRaw == kindValue },
+                sortBy: [SortDescriptor(\.date, order: .reverse)]
+            )
+            descriptor.fetchLimit = 1
+            if let sample = try? modelContext.fetch(descriptor).first {
+                latest[kind] = sample
             }
         }
         cachedLatestByKind = latest
+    }
+
+    private func refreshHasAnyMeasurements() {
+        let descriptor = FetchDescriptor<MetricSample>()
+        let count = (try? modelContext.fetchCount(descriptor)) ?? 0
+        hasAnyMeasurements = count > 0
+    }
+
+    private func refreshMeasurementCaches() {
+        rebuildSamplesCache()
+        refreshLatestSamplesCache()
+        refreshHasAnyMeasurements()
     }
 
     /// Rebuilds goalsByKind from the @Query goals array.
@@ -235,13 +278,16 @@ struct HomeView: View {
             Text(AppLocalization.string("Open Measurements, choose Weight, tap Goal, then set your target value and direction."))
         }
         .onAppear {
-            rebuildSamplesCache()
+            refreshMeasurementCaches()
             rebuildGoalsCache()
             fetchHealthKitData()
             refreshChecklistState()
         }
-        .onChange(of: samples.count) { _, _ in
-            rebuildSamplesCache()
+        .onChange(of: recentSamplesSignature) { _, _ in
+            refreshMeasurementCaches()
+        }
+        .onChange(of: metricsStore.activeKinds) { _, _ in
+            refreshMeasurementCaches()
         }
         .onChange(of: goals.count) { _, _ in
             rebuildGoalsCache()
@@ -353,7 +399,7 @@ struct HomeView: View {
                 title: AppLocalization.string("First measurement"),
                 detail: AppLocalization.string("Start your trend with one quick check-in."),
                 icon: "ruler.fill",
-                isCompleted: !samples.isEmpty,
+                isCompleted: hasAnyMeasurements,
                 isLoading: false
             ),
             SetupChecklistItem(
@@ -600,10 +646,6 @@ struct HomeView: View {
         AppLocalization.string("home.encouragement")
     }
 
-    private var hasAnyMeasurements: Bool {
-        !samples.isEmpty
-    }
-
     private enum GoalStatusLevel {
         case onTrack
         case slightlyOff
@@ -695,7 +737,11 @@ struct HomeView: View {
                 Haptics.success()
                 refreshChecklistState()
             } catch {
+                isSyncEnabled = false
                 checklistStatusText = AppLocalization.string("Health access denied. You can enable it later in Settings.")
+                if let authError = error as? HealthKitAuthorizationError {
+                    checklistStatusText = authError.errorDescription ?? checklistStatusText
+                }
                 Haptics.error()
             }
         }
@@ -715,7 +761,7 @@ struct HomeView: View {
                     .font(AppTypography.sectionTitle)
                     .foregroundStyle(.white)
 
-                if samples.isEmpty {
+                if !hasAnyMeasurements {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(AppLocalization.string("No measurements yet."))
                             .font(AppTypography.bodyEmphasis)

@@ -3,7 +3,7 @@ import SwiftUI
 /// Arkusz z filtrami zdjęć
 struct PhotoFiltersSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Bindable var filters: PhotoFilters
+    @ObservedObject var filters: PhotoFilters
     
     var body: some View {
         NavigationStack {

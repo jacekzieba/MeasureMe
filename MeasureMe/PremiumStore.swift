@@ -2,6 +2,66 @@ import SwiftUI
 import StoreKit
 import UIKit
 import Combine
+import UserNotifications
+
+protocol PremiumBillingClient {
+    func products(for identifiers: [String]) async throws -> [Product]
+    func purchase(_ product: Product) async throws -> Product.PurchaseResult
+    func syncPurchases() async throws
+    func currentEntitlements() -> AsyncStream<VerificationResult<StoreKit.Transaction>>
+    func transactionUpdates() -> AsyncStream<VerificationResult<StoreKit.Transaction>>
+}
+
+protocol PremiumNotificationManaging: AnyObject {
+    var notificationsEnabled: Bool { get set }
+    func scheduleTrialEndingReminder(daysFromNow: Int)
+    func authorizationStatus() async -> UNAuthorizationStatus
+    func requestAuthorization() async -> Bool
+}
+
+extension NotificationManager: PremiumNotificationManaging {}
+
+struct StoreKitBillingClient: PremiumBillingClient {
+    func products(for identifiers: [String]) async throws -> [Product] {
+        try await Product.products(for: identifiers)
+    }
+
+    func purchase(_ product: Product) async throws -> Product.PurchaseResult {
+        try await product.purchase()
+    }
+
+    func syncPurchases() async throws {
+        try await AppStore.sync()
+    }
+
+    func currentEntitlements() -> AsyncStream<VerificationResult<StoreKit.Transaction>> {
+        AsyncStream { continuation in
+            let task = Task {
+                for await result in StoreKit.Transaction.currentEntitlements {
+                    continuation.yield(result)
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in
+                task.cancel()
+            }
+        }
+    }
+
+    func transactionUpdates() -> AsyncStream<VerificationResult<StoreKit.Transaction>> {
+        AsyncStream { continuation in
+            let task = Task {
+                for await result in StoreKit.Transaction.updates {
+                    continuation.yield(result)
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in
+                task.cancel()
+            }
+        }
+    }
+}
 
 @MainActor
 final class PremiumStore: ObservableObject {
@@ -31,18 +91,40 @@ final class PremiumStore: ObservableObject {
     private let firstLaunchKey = "premium_first_launch_date"
     private let lastNagKey = "premium_last_nag_date"
     private let entitlementKey = "premium_entitlement"
+    private let billingClient: PremiumBillingClient
+    private let notificationManager: PremiumNotificationManaging
+    #if DEBUG
+    private let forcePremiumForUITests: Bool
+    #endif
     private var updateListenerTask: Task<Void, Never>?
 
-    init() {
+    init(
+        billingClient: PremiumBillingClient? = nil,
+        notificationManager: PremiumNotificationManaging? = nil,
+        startListener: Bool = true
+    ) {
+        self.billingClient = billingClient ?? StoreKitBillingClient()
+        self.notificationManager = notificationManager ?? NotificationManager.shared
+        #if DEBUG
+        self.forcePremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForcePremium")
+        #endif
         let defaults = UserDefaults.standard
         if defaults.double(forKey: firstLaunchKey) == 0 {
             defaults.set(Date().timeIntervalSince1970, forKey: firstLaunchKey)
         }
+        #if DEBUG
+        if forcePremiumForUITests {
+            isPremium = true
+            defaults.set(true, forKey: entitlementKey)
+        }
+        #endif
 
-        updateListenerTask = Task {
-            await loadProducts()
-            await refreshEntitlements()
-            await listenForUpdates()
+        if startListener {
+            updateListenerTask = Task {
+                await loadProducts()
+                await refreshEntitlements()
+                await listenForUpdates()
+            }
         }
     }
 
@@ -87,7 +169,7 @@ final class PremiumStore: ObservableObject {
         isLoading = true
         productsLoadError = nil
         do {
-            let fetched = try await Product.products(for: productIDs)
+            let fetched = try await billingClient.products(for: productIDs)
             products = fetched.sorted { $0.price < $1.price }
             if products.isEmpty {
                 productsLoadError = AppLocalization.string("No products returned by StoreKit.")
@@ -101,28 +183,8 @@ final class PremiumStore: ObservableObject {
 
     func purchase(_ product: Product) async {
         do {
-            let result = try await product.purchase()
-            switch result {
-            case .success(let verification):
-                let transaction = try verification.payloadValue
-                let startedIntroTrial = transaction.offer?.type == .introductory
-                await transaction.finish()
-                await refreshEntitlements()
-                if startedIntroTrial {
-                    await handleTrialActivated()
-                } else {
-                    actionMessage = AppLocalization.string("premium.purchase.success")
-                    actionMessageIsError = false
-                }
-            case .userCancelled:
-                actionMessage = AppLocalization.string("premium.purchase.cancelled")
-                actionMessageIsError = false
-            case .pending:
-                actionMessage = AppLocalization.string("premium.purchase.pending")
-                actionMessageIsError = false
-            default:
-                break
-            }
+            let result = try await billingClient.purchase(product)
+            await handlePurchaseResult(result)
         } catch {
             actionMessage = AppLocalization.string("premium.purchase.failed", error.localizedDescription)
             actionMessageIsError = true
@@ -130,7 +192,6 @@ final class PremiumStore: ObservableObject {
     }
 
     private func handleTrialActivated() async {
-        let notificationManager = NotificationManager.shared
         let status = await notificationManager.authorizationStatus()
         let isAuthorized = status == .authorized || status == .provisional || status == .ephemeral
 
@@ -146,7 +207,6 @@ final class PremiumStore: ObservableObject {
     }
 
     func confirmTrialReminderOptIn() async {
-        let notificationManager = NotificationManager.shared
         let previousNotificationsPreference = notificationManager.notificationsEnabled
         let status = await notificationManager.authorizationStatus()
         let isAuthorized = status == .authorized || status == .provisional || status == .ephemeral
@@ -182,7 +242,7 @@ final class PremiumStore: ObservableObject {
     func restorePurchases() async {
         let wasPremium = isPremium
         do {
-            try await AppStore.sync()
+            try await billingClient.syncPurchases()
             await refreshEntitlements()
             if isPremium {
                 actionMessage = wasPremium
@@ -206,8 +266,16 @@ final class PremiumStore: ObservableObject {
     }
 
     private func refreshEntitlements() async {
+        #if DEBUG
+        if forcePremiumForUITests {
+            isPremium = true
+            UserDefaults.standard.set(true, forKey: entitlementKey)
+            return
+        }
+        #endif
+
         var active = false
-        for await result in Transaction.currentEntitlements {
+        for await result in billingClient.currentEntitlements() {
             guard case .verified(let transaction) = result else { continue }
             guard productIDs.contains(transaction.productID) else { continue }
             if let revocation = transaction.revocationDate, revocation <= Date() {
@@ -223,12 +291,42 @@ final class PremiumStore: ObservableObject {
     }
 
     private func listenForUpdates() async {
-        for await result in Transaction.updates {
+        for await result in billingClient.transactionUpdates() {
             guard case .verified(let transaction) = result else { continue }
             if productIDs.contains(transaction.productID) {
                 await transaction.finish()
                 await refreshEntitlements()
             }
+        }
+    }
+
+    private func handlePurchaseResult(_ result: Product.PurchaseResult) async {
+        switch result {
+        case .success(let verification):
+            do {
+                let transaction = try verification.payloadValue
+                let startedIntroTrial = transaction.offer?.type == .introductory
+                await transaction.finish()
+                await refreshEntitlements()
+                if startedIntroTrial {
+                    await handleTrialActivated()
+                } else {
+                    actionMessage = AppLocalization.string("premium.purchase.success")
+                    actionMessageIsError = false
+                }
+            } catch {
+                actionMessage = AppLocalization.string("premium.purchase.failed", error.localizedDescription)
+                actionMessageIsError = true
+            }
+        case .userCancelled:
+            actionMessage = AppLocalization.string("premium.purchase.cancelled")
+            actionMessageIsError = false
+        case .pending:
+            actionMessage = AppLocalization.string("premium.purchase.pending")
+            actionMessageIsError = false
+        @unknown default:
+            actionMessage = AppLocalization.string("premium.purchase.pending")
+            actionMessageIsError = false
         }
     }
 }

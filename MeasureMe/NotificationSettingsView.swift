@@ -3,6 +3,7 @@ import Combine
 
 struct NotificationSettingsView: View {
     @StateObject private var store = ReminderStore()
+    @ObservedObject private var notificationManager = NotificationManager.shared
     
     @State private var showAddSheet = false
     @State private var showPermissionAlert = false
@@ -26,6 +27,9 @@ struct NotificationSettingsView: View {
             List {
                 sectionHeader(AppLocalization.string("Reminders"))
                 permissionsCard
+                if let schedulingError = notificationManager.lastSchedulingError {
+                    schedulingErrorCard(message: schedulingError)
+                }
 
                 sectionHeader(AppLocalization.string("Scheduled"))
                 remindersContent
@@ -59,6 +63,22 @@ struct NotificationSettingsView: View {
         } message: {
             Text(permissionMessage)
         }
+    }
+
+    private func schedulingErrorCard(message: String) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Label(AppLocalization.string("Notification error"), systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(Color.red.opacity(0.9))
+                Text(message)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(Color.red.opacity(0.9))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 
     private func sectionHeader(_ title: String) -> some View {
@@ -139,6 +159,7 @@ struct NotificationSettingsView: View {
                             NotificationManager.shared.notificationsEnabled = true
                             store.rescheduleAll()
                             NotificationManager.shared.scheduleSmartIfNeeded()
+                            NotificationManager.shared.clearLastSchedulingError()
                         } else {
                             notificationsEnabled = false
                             NotificationManager.shared.notificationsEnabled = false
@@ -150,6 +171,7 @@ struct NotificationSettingsView: View {
                         NotificationManager.shared.cancelAllReminders()
                         NotificationManager.shared.cancelSmartNotification()
                         NotificationManager.shared.cancelPhotoReminder()
+                        NotificationManager.shared.clearLastSchedulingError()
                     }
                 }
             }

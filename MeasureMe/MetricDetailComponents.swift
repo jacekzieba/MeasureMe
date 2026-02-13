@@ -467,6 +467,14 @@ struct AddMetricSampleView: View {
         }
     }
 
+    private var valueValidation: MetricInputValidator.ValidationResult {
+        MetricInputValidator.validateMetricDisplayValue(
+            displayValue,
+            kind: kind,
+            unitsSystem: unitsSystem
+        )
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -481,11 +489,11 @@ struct AddMetricSampleView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        // Walidacja dla procentów
-                        if kind.unitCategory == .percent {
-                            Text(AppLocalization.string("Enter value in 0–100 range"))
+                        if !valueValidation.isValid, let message = valueValidation.message {
+                            Text(message)
                                 .font(AppTypography.micro)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.red.opacity(0.9))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
 
                         DatePicker(AppLocalization.string("Date"), selection: $date, displayedComponents: [.date, .hourAndMinute])
@@ -508,8 +516,7 @@ struct AddMetricSampleView: View {
                         onAdd(date, metric)
                         dismiss()
                     }
-                    // Disable button dla nieprawidłowych wartości procentowych
-                    .disabled(kind.unitCategory == .percent && (displayValue < 0 || displayValue > 100))
+                    .disabled(!valueValidation.isValid)
                 }
             }
         }
@@ -550,6 +557,14 @@ struct EditMetricSampleView: View {
         )
     }
 
+    private var valueValidation: MetricInputValidator.ValidationResult {
+        MetricInputValidator.validateMetricDisplayValue(
+            displayValue,
+            kind: kind,
+            unitsSystem: unitsSystem
+        )
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -564,10 +579,11 @@ struct EditMetricSampleView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        if kind.unitCategory == .percent {
-                            Text(AppLocalization.string("Enter value in 0–100 range"))
+                        if !valueValidation.isValid, let message = valueValidation.message {
+                            Text(message)
                                 .font(AppTypography.micro)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.red.opacity(0.9))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
 
                         DatePicker(AppLocalization.string("Date"), selection: $date, displayedComponents: [.date, .hourAndMinute])
@@ -589,7 +605,7 @@ struct EditMetricSampleView: View {
                         sample.date = date
                         dismiss()
                     }
-                    .disabled(kind.unitCategory == .percent && (displayValue < 0 || displayValue > 100))
+                    .disabled(!valueValidation.isValid)
                 }
             }
         }
@@ -638,6 +654,14 @@ struct SetGoalView: View {
             _direction = State(initialValue: SetGoalView.defaultDirection(for: kind))
         }
     }
+
+    private var valueValidation: MetricInputValidator.ValidationResult {
+        MetricInputValidator.validateMetricDisplayValue(
+            displayValue,
+            kind: kind,
+            unitsSystem: unitsSystem
+        )
+    }
     
     /// Określa domyślny kierunek celu dla danej metryki
     private static func defaultDirection(for kind: MetricKind) -> MetricGoal.Direction {
@@ -679,10 +703,11 @@ struct SetGoalView: View {
                                 .foregroundStyle(.secondary)
                         }
                         
-                        if kind.unitCategory == .percent {
-                            Text(AppLocalization.string("Enter value in 0–100 range"))
+                        if !valueValidation.isValid, let message = valueValidation.message {
+                            Text(message)
                                 .font(AppTypography.micro)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.red.opacity(0.9))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     } header: {
                         Text(AppLocalization.string("Target Value"))
@@ -705,7 +730,7 @@ struct SetGoalView: View {
                         onSet(metric, direction)
                         dismiss()
                     }
-                    .disabled(kind.unitCategory == .percent && (displayValue < 0 || displayValue > 100))
+                    .disabled(!valueValidation.isValid)
                 }
             }
         }

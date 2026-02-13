@@ -13,6 +13,7 @@ struct AddPhotoView: View {
     @State private var date: Date = .now
     @State private var selectedTags: Set<PhotoTag> = [.wholeBody]
     @State private var metricValues: [MetricKind: Double] = [:]
+    @State private var saveErrorMessage: String?
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
     private let onSaved: (() -> Void)?
     
@@ -62,6 +63,14 @@ struct AddPhotoView: View {
             }
             .sheet(isPresented: $showPhotoLibrary) {
                 PhotoLibraryPicker(selectedImage: $selectedImage)
+            }
+            .alert(AppLocalization.string("Save Failed"), isPresented: Binding(
+                get: { saveErrorMessage != nil },
+                set: { if !$0 { saveErrorMessage = nil } }
+            )) {
+                Button(AppLocalization.string("OK"), role: .cancel) { saveErrorMessage = nil }
+            } message: {
+                Text(saveErrorMessage ?? "")
             }
         }
     }
@@ -126,8 +135,16 @@ private extension AddPhotoView {
                     MetricValueField(
                         kind: kind,
                         value: metricBinding(for: kind),
-                        unitsSystem: unitsSystem
+                        unitsSystem: unitsSystem,
+                        validationMessage: metricValidationMessage(for: kind)
                     )
+                }
+
+                if hasInvalidMetricInputs {
+                    Text(AppLocalization.string("Fix highlighted values before saving."))
+                        .font(AppTypography.micro)
+                        .foregroundStyle(Color.red.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -150,7 +167,27 @@ private extension AddPhotoView {
     }
     
     var canSave: Bool {
-        selectedImage != nil
+        selectedImage != nil && !hasInvalidMetricInputs
+    }
+
+    var hasInvalidMetricInputs: Bool {
+        activeMetrics.activeKinds.contains { kind in
+            let value = metricValues[kind] ?? 0
+            if value == 0 { return false }
+            return !MetricInputValidator
+                .validateMetricDisplayValue(value, kind: kind, unitsSystem: unitsSystem)
+                .isValid
+        }
+    }
+
+    func metricValidationMessage(for kind: MetricKind) -> String? {
+        let value = metricValues[kind] ?? 0
+        if value == 0 { return nil }
+        let result = MetricInputValidator.validateMetricDisplayValue(value, kind: kind, unitsSystem: unitsSystem)
+        if result.isValid {
+            return nil
+        }
+        return result.message
     }
 }
 
@@ -184,6 +221,12 @@ private extension AddPhotoView {
     func savePhoto() {
         guard let image = selectedImage else {
             AppLog.debug("❌ AddPhotoView: No image selected")
+            return
+        }
+
+        guard !hasInvalidMetricInputs else {
+            saveErrorMessage = AppLocalization.string("Fix highlighted values before saving.")
+            Haptics.error()
             return
         }
         
@@ -228,6 +271,8 @@ private extension AddPhotoView {
             dismiss()
         } catch {
             AppLog.debug("❌ AddPhotoView: Failed to save context: \(error)")
+            saveErrorMessage = AppLocalization.string("Could not save photo. Please try again.")
+            Haptics.error()
         }
     }
     
@@ -252,20 +297,30 @@ private struct MetricValueField: View {
     let kind: MetricKind
     @Binding var value: Double
     let unitsSystem: String
+    let validationMessage: String?
     
     var body: some View {
-        HStack {
-            Text(kind.title)
-            
-            Spacer()
-            
-            TextField(AppLocalization.string("Value"), value: $value, format: .number)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 80)
-            
-            Text(kind.unitSymbol(unitsSystem: unitsSystem))
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(kind.title)
+
+                Spacer()
+
+                TextField(AppLocalization.string("Value"), value: $value, format: .number)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 80)
+
+                Text(kind.unitSymbol(unitsSystem: unitsSystem))
+                    .foregroundStyle(.secondary)
+            }
+
+            if let validationMessage {
+                Text(validationMessage)
+                    .font(AppTypography.micro)
+                    .foregroundStyle(Color.red.opacity(0.9))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }

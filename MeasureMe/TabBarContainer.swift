@@ -1,11 +1,10 @@
 import SwiftUI
 
 struct TabBarContainer: View {
-    @State private var router = AppRouter()
+    @StateObject private var router = AppRouter()
     @AppStorage("home_tab_scroll_offset") private var homeTabScrollOffset: Double = 0.0
 
     var body: some View {
-        @Bindable var router = router
         let tabBarShouldBeVisible = router.selectedTab != .home || homeTabScrollOffset < -14
 
         ZStack {
@@ -115,7 +114,7 @@ struct TabBarContainer: View {
                 }
             }
         }
-        .environment(router)
+        .environmentObject(router)
         .preferredColorScheme(.dark)
     }
 }

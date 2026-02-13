@@ -1,0 +1,9 @@
+only_rules:
+  - force_cast
+  - force_try
+  - force_unwrapping
+  - duplicate_imports
+
+excluded:
+  - .derivedData
+  - .derivedData-analyze

@@ -1,10 +1,8 @@
-import SwiftUI
-import Observation
+import Combine
 
-@Observable
-class AppRouter {
-    var selectedTab: AppTab = .home
-    var presentedSheet: PresentedSheet? = nil
+final class AppRouter: ObservableObject {
+    @Published var selectedTab: AppTab = .home
+    @Published var presentedSheet: PresentedSheet? = nil
 }
 
 enum PresentedSheet: Identifiable {
@@ -20,5 +18,4 @@ enum PresentedSheet: Identifiable {
 
 enum ComposerMode: String {
     case newPost = "newPost"
-    case editPost = "editPost"
 }

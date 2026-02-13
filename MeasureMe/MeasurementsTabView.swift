@@ -7,7 +7,7 @@ import Accessibility
 struct MeasurementsTabView: View {
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
-    @Environment(AppRouter.self) private var router
+    @EnvironmentObject private var router: AppRouter
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
     @State private var scrollOffset: CGFloat = 0
@@ -29,7 +29,10 @@ struct MeasurementsTabView: View {
     private var samplesByKind: [MetricKind: [MetricSample]] {
         var grouped: [MetricKind: [MetricSample]] = [:]
         for sample in samples {
-            guard let kind = MetricKind(rawValue: sample.kindRaw) else { continue }
+            guard let kind = MetricKind(rawValue: sample.kindRaw) else {
+                AppLog.debug("⚠️ Ignoring MetricSample with invalid kindRaw: \(sample.kindRaw)")
+                continue
+            }
             grouped[kind, default: []].append(sample)
         }
         return grouped
@@ -331,6 +334,7 @@ struct MetricChartTile: View {
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("metric.tile.open.\(kind.rawValue)")
             }
 
             // Value + trend + goal info

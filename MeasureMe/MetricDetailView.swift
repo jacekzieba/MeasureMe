@@ -26,7 +26,7 @@ struct MetricDetailView: View {
 
     // MARK: - SwiftData Queries
     @Environment(\.modelContext) var context
-    @Environment(AppRouter.self) var router
+    @EnvironmentObject var router: AppRouter
     
     /// Próbki tej metryki, posortowane rosnąco po dacie (dla wykresu)
     @Query var samples: [MetricSample]

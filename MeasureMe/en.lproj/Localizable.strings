@@ -13,6 +13,20 @@
 "notification.goal.title" = "Goal achievement notification%@";
 "notification.goal.body" = "You hit your %@ goal. Nice work.";
 "notification.smart.after.days" = "After %d days of inactivity";
+"validation.metric.range" = "Enter a value between %.1f and %.1f %@.";
+"Enter a valid number." = "Enter a valid number.";
+"Age must be between 5 and 120." = "Age must be between 5 and 120.";
+"Height must be between 50 and 300 cm." = "Height must be between 50 and 300 cm.";
+"Height must be between 1 and 8 ft 11 in." = "Height must be between 1 and 8 ft 11 in.";
+"Fix highlighted values before saving." = "Fix highlighted values before saving.";
+"Could not save measurements. Please try again." = "Could not save measurements. Please try again.";
+"Could not save photo. Please try again." = "Could not save photo. Please try again.";
+"Could not save photo changes. Please try again." = "Could not save photo changes. Please try again.";
+"Could not delete photo. Please try again." = "Could not delete photo. Please try again.";
+"Could not import height from Health." = "Could not import height from Health.";
+"Notification error" = "Notification error";
+"Could not schedule notifications. Please check notification permissions and try again." = "Could not schedule notifications. Please check notification permissions and try again.";
+"Could not start the app because local storage failed to initialize. Please retry. Error: %@" = "Could not start the app because local storage failed to initialize. Please retry. Error: %@";
 
 "photos.active.filters.count" = "%d active filters";
 "photos.showing.count" = "Showing %d of %d photos";

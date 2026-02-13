@@ -2,10 +2,12 @@
 "notification.log.title" = "%@Zapisz pomiary";
 "notification.log.body" = "Szybki check‑in teraz utrzymuje Twoje postępy na właściwej ścieżce.";
 "notification.smart.title" = "%@Czas na szybki wpis";
+"notification.smart.body" = "Minęło %d dni od ostatniego wpisu — dodaj pomiar, by utrzymać rytm.";
 "notification.smart.body.one" = "Minął %d dzień od ostatniego wpisu — dodaj pomiar, by utrzymać rytm.";
 "notification.smart.body.few" = "Minęły %d dni od ostatniego wpisu — dodaj pomiar, by utrzymać rytm.";
 "notification.smart.body.many" = "Minęło %d dni od ostatniego wpisu — dodaj pomiar, by utrzymać rytm.";
 "notification.photo.title" = "%@Czas na zdjęcie postępów";
+"notification.photo.body" = "Minęło %d dni od ostatniego zdjęcia — zdjęcia pokazują zmiany, których nie widać na wadze.";
 "notification.photo.body.one" = "Minął %d dzień od ostatniego zdjęcia — zdjęcia pokazują zmiany, których nie widać na wadze.";
 "notification.photo.body.few" = "Minęły %d dni od ostatniego zdjęcia — zdjęcia pokazują zmiany, których nie widać na wadze.";
 "notification.photo.body.many" = "Minęło %d dni od ostatniego zdjęcia — zdjęcia pokazują zmiany, których nie widać na wadze.";
@@ -20,13 +22,29 @@
 "notification.smart.after.days.one" = "Po %d dniu braku aktywności";
 "notification.smart.after.days.few" = "Po %d dniach braku aktywności";
 "notification.smart.after.days.many" = "Po %d dniach braku aktywności";
+"validation.metric.range" = "Wprowadź wartość od %.1f do %.1f %@.";
+"Enter a valid number." = "Wprowadź poprawną liczbę.";
+"Age must be between 5 and 120." = "Wiek musi mieścić się w zakresie 5–120 lat.";
+"Height must be between 50 and 300 cm." = "Wzrost musi mieścić się w zakresie 50–300 cm.";
+"Height must be between 1 and 8 ft 11 in." = "Wzrost musi mieścić się w zakresie od 1 stopy do 8 stóp 11 cali.";
+"Fix highlighted values before saving." = "Popraw zaznaczone wartości przed zapisaniem.";
+"Could not save measurements. Please try again." = "Nie udało się zapisać pomiarów. Spróbuj ponownie.";
+"Could not save photo. Please try again." = "Nie udało się zapisać zdjęcia. Spróbuj ponownie.";
+"Could not save photo changes. Please try again." = "Nie udało się zapisać zmian zdjęcia. Spróbuj ponownie.";
+"Could not delete photo. Please try again." = "Nie udało się usunąć zdjęcia. Spróbuj ponownie.";
+"Could not import height from Health." = "Nie udało się zaimportować wzrostu z aplikacji Zdrowie.";
+"Notification error" = "Błąd powiadomień";
+"Could not schedule notifications. Please check notification permissions and try again." = "Nie udało się zaplanować powiadomień. Sprawdź uprawnienia i spróbuj ponownie.";
+"Could not start the app because local storage failed to initialize. Please retry. Error: %@" = "Nie udało się uruchomić aplikacji, ponieważ nie można zainicjalizować pamięci lokalnej. Spróbuj ponownie. Błąd: %@";
 
+"photos.active.filters.count" = "%d aktywnych filtrów";
 "photos.active.filters.count.one" = "%d aktywny filtr";
 "photos.active.filters.count.few" = "%d aktywne filtry";
 "photos.active.filters.count.many" = "%d aktywnych filtrów";
 "photos.showing.count" = "Wyświetlanie %d z %d zdjęć";
 "photos.showing.range" = "Wyświetlanie zdjęć od %@ do %@";
 "photos.showing.tags.selected" = "Wyświetlanie zdjęć z dowolnym z wybranych tagów (wybrano %d)";
+"photos.tags.count" = "%d tagów";
 "photos.tags.count.one" = "%d tag";
 "photos.tags.count.few" = "%d tagi";
 "photos.tags.count.many" = "%d tagów";
@@ -35,9 +53,11 @@
 "photos.dateRange.last30Days" = "Ostatnie 30 dni";
 "photos.dateRange.last90Days" = "Ostatnie 90 dni";
 "photos.dateRange.custom" = "Własny zakres";
+"photo.metrics.recorded" = "Zapisano %d metryk";
 "photo.metrics.recorded.one" = "Zapisano %d metrykę";
 "photo.metrics.recorded.few" = "Zapisano %d metryki";
 "photo.metrics.recorded.many" = "Zapisano %d metryk";
+"compare.days.apart" = "%d dni odstępu";
 "compare.days.apart.one" = "%d dzień odstępu";
 "compare.days.apart.few" = "%d dni odstępu";
 "compare.days.apart.many" = "%d dni odstępu";
@@ -114,6 +134,7 @@
 "accessibility.goal.define" = "Ustaw cel dla tej metryki";
 "accessibility.trendline.toggle" = "Stuknij dwukrotnie, aby przełączyć linię trendu";
 
+"age.years.old" = "%d lat";
 "age.years.old.one" = "%d rok";
 "age.years.old.few" = "%d lata";
 "age.years.old.many" = "%d lat";
@@ -136,6 +157,7 @@
 "age.range.40_59" = " (40–59 lat)";
 "age.range.60_79" = " (60–79 lat)";
 "health.requires" = "Wymaga: %@";
+"photos.optimization.count" = "Można zoptymalizować %d zdjęć";
 "photos.optimization.count.one" = "Można zoptymalizować %d zdjęcie";
 "photos.optimization.count.few" = "Można zoptymalizować %d zdjęcia";
 "photos.optimization.count.many" = "Można zoptymalizować %d zdjęć";

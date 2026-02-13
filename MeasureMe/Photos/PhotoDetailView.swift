@@ -176,17 +176,27 @@ private extension PhotoDetailView {
         photo.date = editedDate
         photo.tags = Array(editedTags)
         photo.linkedMetrics = editedMetrics
-        
-        try? context.save()
-        isEditing = false
+
+        do {
+            try context.save()
+            isEditing = false
+        } catch {
+            presentSaveFailure(message: AppLocalization.string("Could not save photo changes. Please try again."))
+            AppLog.debug("⚠️ Failed saving photo changes: \(error.localizedDescription)")
+        }
     }
     
     func deletePhoto() {
         context.delete(photo)
-        try? context.save()
-        context.processPendingChanges()
-        onDeleted?()
-        dismiss()
+        do {
+            try context.save()
+            context.processPendingChanges()
+            onDeleted?()
+            dismiss()
+        } catch {
+            presentSaveFailure(message: AppLocalization.string("Could not delete photo. Please try again."))
+            AppLog.debug("⚠️ Failed deleting photo: \(error.localizedDescription)")
+        }
     }
 
     func saveToPhotos() {

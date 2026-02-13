@@ -1,5 +1,41 @@
 import Foundation
 import UserNotifications
+import Combine
+
+protocol NotificationCenterClient {
+    func requestAuthorization() async throws -> Bool
+    func authorizationStatus() async -> UNAuthorizationStatus
+    func add(_ request: UNNotificationRequest, completion: @escaping (Error?) -> Void)
+    func add(_ request: UNNotificationRequest) async throws
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String])
+}
+
+struct RealNotificationCenterClient: NotificationCenterClient {
+    private let center = UNUserNotificationCenter.current()
+
+    func requestAuthorization() async throws -> Bool {
+        try await center.requestAuthorization(options: [.alert, .badge, .sound])
+    }
+
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        let settings = await center.notificationSettings()
+        return settings.authorizationStatus
+    }
+
+    func add(_ request: UNNotificationRequest, completion: @escaping (Error?) -> Void) {
+        center.add(request) { error in
+            completion(error)
+        }
+    }
+
+    func add(_ request: UNNotificationRequest) async throws {
+        try await center.add(request)
+    }
+
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+}
 
 enum ReminderRepeat: String, Codable, CaseIterable, Identifiable {
     case once
@@ -30,10 +66,10 @@ struct MeasurementReminder: Identifiable, Codable, Hashable {
 }
 
 @MainActor
-final class NotificationManager {
+final class NotificationManager: ObservableObject {
     static let shared = NotificationManager()
     
-    private let center = UNUserNotificationCenter.current()
+    private let center: NotificationCenterClient
     private let remindersKey = "measurement_reminders"
     private let notificationsEnabledKey = "measurement_notifications_enabled"
     private let smartEnabledKey = "measurement_smart_enabled"
@@ -54,8 +90,15 @@ final class NotificationManager {
     private var pendingImportKinds: [MetricKind] = []
     private var pendingImportKindsSet: Set<MetricKind> = []
     private var pendingImportTask: Task<Void, Never>?
+    @Published private(set) var lastSchedulingError: String?
     
-    private init() {}
+    init(center: NotificationCenterClient? = nil) {
+        if let center {
+            self.center = center
+        } else {
+            self.center = RealNotificationCenterClient()
+        }
+    }
     
     var notificationsEnabled: Bool {
         get { UserDefaults.standard.bool(forKey: notificationsEnabledKey) }
@@ -128,15 +171,15 @@ final class NotificationManager {
     
     func requestAuthorization() async -> Bool {
         do {
-            return try await center.requestAuthorization(options: [.alert, .badge, .sound])
+            return try await center.requestAuthorization()
         } catch {
+            recordSchedulingError(error)
             return false
         }
     }
 
     func authorizationStatus() async -> UNAuthorizationStatus {
-        let settings = await center.notificationSettings()
-        return settings.authorizationStatus
+        await center.authorizationStatus()
     }
     
     func loadReminders() -> [MeasurementReminder] {
@@ -189,8 +232,17 @@ final class NotificationManager {
             content: content,
             trigger: trigger
         )
-        
-        center.add(request)
+
+        center.add(request) { [weak self] error in
+            guard let self else { return }
+            Task { @MainActor in
+                if let error {
+                    self.recordSchedulingError(error)
+                } else {
+                    self.clearLastSchedulingError()
+                }
+            }
+        }
     }
     
     func removeReminder(id: String) {
@@ -249,8 +301,17 @@ final class NotificationManager {
             content: content,
             trigger: trigger
         )
-        
-        center.add(request)
+
+        center.add(request) { [weak self] error in
+            guard let self else { return }
+            Task { @MainActor in
+                if let error {
+                    self.recordSchedulingError(error)
+                } else {
+                    self.clearLastSchedulingError()
+                }
+            }
+        }
 
         schedulePhotoReminderIfNeeded()
     }
@@ -302,7 +363,16 @@ final class NotificationManager {
             content: content,
             trigger: trigger
         )
-        center.add(request)
+        center.add(request) { [weak self] error in
+            guard let self else { return }
+            Task { @MainActor in
+                if let error {
+                    self.recordSchedulingError(error)
+                } else {
+                    self.clearLastSchedulingError()
+                }
+            }
+        }
     }
 
     func cancelPhotoReminder() {
@@ -326,7 +396,16 @@ final class NotificationManager {
             content: content,
             trigger: trigger
         )
-        center.add(request)
+        center.add(request) { [weak self] error in
+            guard let self else { return }
+            Task { @MainActor in
+                if let error {
+                    self.recordSchedulingError(error)
+                } else {
+                    self.clearLastSchedulingError()
+                }
+            }
+        }
     }
 
     func queueImportNotification(kind: MetricKind) {
@@ -362,8 +441,8 @@ final class NotificationManager {
         guard importNotificationsEnabled else { return }
         guard !kinds.isEmpty else { return }
 
-        let settings = await center.notificationSettings()
-        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+        let status = await center.authorizationStatus()
+        guard status == .authorized || status == .provisional else {
             return
         }
 
@@ -379,7 +458,12 @@ final class NotificationManager {
             trigger: trigger
         )
 
-        try? await center.add(request)
+        do {
+            try await center.add(request)
+            clearLastSchedulingError()
+        } catch {
+            recordSchedulingError(error)
+        }
     }
 
     private func clearPendingImportBuffer() {
@@ -407,8 +491,8 @@ final class NotificationManager {
 
     func sendGoalAchievedNotification(kind: MetricKind, goalCreatedDate: Date, goalValue: Double) {
         Task {
-            let settings = await center.notificationSettings()
-            guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+            let status = await center.authorizationStatus()
+            guard status == .authorized || status == .provisional else {
                 return
             }
             guard goalAchievedEnabled else { return }
@@ -432,9 +516,19 @@ final class NotificationManager {
                 trigger: trigger
             )
 
-            try? await center.add(request)
+            do {
+                try await center.add(request)
+                clearLastSchedulingError()
+            } catch {
+                recordSchedulingError(error)
+                return
+            }
             UserDefaults.standard.set(true, forKey: key)
         }
+    }
+
+    func clearLastSchedulingError() {
+        lastSchedulingError = nil
     }
     
     private func nextSmartFireDate(from now: Date) -> Date {
@@ -458,5 +552,16 @@ final class NotificationManager {
         comps.hour = 7
         comps.minute = 0
         return cal.date(from: comps) ?? Date()
+    }
+
+    private func recordSchedulingError(_ error: Error) {
+        let fallback = AppLocalization.string("Could not schedule notifications. Please check notification permissions and try again.")
+        let detail = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        if detail.isEmpty {
+            lastSchedulingError = fallback
+        } else {
+            lastSchedulingError = AppLocalization.string("%@ (%@)", fallback, detail)
+        }
+        AppLog.debug("⚠️ Notification scheduling failed: \(error.localizedDescription)")
     }
 }

@@ -5,39 +5,14 @@ import UIKit
 @main
 struct MeasureMeApp: App {
     @AppStorage("appLanguage") private var appLanguage: String = "system"
-    // Konfiguracja kontenera modeli SwiftData
-    var sharedModelContainer: ModelContainer = {
-        let fileManager = FileManager.default
-        if let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
-            do {
-                try fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
-            } catch {
-                AppLog.debug("⚠️ Failed to create Application Support directory: \(error)")
-            }
-        }
+    @State private var startupState: StartupState = .loading
+    @State private var startupAttemptID: Int = 0
 
-        let schema = Schema([
-            MetricSample.self,
-            MetricGoal.self,
-            PhotoEntry.self
-        ])
-        // Primary persistent configuration
-        let configuration = ModelConfiguration(schema: schema)
-        do {
-            let container = try ModelContainer(for: schema, configurations: [configuration])
-            DatabaseEncryption.applyRecommendedProtection()
-            return container
-        } catch {
-            // Fallback to an in-memory store so the app can still launch, and log the error
-            AppLog.debug("⚠️ Failed to create persistent ModelContainer: \(error). Falling back to in-memory store.")
-            let memoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-            do {
-                return try ModelContainer(for: schema, configurations: [memoryConfig])
-            } catch {
-                fatalError("❌ Failed to create even an in-memory ModelContainer: \(error)")
-            }
-        }
-    }()
+    private enum StartupState {
+        case loading
+        case ready(ModelContainer)
+        case failed(message: String)
+    }
 
     init() {
         UserDefaults.standard.register(defaults: [
@@ -70,6 +45,7 @@ struct MeasureMeApp: App {
             "healthkit_sync_leanBodyMass": true,
             "healthkit_sync_waist": true
         ])
+        configureUITestDefaultsIfNeeded()
 
         let segmentedFont = UIFont.systemFont(ofSize: 13, weight: .semibold).withMonospacedDigits()
         UISegmentedControl.appearance().setTitleTextAttributes([.font: segmentedFont], for: .normal)
@@ -99,20 +75,35 @@ struct MeasureMeApp: App {
         navBar.titleTextAttributes = [.font: navTitleFont]
         navBar.largeTitleTextAttributes = [.font: navLargeFont]
         navBar.shadowImage = UIImage()
-
-        NotificationManager.shared.scheduleSmartIfNeeded()
-        HealthKitManager.shared.configure(modelContainer: sharedModelContainer)
-        HealthKitManager.shared.startObservingHealthKitUpdates()
     }
-    
-    
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environment(\.locale, appLocale)
+            Group {
+                switch startupState {
+                case .loading:
+                    ProgressView()
+                        .controlSize(.large)
+                        .tint(Color.appAccent)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black.ignoresSafeArea())
+                case .ready(let container):
+                    RootView()
+                        .modelContainer(container)
+                case .failed(let message):
+                    StartupErrorView(
+                        message: message,
+                        onRetry: {
+                            startupAttemptID += 1
+                        }
+                    )
+                }
+            }
+            .environment(\.locale, appLocale)
+            .task(id: startupAttemptID) {
+                await bootstrapApp()
+            }
         }
-        .modelContainer(sharedModelContainer)
     }
 
     private var appLocale: Locale {
@@ -124,5 +115,81 @@ struct MeasureMeApp: App {
         default:
             return Locale.current
         }
+    }
+
+    @MainActor
+    private func bootstrapApp() async {
+        startupState = .loading
+
+        do {
+            let container = try createPersistentModelContainer()
+            try seedUITestDataIfNeeded(container: container)
+            DatabaseEncryption.applyRecommendedProtection()
+
+            NotificationManager.shared.scheduleSmartIfNeeded()
+            HealthKitManager.shared.configure(modelContainer: container)
+            HealthKitManager.shared.startObservingHealthKitUpdates()
+
+            startupState = .ready(container)
+        } catch {
+            let message = AppLocalization.string(
+                "Could not start the app because local storage failed to initialize. Please retry. Error: %@",
+                error.localizedDescription
+            )
+            AppLog.debug("❌ App startup failed: \(error)")
+            startupState = .failed(message: message)
+        }
+    }
+
+    private func createPersistentModelContainer() throws -> ModelContainer {
+        let fileManager = FileManager.default
+        if let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            do {
+                try fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
+            } catch {
+                AppLog.debug("⚠️ Failed to create Application Support directory: \(error)")
+            }
+        }
+
+        let schema = Schema([
+            MetricSample.self,
+            MetricGoal.self,
+            PhotoEntry.self
+        ])
+        let configuration = ModelConfiguration(schema: schema)
+        return try ModelContainer(for: schema, configurations: [configuration])
+    }
+
+    private func configureUITestDefaultsIfNeeded() {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        guard args.contains("-uiTestMode") else { return }
+        let defaults = UserDefaults.standard
+        defaults.set(true, forKey: "hasCompletedOnboarding")
+        defaults.set("en", forKey: "appLanguage")
+        defaults.set(true, forKey: "premium_entitlement")
+        defaults.set(true, forKey: "apple_intelligence_enabled")
+        defaults.set(false, forKey: "onboarding_checklist_show")
+        defaults.set(-20.0, forKey: "home_tab_scroll_offset")
+        #endif
+    }
+
+    private func seedUITestDataIfNeeded(container: ModelContainer) throws {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        guard args.contains("-uiTestSeedMeasurements") else { return }
+
+        let context = ModelContext(container)
+        let existingCount = try context.fetchCount(FetchDescriptor<MetricSample>())
+        if existingCount > 0 {
+            return
+        }
+
+        let now = Date()
+        let older = Calendar.current.date(byAdding: .day, value: -10, to: now) ?? now
+        context.insert(MetricSample(kind: .weight, value: 82, date: older))
+        context.insert(MetricSample(kind: .weight, value: 80, date: now))
+        try context.save()
+        #endif
     }
 }
