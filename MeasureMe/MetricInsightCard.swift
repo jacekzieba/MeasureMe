@@ -8,7 +8,7 @@ struct MetricInsightCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "sparkles")
-                .font(.system(size: compact ? 12 : 14, weight: .semibold))
+                .font(compact ? AppTypography.iconSmall : AppTypography.iconSmall)
                 .foregroundStyle(Color(hex: "#FCA311"))
                 .padding(8)
                 .background(Color.white.opacity(0.08))

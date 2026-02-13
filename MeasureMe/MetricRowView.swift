@@ -2,8 +2,8 @@ import SwiftUI
 
 struct MetricRowView: View {
     enum Context {
-        case active(isEditing: Bool, onTap: () -> Void)
-        case normal(onDetailsTap: () -> Void)
+        case active(isEditing: Bool)
+        case normal
     }
 
     let kind: MetricKind
@@ -32,24 +32,17 @@ struct MetricRowView: View {
             if case .normal = context {
                 Toggle("", isOn: isOn)
                     .labelsHidden()
+                    .accessibilityLabel(kind.title)
                     .frame(width: 52, alignment: .trailing)
+                    .transaction { $0.animation = nil }
             }
 
-            if case .active(let isEditing, _) = context, !isEditing {
+            if case .active(let isEditing) = context, !isEditing {
                 Toggle("", isOn: isOn)
                     .labelsHidden()
+                    .accessibilityLabel(kind.title)
                     .frame(width: 52, alignment: .trailing)
-            }
-
-            if case .normal(let onDetailsTap) = context {
-                Button(action: onDetailsTap) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 18, height: 18)
-                }
-                .buttonStyle(.plain)
-                .padding(.leading, 4)
+                    .transaction { $0.animation = nil }
             }
         }
         .offset(x: rowOffset)
@@ -58,11 +51,6 @@ struct MetricRowView: View {
         .padding(.vertical, 10)
         .padding(.vertical, 3)
         .contentShape(Rectangle())
-        .onTapGesture {
-            if case .active(_, let onTap) = context {
-                onTap()
-            }
-        }
         .listRowSeparator(.hidden)
         .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
         .listRowBackground(Color.clear)
@@ -70,20 +58,11 @@ struct MetricRowView: View {
 
     // MARK: - Helpers
 
-    private var isEditingValue: Bool {
-        if case .active(let isEditing, _) = context {
-            return isEditing
-        }
-        return false
-    }
-
     private var rowOffset: CGFloat {
-        // W normal context nie offsetuj
         if case .normal = context {
             return 0
         }
-        // W active context offsetuj tylko gdy editing
-        if case .active(let isEditing, _) = context {
+        if case .active(let isEditing) = context {
             return isEditing ? 4 : 0
         }
         return 0

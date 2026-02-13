@@ -58,7 +58,7 @@ struct HeightSettingsView: View {
                             
                             HStack(alignment: .firstTextBaseline, spacing: 8) {
                                 Text(formattedHeight(manualHeight))
-                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .font(AppTypography.displaySmall)
                                     .monospacedDigit()
                                     .foregroundStyle(Color(hex: "#FCA311"))
                                 
@@ -84,7 +84,7 @@ struct HeightSettingsView: View {
                             
                             HStack(alignment: .firstTextBaseline, spacing: 8) {
                                 Text(formattedHeight(tracked.value))
-                                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                                    .font(AppTypography.displaySmall)
                                     .monospacedDigit()
                                     .foregroundStyle(Color(hex: "#FCA311"))
                                 
@@ -151,7 +151,7 @@ struct HeightSettingsView: View {
                             HStack(spacing: 12) {
                                 if isImportingHeight {
                                     ProgressView()
-                                        .frame(width: 40, height: 40)
+                                        .frame(width: 44, height: 44)
                                 } else {
                                     GlassPillIcon(systemName: "arrow.down.circle")
                                 }

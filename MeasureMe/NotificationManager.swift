@@ -5,6 +5,7 @@ import Combine
 protocol NotificationCenterClient {
     func requestAuthorization() async throws -> Bool
     func authorizationStatus() async -> UNAuthorizationStatus
+    func pendingRequestIdentifiers() async -> [String]
     func add(_ request: UNNotificationRequest, completion: @escaping (Error?) -> Void)
     func add(_ request: UNNotificationRequest) async throws
     func removePendingNotificationRequests(withIdentifiers identifiers: [String])
@@ -20,6 +21,14 @@ struct RealNotificationCenterClient: NotificationCenterClient {
     func authorizationStatus() async -> UNAuthorizationStatus {
         let settings = await center.notificationSettings()
         return settings.authorizationStatus
+    }
+
+    func pendingRequestIdentifiers() async -> [String] {
+        await withCheckedContinuation { continuation in
+            center.getPendingNotificationRequests { requests in
+                continuation.resume(returning: requests.map(\.identifier))
+            }
+        }
     }
 
     func add(_ request: UNNotificationRequest, completion: @escaping (Error?) -> Void) {
@@ -186,12 +195,22 @@ final class NotificationManager: ObservableObject {
         guard let data = UserDefaults.standard.data(forKey: remindersKey) else {
             return []
         }
-        return (try? JSONDecoder().decode([MeasurementReminder].self, from: data)) ?? []
+        do {
+            return try JSONDecoder().decode([MeasurementReminder].self, from: data)
+        } catch {
+            recordSchedulingError(error)
+            AppLog.debug("⚠️ Failed to decode reminders: \(error.localizedDescription)")
+            return []
+        }
     }
     
     func saveReminders(_ reminders: [MeasurementReminder]) {
-        if let data = try? JSONEncoder().encode(reminders) {
+        do {
+            let data = try JSONEncoder().encode(reminders)
             UserDefaults.standard.set(data, forKey: remindersKey)
+        } catch {
+            recordSchedulingError(error)
+            AppLog.debug("⚠️ Failed to encode reminders: \(error.localizedDescription)")
         }
     }
     
@@ -529,6 +548,41 @@ final class NotificationManager: ObservableObject {
 
     func clearLastSchedulingError() {
         lastSchedulingError = nil
+    }
+
+    func resetAllData() async {
+        pendingImportTask?.cancel()
+        pendingImportTask = nil
+        clearPendingImportBuffer()
+
+        let appOwnedPendingIdentifiers = await center.pendingRequestIdentifiers().filter { identifier in
+            identifier == smartNotificationId
+            || identifier == photoReminderId
+            || identifier == trialEndingReminderId
+            || identifier == importSummaryNotificationId
+            || identifier.hasPrefix(reminderPrefix)
+            || identifier.hasPrefix(goalAchievementPrefix)
+        }
+
+        if !appOwnedPendingIdentifiers.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: appOwnedPendingIdentifiers)
+        }
+
+        let defaults = UserDefaults.standard
+        [
+            remindersKey,
+            notificationsEnabledKey,
+            smartEnabledKey,
+            smartDaysKey,
+            smartTimeKey,
+            lastLogDateKey,
+            lastPhotoDateKey,
+            photoRemindersEnabledKey,
+            goalAchievedEnabledKey,
+            importNotificationsEnabledKey
+        ].forEach { defaults.removeObject(forKey: $0) }
+
+        clearLastSchedulingError()
     }
     
     private func nextSmartFireDate(from now: Date) -> Date {

@@ -124,14 +124,22 @@ final class ActiveMetricsStore: ObservableObject {
     // MARK: - Key Metrics (Home)
 
     /// Zwraca kluczowe metryki na Home (maks 3), zawsze będące podzbiorem aktywnych.
+    /// Jeśli użytkownik nigdy nie ustawiał key metrics (brak klucza w UserDefaults),
+    /// automatycznie przypisujemy pierwsze aktywne metryki. Jeśli użytkownik świadomie
+    /// odznaczył wszystkie gwiazdki (klucz istnieje, ale tablica jest pusta), zwracamy [].
     var keyMetrics: [MetricKind] {
         let active = activeKinds
-        let storedSet = Set(loadKeyMetricsKinds().filter { active.contains($0) })
-        if storedSet.isEmpty {
-            return Array(active.prefix(maxKeyMetrics))
+        let stored = loadKeyMetricsKinds().filter { active.contains($0) }
+
+        // Pierwsza sesja: klucz nie istnieje → auto-przypisz domyślne
+        if defaults.object(forKey: keyMetricsKey) == nil {
+            let initial = Array(active.prefix(maxKeyMetrics))
+            saveKeyMetricsKinds(initial)
+            return initial
         }
-        // Keep Home key metrics in the same order as active metrics configured in Settings.
-        let orderedByActive = active.filter { storedSet.contains($0) }
+
+        // Klucz istnieje (nawet jeśli pusty) → uszanuj wybór użytkownika
+        let orderedByActive = active.filter { stored.contains($0) }
         return Array(orderedByActive.prefix(maxKeyMetrics))
     }
 

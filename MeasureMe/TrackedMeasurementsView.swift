@@ -4,7 +4,6 @@ struct TrackedMeasurementsView: View {
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
 
     @State private var isEditingActive = false
-    @State private var selectedKind: MetricKind?
     @State private var showKeyMetricsLimitAlert = false
 
     var body: some View {
@@ -25,27 +24,28 @@ struct TrackedMeasurementsView: View {
                         ActiveMetricsSection(
                             store: metricsStore,
                             isEditing: $isEditingActive,
-                            selectedKind: $selectedKind,
                             scrollProxy: proxy
                         )
                     }
 
                     MetricsSection(
                         title: AppLocalization.string("Health App Synced"),
+                        subtitle: AppLocalization.string("tracked.section.health.subtitle"),
                         systemImage: "heart.fill",
+                        iconTint: Color(red: 1.0, green: 0.27, blue: 0.33),
                         rows: metricsStore.bodyComposition + metricsStore.bodySize,
-                        store: metricsStore,
-                        selectedKind: $selectedKind
+                        store: metricsStore
                     )
 
                     MetricsSection(
                         title: AppLocalization.string("Custom metrics"),
+                        subtitle: AppLocalization.string("tracked.section.custom.subtitle"),
                         systemImage: "slider.horizontal.3",
+                        iconTint: Color.appAccent,
                         rows: metricsStore.upperBody
                             + metricsStore.arms
                             + metricsStore.lowerBody,
-                        store: metricsStore,
-                        selectedKind: $selectedKind
+                        store: metricsStore
                     )
                 }
                 .environment(\.editMode, .constant(isEditingActive ? .active : .inactive))
@@ -60,9 +60,6 @@ struct TrackedMeasurementsView: View {
         .navigationTitle(AppLocalization.string("Tracked measurements"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .navigationDestination(item: $selectedKind) { kind in
-            MetricDetailView(kind: kind)
-        }
         .alert(AppLocalization.string("Limit reached"), isPresented: $showKeyMetricsLimitAlert) {
             Button(AppLocalization.string("OK"), role: .cancel) { }
         } message: {
@@ -75,20 +72,38 @@ private struct KeyMetricsSection: View {
     @ObservedObject var store: ActiveMetricsStore
     @Binding var showLimitAlert: Bool
 
+    private var starredCount: Int {
+        store.activeKinds.filter { store.isKeyMetric($0) }.count
+    }
+
     var body: some View {
         Section {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(AppLocalization.string("Home key metrics"))
-                Text(AppLocalization.string("Choose up to 3 to show on Home and Measurements."))
+            VStack(alignment: .leading, spacing: 6) {
+                Label {
+                    Text(AppLocalization.string("tracked.keymetrics.header"))
+                } icon: {
+                    Image(systemName: "star.fill")
+                        .foregroundStyle(Color.appAccent)
+                }
+                .font(AppTypography.bodyEmphasis)
+
+                Text(AppLocalization.string("tracked.keymetrics.description"))
                     .font(AppTypography.caption)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(AppLocalization.string("tracked.keymetrics.counter", starredCount))
+                    .font(AppTypography.micro)
+                    .foregroundStyle(starredCount >= 1 ? Color.appAccent : Color.secondary.opacity(0.6))
+                    .padding(.top, 2)
             }
             .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 4, trailing: 16))
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
 
             if store.activeKinds.isEmpty {
-                Text(AppLocalization.string("Enable metrics below to pick key metrics for Home."))
+                Text(AppLocalization.string("tracked.keymetrics.empty"))
+                    .font(AppTypography.caption)
                     .foregroundStyle(.secondary)
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                     .listRowBackground(Color.clear)
@@ -113,6 +128,8 @@ private struct KeyMetricsSection: View {
                         } label: {
                             Image(systemName: store.isKeyMetric(kind) ? "star.fill" : "star")
                                 .foregroundStyle(store.isKeyMetric(kind) ? Color.appAccent : .secondary)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(store.isKeyMetric(kind)

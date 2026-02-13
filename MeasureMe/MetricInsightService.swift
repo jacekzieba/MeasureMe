@@ -148,6 +148,12 @@ actor MetricInsightService {
     func generateHealthInsight(for input: HealthInsightInput) async -> String? {
         guard await MainActor.run(body: { AppleIntelligenceSupport.isAvailable() }) else { return nil }
 
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-uiTestLongHealthInsight") {
+            return "UI_TEST_LONG_HEALTH_INSIGHT_MARKER You’re trending in a steady direction with consistent entries and balanced changes across your core indicators. Keep momentum by logging at the same time, aiming for three strength sessions, and a daily 8–10k step target this week. Focus on regular meals and hydration to support recovery and energy."
+        }
+        #endif
+
         if let cached = healthCache[input] {
             return cached
         }

@@ -115,6 +115,10 @@ struct MetricDetailView: View {
             return samples  // "All" - pokazuj wszystkie
         }
     }
+
+    var isChartScrubbingEnabled: Bool {
+        !chartSamples.isEmpty
+    }
     
     var relatedTag: PhotoTag? {
         PhotoTag(metricKind: kind)
@@ -317,12 +321,13 @@ struct MetricDetailView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     .padding(12)
                     .background(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .fill(Color.white.opacity(0.05))
                     )
+                    .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(currentGoal == nil ? AppLocalization.string("accessibility.goal.set") : AppLocalization.string("accessibility.goal.update"))
@@ -345,12 +350,13 @@ struct MetricDetailView: View {
                             .font(AppTypography.caption)
                             .foregroundStyle(.secondary)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     .padding(12)
                     .background(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .fill(Color.white.opacity(0.05))
                     )
+                    .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(AppLocalization.string("accessibility.trendline"))
@@ -455,7 +461,7 @@ struct MetricDetailView: View {
                 Text(AppLocalization.string("History"))
                 Spacer()
                 if samples.count > historyLimit {
-                    Button(showAllHistory ? "Show Less" : "View All") {
+                    Button(showAllHistory ? AppLocalization.string("Show Less") : AppLocalization.string("View All")) {
                         showAllHistory.toggle()
                     }
                     .font(AppTypography.sectionAction)
@@ -613,7 +619,8 @@ struct MetricDetailView: View {
                 Rectangle()
                     .fill(.clear)
                     .contentShape(Rectangle())
-                    .gesture(
+                    .allowsHitTesting(isChartScrubbingEnabled)
+                    .simultaneousGesture(
                         LongPressGesture(minimumDuration: 0.2)
                             .sequenced(before: DragGesture(minimumDistance: 0))
                             .onChanged { value in

@@ -280,6 +280,10 @@ struct MetricChartTile: View {
         recentSamples.last
     }
 
+    private var isChartScrubbingEnabled: Bool {
+        !recentSamples.isEmpty
+    }
+
     private var trendInfo: (delta: Double, relativeText: String, outcome: MetricKind.TrendOutcome)? {
         guard recentSamples.count >= 2,
               let lastSample = recentSamples.last else { return nil }
@@ -464,7 +468,7 @@ struct MetricChartTile: View {
                             .foregroundStyle(Color(hex: "#E5E5E5").opacity(0.7))
                             .annotation(position: goalLabelPosition(for: goalValue), alignment: .leading) {
                                 Text(AppLocalization.string("Goal"))
-                                    .font(.system(size: 9, weight: .medium))
+                                    .font(AppTypography.micro)
                                     .foregroundStyle(Color(hex: "#E5E5E5"))
                                     .padding(.horizontal, 4)
                                     .padding(.vertical, 2)
@@ -527,7 +531,8 @@ struct MetricChartTile: View {
                             Rectangle()
                                 .fill(.clear)
                                 .contentShape(Rectangle())
-                                .gesture(
+                                .allowsHitTesting(isChartScrubbingEnabled)
+                                .simultaneousGesture(
                                     LongPressGesture(minimumDuration: 0.2)
                                         .sequenced(before: DragGesture(minimumDistance: 0))
                                         .onChanged { value in

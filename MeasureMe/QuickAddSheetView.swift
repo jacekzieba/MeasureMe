@@ -55,7 +55,7 @@ struct QuickAddSheetView: View {
 
                 if kinds.isEmpty {
                     ContentUnavailableView(
-                        "No active measurements",
+                        AppLocalization.string("No active measurements"),
                         systemImage: "square.and.pencil",
                         description: Text(AppLocalization.string("Enable metrics in the Measurements tab to add values quickly."))
                     )
@@ -124,10 +124,11 @@ struct QuickAddSheetView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: kind.systemImage)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppTypography.iconMedium)
                     .foregroundStyle(Color.appAccent)
                     .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
                     .frame(width: 30, height: 30)
+                    .accessibilityHidden(true)
                     .background(
                         Circle()
                             .fill(Color.appAccent.opacity(0.14))
@@ -135,7 +136,7 @@ struct QuickAddSheetView: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(kind.title)
-                        .font(.system(.headline, design: .rounded))
+                        .font(AppTypography.headline)
                         .foregroundStyle(.white)
 
                     if let summary = lastSummary(for: kind) {
@@ -237,7 +238,7 @@ struct QuickAddSheetView: View {
     private var dateCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label(AppLocalization.string("Measurement time"), systemImage: "calendar.badge.clock")
-                .font(.subheadline.weight(.semibold))
+                .font(AppTypography.sectionAction)
                 .foregroundStyle(.white)
 
             DatePicker(
@@ -246,6 +247,7 @@ struct QuickAddSheetView: View {
                 displayedComponents: [.date, .hourAndMinute]
             )
             .labelsHidden()
+            .accessibilityLabel(AppLocalization.string("Measurement time"))
             .tint(Color.appAccent)
             .frame(maxWidth: .infinity, alignment: .leading)
         }

@@ -1162,6 +1162,8 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "onboarding.trend.delta" = "-0,3 kg/tydz.";
 "onboarding.goal.badge" = "Cel %.1f kg";
 "onboarding.week.label" = "T%d";
+"onboarding.example.label" = "Dane przykładowe";
+"onboarding.example.data" = "Dane przykładowe";
 "You can skip and fill this later." = "Możesz pominąć i uzupełnić to później.";
 "Show %d more" = "Pokaż %d więcej";
 
@@ -1197,3 +1199,21 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Daily" = "Codziennie";
 "Weekly" = "Co tydzień";
 "Failed to delete HealthKit samples." = "Nie udało się usunąć próbek HealthKit.";
+
+/* Accessibility & UI labels (added for UX audit) */
+"Close" = "Zamknij";
+"Show Less" = "Pokaż mniej";
+"View All" = "Pokaż wszystko";
+"No active measurements" = "Brak aktywnych pomiarów";
+"Photo Date" = "Data zdjęcia";
+
+/* Tracked Measurements UX improvements */
+"tracked.keymetrics.header" = "Widoczne na ekranie głównym";
+"tracked.keymetrics.description" = "Stuknij ★, aby przypiąć 1–3 metryki na ekranie głównym i w zakładce Pomiary. Sam decydujesz ile.";
+"tracked.keymetrics.counter" = "%d z 3 przypiętych";
+"tracked.keymetrics.empty" = "Najpierw włącz metrykę poniżej, a potem wróć tutaj, aby przypiąć ją do ekranu głównego.";
+"tracked.active.header" = "Aktualnie śledzone";
+"tracked.active.description" = "Te metryki pojawiają się w Szybkim dodawaniu i zakładce Pomiary. Przeciągnij, aby zmienić kolejność.";
+"tracked.section.health.subtitle" = "Włącz, aby rozpocząć śledzenie. Synchronizowane automatycznie z Apple Zdrowie.";
+"tracked.section.custom.subtitle" = "Włącz, aby rozpocząć śledzenie. Wartości wpisujesz ręcznie.";
+"tracked.section.allempty" = "Wszystkie metryki z tej grupy są już aktywne powyżej.";

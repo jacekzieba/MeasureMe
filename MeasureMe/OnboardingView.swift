@@ -22,6 +22,7 @@ struct OnboardingView: View {
     @EnvironmentObject private var premiumStore: PremiumStore
 
     @State private var currentStepIndex: Int = 0
+    @State private var scrolledStepID: Int?
     @FocusState private var focusedField: FocusField?
 
     @State private var nameInput: String = ""
@@ -172,36 +173,50 @@ struct OnboardingView: View {
             backdrop
 
             GeometryReader { proxy in
-                let baseReserve: CGFloat = (stepStatusText == nil) ? 122 : 146
-                let keyboardReserve: CGFloat = focusedField == nil ? 0 : 44
+                let baseReserve: CGFloat = {
+                    // When editing (keyboard visible), keep the gap minimal
+                    if focusedField != nil { return 8 }
+                    // Otherwise, reserve space for footer and status elements
+                    return (stepStatusText == nil) ? 122 : 146
+                }()
+                let keyboardReserve: CGFloat = 0
                 let bottomReserve = baseReserve + keyboardReserve
-                let cardHeight = safeCardHeight(from: proxy.size.height, reserved: bottomReserve, extra: 20)
+                let extra: CGFloat = (focusedField != nil) ? 0 : 20
+                let cardHeight = safeCardHeight(from: proxy.size.height, reserved: bottomReserve, extra: extra)
 
                 VStack(spacing: 0) {
                     topBar
 
-                    TabView(selection: $currentStepIndex) {
-                        slideCard {
-                            welcomeSlide
-                        }
-                        .tag(Step.welcome.rawValue)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(spacing: 0) {
+                            slideCard {
+                                welcomeSlide
+                            }
+                            .containerRelativeFrame(.horizontal)
+                            .id(Step.welcome.rawValue)
 
-                        slideCard {
-                            profileSlide
-                        }
-                        .tag(Step.profile.rawValue)
+                            slideCard {
+                                profileSlide
+                            }
+                            .containerRelativeFrame(.horizontal)
+                            .id(Step.profile.rawValue)
 
-                        slideCard {
-                            boostersSlide
-                        }
-                        .tag(Step.boosters.rawValue)
+                            slideCard {
+                                boostersSlide
+                            }
+                            .containerRelativeFrame(.horizontal)
+                            .id(Step.boosters.rawValue)
 
-                        slideCard {
-                            premiumSlide
+                            slideCard {
+                                premiumSlide
+                            }
+                            .containerRelativeFrame(.horizontal)
+                            .id(Step.premium.rawValue)
                         }
-                        .tag(Step.premium.rawValue)
+                        .scrollTargetLayout()
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .scrollTargetBehavior(.viewAligned)
+                    .scrollPosition(id: $scrolledStepID)
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                     .frame(height: cardHeight)
@@ -213,20 +228,34 @@ struct OnboardingView: View {
                             .padding(.top, 10)
                     }
 
-                    privacyNote
-                        .padding(.top, 6)
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 2)
+                    if focusedField == nil {
+                        privacyNote
+                            .padding(.top, 6)
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 2)
+                    }
                 }
                 .safeAreaPadding(.top, 10)
             }
         }
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                if focusedField != nil {
+                    dismissKeyboard()
+                }
+            }
+        )
         .onAppear {
             hydrate()
             animateBackdrop = true
+            scrolledStepID = currentStepIndex
             if onboardingSelectedPremiumProductID == nil {
                 onboardingSelectedPremiumProductID = PremiumConstants.yearlyProductID
             }
+        }
+        .onChange(of: scrolledStepID) { _, newValue in
+            guard let newValue, newValue != currentStepIndex else { return }
+            currentStepIndex = newValue
         }
         .onChange(of: currentStepIndex) { _, _ in
             dismissKeyboard()
@@ -245,40 +274,13 @@ struct OnboardingView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(AppLocalization.systemString("Done")) {
-                    dismissKeyboard()
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if focusedField == nil {
+                VStack(spacing: 10) {
+                    footer
                 }
+                .padding(.bottom, 8)
             }
-        }
-        .safeAreaInset(edge: .bottom, spacing: 14) {
-            VStack(spacing: 10) {
-                if focusedField != nil {
-                    HStack {
-                        Spacer()
-                        Button(AppLocalization.systemString("Done")) {
-                            dismissKeyboard()
-                        }
-                        .font(AppTypography.captionEmphasis)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            Capsule(style: .continuous)
-                                .fill(Color.white.opacity(0.14))
-                        )
-                        .overlay(
-                            Capsule(style: .continuous)
-                                .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                        )
-                    }
-                    .padding(.horizontal, 24)
-                }
-
-                footer
-            }
-            .padding(.bottom, 8)
         }
     }
 
@@ -350,12 +352,7 @@ struct OnboardingView: View {
                 }
                 .padding(18)
             }
-            .scrollDismissesKeyboard(.interactively)
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    dismissKeyboard()
-                }
-            )
+            .scrollDismissesKeyboard(.immediately)
         }
     }
 
@@ -374,8 +371,7 @@ struct OnboardingView: View {
             }
 
             welcomeGoalSelector
-            welcomeTrendPreview
-            welcomeInsightPreview
+            welcomeExamplePreview
         }
     }
 
@@ -490,8 +486,13 @@ struct OnboardingView: View {
                 }
             } label: {
                 Text(AppLocalization.systemString("Start my 14-day free trial"))
+                    .font(.system(.subheadline, design: .rounded).weight(.medium))
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 24)
             }
-            .buttonStyle(AppAccentButtonStyle(cornerRadius: 24))
+            .buttonStyle(.bordered)
+            .tint(Color.appAccent)
+            .controlSize(.small)
 
             onboardingBilledAfterTrialText
                 .font(AppTypography.micro)
@@ -752,6 +753,44 @@ struct OnboardingView: View {
                 isLoading: false
             )
         }
+    }
+
+    private var welcomeExamplePreview: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles.rectangle.stack.fill")
+                    .font(AppTypography.microEmphasis)
+                    .foregroundStyle(Color.appAccent)
+                    .frame(width: 20, height: 20)
+                    .background(Color.appAccent.opacity(0.18))
+                    .clipShape(Circle())
+
+                Text(AppLocalization.systemString("onboarding.example.label"))
+                    .font(AppTypography.captionEmphasis)
+                    .foregroundStyle(.white.opacity(0.96))
+            }
+
+            welcomeTrendPreview
+            welcomeInsightPreview
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.06),
+                            Color.white.opacity(0.03)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.appAccent.opacity(0.26), lineWidth: 1)
+        )
     }
 
     private var premiumUnlockBundleTile: some View {
@@ -1066,6 +1105,7 @@ struct OnboardingView: View {
                 goToNextStep()
             } label: {
                 Text(nextButtonTitle)
+                    .foregroundStyle(Color.black)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 32)
             }
@@ -1125,10 +1165,12 @@ struct OnboardingView: View {
 
     private func animateToStep(_ index: Int) {
         if shouldAnimate {
-            withAnimation(.easeOut(duration: 0.16)) {
+            withAnimation(.easeOut(duration: 0.35)) {
+                scrolledStepID = index
                 currentStepIndex = index
             }
         } else {
+            scrolledStepID = index
             currentStepIndex = index
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
@@ -1474,3 +1516,4 @@ private struct OnboardingRulerSlider: View {
         }
     }
 }
+

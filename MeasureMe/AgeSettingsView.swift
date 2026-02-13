@@ -41,7 +41,7 @@ struct AgeSettingsView: View {
 
                             HStack(alignment: .firstTextBaseline, spacing: 8) {
                                 Text("\(userAge)")
-                                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                                    .font(AppTypography.displayMedium)
                                     .foregroundStyle(Color(hex: "#FCA311"))
 
                                 Text(AppLocalization.string("years old"))
@@ -77,7 +77,7 @@ struct AgeSettingsView: View {
                             HStack(spacing: 12) {
                                 if isLoadingHealthKit {
                                     ProgressView()
-                                        .frame(width: 40, height: 40)
+                                        .frame(width: 44, height: 44)
                                 } else {
                                     GlassPillIcon(systemName: "heart.fill")
                                 }

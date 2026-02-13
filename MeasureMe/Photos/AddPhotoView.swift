@@ -120,7 +120,7 @@ private extension AddPhotoView {
     var dateSection: some View {
         Section {
             DatePicker(
-                "Date",
+                AppLocalization.string("Date"),
                 selection: $date,
                 displayedComponents: [.date, .hourAndMinute]
             )
@@ -243,6 +243,14 @@ private extension AddPhotoView {
         
         let snapshots = createMetricSnapshots()
         
+        // Also create MetricSample entries for Measurements with the same date
+        for (kind, displayValue) in metricValues {
+            guard displayValue > 0 else { continue }
+            let metric = kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
+            let sample = MetricSample(kind: kind, value: metric, date: date)
+            context.insert(sample)
+        }
+        
         let entry = PhotoEntry(
             imageData: imageData,
             date: date,
@@ -346,3 +354,4 @@ private func makePreviewContainer() -> ModelContainer {
         .modelContainer(makePreviewContainer())
         .environmentObject(ActiveMetricsStore())
 }
+

@@ -32,7 +32,7 @@ private extension PhotoGridCell {
                 .fill(isSelected ? Color(hex: "#FCA311") : Color.white)
                 .frame(width: 28, height: 28)
                 .shadow(color: .black.opacity(0.2), radius: 3, y: 1)
-            
+
             if isSelected {
                 Image(systemName: "checkmark")
                     .font(.caption)
@@ -40,7 +40,8 @@ private extension PhotoGridCell {
                     .foregroundStyle(.white)
             }
         }
-        .padding(8)
+        .frame(width: 44, height: 44)
+        .contentShape(Circle())
         .scaleEffect(isSelected ? 1.1 : 1.0)
     }
     

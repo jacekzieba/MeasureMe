@@ -41,6 +41,7 @@ struct PhotoFiltersSheet: View {
             }
             .pickerStyle(.menu)
             .labelsHidden()
+            .accessibilityLabel(AppLocalization.string("Date Range"))
             
             if filters.dateRange == .custom {
                 DatePicker(AppLocalization.string("From"), selection: $filters.customStartDate, displayedComponents: .date)

@@ -291,6 +291,14 @@ final class HealthKitManager {
     private let appBundleID = Bundle.main.bundleIdentifier
     private let initialHistoricalKinds: Set<MetricKind> = [.weight, .bodyFat, .leanBodyMass, .waist]
     private let importDateTolerance: TimeInterval = 60
+    private let supportedQuantityIdentifiers: [HKQuantityTypeIdentifier] = [
+        .waistCircumference,
+        .bodyMassIndex,
+        .height,
+        .bodyMass,
+        .bodyFatPercentage,
+        .leanBodyMass
+    ]
 
     // Produkcyjny init
     convenience init() {
@@ -323,15 +331,7 @@ final class HealthKitManager {
             throw HealthKitAuthorizationError.notAvailable
         }
 
-        let quantityIdentifiers: [HKQuantityTypeIdentifier] = [
-            .waistCircumference,
-            .bodyMassIndex,
-            .height,
-            .bodyMass,
-            .bodyFatPercentage,
-            .leanBodyMass
-        ]
-        let quantityTypes = try quantityIdentifiers.map { identifier in
+        let quantityTypes = try supportedQuantityIdentifiers.map { identifier in
             guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else {
                 throw HealthKitAuthorizationError.typeUnavailable(identifier.rawValue)
             }
@@ -349,7 +349,7 @@ final class HealthKitManager {
             read: typesToRead
         )
 
-        let statuses = try quantityIdentifiers.map { try store.authorizationStatus(for: $0) }
+        let statuses = try supportedQuantityIdentifiers.map { try store.authorizationStatus(for: $0) }
         let hasAnyAuthorizedType = statuses.contains(.sharingAuthorized)
         if !hasAnyAuthorizedType {
             throw HealthKitAuthorizationError.denied
@@ -369,10 +369,31 @@ final class HealthKitManager {
         return AppLocalization.string("Could not enable Health sync. Please try again.")
     }
 
+    func reconcileStoredSyncState() -> HealthKitAuthorizationError? {
+        guard UserDefaults.standard.bool(forKey: "isSyncEnabled") else {
+            stopObservingHealthKitUpdates()
+            return nil
+        }
+
+        if let syncError = currentSyncAuthorizationError() {
+            stopObservingHealthKitUpdates()
+            UserDefaults.standard.set(false, forKey: "isSyncEnabled")
+            return syncError
+        }
+
+        return nil
+    }
+
     func startObservingHealthKitUpdates() {
         guard let realStore = store as? RealHealthStore else { return }
         guard UserDefaults.standard.bool(forKey: "isSyncEnabled") else {
             stopObservingHealthKitUpdates()
+            return
+        }
+        if let syncError = currentSyncAuthorizationError() {
+            AppLog.debug("⚠️ HealthKit sync disabled due to authorization state: \(syncError.localizedDescription)")
+            stopObservingHealthKitUpdates()
+            UserDefaults.standard.set(false, forKey: "isSyncEnabled")
             return
         }
 
@@ -423,6 +444,24 @@ final class HealthKitManager {
             (.leanBodyMass, .leanBodyMass, .gramUnit(with: .kilo), false),
             (.waistCircumference, .waist, .meterUnit(with: .centi), false)
         ]
+    }
+
+    private func currentSyncAuthorizationError() -> HealthKitAuthorizationError? {
+        guard store.isHealthDataAvailable() else {
+            return .notAvailable
+        }
+
+        do {
+            let statuses = try supportedQuantityIdentifiers.map { try store.authorizationStatus(for: $0) }
+            if statuses.contains(.sharingAuthorized) {
+                return nil
+            }
+            return .denied
+        } catch let error as HealthKitAuthorizationError {
+            return error
+        } catch {
+            return .denied
+        }
     }
 
     private func importHistoricalDataIfNeeded() async {

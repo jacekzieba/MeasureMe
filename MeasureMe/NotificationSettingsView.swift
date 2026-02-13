@@ -203,6 +203,7 @@ struct NotificationSettingsView: View {
                     Spacer()
                     Stepper("", value: $smartDays, in: 2...30)
                         .labelsHidden()
+                        .accessibilityLabel(AppLocalization.string("notification.smart.after.days", smartDays))
                 }
                 .onChange(of: smartDays) { _, newValue in
                     NotificationManager.shared.smartDays = newValue
@@ -217,6 +218,7 @@ struct NotificationSettingsView: View {
                     Spacer()
                     DatePicker("", selection: $smartTime, displayedComponents: .hourAndMinute)
                         .labelsHidden()
+                        .accessibilityLabel(AppLocalization.string("Time of day"))
                 }
                 .onChange(of: smartTime) { _, newValue in
                     NotificationManager.shared.smartTime = newValue

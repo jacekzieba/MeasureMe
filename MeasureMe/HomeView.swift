@@ -46,7 +46,6 @@ struct HomeView: View {
     @State private var checklistStatusText: String?
     @State private var isChecklistConnectingHealth: Bool = false
     @State private var reminderChecklistCompleted: Bool = false
-    @State private var showGoalHelpAlert: Bool = false
     @State private var showMoreChecklistItems: Bool = false
     
     // HealthKit data
@@ -170,6 +169,55 @@ struct HomeView: View {
         rebuildSamplesCache()
         refreshLatestSamplesCache()
         refreshHasAnyMeasurements()
+        autoHideChecklistIfCompleted()
+    }
+    
+    /// Synchronizes Measurement samples with metric snapshots stored on photos.
+    /// - Behavior:
+    ///   - For each PhotoEntry, for each MetricValueSnapshot, ensure a MetricSample exists on the snapshot's date.
+    ///   - If a sample for (kind,date) exists, update its value to the snapshot's value.
+    ///   - If none exists, insert a new MetricSample.
+    ///   - Never delete MetricSample when a photo is deleted; this function only upserts.
+    private func syncMeasurementsFromPhotosIfNeeded() {
+        // Build a cache of existing samples by (kindRaw, dayStart)
+        var existingByKey: [String: MetricSample] = [:]
+        do {
+            // Fetch a wide window to avoid excessive fetching; adjust if needed
+            let descriptor = FetchDescriptor<MetricSample>(
+                sortBy: [SortDescriptor(\.date, order: .reverse)]
+            )
+            let existing = try modelContext.fetch(descriptor)
+            let cal = Calendar.current
+            for s in existing {
+                let startOfDay = cal.startOfDay(for: s.date)
+                let key = "\(s.kindRaw)|\(startOfDay.timeIntervalSince1970)"
+                if existingByKey[key] == nil { existingByKey[key] = s }
+            }
+        } catch {
+            AppLog.debug("⚠️ Failed to build existing samples index: \(error)")
+        }
+
+        // Iterate photos and upsert samples for each snapshot
+        for photo in allPhotos {
+            let photoDate = photo.date
+            let dayStart = Calendar.current.startOfDay(for: photoDate)
+            for snapshot in photo.linkedMetrics {
+                guard let kind = snapshot.kind else { continue }
+                let kindRaw = kind.rawValue
+                let key = "\(kindRaw)|\(dayStart.timeIntervalSince1970)"
+                if let sample = existingByKey[key] {
+                    // Update existing sample to snapshot value and photo date (exact time)
+                    sample.value = snapshot.value
+                    sample.date = photoDate
+                } else {
+                    let sample = MetricSample(kind: kind, value: snapshot.value, date: photoDate)
+                    modelContext.insert(sample)
+                    existingByKey[key] = sample
+                }
+            }
+        }
+
+        // No deletes here on purpose (photo deletions should not remove samples)
     }
 
     /// Rebuilds goalsByKind from the @Query goals array.
@@ -207,6 +255,7 @@ struct HomeView: View {
 
                     if showOnboardingChecklistOnHome && !activeChecklistItems.isEmpty {
                         setupChecklistSection
+                            .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
                     }
 
                     // SEKCJA: MEASUREMENTS
@@ -240,6 +289,7 @@ struct HomeView: View {
                                 displayMode: .summaryOnly,
                                 title: "Health"
                             )
+                            .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
@@ -269,19 +319,12 @@ struct HomeView: View {
         .sheet(item: $selectedPhotoForFullScreen) { photo in
             PhotoDetailView(photo: photo)
         }
-        .alert(AppLocalization.string("How to set a weight goal"), isPresented: $showGoalHelpAlert) {
-            Button(AppLocalization.string("Open Measurements")) {
-                router.selectedTab = .measurements
-            }
-            Button(AppLocalization.string("OK"), role: .cancel) { }
-        } message: {
-            Text(AppLocalization.string("Open Measurements, choose Weight, tap Goal, then set your target value and direction."))
-        }
         .onAppear {
             refreshMeasurementCaches()
             rebuildGoalsCache()
             fetchHealthKitData()
             refreshChecklistState()
+            syncMeasurementsFromPhotosIfNeeded()
         }
         .onChange(of: recentSamplesSignature) { _, _ in
             refreshMeasurementCaches()
@@ -297,6 +340,7 @@ struct HomeView: View {
         }
         .onChange(of: allPhotos.count) { _, _ in
             refreshChecklistState()
+            syncMeasurementsFromPhotosIfNeeded()
         }
         .onChange(of: onboardingChecklistMetricsCompleted) { _, _ in
             refreshChecklistState()
@@ -370,19 +414,7 @@ struct HomeView: View {
                         .foregroundStyle(.white.opacity(0.72))
                 }
 
-                if goalStatus == .noGoals {
-                    Button {
-                        showGoalHelpAlert = true
-                    } label: {
-                        Text(goalStatusText)
-                            .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(Color.white.opacity(0.86))
-                            .underline()
-                            .frame(minHeight: 44, alignment: .leading)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityHint(AppLocalization.string("Shows how to set your first weight goal"))
-                } else {
+                if goalStatus != .noGoals {
                     Text(goalStatusText)
                         .font(AppTypography.captionEmphasis)
                         .foregroundStyle(Color.white.opacity(0.8))
@@ -463,6 +495,10 @@ struct HomeView: View {
 
     private var activeChecklistItems: [SetupChecklistItem] {
         checklistItems.filter { !$0.isCompleted }
+    }
+
+    private var allChecklistItemsCompleted: Bool {
+        !checklistItems.isEmpty && checklistItems.allSatisfy(\.isCompleted)
     }
 
     private var primaryChecklistIDs: [String] {
@@ -691,6 +727,16 @@ struct HomeView: View {
     private func refreshChecklistState() {
         let reminders = NotificationManager.shared.loadReminders()
         reminderChecklistCompleted = NotificationManager.shared.notificationsEnabled && !reminders.isEmpty
+        autoHideChecklistIfCompleted()
+    }
+
+    private func autoHideChecklistIfCompleted() {
+        guard allChecklistItemsCompleted, showOnboardingChecklistOnHome else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            withAnimation(.easeOut(duration: 0.4)) {
+                showOnboardingChecklistOnHome = false
+            }
+        }
     }
 
     private func performChecklistAction(_ id: String) {
@@ -1137,3 +1183,4 @@ private struct HomeScrollOffsetKey: PreferenceKey {
         value = nextValue()
     }
 }
+

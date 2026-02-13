@@ -52,7 +52,7 @@ struct PhotoDateSection: View {
             
             if isEditing {
                 DatePicker(
-                    "Photo Date",
+                    AppLocalization.string("Photo Date"),
                     selection: $editedDate,
                     displayedComponents: [.date, .hourAndMinute]
                 )

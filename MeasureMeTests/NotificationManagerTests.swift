@@ -10,6 +10,7 @@ private final class MockNotificationCenterClient: NotificationCenterClient {
     var asyncAddError: Error?
     private(set) var addedIdentifiers: [String] = []
     private(set) var removedIdentifiers: [String] = []
+    var pendingIdentifiers: [String] = []
 
     func requestAuthorization() async throws -> Bool {
         if let requestAuthorizationError {
@@ -20,6 +21,10 @@ private final class MockNotificationCenterClient: NotificationCenterClient {
 
     func authorizationStatus() async -> UNAuthorizationStatus {
         authorizationStatusValue
+    }
+
+    func pendingRequestIdentifiers() async -> [String] {
+        pendingIdentifiers
     }
 
     func add(_ request: UNNotificationRequest, completion: @escaping (Error?) -> Void) {
@@ -49,6 +54,10 @@ final class NotificationManagerTests: XCTestCase {
             "measurement_reminders",
             "measurement_notifications_enabled",
             "measurement_smart_enabled",
+            "measurement_smart_days",
+            "measurement_smart_time",
+            "measurement_last_log_date",
+            "photo_last_log_date",
             "measurement_photo_reminders_enabled",
             "measurement_import_notifications_enabled",
             "measurement_goal_achieved_enabled"
@@ -114,5 +123,31 @@ final class NotificationManagerTests: XCTestCase {
 
         XCTAssertTrue(center.removedIdentifiers.contains("measurement_reminder_r1"))
         XCTAssertTrue(center.removedIdentifiers.contains("measurement_reminder_r2"))
+    }
+
+    func testResetAllDataRemovesOwnedPendingRequestsAndDefaults() async {
+        let center = MockNotificationCenterClient()
+        center.pendingIdentifiers = [
+            "measurement_reminder_a",
+            "measurement_smart_reminder",
+            "goal_achieved_weight_123_notification",
+            "some_other_app_notification"
+        ]
+        let manager = makeManager(center: center)
+        manager.notificationsEnabled = true
+        manager.smartEnabled = true
+        manager.smartDays = 9
+        manager.saveReminders([MeasurementReminder(id: "a", date: .now.addingTimeInterval(3600), repeatRule: .once)])
+
+        await manager.resetAllData()
+
+        XCTAssertTrue(center.removedIdentifiers.contains("measurement_reminder_a"))
+        XCTAssertTrue(center.removedIdentifiers.contains("measurement_smart_reminder"))
+        XCTAssertTrue(center.removedIdentifiers.contains("goal_achieved_weight_123_notification"))
+        XCTAssertFalse(center.removedIdentifiers.contains("some_other_app_notification"))
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: "measurement_notifications_enabled"))
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: "measurement_smart_enabled"))
+        XCTAssertEqual(UserDefaults.standard.integer(forKey: "measurement_smart_days"), 0)
+        XCTAssertNil(UserDefaults.standard.data(forKey: "measurement_reminders"))
     }
 }

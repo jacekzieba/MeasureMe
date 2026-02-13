@@ -787,11 +787,7 @@ struct SettingsView: View {
             try deleteAllEntities(of: PhotoEntry.self)
             try modelContext.save()
 
-            NotificationManager.shared.saveReminders([])
-            NotificationManager.shared.cancelAllReminders()
-            NotificationManager.shared.cancelSmartNotification()
-            NotificationManager.shared.cancelPhotoReminder()
-            NotificationManager.shared.cancelImportNotifications()
+            await NotificationManager.shared.resetAllData()
 
             clearHealthKitSyncMetadata()
             clearUserDataDefaults()
@@ -1083,7 +1079,7 @@ private struct PremiumBenefitsInfoView: View {
     private func benefitRow(icon: String, textKey: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 15, weight: .semibold))
+                .font(AppTypography.iconMedium)
                 .foregroundStyle(Color.appAccent)
                 .frame(width: 22, alignment: .leading)
 

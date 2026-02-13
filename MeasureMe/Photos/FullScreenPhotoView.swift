@@ -49,10 +49,11 @@ struct FullScreenPhotoView: View {
                     dismiss()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 30))
+                        .font(AppTypography.iconHero)
                         .foregroundStyle(.white)
                         .shadow(radius: 5)
                 }
+                .accessibilityLabel(AppLocalization.string("Close"))
                 .padding()
             }
             Spacer()

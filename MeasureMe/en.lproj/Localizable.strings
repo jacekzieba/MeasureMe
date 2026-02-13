@@ -787,6 +787,8 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "onboarding.trend.delta" = "-0.3 kg/week";
 "onboarding.goal.badge" = "Goal %.1f kg";
 "onboarding.week.label" = "W%d";
+"onboarding.example.label" = "Sample data";
+"onboarding.example.data" = "Sample data";
 "You can skip and fill this later." = "You can skip and fill this later.";
 "Show %d more" = "Show %d more";
 
@@ -823,3 +825,23 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Daily" = "Daily";
 "Weekly" = "Weekly";
 "Failed to delete HealthKit samples." = "Failed to delete HealthKit samples.";
+
+/* Accessibility & UI labels (added for UX audit) */
+"Close" = "Close";
+"Show Less" = "Show Less";
+"View All" = "View All";
+"No active measurements" = "No active measurements";
+"Photo Date" = "Photo Date";
+"From" = "From";
+"To" = "To";
+
+/* Tracked Measurements UX improvements */
+"tracked.keymetrics.header" = "Home Screen Highlights";
+"tracked.keymetrics.description" = "Tap ★ to pin 1–3 metrics to your Home screen and Measurements tab. You decide how many.";
+"tracked.keymetrics.counter" = "%d of 3 pinned";
+"tracked.keymetrics.empty" = "Turn on a metric below first, then come back here to pin it to Home.";
+"tracked.active.header" = "Currently Tracking";
+"tracked.active.description" = "These metrics appear in Quick Add and your Measurements tab. Drag to reorder.";
+"tracked.section.health.subtitle" = "Toggle on to start tracking. Synced automatically from Apple Health.";
+"tracked.section.custom.subtitle" = "Toggle on to start tracking. You enter these values manually.";
+"tracked.section.allempty" = "All metrics from this group are already active above.";

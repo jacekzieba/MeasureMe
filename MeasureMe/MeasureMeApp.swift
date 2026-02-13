@@ -14,6 +14,17 @@ struct MeasureMeApp: App {
         case failed(message: String)
     }
 
+    private enum StartupStorageError: LocalizedError {
+        case applicationSupportDirectoryUnavailable
+
+        var errorDescription: String? {
+            switch self {
+            case .applicationSupportDirectoryUnavailable:
+                return "Application Support directory is unavailable."
+            }
+        }
+    }
+
     init() {
         UserDefaults.standard.register(defaults: [
             "hasCompletedOnboarding": false,
@@ -128,6 +139,7 @@ struct MeasureMeApp: App {
 
             NotificationManager.shared.scheduleSmartIfNeeded()
             HealthKitManager.shared.configure(modelContainer: container)
+            _ = HealthKitManager.shared.reconcileStoredSyncState()
             HealthKitManager.shared.startObservingHealthKitUpdates()
 
             startupState = .ready(container)
@@ -143,20 +155,17 @@ struct MeasureMeApp: App {
 
     private func createPersistentModelContainer() throws -> ModelContainer {
         let fileManager = FileManager.default
-        if let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
-            do {
-                try fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
-            } catch {
-                AppLog.debug("⚠️ Failed to create Application Support directory: \(error)")
-            }
+        guard let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            throw StartupStorageError.applicationSupportDirectoryUnavailable
         }
+        try fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
 
         let schema = Schema([
             MetricSample.self,
             MetricGoal.self,
             PhotoEntry.self
         ])
-        let configuration = ModelConfiguration(schema: schema)
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         return try ModelContainer(for: schema, configurations: [configuration])
     }
 

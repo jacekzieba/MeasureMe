@@ -32,6 +32,19 @@ struct MiniSparklineChart: View {
         }
     }
     
+    private var trendAccessibilityValue: String {
+        guard last30Days.count >= 2,
+              let first = last30Days.first?.value,
+              let last = last30Days.last?.value else {
+            return AppLocalization.string("No data")
+        }
+        switch kind.trendOutcome(from: first, to: last, goal: goal) {
+        case .positive: return AppLocalization.string("trend.up")
+        case .negative: return AppLocalization.string("trend.down")
+        case .neutral: return AppLocalization.string("trend.steady")
+        }
+    }
+
     var body: some View {
         GeometryReader { geometry in
             if last30Days.isEmpty {
@@ -87,7 +100,9 @@ struct MiniSparklineChart: View {
                 }
             }
         }
-        .accessibilityHidden(true)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(kind.title)
+        .accessibilityValue(trendAccessibilityValue)
     }
     
     /// Normalizuje punkty danych do wymiarów widoku

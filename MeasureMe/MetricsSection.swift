@@ -2,29 +2,41 @@ import SwiftUI
 
 struct MetricsSection: View {
     let title: String
+    let subtitle: String
     let systemImage: String
+    let iconTint: Color
     let rows: [MetricKind]
     @ObservedObject var store: ActiveMetricsStore
-    @Binding var selectedKind: MetricKind?
 
     @State private var isExpanded = true
     @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var inactiveRows: [MetricKind] {
+        rows.filter { !store.activeKinds.contains($0) }
+    }
 
     var body: some View {
         Section {
             headerButton
 
             if isExpanded {
-                ForEach(rows.filter { !store.activeKinds.contains($0) }, id: \.self) { kind in
+                ForEach(inactiveRows, id: \.self) { kind in
                     MetricRowView(
                         kind: kind,
                         isOn: store.binding(for: kind),
-                        context: .normal(onDetailsTap: {
-                            selectedKind = kind
-                        })
+                        context: .normal
                     )
                     .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+
+                if inactiveRows.isEmpty {
+                    Text(AppLocalization.string("tracked.section.allempty"))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(.tertiary)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
             }
         }
@@ -46,16 +58,23 @@ struct MetricsSection: View {
                 isExpanded.toggle()
             }
         } label: {
-            HStack(spacing: 8) {
-                Image(systemName: systemImage)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Image(systemName: systemImage)
+                        .foregroundStyle(iconTint)
+                    Text(title)
+                        .font(AppTypography.headlineEmphasis)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        .foregroundStyle(.secondary)
+                }
+
+                Text(subtitle)
+                    .font(AppTypography.caption)
                     .foregroundStyle(.secondary)
-                Text(title)
-                    .font(.system(.headline, design: .rounded))
-                Spacer()
-                Image(systemName: "chevron.down")
-                    .font(.caption.weight(.semibold))
-                    .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .buttonStyle(.plain)

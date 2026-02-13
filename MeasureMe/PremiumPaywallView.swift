@@ -154,7 +154,7 @@ struct PremiumPaywallView: View {
                 Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white.opacity(0.86))
-                    .frame(width: 36, height: 36)
+                    .frame(width: 44, height: 44)
                     .background(
                         Circle()
                             .fill(Color.white.opacity(0.14))
@@ -163,6 +163,7 @@ struct PremiumPaywallView: View {
                         Circle()
                             .stroke(Color.white.opacity(0.18), lineWidth: 1)
                     )
+                    .contentShape(Circle())
             }
             .padding(.top, 12)
             .padding(.trailing, 16)

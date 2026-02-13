@@ -49,6 +49,11 @@ private final class MockHealthStore: HealthStore {
 
 @MainActor
 final class HealthKitManagerAuthorizationTests: XCTestCase {
+    override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: "isSyncEnabled")
+        super.tearDown()
+    }
+
     func testRequestAuthorizationThrowsNotAvailable() async {
         let store = MockHealthStore()
         store.healthDataAvailable = false
@@ -85,5 +90,30 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
 
         try await manager.requestAuthorization()
         XCTAssertTrue(store.didRequestAuthorization)
+    }
+
+    func testReconcileStoredSyncStateDisablesSyncWhenHealthUnavailable() async {
+        let store = MockHealthStore()
+        store.healthDataAvailable = false
+        let manager = HealthKitManager(store: store)
+        UserDefaults.standard.set(true, forKey: "isSyncEnabled")
+        defer { UserDefaults.standard.removeObject(forKey: "isSyncEnabled") }
+
+        let result = manager.reconcileStoredSyncState()
+
+        XCTAssertEqual(result, .notAvailable)
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: "isSyncEnabled"))
+    }
+
+    func testReconcileStoredSyncStateDisablesSyncWhenNoAuthorizedTypes() async {
+        let store = MockHealthStore()
+        let manager = HealthKitManager(store: store)
+        UserDefaults.standard.set(true, forKey: "isSyncEnabled")
+        defer { UserDefaults.standard.removeObject(forKey: "isSyncEnabled") }
+
+        let result = manager.reconcileStoredSyncState()
+
+        XCTAssertEqual(result, .denied)
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: "isSyncEnabled"))
     }
 }

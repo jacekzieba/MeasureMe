@@ -32,20 +32,25 @@ struct HealthMetricsSection: View {
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
     @AppStorage("manualHeight") private var manualHeight: Double = 0.0
     @AppStorage("userAge") private var userAgeValue: Int = 0
-    
+
     // Core Metrics visibility
     @AppStorage("showWHtROnHome") private var showWHtROnHome: Bool = true
     @AppStorage("showRFMOnHome") private var showRFMOnHome: Bool = true
     @AppStorage("showBMIOnHome") private var showBMIOnHome: Bool = true
-    
+
     // Body Composition visibility
     @AppStorage("showBodyFatOnHome") private var showBodyFatOnHome: Bool = true
     @AppStorage("showLeanMassOnHome") private var showLeanMassOnHome: Bool = true
-    
+
     // Risk Indicators visibility
     @AppStorage("showABSIOnHome") private var showABSIOnHome: Bool = true
     @AppStorage("showConicityOnHome") private var showConicityOnHome: Bool = true
-    
+
+    #if DEBUG
+    private var uiTestForcePremium: Bool { ProcessInfo.processInfo.arguments.contains("-uiTestForcePremium") }
+    private var uiTestBypassHealthSummaryGuards: Bool { ProcessInfo.processInfo.arguments.contains("-uiTestBypassHealthSummaryGuards") }
+    #endif
+
     let latestWaist: Double?
     let latestHeight: Double?
     let latestWeight: Double?
@@ -71,22 +76,22 @@ struct HealthMetricsSection: View {
         self.displayMode = displayMode
         self.title = title
     }
-    
+
     @Query(sort: [SortDescriptor(\MetricSample.date, order: .forward)])
     private var samples: [MetricSample]
-    
+
     @State private var healthInsightText: String?
     @State private var isLoadingInsight = false
-    
+
     private var userGender: Gender {
         Gender(rawValue: userGenderRaw) ?? .notSpecified
     }
-    
+
     // Wiek użytkownika
     private var userAge: Int? {
         userAgeValue > 0 ? userAgeValue : nil
     }
-    
+
     // Użyj manualnego wzrostu jako priorytet (jeśli ustawiony), inaczej tracked
     private var effectiveHeight: Double? {
         if manualHeight > 0 {
@@ -94,44 +99,44 @@ struct HealthMetricsSection: View {
         }
         return latestHeight
     }
-    
+
     // MARK: - Core Metrics
-    
+
     private var whtrResult: HealthMetricsCalculator.WHtRResult? {
         HealthMetricsCalculator.calculateWHtR(waistCm: latestWaist, heightCm: effectiveHeight)
     }
-    
+
     private var rfmResult: HealthMetricsCalculator.RFMResult? {
         HealthMetricsCalculator.calculateRFM(waistCm: latestWaist, heightCm: effectiveHeight, gender: userGender)
     }
-    
+
     private var bmiResult: HealthMetricsCalculator.BMIResult? {
         HealthMetricsCalculator.calculateBMI(weightKg: latestWeight, heightCm: effectiveHeight, age: userAge)
     }
-    
+
     private var hasCoreMetrics: Bool {
         (showWHtROnHome && whtrResult != nil) ||
         (showRFMOnHome && rfmResult != nil) ||
         (showBMIOnHome && bmiResult != nil)
     }
-    
+
     private var anyCoreMetricEnabled: Bool {
         showWHtROnHome || showRFMOnHome || showBMIOnHome
     }
-    
+
     // MARK: - Body Composition
-    
+
     private var hasBodyComposition: Bool {
         (showBodyFatOnHome && latestBodyFat != nil) ||
         (showLeanMassOnHome && latestLeanMass != nil)
     }
-    
+
     private var anyBodyCompositionEnabled: Bool {
         showBodyFatOnHome || showLeanMassOnHome
     }
-    
+
     // MARK: - Risk Indicators
-    
+
     private var absiResult: HealthMetricsCalculator.ABSIResult? {
         HealthMetricsCalculator.calculateABSI(
             waistCm: latestWaist,
@@ -140,7 +145,7 @@ struct HealthMetricsSection: View {
             gender: userGender
         )
     }
-    
+
     private var conicityResult: HealthMetricsCalculator.ConicityResult? {
         HealthMetricsCalculator.calculateConicity(
             waistCm: latestWaist,
@@ -149,18 +154,18 @@ struct HealthMetricsSection: View {
             gender: userGender
         )
     }
-    
+
     private var hasRiskIndicators: Bool {
         (showABSIOnHome && absiResult != nil) ||
         (showConicityOnHome && conicityResult != nil)
     }
-    
+
     private var anyRiskIndicatorEnabled: Bool {
         showABSIOnHome || showConicityOnHome
     }
-    
+
     // MARK: - Missing Data
-    
+
     private var missingMetrics: [String] {
         HealthMetricsCalculator.missingMetrics(
             waist: latestWaist,
@@ -168,7 +173,7 @@ struct HealthMetricsSection: View {
             weight: latestWeight
         )
     }
-    
+
     private var hasAnyMetricEnabled: Bool {
         anyCoreMetricEnabled || anyBodyCompositionEnabled || anyRiskIndicatorEnabled
     }
@@ -183,7 +188,7 @@ struct HealthMetricsSection: View {
     private var supportsAppleIntelligence: Bool {
         premiumStore.isPremium && AppleIntelligenceSupport.isAvailable()
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             if !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -191,9 +196,9 @@ struct HealthMetricsSection: View {
                     Text(AppLocalization.string(title))
                         .font(AppTypography.sectionTitle)
                         .foregroundStyle(.white)
-                    
+
                     Spacer()
-                    
+
                     if !hasAnyMetricEnabled {
                         // Link do ustawień jeśli żadna metryka nie jest włączona
                         NavigationLink {
@@ -218,7 +223,7 @@ struct HealthMetricsSection: View {
                     }
                 }
             }
-            
+
             switch displayMode {
             case .summaryOnly:
                 summaryContent
@@ -236,19 +241,35 @@ struct HealthMetricsSection: View {
         }
     }
 
+    private var effectivePremium: Bool {
+        #if DEBUG
+        premiumStore.isPremium || uiTestForcePremium
+        #else
+        premiumStore.isPremium
+        #endif
+    }
+
+    private var bypassGuards: Bool {
+        #if DEBUG
+        uiTestBypassHealthSummaryGuards
+        #else
+        false
+        #endif
+    }
+
     @ViewBuilder
     private var summaryContent: some View {
-        if !premiumStore.isPremium {
+        if !effectivePremium {
             EmptyView()
-        } else if !AppleIntelligenceSupport.isAvailable() {
-            Text(AppLocalization.string("AI Insights aren’t available right now."))
+        } else if !AppleIntelligenceSupport.isAvailable() && !bypassGuards {
+            Text(AppLocalization.string("AI Insights aren't available right now."))
                 .font(AppTypography.body)
                 .foregroundStyle(.white.opacity(0.7))
-        } else if !hasAnyMetricEnabled {
+        } else if !hasAnyMetricEnabled && !bypassGuards {
             Text(AppLocalization.string("Enable health indicators in Settings to generate your summary."))
                 .font(AppTypography.body)
                 .foregroundStyle(.white.opacity(0.7))
-        } else if !hasSummaryMeasurementData {
+        } else if !hasSummaryMeasurementData && !bypassGuards {
             Text(AppLocalization.string("AI summary needs measurement data. Add your first measurement to get personalized insights."))
                 .font(AppTypography.body)
                 .foregroundStyle(.white.opacity(0.7))
@@ -256,7 +277,7 @@ struct HealthMetricsSection: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(AppTypography.iconSmall)
                         .foregroundStyle(Color(hex: "#FCA311"))
                         .padding(8)
                         .background(Color.white.opacity(0.08))
@@ -266,9 +287,12 @@ struct HealthMetricsSection: View {
                         .font(AppTypography.body)
                         .foregroundStyle(.primary)
                         .multilineTextAlignment(.leading)
+                        .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
+                        .layoutPriority(1)
                         .redacted(reason: isLoadingInsight ? .placeholder : [])
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityIdentifier("home.health.ai.text")
                 }
 
                 Text(AppLocalization.string("AI generated"))
@@ -280,6 +304,7 @@ struct HealthMetricsSection: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color.white.opacity(0.05))
             )
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -314,7 +339,7 @@ struct HealthMetricsSection: View {
                                         missingMetricRow(kind: .whtr, title: AppLocalization.string("Waist-Height Ratio"))
                                     }
                                 }
-                                
+
                                 if showRFMOnHome {
                                     if let rfm = rfmResult {
                                         let style = softCategoryStyle(rfm.category.rawValue)
@@ -329,7 +354,7 @@ struct HealthMetricsSection: View {
                                         missingMetricRow(kind: .rfm, title: AppLocalization.string("Relative Fat Mass"))
                                     }
                                 }
-                                
+
                                 if showBMIOnHome {
                                     if let bmi = bmiResult {
                                         let style = softCategoryStyle(bmi.category.rawValue)
@@ -348,7 +373,7 @@ struct HealthMetricsSection: View {
                         }
                     )
                 }
-                
+
                 // Body Composition Section
                 if anyBodyCompositionEnabled {
                     HealthMetricsSectionCard(
@@ -370,11 +395,11 @@ struct HealthMetricsSection: View {
                                         missingMetricRow(kind: .bodyFat, title: AppLocalization.string("Body Fat Percentage"))
                                     }
                                 }
-                                
+
                                 if showLeanMassOnHome {
                                     if let leanMass = latestLeanMass {
                                         let display = formatWeight(leanMass)
-                                        
+
                                         if let lbmPercent = leanMassPercentage() {
                                             let category = leanMassCategory(lbmPercent)
                                             HealthMetricRow(
@@ -413,7 +438,7 @@ struct HealthMetricsSection: View {
                         }
                     )
                 }
-                
+
                 // Risk Signals Section
                 if anyRiskIndicatorEnabled {
                     HealthMetricsSectionCard(
@@ -435,7 +460,7 @@ struct HealthMetricsSection: View {
                                         missingMetricRow(kind: .absi, title: AppLocalization.string("Body Shape Risk"))
                                     }
                                 }
-                                
+
                                 if showConicityOnHome {
                                     if let conicity = conicityResult {
                                         let style = softCategoryStyle(conicity.category.rawValue)
@@ -457,9 +482,9 @@ struct HealthMetricsSection: View {
             }
         }
     }
-    
+
     // MARK: - Helper Functions
-    
+
     private func formatWeight(_ kg: Double) -> String {
         if unitsSystem == "imperial" {
             let lbs = kg * 2.20462
@@ -468,7 +493,7 @@ struct HealthMetricsSection: View {
             return String(format: "%.1f kg", kg)
         }
     }
-    
+
     /// Oblicza procent beztłuszczowej masy ciała (LBM%)
     private func leanMassPercentage() -> Double? {
         guard let leanMass = latestLeanMass, let weight = latestWeight, weight > 0 else {
@@ -476,7 +501,7 @@ struct HealthMetricsSection: View {
         }
         return (leanMass / weight) * 100.0
     }
-    
+
     /// Kategoryzuje LBM% na podstawie wieku
     private func leanMassCategory(_ lbmPercent: Double) -> (name: String, color: String) {
         guard let age = userAge else {
@@ -484,7 +509,7 @@ struct HealthMetricsSection: View {
             if lbmPercent >= 80 { return (AppLocalization.string("In range"), "#34D399") }
             else { return (AppLocalization.string("Below range"), "#60A5FA") }
         }
-        
+
         // Zakresy zależą od wieku
         if age >= 19 && age <= 39 {
             // 19-39 lat
@@ -593,7 +618,7 @@ struct HealthMetricsSection: View {
         }
         return items
     }
-    
+
     private func bodyFatCategory(_ percent: Double) -> (name: String, color: String) {
         // Kategorie zależą od płci
         switch userGender {
@@ -684,25 +709,25 @@ struct HealthMetricsSection: View {
         healthInsightText = await MetricInsightService.shared.generateHealthInsight(for: input)
         isLoadingInsight = false
     }
-    
+
     // MARK: - Missing Data Views
-    
+
     private var noMetricsEnabledView: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "gearshape.fill")
                     .font(.title3)
                     .foregroundStyle(Color(hex: "#FCA311"))
-                
+
                 Text(AppLocalization.string("No indicators selected"))
                     .font(AppTypography.bodyEmphasis)
                     .foregroundStyle(.white)
             }
-            
+
             Text(AppLocalization.string("Enable health indicators in Settings to see results here."))
                 .font(AppTypography.body)
                 .foregroundStyle(.white.opacity(0.8))
-            
+
             NavigationLink {
                 SettingsView()
             } label: {
@@ -730,35 +755,35 @@ struct HealthMetricsSection: View {
                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
         )
     }
-    
+
     private var missingDataView: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.title3)
                     .foregroundStyle(Color(hex: "#FCA311"))
-                
+
                 Text(AppLocalization.string("Missing data"))
                     .font(AppTypography.bodyEmphasis)
                     .foregroundStyle(.white)
             }
-            
+
             Text(AppLocalization.string("To calculate health metrics, please add:"))
                 .font(AppTypography.body)
                 .foregroundStyle(.white.opacity(0.8))
-            
+
             ForEach(missingMetrics, id: \.self) { metric in
                 HStack(spacing: 8) {
                     Image(systemName: "circle.fill")
                         .font(.system(size: 6))
                         .foregroundStyle(Color(hex: "#FCA311"))
-                    
+
                     Text(metric)
                         .font(AppTypography.body)
                         .foregroundStyle(.white.opacity(0.9))
                 }
             }
-            
+
             HStack(spacing: 8) {
                 Image(systemName: "info.circle.fill")
                     .foregroundStyle(Color(hex: "#FCA311"))
@@ -902,3 +927,4 @@ private struct HealthIndicatorMissingDataView: View {
 }
 
 // MARK: - Health Metrics Section Card
+

@@ -8,7 +8,7 @@ struct OnboardingFeatureCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
+                .font(AppTypography.iconMedium)
                 .foregroundStyle(Color.appAccent)
                 .frame(width: 32, height: 32)
                 .background(Color.white.opacity(0.08))
@@ -67,7 +67,7 @@ struct OnboardingHeroView: View {
                 Spacer()
 
                 Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 32, weight: .semibold))
+                    .font(AppTypography.iconHero)
                     .foregroundStyle(Color.appAccent)
                     .frame(width: 60, height: 60)
                     .background(Color.white.opacity(0.08))
@@ -100,7 +100,7 @@ struct OnboardingEmptyStateCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(AppTypography.iconMedium)
                     .foregroundStyle(Color.appAccent)
                     .frame(width: 30, height: 30)
                     .background(Color.white.opacity(0.08))

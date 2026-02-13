@@ -72,16 +72,17 @@ private extension PhotoFilterView {
             }
             .pickerStyle(.inline)
             .labelsHidden()
-            
+            .accessibilityLabel(AppLocalization.string("Date Range"))
+
             if filters.dateRange == .custom {
                 DatePicker(
-                    "From",
+                    AppLocalization.string("From"),
                     selection: $filters.customStartDate,
                     displayedComponents: [.date]
                 )
-                
+
                 DatePicker(
-                    "To",
+                    AppLocalization.string("To"),
                     selection: $filters.customEndDate,
                     displayedComponents: [.date]
                 )

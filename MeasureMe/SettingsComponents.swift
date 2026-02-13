@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Settings Constants
 
@@ -37,6 +38,12 @@ struct HealthSettingsSection: View {
             // Anuluj task przy znikaniu widoku, aby uniknąć wycieku pamięci
             authorizationTask?.cancel()
         }
+        .onAppear {
+            reconcileSyncStateWithSystemAuthorization()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            reconcileSyncStateWithSystemAuthorization()
+        }
     }
 
     private var shouldAnimate: Bool {
@@ -53,6 +60,7 @@ struct HealthSettingsSection: View {
                     .labelsHidden()
                     .tint(Color.appAccent)
                     .frame(width: 52, alignment: .trailing)
+                    .accessibilityLabel(AppLocalization.string("Sync with Health"))
                     .accessibilityIdentifier("settings.health.sync.toggle")
             }
             .frame(minHeight: 44)
@@ -97,6 +105,14 @@ struct HealthSettingsSection: View {
             }
         }
     }
+
+    private func reconcileSyncStateWithSystemAuthorization() {
+        guard isSyncEnabled else { return }
+        if let syncError = HealthKitManager.shared.reconcileStoredSyncState() {
+            isSyncEnabled = false
+            syncStatusMessage = HealthKitManager.userFacingSyncErrorMessage(for: syncError)
+        }
+    }
     
     private var metricsRow: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -111,6 +127,7 @@ struct HealthSettingsSection: View {
                         .rotationEffect(.degrees(isMetricsExpanded ? 180 : 0))
                         .foregroundStyle(.secondary)
                 }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .frame(minHeight: 44)
@@ -150,6 +167,7 @@ struct HealthSettingsSection: View {
             Spacer()
             Toggle("", isOn: isOn)
                 .labelsHidden()
+                .accessibilityLabel(title)
                 .frame(width: 52, alignment: .trailing)
         }
         .tint(Color.appAccent)
@@ -374,6 +392,7 @@ struct LanguageSettingsDetailView: View {
             }
             .padding(.trailing, 2)
             .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -630,7 +649,7 @@ struct ProfileSettingsSection: View {
                         .frame(width: 60)
                     Text(AppLocalization.string("Age"))
                     Spacer()
-                    TextField("0", text: $ageInput)
+                    TextField(AppLocalization.string("0"), text: $ageInput)
                         .multilineTextAlignment(.trailing)
                         .keyboardType(.numberPad)
                         .foregroundStyle(ageInput.isEmpty ? .secondary : Color.appAccent)
@@ -656,7 +675,7 @@ struct ProfileSettingsSection: View {
                         .frame(width: 60)
                     Text(AppLocalization.string("Height"))
                     Spacer()
-                    TextField("0", text: $heightInput)
+                    TextField(AppLocalization.string("0"), text: $heightInput)
                         .multilineTextAlignment(.trailing)
                         .keyboardType(.decimalPad)
                         .foregroundStyle(heightInput.isEmpty ? .secondary : Color.appAccent)
