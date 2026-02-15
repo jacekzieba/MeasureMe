@@ -228,7 +228,9 @@ struct MetricDetailView: View {
             chartSection
             goalTrendSection
             progressSection
-            photosSection
+            if relatedTag != nil {
+                photosSection
+            }
             historySection
             howToMeasureSection
         }
@@ -396,10 +398,7 @@ struct MetricDetailView: View {
 
     private var photosSection: some View {
         Section {
-            if relatedTag == nil {
-                Text(AppLocalization.string("No related photos for this metric."))
-                    .foregroundStyle(.secondary)
-            } else if relatedPhotos.isEmpty {
+            if relatedPhotos.isEmpty {
                 Text(AppLocalization.string("No related photos yet."))
                     .foregroundStyle(.secondary)
             } else {
@@ -775,3 +774,4 @@ struct MetricDetailView: View {
     }
 }
 // Extension methods are defined in MetricDetailComponents.swift
+

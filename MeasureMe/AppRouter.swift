@@ -7,11 +7,14 @@ final class AppRouter: ObservableObject {
 
 enum PresentedSheet: Identifiable {
     case composer(mode: ComposerMode)
+    case addSample(kind: MetricKind)
 
     var id: String {
         switch self {
         case .composer(let mode):
             return "composer-\(mode.rawValue)"
+        case .addSample(let kind):
+            return "addSample-\(kind.rawValue)"
         }
     }
 }

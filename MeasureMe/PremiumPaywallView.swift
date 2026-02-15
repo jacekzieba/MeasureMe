@@ -5,6 +5,7 @@ import UIKit
 struct PremiumPaywallView: View {
     @EnvironmentObject private var premium: PremiumStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var selectedProductID: String?
     @State private var selectedSlide: Int = 0
@@ -93,8 +94,33 @@ struct PremiumPaywallView: View {
         slides.first { $0.id == selectedSlide } ?? slides[0]
     }
 
-    private var carouselHeight: CGFloat {
-        465
+    private func carouselHeight(for viewportHeight: CGFloat) -> CGFloat {
+        let isSmallScreen = viewportHeight < 730
+        let baseHeight: CGFloat = isSmallScreen ? 430 : 465
+        let dynamicTypeBump: CGFloat
+
+        switch dynamicTypeSize {
+        case .xLarge:
+            dynamicTypeBump = 20
+        case .xxLarge:
+            dynamicTypeBump = 40
+        case .xxxLarge:
+            dynamicTypeBump = 60
+        case .accessibility1:
+            dynamicTypeBump = 100
+        case .accessibility2:
+            dynamicTypeBump = 130
+        case .accessibility3:
+            dynamicTypeBump = 160
+        case .accessibility4:
+            dynamicTypeBump = 190
+        case .accessibility5:
+            dynamicTypeBump = 220
+        default:
+            dynamicTypeBump = 0
+        }
+
+        return min(baseHeight + dynamicTypeBump, viewportHeight * 0.82)
     }
 
     private var yearlySavingsPercent: Int? {
@@ -129,46 +155,48 @@ struct PremiumPaywallView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            AppScreenBackground(topHeight: 430, tint: currentSlide.tint.opacity(0.24))
+        GeometryReader { proxy in
+            ZStack(alignment: .topTrailing) {
+                AppScreenBackground(topHeight: 430, tint: currentSlide.tint.opacity(0.24))
 
-            ScrollView {
-                VStack(spacing: 14) {
-                    Text(AppLocalization.string("Premium Edition"))
-                        .font(AppTypography.sectionTitle)
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
+                ScrollView {
+                    VStack(spacing: 14) {
+                        Text(AppLocalization.string("Premium Edition"))
+                            .font(AppTypography.sectionTitle)
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
 
-                    carousel
-                    pageIndicator
-                    purchaseDock
+                        carousel(height: carouselHeight(for: proxy.size.height))
+                        pageIndicator
+                        purchaseDock
+                    }
+                    .padding(.top, 20)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 28)
                 }
-                .padding(.top, 20)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 28)
-            }
 
-            Button {
-                premium.dismissPaywall()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.86))
-                    .frame(width: 44, height: 44)
-                    .background(
-                        Circle()
-                            .fill(Color.white.opacity(0.14))
-                    )
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                    )
-                    .contentShape(Circle())
+                Button {
+                    premium.dismissPaywall()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.86))
+                        .frame(width: 44, height: 44)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(0.14))
+                        )
+                        .overlay(
+                            Circle()
+                                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                        )
+                        .contentShape(Circle())
+                }
+                .padding(.top, 12)
+                .padding(.trailing, 16)
+                .accessibilityLabel(AppLocalization.string("accessibility.close.premium.paywall"))
+                .accessibilityHint(AppLocalization.string("accessibility.close.premium.paywall.hint"))
             }
-            .padding(.top, 12)
-            .padding(.trailing, 16)
-            .accessibilityLabel(AppLocalization.string("accessibility.close.premium.paywall"))
-            .accessibilityHint(AppLocalization.string("accessibility.close.premium.paywall.hint"))
         }
         .onAppear {
             premium.clearActionMessage()
@@ -199,20 +227,21 @@ struct PremiumPaywallView: View {
         }
     }
 
-    private var carousel: some View {
+    private func carousel(height: CGFloat) -> some View {
         TabView(selection: $selectedSlide) {
             ForEach(slides) { slide in
                 VStack(spacing: 10) {
                     headerRow(for: slide)
-
-                    if slide.kind != .unlock {
-                        featureDescriptionCard(for: slide)
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(spacing: 10) {
+                            if slide.kind != .unlock {
+                                featureDescriptionCard(for: slide)
+                            }
+                            slideContentSeparator
+                            supplementaryContent(for: slide)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
                     }
-                    slideContentSeparator
-
-                    supplementaryContent(for: slide)
-
-                    Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 14)
@@ -234,7 +263,7 @@ struct PremiumPaywallView: View {
                 .tag(slide.id)
             }
         }
-        .frame(height: carouselHeight)
+        .frame(height: height)
         .animation(.easeInOut(duration: 0.2), value: selectedSlide)
         .tabViewStyle(.page(indexDisplayMode: .never))
     }

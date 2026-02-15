@@ -42,182 +42,186 @@ struct HeightSettingsView: View {
     var body: some View {
         ZStack(alignment: .top) {
             AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-            
-            // Zawartość
-            List {
-                // MARK: - Current Height Section
-                Section {
-                    if manualHeight > 0 {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Image(systemName: "pencil.circle.fill")
-                                    .foregroundStyle(Color(hex: "#FCA311"))
-                                Text(AppLocalization.string("Manual height"))
-                                    .font(.system(.headline, design: .rounded))
-                            }
-                            
-                            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                Text(formattedHeight(manualHeight))
-                                    .font(AppTypography.displaySmall)
-                                    .monospacedDigit()
-                                    .foregroundStyle(Color(hex: "#FCA311"))
-                                
-                                Text(heightUnit)
-                                    .font(.title3)
-                                    .foregroundStyle(.secondary)
-                            }
-                            
-                            Text(AppLocalization.string("You've set your height manually. Health metrics will use this value."))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .padding(.top, 4)
-                        }
-                        .padding(.vertical, 8)
-                    } else if let tracked = latestTrackedHeight {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
-                                Text(AppLocalization.string("Latest height"))
-                                    .font(.system(.headline, design: .rounded))
-                            }
-                            
-                            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                Text(formattedHeight(tracked.value))
-                                    .font(AppTypography.displaySmall)
-                                    .monospacedDigit()
-                                    .foregroundStyle(Color(hex: "#FCA311"))
-                                
-                                Text(heightUnit)
-                                    .font(.title3)
-                                    .foregroundStyle(.secondary)
-                            }
-                            
-                            Text(AppLocalization.string("height.last.updated", tracked.date.formatted(date: .abbreviated, time: .shortened)))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            
-                            Text(AppLocalization.string("This height is used for health metric calculations."))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .padding(.top, 4)
-                        }
-                        .padding(.vertical, 8)
-                    } else {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundStyle(.orange)
-                                Text(AppLocalization.string("No height set"))
-                                    .font(.system(.headline, design: .rounded))
-                            }
-                            
-                            Text(AppLocalization.string("Set your height to calculate health metrics like WHtR (Waist-to-Height Ratio)."))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 8)
-                    }
-                } header: {
-                    Text(AppLocalization.string("Current Height"))
-                }
-                
-                // MARK: - Options Section
-                Section {
-                    NavigationLink {
-                        ManualHeightInputView(
-                            currentHeight: effectiveHeight,
-                            unitsSystem: unitsSystem
-                        )
-                    } label: {
-                        HStack(spacing: 12) {
-                            GlassPillIcon(systemName: "pencil")
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(AppLocalization.string("Set height manually"))
-                                    .font(.body)
-                                Text(AppLocalization.string("Used for health metrics"))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
 
-                    if isSyncEnabled {
-                        Button {
-                            Task {
-                                await importLatestHeightFromHealth()
-                            }
-                        } label: {
-                            HStack(spacing: 12) {
-                                if isImportingHeight {
-                                    ProgressView()
-                                        .frame(width: 44, height: 44)
-                                } else {
-                                    GlassPillIcon(systemName: "arrow.down.circle")
-                                }
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(AppLocalization.string("Import latest from Health"))
-                                        .font(.body)
-                                    Text(AppLocalization.string("Sync height for calculations"))
-                                        .font(.caption)
+            ScrollView {
+                VStack(spacing: 16) {
+                    // MARK: - Current Height hero card
+                    AppGlassCard(
+                        depth: .floating,
+                        tint: Color.cyan.opacity(0.12),
+                        contentPadding: 24
+                    ) {
+                        if manualHeight > 0 {
+                            VStack(spacing: 8) {
+                                HStack {
+                                    Image(systemName: "pencil.circle.fill")
+                                        .foregroundStyle(Color(hex: "#FCA311"))
+                                    Text(AppLocalization.string("Manual height"))
+                                        .font(AppTypography.caption)
                                         .foregroundStyle(.secondary)
                                 }
+
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    Text(formattedHeight(manualHeight))
+                                        .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
+                                        .foregroundStyle(Color(hex: "#FCA311"))
+
+                                    Text(heightUnit)
+                                        .font(.title.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Text(AppLocalization.string("You've set your height manually. Health metrics will use this value."))
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: 120)
+                        } else if let tracked = latestTrackedHeight {
+                            VStack(spacing: 8) {
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                    Text(AppLocalization.string("Latest height"))
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    Text(formattedHeight(tracked.value))
+                                        .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
+                                        .foregroundStyle(Color(hex: "#FCA311"))
+
+                                    Text(heightUnit)
+                                        .font(.title.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Text(AppLocalization.string("height.last.updated", tracked.date.formatted(date: .abbreviated, time: .shortened)))
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: 120)
+                        } else {
+                            VStack(spacing: 10) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.title)
+                                    .foregroundStyle(.orange)
+                                Text(AppLocalization.string("No height set"))
+                                    .font(AppTypography.bodyEmphasis)
+                                Text(AppLocalization.string("Set your height to calculate health metrics like WHtR (Waist-to-Height Ratio)."))
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: 100)
+                        }
+                    }
+
+                    // MARK: - Options card
+                    AppGlassCard(
+                        depth: .elevated,
+                        tint: Color.cyan.opacity(0.08),
+                        contentPadding: 16
+                    ) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            NavigationLink {
+                                ManualHeightInputView(
+                                    currentHeight: effectiveHeight,
+                                    unitsSystem: unitsSystem
+                                )
+                            } label: {
+                                HStack(spacing: 12) {
+                                    GlassPillIcon(systemName: "pencil")
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(AppLocalization.string("Set height manually"))
+                                            .font(AppTypography.bodyEmphasis)
+                                        Text(AppLocalization.string("Used for health metrics"))
+                                            .font(AppTypography.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+
+                            if isSyncEnabled {
+                                Divider().overlay(Color.white.opacity(0.12))
+
+                                Button {
+                                    Task {
+                                        await importLatestHeightFromHealth()
+                                    }
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        if isImportingHeight {
+                                            ProgressView()
+                                                .frame(width: 44, height: 44)
+                                        } else {
+                                            GlassPillIcon(systemName: "arrow.down.circle")
+                                        }
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(AppLocalization.string("Import latest from Health"))
+                                                .font(AppTypography.bodyEmphasis)
+                                            Text(AppLocalization.string("Sync height for calculations"))
+                                                .font(AppTypography.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                                .disabled(isImportingHeight)
+
+                                if let healthImportMessage {
+                                    Text(healthImportMessage)
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(Color.red.opacity(0.9))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
                         }
-                        .disabled(isImportingHeight)
+                    }
 
-                        if let healthImportMessage {
-                            Text(healthImportMessage)
+                    // MARK: - Help text
+                    AppGlassCard(depth: .base) {
+                        Text(AppLocalization.string("Height is stored in Settings and used to calculate health indicators like WHtR and BMI."))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+
+                    // MARK: - Info card
+                    AppGlassCard(depth: .base) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Label(AppLocalization.string("Why is height important?"), systemImage: "info.circle")
+                                .font(AppTypography.bodyEmphasis)
+
+                            Text(AppLocalization.string("Height is used to calculate important health metrics:"))
                                 .font(AppTypography.caption)
-                                .foregroundStyle(Color.red.opacity(0.9))
-                                .fixedSize(horizontal: false, vertical: true)
+                                .foregroundStyle(.secondary)
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                InfoRow(
+                                    icon: "heart.text.square.fill",
+                                    title: "WHtR",
+                                    description: "Waist-to-Height Ratio"
+                                )
+
+                                InfoRow(
+                                    icon: "figure.stand",
+                                    title: "BMI",
+                                    description: "Body Mass Index (if tracked)"
+                                )
+                            }
                         }
                     }
-                } header: {
-                    Text(AppLocalization.string("Options"))
-                } footer: {
-                    Text(AppLocalization.string("Height is stored in Settings and used to calculate health indicators like WHtR and BMI."))
                 }
-                
-                // MARK: - Info Section
-                Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label(AppLocalization.string("Why is height important?"), systemImage: "info.circle")
-                            .font(.system(.headline, design: .rounded))
-                        
-                        Text(AppLocalization.string("Height is used to calculate important health metrics:"))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            InfoRow(
-                                icon: "heart.text.square.fill",
-                                title: "WHtR",
-                                description: "Waist-to-Height Ratio"
-                            )
-                            
-                            InfoRow(
-                                icon: "figure.stand",
-                                title: "BMI",
-                                description: "Body Mass Index (if tracked)"
-                            )
-                        }
-                        .padding(.top, 4)
-                    }
-                    .padding(.vertical, 8)
-                } header: {
-                    Text(AppLocalization.string("Information"))
-                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
             }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .navigationTitle(AppLocalization.string("Height"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
         }
+        .navigationTitle(AppLocalization.string("Height"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
     
     // MARK: - Helpers
@@ -295,90 +299,128 @@ struct ManualHeightInputView: View {
     var body: some View {
         ZStack(alignment: .top) {
             AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-            
-            // Zawartość
-            List {
-                Section {
-                    if unitsSystem == "imperial" {
-                        // Imperial: Feet and Inches
-                        HStack(spacing: 16) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(AppLocalization.string("Feet"))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                
-                                TextField(AppLocalization.string("0"), text: $feetInput)
-                                    .keyboardType(.numberPad)
-                                    .textFieldStyle(.roundedBorder)
-                                    .focused($focusedField, equals: .feet)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(AppLocalization.string("Inches"))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                
-                                TextField(AppLocalization.string("0"), text: $inchesInput)
-                                    .keyboardType(.numberPad)
-                                    .textFieldStyle(.roundedBorder)
-                                    .focused($focusedField, equals: .inches)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    } else {
-                        // Metric: Centimeters
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(AppLocalization.string("Height (cm)"))
-                                .font(.caption)
+
+            ScrollView {
+                VStack(spacing: 16) {
+                    // MARK: - Height input card
+                    AppGlassCard(
+                        depth: .floating,
+                        tint: Color.cyan.opacity(0.12),
+                        contentPadding: 24
+                    ) {
+                        VStack(spacing: 12) {
+                            Text(AppLocalization.string("Enter your height"))
+                                .font(AppTypography.caption)
                                 .foregroundStyle(.secondary)
-                            
-                            TextField(AppLocalization.string("0.0"), text: $heightInput)
-                                .keyboardType(.decimalPad)
-                                .textFieldStyle(.roundedBorder)
-                                .focused($focusedField, equals: .height)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            if unitsSystem == "imperial" {
+                                // Imperial: Feet and Inches
+                                HStack(spacing: 16) {
+                                    VStack(spacing: 4) {
+                                        TextField("0", text: $feetInput)
+                                            .keyboardType(.numberPad)
+                                            .multilineTextAlignment(.center)
+                                            .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
+                                            .fixedSize()
+                                            .focused($focusedField, equals: .feet)
+
+                                        Text(AppLocalization.string("Feet"))
+                                            .font(AppTypography.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    Text("'")
+                                        .font(.system(size: 36, weight: .medium, design: .rounded))
+                                        .foregroundStyle(.secondary)
+
+                                    VStack(spacing: 4) {
+                                        TextField("0", text: $inchesInput)
+                                            .keyboardType(.numberPad)
+                                            .multilineTextAlignment(.center)
+                                            .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
+                                            .fixedSize()
+                                            .focused($focusedField, equals: .inches)
+
+                                        Text(AppLocalization.string("Inches"))
+                                            .font(AppTypography.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    Text("\"")
+                                        .font(.system(size: 36, weight: .medium, design: .rounded))
+                                        .foregroundStyle(.secondary)
+                                }
+                            } else {
+                                // Metric: Centimeters hero value
+                                HStack(spacing: 4) {
+                                    TextField("0", text: $heightInput)
+                                        .keyboardType(.decimalPad)
+                                        .multilineTextAlignment(.trailing)
+                                        .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
+                                        .fixedSize()
+                                        .focused($focusedField, equals: .height)
+
+                                    Text("cm")
+                                        .font(.title.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            if focusedField == nil {
+                                Text(AppLocalization.string("metric.input.tap_to_edit"))
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
-                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 140)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if unitsSystem == "imperial" {
+                                focusedField = .feet
+                            } else {
+                                focusedField = .height
+                            }
+                        }
                     }
 
+                    // Walidacja pod kartą
                     if shouldShowValidationError, !heightValidation.isValid, let message = heightValidation.message {
                         Text(message)
                             .font(AppTypography.micro)
                             .foregroundStyle(Color.red.opacity(0.9))
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                } header: {
-                    Text(AppLocalization.string("Enter your height"))
-                } footer: {
-                    Text(AppLocalization.string("This height will be used for health metric calculations like WHtR."))
-                }
-                
-                Section {
+
+                    // MARK: - Save button
                     Button {
                         saveHeight()
                     } label: {
-                        HStack {
-                            Spacer()
-                            Text(AppLocalization.string("Save"))
-                                .fontWeight(.semibold)
-                            Spacer()
-                        }
+                        Text(AppLocalization.string("Save"))
+                            .font(.system(.headline, design: .rounded).weight(.semibold))
                     }
+                    .buttonStyle(LiquidCapsuleButtonStyle())
                     .disabled(!isValidInput)
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .navigationTitle(AppLocalization.string("Set Height"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .keyboard) {
-                    Button(AppLocalization.string("Done")) {
-                        focusedField = nil
+
+                    // MARK: - Help text card
+                    AppGlassCard(depth: .base) {
+                        Text(AppLocalization.string("This height will be used for health metric calculations like WHtR."))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(.white.opacity(0.7))
                     }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+            }
+        }
+        .navigationTitle(AppLocalization.string("Set Height"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .keyboard) {
+                Button(AppLocalization.string("Done")) {
+                    focusedField = nil
                 }
             }
         }

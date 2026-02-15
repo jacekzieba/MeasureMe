@@ -699,6 +699,16 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "premium.carousel.indicator.preview.about" = "Premium explains each indicator in plain language and shows what to improve next.";
 "premium.unlock.bundle.title" = "Everything in Premium";
 "premium.carousel.unlock.more" = "and more";
+"Crash Reports" = "Crash Reports";
+"No crash reports" = "No crash reports";
+"Everything looks good. No crashes have been recorded." = "Everything looks good. No crashes have been recorded.";
+"Send diagnostic report" = "Send diagnostic report";
+"Share recent logs to help debug issues." = "Share recent logs to help debug issues.";
+"Crash Detected" = "Crash Detected";
+"View Report" = "View Report";
+"Dismiss" = "Dismiss";
+"The app crashed last time. You can view and share the crash report in Settings → Data → Crash Reports." = "The app crashed last time. You can view and share the crash report in Settings → Data → Crash Reports.";
+"Delete Report?" = "Delete Report?";
 "Delete all data" = "Delete all data";
 "This removes all measurements, goals, photos, reminders, and imported HealthKit data stored in MeasureMe on this device. Apple Health records are not deleted and can be re-imported if sync is enabled again." = "This removes all measurements, goals, photos, reminders, and imported HealthKit data stored in MeasureMe on this device. Apple Health records are not deleted and can be re-imported if sync is enabled again.";
 "All local app data has been deleted." = "All local app data has been deleted.";
@@ -816,6 +826,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "No products returned by StoreKit." = "No products returned by StoreKit.";
 "Unable to save this image." = "Unable to save this image.";
 "Permission denied. Enable Photos access in Settings." = "Permission denied. Enable Photos access in Settings.";
+"Saved" = "Saved";
 "Saved to Photos." = "Saved to Photos.";
 "Save Failed" = "Save Failed";
 "Photo access denied. Enable Photos access in Settings to save." = "Photo access denied. Enable Photos access in Settings to save.";
@@ -836,12 +847,26 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "To" = "To";
 
 /* Tracked Measurements UX improvements */
-"tracked.keymetrics.header" = "Home Screen Highlights";
+"tracked.keymetrics.header" = "Pin to Home";
 "tracked.keymetrics.description" = "Tap ★ to pin 1–3 metrics to your Home screen and Measurements tab. You decide how many.";
 "tracked.keymetrics.counter" = "%d of 3 pinned";
 "tracked.keymetrics.empty" = "Turn on a metric below first, then come back here to pin it to Home.";
 "tracked.active.header" = "Currently Tracking";
-"tracked.active.description" = "These metrics appear in Quick Add and your Measurements tab. Drag to reorder.";
+"tracked.active.description" = "Tap ★ to pin up to 3 metrics to Home. Swipe to stop tracking. Drag to reorder.";
 "tracked.section.health.subtitle" = "Toggle on to start tracking. Synced automatically from Apple Health.";
 "tracked.section.custom.subtitle" = "Toggle on to start tracking. You enter these values manually.";
 "tracked.section.allempty" = "All metrics from this group are already active above.";
+"tracked.active.editorder" = "Edit order";
+"tracked.active.stoptracking" = "Stop tracking";
+"tracked.snackbar.added" = "Added to Tracking";
+"tracked.snackbar.removed" = "Removed from Tracking";
+"tracked.snackbar.undo" = "Undo";
+
+// MARK: - Metric Input
+"metric.input.tap_to_edit" = "Tap to edit";
+
+// MARK: - Measurements Empty States
+"measurements.empty.title" = "Start your first measurement";
+"measurements.empty.body" = "Track weight, body measurements, and more. Your progress charts will appear here.";
+"measurements.quickadd.hint" = "Tip: Tap + in the tab bar for quick entry anytime";
+"measurements.metric.nodata" = "No data yet";

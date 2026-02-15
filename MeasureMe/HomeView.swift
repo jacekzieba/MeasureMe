@@ -514,7 +514,7 @@ struct HomeView: View {
     }
 
     private var shownChecklistItems: [SetupChecklistItem] {
-        if showMoreChecklistItems {
+        if showMoreChecklistItems || primaryChecklistItems.isEmpty {
             return primaryChecklistItems + secondaryChecklistItems
         }
         return primaryChecklistItems
@@ -619,12 +619,12 @@ struct HomeView: View {
                         )
                     }
 
-                    if !showMoreChecklistItems, secondaryChecklistItems.count >= 3 {
+                    if !showMoreChecklistItems, !secondaryChecklistItems.isEmpty, !primaryChecklistItems.isEmpty {
                         Button {
                             Haptics.selection()
                             showMoreChecklistItems = true
                         } label: {
-                            Text(AppLocalization.string("Show %d more", 3))
+                            Text(AppLocalization.string("Show %d more", secondaryChecklistItems.count))
                                 .font(AppTypography.captionEmphasis)
                                 .foregroundStyle(Color.appAccent)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -726,7 +726,8 @@ struct HomeView: View {
 
     private func refreshChecklistState() {
         let reminders = NotificationManager.shared.loadReminders()
-        reminderChecklistCompleted = NotificationManager.shared.notificationsEnabled && !reminders.isEmpty
+        let hasAnyReminder = NotificationManager.shared.smartEnabled || !reminders.isEmpty
+        reminderChecklistCompleted = NotificationManager.shared.notificationsEnabled && hasAnyReminder
         autoHideChecklistIfCompleted()
     }
 
@@ -807,7 +808,7 @@ struct HomeView: View {
                     .font(AppTypography.sectionTitle)
                     .foregroundStyle(.white)
 
-                if !hasAnyMeasurements {
+                if !hasAnyMeasurements && cachedLatestByKind.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(AppLocalization.string("No measurements yet."))
                             .font(AppTypography.bodyEmphasis)
@@ -821,6 +822,7 @@ struct HomeView: View {
                             showQuickAddSheet = true
                         } label: {
                             Text(AppLocalization.string("Add measurement"))
+                                .foregroundStyle(.black)
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
@@ -829,9 +831,7 @@ struct HomeView: View {
                     .padding(12)
                     .background(Color.white.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                }
-
-                if visibleMetrics.isEmpty {
+                } else if visibleMetrics.isEmpty {
                     Text(AppLocalization.string("Select up to three key metrics in Settings."))
                         .font(AppTypography.body)
                         .foregroundStyle(.white.opacity(0.7))
@@ -975,6 +975,7 @@ struct HomeView: View {
                     router.selectedTab = .photos
                 } label: {
                     Text(AppLocalization.string("Add photo"))
+                        .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)

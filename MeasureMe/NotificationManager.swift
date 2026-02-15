@@ -78,6 +78,8 @@ struct MeasurementReminder: Identifiable, Codable, Hashable {
 final class NotificationManager: ObservableObject {
     static let shared = NotificationManager()
     
+    static let notificationsDidChange = Notification.Name("measurement_notifications_did_change")
+    
     private let center: NotificationCenterClient
     private let remindersKey = "measurement_reminders"
     private let notificationsEnabledKey = "measurement_notifications_enabled"
@@ -116,12 +118,16 @@ final class NotificationManager: ObservableObject {
             if !newValue {
                 cancelImportNotifications()
             }
+            notifyStateChanged()
         }
     }
     
     var smartEnabled: Bool {
         get { UserDefaults.standard.bool(forKey: smartEnabledKey) }
-        set { UserDefaults.standard.set(newValue, forKey: smartEnabledKey) }
+        set {
+            UserDefaults.standard.set(newValue, forKey: smartEnabledKey)
+            notifyStateChanged()
+        }
     }
     
     var smartDays: Int {
@@ -208,6 +214,7 @@ final class NotificationManager: ObservableObject {
         do {
             let data = try JSONEncoder().encode(reminders)
             UserDefaults.standard.set(data, forKey: remindersKey)
+            notifyStateChanged()
         } catch {
             recordSchedulingError(error)
             AppLog.debug("⚠️ Failed to encode reminders: \(error.localizedDescription)")
@@ -583,6 +590,7 @@ final class NotificationManager: ObservableObject {
         ].forEach { defaults.removeObject(forKey: $0) }
 
         clearLastSchedulingError()
+        notifyStateChanged()
     }
     
     private func nextSmartFireDate(from now: Date) -> Date {
@@ -618,4 +626,9 @@ final class NotificationManager: ObservableObject {
         }
         AppLog.debug("⚠️ Notification scheduling failed: \(error.localizedDescription)")
     }
+    
+    private func notifyStateChanged() {
+        NotificationCenter.default.post(name: Self.notificationsDidChange, object: nil)
+    }
 }
+

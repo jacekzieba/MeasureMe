@@ -111,13 +111,15 @@ final class ActiveMetricsStore: ObservableObject {
     var activeKinds: [MetricKind] {
         // Które metryki są włączone
         let enabledSet = Set(allKindsInOrder.filter { isEnabled($0) })
-        
+
         // Załaduj zapisaną kolejność (może zawierać nieaktywne - przefiltruj)
-        let saved = loadActiveOrderKinds().filter { enabledSet.contains($0) }
-        
+        // Deduplikacja: zabezpieczenie przed uszkodzonym metrics_active_order w UserDefaults
+        var seen = Set<MetricKind>()
+        let saved = loadActiveOrderKinds().filter { enabledSet.contains($0) && seen.insert($0).inserted }
+
         // Dodaj brakujące aktywne metryki na końcu
-        let missing = allKindsInOrder.filter { enabledSet.contains($0) && !saved.contains($0) }
-        
+        let missing = allKindsInOrder.filter { enabledSet.contains($0) && !seen.contains($0) }
+
         return saved + missing
     }
 

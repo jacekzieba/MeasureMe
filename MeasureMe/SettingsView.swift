@@ -150,6 +150,7 @@ struct SettingsView: View {
                     scrollOffset: scrollOffset,
                     tint: Color.cyan.opacity(0.22)
                 )
+                .ignoresSafeArea(edges: .top)
                 
                 // Zawartość
                 List {
@@ -235,6 +236,51 @@ struct SettingsView: View {
                     .listRowBackground(Color.clear)
                     .listRowInsets(Self.settingsRowInsets)
                 }
+
+                Section {
+                    SettingsCard(tint: Color.cyan.opacity(0.12)) {
+                        SettingsCardHeader(title: AppLocalization.string("AI Insights"), systemImage: "sparkles")
+                        if premiumStore.isPremium {
+                            if AppleIntelligenceSupport.isAvailable() {
+                                Toggle(isOn: $appleIntelligenceEnabled) {
+                                    Text(AppLocalization.string("Enable AI Insights"))
+                                }
+                                .tint(Color.appAccent)
+                                .onChange(of: appleIntelligenceEnabled) { _, _ in Haptics.selection() }
+                            } else {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(AppLocalization.string("AI Insights aren’t available right now."))
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(.secondary)
+                                    NavigationLink {
+                                        FAQView()
+                                    } label: {
+                                        Text(AppLocalization.string("Learn more in FAQ"))
+                                            .font(AppTypography.captionEmphasis)
+                                            .foregroundStyle(Color.appAccent)
+                                    }
+                                }
+                            }
+                        } else {
+                            HStack {
+                                Text(AppLocalization.string("Premium Edition required"))
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Button(AppLocalization.string("Unlock")) {
+                                    premiumStore.presentPaywall(reason: .feature("AI Insights"))
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(Color.appAccent)
+                                .frame(minHeight: 44, alignment: .trailing)
+                            }
+                        }
+                    }
+                }
+                .listRowSeparator(.hidden)
+                .listSectionSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(Self.settingsRowInsets)
 
                 Section {
                     SettingsCard(tint: Color.white.opacity(0.08)) {
@@ -343,51 +389,6 @@ struct SettingsView: View {
                                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                         }
                         .buttonStyle(.plain)
-                    }
-                }
-                .listRowSeparator(.hidden)
-                .listSectionSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .listRowInsets(Self.settingsRowInsets)
-
-                Section {
-                    SettingsCard(tint: Color.cyan.opacity(0.12)) {
-                        SettingsCardHeader(title: AppLocalization.string("AI Insights"), systemImage: "sparkles")
-                        if premiumStore.isPremium {
-                            if AppleIntelligenceSupport.isAvailable() {
-                                Toggle(isOn: $appleIntelligenceEnabled) {
-                                    Text(AppLocalization.string("Enable AI Insights"))
-                                }
-                                .tint(Color.appAccent)
-                                .onChange(of: appleIntelligenceEnabled) { _, _ in Haptics.selection() }
-                            } else {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(AppLocalization.string("AI Insights aren’t available right now."))
-                                        .font(AppTypography.caption)
-                                        .foregroundStyle(.secondary)
-                                    NavigationLink {
-                                        FAQView()
-                                    } label: {
-                                        Text(AppLocalization.string("Learn more in FAQ"))
-                                            .font(AppTypography.captionEmphasis)
-                                            .foregroundStyle(Color.appAccent)
-                                    }
-                                }
-                            }
-                        } else {
-                            HStack {
-                                Text(AppLocalization.string("Premium Edition required"))
-                                    .font(AppTypography.caption)
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                                Button(AppLocalization.string("Unlock")) {
-                                    premiumStore.presentPaywall(reason: .feature("AI Insights"))
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(Color.appAccent)
-                                .frame(minHeight: 44, alignment: .trailing)
-                            }
-                        }
                     }
                 }
                 .listRowSeparator(.hidden)
@@ -585,8 +586,7 @@ struct SettingsView: View {
             .listSectionSeparator(.hidden)
             .listRowSeparatorTint(.clear)
             .listSectionSeparatorTint(.clear)
-            .listStyle(.plain)
-            .padding(.top, -8)
+            .applyNoScrollContentInsetsIfAvailable()
             .searchable(
                 text: $settingsSearchQuery,
                 placement: .navigationBarDrawer(displayMode: .automatic),
@@ -1090,3 +1090,11 @@ private struct PremiumBenefitsInfoView: View {
         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
     }
 }
+
+private extension View {
+    @ViewBuilder
+    func applyNoScrollContentInsetsIfAvailable() -> some View {
+        self
+    }
+}
+

@@ -10,6 +10,7 @@ struct MeasurementsTabView: View {
     @EnvironmentObject private var router: AppRouter
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
+    @AppStorage("quickAddHintDismissed") private var quickAddHintDismissed: Bool = false
     @State private var scrollOffset: CGFloat = 0
     @Query(sort: [SortDescriptor(\MetricSample.date, order: .reverse)])
     private var samples: [MetricSample]
@@ -103,6 +104,7 @@ struct MeasurementsTabView: View {
                             .frame(maxWidth: 320)
                             .accessibilityLabel(AppLocalization.string("accessibility.measurements.section"))
                             .accessibilityHint(AppLocalization.string("accessibility.measurements.switch"))
+                            .accessibilityIdentifier("measurements.tab.segmented")
                             Spacer()
                         }
                         .padding(.horizontal, 16)
@@ -118,33 +120,81 @@ struct MeasurementsTabView: View {
 
                         if selectedTab == .metrics {
                             if samples.isEmpty {
+                                // MARK: - Hero empty state
                                 AppGlassCard(
-                                    depth: .elevated,
+                                    depth: .floating,
                                     cornerRadius: 24,
-                                    tint: Color.appAccent.opacity(0.18),
-                                    contentPadding: 16
+                                    tint: Color.appAccent.opacity(0.22),
+                                    contentPadding: 24
                                 ) {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        Text(AppLocalization.string("No measurements yet"))
-                                            .font(AppTypography.bodyEmphasis)
-                                            .foregroundStyle(.white)
+                                    VStack(spacing: 16) {
+                                        Image(systemName: "chart.line.uptrend.xyaxis")
+                                            .font(.system(size: 40))
+                                            .foregroundStyle(Color.appAccent)
 
-                                        Text(AppLocalization.string("Add your first measurement to unlock charts and progress."))
-                                            .font(AppTypography.body)
-                                            .foregroundStyle(.white.opacity(0.7))
+                                        VStack(spacing: 8) {
+                                            Text(AppLocalization.string("measurements.empty.title"))
+                                                .font(AppTypography.sectionTitle)
+                                                .foregroundStyle(.white)
+                                                .multilineTextAlignment(.center)
+
+                                            Text(AppLocalization.string("measurements.empty.body"))
+                                                .font(AppTypography.body)
+                                                .foregroundStyle(.white.opacity(0.7))
+                                                .multilineTextAlignment(.center)
+                                        }
 
                                         Button {
+                                            Haptics.light()
                                             router.presentedSheet = .composer(mode: .newPost)
                                         } label: {
                                             Text(AppLocalization.string("Add measurement"))
+                                                .foregroundStyle(.black)
                                                 .frame(maxWidth: .infinity)
                                         }
                                         .buttonStyle(.borderedProminent)
                                         .tint(Color.appAccent)
                                     }
+                                    .frame(maxWidth: .infinity)
                                 }
-                                .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, 16)
+                            }
+
+                            // MARK: - Quick Add hint strip
+                            if !quickAddHintDismissed {
+                                AppGlassCard(
+                                    depth: .base,
+                                    cornerRadius: 14,
+                                    tint: Color.cyan.opacity(0.12),
+                                    contentPadding: 12
+                                ) {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.body)
+                                            .foregroundStyle(Color.appAccent)
+
+                                        Text(AppLocalization.string("measurements.quickadd.hint"))
+                                            .font(AppTypography.caption)
+                                            .foregroundStyle(.white.opacity(0.72))
+
+                                        Spacer(minLength: 4)
+
+                                        Button {
+                                            withAnimation(.easeOut(duration: 0.3)) {
+                                                quickAddHintDismissed = true
+                                            }
+                                        } label: {
+                                            Image(systemName: "xmark")
+                                                .font(.caption2.weight(.semibold))
+                                                .foregroundStyle(.secondary)
+                                                .frame(width: 28, height: 28)
+                                                .contentShape(Rectangle())
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
                             }
 
                             ForEach(metricsStore.activeKinds, id: \.self) { kind in
@@ -169,6 +219,7 @@ struct MeasurementsTabView: View {
                                     title: ""
                                 )
                                 .padding(.horizontal, 16)
+                                .accessibilityIdentifier("measurements.ai.container")
                             } else {
                                 PremiumLockedCard(
                                     title: AppLocalization.string("Health indicators"),
@@ -187,6 +238,7 @@ struct MeasurementsTabView: View {
                 .onPreferenceChange(MeasurementsScrollOffsetKey.self) { value in
                     scrollOffset = value
                 }
+                .accessibilityIdentifier("measurements.scroll")
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
@@ -231,6 +283,7 @@ struct MeasurementsTabView: View {
 
 struct MetricChartTile: View {
     @EnvironmentObject private var premiumStore: PremiumStore
+    @EnvironmentObject private var router: AppRouter
     let kind: MetricKind
     let unitsSystem: String
     @AppStorage("userName") private var userName: String = ""
@@ -240,7 +293,7 @@ struct MetricChartTile: View {
 
     @State private var shortInsight: String?
     @State private var isLoadingInsight = false
-    @State private var scrubbedSample: MetricSample?
+    // Chart scrubbing removed from tile — available only in MetricDetailView
 
     init(kind: MetricKind, unitsSystem: String) {
         self.kind = kind
@@ -280,10 +333,6 @@ struct MetricChartTile: View {
         recentSamples.last
     }
 
-    private var isChartScrubbingEnabled: Bool {
-        !recentSamples.isEmpty
-    }
-
     private var trendInfo: (delta: Double, relativeText: String, outcome: MetricKind.TrendOutcome)? {
         guard recentSamples.count >= 2,
               let lastSample = recentSamples.last else { return nil }
@@ -314,20 +363,33 @@ struct MetricChartTile: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        if recentSamples.isEmpty {
+            // MARK: - Compact empty tile (no data yet)
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Image(systemName: kind.systemImage)
+                            .foregroundStyle(.secondary)
+                            .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
 
-            // Header
-            HStack {
-                HStack(spacing: 8) {
-                    Image(systemName: kind.systemImage)
-                        .foregroundStyle(.secondary)
-                        .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
+                        Text(kind.title)
+                            .font(AppTypography.bodyEmphasis)
+                    }
 
-                    Text(kind.title)
-                        .font(AppTypography.bodyEmphasis)
+                    Text(AppLocalization.string("measurements.metric.nodata"))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(.white.opacity(0.5))
                 }
 
-                Spacer()
+                Spacer(minLength: 8)
+
+                Button {
+                    Haptics.light()
+                    router.presentedSheet = .addSample(kind: kind)
+                } label: {
+                    Text(AppLocalization.string("Add"))
+                }
+                .buttonStyle(LiquidCapsuleButtonStyle())
 
                 NavigationLink {
                     MetricDetailView(kind: kind)
@@ -340,265 +402,244 @@ struct MetricChartTile: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("metric.tile.open.\(kind.rawValue)")
             }
-
-            // Value + trend + goal info
-            if let latest {
-                Text(valueString(metricValue: latest.value))
-                    .font(AppTypography.metricValue)
-                    .monospacedDigit()
-
-                if let trendInfo {
-                    HStack(spacing: 6) {
-                        Image(systemName: trendInfo.delta >= 0 ? "arrow.up.right" : "arrow.down.right")
-                        Text(
-                            String(
-                                format: "%.1f %@",
-                                abs(trendInfo.delta),
-                                kind.unitSymbol(unitsSystem: unitsSystem)
-                            )
-                        )
-                        .monospacedDigit()
-                        Text(AppLocalization.string("trend.vs.relative", trendInfo.relativeText))
-                    }
-                    .font(AppTypography.caption)
-                    .foregroundStyle(
-                        trendInfo.outcome == .positive
-                        ? Color(hex: "#22C55E")
-                        : (trendInfo.outcome == .negative ? Color(hex: "#EF4444") : Color.white.opacity(0.6))
-                    )
-                }
-                
-                // Goal info (ile zostało do celu)
-                if let goal = currentGoal {
-                    let isAchieved = goal.isAchieved(currentValue: latest.value)
-                    let remaining = goal.remainingToGoal(currentValue: latest.value)
-                    let remainingDisplay = displayValue(abs(remaining))
-                    let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-                    
-                    HStack(spacing: 4) {
-                        Image(systemName: "target")
-                            .font(AppTypography.micro)
-                        Text(isAchieved
-                             ? AppLocalization.string("Goal reached")
-                             : AppLocalization.string("goal.remaining", remainingDisplay, unit))
-                        .monospacedDigit()
-                    }
-                    .font(AppTypography.caption)
-                    .foregroundStyle(isAchieved ? Color(hex: "#22C55E") : Color(hex: "#FCA311"))
-                }
-
-                if canUseAppleIntelligence, let shortInsight {
-                    MetricInsightCard(
-                        text: shortInsight,
-                        compact: true,
-                        isLoading: isLoadingInsight
-                    )
-                } else if canUseAppleIntelligence, isLoadingInsight {
-                    MetricInsightCard(
-                        text: AppLocalization.string("Generating insight..."),
-                        compact: true,
-                        isLoading: true
-                    )
-                } else if premiumStore.isPremium && !appleIntelligenceAvailable {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(AppLocalization.string("AI Insights aren’t available right now."))
-                            .font(AppTypography.micro)
-                            .foregroundStyle(.secondary)
-                        NavigationLink {
-                            FAQView()
-                        } label: {
-                            Text(AppLocalization.string("Learn more in FAQ"))
-                                .font(AppTypography.microEmphasis)
-                                .foregroundStyle(Color.appAccent)
-                        }
-                    }
-                }
-            } else {
-                Text(AppLocalization.string("—"))
-                    .font(AppTypography.metricValue)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Chart - z podwójnym maskowaniem
-            VStack(alignment: .leading, spacing: 8) {
-                ZStack {
-                    // Tło wykresu
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.black.opacity(0))
-                    
-                    Chart {
-
-                    // 🔹 AREA – JEDEN mark, jeden gradient
-                    ForEach(recentSamples) { s in
-                        AreaMark(
-                            x: .value("Date", s.date),
-                            y: .value("Value", displayValue(s.value))
-                        )
-                        .interpolationMethod(.monotone)
-                        .foregroundStyle(by: .value("Area", "fill"))
-
-                    }
-
-                    // 🔸 LINIA
-                    ForEach(recentSamples) { s in
-                        LineMark(
-                            x: .value("Date", s.date),
-                            y: .value("Value", displayValue(s.value))
-                        )
-                        .interpolationMethod(.monotone)
-                        .lineStyle(.init(lineWidth: 2.5))
-                        .foregroundStyle(Color(hex: "#FCA311"))
-                    }
-
-                    // 🔸 PUNKTY
-                    ForEach(recentSamples) { s in
-                        PointMark(
-                            x: .value("Date", s.date),
-                            y: .value("Value", displayValue(s.value))
-                        )
-                        .symbolSize(24)
-                        .foregroundStyle(Color(hex: "#FCA311").opacity(0.6))
-                    }
-                    
-                    // Linia celu (z annotation)
-                    if let goal = currentGoal {
-                        let goalValue = displayValue(goal.targetValue)
-                        RuleMark(y: .value("Goal", goalValue))
-                            .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [6, 3]))
-                            .foregroundStyle(Color(hex: "#E5E5E5").opacity(0.7))
-                            .annotation(position: goalLabelPosition(for: goalValue), alignment: .leading) {
-                                Text(AppLocalization.string("Goal"))
-                                    .font(AppTypography.micro)
-                                    .foregroundStyle(Color(hex: "#E5E5E5"))
-                                    .padding(.horizontal, 4)
-                                    .padding(.vertical, 2)
-                                    .background(
-                                        Capsule().fill(Color.black.opacity(0.75))
-                                    )
-                                    .offset(x: 6)
-                            }
-                    }
-
-                    if let scrubbedSample {
-                        let scrubbedValue = displayValue(scrubbedSample.value)
-                        RuleMark(x: .value("Selected Date", scrubbedSample.date))
-                            .foregroundStyle(Color.white.opacity(0.5))
-                            .lineStyle(StrokeStyle(lineWidth: 1))
-
-                        PointMark(
-                            x: .value("Selected Date", scrubbedSample.date),
-                            y: .value("Selected Value", scrubbedValue)
-                        )
-                        .symbolSize(54)
-                        .foregroundStyle(Color.white)
-                    }
-                    }
-                    .padding(.horizontal, 2)
-                    .padding(.vertical, 2)
-                    .chartForegroundStyleScale([
-                        "fill": LinearGradient(
-                            colors: [
-                                Color(hex: "#FCA311").opacity(0.1),
-                                Color(hex: "#FCA311").opacity(0.1),
-                                Color(hex: "#FCA311").opacity(0.1)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    ])
-                    .chartLegend(.hidden)
-                    .chartYScale(domain: yDomain)
-                    .chartXAxis {
-                        AxisMarks(values: .automatic(desiredCount: 3)) { _ in
-                            AxisGridLine().foregroundStyle(.white.opacity(0.12))
-                            AxisTick().foregroundStyle(.white.opacity(0.2))
-                            AxisValueLabel(format: .dateTime.month(.abbreviated))
-                                .font(AppTypography.micro)
-                                .foregroundStyle(.white.opacity(0.5))
-                        }
-                    }
-                    .chartYAxis {
-                        AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { _ in
-                            AxisGridLine().foregroundStyle(.white.opacity(0.12))
-                            AxisTick().foregroundStyle(.white.opacity(0.2))
-                            AxisValueLabel()
-                                .font(AppTypography.micro)
-                                .foregroundStyle(.white.opacity(0.5))
-                        }
-                    }
-                    .chartOverlay { proxy in
-                        GeometryReader { geometry in
-                            Rectangle()
-                                .fill(.clear)
-                                .contentShape(Rectangle())
-                                .allowsHitTesting(isChartScrubbingEnabled)
-                                .simultaneousGesture(
-                                    LongPressGesture(minimumDuration: 0.2)
-                                        .sequenced(before: DragGesture(minimumDistance: 0))
-                                        .onChanged { value in
-                                            switch value {
-                                            case .second(true, let drag):
-                                                if let drag {
-                                                    updateScrubbedSample(at: drag.location, proxy: proxy, geometry: geometry)
-                                                }
-                                            default:
-                                                break
-                                            }
-                                        }
-                                        .onEnded { _ in
-                                            scrubbedSample = nil
-                                        }
-                                )
-                        }
-                    }
-                    .accessibilityChartDescriptor(MetricChartAXDescriptor(descriptor: chartDescriptor))
-
-                }
-                .frame(height: 120)
-                .mask(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.white)
+            .padding(14)
+            .background(
+                AppGlassBackground(
+                    depth: .elevated,
+                    cornerRadius: 16,
+                    tint: Color.appAccent.opacity(0.14)
                 )
+            )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(AppLocalization.string("accessibility.metric.summary.nodata", kind.title))
+            .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
+        } else {
+            // MARK: - Full tile with chart
+            VStack(alignment: .leading, spacing: 10) {
 
-                if let scrubbedSample {
+                // Header
+                HStack {
                     HStack(spacing: 8) {
-                        Text(scrubbedSample.date.formatted(date: .abbreviated, time: .omitted))
-                            .font(AppTypography.micro)
-                            .foregroundStyle(.white.opacity(0.72))
-                        Text(
-                            String(
-                                format: "%.1f %@",
-                                displayValue(scrubbedSample.value),
-                                kind.unitSymbol(unitsSystem: unitsSystem)
-                            )
-                        )
-                        .font(AppTypography.microEmphasis.monospacedDigit())
-                        .foregroundStyle(.white)
+                        Image(systemName: kind.systemImage)
+                            .foregroundStyle(.secondary)
+                            .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
+
+                        Text(kind.title)
+                            .font(AppTypography.bodyEmphasis)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.black.opacity(0.35))
+
+                    Spacer()
+
+                    NavigationLink {
+                        MetricDetailView(kind: kind)
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("metric.tile.open.\(kind.rawValue)")
+                }
+
+                // Value + trend + goal info
+                if let latest {
+                    Text(valueString(metricValue: latest.value))
+                        .font(AppTypography.metricValue)
+                        .monospacedDigit()
+
+                    if let trendInfo {
+                        HStack(spacing: 6) {
+                            Image(systemName: trendInfo.delta >= 0 ? "arrow.up.right" : "arrow.down.right")
+                            Text(
+                                String(
+                                    format: "%.1f %@",
+                                    abs(trendInfo.delta),
+                                    kind.unitSymbol(unitsSystem: unitsSystem)
+                                )
+                            )
+                            .monospacedDigit()
+                            Text(AppLocalization.string("trend.vs.relative", trendInfo.relativeText))
+                        }
+                        .font(AppTypography.caption)
+                        .foregroundStyle(
+                            trendInfo.outcome == .positive
+                            ? Color(hex: "#22C55E")
+                            : (trendInfo.outcome == .negative ? Color(hex: "#EF4444") : Color.white.opacity(0.6))
+                        )
+                    }
+
+                    // Goal info (ile zostało do celu)
+                    if let goal = currentGoal {
+                        let isAchieved = goal.isAchieved(currentValue: latest.value)
+                        let remaining = goal.remainingToGoal(currentValue: latest.value)
+                        let remainingDisplay = displayValue(abs(remaining))
+                        let unit = kind.unitSymbol(unitsSystem: unitsSystem)
+
+                        HStack(spacing: 4) {
+                            Image(systemName: "target")
+                                .font(AppTypography.micro)
+                            Text(isAchieved
+                                 ? AppLocalization.string("Goal reached")
+                                 : AppLocalization.string("goal.remaining", remainingDisplay, unit))
+                            .monospacedDigit()
+                        }
+                        .font(AppTypography.caption)
+                        .foregroundStyle(isAchieved ? Color(hex: "#22C55E") : Color(hex: "#FCA311"))
+                    }
+
+                    if canUseAppleIntelligence, let shortInsight {
+                        MetricInsightCard(
+                            text: shortInsight,
+                            compact: true,
+                            isLoading: isLoadingInsight
+                        )
+                    } else if canUseAppleIntelligence, isLoadingInsight {
+                        MetricInsightCard(
+                            text: AppLocalization.string("Generating insight..."),
+                            compact: true,
+                            isLoading: true
+                        )
+                    } else if premiumStore.isPremium && !appleIntelligenceAvailable {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(AppLocalization.string("AI Insights aren't available right now."))
+                                .font(AppTypography.micro)
+                                .foregroundStyle(.secondary)
+                            NavigationLink {
+                                FAQView()
+                            } label: {
+                                Text(AppLocalization.string("Learn more in FAQ"))
+                                    .font(AppTypography.microEmphasis)
+                                    .foregroundStyle(Color.appAccent)
+                            }
+                        }
+                    }
+                } else {
+                    Text(AppLocalization.string("—"))
+                        .font(AppTypography.metricValue)
+                        .foregroundStyle(.secondary)
+                }
+
+                // Chart - z podwójnym maskowaniem
+                VStack(alignment: .leading, spacing: 8) {
+                    ZStack {
+                        // Tło wykresu
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.black.opacity(0))
+
+                        Chart {
+
+                        // 🔹 AREA – JEDEN mark, jeden gradient
+                        ForEach(recentSamples) { s in
+                            AreaMark(
+                                x: .value("Date", s.date),
+                                y: .value("Value", displayValue(s.value))
+                            )
+                            .interpolationMethod(.monotone)
+                            .foregroundStyle(by: .value("Area", "fill"))
+
+                        }
+
+                        // 🔸 LINIA
+                        ForEach(recentSamples) { s in
+                            LineMark(
+                                x: .value("Date", s.date),
+                                y: .value("Value", displayValue(s.value))
+                            )
+                            .interpolationMethod(.monotone)
+                            .lineStyle(.init(lineWidth: 2.5))
+                            .foregroundStyle(Color(hex: "#FCA311"))
+                        }
+
+                        // 🔸 PUNKTY
+                        ForEach(recentSamples) { s in
+                            PointMark(
+                                x: .value("Date", s.date),
+                                y: .value("Value", displayValue(s.value))
+                            )
+                            .symbolSize(24)
+                            .foregroundStyle(Color(hex: "#FCA311").opacity(0.6))
+                        }
+
+                        // Linia celu (z annotation)
+                        if let goal = currentGoal {
+                            let goalValue = displayValue(goal.targetValue)
+                            RuleMark(y: .value("Goal", goalValue))
+                                .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [6, 3]))
+                                .foregroundStyle(Color(hex: "#E5E5E5").opacity(0.7))
+                                .annotation(position: goalLabelPosition(for: goalValue), alignment: .leading) {
+                                    Text(AppLocalization.string("Goal"))
+                                        .font(AppTypography.micro)
+                                        .foregroundStyle(Color(hex: "#E5E5E5"))
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 2)
+                                        .background(
+                                            Capsule().fill(Color.black.opacity(0.75))
+                                        )
+                                        .offset(x: 6)
+                                }
+                        }
+
+                        }
+                        .padding(.horizontal, 2)
+                        .padding(.vertical, 2)
+                        .chartForegroundStyleScale([
+                            "fill": LinearGradient(
+                                colors: [
+                                    Color(hex: "#FCA311").opacity(0.1),
+                                    Color(hex: "#FCA311").opacity(0.1),
+                                    Color(hex: "#FCA311").opacity(0.1)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        ])
+                        .chartLegend(.hidden)
+                        .chartYScale(domain: yDomain)
+                        .chartXAxis {
+                            AxisMarks(values: .automatic(desiredCount: 3)) { _ in
+                                AxisGridLine().foregroundStyle(.white.opacity(0.12))
+                                AxisTick().foregroundStyle(.white.opacity(0.2))
+                                AxisValueLabel(format: .dateTime.month(.abbreviated))
+                                    .font(AppTypography.micro)
+                                    .foregroundStyle(.white.opacity(0.5))
+                            }
+                        }
+                        .chartYAxis {
+                            AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { _ in
+                                AxisGridLine().foregroundStyle(.white.opacity(0.12))
+                                AxisTick().foregroundStyle(.white.opacity(0.2))
+                                AxisValueLabel()
+                                    .font(AppTypography.micro)
+                                    .foregroundStyle(.white.opacity(0.5))
+                            }
+                        }
+                        .accessibilityChartDescriptor(MetricChartAXDescriptor(descriptor: chartDescriptor))
+
+                    }
+                    .frame(height: 120)
+                    .mask(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.white)
                     )
+
                 }
             }
-        }
-        .padding(14)
-        .background(
-            AppGlassBackground(
-                depth: .elevated,
-                cornerRadius: 16,
-                tint: Color.appAccent.opacity(0.14)
+            .padding(14)
+            .background(
+                AppGlassBackground(
+                    depth: .elevated,
+                    cornerRadius: 16,
+                    tint: Color.appAccent.opacity(0.14)
+                )
             )
-        )
-        .task(id: insightInput) {
-            await loadInsightIfNeeded()
+            .task(id: insightInput) {
+                await loadInsightIfNeeded()
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilitySummary)
+            .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilitySummary)
-        .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
     }
 
     // MARK: - Helpers
@@ -699,35 +740,6 @@ struct MetricChartTile: View {
         let generated = await MetricInsightService.shared.generateInsight(for: input)
         shortInsight = generated?.shortText
         isLoadingInsight = false
-    }
-
-    private func updateScrubbedSample(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
-        guard !recentSamples.isEmpty else {
-            scrubbedSample = nil
-            return
-        }
-
-        guard let plotFrame = proxy.plotFrame else {
-            scrubbedSample = nil
-            return
-        }
-
-        let plotOrigin = geometry[plotFrame].origin
-        let xPosition = location.x - plotOrigin.x
-
-        guard xPosition >= 0, xPosition <= proxy.plotSize.width else {
-            scrubbedSample = nil
-            return
-        }
-
-        guard let date: Date = proxy.value(atX: xPosition, as: Date.self) else {
-            scrubbedSample = nil
-            return
-        }
-
-        scrubbedSample = recentSamples.min {
-            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
-        }
     }
 
     private var chartDescriptor: AXChartDescriptor {

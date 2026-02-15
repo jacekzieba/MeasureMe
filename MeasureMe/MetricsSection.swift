@@ -7,36 +7,29 @@ struct MetricsSection: View {
     let iconTint: Color
     let rows: [MetricKind]
     @ObservedObject var store: ActiveMetricsStore
+    var onToggleChanged: ((_ kind: MetricKind, _ isNowEnabled: Bool) -> Void)?
 
     @State private var isExpanded = true
     @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var inactiveRows: [MetricKind] {
-        rows.filter { !store.activeKinds.contains($0) }
-    }
 
     var body: some View {
         Section {
             headerButton
 
             if isExpanded {
-                ForEach(inactiveRows, id: \.self) { kind in
+                ForEach(rows, id: \.self) { kind in
                     MetricRowView(
                         kind: kind,
-                        isOn: store.binding(for: kind),
+                        isOn: Binding(
+                            get: { store.isEnabled(kind) },
+                            set: { newValue in
+                                store.setEnabled(newValue, for: kind)
+                                onToggleChanged?(kind, newValue)
+                            }
+                        ),
                         context: .normal
                     )
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-
-                if inactiveRows.isEmpty {
-                    Text(AppLocalization.string("tracked.section.allempty"))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.tertiary)
-                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
                 }
             }
         }

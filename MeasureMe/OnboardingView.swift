@@ -37,6 +37,8 @@ struct OnboardingView: View {
     @State private var showReminderSetupSheet: Bool = false
     @State private var reminderWeekday: Int = 2
     @State private var reminderTime: Date = .now
+    @State private var reminderRepeat: ReminderRepeat = .weekly
+    @State private var reminderOnceDate: Date = .now
     @State private var healthKitStatusText: String?
     @State private var notificationsStatusText: String?
     @State private var selectedWelcomeGoals: Set<WelcomeGoal> = []
@@ -217,7 +219,7 @@ struct OnboardingView: View {
                     }
                     .scrollTargetBehavior(.viewAligned)
                     .scrollPosition(id: $scrolledStepID)
-                    .padding(.horizontal, 16)
+                    .contentMargins(.horizontal, 16, for: .scrollContent)
                     .padding(.top, 12)
                     .frame(height: cardHeight)
 
@@ -266,11 +268,13 @@ struct OnboardingView: View {
         }
         .sheet(isPresented: $showReminderSetupSheet) {
             OnboardingReminderSetupSheet(
+                repeatRule: $reminderRepeat,
                 weekday: $reminderWeekday,
-                time: $reminderTime
+                time: $reminderTime,
+                onceDate: $reminderOnceDate
             ) {
                 showReminderSetupSheet = false
-                setupWeeklyReminder(weekday: reminderWeekday, time: reminderTime)
+                setupReminder()
             }
         }
         .preferredColorScheme(.dark)
@@ -281,6 +285,11 @@ struct OnboardingView: View {
                 }
                 .padding(.bottom, 8)
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NotificationManager.notificationsDidChange)) { _ in
+            let reminders = NotificationManager.shared.loadReminders()
+            let hasAnyReminder = NotificationManager.shared.smartEnabled || !reminders.isEmpty
+            isReminderScheduled = NotificationManager.shared.notificationsEnabled && hasAnyReminder
         }
     }
 
@@ -421,7 +430,7 @@ struct OnboardingView: View {
 
             profileField(title: AppLocalization.systemString("Age")) {
                 TextField(AppLocalization.systemString("Age in years"), text: $ageInput)
-                    .keyboardType(.numberPad)
+                    .keyboardType(unitsSystem == "imperial" ? .numberPad : .decimalPad)
                     .textFieldStyle(.roundedBorder)
                     .focused($focusedField, equals: .age)
             }
@@ -458,9 +467,9 @@ struct OnboardingView: View {
 
             boosterCard(
                 icon: "bell.badge",
-                title: AppLocalization.systemString("Weekly reminder"),
-                detail: AppLocalization.systemString("One gentle nudge per week keeps momentum."),
-                why: AppLocalization.systemString("Why: consistency beats intensity."),
+                title: AppLocalization.systemString("Measurement reminders"),
+                detail: AppLocalization.systemString("Choose one-time, daily or weekly schedule."),
+                why: AppLocalization.systemString("Why: gentle nudges keep you consistent."),
                 buttonTitle: isReminderScheduled ? AppLocalization.systemString("Scheduled") : AppLocalization.systemString("Set schedule"),
                 isLoading: isRequestingNotifications,
                 isComplete: isReminderScheduled,
@@ -1167,11 +1176,9 @@ struct OnboardingView: View {
         if shouldAnimate {
             withAnimation(.easeOut(duration: 0.35)) {
                 scrolledStepID = index
-                currentStepIndex = index
             }
         } else {
             scrolledStepID = index
-            currentStepIndex = index
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
             dismissKeyboard()
@@ -1215,17 +1222,25 @@ struct OnboardingView: View {
         }
 
         let reminders = NotificationManager.shared.loadReminders()
+        let calendar = Calendar.current
         if let weeklyReminder = reminders.first(where: { $0.repeatRule == .weekly }) {
-            let calendar = Calendar.current
+            reminderRepeat = .weekly
             reminderWeekday = calendar.component(.weekday, from: weeklyReminder.date)
             reminderTime = weeklyReminder.date
+        } else if let dailyReminder = reminders.first(where: { $0.repeatRule == .daily }) {
+            reminderRepeat = .daily
+            reminderTime = dailyReminder.date
+        } else if let onceReminder = reminders.first(where: { $0.repeatRule == .once }) {
+            reminderRepeat = .once
+            reminderOnceDate = onceReminder.date
         } else {
+            reminderRepeat = .weekly
             let defaultReminder = defaultWeeklyReminderDate()
-            let calendar = Calendar.current
             reminderWeekday = calendar.component(.weekday, from: defaultReminder)
             reminderTime = defaultReminder
         }
-        isReminderScheduled = NotificationManager.shared.notificationsEnabled && !reminders.isEmpty
+        let hasAnyReminder = NotificationManager.shared.smartEnabled || !reminders.isEmpty
+        isReminderScheduled = NotificationManager.shared.notificationsEnabled && hasAnyReminder
     }
 
     private func toggleWelcomeGoal(_ goal: WelcomeGoal) {
@@ -1322,7 +1337,7 @@ struct OnboardingView: View {
         }
     }
 
-    private func setupWeeklyReminder(weekday: Int, time: Date) {
+    private func setupReminder() {
         guard !isReminderScheduled else { return }
         guard !isRequestingNotifications else { return }
 
@@ -1341,26 +1356,33 @@ struct OnboardingView: View {
             }
 
             NotificationManager.shared.notificationsEnabled = true
-            let weeklyDate = reminderDate(weekday: weekday, time: time)
-            var reminders = NotificationManager.shared.loadReminders()
 
-            if let weeklyIndex = reminders.firstIndex(where: { $0.repeatRule == .weekly }) {
-                let existing = reminders[weeklyIndex]
-                reminders[weeklyIndex] = MeasurementReminder(
-                    id: existing.id,
-                    date: weeklyDate,
-                    repeatRule: .weekly
-                )
-            } else {
-                reminders.append(MeasurementReminder(date: weeklyDate, repeatRule: .weekly))
+            let targetDate: Date
+            switch reminderRepeat {
+            case .weekly:
+                targetDate = reminderDate(weekday: reminderWeekday, time: reminderTime)
+                NotificationManager.shared.smartTime = reminderTime
+            case .daily:
+                targetDate = dailyReminderDate(time: reminderTime)
+                NotificationManager.shared.smartTime = reminderTime
+            case .once:
+                targetDate = reminderOnceDate
+                NotificationManager.shared.smartTime = reminderOnceDate
             }
 
-            NotificationManager.shared.smartTime = time
+            var reminders = NotificationManager.shared.loadReminders()
+            if let index = reminders.firstIndex(where: { $0.repeatRule == reminderRepeat }) {
+                let existing = reminders[index]
+                reminders[index] = MeasurementReminder(id: existing.id, date: targetDate, repeatRule: reminderRepeat)
+            } else {
+                reminders.append(MeasurementReminder(date: targetDate, repeatRule: reminderRepeat))
+            }
+
             NotificationManager.shared.saveReminders(reminders)
             NotificationManager.shared.scheduleAllReminders(reminders)
 
             isReminderScheduled = true
-            notificationsStatusText = AppLocalization.systemString("Weekly reminder is set.")
+            notificationsStatusText = AppLocalization.systemString("Reminder is set.")
             isRequestingNotifications = false
             Haptics.success()
         }
@@ -1376,6 +1398,19 @@ struct OnboardingView: View {
         components.hour = 7
         components.minute = 0
         return calendar.date(from: components) ?? Date()
+    }
+
+    private func dailyReminderDate(time: Date, from now: Date = Date()) -> Date {
+        let calendar = Calendar.current
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
+        var todayComponents = calendar.dateComponents([.year, .month, .day], from: now)
+        todayComponents.hour = timeComponents.hour
+        todayComponents.minute = timeComponents.minute
+        let todayTarget = calendar.date(from: todayComponents) ?? now
+        if todayTarget > now {
+            return todayTarget
+        }
+        return calendar.date(byAdding: .day, value: 1, to: todayTarget) ?? todayTarget
     }
 
     private func reminderDate(weekday: Int, time: Date, from now: Date = Date()) -> Date {
@@ -1402,27 +1437,55 @@ struct OnboardingView: View {
 
 private struct OnboardingReminderSetupSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Binding var repeatRule: ReminderRepeat
     @Binding var weekday: Int
     @Binding var time: Date
+    @Binding var onceDate: Date
     let onConfirm: () -> Void
 
     var body: some View {
         NavigationStack {
-            Form {
-                Picker(AppLocalization.systemString("Reminder day"), selection: $weekday) {
-                    ForEach(1...7, id: \.self) { index in
-                        Text(weekdayTitle(index)).tag(index)
+            ZStack {
+                AppScreenBackground(topHeight: 180, tint: Color.appAccent.opacity(0.16))
+                Form {
+                    Picker(AppLocalization.systemString("Repeat"), selection: $repeatRule) {
+                        ForEach(ReminderRepeat.allCases) { rule in
+                            Text(rule.title).tag(rule)
+                        }
+                    }
+
+                    switch repeatRule {
+                    case .once:
+                        DatePicker(
+                            AppLocalization.systemString("Reminder time"),
+                            selection: $onceDate,
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
+                    case .daily:
+                        DatePicker(
+                            AppLocalization.systemString("Reminder time"),
+                            selection: $time,
+                            displayedComponents: .hourAndMinute
+                        )
+                    case .weekly:
+                        Picker(AppLocalization.systemString("Reminder day"), selection: $weekday) {
+                            ForEach(1...7, id: \.self) { index in
+                                Text(weekdayTitle(index)).tag(index)
+                            }
+                        }
+
+                        DatePicker(
+                            AppLocalization.systemString("Reminder time"),
+                            selection: $time,
+                            displayedComponents: .hourAndMinute
+                        )
                     }
                 }
-
-                DatePicker(
-                    AppLocalization.systemString("Reminder time"),
-                    selection: $time,
-                    displayedComponents: .hourAndMinute
-                )
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle(AppLocalization.systemString("Reminder schedule"))
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.systemString("Cancel")) {
@@ -1442,78 +1505,6 @@ private struct OnboardingReminderSetupSheet: View {
     private func weekdayTitle(_ weekday: Int) -> String {
         let symbols = Calendar.current.weekdaySymbols
         return symbols[safe: weekday - 1] ?? symbols.first ?? "—"
-    }
-}
-
-private struct OnboardingRulerSlider: View {
-    @Binding var value: Double
-    let range: ClosedRange<Double>
-    let step: Double
-
-    @State private var dragStartValue: Double? = nil
-    @State private var lastHapticStep: Int? = nil
-
-    private let pointsPerStep: CGFloat = 10
-    private let horizontalInset: CGFloat = 10
-
-    var body: some View {
-        GeometryReader { proxy in
-            let width = max(proxy.size.width, 1)
-            let height = max(proxy.size.height, 1)
-            let drawableWidth = max(width - horizontalInset * 2, 1)
-            let span = max(range.upperBound - range.lowerBound, 0.0001)
-            let ratio = min(max((value - range.lowerBound) / span, 0), 1)
-            let indicatorX = horizontalInset + CGFloat(ratio) * drawableWidth
-
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.black.opacity(0.26))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                    )
-
-                let tickCount = max(8, min(50, Int(span / max(step * 5, 1)) + 1))
-                ForEach(0..<tickCount, id: \.self) { index in
-                    let tickX = horizontalInset + CGFloat(index) * (drawableWidth / CGFloat(max(tickCount - 1, 1)))
-                    let isMajor = index.isMultiple(of: 5)
-                    Rectangle()
-                        .fill(Color.white.opacity(isMajor ? 0.55 : 0.28))
-                        .frame(width: 1, height: isMajor ? height * 0.55 : height * 0.32)
-                        .position(x: tickX, y: height / 2)
-                }
-
-                Rectangle()
-                    .fill(Color.appAccent)
-                    .frame(width: 2, height: height * 0.72)
-                    .offset(x: indicatorX - 1)
-            }
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { gesture in
-                        if dragStartValue == nil {
-                            dragStartValue = value
-                        }
-                        let start = dragStartValue ?? value
-                        let deltaSteps = Double(gesture.translation.width / pointsPerStep)
-                        let rawValue = start + deltaSteps * step
-                        let stepped = (rawValue / step).rounded() * step
-                        let clamped = min(max(stepped, range.lowerBound), range.upperBound)
-                        value = clamped
-
-                        let stepIndex = Int((clamped - range.lowerBound) / step)
-                        if lastHapticStep != stepIndex {
-                            lastHapticStep = stepIndex
-                            Haptics.selection()
-                        }
-                    }
-                    .onEnded { _ in
-                        dragStartValue = nil
-                        lastHapticStep = nil
-                    }
-            )
-        }
     }
 }
 

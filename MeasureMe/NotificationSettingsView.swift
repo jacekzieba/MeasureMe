@@ -17,6 +17,8 @@ struct NotificationSettingsView: View {
     @State private var smartDays: Int = max(NotificationManager.shared.smartDays, 5)
     @State private var smartTime: Date = NotificationManager.shared.smartTime
     
+    @State private var showSavedToast: Bool = false
+    
     var body: some View {
         ZStack(alignment: .top) {
             AppScreenBackground(
@@ -50,6 +52,29 @@ struct NotificationSettingsView: View {
             .listSectionSeparator(.hidden)
             .padding(.top, -8)
         }
+        .alert(AppLocalization.string("Notifications"), isPresented: $showPermissionAlert) {
+            Button(AppLocalization.string("OK"), role: .cancel) { }
+        } message: {
+            Text(permissionMessage)
+        }
+        .overlay(alignment: .top) {
+            if showSavedToast {
+                Text(AppLocalization.string("Saved"))
+                    .font(AppTypography.captionEmphasis)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.black.opacity(0.6))
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                            )
+                    )
+                    .padding(.top, 12)
+            }
+        }
         .navigationTitle(AppLocalization.string("Notifications"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -58,10 +83,16 @@ struct NotificationSettingsView: View {
                 store.add(date: date, repeatRule: repeatRule)
             }
         }
-        .alert(AppLocalization.string("Notifications"), isPresented: $showPermissionAlert) {
-            Button(AppLocalization.string("OK"), role: .cancel) { }
-        } message: {
-            Text(permissionMessage)
+    }
+    
+    private func acknowledgeSaved() {
+        withAnimation(.easeOut(duration: 0.15)) {
+            showSavedToast = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            withAnimation(.easeIn(duration: 0.2)) {
+                showSavedToast = false
+            }
         }
     }
 
@@ -160,6 +191,7 @@ struct NotificationSettingsView: View {
                             store.rescheduleAll()
                             NotificationManager.shared.scheduleSmartIfNeeded()
                             NotificationManager.shared.clearLastSchedulingError()
+                            acknowledgeSaved()
                         } else {
                             notificationsEnabled = false
                             NotificationManager.shared.notificationsEnabled = false
@@ -172,6 +204,7 @@ struct NotificationSettingsView: View {
                         NotificationManager.shared.cancelSmartNotification()
                         NotificationManager.shared.cancelPhotoReminder()
                         NotificationManager.shared.clearLastSchedulingError()
+                        acknowledgeSaved()
                     }
                 }
             }
@@ -189,8 +222,28 @@ struct NotificationSettingsView: View {
                 }
                 .frame(minHeight: 44)
                 .onChange(of: smartEnabled) { _, newValue in
-                    NotificationManager.shared.smartEnabled = newValue
-                    NotificationManager.shared.scheduleSmartIfNeeded()
+                    if newValue && !notificationsEnabled {
+                        Task { @MainActor in
+                            let granted = await NotificationManager.shared.requestAuthorization()
+                            if granted {
+                                notificationsEnabled = true
+                                NotificationManager.shared.notificationsEnabled = true
+                                NotificationManager.shared.smartEnabled = true
+                                NotificationManager.shared.scheduleSmartIfNeeded()
+                                NotificationManager.shared.clearLastSchedulingError()
+                                acknowledgeSaved()
+                            } else {
+                                smartEnabled = false
+                                NotificationManager.shared.smartEnabled = false
+                                permissionMessage = AppLocalization.string("Permission denied. Enable notifications in Settings.")
+                                showPermissionAlert = true
+                            }
+                        }
+                    } else {
+                        NotificationManager.shared.smartEnabled = newValue
+                        NotificationManager.shared.scheduleSmartIfNeeded()
+                        acknowledgeSaved()
+                    }
                 }
 
                 Divider()
@@ -208,6 +261,7 @@ struct NotificationSettingsView: View {
                 .onChange(of: smartDays) { _, newValue in
                     NotificationManager.shared.smartDays = newValue
                     NotificationManager.shared.scheduleSmartIfNeeded()
+                    acknowledgeSaved()
                 }
 
                 Divider()
@@ -223,6 +277,7 @@ struct NotificationSettingsView: View {
                 .onChange(of: smartTime) { _, newValue in
                     NotificationManager.shared.smartTime = newValue
                     NotificationManager.shared.scheduleSmartIfNeeded()
+                    acknowledgeSaved()
                 }
             }
         }
@@ -239,6 +294,7 @@ struct NotificationSettingsView: View {
             .frame(minHeight: 44)
             .onChange(of: importNotificationsEnabled) { _, newValue in
                 NotificationManager.shared.importNotificationsEnabled = newValue
+                acknowledgeSaved()
             }
 
             Spacer().frame(height: 4)
@@ -254,6 +310,7 @@ struct NotificationSettingsView: View {
                 } else {
                     NotificationManager.shared.cancelPhotoReminder()
                 }
+                acknowledgeSaved()
             }
 
             Spacer().frame(height: 4)
@@ -264,6 +321,7 @@ struct NotificationSettingsView: View {
             .frame(minHeight: 44)
             .onChange(of: goalAchievedEnabled) { _, newValue in
                 NotificationManager.shared.goalAchievedEnabled = newValue
+                acknowledgeSaved()
             }
         }
         .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
@@ -319,20 +377,32 @@ private struct AddReminderSheet: View {
         NavigationStack {
             ZStack {
                 AppScreenBackground(topHeight: 180, tint: Color.cyan.opacity(0.16))
-                Form {
-                    DatePicker(
-                        AppLocalization.string("Reminder time"),
-                        selection: $date,
-                        displayedComponents: [.date, .hourAndMinute]
-                    )
-                    
-                    Picker(AppLocalization.string("Repeat"), selection: $repeatRule) {
-                        ForEach(ReminderRepeat.allCases) { rule in
-                            Text(rule.title).tag(rule)
+
+                ScrollView {
+                    VStack(spacing: 16) {
+                        AppGlassCard(
+                            depth: .floating,
+                            tint: Color.cyan.opacity(0.12),
+                            contentPadding: 20
+                        ) {
+                            DatePicker(
+                                AppLocalization.string("Reminder time"),
+                                selection: $date,
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                        }
+
+                        AppGlassCard(depth: .base) {
+                            Picker(AppLocalization.string("Repeat"), selection: $repeatRule) {
+                                ForEach(ReminderRepeat.allCases) { rule in
+                                    Text(rule.title).tag(rule)
+                                }
+                            }
                         }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
                 }
-                .scrollContentBackground(.hidden)
             }
             .navigationTitle(AppLocalization.string("Add Reminder"))
             .navigationBarTitleDisplayMode(.inline)
@@ -352,21 +422,15 @@ private struct AddReminderSheet: View {
     }
 }
 
-private struct GlassCard<Content: View>: View {
+// GlassCard replaced by AppGlassCard from design system
+private typealias GlassCard = _NotificationGlassCard
+
+private struct _NotificationGlassCard<Content: View>: View {
     @ViewBuilder let content: Content
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        AppGlassCard(depth: .base, contentPadding: 16) {
             content
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
-                )
-        )
     }
 }

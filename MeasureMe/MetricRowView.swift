@@ -37,19 +37,12 @@ struct MetricRowView: View {
                     .transaction { $0.animation = nil }
             }
 
-            if case .active(let isEditing) = context, !isEditing {
-                Toggle("", isOn: isOn)
-                    .labelsHidden()
-                    .accessibilityLabel(kind.title)
-                    .frame(width: 52, alignment: .trailing)
-                    .transaction { $0.animation = nil }
-            }
+            // .active context: no trailing toggle — use swipe to stop tracking
         }
         .offset(x: rowOffset)
         .frame(maxWidth: .infinity, minHeight: MetricsLayout.rowHeight, alignment: .leading)
         .padding(.horizontal, MetricsLayout.horizontalPadding)
-        .padding(.vertical, 10)
-        .padding(.vertical, 3)
+        .padding(.vertical, 6)
         .contentShape(Rectangle())
         .listRowSeparator(.hidden)
         .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))

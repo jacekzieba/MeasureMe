@@ -257,6 +257,7 @@
 "Chart" = "Wykres";
 "Checking photos..." = "Sprawdzanie zdjęć...";
 "Choose from Library" = "Wybierz z biblioteki";
+"Choose one-time, daily or weekly schedule." = "Wybierz jednorazowy, dzienny lub tygodniowy harmonogram.";
 "Choose indicators to show" = "Wybierz wskaźniki do wyświetlenia";
 "Choose metrics" = "Wybierz metryki";
 "Choose up to 3 to show on Home and Measurements." = "Wybierz do 3, aby wyświetlać na Stronie głównej i w Pomiarach.";
@@ -350,6 +351,7 @@
 "Measurement time" = "Czas pomiaru";
 "Measurements" = "Pomiary";
 "Measurements (Optional)" = "Pomiary (opcjonalnie)";
+"Measurement reminders" = "Przypomnienia o pomiarach";
 "Measurements section" = "Sekcja pomiarów";
 "Metric" = "Metryczny";
 "Metric Snapshots" = "Podsumowanie pomiarów";
@@ -427,7 +429,7 @@
 "Set a target" = "Ustaw cel";
 "Set height manually" = "Ustaw wzrost ręcznie";
 "Set your age to improve health metric accuracy." = "Ustaw wiek, aby poprawić dokładność wskaźników zdrowotnych.";
-"Set your height to calculate health metrics like WHtR (Waist-to-Height Ratio)." = "Ustaw wzrost, aby obliczać wskaźników zdrowotnych, takich jak WHtR (stosunek talii do wzrostu).";
+"Set your height to calculate health metrics like WHtR (Waist-to-Height Ratio)." = "Ustaw wzrost, aby obliczać wskaźniki zdrowotne, takie jak WHtR (stosunek talii do wzrostu).";
 "Settings" = "Ustawienia";
 "Show health summary on Home" = "Pokaż podsumowanie zdrowia na Stronie głównej";
 "Show measurements on Home" = "Pokaż pomiary na Stronie głównej";
@@ -435,8 +437,8 @@
 "Showing all photos" = "Wyświetlanie wszystkich zdjęć";
 "Skip" = "Pomiń";
 "\"What is measured is managed\"\n- Peter Drucker" = "„To, co mierzone, jest zarządzane”\n- Peter Drucker";
-"Smart Notifications" = "Powiadomienia dla wybitych z rutyny";
-"Smart reminders" = "Powiadomienia dla wybitych z rutyny";
+"Smart Notifications" = "Smart powiadomienia";
+"Smart reminders" = "Smart powiadomienia";
 "Smart reminders only trigger after a period of inactivity. When you log a measurement, the timer resets." = "Powiadomienia wyświetlą się dopiero po okresie braku aktywności. Gdy zapiszesz pomiar, licznik się resetuje.";
 "Some health metrics cannot be calculated because the following measurements are missing:" = "Niektórych metryk zdrowotnych nie można obliczyć, ponieważ brakuje następujących pomiarów:";
 "Start Premium" = "Zacznij korzystać z Edycji Premium";
@@ -483,6 +485,7 @@
 "What should we call you?" = "Jak mamy się do Ciebie zwracać?";
 "When enabled, current values are saved even if unchanged." = "Po włączeniu bieżące wartości są zapisywane nawet jeśli się nie zmieniły.";
 "Why It Matters" = "Dlaczego to ważne";
+"Why: gentle nudges keep you consistent." = "Dlaczego: delikatne przypomnienia pomagają w regularności.";
 "Why is age important?" = "Dlaczego wiek jest istotny?";
 "Why is height important?" = "Dlaczego wzrost jest istotny?";
 "You can choose up to 3 key metrics for Home." = "Możesz wybrać do 3 kluczowych metryk na Stronę główną.";
@@ -1121,6 +1124,16 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "premium.carousel.indicator.preview.about" = "Premium wyjaśnia każdy wskaźnik prostym językiem i podpowiada, co poprawić dalej.";
 "premium.unlock.bundle.title" = "Wszystko w Premium";
 "premium.carousel.unlock.more" = "i więcej";
+"Crash Reports" = "Raporty błędów";
+"No crash reports" = "Brak raportów błędów";
+"Everything looks good. No crashes have been recorded." = "Wszystko w porządku. Nie zarejestrowano żadnych awarii.";
+"Send diagnostic report" = "Wyślij raport diagnostyczny";
+"Share recent logs to help debug issues." = "Udostępnij ostatnie logi, aby pomóc w diagnozowaniu problemów.";
+"Crash Detected" = "Wykryto awarię";
+"View Report" = "Zobacz raport";
+"Dismiss" = "Zamknij";
+"The app crashed last time. You can view and share the crash report in Settings → Data → Crash Reports." = "Aplikacja uległa awarii ostatnim razem. Możesz zobaczyć i udostępnić raport w Ustawienia → Dane → Raporty błędów.";
+"Delete Report?" = "Usunąć raport?";
 "Delete all data" = "Usuń wszystkie dane";
 "This removes all measurements, goals, photos, reminders, and imported HealthKit data stored in MeasureMe on this device. Apple Health records are not deleted and can be re-imported if sync is enabled again." = "To usuwa wszystkie pomiary, cele, zdjęcia, przypomnienia i dane zaimportowane z HealthKit zapisane lokalnie w MeasureMe na tym urządzeniu. Rekordy z Apple Health nie są usuwane i mogą zostać ponownie zaimportowane po ponownym włączeniu synchronizacji.";
 "All local app data has been deleted." = "Wszystkie lokalne dane aplikacji zostały usunięte.";
@@ -1190,6 +1203,7 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "No products returned by StoreKit." = "StoreKit nie zwrócił żadnych produktów.";
 "Unable to save this image." = "Nie udało się zapisać tego obrazu.";
 "Permission denied. Enable Photos access in Settings." = "Brak uprawnień. Włącz dostęp do Zdjęć w Ustawieniach.";
+"Saved" = "Zapisano";
 "Saved to Photos." = "Zapisano w Zdjęciach.";
 "Save Failed" = "Zapisywanie nieudane";
 "Photo access denied. Enable Photos access in Settings to save." = "Brak dostępu do Zdjęć. Włącz dostęp w Ustawieniach, aby zapisać.";
@@ -1208,12 +1222,26 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Photo Date" = "Data zdjęcia";
 
 /* Tracked Measurements UX improvements */
-"tracked.keymetrics.header" = "Widoczne na ekranie głównym";
+"tracked.keymetrics.header" = "Przypnij do Strony głównej";
 "tracked.keymetrics.description" = "Stuknij ★, aby przypiąć 1–3 metryki na ekranie głównym i w zakładce Pomiary. Sam decydujesz ile.";
 "tracked.keymetrics.counter" = "%d z 3 przypiętych";
 "tracked.keymetrics.empty" = "Najpierw włącz metrykę poniżej, a potem wróć tutaj, aby przypiąć ją do ekranu głównego.";
 "tracked.active.header" = "Aktualnie śledzone";
-"tracked.active.description" = "Te metryki pojawiają się w Szybkim dodawaniu i zakładce Pomiary. Przeciągnij, aby zmienić kolejność.";
+"tracked.active.description" = "Stuknij ★, aby przypiąć do 3 metryki na Stronie głównej. Przesuń, aby przestać śledzić. Przeciągnij, aby zmienić kolejność.";
 "tracked.section.health.subtitle" = "Włącz, aby rozpocząć śledzenie. Synchronizowane automatycznie z Apple Zdrowie.";
 "tracked.section.custom.subtitle" = "Włącz, aby rozpocząć śledzenie. Wartości wpisujesz ręcznie.";
 "tracked.section.allempty" = "Wszystkie metryki z tej grupy są już aktywne powyżej.";
+"tracked.active.editorder" = "Kolejność";
+"tracked.active.stoptracking" = "Przestań śledzić";
+"tracked.snackbar.added" = "Dodano do śledzenia";
+"tracked.snackbar.removed" = "Usunięto ze śledzenia";
+"tracked.snackbar.undo" = "Cofnij";
+
+// MARK: - Metric Input
+"metric.input.tap_to_edit" = "Stuknij, aby edytować";
+
+// MARK: - Measurements Empty States
+"measurements.empty.title" = "Rozpocznij pierwszy pomiar";
+"measurements.empty.body" = "Śledź wagę, wymiary ciała i więcej. Twoje wykresy postępów pojawią się tutaj.";
+"measurements.quickadd.hint" = "Porada: stuknij + w prawym dolnym rogu, aby szybko dodać pomiar";
+"measurements.metric.nodata" = "Brak danych";

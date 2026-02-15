@@ -392,6 +392,7 @@ struct QuickAddSheetView: View {
         let valid = validRange(for: kind)
         let minValue = max(base - span, valid.lowerBound)
         let maxValue = min(base + span, valid.upperBound)
+        guard minValue <= maxValue else { return valid }
         return minValue...maxValue
     }
 
@@ -536,7 +537,6 @@ struct QuickAddSheetView: View {
             isSaving = false
             Haptics.success()
             onSaved()
-            dismiss()
         }
     }
 
@@ -593,7 +593,8 @@ private struct RulerSlider: View {
                             .stroke(Color.white.opacity(0.16), lineWidth: 1)
                     )
 
-                let tickCount = max(8, min(40, Int(span / max(step * 5, 1)) + 1))
+                let tickRaw = span / max(step * 5, 1) + 1
+                let tickCount = max(8, min(40, tickRaw.isFinite ? Int(tickRaw) : 8))
                 ForEach(0..<tickCount, id: \.self) { index in
                     let tickX = horizontalInset + CGFloat(index) * (drawableWidth / CGFloat(max(tickCount - 1, 1)))
                     let isMajor = index.isMultiple(of: 5)
@@ -621,7 +622,8 @@ private struct RulerSlider: View {
                         let stepped = (rawValue / step).rounded() * step
                         let clamped = min(max(stepped, range.lowerBound), range.upperBound)
                         value = clamped
-                        let stepIndex = Int((clamped - range.lowerBound) / step)
+                        let stepRaw = (clamped - range.lowerBound) / step
+                        let stepIndex = stepRaw.isFinite ? Int(stepRaw) : 0
                         if lastHapticStep != stepIndex {
                             lastHapticStep = stepIndex
                             Haptics.selection()

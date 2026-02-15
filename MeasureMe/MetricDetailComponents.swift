@@ -448,6 +448,7 @@ struct AddMetricSampleView: View {
     var onAdd: (Date, Double) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var isValueFocused: Bool
 
     @State private var date: Date = .now
     @State private var displayValue: Double
@@ -457,7 +458,7 @@ struct AddMetricSampleView: View {
     init(kind: MetricKind, defaultMetricValue: Double? = nil, onAdd: @escaping (Date, Double) -> Void) {
         self.kind = kind
         self.onAdd = onAdd
-        
+
         // Konwertuj domyślną wartość na jednostki wyświetlania
         let units = UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
         if let metric = defaultMetricValue {
@@ -479,16 +480,42 @@ struct AddMetricSampleView: View {
         NavigationStack {
             ZStack {
                 AppScreenBackground(topHeight: 220)
-                Form {
-                    Section(AppLocalization.string("Value")) {
-                        HStack {
-                            TextField(AppLocalization.string("Value"), value: $displayValue, format: .number)
-                                .keyboardType(.decimalPad)
-                                .font(.body.monospacedDigit())
-                            Text(kind.unitSymbol(unitsSystem: unitsSystem))
-                                .foregroundStyle(.secondary)
+
+                ScrollView {
+                    VStack(spacing: 16) {
+                        // MARK: - Hero value card
+                        AppGlassCard(
+                            depth: .floating,
+                            tint: Color.cyan.opacity(0.12),
+                            contentPadding: 24
+                        ) {
+                            VStack(spacing: 8) {
+                                HStack(spacing: 4) {
+                                    TextField("", value: $displayValue, format: .number)
+                                        .keyboardType(.decimalPad)
+                                        .multilineTextAlignment(.trailing)
+                                        .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
+                                        .fixedSize()
+                                        .focused($isValueFocused)
+
+                                    Text(kind.unitSymbol(unitsSystem: unitsSystem))
+                                        .font(.title.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                if !isValueFocused {
+                                    Text(AppLocalization.string("metric.input.tap_to_edit"))
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: 140)
+                            .contentShape(Rectangle())
+                            .onTapGesture { isValueFocused = true }
                         }
 
+                        // Walidacja pod kartą
                         if !valueValidation.isValid, let message = valueValidation.message {
                             Text(message)
                                 .font(AppTypography.micro)
@@ -496,10 +523,18 @@ struct AddMetricSampleView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
 
-                        DatePicker(AppLocalization.string("Date"), selection: $date, displayedComponents: [.date, .hourAndMinute])
+                        // MARK: - Date card
+                        AppGlassCard(depth: .base) {
+                            DatePicker(
+                                AppLocalization.string("Date"),
+                                selection: $date,
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                        }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
                 }
-                .scrollContentBackground(.hidden)
             }
             .navigationTitle(AppLocalization.string("metric.add.title", kind.title))
             .navigationBarTitleDisplayMode(.inline)
@@ -538,6 +573,7 @@ struct EditMetricSampleView: View {
     let sample: MetricSample
 
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var isValueFocused: Bool
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
 
     @State private var date: Date
@@ -546,7 +582,7 @@ struct EditMetricSampleView: View {
     init(kind: MetricKind, sample: MetricSample) {
         self.kind = kind
         self.sample = sample
-        
+
         // Inicjalizacja stanu z istniejących wartości
         _date = State(initialValue: sample.date)
         _displayValue = State(
@@ -569,16 +605,42 @@ struct EditMetricSampleView: View {
         NavigationStack {
             ZStack {
                 AppScreenBackground(topHeight: 220, tint: Color.cyan.opacity(0.18))
-                Form {
-                    Section(AppLocalization.string("Value")) {
-                        HStack {
-                            TextField(AppLocalization.string("Value"), value: $displayValue, format: .number)
-                                .keyboardType(.decimalPad)
-                                .font(.body.monospacedDigit())
-                            Text(kind.unitSymbol(unitsSystem: unitsSystem))
-                                .foregroundStyle(.secondary)
+
+                ScrollView {
+                    VStack(spacing: 16) {
+                        // MARK: - Hero value card
+                        AppGlassCard(
+                            depth: .floating,
+                            tint: Color.cyan.opacity(0.12),
+                            contentPadding: 24
+                        ) {
+                            VStack(spacing: 8) {
+                                HStack(spacing: 4) {
+                                    TextField("", value: $displayValue, format: .number)
+                                        .keyboardType(.decimalPad)
+                                        .multilineTextAlignment(.trailing)
+                                        .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
+                                        .fixedSize()
+                                        .focused($isValueFocused)
+
+                                    Text(kind.unitSymbol(unitsSystem: unitsSystem))
+                                        .font(.title.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                if !isValueFocused {
+                                    Text(AppLocalization.string("metric.input.tap_to_edit"))
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: 140)
+                            .contentShape(Rectangle())
+                            .onTapGesture { isValueFocused = true }
                         }
 
+                        // Walidacja pod kartą
                         if !valueValidation.isValid, let message = valueValidation.message {
                             Text(message)
                                 .font(AppTypography.micro)
@@ -586,12 +648,21 @@ struct EditMetricSampleView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
 
-                        DatePicker(AppLocalization.string("Date"), selection: $date, displayedComponents: [.date, .hourAndMinute])
+                        // MARK: - Date card
+                        AppGlassCard(depth: .base) {
+                            DatePicker(
+                                AppLocalization.string("Date"),
+                                selection: $date,
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                        }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
                 }
-                .scrollContentBackground(.hidden)
             }
             .navigationTitle(AppLocalization.string("metric.edit.title", kind.title))
+            .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -631,18 +702,19 @@ struct SetGoalView: View {
     let kind: MetricKind
     let currentGoal: MetricGoal?
     var onSet: (Double, MetricGoal.Direction) -> Void
-    
+
     @Environment(\.dismiss) private var dismiss
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
-    
+    @FocusState private var isValueFocused: Bool
+
     @State private var displayValue: Double
     @State private var direction: MetricGoal.Direction
-    
+
     init(kind: MetricKind, currentGoal: MetricGoal?, onSet: @escaping (Double, MetricGoal.Direction) -> Void) {
         self.kind = kind
         self.currentGoal = currentGoal
         self.onSet = onSet
-        
+
         // Załaduj istniejący cel lub zacznij od zera
         let units = UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
         if let goal = currentGoal {
@@ -662,7 +734,7 @@ struct SetGoalView: View {
             unitsSystem: unitsSystem
         )
     }
-    
+
     /// Określa domyślny kierunek celu dla danej metryki
     private static func defaultDirection(for kind: MetricKind) -> MetricGoal.Direction {
         switch kind {
@@ -672,50 +744,89 @@ struct SetGoalView: View {
             return .increase  // Zwykle chcemy zwiększyć
         }
     }
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
                 AppScreenBackground(topHeight: 220, tint: Color.cyan.opacity(0.18))
-                Form {
-                    // Wybór kierunku celu
-                    Section {
-                        Picker(AppLocalization.string("Goal type"), selection: $direction) {
-                            Label(AppLocalization.string("Decrease"), systemImage: "arrow.down")
-                                .tag(MetricGoal.Direction.decrease)
-                            Label(AppLocalization.string("Increase"), systemImage: "arrow.up")
-                                .tag(MetricGoal.Direction.increase)
+
+                ScrollView {
+                    VStack(spacing: 16) {
+                        // MARK: - Direction picker card
+                        AppGlassCard(
+                            depth: .floating,
+                            tint: Color.cyan.opacity(0.12),
+                            contentPadding: 20
+                        ) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text(AppLocalization.string("Direction"))
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+
+                                Picker(AppLocalization.string("Goal type"), selection: $direction) {
+                                    Label(AppLocalization.string("Decrease"), systemImage: "arrow.down")
+                                        .tag(MetricGoal.Direction.decrease)
+                                    Label(AppLocalization.string("Increase"), systemImage: "arrow.up")
+                                        .tag(MetricGoal.Direction.increase)
+                                }
+                                .pickerStyle(.segmented)
+
+                                Text(AppLocalization.string("Choose whether you want to increase or decrease this metric."))
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
-                        .pickerStyle(.segmented)
-                    } header: {
-                        Text(AppLocalization.string("Direction"))
-                    } footer: {
-                        Text(AppLocalization.string("Choose whether you want to increase or decrease this metric."))
-                    }
-                    
-                    // Wartość celu
-                    Section {
-                        HStack {
-                            TextField(AppLocalization.string("Goal Value"), value: $displayValue, format: .number)
-                                .keyboardType(.decimalPad)
-                                .font(.body.monospacedDigit())
-                            Text(kind.unitSymbol(unitsSystem: unitsSystem))
-                                .foregroundStyle(.secondary)
+
+                        // MARK: - Hero value card
+                        AppGlassCard(
+                            depth: .floating,
+                            tint: Color.cyan.opacity(0.12),
+                            contentPadding: 24
+                        ) {
+                            VStack(spacing: 8) {
+                                HStack(spacing: 4) {
+                                    TextField("", value: $displayValue, format: .number)
+                                        .keyboardType(.decimalPad)
+                                        .multilineTextAlignment(.trailing)
+                                        .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
+                                        .fixedSize()
+                                        .focused($isValueFocused)
+
+                                    Text(kind.unitSymbol(unitsSystem: unitsSystem))
+                                        .font(.title.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                if !isValueFocused {
+                                    Text(AppLocalization.string("metric.input.tap_to_edit"))
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: 140)
+                            .contentShape(Rectangle())
+                            .onTapGesture { isValueFocused = true }
                         }
-                        
+
+                        // Walidacja pod kartą
                         if !valueValidation.isValid, let message = valueValidation.message {
                             Text(message)
                                 .font(AppTypography.micro)
                                 .foregroundStyle(Color.red.opacity(0.9))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                    } header: {
-                        Text(AppLocalization.string("Target Value"))
-                    } footer: {
-                        Text(AppLocalization.string("metric.goal.set.help", kind.title.lowercased()))
+
+                        // MARK: - Help text card
+                        AppGlassCard(depth: .base) {
+                            Text(AppLocalization.string("metric.goal.set.help", kind.title.lowercased()))
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
                 }
-                .scrollContentBackground(.hidden)
             }
             .navigationTitle(currentGoal == nil ? AppLocalization.string("Set Goal") : AppLocalization.string("Update Goal"))
             .navigationBarTitleDisplayMode(.inline)
@@ -726,6 +837,7 @@ struct SetGoalView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(currentGoal == nil ? AppLocalization.string("Set") : AppLocalization.string("Update")) {
+                        Haptics.light()
                         let metric = kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
                         onSet(metric, direction)
                         dismiss()

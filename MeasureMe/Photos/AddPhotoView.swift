@@ -27,18 +27,17 @@ struct AddPhotoView: View {
             ZStack {
                 AppScreenBackground(topHeight: 220, tint: Color.cyan.opacity(0.18))
 
-                Form {
-                    photoSelectionSection
-                    
-                    if selectedImage != nil {
-                        photoPreviewSection
+                ScrollView {
+                    VStack(spacing: 16) {
+                        photoSelectionCard
+                        photoPreviewCard
+                        tagsCard
+                        dateCard
+                        measurementsCard
                     }
-
-                    tagsSection
-                    dateSection
-                    measurementsSection
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
                 }
-                .scrollContentBackground(.hidden)
             }
             .navigationTitle(AppLocalization.string("Add Photo"))
             .navigationBarTitleDisplayMode(.inline)
@@ -76,49 +75,76 @@ struct AddPhotoView: View {
     }
 }
 
-// MARK: - Sections
+// MARK: - Glass Cards
 private extension AddPhotoView {
-    
-    var photoSelectionSection: some View {
-        Section {
-            Button {
-                Haptics.light()
-                showCamera = true
-            } label: {
-                Label(AppLocalization.string("Take Photo"), systemImage: "camera.fill")
-            }
-            
-            Button {
-                Haptics.light()
-                showPhotoLibrary = true
-            } label: {
-                Label(AppLocalization.string("Choose from Library"), systemImage: "photo.on.rectangle")
+
+    var photoSelectionCard: some View {
+        AppGlassCard(
+            depth: .elevated,
+            tint: Color.cyan.opacity(0.08),
+            contentPadding: 16
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
+                Button {
+                    Haptics.light()
+                    showCamera = true
+                } label: {
+                    HStack(spacing: 12) {
+                        GlassPillIcon(systemName: "camera.fill")
+                        Text(AppLocalization.string("Take Photo"))
+                            .font(AppTypography.bodyEmphasis)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                Divider().overlay(Color.white.opacity(0.12))
+
+                Button {
+                    Haptics.light()
+                    showPhotoLibrary = true
+                } label: {
+                    HStack(spacing: 12) {
+                        GlassPillIcon(systemName: "photo.on.rectangle")
+                        Text(AppLocalization.string("Choose from Library"))
+                            .font(AppTypography.bodyEmphasis)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
     }
-    
+
     @ViewBuilder
-    var photoPreviewSection: some View {
+    var photoPreviewCard: some View {
         if let image = selectedImage {
-            Section {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                )
+        }
+    }
+
+    var tagsCard: some View {
+        AppGlassCard(depth: .base) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(AppLocalization.string("Tags"))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(.secondary)
+
+                ForEach(availableTags) { tag in
+                    Toggle(tag.title, isOn: tagBinding(for: tag))
+                        .toggleStyle(LiquidSwitchToggleStyle())
+                }
             }
         }
     }
-    
-    var tagsSection: some View {
-        Section(AppLocalization.string("Tags")) {
-            ForEach(availableTags) { tag in
-                Toggle(tag.title, isOn: tagBinding(for: tag))
-            }
-        }
-    }
-    
-    var dateSection: some View {
-        Section {
+
+    var dateCard: some View {
+        AppGlassCard(depth: .base) {
             DatePicker(
                 AppLocalization.string("Date"),
                 selection: $date,
@@ -126,25 +152,31 @@ private extension AddPhotoView {
             )
         }
     }
-    
-    @ViewBuilder
-    var measurementsSection: some View {
-        if !activeMetrics.activeKinds.isEmpty {
-            Section(AppLocalization.string("Measurements (Optional)")) {
-                ForEach(activeMetrics.activeKinds, id: \.self) { kind in
-                    MetricValueField(
-                        kind: kind,
-                        value: metricBinding(for: kind),
-                        unitsSystem: unitsSystem,
-                        validationMessage: metricValidationMessage(for: kind)
-                    )
-                }
 
-                if hasInvalidMetricInputs {
-                    Text(AppLocalization.string("Fix highlighted values before saving."))
-                        .font(AppTypography.micro)
-                        .foregroundStyle(Color.red.opacity(0.9))
-                        .fixedSize(horizontal: false, vertical: true)
+    @ViewBuilder
+    var measurementsCard: some View {
+        if !activeMetrics.activeKinds.isEmpty {
+            AppGlassCard(depth: .base) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(AppLocalization.string("Measurements (Optional)"))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(.secondary)
+
+                    ForEach(activeMetrics.activeKinds, id: \.self) { kind in
+                        MetricValueField(
+                            kind: kind,
+                            value: metricBinding(for: kind),
+                            unitsSystem: unitsSystem,
+                            validationMessage: metricValidationMessage(for: kind)
+                        )
+                    }
+
+                    if hasInvalidMetricInputs {
+                        Text(AppLocalization.string("Fix highlighted values before saving."))
+                            .font(AppTypography.micro)
+                            .foregroundStyle(Color.red.opacity(0.9))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
         }

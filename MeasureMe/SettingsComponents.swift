@@ -427,6 +427,18 @@ struct DataSettingsDetailView: View {
 
                         SettingsRowDivider()
 
+                        NavigationLink {
+                            CrashReportView()
+                        } label: {
+                            HStack(spacing: 12) {
+                                GlassPillIcon(systemName: "exclamationmark.bubble")
+                                Text(AppLocalization.string("Crash Reports"))
+                            }
+                        }
+                        .frame(minHeight: 44, alignment: .leading)
+
+                        SettingsRowDivider()
+
                         Button(role: .destructive, action: onDeleteAll) {
                             Text(AppLocalization.string("Delete all data"))
                         }

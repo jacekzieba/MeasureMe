@@ -31,7 +31,7 @@ final class MetricKindTests: XCTestCase {
         XCTAssertEqual(MetricKind.bodyFat.valueForDisplay(fromMetric: value, unitsSystem: "imperial"), value, accuracy: 0.0001)
     }
 
-    func testTrendOutcomeWithoutGoalRespectsMetricDirection() {
+    @MainActor func testTrendOutcomeWithoutGoalRespectsMetricDirection() {
         XCTAssertEqual(
             MetricKind.waist.trendOutcome(from: 90, to: 88, goal: nil),
             .positive

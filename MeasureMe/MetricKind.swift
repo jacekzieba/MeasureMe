@@ -131,7 +131,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable {
 
     // MARK: - Trend Evaluation
 
-    enum TrendOutcome {
+    enum TrendOutcome: Equatable, Sendable {
         case positive
         case negative
         case neutral

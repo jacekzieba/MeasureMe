@@ -7,6 +7,7 @@ struct MeasureMeApp: App {
     @AppStorage("appLanguage") private var appLanguage: String = "system"
     @State private var startupState: StartupState = .loading
     @State private var startupAttemptID: Int = 0
+    @State private var showCrashAlert = false
 
     private enum StartupState {
         case loading
@@ -26,6 +27,9 @@ struct MeasureMeApp: App {
     }
 
     init() {
+        // Zainstaluj crash reporter jako pierwszy krok
+        CrashReporter.shared.install()
+
         UserDefaults.standard.register(defaults: [
             "hasCompletedOnboarding": false,
             "userName": "",
@@ -59,9 +63,19 @@ struct MeasureMeApp: App {
         configureUITestDefaultsIfNeeded()
 
         let segmentedFont = UIFont.systemFont(ofSize: 13, weight: .semibold).withMonospacedDigits()
-        UISegmentedControl.appearance().setTitleTextAttributes([.font: segmentedFont], for: .normal)
-        UISegmentedControl.appearance().setTitleTextAttributes([.font: segmentedFont], for: .selected)
+        UISegmentedControl.appearance().setTitleTextAttributes([.font: segmentedFont, .foregroundColor: UIColor.white], for: .normal)
+        UISegmentedControl.appearance().setTitleTextAttributes([.font: segmentedFont, .foregroundColor: UIColor.black], for: .selected)
         UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(Color.appAccent)
+
+        // Select all text when any TextField gains focus (avoids "080" problem)
+        NotificationCenter.default.addObserver(
+            forName: UITextField.textDidBeginEditingNotification,
+            object: nil, queue: .main
+        ) { notification in
+            if let textField = notification.object as? UITextField {
+                DispatchQueue.main.async { textField.selectAll(nil) }
+            }
+        }
 
         let navTitleBase = UIFont.systemFont(ofSize: 17, weight: .semibold)
         let navLargeBase = UIFont.systemFont(ofSize: 34, weight: .bold)
@@ -113,6 +127,25 @@ struct MeasureMeApp: App {
             .environment(\.locale, appLocale)
             .task(id: startupAttemptID) {
                 await bootstrapApp()
+            }
+            .onAppear {
+                if CrashReporter.shared.hasUnreportedCrash {
+                    showCrashAlert = true
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+                CrashReporter.shared.persistLogBuffer()
+            }
+            .alert(AppLocalization.string("Crash Detected"), isPresented: $showCrashAlert) {
+                Button(AppLocalization.string("View Report")) {
+                    CrashReporter.shared.markCrashReported()
+                    // User can navigate to Settings → Data → Crash Reports
+                }
+                Button(AppLocalization.string("Dismiss"), role: .cancel) {
+                    CrashReporter.shared.markCrashReported()
+                }
+            } message: {
+                Text(AppLocalization.string("The app crashed last time. You can view and share the crash report in Settings → Data → Crash Reports."))
             }
         }
     }

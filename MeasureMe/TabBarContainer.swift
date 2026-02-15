@@ -1,8 +1,10 @@
 import SwiftUI
+import SwiftData
 
 struct TabBarContainer: View {
     @StateObject private var router = AppRouter()
     @AppStorage("home_tab_scroll_offset") private var homeTabScrollOffset: Double = 0.0
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         let tabBarShouldBeVisible = router.selectedTab != .home || homeTabScrollOffset < -14
@@ -110,6 +112,12 @@ struct TabBarContainer: View {
             switch sheet {
             case .composer:
                 QuickAddContainerView {
+                    router.presentedSheet = nil
+                }
+            case .addSample(let kind):
+                AddMetricSampleView(kind: kind) { date, metricValue in
+                    let sample = MetricSample(kind: kind, value: metricValue, date: date)
+                    modelContext.insert(sample)
                     router.presentedSheet = nil
                 }
             }

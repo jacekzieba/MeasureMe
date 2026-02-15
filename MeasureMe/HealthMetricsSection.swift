@@ -641,7 +641,11 @@ struct HealthMetricsSection: View {
     }
 
     private var healthInsightInput: HealthInsightInput? {
-        guard supportsAppleIntelligence, hasAnyMetricEnabled, hasSummaryMeasurementData, displayMode != .indicatorsOnly else { return nil }
+        guard displayMode != .indicatorsOnly else { return nil }
+        guard effectivePremium else { return nil }
+        guard supportsAppleIntelligence || bypassGuards else { return nil }
+        guard hasAnyMetricEnabled || bypassGuards else { return nil }
+        guard hasSummaryMeasurementData || bypassGuards else { return nil }
 
         return HealthInsightInput(
             userName: userName.isEmpty ? nil : userName,
@@ -927,4 +931,3 @@ private struct HealthIndicatorMissingDataView: View {
 }
 
 // MARK: - Health Metrics Section Card
-
