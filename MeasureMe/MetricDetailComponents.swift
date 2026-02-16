@@ -702,6 +702,7 @@ struct SetGoalView: View {
     let kind: MetricKind
     let currentGoal: MetricGoal?
     var onSet: (Double, MetricGoal.Direction) -> Void
+    var onDelete: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
@@ -709,11 +710,13 @@ struct SetGoalView: View {
 
     @State private var displayValue: Double
     @State private var direction: MetricGoal.Direction
+    @State private var showDeleteConfirmation = false
 
-    init(kind: MetricKind, currentGoal: MetricGoal?, onSet: @escaping (Double, MetricGoal.Direction) -> Void) {
+    init(kind: MetricKind, currentGoal: MetricGoal?, onSet: @escaping (Double, MetricGoal.Direction) -> Void, onDelete: (() -> Void)? = nil) {
         self.kind = kind
         self.currentGoal = currentGoal
         self.onSet = onSet
+        self.onDelete = onDelete
 
         // Załaduj istniejący cel lub zacznij od zera
         let units = UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
@@ -823,6 +826,21 @@ struct SetGoalView: View {
                                 .font(AppTypography.caption)
                                 .foregroundStyle(.white.opacity(0.7))
                         }
+
+                        // MARK: - Delete goal
+                        if currentGoal != nil {
+                            Button(role: .destructive) {
+                                showDeleteConfirmation = true
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "trash")
+                                    Text(AppLocalization.string("Delete Goal"))
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(LiquidCapsuleButtonStyle(tint: .red.opacity(0.5)))
+                            .padding(.top, 8)
+                        }
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
@@ -844,6 +862,15 @@ struct SetGoalView: View {
                     }
                     .disabled(!valueValidation.isValid)
                 }
+            }
+            .alert(AppLocalization.string("Delete Goal"), isPresented: $showDeleteConfirmation) {
+                Button(AppLocalization.string("Delete"), role: .destructive) {
+                    onDelete?()
+                    dismiss()
+                }
+                Button(AppLocalization.string("Cancel"), role: .cancel) { }
+            } message: {
+                Text(AppLocalization.string("goal.delete.confirmation"))
             }
         }
     }

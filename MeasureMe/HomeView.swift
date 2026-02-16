@@ -827,6 +827,7 @@ struct HomeView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(Color.appAccent)
+                        .accessibilityIdentifier("home.quickadd.button")
                     }
                     .padding(12)
                     .background(Color.white.opacity(0.05))

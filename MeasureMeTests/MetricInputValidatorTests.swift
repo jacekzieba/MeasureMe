@@ -13,6 +13,17 @@ final class MetricInputValidatorTests: XCTestCase {
         XCTAssertNotNil(result.message)
     }
 
+    func testMetricValueRejectsNaN() {
+        let result = MetricInputValidator.validateMetricDisplayValue(
+            .nan,
+            kind: .weight,
+            unitsSystem: "metric"
+        )
+
+        XCTAssertFalse(result.isValid)
+        XCTAssertNotNil(result.message)
+    }
+
     func testMetricValueRejectsOutOfRangeLength() {
         let result = MetricInputValidator.validateMetricDisplayValue(
             999,
@@ -27,6 +38,20 @@ final class MetricInputValidatorTests: XCTestCase {
         XCTAssertTrue(MetricInputValidator.validateAgeValue(35).isValid)
         XCTAssertFalse(MetricInputValidator.validateAgeValue(2).isValid)
         XCTAssertFalse(MetricInputValidator.validateAgeValue(150).isValid)
+    }
+
+    func testMetricDisplayRangeAlwaysHasLowerLessOrEqualUpper() {
+        let systems = ["metric", "imperial"]
+        for kind in MetricKind.allCases {
+            for system in systems {
+                let range = MetricInputValidator.metricDisplayRange(for: kind, unitsSystem: system)
+                XCTAssertLessThanOrEqual(
+                    range.lowerBound,
+                    range.upperBound,
+                    "\(kind.rawValue) / \(system): lower \(range.lowerBound) > upper \(range.upperBound)"
+                )
+            }
+        }
     }
 
     func testHeightValidationMetricAndImperial() {

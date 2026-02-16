@@ -61,6 +61,8 @@
 "metric.goal.projected.date" = "Projected goal date: %@.";
 "accessibility.progress.hint" = "Current value %@, goal %@";
 "metric.goal.set.help" = "Set your target %@ to track your progress. The goal will appear as a dashed line on your chart.";
+"goal.delete.confirmation" = "This will remove the goal and hide progress tracking for this metric.";
+"quickadd.first.value.hint" = "Enter your first value";
 "metric.add.title" = "Add %@";
 "metric.edit.title" = "Edit %@";
 

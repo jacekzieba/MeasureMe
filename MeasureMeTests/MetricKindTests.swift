@@ -45,4 +45,21 @@ final class MetricKindTests: XCTestCase {
             .positive
         )
     }
+
+    func testValueConversionRoundTripStaysFiniteAndStable() {
+        let systems = ["metric", "imperial"]
+        let sampleValue = 50.0
+
+        for kind in MetricKind.allCases {
+            for system in systems {
+                let metric = kind.valueToMetric(fromDisplay: sampleValue, unitsSystem: system)
+                let back = kind.valueForDisplay(fromMetric: metric, unitsSystem: system)
+
+                XCTAssertTrue(metric.isFinite, "\(kind.rawValue)/\(system): toMetric produced non-finite")
+                XCTAssertTrue(back.isFinite, "\(kind.rawValue)/\(system): forDisplay produced non-finite")
+                XCTAssertEqual(back, sampleValue, accuracy: 0.0001,
+                               "\(kind.rawValue)/\(system): round-trip drift \(sampleValue) → \(back)")
+            }
+        }
+    }
 }

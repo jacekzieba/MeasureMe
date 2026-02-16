@@ -930,3 +930,25 @@ final class HealthKitManager {
         return false
     }
 }
+
+// MARK: - HealthKitSyncing
+
+extension HealthKitManager: HealthKitSyncing {
+    func sync(kind: MetricKind, metricValue: Double, date: Date) async throws {
+        guard kind.isHealthSynced else { return }
+        switch kind {
+        case .weight:
+            try await saveWeight(kilograms: metricValue, date: date)
+        case .height:
+            try await saveHeight(centimeters: metricValue, date: date)
+        case .bodyFat:
+            try await saveBodyFatPercentage(percent: metricValue, date: date)
+        case .leanBodyMass:
+            try await saveLeanBodyMass(kilograms: metricValue, date: date)
+        case .waist:
+            try await saveWaistMeasurement(value: metricValue, date: date)
+        default:
+            break
+        }
+    }
+}

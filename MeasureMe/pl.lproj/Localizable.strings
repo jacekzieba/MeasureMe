@@ -82,6 +82,8 @@
 "metric.goal.projected.date" = "Przewidywana data celu: %@.";
 "accessibility.progress.hint" = "Aktualna wartość %@, cel %@";
 "metric.goal.set.help" = "Ustaw docelową wartość %@, aby śledzić postęp. Cel pojawi się jako linia przerywana na wykresie.";
+"goal.delete.confirmation" = "Spowoduje to usunięcie celu i ukrycie śledzenia postępu dla tej metryki.";
+"quickadd.first.value.hint" = "Wpisz swoją pierwszą wartość";
 "metric.add.title" = "Dodaj %@";
 "metric.edit.title" = "Edytuj %@";
 

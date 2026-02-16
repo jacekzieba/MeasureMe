@@ -60,6 +60,7 @@ struct QuickAddSheetView: View {
                         description: Text(AppLocalization.string("Enable metrics in the Measurements tab to add values quickly."))
                     )
                     .padding(.horizontal, 20)
+                    .accessibilityIdentifier("quickadd.empty")
                 } else {
                     ScrollView {
                         VStack(spacing: 14) {
@@ -83,6 +84,7 @@ struct QuickAddSheetView: View {
             .navigationTitle(AppLocalization.string("Update measurements"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .accessibilityIdentifier("quickadd.sheet")
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if !kinds.isEmpty && focusedKind == nil {
                     saveBar
@@ -121,6 +123,8 @@ struct QuickAddSheetView: View {
     // MARK: - Row
     @ViewBuilder
     private func row(for kind: MetricKind) -> some View {
+        let showRuler = hasBaseValue(for: kind)
+
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: kind.systemImage)
@@ -161,17 +165,23 @@ struct QuickAddSheetView: View {
                 }
             }
 
-            RulerSlider(
-                value: valueBinding(for: kind),
-                range: rulerRange(for: kind),
-                step: rulerStep(for: kind)
-            )
-            .frame(height: 52)
+            // Ruler — visible only when we have a sensible base value
+            if showRuler {
+                RulerSlider(
+                    value: valueBinding(for: kind),
+                    range: rulerRange(for: kind),
+                    step: rulerStep(for: kind)
+                )
+                .frame(height: 52)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
 
             HStack(spacing: 8) {
-                Text(AppLocalization.string("Enter value"))
-                    .font(AppTypography.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+                Text(AppLocalization.string(
+                    showRuler ? "Enter value" : "quickadd.first.value.hint"
+                ))
+                .font(showRuler ? AppTypography.caption : .subheadline.weight(.medium))
+                .foregroundStyle(.white.opacity(0.7))
 
                 Spacer()
 
@@ -183,8 +193,11 @@ struct QuickAddSheetView: View {
                 .focused($focusedKind, equals: kind)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
-                .font(.title3.monospacedDigit().weight(.semibold))
-                .frame(minWidth: 72)
+                .font(showRuler
+                    ? .title3.monospacedDigit().weight(.semibold)
+                    : .title.monospacedDigit().weight(.bold))
+                .frame(minWidth: showRuler ? 72 : 100)
+                .accessibilityIdentifier("quickadd.input.\(kind.rawValue)")
                 .accessibilityLabel(AppLocalization.string("accessibility.value", kind.title))
 
                 Text(kind.unitSymbol(unitsSystem: unitsSystem))
@@ -192,7 +205,7 @@ struct QuickAddSheetView: View {
                     .foregroundStyle(.white.opacity(0.72))
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 9)
+            .padding(.vertical, showRuler ? 9 : 14)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Color.black.opacity(0.26))
@@ -208,10 +221,13 @@ struct QuickAddSheetView: View {
                     .foregroundStyle(Color.red.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("quickadd.error.\(kind.rawValue)")
             }
         }
         .padding(14)
+        .accessibilityIdentifier("quickadd.row.\(kind.rawValue)")
         .background(cardBackground(cornerRadius: 16))
+        .animation(.easeInOut(duration: 0.35), value: showRuler)
         .onAppear {
             if rulerBaseValues[kind] == nil {
                 rulerBaseValues[kind] = baseValue(for: kind)
@@ -279,11 +295,13 @@ struct QuickAddSheetView: View {
             .buttonStyle(AppAccentButtonStyle(cornerRadius: 14))
             .disabled(isSaving)
             .opacity(isSaving ? 0.64 : 1)
+            .accessibilityIdentifier("quickadd.save")
 
             if cannotSave {
                 Text(cannotSaveReasonText)
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.66))
+                    .accessibilityIdentifier("quickadd.validation.hint")
             }
         }
         .padding(.horizontal, 16)
@@ -328,6 +346,15 @@ struct QuickAddSheetView: View {
     }
 
     // MARK: - Helpers
+
+    /// Returns `true` when we have a sensible base value for the ruler —
+    /// either from a previous measurement or because the user just typed one.
+    private func hasBaseValue(for kind: MetricKind) -> Bool {
+        QuickAddMath.shouldShowRuler(
+            hasLatest: latest[kind] != nil,
+            currentInput: inputs[kind] ?? nil
+        )
+    }
 
     private func lastSummary(for kind: MetricKind) -> String? {
         guard let last = latest[kind] else { return nil }
@@ -389,11 +416,7 @@ struct QuickAddSheetView: View {
             span = unitsSystem == "imperial" ? 20 : 40
         }
 
-        let valid = validRange(for: kind)
-        let minValue = max(base - span, valid.lowerBound)
-        let maxValue = min(base + span, valid.upperBound)
-        guard minValue <= maxValue else { return valid }
-        return minValue...maxValue
+        return QuickAddMath.rulerRange(base: base, span: span, validRange: validRange(for: kind))
     }
 
     private func rulerStep(for kind: MetricKind) -> Double {
@@ -463,43 +486,19 @@ struct QuickAddSheetView: View {
         kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
     }
 
-    private func saveToHealthKit(kind: MetricKind, metricValue: Double, date: Date) async throws {
-        guard isSyncEnabled, kind.isHealthSynced else { return }
-        switch kind {
-        case .weight:
-            try await HealthKitManager.shared.saveWeight(kilograms: metricValue, date: date)
-        case .height:
-            try await HealthKitManager.shared.saveHeight(centimeters: metricValue, date: date)
-        case .bodyFat:
-            try await HealthKitManager.shared.saveBodyFatPercentage(percent: metricValue, date: date)
-        case .leanBodyMass:
-            try await HealthKitManager.shared.saveLeanBodyMass(kilograms: metricValue, date: date)
-        case .waist:
-            try await HealthKitManager.shared.saveWaistMeasurement(value: metricValue, date: date)
-        default:
-            break
-        }
-    }
-
     private func saveAll() async {
         guard !isSaving else { return }
         await MainActor.run { isSaving = true }
 
-        let preparedEntries: [(kind: MetricKind, metricValue: Double)] = preparedEntries(includeUnchanged: saveUnchangedValues)
+        let entries: [QuickAddSaveService.Entry] = preparedEntries(includeUnchanged: saveUnchangedValues)
             .map { kind, displayValue in
-                (kind: kind, metricValue: metricValue(for: kind, displayValue: displayValue))
+                QuickAddSaveService.Entry(kind: kind, metricValue: metricValue(for: kind, displayValue: displayValue))
             }
 
+        // Notifications (measurement recorded + goal achieved)
         await MainActor.run {
-            for entry in preparedEntries {
-                let sample = MetricSample(kind: entry.kind, value: entry.metricValue, date: date)
-                context.insert(sample)
+            for entry in entries {
                 NotificationManager.shared.recordMeasurement(date: date)
-            }
-        }
-
-        await MainActor.run {
-            for entry in preparedEntries {
                 if let goal = fetchGoal(for: entry.kind), goal.isAchieved(currentValue: entry.metricValue) {
                     NotificationManager.shared.sendGoalAchievedNotification(
                         kind: entry.kind,
@@ -510,10 +509,14 @@ struct QuickAddSheetView: View {
             }
         }
 
+        // Persist via service
+        let service = QuickAddSaveService(
+            context: context,
+            healthKit: isSyncEnabled ? HealthKitManager.shared : nil
+        )
+
         do {
-            try await MainActor.run {
-                try context.save()
-            }
+            try service.save(entries: entries, date: date)
         } catch {
             await MainActor.run {
                 isSaving = false
@@ -524,16 +527,11 @@ struct QuickAddSheetView: View {
             return
         }
 
-        for entry in preparedEntries {
-            do {
-                try await saveToHealthKit(kind: entry.kind, metricValue: entry.metricValue, date: date)
-            } catch {
-                AppLog.debug("⚠️ QuickAdd HealthKit sync failed for \(entry.kind.rawValue): \(error.localizedDescription)")
-            }
-        }
+        // Best-effort HealthKit sync
+        await service.syncHealthKit(entries: entries, date: date)
 
         await MainActor.run {
-            ReviewRequestManager.recordMetricEntryAdded(count: preparedEntries.count)
+            ReviewRequestManager.recordMetricEntryAdded(count: entries.count)
             isSaving = false
             Haptics.success()
             onSaved()
@@ -593,8 +591,7 @@ private struct RulerSlider: View {
                             .stroke(Color.white.opacity(0.16), lineWidth: 1)
                     )
 
-                let tickRaw = span / max(step * 5, 1) + 1
-                let tickCount = max(8, min(40, tickRaw.isFinite ? Int(tickRaw) : 8))
+                let tickCount = QuickAddMath.tickCount(span: span, step: step)
                 ForEach(0..<tickCount, id: \.self) { index in
                     let tickX = horizontalInset + CGFloat(index) * (drawableWidth / CGFloat(max(tickCount - 1, 1)))
                     let isMajor = index.isMultiple(of: 5)
@@ -622,8 +619,7 @@ private struct RulerSlider: View {
                         let stepped = (rawValue / step).rounded() * step
                         let clamped = min(max(stepped, range.lowerBound), range.upperBound)
                         value = clamped
-                        let stepRaw = (clamped - range.lowerBound) / step
-                        let stepIndex = stepRaw.isFinite ? Int(stepRaw) : 0
+                        let stepIndex = QuickAddMath.stepIndex(value: clamped, lowerBound: range.lowerBound, step: step)
                         if lastHapticStep != stepIndex {
                             lastHapticStep = stepIndex
                             Haptics.selection()
