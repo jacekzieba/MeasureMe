@@ -54,6 +54,7 @@ struct MeasureMeApp: App {
             "settings_open_tracked_measurements": false,
             "settings_open_reminders": false,
             "appLanguage": "system",
+            "diagnostics_logging_enabled": true,
             "healthkit_sync_weight": true,
             "healthkit_sync_bodyFat": true,
             "healthkit_sync_height": true,

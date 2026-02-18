@@ -26,6 +26,8 @@
 "Could not import height from Health." = "Could not import height from Health.";
 "Notification error" = "Notification error";
 "Could not schedule notifications. Please check notification permissions and try again." = "Could not schedule notifications. Please check notification permissions and try again.";
+"Include diagnostic logs in crash reports" = "Include diagnostic logs in crash reports";
+"When enabled, recent app logs may be attached to reports you share." = "When enabled, recent app logs may be attached to reports you share.";
 "Could not start the app because local storage failed to initialize. Please retry. Error: %@" = "Could not start the app because local storage failed to initialize. Please retry. Error: %@";
 
 "photos.active.filters.count" = "%d active filters";

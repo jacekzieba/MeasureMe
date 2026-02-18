@@ -834,6 +834,7 @@ struct SettingsView: View {
         defaults.removeObject(forKey: "measurement_reminders")
         defaults.removeObject(forKey: "measurement_last_log_date")
         defaults.removeObject(forKey: "photo_last_log_date")
+        defaults.removeObject(forKey: "diagnostics_logging_enabled")
     }
 
     @ViewBuilder

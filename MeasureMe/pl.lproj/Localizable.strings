@@ -35,6 +35,8 @@
 "Could not import height from Health." = "Nie udało się zaimportować wzrostu z aplikacji Zdrowie.";
 "Notification error" = "Błąd powiadomień";
 "Could not schedule notifications. Please check notification permissions and try again." = "Nie udało się zaplanować powiadomień. Sprawdź uprawnienia i spróbuj ponownie.";
+"Include diagnostic logs in crash reports" = "Dołącz logi diagnostyczne do raportów awarii";
+"When enabled, recent app logs may be attached to reports you share." = "Po włączeniu do udostępnianych raportów mogą być dołączane ostatnie logi aplikacji.";
 "Could not start the app because local storage failed to initialize. Please retry. Error: %@" = "Nie udało się uruchomić aplikacji, ponieważ nie można zainicjalizować pamięci lokalnej. Spróbuj ponownie. Błąd: %@";
 
 "photos.active.filters.count" = "%d aktywnych filtrów";

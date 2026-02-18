@@ -47,6 +47,7 @@ struct HomeView: View {
     @State private var isChecklistConnectingHealth: Bool = false
     @State private var reminderChecklistCompleted: Bool = false
     @State private var showMoreChecklistItems: Bool = false
+    @State private var didCheckSevenDayPaywallPrompt: Bool = false
     
     // HealthKit data
     @State private var latestBodyFat: Double?
@@ -60,8 +61,10 @@ struct HomeView: View {
 
     private let maxVisibleMetrics = 3
     private let maxVisiblePhotos = 6
+    private let autoCheckPaywallPrompt: Bool
 
-    init() {
+    init(autoCheckPaywallPrompt: Bool = true) {
+        self.autoCheckPaywallPrompt = autoCheckPaywallPrompt
         let recentWindowStart = Calendar.current.date(byAdding: .day, value: -120, to: Date()) ?? .distantPast
         _recentSamples = Query(
             filter: #Predicate<MetricSample> { $0.date >= recentWindowStart },
@@ -320,6 +323,10 @@ struct HomeView: View {
             PhotoDetailView(photo: photo)
         }
         .onAppear {
+            if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
+                didCheckSevenDayPaywallPrompt = true
+                premiumStore.checkSevenDayPromptIfNeeded()
+            }
             refreshMeasurementCaches()
             rebuildGoalsCache()
             fetchHealthKitData()

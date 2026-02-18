@@ -1,21 +1,30 @@
 import SwiftUI
 
+@MainActor
 struct RootView: View {
-    @StateObject private var premiumStore = PremiumStore()
-    @StateObject private var metricsStore = ActiveMetricsStore()
+    @StateObject private var premiumStore: PremiumStore
+    @StateObject private var metricsStore: ActiveMetricsStore
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
+    private let autoCheckPaywallPrompt: Bool
+
+    init(
+        premiumStore: PremiumStore? = nil,
+        metricsStore: ActiveMetricsStore? = nil,
+        autoCheckPaywallPrompt: Bool = true
+    ) {
+        _premiumStore = StateObject(wrappedValue: premiumStore ?? PremiumStore())
+        _metricsStore = StateObject(wrappedValue: metricsStore ?? ActiveMetricsStore())
+        self.autoCheckPaywallPrompt = autoCheckPaywallPrompt
+    }
 
     var body: some View {
         ZStack {
-            TabBarContainer()
+            TabBarContainer(autoCheckPaywallPrompt: autoCheckPaywallPrompt)
                 .environmentObject(premiumStore)
                 .environmentObject(metricsStore)
                 .sheet(isPresented: $premiumStore.isPaywallPresented) {
                     PremiumPaywallView()
                         .environmentObject(premiumStore)
-                }
-                .onAppear {
-                    premiumStore.checkSevenDayPromptIfNeeded()
                 }
 
             if !hasCompletedOnboarding {

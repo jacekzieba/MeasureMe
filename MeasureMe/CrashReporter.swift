@@ -6,7 +6,7 @@ import UIKit
 /// **Funkcje:**
 /// - Circular buffer ostatnich 200 wpisów logów
 /// - Przechwytywanie NSException via NSSetUncaughtExceptionHandler
-/// - Signal handlers: SIGABRT, SIGSEGV, SIGBUS, SIGFPE
+/// - Brak własnych signal handlerów (unikanie niebezpiecznych operacji async-signal-unsafe)
 /// - Zapis raportów do pliku .crash w Application Support/CrashReports/
 /// - Sprawdzanie niezgłoszonych raportów przy starcie app
 final class CrashReporter {
@@ -39,12 +39,6 @@ final class CrashReporter {
         NSSetUncaughtExceptionHandler { exception in
             CrashReporter.shared.handleException(exception)
         }
-
-        // Signal handlers
-        signal(SIGABRT) { signal in CrashReporter.shared.handleSignal(signal) }
-        signal(SIGSEGV) { signal in CrashReporter.shared.handleSignal(signal) }
-        signal(SIGBUS) { signal in CrashReporter.shared.handleSignal(signal) }
-        signal(SIGFPE) { signal in CrashReporter.shared.handleSignal(signal) }
     }
 
     // MARK: - Logging
@@ -94,28 +88,6 @@ final class CrashReporter {
         Stack: \(exception.callStackSymbols.joined(separator: "\n"))
         """
         writeCrashReport(crashInfo: info)
-    }
-
-    private func handleSignal(_ sig: Int32) {
-        let signalName: String
-        switch sig {
-        case SIGABRT: signalName = "SIGABRT"
-        case SIGSEGV: signalName = "SIGSEGV"
-        case SIGBUS: signalName = "SIGBUS"
-        case SIGFPE: signalName = "SIGFPE"
-        default: signalName = "SIGNAL(\(sig))"
-        }
-
-        let info = """
-        Type: Signal
-        Signal: \(signalName) (\(sig))
-        Stack: \(Thread.callStackSymbols.joined(separator: "\n"))
-        """
-        writeCrashReport(crashInfo: info)
-
-        // Przywróć domyślny handler i re-raise signal
-        signal(sig, SIG_DFL)
-        raise(sig)
     }
 
     private func writeCrashReport(crashInfo: String) {

@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct TabBarContainer: View {
+    let autoCheckPaywallPrompt: Bool
     @StateObject private var router = AppRouter()
     @AppStorage("home_tab_scroll_offset") private var homeTabScrollOffset: Double = 0.0
     @Environment(\.modelContext) private var modelContext
@@ -18,7 +19,7 @@ struct TabBarContainer: View {
                     // HOME
                     Tab(value: AppTab.home) {
                         NavigationStack {
-                            HomeView()
+                            HomeView(autoCheckPaywallPrompt: autoCheckPaywallPrompt)
                         }
                     } label: {
                         Label(AppLocalization.string("Home"), systemImage: "house.fill")
@@ -65,7 +66,7 @@ struct TabBarContainer: View {
             } else {
                 TabView(selection: $router.selectedTab) {
                     NavigationStack {
-                        HomeView()
+                        HomeView(autoCheckPaywallPrompt: autoCheckPaywallPrompt)
                     }
                     .tabItem {
                         Label(AppLocalization.string("Home"), systemImage: "house.fill")

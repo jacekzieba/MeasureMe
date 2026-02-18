@@ -410,6 +410,7 @@ struct LanguageSettingsDetailView: View {
 }
 
 struct DataSettingsDetailView: View {
+    @AppStorage("diagnostics_logging_enabled") private var diagnosticsLoggingEnabled: Bool = true
     let onExport: () -> Void
     let onDeleteAll: () -> Void
 
@@ -421,9 +422,15 @@ struct DataSettingsDetailView: View {
                     SettingsCard(tint: Color.appAccent.opacity(0.10)) {
                         SettingsCardHeader(title: AppLocalization.string("Data"), systemImage: "square.and.arrow.up")
                         Button(action: onExport) {
-                            Text(AppLocalization.string("Export data"))
+                            HStack(spacing: 12) {
+                                GlassPillIcon(systemName: "square.and.arrow.up")
+                                Text(AppLocalization.string("Export data"))
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
-                        .frame(minHeight: 44, alignment: .leading)
+                        .buttonStyle(.plain)
 
                         SettingsRowDivider()
 
@@ -434,15 +441,49 @@ struct DataSettingsDetailView: View {
                                 GlassPillIcon(systemName: "exclamationmark.bubble")
                                 Text(AppLocalization.string("Crash Reports"))
                             }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
-                        .frame(minHeight: 44, alignment: .leading)
+
+                        SettingsRowDivider()
+
+                        HStack(alignment: .top, spacing: 12) {
+                            GlassPillIcon(systemName: "doc.text")
+                                .padding(.top, 2)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(AppLocalization.string("Include diagnostic logs in crash reports"))
+                                Text(AppLocalization.string("When enabled, recent app logs may be attached to reports you share."))
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer(minLength: 12)
+
+                            Toggle("", isOn: $diagnosticsLoggingEnabled)
+                                .labelsHidden()
+                                .frame(width: 52, alignment: .trailing)
+                        }
+                        .tint(Color.appAccent)
+                        .onChange(of: diagnosticsLoggingEnabled) { _, _ in
+                            Haptics.selection()
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .accessibilityIdentifier("settings.data.diagnostics.logging.toggle")
 
                         SettingsRowDivider()
 
                         Button(role: .destructive, action: onDeleteAll) {
-                            Text(AppLocalization.string("Delete all data"))
+                            HStack(spacing: 12) {
+                                GlassPillIcon(systemName: "trash")
+                                Text(AppLocalization.string("Delete all data"))
+                                    .foregroundStyle(.red)
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
-                        .frame(minHeight: 44, alignment: .leading)
+                        .buttonStyle(.plain)
                     }
                 }
                 .listRowSeparator(.hidden)
@@ -907,8 +948,11 @@ struct SettingsCardHeader: View {
 
 struct SettingsRowDivider: View {
     var body: some View {
-        Divider()
-            .overlay(Color.white.opacity(0.12))
+        Rectangle()
+            .fill(Color.white.opacity(0.24))
+            .frame(height: 1)
+            .frame(maxWidth: .infinity)
+            .accessibilityHidden(true)
     }
 }
 
