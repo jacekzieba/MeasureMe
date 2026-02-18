@@ -56,6 +56,9 @@ struct PhotoView: View {
                             },
                             refreshToken: refreshToken
                         )
+                        .refreshable {
+                            refreshToken = UUID()
+                        }
                         .id(refreshToken)
                         
                         // Przycisk Compare jako overlay na dole

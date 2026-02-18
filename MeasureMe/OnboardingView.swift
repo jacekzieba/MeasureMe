@@ -344,6 +344,7 @@ struct OnboardingView: View {
             .font(AppTypography.microEmphasis)
             .foregroundStyle(Color.appGray)
             .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+            .accessibilityIdentifier("onboarding.skip")
         }
         .padding(.horizontal, 24)
     }
@@ -394,6 +395,7 @@ struct OnboardingView: View {
                     .textInputAutocapitalization(.words)
                     .autocorrectionDisabled()
                     .focused($focusedField, equals: .name)
+                    .accessibilityIdentifier("onboarding.profile.name")
             }
 
             profileField(title: AppLocalization.systemString("Height")) {
@@ -413,6 +415,7 @@ struct OnboardingView: View {
                         .keyboardType(.decimalPad)
                         .textFieldStyle(.roundedBorder)
                         .focused($focusedField, equals: .height)
+                        .accessibilityIdentifier("onboarding.profile.height")
                 }
             }
 
@@ -425,6 +428,7 @@ struct OnboardingView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.segmented)
+                    .accessibilityIdentifier("onboarding.profile.sex")
                 }
             }
 
@@ -433,6 +437,7 @@ struct OnboardingView: View {
                     .keyboardType(unitsSystem == "imperial" ? .numberPad : .decimalPad)
                     .textFieldStyle(.roundedBorder)
                     .focused($focusedField, equals: .age)
+                    .accessibilityIdentifier("onboarding.profile.age")
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -462,6 +467,7 @@ struct OnboardingView: View {
                 buttonTitle: isSyncEnabled ? AppLocalization.systemString("Connected") : AppLocalization.systemString("Connect"),
                 isLoading: isRequestingHealthKit,
                 isComplete: isSyncEnabled,
+                buttonIdentifier: "onboarding.booster.healthkit",
                 action: requestHealthKitAccess
             )
 
@@ -473,6 +479,7 @@ struct OnboardingView: View {
                 buttonTitle: isReminderScheduled ? AppLocalization.systemString("Scheduled") : AppLocalization.systemString("Set schedule"),
                 isLoading: isRequestingNotifications,
                 isComplete: isReminderScheduled,
+                buttonIdentifier: "onboarding.booster.reminders",
                 action: { showReminderSetupSheet = true }
             )
         }
@@ -502,6 +509,7 @@ struct OnboardingView: View {
             .buttonStyle(.bordered)
             .tint(Color.appAccent)
             .controlSize(.small)
+            .accessibilityIdentifier("onboarding.premium.trial")
 
             onboardingBilledAfterTrialText
                 .font(AppTypography.micro)
@@ -579,6 +587,10 @@ struct OnboardingView: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("onboarding.goal.\(goal.rawValue)")
+        .accessibilityLabel(goal.title)
+        .accessibilityValue(isSelected ? AppLocalization.systemString("Selected") : AppLocalization.systemString("Not selected"))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private struct WelcomeTrendPoint: Identifiable {
@@ -1049,6 +1061,7 @@ struct OnboardingView: View {
         buttonTitle: String,
         isLoading: Bool,
         isComplete: Bool,
+        buttonIdentifier: String? = nil,
         action: @escaping () -> Void
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -1074,6 +1087,7 @@ struct OnboardingView: View {
             .buttonStyle(.bordered)
             .tint(Color.appAccent)
             .disabled(isLoading || isComplete)
+            .accessibilityIdentifier(buttonIdentifier ?? "")
         }
         .padding(12)
         .background(Color.white.opacity(0.04))
@@ -1094,6 +1108,7 @@ struct OnboardingView: View {
                 .font(AppTypography.micro)
                 .foregroundStyle(Color.appGray)
         }
+        .accessibilityIdentifier("onboarding.privacy.note")
     }
 
     private var footer: some View {
@@ -1109,6 +1124,7 @@ struct OnboardingView: View {
             .controlSize(.small)
             .tint(Color.appGray.opacity(0.34))
             .disabled(currentStepIndex == 0)
+            .accessibilityIdentifier("onboarding.back")
 
             Button {
                 goToNextStep()
@@ -1121,6 +1137,7 @@ struct OnboardingView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
             .tint(Color.appAccent)
+            .accessibilityIdentifier("onboarding.next")
         }
         .padding(.horizontal, 24)
     }
@@ -1491,12 +1508,14 @@ private struct OnboardingReminderSetupSheet: View {
                     Button(AppLocalization.systemString("Cancel")) {
                         dismiss()
                     }
+                    .accessibilityIdentifier("onboarding.reminder.cancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(AppLocalization.systemString("Set reminder")) {
                         onConfirm()
                         dismiss()
                     }
+                    .accessibilityIdentifier("onboarding.reminder.confirm")
                 }
             }
         }
@@ -1507,4 +1526,3 @@ private struct OnboardingReminderSetupSheet: View {
         return symbols[safe: weekday - 1] ?? symbols.first ?? "—"
     }
 }
-

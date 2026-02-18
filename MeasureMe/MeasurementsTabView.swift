@@ -12,8 +12,11 @@ struct MeasurementsTabView: View {
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
     @AppStorage("quickAddHintDismissed") private var quickAddHintDismissed: Bool = false
     @State private var scrollOffset: CGFloat = 0
+    @State private var refreshToken = UUID()
     @Query(sort: [SortDescriptor(\MetricSample.date, order: .reverse)])
     private var samples: [MetricSample]
+    @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
+    @State private var cachedLatestByKind: [MetricKind: MetricSample] = [:]
 
     @State private var selectedTab: MeasurementsTab = .metrics
 
@@ -27,27 +30,9 @@ struct MeasurementsTabView: View {
         }
     }
 
-    private var samplesByKind: [MetricKind: [MetricSample]] {
-        var grouped: [MetricKind: [MetricSample]] = [:]
-        for sample in samples {
-            guard let kind = MetricKind(rawValue: sample.kindRaw) else {
-                AppLog.debug("⚠️ Ignoring MetricSample with invalid kindRaw: \(sample.kindRaw)")
-                continue
-            }
-            grouped[kind, default: []].append(sample)
-        }
-        return grouped
-    }
+    private var samplesByKind: [MetricKind: [MetricSample]] { cachedSamplesByKind }
 
-    private var latestByKind: [MetricKind: MetricSample] {
-        var latest: [MetricKind: MetricSample] = [:]
-        for (kind, list) in samplesByKind {
-            if let first = list.first {
-                latest[kind] = first
-            }
-        }
-        return latest
-    }
+    private var latestByKind: [MetricKind: MetricSample] { cachedLatestByKind }
 
     private var latestWaist: Double? {
         latestByKind[.waist]?.value
@@ -234,17 +219,28 @@ struct MeasurementsTabView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 32)
                 }
+                .id(refreshToken)
                 .coordinateSpace(name: "measurementsScroll")
                 .onPreferenceChange(MeasurementsScrollOffsetKey.self) { value in
                     scrollOffset = value
                 }
                 .accessibilityIdentifier("measurements.scroll")
+                .refreshable {
+                    rebuildSamplesCache()
+                    refreshToken = UUID()
+                }
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(scrollOffset < -16 ? .visible : .hidden, for: .navigationBar)
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            rebuildSamplesCache()
+        }
+        .onChange(of: samplesSignature) { _, _ in
+            rebuildSamplesCache()
+        }
     }
 
     private var trackedMetricsFooter: some View {
@@ -277,6 +273,33 @@ struct MeasurementsTabView: View {
                 .contentShape(Rectangle())
             }
         }
+    }
+
+    private var samplesSignature: Int {
+        var hasher = Hasher()
+        for sample in samples {
+            hasher.combine(sample.persistentModelID)
+            hasher.combine(sample.value.bitPattern)
+            hasher.combine(sample.date.timeIntervalSinceReferenceDate)
+        }
+        return hasher.finalize()
+    }
+
+    private func rebuildSamplesCache() {
+        var grouped: [MetricKind: [MetricSample]] = [:]
+        var latest: [MetricKind: MetricSample] = [:]
+        for sample in samples {
+            guard let kind = MetricKind(rawValue: sample.kindRaw) else {
+                AppLog.debug("⚠️ Ignoring MetricSample with invalid kindRaw: \(sample.kindRaw)")
+                continue
+            }
+            grouped[kind, default: []].append(sample)
+            if latest[kind] == nil {
+                latest[kind] = sample
+            }
+        }
+        cachedSamplesByKind = grouped
+        cachedLatestByKind = latest
     }
 }
 
@@ -747,8 +770,7 @@ struct MetricChartTile: View {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "MMM d"
 
-        let ordered = recentSamples.sorted(by: { $0.date < $1.date })
-        let points: [(String, Double)] = ordered.map { sample in
+        let points: [(String, Double)] = recentSamples.map { sample in
             let label = dateFormatter.string(from: sample.date)
             return (label, displayValue(sample.value))
         }

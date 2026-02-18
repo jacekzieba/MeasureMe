@@ -354,6 +354,13 @@ struct HomeView: View {
         .onChange(of: onboardingSkippedReminders) { _, _ in
             refreshChecklistState()
         }
+        .refreshable {
+            syncMeasurementsFromPhotosIfNeeded()
+            refreshMeasurementCaches()
+            rebuildGoalsCache()
+            fetchHealthKitData()
+            refreshChecklistState()
+        }
     }
     
     // MARK: - HealthKit Data Fetching
@@ -1185,4 +1192,3 @@ private struct HomeScrollOffsetKey: PreferenceKey {
         value = nextValue()
     }
 }
-

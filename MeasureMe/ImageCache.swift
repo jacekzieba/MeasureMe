@@ -7,7 +7,7 @@ import CryptoKit
 ///
 /// Uses a `CacheEntry` wrapper so that when NSCache silently evicts objects
 /// under memory pressure, the wrapper's `deinit` records the evicted key.
-/// This keeps `accessOrder` (and therefore `cachedImagesCount`) accurate.
+/// This keeps the LRU linked list (and therefore `cachedImagesCount`) accurate.
 @MainActor
 final class ImageCache {
 
@@ -18,7 +18,9 @@ final class ImageCache {
     // MARK: - Properties
 
     private let cache = NSCache<NSString, CacheEntry>()
-    private var accessOrder: [String] = [] // Kolejność dostępu dla LRU
+    private var lruNodes: [String: LRUNode] = [:]
+    private var lruHead: LRUNode?
+    private var lruTail: LRUNode?
     private let maxAccessOrderSize = 200 // Max liczba śledzionych kluczy
     private let evictionTracker = EvictionTracker()
 
@@ -65,7 +67,7 @@ final class ImageCache {
     func image(forKey key: String) -> UIImage? {
         drainEvictedKeys()
 
-        let nsKey = key as NSString
+        let nsKey = NSString(string: key)
         if let entry = cache.object(forKey: nsKey) {
             // Aktualizuj kolejność dostępu (LRU)
             updateAccessOrder(key: key)
@@ -77,7 +79,7 @@ final class ImageCache {
 
     /// Zapisuje obraz do cache
     func setImage(_ image: UIImage, forKey key: String) {
-        let nsKey = key as NSString
+        let nsKey = NSString(string: key)
 
         // Oblicz koszt (przybliżony rozmiar w pamięci)
         let cost = calculateImageCost(image)
@@ -98,10 +100,10 @@ final class ImageCache {
 
     /// Usuwa obraz z cache
     func removeImage(forKey key: String) {
-        let nsKey = key as NSString
+        let nsKey = NSString(string: key)
         cache.removeObject(forKey: nsKey)
 
-        accessOrder.removeAll { $0 == key }
+        removeFromLRU(key: key)
         drainEvictedKeys()
 
         #if DEBUG
@@ -112,7 +114,9 @@ final class ImageCache {
     /// Czyści cały cache
     func removeAll() {
         cache.removeAllObjects()
-        accessOrder.removeAll()
+        lruNodes.removeAll()
+        lruHead = nil
+        lruTail = nil
         _ = evictionTracker.drain() // Discard stale eviction records
 
         AppLog.debug("🗑️ Image cache cleared")
@@ -121,16 +125,18 @@ final class ImageCache {
     // MARK: - LRU Management
 
     private func updateAccessOrder(key: String) {
-        // Usuń poprzednie wystąpienie
-        accessOrder.removeAll { $0 == key }
+        if let existing = lruNodes[key] {
+            moveToTail(existing)
+            return
+        }
 
-        // Dodaj na koniec (most recently used)
-        accessOrder.append(key)
+        let node = LRUNode(key: key)
+        appendToTail(node)
+        lruNodes[key] = node
 
-        // Utrzymuj rozmiar kolejności w rozsądnych granicach
-        if accessOrder.count > maxAccessOrderSize {
-            let removeCount = accessOrder.count - maxAccessOrderSize
-            accessOrder.removeFirst(removeCount)
+        if lruNodes.count > maxAccessOrderSize, let oldest = lruHead {
+            removeNode(oldest)
+            lruNodes.removeValue(forKey: oldest.key)
         }
     }
 
@@ -138,13 +144,22 @@ final class ImageCache {
     private func drainEvictedKeys() {
         let evicted = evictionTracker.drain()
         guard !evicted.isEmpty else { return }
-        let evictedSet = Set(evicted)
-        accessOrder.removeAll { evictedSet.contains($0) }
+        for key in evicted {
+            removeFromLRU(key: key)
+        }
     }
 
     /// Zwraca najmniej ostatnio używane klucze (dla debugowania)
     func getLeastRecentlyUsedKeys(count: Int) -> [String] {
-        Array(accessOrder.prefix(count))
+        guard count > 0 else { return [] }
+        var result: [String] = []
+        result.reserveCapacity(count)
+        var cursor = lruHead
+        while let node = cursor, result.count < count {
+            result.append(node.key)
+            cursor = node.next
+        }
+        return result
     }
 
     // MARK: - Memory Management
@@ -173,11 +188,53 @@ final class ImageCache {
     func getStatistics() -> CacheStatistics {
         drainEvictedKeys()
         return CacheStatistics(
-            cachedImagesCount: accessOrder.count,
+            cachedImagesCount: lruNodes.count,
             countLimit: countLimit,
             totalCostLimit: totalCostLimit,
             leastRecentlyUsed: getLeastRecentlyUsedKeys(count: 5)
         )
+    }
+
+    private func appendToTail(_ node: LRUNode) {
+        node.previous = lruTail
+        node.next = nil
+        if let tail = lruTail {
+            tail.next = node
+        } else {
+            lruHead = node
+        }
+        lruTail = node
+    }
+
+    private func moveToTail(_ node: LRUNode) {
+        guard lruTail !== node else { return }
+        removeNode(node)
+        appendToTail(node)
+    }
+
+    private func removeFromLRU(key: String) {
+        guard let node = lruNodes.removeValue(forKey: key) else { return }
+        removeNode(node)
+    }
+
+    private func removeNode(_ node: LRUNode) {
+        let previous = node.previous
+        let next = node.next
+
+        if let previous {
+            previous.next = next
+        } else {
+            lruHead = next
+        }
+
+        if let next {
+            next.previous = previous
+        } else {
+            lruTail = previous
+        }
+
+        node.previous = nil
+        node.next = nil
     }
 }
 
@@ -245,6 +302,16 @@ private final class CacheEntry {
 
     deinit {
         tracker.record(key)
+    }
+}
+
+private final class LRUNode {
+    let key: String
+    var previous: LRUNode?
+    var next: LRUNode?
+
+    init(key: String) {
+        self.key = key
     }
 }
 

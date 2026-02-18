@@ -34,8 +34,7 @@ struct MetricDetailView: View {
     /// Cel dla tej metryki (maksymalnie jeden cel na metrykę)
     @Query var goals: [MetricGoal]
     
-    @Query(sort: \PhotoEntry.date, order: .reverse)
-    var photos: [PhotoEntry]
+    @Query var photos: [PhotoEntry]
 
     // MARK: - State Properties
     @State var showAddSheet = false
@@ -98,6 +97,18 @@ struct MetricDetailView: View {
         _goals = Query(
             filter: #Predicate<MetricGoal> { $0.kindRaw == kindValue }
         )
+
+        if let tag = PhotoTag(metricKind: kind) {
+            _photos = Query(
+                filter: #Predicate<PhotoEntry> { $0.tags.contains(tag) },
+                sort: [SortDescriptor(\.date, order: .reverse)]
+            )
+        } else {
+            _photos = Query(
+                filter: #Predicate<PhotoEntry> { _ in false },
+                sort: [SortDescriptor(\.date, order: .reverse)]
+            )
+        }
     }
     
     // MARK: - Computed Properties
@@ -110,9 +121,9 @@ struct MetricDetailView: View {
     /// Próbki przefiltrowane według wybranego zakresu czasowego
     var chartSamples: [MetricSample] {
         if let start = timeframe.startDate() {
-            return samples.filter { $0.date >= start }
+            return sortedSamplesAscending.filter { $0.date >= start }
         } else {
-            return samples  // "All" - pokazuj wszystkie
+            return sortedSamplesAscending  // "All" - pokazuj wszystkie
         }
     }
 
@@ -125,8 +136,7 @@ struct MetricDetailView: View {
     }
     
     var relatedPhotos: [PhotoEntry] {
-        guard let tag = relatedTag else { return [] }
-        return photos.filter { $0.tags.contains(tag) }
+        photos
     }
 
     var visiblePhotos: [PhotoEntry] {
@@ -136,11 +146,15 @@ struct MetricDetailView: View {
     var historyLimit: Int { 5 }
     
     var visibleHistorySamples: [MetricSample] {
-        let all = samples.reversed()
+        let all = sortedSamplesAscending.reversed()
         if showAllHistory {
             return Array(all)
         }
         return Array(all.prefix(historyLimit))
+    }
+
+    var sortedSamplesAscending: [MetricSample] {
+        samples
     }
 
     var appleIntelligenceAvailable: Bool {
@@ -688,10 +702,9 @@ struct MetricDetailView: View {
     
     var trendlineSegment: (startDate: Date, startValue: Double, endDate: Date, endValue: Double)? {
         guard chartSamples.count >= 2 else { return nil }
-        
-        let sorted = chartSamples.sorted { $0.date < $1.date }
-        let times = sorted.map { $0.date.timeIntervalSinceReferenceDate }
-        let values = sorted.map { displayValue($0.value) }
+
+        let times = chartSamples.map { $0.date.timeIntervalSinceReferenceDate }
+        let values = chartSamples.map { displayValue($0.value) }
         
         let count = Double(values.count)
         let sumX = times.reduce(0, +)
@@ -706,7 +719,7 @@ struct MetricDetailView: View {
         let intercept = (sumY - slope * sumX) / count
         
         guard let startTime = times.first, let endTime = times.last,
-              let firstSample = sorted.first, let lastSample = sorted.last else { return nil }
+              let firstSample = chartSamples.first, let lastSample = chartSamples.last else { return nil }
         let startValue = slope * startTime + intercept
         let endValue = slope * endTime + intercept
 
@@ -776,4 +789,3 @@ struct MetricDetailView: View {
     }
 }
 // Extension methods are defined in MetricDetailComponents.swift
-

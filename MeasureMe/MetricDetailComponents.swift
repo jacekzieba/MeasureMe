@@ -159,8 +159,8 @@ extension MetricDetailView {
     }
 
     func baselineValue(for goal: MetricGoal) -> Double {
-        guard !samples.isEmpty else { return latestSampleValue ?? goal.targetValue }
-        let sorted = samples.sorted { $0.date < $1.date }
+        let sorted = sortedSamplesAscending
+        guard !sorted.isEmpty else { return latestSampleValue ?? goal.targetValue }
         if let baseline = sorted.last(where: { $0.date <= goal.createdDate }) {
             return baseline.value
         }

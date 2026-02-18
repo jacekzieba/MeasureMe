@@ -154,17 +154,6 @@ struct SettingsView: View {
                 
                 // Zawartość
                 List {
-                GeometryReader { proxy in
-                    Color.clear
-                        .preference(
-                            key: SettingsScrollOffsetKey.self,
-                            value: proxy.frame(in: .named("settingsScroll")).minY
-                        )
-                }
-                .frame(height: 0)
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-
                 ScreenTitleHeader(title: AppLocalization.string("Settings"), topPadding: 0, bottomPadding: 4)
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                     .listRowBackground(Color.clear)
@@ -567,6 +556,15 @@ struct SettingsView: View {
                 }
             }
             .tint(Color.appAccent)
+            .background(alignment: .top) {
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: SettingsScrollOffsetKey.self,
+                        value: proxy.frame(in: .named("settingsScroll")).minY
+                    )
+                }
+                .allowsHitTesting(false)
+            }
             .coordinateSpace(name: "settingsScroll")
             .onPreferenceChange(SettingsScrollOffsetKey.self) { value in
                 scrollOffset = value
@@ -1097,4 +1095,3 @@ private extension View {
         self
     }
 }
-

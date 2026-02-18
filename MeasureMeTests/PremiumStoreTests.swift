@@ -63,6 +63,62 @@ private final class MockPremiumNotificationManager: PremiumNotificationManaging 
 
 @MainActor
 final class PremiumStoreTests: XCTestCase {
+    func testIsEntitlementActiveReturnsFalseForExpiredOutsideGracePeriod() {
+        let now = Date()
+        let isActive = PremiumStore.isEntitlementActive(
+            productID: PremiumConstants.monthlyProductID,
+            revocationDate: nil,
+            expirationDate: now.addingTimeInterval(-60),
+            isInBillingGracePeriod: false,
+            allowedProductIDs: [PremiumConstants.monthlyProductID, PremiumConstants.yearlyProductID],
+            now: now
+        )
+
+        XCTAssertFalse(isActive)
+    }
+
+    func testIsEntitlementActiveReturnsTrueForExpiredInsideGracePeriod() {
+        let now = Date()
+        let isActive = PremiumStore.isEntitlementActive(
+            productID: PremiumConstants.monthlyProductID,
+            revocationDate: nil,
+            expirationDate: now.addingTimeInterval(-60),
+            isInBillingGracePeriod: true,
+            allowedProductIDs: [PremiumConstants.monthlyProductID, PremiumConstants.yearlyProductID],
+            now: now
+        )
+
+        XCTAssertTrue(isActive)
+    }
+
+    func testIsEntitlementActiveReturnsFalseForRevokedTransaction() {
+        let now = Date()
+        let isActive = PremiumStore.isEntitlementActive(
+            productID: PremiumConstants.yearlyProductID,
+            revocationDate: now.addingTimeInterval(-60),
+            expirationDate: now.addingTimeInterval(24 * 60 * 60),
+            isInBillingGracePeriod: false,
+            allowedProductIDs: [PremiumConstants.monthlyProductID, PremiumConstants.yearlyProductID],
+            now: now
+        )
+
+        XCTAssertFalse(isActive)
+    }
+
+    func testIsEntitlementActiveReturnsTrueForNonExpiredSubscription() {
+        let now = Date()
+        let isActive = PremiumStore.isEntitlementActive(
+            productID: PremiumConstants.yearlyProductID,
+            revocationDate: nil,
+            expirationDate: now.addingTimeInterval(24 * 60 * 60),
+            isInBillingGracePeriod: false,
+            allowedProductIDs: [PremiumConstants.monthlyProductID, PremiumConstants.yearlyProductID],
+            now: now
+        )
+
+        XCTAssertTrue(isActive)
+    }
+
     func testLoadProductsErrorSetsFailureState() async {
         let billing = MockPremiumBillingClient()
         billing.productsError = NSError(domain: "test", code: 1)

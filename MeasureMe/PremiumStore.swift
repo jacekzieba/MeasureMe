@@ -265,6 +265,27 @@ final class PremiumStore: ObservableObject {
         }
     }
 
+    static func isEntitlementActive(
+        productID: String,
+        revocationDate: Date?,
+        expirationDate: Date?,
+        isInBillingGracePeriod: Bool,
+        allowedProductIDs: Set<String>,
+        now: Date = Date()
+    ) -> Bool {
+        guard allowedProductIDs.contains(productID) else { return false }
+        if let revocationDate, revocationDate <= now {
+            return false
+        }
+        guard let expirationDate else {
+            return true
+        }
+        if expirationDate > now {
+            return true
+        }
+        return isInBillingGracePeriod
+    }
+
     private func refreshEntitlements() async {
         #if DEBUG
         if forcePremiumForUITests {
@@ -275,19 +296,69 @@ final class PremiumStore: ObservableObject {
         #endif
 
         var active = false
-        for await result in billingClient.currentEntitlements() {
-            guard case .verified(let transaction) = result else { continue }
-            guard productIDs.contains(transaction.productID) else { continue }
-            if let revocation = transaction.revocationDate, revocation <= Date() {
-                continue
-            }
-            if let expiration = transaction.expirationDate, expiration <= Date() {
-                continue
-            }
+        let allowedProductIDs = Set(productIDs)
+        let now = Date()
+
+        if await hasActiveSubscriptionStatus(allowedProductIDs: allowedProductIDs, now: now) {
             active = true
+        } else {
+            // Fallback for edge cases where status fetch is unavailable.
+            for await result in billingClient.currentEntitlements() {
+                guard case .verified(let transaction) = result else { continue }
+                if Self.isEntitlementActive(
+                    productID: transaction.productID,
+                    revocationDate: transaction.revocationDate,
+                    expirationDate: transaction.expirationDate,
+                    isInBillingGracePeriod: false,
+                    allowedProductIDs: allowedProductIDs,
+                    now: now
+                ) {
+                    active = true
+                    break
+                }
+            }
         }
+
         isPremium = active
         UserDefaults.standard.set(active, forKey: entitlementKey)
+    }
+
+    private func hasActiveSubscriptionStatus(allowedProductIDs: Set<String>, now: Date) async -> Bool {
+        let entitlementProducts: [Product]
+        if products.isEmpty {
+            do {
+                entitlementProducts = try await billingClient.products(for: productIDs)
+            } catch {
+                return false
+            }
+        } else {
+            entitlementProducts = products
+        }
+
+        for product in entitlementProducts where allowedProductIDs.contains(product.id) {
+            guard let subscription = product.subscription else { continue }
+            guard let statuses = try? await subscription.status else { continue }
+            for status in statuses {
+                guard case .verified(let transaction) = status.transaction else { continue }
+                guard case .verified(let renewalInfo) = status.renewalInfo else { continue }
+
+                let inGraceByState = status.state == .inGracePeriod
+                let inGraceByDate = (renewalInfo.gracePeriodExpirationDate ?? .distantPast) > now
+                let isInGracePeriod = inGraceByState || inGraceByDate
+
+                if Self.isEntitlementActive(
+                    productID: transaction.productID,
+                    revocationDate: transaction.revocationDate,
+                    expirationDate: transaction.expirationDate,
+                    isInBillingGracePeriod: isInGracePeriod,
+                    allowedProductIDs: allowedProductIDs,
+                    now: now
+                ) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     private func listenForUpdates() async {

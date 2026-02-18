@@ -206,16 +206,7 @@ struct MeasureMeApp: App {
     private func configureUITestDefaultsIfNeeded() {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        guard args.contains("-uiTestMode") else { return }
         let defaults = UserDefaults.standard
-        defaults.set(true, forKey: "hasCompletedOnboarding")
-        defaults.set("en", forKey: "appLanguage")
-        defaults.set(true, forKey: "premium_entitlement")
-        defaults.set(true, forKey: "apple_intelligence_enabled")
-        defaults.set(false, forKey: "onboarding_checklist_show")
-        defaults.set(-20.0, forKey: "home_tab_scroll_offset")
-
-        // Reset metric toggles every launch so test order doesn't matter.
         let metricKeys = [
             "metric_weight_enabled", "metric_bodyFat_enabled", "metric_height_enabled",
             "metric_nonFatMass_enabled", "metric_waist_enabled", "metric_neck_enabled",
@@ -225,15 +216,34 @@ struct MeasureMeApp: App {
             "metric_hips_enabled", "metric_leftThigh_enabled", "metric_rightThigh_enabled",
             "metric_leftCalf_enabled", "metric_rightCalf_enabled"
         ]
+        let enabledByDefault: Set<String> = [
+            "metric_weight_enabled", "metric_bodyFat_enabled",
+            "metric_nonFatMass_enabled", "metric_waist_enabled"
+        ]
+
+        if args.contains("-uiTestOnboardingMode") {
+            defaults.set(false, forKey: "hasCompletedOnboarding")
+            defaults.set("en", forKey: "appLanguage")
+            defaults.set(false, forKey: "premium_entitlement")
+            defaults.set(true, forKey: "apple_intelligence_enabled")
+            defaults.set(true, forKey: "onboarding_checklist_show")
+            defaults.set(0.0, forKey: "home_tab_scroll_offset")
+            for key in metricKeys {
+                defaults.set(enabledByDefault.contains(key), forKey: key)
+            }
+        }
+
+        guard args.contains("-uiTestMode") else { return }
+        defaults.set(true, forKey: "hasCompletedOnboarding")
+        defaults.set("en", forKey: "appLanguage")
+        defaults.set(true, forKey: "premium_entitlement")
+        defaults.set(true, forKey: "apple_intelligence_enabled")
+        defaults.set(false, forKey: "onboarding_checklist_show")
+        defaults.set(-20.0, forKey: "home_tab_scroll_offset")
 
         if args.contains("-uiTestNoActiveMetrics") {
             for key in metricKeys { defaults.set(false, forKey: key) }
         } else {
-            // Restore defaults: enable the four core metrics, disable the rest.
-            let enabledByDefault: Set<String> = [
-                "metric_weight_enabled", "metric_bodyFat_enabled",
-                "metric_nonFatMass_enabled", "metric_waist_enabled"
-            ]
             for key in metricKeys {
                 defaults.set(enabledByDefault.contains(key), forKey: key)
             }
@@ -245,7 +255,8 @@ struct MeasureMeApp: App {
     private func cleanUITestDataIfNeeded(container: ModelContainer) throws {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        guard args.contains("-uiTestMode") else { return }
+        let shouldClean = args.contains("-uiTestMode") || args.contains("-uiTestOnboardingMode")
+        guard shouldClean else { return }
 
         let context = ModelContext(container)
         try context.fetch(FetchDescriptor<MetricSample>()).forEach { context.delete($0) }

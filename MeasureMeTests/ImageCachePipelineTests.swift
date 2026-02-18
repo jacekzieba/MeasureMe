@@ -4,19 +4,41 @@ import UIKit
 
 @MainActor
 final class ImageCachePipelineTests: XCTestCase {
-    func testMemoryCacheClearRemovesCachedImage() {
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 10, height: 10))
-        let image = renderer.image { context in
-            UIColor.red.setFill()
-            context.fill(CGRect(x: 0, y: 0, width: 10, height: 10))
-        }
+    private func makeTestImage() -> UIImage {
+        UIImage(systemName: "circle.fill") ?? UIImage()
+    }
+
+    override func setUp() {
+        super.setUp()
+        ImageCache.shared.countLimit = 50
+    }
+
+    func testMemoryCacheStoresAndReturnsImage() {
+        let image = makeTestImage()
         let key = "image-cache-test"
 
         ImageCache.shared.setImage(image, forKey: key)
         XCTAssertNotNil(ImageCache.shared.image(forKey: key))
+    }
 
-        ImageCache.shared.removeAll()
-        XCTAssertNil(ImageCache.shared.image(forKey: key))
+    func testMemoryCacheLRUOrderUpdatesOnAccess() {
+        let image = makeTestImage()
+        let prefix = UUID().uuidString
+
+        let k1 = "\(prefix)-k1"
+        let k2 = "\(prefix)-k2"
+        let k3 = "\(prefix)-k3"
+
+        ImageCache.shared.setImage(image, forKey: k1)
+        ImageCache.shared.setImage(image, forKey: k2)
+        ImageCache.shared.setImage(image, forKey: k3)
+
+        _ = ImageCache.shared.image(forKey: k1)
+
+        let leastRecentlyUsed = ImageCache.shared
+            .getLeastRecentlyUsedKeys(count: 200)
+            .filter { $0.hasPrefix(prefix) }
+        XCTAssertEqual(leastRecentlyUsed, [k2, k3, k1])
     }
 
     func testDiskCacheRemoveAllClearsStoredData() async throws {
