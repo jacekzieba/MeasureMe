@@ -48,6 +48,25 @@ final class OnboardingUITests: XCTestCase {
     }
 
     @MainActor
+    func testPremiumStepShowsLegalLinksAndRestoreAction() {
+        // welcome -> profile -> boosters -> premium
+        for _ in 0..<3 {
+            let next = app.buttons["onboarding.next"]
+            XCTAssertTrue(next.waitForExistence(timeout: 5), "Next button should exist")
+            next.tap()
+        }
+
+        let restore = app.buttons["onboarding.premium.restore"]
+        XCTAssertTrue(restore.waitForExistence(timeout: 5), "Restore purchases action should be visible on premium step")
+
+        let privacyLink = app.links["onboarding.premium.privacy"]
+        XCTAssertTrue(privacyLink.waitForExistence(timeout: 5), "Privacy Policy link should be visible on premium step")
+
+        let termsLink = app.links["onboarding.premium.terms"]
+        XCTAssertTrue(termsLink.waitForExistence(timeout: 5), "Terms of Use link should be visible on premium step")
+    }
+
+    @MainActor
     func testRemindersButtonOpensSheet() {
         // welcome -> profile -> boosters
         for _ in 0..<2 {

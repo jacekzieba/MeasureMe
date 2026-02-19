@@ -39,3 +39,20 @@
 2. Re-run archive in Release with distribution signing.
 3. Re-run `xcodebuild -exportArchive` with `method=app-store-connect`.
 4. Upload the exported build to App Store Connect.
+
+## App Review Resubmission (Subscriptions)
+- [ ] Auto-renewable subscription UI shows billed amount as the most prominent pricing element.
+- [ ] Yearly calculated monthly equivalent is shown only as subordinate text.
+- [ ] Removed dominant promotional pricing cues (for example: "Best value", large "Save %").
+- [ ] `com.measureme.premium.monthly` metadata complete and status `Ready to Submit`.
+- [ ] `com.measureme.premium.yearly` metadata complete and status `Ready to Submit`.
+- [ ] App Review screenshot added for both subscription products.
+- [ ] Both IAP products attached to the same app version submission.
+- [ ] App Description includes Terms of Use link:
+  - `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/`
+- [ ] Privacy Policy field points to:
+  - `https://jacekzieba.pl/privacy.html`
+- [ ] App Review notes mention:
+  - billed amount prominence update,
+  - both IAP products included,
+  - Terms of Use points to Apple Standard EULA.

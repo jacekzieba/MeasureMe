@@ -507,9 +507,46 @@ struct SettingsView: View {
                         SettingsRowDivider()
 
                         Button {
-                            if let url = URL(string: "https://jacekzieba.pl/measureme") {
-                                openURL(url)
-                            }
+                            openURL(LegalLinks.termsOfUse)
+                        } label: {
+                            appSectionRowLabel(
+                                title: AppLocalization.string("Terms of Use"),
+                                trailingSymbol: "arrow.up.right.square"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+
+                        SettingsRowDivider()
+
+                        Button {
+                            openURL(LegalLinks.privacyPolicy)
+                        } label: {
+                            appSectionRowLabel(
+                                title: AppLocalization.string("Privacy Policy"),
+                                trailingSymbol: "arrow.up.right.square"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+
+                        SettingsRowDivider()
+
+                        Button {
+                            openURL(LegalLinks.accessibility)
+                        } label: {
+                            appSectionRowLabel(
+                                title: AppLocalization.string("Accessibility"),
+                                trailingSymbol: "arrow.up.right.square"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+
+                        SettingsRowDivider()
+
+                        Button {
+                            openURL(LegalLinks.about)
                         } label: {
                             appSectionRowLabel(
                                 title: AppLocalization.string("About"),
@@ -522,9 +559,7 @@ struct SettingsView: View {
                         SettingsRowDivider()
 
                         Button {
-                            if let url = URL(string: "https://measureme.userjot.com/") {
-                                openURL(url)
-                            }
+                            openURL(LegalLinks.featureRequest)
                         } label: {
                             appSectionRowLabel(
                                 title: AppLocalization.string("Feature request"),

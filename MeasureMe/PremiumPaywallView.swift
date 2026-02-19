@@ -123,16 +123,6 @@ struct PremiumPaywallView: View {
         return min(baseHeight + dynamicTypeBump, viewportHeight * 0.82)
     }
 
-    private var yearlySavingsPercent: Int? {
-        guard let monthly, let yearly else { return nil }
-        let yearlyFromMonthly = monthly.price * Decimal(12)
-        guard yearlyFromMonthly > 0 else { return nil }
-        let savings = (yearlyFromMonthly - yearly.price) / yearlyFromMonthly
-        guard savings > 0 else { return nil }
-        let percent = NSDecimalNumber(decimal: savings * Decimal(100)).doubleValue
-        return Int(percent.rounded())
-    }
-
     private var shouldAnimateCTA: Bool {
         animationsEnabled && !reduceMotion
     }
@@ -841,66 +831,49 @@ struct PremiumPaywallView: View {
     private func planRow(product: Product) -> some View {
         let isSelected = product.id == selectedProductID
         let subtitle = planSubtitle(for: product)
-        let badge = planBadge(for: product)
+        let secondaryPrice = secondaryPriceLine(for: product)
 
         return Button {
             selectedProductID = product.id
         } label: {
-            ZStack(alignment: .topTrailing) {
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(planTitle(for: product))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                        Text(subtitle)
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.72))
-                    }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text(priceLine(for: product))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                            .minimumScaleFactor(0.9)
-
-                        if product.id == PremiumConstants.yearlyProductID,
-                           let yearlySavingsPercent {
-                            Text(AppLocalization.string("premium.plan.save.percent", yearlySavingsPercent))
-                                .font(AppTypography.micro)
-                                .foregroundStyle(.white.opacity(0.64))
-                        }
-                    }
-                    .padding(.top, badge == nil ? 0 : 16)
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(planTitle(for: product))
+                        .font(AppTypography.body)
+                        .foregroundStyle(.white.opacity(0.88))
+                    Text(subtitle)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(.white.opacity(0.68))
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
-                .padding(.top, 12)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(isSelected ? Color.appAccent.opacity(0.16) : Color.white.opacity(0.05))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(isSelected ? Color.appAccent : Color.white.opacity(0.14), lineWidth: 1)
-                        )
-                )
 
-                if let badge {
-                    Text(badge.uppercased())
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(.black.opacity(0.92))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(
-                            Capsule(style: .continuous)
-                                .fill(Color.appAccent)
-                        )
-                        .offset(y: -9)
-                        .padding(.trailing, 10)
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(primaryPriceLine(for: product))
+                        .font(.system(.title3, design: .rounded).weight(.bold))
+                        .foregroundStyle(.white)
+                        .minimumScaleFactor(0.82)
+
+                    if let secondaryPrice {
+                        Text(secondaryPrice)
+                            .font(AppTypography.micro)
+                            .foregroundStyle(.white.opacity(0.6))
+                            .minimumScaleFactor(0.9)
+                    }
                 }
             }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 12)
+            .padding(.top, 12)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected ? Color.appAccent.opacity(0.16) : Color.white.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(isSelected ? Color.appAccent : Color.white.opacity(0.14), lineWidth: 1)
+                    )
+            )
         }
         .buttonStyle(.plain)
     }
@@ -978,23 +951,12 @@ struct PremiumPaywallView: View {
     }
 
     private var footerLinks: some View {
-        let privacyURL = URL(string: "https://jacekzieba.pl/privacy.html")
-        let termsURL = URL(string: "https://jacekzieba.pl/terms.html")
-
         return HStack(spacing: 22) {
-            if let privacyURL {
-                Link(AppLocalization.string("Privacy"), destination: privacyURL)
-            } else {
-                Text(AppLocalization.string("Privacy"))
-            }
+            Link(AppLocalization.string("Privacy Policy"), destination: LegalLinks.privacyPolicy)
             Button(AppLocalization.string("Restore purchases")) {
                 Task { await premium.restorePurchases() }
             }
-            if let termsURL {
-                Link(AppLocalization.string("Terms"), destination: termsURL)
-            } else {
-                Text(AppLocalization.string("Terms"))
-            }
+            Link(AppLocalization.string("Terms of Use"), destination: LegalLinks.termsOfUse)
         }
         .font(AppTypography.captionEmphasis)
         .foregroundStyle(Color.appAccent)
@@ -1023,21 +985,24 @@ struct PremiumPaywallView: View {
         }
     }
 
-    private func planBadge(for product: Product) -> String? {
-        guard product.id == PremiumConstants.yearlyProductID else { return nil }
-        return AppLocalization.string("premium.plan.best.value")
+    private func primaryPriceLine(for product: Product) -> String {
+        let periodLabel: String
+        if product.id == PremiumConstants.yearlyProductID {
+            periodLabel = AppLocalization.string("premium.plan.period.year")
+        } else {
+            periodLabel = AppLocalization.string("premium.plan.period.month")
+        }
+        return "\(product.displayPrice)/\(periodLabel)"
     }
 
-    private func priceLine(for product: Product) -> String {
+    private func secondaryPriceLine(for product: Product) -> String? {
         switch product.id {
-        case PremiumConstants.monthlyProductID:
-            return "\(product.displayPrice)/\(AppLocalization.string("premium.plan.period.month"))"
         case PremiumConstants.yearlyProductID:
             let monthlyEquivalent = product.price / Decimal(12)
             let monthlyEquivalentDisplay = monthlyEquivalent.formatted(product.priceFormatStyle)
-            return AppLocalization.string("premium.plan.just.monthly.dynamic", monthlyEquivalentDisplay)
+            return AppLocalization.string("premium.plan.equivalent.monthly.dynamic", monthlyEquivalentDisplay)
         default:
-            return product.displayPrice
+            return nil
         }
     }
 

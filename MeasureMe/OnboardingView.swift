@@ -159,16 +159,6 @@ struct OnboardingView: View {
         return yearlyProduct ?? monthlyProduct
     }
 
-    private var onboardingYearlySavingsPercent: Int? {
-        guard let monthlyProduct, let yearlyProduct else { return nil }
-        let yearlyFromMonthly = monthlyProduct.price * Decimal(12)
-        guard yearlyFromMonthly > 0 else { return nil }
-        let savings = (yearlyFromMonthly - yearlyProduct.price) / yearlyFromMonthly
-        guard savings > 0 else { return nil }
-        let percent = NSDecimalNumber(decimal: savings * Decimal(100)).doubleValue
-        return Int(percent.rounded())
-    }
-
     var body: some View {
         ZStack {
             AppBackground()
@@ -516,6 +506,8 @@ struct OnboardingView: View {
                 .foregroundStyle(.white.opacity(0.72))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity, alignment: .center)
+
+            onboardingLegalBlock
         }
     }
 
@@ -902,67 +894,50 @@ struct OnboardingView: View {
 
     private func onboardingPlanRow(product: Product) -> some View {
         let isSelected = product.id == onboardingSelectedPremiumProductID
-        let badge = onboardingPlanBadge(for: product)
+        let secondaryPrice = onboardingSecondaryPriceLine(for: product)
 
         return Button {
             onboardingSelectedPremiumProductID = product.id
             Haptics.selection()
         } label: {
-            ZStack(alignment: .topTrailing) {
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(onboardingPlanTitle(for: product))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                        Text(onboardingPlanSubtitle(for: product))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.72))
-                    }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text(onboardingPriceLine(for: product))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                            .minimumScaleFactor(0.9)
-
-                        if product.id == PremiumConstants.yearlyProductID,
-                           let onboardingYearlySavingsPercent {
-                            Text(AppLocalization.string("premium.plan.save.percent", onboardingYearlySavingsPercent))
-                                .font(AppTypography.micro)
-                                .foregroundStyle(.white.opacity(0.64))
-                        }
-                    }
-                    .padding(.top, badge == nil ? 0 : 16)
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(onboardingPlanTitle(for: product))
+                        .font(AppTypography.body)
+                        .foregroundStyle(.white.opacity(0.88))
+                    Text(onboardingPlanSubtitle(for: product))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(.white.opacity(0.68))
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
-                .padding(.top, 12)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(isSelected ? Color.appAccent.opacity(0.16) : Color.white.opacity(0.05))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(isSelected ? Color.appAccent : Color.white.opacity(0.14), lineWidth: 1)
-                        )
-                )
 
-                if let badge {
-                    Text(badge.uppercased())
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(.black.opacity(0.92))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(
-                            Capsule(style: .continuous)
-                                .fill(Color.appAccent)
-                        )
-                        .offset(y: -9)
-                        .padding(.trailing, 10)
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(onboardingPrimaryPriceLine(for: product))
+                        .font(.system(.title3, design: .rounded).weight(.bold))
+                        .foregroundStyle(.white)
+                        .minimumScaleFactor(0.82)
+
+                    if let secondaryPrice {
+                        Text(secondaryPrice)
+                            .font(AppTypography.micro)
+                            .foregroundStyle(.white.opacity(0.6))
+                            .minimumScaleFactor(0.9)
+                    }
                 }
             }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 12)
+            .padding(.top, 12)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected ? Color.appAccent.opacity(0.16) : Color.white.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(isSelected ? Color.appAccent : Color.white.opacity(0.14), lineWidth: 1)
+                    )
+            )
         }
         .buttonStyle(.plain)
     }
@@ -989,21 +964,24 @@ struct OnboardingView: View {
         }
     }
 
-    private func onboardingPlanBadge(for product: Product) -> String? {
-        guard product.id == PremiumConstants.yearlyProductID else { return nil }
-        return AppLocalization.string("premium.plan.best.value")
+    private func onboardingPrimaryPriceLine(for product: Product) -> String {
+        let periodLabel: String
+        if product.id == PremiumConstants.yearlyProductID {
+            periodLabel = AppLocalization.string("premium.plan.period.year")
+        } else {
+            periodLabel = AppLocalization.string("premium.plan.period.month")
+        }
+        return "\(product.displayPrice)/\(periodLabel)"
     }
 
-    private func onboardingPriceLine(for product: Product) -> String {
+    private func onboardingSecondaryPriceLine(for product: Product) -> String? {
         switch product.id {
-        case PremiumConstants.monthlyProductID:
-            return "\(product.displayPrice)/\(AppLocalization.string("premium.plan.period.month"))"
         case PremiumConstants.yearlyProductID:
             let monthlyEquivalent = product.price / Decimal(12)
             let monthlyEquivalentDisplay = monthlyEquivalent.formatted(product.priceFormatStyle)
-            return AppLocalization.string("premium.plan.just.monthly.dynamic", monthlyEquivalentDisplay)
+            return AppLocalization.string("premium.plan.equivalent.monthly.dynamic", monthlyEquivalentDisplay)
         default:
-            return product.displayPrice
+            return nil
         }
     }
 
@@ -1029,6 +1007,30 @@ struct OnboardingView: View {
             attributed[emphasizedRange].inlinePresentationIntent = .stronglyEmphasized
         }
         return Text(attributed)
+    }
+
+    private var onboardingLegalBlock: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 18) {
+                Link(AppLocalization.string("Privacy Policy"), destination: LegalLinks.privacyPolicy)
+                    .accessibilityIdentifier("onboarding.premium.privacy")
+                Button(AppLocalization.string("Restore purchases")) {
+                    Task { await premiumStore.restorePurchases() }
+                }
+                .accessibilityIdentifier("onboarding.premium.restore")
+                Link(AppLocalization.string("Terms of Use"), destination: LegalLinks.termsOfUse)
+                    .accessibilityIdentifier("onboarding.premium.terms")
+            }
+            .font(AppTypography.captionEmphasis)
+            .foregroundStyle(Color.appAccent)
+
+            Text(AppLocalization.string("premium.disclaimer"))
+                .font(AppTypography.micro)
+                .foregroundStyle(.white.opacity(0.62))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func profileField<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {

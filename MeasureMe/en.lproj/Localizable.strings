@@ -338,6 +338,7 @@
 "premium.plan.period.year" = "yr";
 "premium.plan.just.monthly" = "Just 8.33/month";
 "premium.plan.just.monthly.dynamic" = "Just %@/month";
+"premium.plan.equivalent.monthly.dynamic" = "Equivalent to %@/month";
 "premium.carousel.analyst.title" = "Your Personal Body Analyst";
 "premium.carousel.analyst.body" = "Turn every check-in into a clear next step. See what's working and what to adjust next.";
 "premium.carousel.photos.title" = "Your Transformation, Side by Side";
@@ -468,9 +469,12 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Photo Details" = "Photo Details";
 "Preparing data export..." = "Preparing data export...";
 "Privacy" = "Privacy";
+"Privacy Policy" = "Privacy Policy";
 "Restart required after changing language." = "Restart the app.";
 "Send diagnostics to ziebajacek@pm.me" = "Send diagnostics to ziebajacek@pm.me";
 "Terms" = "Terms";
+"Terms of Use" = "Terms of Use";
+"Accessibility" = "Accessibility";
 "Upgrade" = "Upgrade";
 "Waist circumference" = "Waist circumference";
 "Weight" = "Weight";

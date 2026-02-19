@@ -22,6 +22,9 @@
 - [ ] Purchase flow starts and completes (sandbox account).
 - [ ] Restore purchases works.
 - [ ] Manage subscription link opens correctly.
+- [ ] Paywall legal links open correctly: Terms of Use (Apple EULA) and Privacy Policy.
+- [ ] Onboarding premium step shows and opens legal links: Terms of Use and Privacy Policy.
+- [ ] Onboarding premium step Restore purchases action is visible and actionable.
 - [ ] After trial activation, app asks again about reminder notifications (does not silently force preference).
 - [ ] If permission denied, previous notifications preference remains unchanged.
 
@@ -52,3 +55,4 @@
 - [ ] Version/build numbers in Xcode match planned release.
 - [ ] App Store metadata/screenshots reflect portrait iPhone experience.
 - [ ] Privacy answers in App Store Connect match current implementation.
+- [ ] Settings > App contains links for Terms of Use, Privacy Policy, Accessibility.

@@ -845,6 +845,7 @@
 "premium.plan.period.year" = "rok";
 "premium.plan.just.monthly" = "Tylko 8,33/mies.";
 "premium.plan.just.monthly.dynamic" = "Tylko %@/mies.";
+"premium.plan.equivalent.monthly.dynamic" = "Równowartość %@/mies.";
 "premium.carousel.analyst.title" = "Twój osobisty analityk sylwetki";
 "premium.carousel.analyst.body" = "Zamień każdy check-in w jasny kolejny krok. Zobacz, co działa i co warto poprawić.";
 "premium.carousel.photos.title" = "Twoja transformacja widoczna gołym okiem";
@@ -974,9 +975,12 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Photo Details" = "Szczegóły zdjęcia";
 "Preparing data export..." = "Przygotowywanie eksportu danych...";
 "Privacy" = "Prywatność";
+"Privacy Policy" = "Polityka prywatności";
 "Restart required after changing language." = "Uruchom ponownie aplikację.";
 "Send diagnostics to ziebajacek@pm.me" = "Wyślij diagnostykę na ziebajacek@pm.me";
 "Terms" = "Warunki";
+"Terms of Use" = "Warunki użytkowania";
+"Accessibility" = "Dostępność";
 "Upgrade" = "Ulepsz";
 "Waist circumference" = "Obwód talii";
 "Weight" = "Waga";
