@@ -76,6 +76,11 @@
                BlueprintName = "MeasureMeTests"
                ReferencedContainer = "container:MeasureMe.xcodeproj">
             </BuildableReference>
+            <SkippedTests>
+               <Test
+                  Identifier = "RootViewSnapshotTests/testRootView_snapshot()">
+               </Test>
+            </SkippedTests>
          </TestableReference>
          <TestableReference
             skipped = "NO">
@@ -112,7 +117,7 @@
          </BuildableReference>
       </BuildableProductRunnable>
       <StoreKitConfigurationFileReference
-         identifier = "../../MeasureMe/Premium.storekit">
+         identifier = "../../MeasureMe/Premium_local.storekit">
       </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction

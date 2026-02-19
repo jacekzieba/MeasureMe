@@ -59,10 +59,10 @@ final class OnboardingUITests: XCTestCase {
         let restore = app.buttons["onboarding.premium.restore"]
         XCTAssertTrue(restore.waitForExistence(timeout: 5), "Restore purchases action should be visible on premium step")
 
-        let privacyLink = app.links["onboarding.premium.privacy"]
+        let privacyLink = app.descendants(matching: .any)["onboarding.premium.privacy"]
         XCTAssertTrue(privacyLink.waitForExistence(timeout: 5), "Privacy Policy link should be visible on premium step")
 
-        let termsLink = app.links["onboarding.premium.terms"]
+        let termsLink = app.descendants(matching: .any)["onboarding.premium.terms"]
         XCTAssertTrue(termsLink.waitForExistence(timeout: 5), "Terms of Use link should be visible on premium step")
     }
 

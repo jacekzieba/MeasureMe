@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		A31FCE332F295FBB00E3253D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A31FCE322F295FBB00E3253D /* Assets.xcassets */; };
+		A345A4F92F475DFF0068BE76 /* Premium.storekit in Resources */ = {isa = PBXBuildFile; fileRef = A345A4F82F475DFF0068BE76 /* Premium.storekit */; };
 		A3B1D6022F45CB4A00DA3275 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = A3B1D6012F45CB4A00DA3275 /* SnapshotTesting */; };
 /* End PBXBuildFile section */
 
@@ -30,6 +31,7 @@
 
 /* Begin PBXFileReference section */
 		A31FCE322F295FBB00E3253D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A345A4F82F475DFF0068BE76 /* Premium.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Premium.storekit; sourceTree = "<group>"; };
 		A3BAF7BC2F27B74C00269A9A /* MeasureMe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MeasureMe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000012F28000100000001 /* MeasureMeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeasureMeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000012F28000100000002 /* MeasureMeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeasureMeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -41,7 +43,6 @@
 			membershipExceptions = (
 				.gitattributes,
 				Info.plist,
-				Premium.storekit,
 			);
 			target = A3BAF7BB2F27B74C00269A9A /* MeasureMe */;
 		};
@@ -110,6 +111,7 @@
 				B10000012F28000100000004 /* MeasureMeUITests */,
 				A3B1D6002F45CB3D00DA3275 /* Frameworks */,
 				A3BAF7BD2F27B74C00269A9A /* Products */,
+				A345A4F82F475DFF0068BE76 /* Premium.storekit */,
 			);
 			sourceTree = "<group>";
 		};
@@ -248,6 +250,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A345A4F92F475DFF0068BE76 /* Premium.storekit in Resources */,
 				A31FCE332F295FBB00E3253D /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -432,7 +435,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MeasureMe/MeasureMe.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = K447N5AR8W;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
@@ -481,7 +484,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MeasureMe/MeasureMe.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = K447N5AR8W;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
