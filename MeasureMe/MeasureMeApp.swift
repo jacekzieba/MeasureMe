@@ -296,7 +296,10 @@ struct MeasureMeApp: App {
         let args = ProcessInfo.processInfo.arguments
         let isAuditMockMode = AuditConfig.current.isEnabled && AuditConfig.current.useMockData
         let shouldSkipMeasurementSeed = args.contains("-uiTestSkipMeasurementSeeding")
-        let shouldSeedMeasurements = (args.contains("-uiTestSeedMeasurements") || isAuditMockMode) && !shouldSkipMeasurementSeed
+        let forceNoActiveMetrics = args.contains("-uiTestNoActiveMetrics")
+        let shouldSeedMeasurements = (args.contains("-uiTestSeedMeasurements") || isAuditMockMode)
+            && !shouldSkipMeasurementSeed
+            && !forceNoActiveMetrics
         let requestedPhotoCount = requestedUITestPhotoSeedCount(from: args)
         let effectivePhotoCount = requestedPhotoCount > 0 ? requestedPhotoCount : (isAuditMockMode ? 24 : 0)
         guard shouldSeedMeasurements || effectivePhotoCount > 0 else { return }

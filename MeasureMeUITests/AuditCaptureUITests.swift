@@ -133,8 +133,13 @@ final class AuditCaptureUITests: XCTestCase {
         XCTAssertTrue(emptyApp.wait(for: .runningForeground, timeout: 10))
 
         XCTAssertTrue(openQuickAdd(emptyApp))
-        _ = emptyApp.otherElements["quickadd.empty"].waitForExistence(timeout: 8)
-        saveScreenshot(screen: "quickadd_empty")
+        let quickAddEmpty = emptyApp.descendants(matching: .any).matching(NSPredicate(format: "identifier == 'quickadd.empty'")).firstMatch
+        if quickAddEmpty.waitForExistence(timeout: 8) {
+            saveScreenshot(screen: "quickadd_empty")
+        } else {
+            // Fallback capture so audit artifacts are still produced even if the runtime kept active metrics.
+            saveScreenshot(screen: "quickadd_form_no_empty")
+        }
     }
 
     @MainActor
@@ -236,7 +241,6 @@ final class AuditCaptureUITests: XCTestCase {
             "-uiTestMode",
             "-auditCapture",
             "-useMockData",
-            "-uiTestSkipMeasurementSeeding",
             "-fixedDate", "2026-02-20T12:00:00Z"
         ]
         app.launch()

@@ -22,7 +22,7 @@ struct OnboardingView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @EnvironmentObject private var premiumStore: PremiumStore
 
-    @State private var currentStepIndex: Int = 0
+    @State private var currentStepIndex: Int
     @State private var scrolledStepID: Int?
     @FocusState private var focusedField: FocusField?
 
@@ -46,6 +46,11 @@ struct OnboardingView: View {
     @State private var onboardingSelectedPremiumProductID: String? = PremiumConstants.yearlyProductID
 
     @State private var animateBackdrop: Bool = false
+
+    init(initialStepIndex: Int = 0) {
+        let clamped = max(0, min(initialStepIndex, Step.allCases.count - 1))
+        _currentStepIndex = State(initialValue: clamped)
+    }
 
     private enum FocusField: Hashable {
         case name
