@@ -111,7 +111,7 @@ struct OnboardingView: View {
     }
 
     private var shouldAnimate: Bool {
-        animationsEnabled && !reduceMotion
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 
     private var currentStep: Step {
@@ -304,7 +304,10 @@ struct OnboardingView: View {
                 .frame(width: 320, height: 320)
                 .offset(x: animateBackdrop ? 120 : 70, y: animateBackdrop ? -210 : -160)
                 .blur(radius: 12)
-                .animation(shouldAnimate ? .easeInOut(duration: 4.2).repeatForever(autoreverses: true) : nil, value: animateBackdrop)
+                .animation(
+                    AppMotion.repeating(.easeInOut(duration: 4.2).repeatForever(autoreverses: true), enabled: shouldAnimate),
+                    value: animateBackdrop
+                )
 
             Circle()
                 .fill(
@@ -318,7 +321,10 @@ struct OnboardingView: View {
                 .frame(width: 250, height: 250)
                 .offset(x: animateBackdrop ? -120 : -80, y: animateBackdrop ? 170 : 210)
                 .blur(radius: 12)
-                .animation(shouldAnimate ? .easeInOut(duration: 5.2).repeatForever(autoreverses: true) : nil, value: animateBackdrop)
+                .animation(
+                    AppMotion.repeating(.easeInOut(duration: 5.2).repeatForever(autoreverses: true), enabled: shouldAnimate),
+                    value: animateBackdrop
+                )
         }
         .allowsHitTesting(false)
     }
@@ -1243,7 +1249,7 @@ struct OnboardingView: View {
 
     private func animateToStep(_ index: Int) {
         if shouldAnimate {
-            withAnimation(.easeOut(duration: 0.35)) {
+            withAnimation(AppMotion.reveal) {
                 scrolledStepID = index
             }
         } else {
@@ -1263,7 +1269,7 @@ struct OnboardingView: View {
         Haptics.success()
 
         if shouldAnimate {
-            withAnimation(.easeInOut(duration: 0.18)) {
+            withAnimation(AppMotion.quick) {
                 hasCompletedOnboarding = true
             }
         } else {

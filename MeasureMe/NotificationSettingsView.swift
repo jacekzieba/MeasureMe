@@ -86,11 +86,11 @@ struct NotificationSettingsView: View {
     }
     
     private func acknowledgeSaved() {
-        withAnimation(.easeOut(duration: 0.15)) {
+        withAnimation(AppMotion.toastIn) {
             showSavedToast = true
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            withAnimation(.easeIn(duration: 0.2)) {
+            withAnimation(AppMotion.toastOut) {
                 showSavedToast = false
             }
         }

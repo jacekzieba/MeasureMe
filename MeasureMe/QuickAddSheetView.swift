@@ -10,7 +10,9 @@ struct QuickAddSheetView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var router: AppRouter
+    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
     @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
     @AppStorage("save_unchanged_quick_add") private var saveUnchangedValues: Bool = false
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
@@ -192,7 +194,7 @@ struct QuickAddSheetView: View {
         .padding(AppSpacing.sm)
         .accessibilityIdentifier("quickadd.row.\(kind.rawValue)")
         .background(cardBackground(cornerRadius: AppRadius.md))
-        .animation(AppMotion.standard, value: showRuler)
+        .animation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate), value: showRuler)
         .onAppear {
             if rulerBaseValues[kind] == nil {
                 rulerBaseValues[kind] = baseValue(for: kind)
@@ -327,6 +329,10 @@ struct QuickAddSheetView: View {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
             )
+    }
+
+    private var shouldAnimate: Bool {
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 
     // MARK: - Helpers

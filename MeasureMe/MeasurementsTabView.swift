@@ -8,6 +8,8 @@ struct MeasurementsTabView: View {
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var router: AppRouter
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
     @AppStorage("quickAddHintDismissed") private var quickAddHintDismissed: Bool = false
@@ -140,7 +142,7 @@ struct MeasurementsTabView: View {
                                         Spacer(minLength: 4)
 
                                         Button {
-                                            withAnimation(AppMotion.standard) {
+                                            withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
                                                 quickAddHintDismissed = true
                                             }
                                         } label: {
@@ -248,6 +250,10 @@ struct MeasurementsTabView: View {
                 .contentShape(Rectangle())
             }
         }
+    }
+
+    private var shouldAnimate: Bool {
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 
     private var samplesSignature: Int {

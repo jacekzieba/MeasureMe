@@ -124,7 +124,7 @@ struct PremiumPaywallView: View {
     }
 
     private var shouldAnimateCTA: Bool {
-        animationsEnabled && !reduceMotion
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 
     private var personalizedFirstName: String? {
@@ -254,7 +254,7 @@ struct PremiumPaywallView: View {
             }
         }
         .frame(height: height)
-        .animation(.easeInOut(duration: 0.2), value: selectedSlide)
+        .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimateCTA), value: selectedSlide)
         .tabViewStyle(.page(indexDisplayMode: .never))
     }
 
@@ -266,7 +266,7 @@ struct PremiumPaywallView: View {
                     .frame(width: slide.id == selectedSlide ? 18 : 7, height: 7)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: selectedSlide)
+        .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimateCTA), value: selectedSlide)
     }
 
     private func featureDescriptionCard(for slide: PremiumSlide) -> some View {
@@ -899,7 +899,7 @@ struct PremiumPaywallView: View {
             y: 0
         )
         .animation(
-            shouldAnimateCTA ? .easeInOut(duration: 1.25).repeatForever(autoreverses: true) : .default,
+            AppMotion.repeating(AppMotion.pulse, enabled: shouldAnimateCTA),
             value: isCTAPulsing
         )
     }

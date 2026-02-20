@@ -13,7 +13,9 @@ struct HomeView: View {
 
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var modelContext
+    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
     @AppStorage("userName") private var userName: String = ""
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
     @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
@@ -748,7 +750,8 @@ struct HomeView: View {
     private func autoHideChecklistIfCompleted() {
         guard allChecklistItemsCompleted, showOnboardingChecklistOnHome else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            withAnimation(.easeOut(duration: 0.4)) {
+            let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+            withAnimation(AppMotion.animation(AppMotion.reveal, enabled: shouldAnimate)) {
                 showOnboardingChecklistOnHome = false
             }
         }
@@ -1185,7 +1188,7 @@ private struct PressableTileStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
-        let shouldAnimate = animationsEnabled && !reduceMotion
+        let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
         configuration.label
             .scaleEffect(configuration.isPressed && shouldAnimate ? 0.98 : 1)
             .opacity(configuration.isPressed && shouldAnimate ? 0.9 : 1)

@@ -29,7 +29,7 @@ struct AppCTAButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
-        let shouldAnimate = animationsEnabled && !reduceMotion
+        let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
         configuration.label
             .font(size.font)
             .foregroundStyle(Color.black)
@@ -46,7 +46,7 @@ struct AppCTAButtonStyle: ButtonStyle {
                     )
             )
             .scaleEffect(configuration.isPressed && shouldAnimate ? 0.98 : 1)
-            .animation(shouldAnimate ? AppMotion.quick : nil, value: configuration.isPressed)
+            .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimate), value: configuration.isPressed)
     }
 }
 
@@ -56,7 +56,7 @@ struct AppSecondaryButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
-        let shouldAnimate = animationsEnabled && !reduceMotion
+        let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
         configuration.label
             .font(.system(.subheadline, design: .rounded).weight(.semibold))
             .foregroundStyle(Color.appWhite)
@@ -77,7 +77,7 @@ struct AppSecondaryButtonStyle: ButtonStyle {
                     )
             )
             .scaleEffect(configuration.isPressed && shouldAnimate ? 0.98 : 1)
-            .animation(shouldAnimate ? AppMotion.quick : nil, value: configuration.isPressed)
+            .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimate), value: configuration.isPressed)
     }
 }
 
