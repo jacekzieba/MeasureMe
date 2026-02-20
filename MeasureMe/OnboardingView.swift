@@ -211,8 +211,8 @@ struct OnboardingView: View {
                     }
                     .scrollTargetBehavior(.viewAligned)
                     .scrollPosition(id: $scrolledStepID)
-                    .contentMargins(.horizontal, 16, for: .scrollContent)
-                    .padding(.top, 12)
+                    .contentMargins(.horizontal, AppSpacing.md, for: .scrollContent)
+                    .padding(.top, AppSpacing.sm)
                     .frame(height: cardHeight)
 
                     if let stepStatusText {
@@ -225,7 +225,7 @@ struct OnboardingView: View {
                     if focusedField == nil {
                         privacyNote
                             .padding(.top, 6)
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, AppSpacing.lg)
                             .padding(.bottom, 2)
                     }
                 }
@@ -478,7 +478,7 @@ struct OnboardingView: View {
     }
 
     private var premiumSlide: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
             slideHeader(title: Step.premium.title, subtitle: Step.premium.subtitle)
 
             premiumUnlockBundleTile
@@ -500,7 +500,9 @@ struct OnboardingView: View {
             }
             .buttonStyle(.bordered)
             .tint(Color.appAccent)
+            .appHitTarget()
             .accessibilityIdentifier("onboarding.premium.trial")
+            .accessibilitySortPriority(3)
 
             onboardingBilledAfterTrialText
                 .font(AppTypography.micro)
@@ -541,11 +543,11 @@ struct OnboardingView: View {
                 }
             }
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .background(Color.white.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                 .stroke(Color.white.opacity(0.10), lineWidth: 1)
         )
     }
@@ -833,7 +835,7 @@ struct OnboardingView: View {
             premiumUnlockBenefitRow(icon: "heart.text.square.fill", tint: Color(hex: "#34D399"), textKey: "premium.carousel.unlock.item.health")
             premiumUnlockBenefitRow(icon: "doc.text.fill", tint: Color(hex: "#FBBF24"), textKey: "premium.carousel.unlock.item.export")
         }
-        .padding(dynamicTypeSize.isAccessibilitySize ? 12 : 10)
+        .padding(dynamicTypeSize.isAccessibilitySize ? AppSpacing.sm : AppSpacing.xs)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -876,18 +878,9 @@ struct OnboardingView: View {
     private var onboardingPlanPicker: some View {
         VStack(spacing: dynamicTypeSize.isAccessibilitySize ? 14 : 10) {
             if onboardingPremiumProducts.isEmpty {
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .tint(Color.appAccent)
-                    Text(AppLocalization.string("premium.subscription.loading"))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.white.opacity(0.75))
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.white.opacity(0.06))
+                LoadingBlock(
+                    title: AppLocalization.string("premium.subscription.loading"),
+                    accessibilityIdentifier: "onboarding.premium.loading"
                 )
             } else {
                 ForEach(onboardingPremiumProducts, id: \.id) { product in
@@ -961,15 +954,15 @@ struct OnboardingView: View {
                     }
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 12)
-            .padding(.top, 12)
+            .padding(.horizontal, AppSpacing.sm)
+            .padding(.bottom, AppSpacing.sm)
+            .padding(.top, AppSpacing.sm)
             .frame(maxWidth: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .fill(isSelected ? Color.appAccent.opacity(0.16) : Color.white.opacity(0.05))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .stroke(isSelected ? Color.appAccent : Color.white.opacity(0.14), lineWidth: 1)
                     )
             )
@@ -1164,7 +1157,7 @@ struct OnboardingView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: AppSpacing.sm) {
             Button {
                 goToPreviousStep()
             } label: {
@@ -1175,7 +1168,9 @@ struct OnboardingView: View {
             .buttonStyle(.bordered)
             .tint(Color.appGray.opacity(0.34))
             .disabled(currentStepIndex == 0)
+            .appHitTarget()
             .accessibilityIdentifier("onboarding.back")
+            .accessibilitySortPriority(2)
 
             Button {
                 goToNextStep()
@@ -1187,9 +1182,11 @@ struct OnboardingView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(Color.appAccent)
+            .appHitTarget()
             .accessibilityIdentifier("onboarding.next")
+            .accessibilitySortPriority(3)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppSpacing.lg)
     }
 
     private func goToPreviousStep() {

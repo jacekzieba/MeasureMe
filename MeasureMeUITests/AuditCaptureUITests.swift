@@ -87,10 +87,7 @@ final class AuditCaptureUITests: XCTestCase {
     func testCaptureQuickAddStates() {
         let app = XCUIApplication()
         app.launchArguments = [
-            "-uiTestMode",
-            "-auditCapture",
-            "-useMockData",
-            "-fixedDate", "2026-02-20T12:00:00Z"
+            "-uiTestMode"
         ]
         app.launch()
 
@@ -230,6 +227,25 @@ final class AuditCaptureUITests: XCTestCase {
         XCTAssertTrue(onboardingTrial.waitForExistence(timeout: 8))
         scrollToReveal(onboardingTrial, in: onboardingApp, maxSwipes: 6)
         XCTAssertTrue(onboardingTrial.isHittable)
+    }
+
+    @MainActor
+    func testP1QuickAddStateComponentsConsistencyGuards() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestMode",
+            "-auditCapture",
+            "-useMockData",
+            "-uiTestSkipMeasurementSeeding",
+            "-fixedDate", "2026-02-20T12:00:00Z"
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
+        XCTAssertTrue(openQuickAdd(app))
+        XCTAssertTrue(app.buttons["quickadd.save"].waitForExistence(timeout: 6))
+        XCTAssertTrue(app.staticTexts["quickadd.validation.hint"].waitForExistence(timeout: 6))
+
     }
 
     private func openTab(_ app: XCUIApplication, candidates: [String]) {

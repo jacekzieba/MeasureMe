@@ -92,7 +92,7 @@ struct MeasurementsTabView: View {
                             .accessibilityIdentifier("measurements.tab.segmented")
                             Spacer()
                         }
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, AppSpacing.md)
                         .onChange(of: selectedTab) { _, newValue in
                             guard newValue == .health else { return }
                             if !premiumStore.isPremium {
@@ -106,54 +106,29 @@ struct MeasurementsTabView: View {
                         if selectedTab == .metrics {
                             if samples.isEmpty {
                                 // MARK: - Hero empty state
-                                AppGlassCard(
-                                    depth: .floating,
-                                    cornerRadius: 24,
-                                    tint: Color.appAccent.opacity(0.22),
-                                    contentPadding: 24
-                                ) {
-                                    VStack(spacing: 16) {
-                                        Image(systemName: "chart.line.uptrend.xyaxis")
-                                            .font(.system(size: 40))
-                                            .foregroundStyle(Color.appAccent)
-
-                                        VStack(spacing: 8) {
-                                            Text(AppLocalization.string("measurements.empty.title"))
-                                                .font(AppTypography.sectionTitle)
-                                                .foregroundStyle(.white)
-                                                .multilineTextAlignment(.center)
-
-                                            Text(AppLocalization.string("measurements.empty.body"))
-                                                .font(AppTypography.body)
-                                                .foregroundStyle(.white.opacity(0.7))
-                                                .multilineTextAlignment(.center)
-                                        }
-
-                                        Button {
-                                            Haptics.light()
-                                            router.presentedSheet = .composer(mode: .newPost)
-                                        } label: {
-                                            Text(AppLocalization.string("Add measurement"))
-                                                .foregroundStyle(.black)
-                                                .frame(maxWidth: .infinity)
-                                        }
-                                        .buttonStyle(.borderedProminent)
-                                        .tint(Color.appAccent)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                }
-                                .padding(.horizontal, 16)
+                                EmptyStateCard(
+                                    title: AppLocalization.string("measurements.empty.title"),
+                                    message: AppLocalization.string("measurements.empty.body"),
+                                    systemImage: "chart.line.uptrend.xyaxis",
+                                    actionTitle: AppLocalization.string("Add measurement"),
+                                    action: {
+                                        Haptics.light()
+                                        router.presentedSheet = .composer(mode: .newPost)
+                                    },
+                                    accessibilityIdentifier: "measurements.empty.state"
+                                )
+                                .padding(.horizontal, AppSpacing.md)
                             }
 
                             // MARK: - Quick Add hint strip
                             if !quickAddHintDismissed {
                                 AppGlassCard(
                                     depth: .base,
-                                    cornerRadius: 14,
+                                    cornerRadius: AppRadius.md,
                                     tint: Color.cyan.opacity(0.12),
-                                    contentPadding: 12
+                                    contentPadding: AppSpacing.sm
                                 ) {
-                                    HStack(spacing: 10) {
+                                    HStack(spacing: AppSpacing.xs) {
                                         Image(systemName: "plus.circle.fill")
                                             .font(.body)
                                             .foregroundStyle(Color.appAccent)
@@ -165,7 +140,7 @@ struct MeasurementsTabView: View {
                                         Spacer(minLength: 4)
 
                                         Button {
-                                            withAnimation(.easeOut(duration: 0.3)) {
+                                            withAnimation(AppMotion.standard) {
                                                 quickAddHintDismissed = true
                                             }
                                         } label: {
@@ -178,7 +153,7 @@ struct MeasurementsTabView: View {
                                         .buttonStyle(.plain)
                                     }
                                 }
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, AppSpacing.md)
                                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
                             }
 
@@ -187,11 +162,11 @@ struct MeasurementsTabView: View {
                                     kind: kind,
                                     unitsSystem: unitsSystem
                                 )
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, AppSpacing.md)
                             }
 
                             trackedMetricsFooter
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, AppSpacing.md)
                         } else {
                             if premiumStore.isPremium {
                                 HealthMetricsSection(
@@ -203,7 +178,7 @@ struct MeasurementsTabView: View {
                                     displayMode: .indicatorsOnly,
                                     title: ""
                                 )
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, AppSpacing.md)
                                 .accessibilityIdentifier("measurements.ai.container")
                             } else {
                                 PremiumLockedCard(
@@ -212,12 +187,12 @@ struct MeasurementsTabView: View {
                                 ) {
                                     premiumStore.presentPaywall(reason: .feature("Health indicators"))
                                 }
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, AppSpacing.md)
                             }
                         }
                     }
-                    .padding(.top, 12)
-                    .padding(.bottom, 32)
+                    .padding(.top, AppSpacing.sm)
+                    .padding(.bottom, AppSpacing.xl)
                 }
                 .id(refreshToken)
                 .coordinateSpace(name: "measurementsScroll")
@@ -246,11 +221,11 @@ struct MeasurementsTabView: View {
     private var trackedMetricsFooter: some View {
         AppGlassCard(
             depth: .base,
-            cornerRadius: 18,
+            cornerRadius: AppRadius.lg,
             tint: Color.appAccent.opacity(0.10),
-            contentPadding: 14
+            contentPadding: AppSpacing.sm
         ) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text(AppLocalization.string("Tracked metric visibility can be changed in Settings."))
                     .font(AppTypography.caption)
                     .foregroundStyle(.white.opacity(0.82))

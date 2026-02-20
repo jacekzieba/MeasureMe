@@ -158,12 +158,12 @@ private extension PhotoView {
             Label(AppLocalization.string("Compare"), systemImage: "photo.on.rectangle.angled")
                 .frame(maxWidth: .infinity)
         }
-        .buttonStyle(AppAccentButtonStyle(cornerRadius: 14))
+        .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
         .accessibilityIdentifier("photos.compare.open")
         .accessibilityLabel(AppLocalization.string("Compare selected photos"))
         .accessibilityHint(AppLocalization.string("accessibility.compare.opens"))
-        .padding(.horizontal)
-        .shadow(color: .black.opacity(0.2), radius: 10, y: 5)
+        .padding(.horizontal, AppSpacing.md)
+        .appElevation(AppElevation.card)
     }
     
     private func applyExternalFilterIfNeeded() {
