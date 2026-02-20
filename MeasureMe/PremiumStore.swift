@@ -110,7 +110,7 @@ final class PremiumStore: ObservableObject {
         #endif
         let defaults = UserDefaults.standard
         if defaults.double(forKey: firstLaunchKey) == 0 {
-            defaults.set(Date().timeIntervalSince1970, forKey: firstLaunchKey)
+            defaults.set(AppClock.now.timeIntervalSince1970, forKey: firstLaunchKey)
         }
         #if DEBUG
         if forcePremiumForUITests {
@@ -119,7 +119,8 @@ final class PremiumStore: ObservableObject {
         }
         #endif
 
-        if startListener {
+        let networkDisabledForAudit = AuditConfig.current.disablePaywallNetwork || AuditConfig.current.isEnabled
+        if startListener && !networkDisabledForAudit {
             updateListenerTask = Task {
                 await loadProducts()
                 await refreshEntitlements()
@@ -147,12 +148,15 @@ final class PremiumStore: ObservableObject {
     }
 
     func checkSevenDayPromptIfNeeded() {
+        if AuditConfig.current.isEnabled {
+            return
+        }
         guard !isPremium else { return }
         let defaults = UserDefaults.standard
         let firstLaunch = defaults.double(forKey: firstLaunchKey)
         guard firstLaunch > 0 else { return }
 
-        let now = Date()
+        let now = AppClock.now
         let daysSinceLaunch = now.timeIntervalSince1970 - firstLaunch
         guard daysSinceLaunch >= 7 * 24 * 3600 else { return }
 
@@ -166,6 +170,13 @@ final class PremiumStore: ObservableObject {
     }
 
     func loadProducts() async {
+        if AuditConfig.current.disablePaywallNetwork || AuditConfig.current.isEnabled {
+            isLoading = false
+            products = []
+            productsLoadError = nil
+            return
+        }
+
         isLoading = true
         productsLoadError = nil
         do {
@@ -287,6 +298,11 @@ final class PremiumStore: ObservableObject {
     }
 
     private func refreshEntitlements() async {
+        if AuditConfig.current.disablePaywallNetwork || AuditConfig.current.isEnabled {
+            isPremium = UserDefaults.standard.bool(forKey: entitlementKey)
+            return
+        }
+
         #if DEBUG
         if forcePremiumForUITests {
             isPremium = true
@@ -297,7 +313,7 @@ final class PremiumStore: ObservableObject {
 
         var active = false
         let allowedProductIDs = Set(productIDs)
-        let now = Date()
+        let now = AppClock.now
 
         if await hasActiveSubscriptionStatus(allowedProductIDs: allowedProductIDs, now: now) {
             active = true

@@ -66,7 +66,7 @@ struct MetricDetailView: View {
         /// Oblicza datę początkową dla danego zakresu
         /// - Parameter now: Data odniesienia (domyślnie teraz)
         /// - Returns: Data początkowa lub nil dla "All"
-        func startDate(from now: Date = .now) -> Date? {
+        func startDate(from now: Date = AppClock.now) -> Date? {
             let cal = Calendar.current
             switch self {
             case .week: return cal.date(byAdding: .day, value: -7, to: now)
@@ -120,7 +120,7 @@ struct MetricDetailView: View {
     
     /// Próbki przefiltrowane według wybranego zakresu czasowego
     var chartSamples: [MetricSample] {
-        if let start = timeframe.startDate() {
+        if let start = timeframe.startDate(from: AppClock.now) {
             return sortedSamplesAscending.filter { $0.date >= start }
         } else {
             return sortedSamplesAscending  // "All" - pokazuj wszystkie

@@ -9,13 +9,14 @@ struct QuickAddSheetView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @EnvironmentObject private var router: AppRouter
     @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
     @AppStorage("save_unchanged_quick_add") private var saveUnchangedValues: Bool = false
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
 
     // Jedna data uzywana dla wszystkich szybkich wpisow
-    @State private var date: Date = .now
+    @State private var date: Date = AppClock.now
     // User inputs in display units; nil means “skip”
     @State private var inputs: [MetricKind: Double?] = [:]
     // Sledzi, ktore metryki uzytkownik rzeczywiscie edytowal
@@ -72,10 +73,13 @@ struct QuickAddSheetView: View {
 
                             dateCard
                             trackedMetricsFooter
+                            if useInlineSaveBar {
+                                inlineSaveSection
+                            }
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 12)
-                        .padding(.bottom, 120)
+                        .padding(.bottom, useInlineSaveBar ? 24 : 120)
                     }
                     .scrollIndicators(.hidden)
                     .scrollDismissesKeyboard(.interactively)
@@ -86,7 +90,7 @@ struct QuickAddSheetView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .accessibilityIdentifier("quickadd.sheet")
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !kinds.isEmpty && focusedKind == nil {
+                if !kinds.isEmpty && focusedKind == nil && !useInlineSaveBar {
                     saveBar
                 }
             }
@@ -176,34 +180,7 @@ struct QuickAddSheetView: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            HStack(spacing: 8) {
-                Text(AppLocalization.string(
-                    showRuler ? "Enter value" : "quickadd.first.value.hint"
-                ))
-                .font(showRuler ? AppTypography.caption : .subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.7))
-
-                Spacer()
-
-                TextField(
-                    "0.0",
-                    value: binding(for: kind),
-                    format: .number.precision(.fractionLength(1))
-                )
-                .focused($focusedKind, equals: kind)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .font(showRuler
-                    ? .title3.monospacedDigit().weight(.semibold)
-                    : .title.monospacedDigit().weight(.bold))
-                .frame(minWidth: showRuler ? 72 : 100)
-                .accessibilityIdentifier("quickadd.input.\(kind.rawValue)")
-                .accessibilityLabel(AppLocalization.string("accessibility.value", kind.title))
-
-                Text(kind.unitSymbol(unitsSystem: unitsSystem))
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.72))
-            }
+            valueInputField(for: kind, showRuler: showRuler)
             .padding(.horizontal, 12)
             .padding(.vertical, showRuler ? 9 : 14)
             .background(
@@ -271,7 +248,25 @@ struct QuickAddSheetView: View {
         .background(cardBackground(cornerRadius: 16))
     }
 
+    private var useInlineSaveBar: Bool {
+        dynamicTypeSize.isAccessibilitySize
+    }
+
+    private var inlineSaveSection: some View {
+        saveControls
+            .padding(14)
+            .background(cardBackground(cornerRadius: 16))
+    }
+
     private var saveBar: some View {
+        saveControls
+        .padding(.horizontal, 16)
+        .padding(.top, dynamicTypeSize.isAccessibilitySize ? 10 : 6)
+        .padding(.bottom, dynamicTypeSize.isAccessibilitySize ? 12 : 8)
+        .background(.thinMaterial)
+    }
+
+    private var saveControls: some View {
         VStack(spacing: 8) {
             Button {
                 if cannotSave {
@@ -301,13 +296,10 @@ struct QuickAddSheetView: View {
                 Text(cannotSaveReasonText)
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.66))
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("quickadd.validation.hint")
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 10)
-        .padding(.bottom, 12)
-        .background(.thinMaterial)
     }
 
     private var trackedMetricsFooter: some View {
@@ -346,6 +338,78 @@ struct QuickAddSheetView: View {
     }
 
     // MARK: - Helpers
+
+    @ViewBuilder
+    private func valueInputField(for kind: MetricKind, showRuler: Bool) -> some View {
+        ViewThatFits(in: .horizontal) {
+            inputRowHorizontal(for: kind, showRuler: showRuler)
+            inputRowVertical(for: kind, showRuler: showRuler)
+        }
+    }
+
+    private func inputRowHorizontal(for kind: MetricKind, showRuler: Bool) -> some View {
+        HStack(spacing: 8) {
+            Text(AppLocalization.string(
+                showRuler ? "Enter value" : "quickadd.first.value.hint"
+            ))
+            .font(showRuler ? AppTypography.caption : .subheadline.weight(.medium))
+            .foregroundStyle(.white.opacity(0.7))
+            .lineLimit(2)
+
+            Spacer(minLength: 0)
+
+            TextField(
+                "0.0",
+                value: binding(for: kind),
+                format: .number.precision(.fractionLength(1))
+            )
+            .focused($focusedKind, equals: kind)
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.trailing)
+            .font(showRuler
+                ? .title3.monospacedDigit().weight(.semibold)
+                : .title.monospacedDigit().weight(.bold))
+            .frame(minWidth: showRuler ? 72 : 88)
+            .accessibilityIdentifier("quickadd.input.\(kind.rawValue)")
+            .accessibilityLabel(AppLocalization.string("accessibility.value", kind.title))
+
+            Text(kind.unitSymbol(unitsSystem: unitsSystem))
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.white.opacity(0.72))
+        }
+    }
+
+    private func inputRowVertical(for kind: MetricKind, showRuler: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(AppLocalization.string(
+                showRuler ? "Enter value" : "quickadd.first.value.hint"
+            ))
+            .font(showRuler ? AppTypography.caption : .subheadline.weight(.medium))
+            .foregroundStyle(.white.opacity(0.7))
+            .fixedSize(horizontal: false, vertical: true)
+
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                TextField(
+                    "0.0",
+                    value: binding(for: kind),
+                    format: .number.precision(.fractionLength(1))
+                )
+                .focused($focusedKind, equals: kind)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.leading)
+                .font(showRuler
+                    ? .title3.monospacedDigit().weight(.semibold)
+                    : .title.monospacedDigit().weight(.bold))
+                .accessibilityIdentifier("quickadd.input.\(kind.rawValue)")
+                .accessibilityLabel(AppLocalization.string("accessibility.value", kind.title))
+
+                Text(kind.unitSymbol(unitsSystem: unitsSystem))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.72))
+                Spacer(minLength: 0)
+            }
+        }
+    }
 
     /// Returns `true` when we have a sensible base value for the ruler —
     /// either from a previous measurement or because the user just typed one.

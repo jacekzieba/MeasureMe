@@ -65,7 +65,7 @@ struct HomeView: View {
 
     init(autoCheckPaywallPrompt: Bool = true) {
         self.autoCheckPaywallPrompt = autoCheckPaywallPrompt
-        let recentWindowStart = Calendar.current.date(byAdding: .day, value: -120, to: Date()) ?? .distantPast
+        let recentWindowStart = Calendar.current.date(byAdding: .day, value: -120, to: AppClock.now) ?? .distantPast
         _recentSamples = Query(
             filter: #Predicate<MetricSample> { $0.date >= recentWindowStart },
             sort: [SortDescriptor(\.date, order: .reverse)]
@@ -668,7 +668,7 @@ struct HomeView: View {
     }
 
     private var dayPart: DayPart {
-        let hour = Calendar.current.component(.hour, from: .now)
+        let hour = Calendar.current.component(.hour, from: AppClock.now)
         if hour < 12 { return .morning }
         if hour < 18 { return .afternoon }
         return .evening

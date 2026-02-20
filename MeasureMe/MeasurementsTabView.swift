@@ -307,6 +307,7 @@ struct MeasurementsTabView: View {
 struct MetricChartTile: View {
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var router: AppRouter
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let kind: MetricKind
     let unitsSystem: String
     @AppStorage("userName") private var userName: String = ""
@@ -323,7 +324,7 @@ struct MetricChartTile: View {
         self.unitsSystem = unitsSystem
 
         let kindValue = kind.rawValue
-        let startDate = Calendar.current.date(byAdding: .day, value: -30, to: .now) ?? .distantPast
+        let startDate = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? .distantPast
         _samples = Query(
             filter: #Predicate<MetricSample> {
                 $0.kindRaw == kindValue && $0.date >= startDate
@@ -345,7 +346,7 @@ struct MetricChartTile: View {
     // MARK: - Data
 
     private var startDate30: Date {
-        Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? .distantPast
+        Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? .distantPast
     }
 
     private var recentSamples: [MetricSample] {
@@ -388,42 +389,93 @@ struct MetricChartTile: View {
     var body: some View {
         if recentSamples.isEmpty {
             // MARK: - Kompaktowy pusty kafelek (brak danych)
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Image(systemName: kind.systemImage)
-                            .foregroundStyle(.secondary)
-                            .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: kind.systemImage)
+                                .foregroundStyle(.secondary)
+                                .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
 
-                        Text(kind.title)
-                            .font(AppTypography.bodyEmphasis)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(kind.title)
+                                    .font(AppTypography.bodyEmphasis)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.85)
+                                    .layoutPriority(1)
+
+                                Text(AppLocalization.string("measurements.metric.nodata"))
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.white.opacity(0.5))
+                            }
+                        }
+
+                        HStack(spacing: 10) {
+                            Button {
+                                Haptics.light()
+                                router.presentedSheet = .addSample(kind: kind)
+                            } label: {
+                                Text(AppLocalization.string("Add"))
+                            }
+                            .buttonStyle(LiquidCapsuleButtonStyle())
+                            .frame(minHeight: 44)
+
+                            Spacer(minLength: 0)
+
+                            NavigationLink {
+                                MetricDetailView(kind: kind)
+                            } label: {
+                                Image(systemName: "chevron.right")
+                                    .font(.title3)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 44, height: 44)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("metric.tile.open.\(kind.rawValue)")
+                        }
                     }
+                } else {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 8) {
+                                Image(systemName: kind.systemImage)
+                                    .foregroundStyle(.secondary)
+                                    .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
 
-                    Text(AppLocalization.string("measurements.metric.nodata"))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.white.opacity(0.5))
+                                Text(kind.title)
+                                    .font(AppTypography.bodyEmphasis)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.85)
+                                    .layoutPriority(1)
+                            }
+
+                            Text(AppLocalization.string("measurements.metric.nodata"))
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+
+                        Spacer(minLength: 8)
+
+                        Button {
+                            Haptics.light()
+                            router.presentedSheet = .addSample(kind: kind)
+                        } label: {
+                            Text(AppLocalization.string("Add"))
+                        }
+                        .buttonStyle(LiquidCapsuleButtonStyle())
+
+                        NavigationLink {
+                            MetricDetailView(kind: kind)
+                        } label: {
+                            Image(systemName: "chevron.right")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 44, height: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("metric.tile.open.\(kind.rawValue)")
+                    }
                 }
-
-                Spacer(minLength: 8)
-
-                Button {
-                    Haptics.light()
-                    router.presentedSheet = .addSample(kind: kind)
-                } label: {
-                    Text(AppLocalization.string("Add"))
-                }
-                .buttonStyle(LiquidCapsuleButtonStyle())
-
-                NavigationLink {
-                    MetricDetailView(kind: kind)
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("metric.tile.open.\(kind.rawValue)")
             }
             .padding(14)
             .background(
@@ -741,7 +793,7 @@ struct MetricChartTile: View {
     }
 
     private func deltaText(days: Int, in source: [MetricSample]) -> String? {
-        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: Date()) else { return nil }
+        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: AppClock.now) else { return nil }
         let window = source.filter { $0.date >= start }
         guard let first = window.first, let last = window.last, first.persistentModelID != last.persistentModelID else {
             return nil

@@ -19,6 +19,7 @@ struct OnboardingView: View {
     @AppStorage("onboarding_primary_goal") private var onboardingPrimaryGoalsRaw: String = ""
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @EnvironmentObject private var premiumStore: PremiumStore
 
     @State private var currentStepIndex: Int = 0
@@ -36,9 +37,9 @@ struct OnboardingView: View {
     @State private var isReminderScheduled: Bool = false
     @State private var showReminderSetupSheet: Bool = false
     @State private var reminderWeekday: Int = 2
-    @State private var reminderTime: Date = .now
+    @State private var reminderTime: Date = AppClock.now
     @State private var reminderRepeat: ReminderRepeat = .weekly
-    @State private var reminderOnceDate: Date = .now
+    @State private var reminderOnceDate: Date = AppClock.now
     @State private var healthKitStatusText: String?
     @State private var notificationsStatusText: String?
     @State private var selectedWelcomeGoals: Set<WelcomeGoal> = []
@@ -171,9 +172,10 @@ struct OnboardingView: View {
                     // W przeciwnym razie rezerwuj miejsce na stopke i elementy statusu
                     return (stepStatusText == nil) ? 122 : 146
                 }()
+                let accessibilityReserve: CGFloat = dynamicTypeSize.isAccessibilitySize ? 68 : 0
                 let keyboardReserve: CGFloat = 0
-                let bottomReserve = baseReserve + keyboardReserve
-                let extra: CGFloat = (focusedField != nil) ? 0 : 20
+                let bottomReserve = baseReserve + keyboardReserve + accessibilityReserve
+                let extra: CGFloat = (focusedField != nil) ? 0 : (dynamicTypeSize.isAccessibilitySize ? 8 : 20)
                 let cardHeight = safeCardHeight(from: proxy.size.height, reserved: bottomReserve, extra: extra)
 
                 VStack(spacing: 0) {
@@ -494,11 +496,10 @@ struct OnboardingView: View {
                 Text(AppLocalization.systemString("Start my 14-day free trial"))
                     .font(.system(.subheadline, design: .rounded).weight(.medium))
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: 24)
+                    .frame(minHeight: 44)
             }
             .buttonStyle(.bordered)
             .tint(Color.appAccent)
-            .controlSize(.small)
             .accessibilityIdentifier("onboarding.premium.trial")
 
             onboardingBilledAfterTrialText
@@ -747,7 +748,7 @@ struct OnboardingView: View {
             }
             .chartXScale(domain: welcomeWeekDomain)
             .chartYScale(domain: welcomeTrendDomain)
-            .frame(height: 122)
+            .frame(height: welcomeTrendChartHeight)
         }
         .padding(12)
         .background(Color.white.opacity(0.04))
@@ -756,6 +757,10 @@ struct OnboardingView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(Color.white.opacity(0.10), lineWidth: 1)
         )
+    }
+
+    private var welcomeTrendChartHeight: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 168 : 122
     }
 
     private var welcomeInsightPreview: some View {
@@ -807,7 +812,7 @@ struct OnboardingView: View {
     }
 
     private var premiumUnlockBundleTile: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: dynamicTypeSize.isAccessibilitySize ? 12 : 8) {
             HStack(spacing: 8) {
                 Circle()
                     .fill(Color.appAccent.opacity(0.26))
@@ -828,7 +833,7 @@ struct OnboardingView: View {
             premiumUnlockBenefitRow(icon: "heart.text.square.fill", tint: Color(hex: "#34D399"), textKey: "premium.carousel.unlock.item.health")
             premiumUnlockBenefitRow(icon: "doc.text.fill", tint: Color(hex: "#FBBF24"), textKey: "premium.carousel.unlock.item.export")
         }
-        .padding(10)
+        .padding(dynamicTypeSize.isAccessibilitySize ? 12 : 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -847,11 +852,11 @@ struct OnboardingView: View {
     }
 
     private func premiumUnlockBenefitRow(icon: String, tint: Color, textKey: String) -> some View {
-        HStack(alignment: .center, spacing: 9) {
+        HStack(alignment: dynamicTypeSize.isAccessibilitySize ? .top : .center, spacing: dynamicTypeSize.isAccessibilitySize ? 12 : 9) {
             Image(systemName: icon)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(tint)
-                .frame(width: 18, alignment: .leading)
+                .frame(minWidth: 18, alignment: .leading)
 
             Text(AppLocalization.string(textKey))
                 .font(AppTypography.bodyEmphasis)
@@ -864,12 +869,12 @@ struct OnboardingView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color(hex: "#FCA311"))
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 4 : 2)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var onboardingPlanPicker: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: dynamicTypeSize.isAccessibilitySize ? 14 : 10) {
             if onboardingPremiumProducts.isEmpty {
                 HStack(spacing: 8) {
                     ProgressView()
@@ -900,29 +905,59 @@ struct OnboardingView: View {
             onboardingSelectedPremiumProductID = product.id
             Haptics.selection()
         } label: {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(onboardingPlanTitle(for: product))
-                        .font(AppTypography.body)
-                        .foregroundStyle(.white.opacity(0.88))
-                    Text(onboardingPlanSubtitle(for: product))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.white.opacity(0.68))
-                }
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(onboardingPlanTitle(for: product))
+                                .font(AppTypography.body)
+                                .foregroundStyle(.white.opacity(0.88))
+                            Text(onboardingPlanSubtitle(for: product))
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.white.opacity(0.68))
+                        }
 
-                Spacer()
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(onboardingPrimaryPriceLine(for: product))
+                                .font(.system(.title3, design: .rounded).weight(.bold))
+                                .foregroundStyle(.white)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.9)
 
-                VStack(alignment: .trailing, spacing: 3) {
-                    Text(onboardingPrimaryPriceLine(for: product))
-                        .font(.system(.title3, design: .rounded).weight(.bold))
-                        .foregroundStyle(.white)
-                        .minimumScaleFactor(0.82)
+                            if let secondaryPrice {
+                                Text(secondaryPrice)
+                                    .font(AppTypography.micro)
+                                    .foregroundStyle(.white.opacity(0.6))
+                                    .lineLimit(2)
+                            }
+                        }
+                    }
+                } else {
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(onboardingPlanTitle(for: product))
+                                .font(AppTypography.body)
+                                .foregroundStyle(.white.opacity(0.88))
+                            Text(onboardingPlanSubtitle(for: product))
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.white.opacity(0.68))
+                        }
 
-                    if let secondaryPrice {
-                        Text(secondaryPrice)
-                            .font(AppTypography.micro)
-                            .foregroundStyle(.white.opacity(0.6))
-                            .minimumScaleFactor(0.9)
+                        Spacer()
+
+                        VStack(alignment: .trailing, spacing: 3) {
+                            Text(onboardingPrimaryPriceLine(for: product))
+                                .font(.system(.title3, design: .rounded).weight(.bold))
+                                .foregroundStyle(.white)
+                                .minimumScaleFactor(0.82)
+
+                            if let secondaryPrice {
+                                Text(secondaryPrice)
+                                    .font(AppTypography.micro)
+                                    .foregroundStyle(.white.opacity(0.6))
+                                    .minimumScaleFactor(0.9)
+                            }
+                        }
                     }
                 }
             }
@@ -1011,15 +1046,30 @@ struct OnboardingView: View {
 
     private var onboardingLegalBlock: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 18) {
-                Link(AppLocalization.string("Privacy Policy"), destination: LegalLinks.privacyPolicy)
-                    .accessibilityIdentifier("onboarding.premium.privacy")
-                Button(AppLocalization.string("Restore purchases")) {
-                    Task { await premiumStore.restorePurchases() }
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(spacing: 10) {
+                        Link(AppLocalization.string("Privacy Policy"), destination: LegalLinks.privacyPolicy)
+                            .accessibilityIdentifier("onboarding.premium.privacy")
+                        Button(AppLocalization.string("Restore purchases")) {
+                            Task { await premiumStore.restorePurchases() }
+                        }
+                        .accessibilityIdentifier("onboarding.premium.restore")
+                        Link(AppLocalization.string("Terms of Use"), destination: LegalLinks.termsOfUse)
+                            .accessibilityIdentifier("onboarding.premium.terms")
+                    }
+                } else {
+                    HStack(spacing: 18) {
+                        Link(AppLocalization.string("Privacy Policy"), destination: LegalLinks.privacyPolicy)
+                            .accessibilityIdentifier("onboarding.premium.privacy")
+                        Button(AppLocalization.string("Restore purchases")) {
+                            Task { await premiumStore.restorePurchases() }
+                        }
+                        .accessibilityIdentifier("onboarding.premium.restore")
+                        Link(AppLocalization.string("Terms of Use"), destination: LegalLinks.termsOfUse)
+                            .accessibilityIdentifier("onboarding.premium.terms")
+                    }
                 }
-                .accessibilityIdentifier("onboarding.premium.restore")
-                Link(AppLocalization.string("Terms of Use"), destination: LegalLinks.termsOfUse)
-                    .accessibilityIdentifier("onboarding.premium.terms")
             }
             .font(AppTypography.captionEmphasis)
             .foregroundStyle(Color.appAccent)
@@ -1120,10 +1170,9 @@ struct OnboardingView: View {
             } label: {
                 Text(AppLocalization.systemString("Back"))
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: 32)
+                    .frame(minHeight: 44)
             }
             .buttonStyle(.bordered)
-            .controlSize(.small)
             .tint(Color.appGray.opacity(0.34))
             .disabled(currentStepIndex == 0)
             .accessibilityIdentifier("onboarding.back")
@@ -1134,10 +1183,9 @@ struct OnboardingView: View {
                 Text(nextButtonTitle)
                     .foregroundStyle(Color.black)
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: 32)
+                    .frame(minHeight: 44)
             }
             .buttonStyle(.borderedProminent)
-            .controlSize(.small)
             .tint(Color.appAccent)
             .accessibilityIdentifier("onboarding.next")
         }
@@ -1291,8 +1339,10 @@ struct OnboardingView: View {
         let safeReserved = reserved.isFinite ? max(reserved, 0) : 82
         let safeExtra = extra.isFinite ? extra : 0
         let candidate = containerHeight - safeReserved + safeExtra
-        let minimumCardHeight = min(max(containerHeight * 0.55, 180), containerHeight)
-        let maximumCardHeight = max(containerHeight - 20, minimumCardHeight)
+        let minimumRatio: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.62 : 0.55
+        let minimumCardHeight = min(max(containerHeight * minimumRatio, 180), containerHeight)
+        let maxInset: CGFloat = dynamicTypeSize.isAccessibilitySize ? 44 : 20
+        let maximumCardHeight = max(containerHeight - maxInset, minimumCardHeight)
         guard candidate.isFinite else {
             return minimumCardHeight
         }
@@ -1413,13 +1463,13 @@ struct OnboardingView: View {
 
     private func defaultReminderTime() -> Date {
         let calendar = Calendar.current
-        var components = calendar.dateComponents([.year, .month, .day], from: Date())
+        var components = calendar.dateComponents([.year, .month, .day], from: AppClock.now)
         components.hour = 7
         components.minute = 0
-        return calendar.date(from: components) ?? Date()
+        return calendar.date(from: components) ?? AppClock.now
     }
 
-    private func dailyReminderDate(time: Date, from now: Date = Date()) -> Date {
+    private func dailyReminderDate(time: Date, from now: Date = AppClock.now) -> Date {
         let calendar = Calendar.current
         let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
         var todayComponents = calendar.dateComponents([.year, .month, .day], from: now)
@@ -1432,7 +1482,7 @@ struct OnboardingView: View {
         return calendar.date(byAdding: .day, value: 1, to: todayTarget) ?? todayTarget
     }
 
-    private func reminderDate(weekday: Int, time: Date, from now: Date = Date()) -> Date {
+    private func reminderDate(weekday: Int, time: Date, from now: Date = AppClock.now) -> Date {
         let calendar = Calendar.current
         let clampedWeekday = min(max(weekday, 1), 7)
         let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
