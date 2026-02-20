@@ -417,10 +417,24 @@ private struct PhotoGridView: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("photos.grid.item")
                 .accessibilityLabel(AppLocalization.string("Photo"))
-                .accessibilityValue(photo.date.formatted(date: .abbreviated, time: .omitted))
+                .accessibilityValue(photoAccessibilityValue(for: photo))
+                .accessibilityHint(
+                    isSelecting
+                    ? AppLocalization.string("Double tap to select or deselect this photo for comparison")
+                    : AppLocalization.string("Double tap to open photo details")
+                )
             }
         }
         .padding(.bottom, isSelecting && selectedPhotos.count == 2 ? 80 : 0)
+    }
+
+    private func photoAccessibilityValue(for photo: PhotoEntry) -> String {
+        let dateText = photo.date.formatted(date: .abbreviated, time: .omitted)
+        guard isSelecting else { return dateText }
+        let selectedText = selectedPhotos.contains(photo)
+            ? AppLocalization.string("Selected")
+            : AppLocalization.string("Not selected")
+        return "\(dateText), \(selectedText)"
     }
 }
 

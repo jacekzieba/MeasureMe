@@ -175,6 +175,7 @@ struct OnboardingView: View {
                     // Podczas edycji (widoczna klawiatura) utrzymuj minimalna przerwe
                     if focusedField != nil { return 8 }
                     // W przeciwnym razie rezerwuj miejsce na stopke i elementy statusu
+                    if currentStep == .welcome && !dynamicTypeSize.isAccessibilitySize { return 110 }
                     return (stepStatusText == nil) ? 122 : 146
                 }()
                 let accessibilityReserve: CGFloat = dynamicTypeSize.isAccessibilitySize ? 68 : 0
@@ -188,7 +189,7 @@ struct OnboardingView: View {
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack(spacing: 0) {
-                            slideCard {
+                            slideCard(isScrollEnabled: dynamicTypeSize.isAccessibilitySize) {
                                 welcomeSlide
                             }
                             .containerRelativeFrame(.horizontal)
@@ -352,7 +353,10 @@ struct OnboardingView: View {
         .padding(.horizontal, 24)
     }
 
-    private func slideCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    private func slideCard<Content: View>(
+        isScrollEnabled: Bool = true,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
         AppGlassCard(
             depth: .floating,
             cornerRadius: 26,
@@ -363,14 +367,15 @@ struct OnboardingView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     content()
                 }
-                .padding(18)
+                .padding(dynamicTypeSize.isAccessibilitySize ? 18 : 14)
             }
+            .scrollDisabled(!isScrollEnabled)
             .scrollDismissesKeyboard(.immediately)
         }
     }
 
     private var welcomeSlide: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 12) {
                 slideHeader(title: Step.welcome.title, subtitle: Step.welcome.subtitle)
                 Spacer(minLength: 0)
@@ -384,7 +389,7 @@ struct OnboardingView: View {
             }
 
             welcomeGoalSelector
-            welcomeExamplePreview
+            welcomeCompactPreview
         }
     }
 
@@ -543,18 +548,20 @@ struct OnboardingView: View {
     }
 
     private var welcomeGoalSelector: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(AppLocalization.systemString("What's your goal?"))
-                .font(AppTypography.bodyEmphasis)
+                .font(AppTypography.headlineEmphasis)
+                .lineLimit(2)
+                .minimumScaleFactor(0.86)
                 .foregroundStyle(Color.appWhite)
 
-            VStack(spacing: 8) {
+            VStack(spacing: 5) {
                 ForEach(WelcomeGoal.allCases, id: \.self) { goal in
                     welcomeGoalOptionRow(goal)
                 }
             }
         }
-        .padding(AppSpacing.sm)
+        .padding(10)
         .background(Color.white.opacity(0.04))
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         .overlay(
@@ -581,7 +588,8 @@ struct OnboardingView: View {
                     .foregroundStyle(isSelected ? Color.appAccent : Color.white.opacity(0.35))
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 8 : 7)
+            .frame(minHeight: 44)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -763,7 +771,7 @@ struct OnboardingView: View {
             .chartYScale(domain: welcomeTrendDomain)
             .frame(height: welcomeTrendChartHeight)
         }
-        .padding(12)
+        .padding(10)
         .background(Color.white.opacity(0.04))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
@@ -773,21 +781,21 @@ struct OnboardingView: View {
     }
 
     private var welcomeTrendChartHeight: CGFloat {
-        dynamicTypeSize.isAccessibilitySize ? 168 : 122
+        dynamicTypeSize.isAccessibilitySize ? 156 : 102
     }
 
     private var welcomeInsightPreview: some View {
         VStack(alignment: .leading, spacing: 0) {
             MetricInsightCard(
                 text: AppLocalization.systemString("You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week."),
-                compact: false,
+                compact: true,
                 isLoading: false
             )
         }
     }
 
     private var welcomeExamplePreview: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: "sparkles.rectangle.stack.fill")
                     .font(AppTypography.microEmphasis)
@@ -802,9 +810,8 @@ struct OnboardingView: View {
             }
 
             welcomeTrendPreview
-            welcomeInsightPreview
         }
-        .padding(12)
+        .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(
@@ -822,6 +829,73 @@ struct OnboardingView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(Color.appAccent.opacity(0.26), lineWidth: 1)
         )
+        .accessibilityElement(children: .contain)
+        .accessibilityHint(AppLocalization.systemString("Sample trend card to preview how progress insights will look."))
+    }
+
+    private var welcomeCompactPreview: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 7) {
+                Image(systemName: "sparkles.rectangle.stack.fill")
+                    .font(AppTypography.microEmphasis)
+                    .foregroundStyle(Color.appAccent)
+                Text(AppLocalization.systemString("onboarding.example.label"))
+                    .font(AppTypography.captionEmphasis)
+                    .foregroundStyle(.white.opacity(0.92))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+            }
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    Text(AppLocalization.systemString("onboarding.trend.delta"))
+                        .font(AppTypography.microEmphasis)
+                        .foregroundStyle(Color(hex: "#22C55E"))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(hex: "#22C55E").opacity(0.16))
+                        .clipShape(Capsule(style: .continuous))
+
+                    Text(AppLocalization.systemString("onboarding.goal.badge", welcomeGoalValue))
+                        .font(AppTypography.microEmphasis)
+                        .foregroundStyle(Color(hex: "#22C55E"))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(hex: "#22C55E").opacity(0.16))
+                        .clipShape(Capsule(style: .continuous))
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(AppLocalization.systemString("onboarding.trend.delta"))
+                        .font(AppTypography.microEmphasis)
+                        .foregroundStyle(Color(hex: "#22C55E"))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(hex: "#22C55E").opacity(0.16))
+                        .clipShape(Capsule(style: .continuous))
+
+                    Text(AppLocalization.systemString("onboarding.goal.badge", welcomeGoalValue))
+                        .font(AppTypography.microEmphasis)
+                        .foregroundStyle(Color(hex: "#22C55E"))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(hex: "#22C55E").opacity(0.16))
+                        .clipShape(Capsule(style: .continuous))
+                }
+            }
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.appAccent.opacity(0.22), lineWidth: 1)
+                )
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(AppLocalization.systemString("Sample preview of trend insights."))
+        .accessibilityValue(AppLocalization.systemString("onboarding.trend.delta"))
     }
 
     private var premiumUnlockBundleTile: some View {
@@ -1349,7 +1423,7 @@ struct OnboardingView: View {
         let candidate = containerHeight - safeReserved + safeExtra
         let minimumRatio: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.62 : 0.55
         let minimumCardHeight = min(max(containerHeight * minimumRatio, 180), containerHeight)
-        let maxInset: CGFloat = dynamicTypeSize.isAccessibilitySize ? 44 : 20
+        let maxInset: CGFloat = dynamicTypeSize.isAccessibilitySize ? 44 : 10
         let maximumCardHeight = max(containerHeight - maxInset, minimumCardHeight)
         guard candidate.isFinite else {
             return minimumCardHeight

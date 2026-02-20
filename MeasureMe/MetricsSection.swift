@@ -71,6 +71,9 @@ struct MetricsSection: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(isExpanded ? AppLocalization.string("Expanded") : AppLocalization.string("Collapsed"))
+        .accessibilityHint(AppLocalization.string("Double tap to show or hide this metrics group"))
         .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 4, trailing: 16))
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)

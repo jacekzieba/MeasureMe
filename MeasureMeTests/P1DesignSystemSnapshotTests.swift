@@ -150,6 +150,15 @@ final class P1DesignSystemSnapshotTests: XCTestCase {
         assertSnapshot(of: host(view, size: snapshotSize, wait: 0.2), as: .image, record: isRecording)
     }
 
+    func testOnboardingWelcome_snapshot_darkDefault() throws {
+        let premiumStore = PremiumStore(startListener: false)
+        let view = OnboardingView(initialStepIndex: 0)
+            .environmentObject(premiumStore)
+            .environment(\.colorScheme, .dark)
+
+        assertSnapshot(of: host(view, size: snapshotSize, wait: 0.2), as: .image, record: isRecording)
+    }
+
     private func makeContainer() throws -> ModelContainer {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         return try ModelContainer(
