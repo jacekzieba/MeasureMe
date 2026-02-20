@@ -318,7 +318,7 @@ struct HealthMetricsSection: View {
                     missingDataBanner
                 }
 
-                // Core Indicators Section
+                // Sekcja wskaznikow glownych
                 if anyCoreMetricEnabled {
                     HealthMetricsSectionCard(
                         title: AppLocalization.string("Core indicators"),
@@ -374,7 +374,7 @@ struct HealthMetricsSection: View {
                     )
                 }
 
-                // Body Composition Section
+                // Sekcja skladu ciala
                 if anyBodyCompositionEnabled {
                     HealthMetricsSectionCard(
                         title: AppLocalization.string("Body composition"),
@@ -439,7 +439,7 @@ struct HealthMetricsSection: View {
                     )
                 }
 
-                // Risk Signals Section
+                // Sekcja sygnalow ryzyka
                 if anyRiskIndicatorEnabled {
                     HealthMetricsSectionCard(
                         title: AppLocalization.string("Risk signals"),

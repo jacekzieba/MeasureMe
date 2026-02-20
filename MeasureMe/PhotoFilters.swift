@@ -44,7 +44,7 @@ final class PhotoFilters: ObservableObject {
             return nil
         }
         
-        // Get values for closures
+        // Pobiera wartosci dla domkniec
         let startDate = dateRange.startDate(customStart: customStartDate)
         let endDate = dateRange.endDate(customEnd: customEndDate)
         let tagsArray = Array(selectedTags)

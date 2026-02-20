@@ -315,7 +315,7 @@ struct ManualHeightInputView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
                             if unitsSystem == "imperial" {
-                                // Imperial: Feet and Inches
+                                // Imperialne: stopy i cale
                                 HStack(spacing: 16) {
                                     VStack(spacing: 4) {
                                         TextField("0", text: $feetInput)
@@ -393,7 +393,7 @@ struct ManualHeightInputView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    // MARK: - Save button
+                    // MARK: - Przycisk zapisu
                     Button {
                         saveHeight()
                     } label: {

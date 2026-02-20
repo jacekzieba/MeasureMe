@@ -49,12 +49,12 @@ struct HomeView: View {
     @State private var showMoreChecklistItems: Bool = false
     @State private var didCheckSevenDayPaywallPrompt: Bool = false
     
-    // HealthKit data
+    // Dane HealthKit
     @State private var latestBodyFat: Double?
     @State private var latestLeanMass: Double?
     @State private var hasAnyMeasurements = false
 
-    // Cached derived data — rebuilt via onChange instead of recomputing on every render
+    // Zbuforowane dane pochodne - odswiezane przez onChange zamiast przeliczania przy kazdym renderze
     @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
     @State private var cachedLatestByKind: [MetricKind: MetricSample] = [:]
     @State private var cachedGoalsByKind: [MetricKind: MetricGoal] = [:]
@@ -132,7 +132,7 @@ struct HomeView: View {
         return hasher.finalize()
     }
 
-    /// Rebuilds samplesByKind from the recent @Query window.
+    /// Przebudowuje samplesByKind na podstawie ostatniego okna @Query.
     private func rebuildSamplesCache() {
         var grouped: [MetricKind: [MetricSample]] = [:]
         for sample in recentSamples {
@@ -175,17 +175,17 @@ struct HomeView: View {
         autoHideChecklistIfCompleted()
     }
     
-    /// Synchronizes Measurement samples with metric snapshots stored on photos.
+    /// Synchronizuje probki Measurement ze snapshotami metryk zapisanymi przy zdjeciach.
     /// - Behavior:
-    ///   - For each PhotoEntry, for each MetricValueSnapshot, ensure a MetricSample exists on the snapshot's date.
-    ///   - If a sample for (kind,date) exists, update its value to the snapshot's value.
+    ///   - Dla kazdego PhotoEntry i MetricValueSnapshot upewnia sie, ze istnieje MetricSample dla daty snapshotu.
+    ///   - Jesli probka dla (kind,date) istnieje, aktualizuje jej wartosc do wartosci snapshotu.
     ///   - If none exists, insert a new MetricSample.
-    ///   - Never delete MetricSample when a photo is deleted; this function only upserts.
+    ///   - Nigdy nie usuwa MetricSample po usunieciu zdjecia; funkcja wykonuje tylko upsert.
     private func syncMeasurementsFromPhotosIfNeeded() {
-        // Build a cache of existing samples by (kindRaw, dayStart)
+        // Buduje cache istniejacych probek po (kindRaw, dayStart)
         var existingByKey: [String: MetricSample] = [:]
         do {
-            // Fetch a wide window to avoid excessive fetching; adjust if needed
+            // Pobiera szerokie okno, aby ograniczyc nadmiar zapytan; dostosuj w razie potrzeby
             let descriptor = FetchDescriptor<MetricSample>(
                 sortBy: [SortDescriptor(\.date, order: .reverse)]
             )
@@ -200,7 +200,7 @@ struct HomeView: View {
             AppLog.debug("⚠️ Failed to build existing samples index: \(error)")
         }
 
-        // Iterate photos and upsert samples for each snapshot
+        // Iteruje po zdjeciach i wykonuje upsert probek dla kazdego snapshotu
         for photo in allPhotos {
             let photoDate = photo.date
             let dayStart = Calendar.current.startOfDay(for: photoDate)
@@ -209,7 +209,7 @@ struct HomeView: View {
                 let kindRaw = kind.rawValue
                 let key = "\(kindRaw)|\(dayStart.timeIntervalSince1970)"
                 if let sample = existingByKey[key] {
-                    // Update existing sample to snapshot value and photo date (exact time)
+                    // Aktualizuje istniejaca probke do wartosci snapshotu i daty zdjecia (dokladny czas)
                     sample.value = snapshot.value
                     sample.date = photoDate
                 } else {
@@ -220,10 +220,10 @@ struct HomeView: View {
             }
         }
 
-        // No deletes here on purpose (photo deletions should not remove samples)
+        // Celowo bez usuwania (usuniecie zdjecia nie powinno kasowac probek)
     }
 
-    /// Rebuilds goalsByKind from the @Query goals array.
+    /// Przebudowuje goalsByKind na podstawie tablicy celow @Query.
     private func rebuildGoalsCache() {
         var dict: [MetricKind: MetricGoal] = [:]
         for goal in goals {
@@ -383,7 +383,7 @@ struct HomeView: View {
             do {
                 let composition = try await HealthKitManager.shared.fetchLatestBodyCompositionCached()
                 await MainActor.run {
-                    // Keep values truthful: no fake placeholders if Health data is missing.
+                    // Zachowuj prawdziwe wartosci: bez sztucznych placeholderow, gdy brakuje danych Health.
                     latestBodyFat = composition.bodyFat
                     latestLeanMass = composition.leanMass
                 }

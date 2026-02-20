@@ -14,11 +14,11 @@ struct QuickAddSheetView: View {
     @AppStorage("save_unchanged_quick_add") private var saveUnchangedValues: Bool = false
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
 
-    // One date used for all quick entries
+    // Jedna data uzywana dla wszystkich szybkich wpisow
     @State private var date: Date = .now
     // User inputs in display units; nil means “skip”
     @State private var inputs: [MetricKind: Double?] = [:]
-    // Tracks which metrics the user has actually edited
+    // Sledzi, ktore metryki uzytkownik rzeczywiscie edytowal
     @State private var editedKinds: Set<MetricKind> = []
     @State private var isSaving = false
     @State private var showNoChangesAlert = false
@@ -495,7 +495,7 @@ struct QuickAddSheetView: View {
                 QuickAddSaveService.Entry(kind: kind, metricValue: metricValue(for: kind, displayValue: displayValue))
             }
 
-        // Notifications (measurement recorded + goal achieved)
+        // Powiadomienia (zapis pomiaru + osiagniecie celu)
         await MainActor.run {
             for entry in entries {
                 NotificationManager.shared.recordMeasurement(date: date)
@@ -527,7 +527,7 @@ struct QuickAddSheetView: View {
             return
         }
 
-        // Best-effort HealthKit sync
+        // Synchronizacja HealthKit w trybie najlepszej starannosci
         await service.syncHealthKit(entries: entries, date: date)
 
         await MainActor.run {

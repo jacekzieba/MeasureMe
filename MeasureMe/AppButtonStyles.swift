@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Primary accent button style used for the main action on a screen.
+/// Podstawowy styl przycisku akcentowego dla glownej akcji na ekranie.
 struct AppPrimaryButtonStyle: ButtonStyle {
     var cornerRadius: CGFloat = 12
     @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
@@ -34,7 +34,7 @@ struct AppPrimaryButtonStyle: ButtonStyle {
     }
 }
 
-/// Solid accent button style for high-contrast primary actions.
+/// Pelny styl przycisku akcentowego dla kontrastowych akcji glownych.
 struct AppAccentButtonStyle: ButtonStyle {
     var cornerRadius: CGFloat = 12
     @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true

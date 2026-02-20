@@ -1,12 +1,13 @@
 import Foundation
 
-/// Applies iOS Data Protection to on-device database files.
-/// This is Apple's recommended "encryption at rest" mechanism for sensitive app data.
+/// Stosuje ochrone danych iOS do plikow bazy danych na urzadzeniu.
+/// To zalecany przez Apple mechanizm "encryption at rest" dla wrazliwych danych aplikacji.
 ///
-/// Note: `.completeUntilFirstUserAuthentication` keeps data encrypted at rest,
-/// while still allowing background work after the first unlock (better UX/stability for HealthKit updates).
+/// Uwaga: `.completeUntilFirstUserAuthentication` utrzymuje dane zaszyfrowane w spoczynku,
+/// a jednoczesnie pozwala na prace w tle po pierwszym odblokowaniu (lepszy UX/stabilnosc dla aktualizacji HealthKit).
 enum DatabaseEncryption {
     static let protection: FileProtectionType = .completeUntilFirstUserAuthentication
+    private static let protectionVersionKey = "database_encryption_protection_applied_version"
 
     static func applyRecommendedProtection() {
         let fm = FileManager.default
@@ -23,7 +24,7 @@ enum DatabaseEncryption {
                 AppLog.debug("⚠️ DatabaseEncryption: failed to protect \(root.lastPathComponent) directory: \(error)")
             }
 
-            // SwiftData may store data in `.store` packages or SQLite files (plus WAL/SHM).
+            // SwiftData moze trzymac dane w pakietach `.store` lub plikach SQLite (plus WAL/SHM).
             let candidates: [URL]
             do {
                 candidates = try fm.contentsOfDirectory(
@@ -44,10 +45,24 @@ enum DatabaseEncryption {
         }
     }
 
+    static func applyRecommendedProtectionIfNeeded() {
+        let defaults = UserDefaults.standard
+        let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
+        let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
+        let versionFingerprint = "\(shortVersion)-\(buildVersion)"
+
+        if defaults.string(forKey: protectionVersionKey) == versionFingerprint {
+            return
+        }
+
+        applyRecommendedProtection()
+        defaults.set(versionFingerprint, forKey: protectionVersionKey)
+    }
+
     private static func isLikelyDatabaseStore(_ url: URL) -> Bool {
         let ext = url.pathExtension.lowercased()
         if ext == "store" || ext == "sqlite" || ext == "db" { return true }
-        // Be conservative: SwiftData default store is often named `default.store`.
+        // Zachowaj ostroznosc: domyslny store SwiftData czesto nazywa sie `default.store`.
         if url.lastPathComponent.lowercased().contains("default.store") { return true }
         return false
     }
@@ -65,12 +80,12 @@ enum DatabaseEncryption {
 
         var isDirectory: ObjCBool = false
         guard fm.fileExists(atPath: url.path, isDirectory: &isDirectory), isDirectory.boolValue else {
-            // Also try protecting WAL/SHM sidecars if this is a SQLite file.
+            // Sprobuj tez zabezpieczyc pliki poboczne WAL/SHM, jesli to plik SQLite.
             protectSQLiteSidecars(for: url)
             return
         }
 
-        // Protect children of `.store` packages.
+        // Zabezpiecz zawartosc pakietow `.store`.
         if let children = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil) {
             for child in children {
                 protectRecursively(child)

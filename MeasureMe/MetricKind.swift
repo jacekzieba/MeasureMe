@@ -73,7 +73,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable {
         }
     }
 
-    /// English title for AI prompts / internal logic
+    /// Angielski tytul do promptow AI i logiki wewnetrznej
     var englishTitle: String {
         switch self {
         case .weight: return "Weight"
@@ -119,7 +119,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable {
         }
     }
 
-    /// Whether the SF Symbol should be mirrored horizontally for better left/right semantics
+    /// Czy SF Symbol powinien byc odbity poziomo dla lepszej semantyki lewo/prawo
     var shouldMirrorSymbol: Bool {
         switch self {
         case .leftBicep, .leftForearm, .leftThigh, .leftCalf:
@@ -137,7 +137,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable {
         case neutral
     }
 
-    /// Default direction when no goal is set: decrease is good for selected metrics.
+    /// Domyslny kierunek bez ustawionego celu: dla wybranych metryk spadek jest korzystny.
     var favorsDecreaseWhenNoGoal: Bool {
         switch self {
         case .weight, .bodyFat, .waist, .hips, .bust:

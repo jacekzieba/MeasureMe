@@ -22,6 +22,9 @@ struct PhotoView: View {
     @State private var showMaxPhotosAlert = false
     
     @AppStorage("photos_filter_tag") private var photosFilterTag: String = ""
+    private var uiTestModeEnabled: Bool {
+        ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+    }
 
     var body: some View {
         NavigationStack {
@@ -60,6 +63,20 @@ struct PhotoView: View {
                             refreshToken = UUID()
                         }
                         .id(refreshToken)
+                        .overlay(alignment: .topLeading) {
+                            if uiTestModeEnabled && isSelecting {
+                                Button("Select 2") {
+                                    selectFirstTwoPhotosForUITest()
+                                }
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(.ultraThinMaterial, in: Capsule())
+                                .padding(.top, 8)
+                                .padding(.leading, 12)
+                                .accessibilityIdentifier("photos.compare.selectTwoHook")
+                            }
+                        }
                         
                         // Przycisk Compare jako overlay na dole
                         if isSelecting && selectedPhotos.count == 2 {
@@ -142,6 +159,7 @@ private extension PhotoView {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(AppAccentButtonStyle(cornerRadius: 14))
+        .accessibilityIdentifier("photos.compare.open")
         .accessibilityLabel(AppLocalization.string("Compare selected photos"))
         .accessibilityHint(AppLocalization.string("accessibility.compare.opens"))
         .padding(.horizontal)
@@ -160,9 +178,20 @@ private extension PhotoView {
         showFilters = false
         photosFilterTag = ""
     }
+
+    private func selectFirstTwoPhotosForUITest() {
+        var descriptor = FetchDescriptor<PhotoEntry>(
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        descriptor.fetchLimit = 2
+        guard let latestTwo = try? context.fetch(descriptor), latestTwo.count == 2 else {
+            return
+        }
+        selectedPhotos = Set(latestTwo)
+    }
 }
 
-// MARK: - Photo Content View with Query
+// MARK: - Widok zawartosci zdjec z Query
 private struct PhotoContentView: View {
     @Environment(\.modelContext) private var context
 
@@ -244,8 +273,8 @@ private struct PhotoContentView: View {
     @MainActor
     private func loadMoreUntilVisibleOrExhausted() async {
         await loadMore()
-        // If tag filtering can't be pushed into the store predicate (or is unsupported),
-        // the first few pages may contain 0 visible results. Keep paging until we find something or exhaust.
+        // Jesli filtrowanie tagow nie moze byc przeniesione do predykatu store (albo nie jest wspierane),
+        // pierwsze strony moga miec 0 widocznych wynikow. Kontynuuj stronicowanie, az znajdziesz wynik albo dane sie skoncza.
         let needsMore = usesInMemoryTagFiltering && !filters.selectedTags.isEmpty
         while needsMore, photos.isEmpty, hasMore {
             await loadMore()
@@ -272,7 +301,7 @@ private struct PhotoContentView: View {
             return try context.fetch(descriptor)
         } catch {
             // Some SwiftData backends cannot translate complex tag predicates.
-            // Fallback to date-only fetch + in-memory filtering.
+            // Zapasowo: pobieranie tylko po dacie i filtrowanie w pamieci.
             if !usesInMemoryTagFiltering {
                 usesInMemoryTagFiltering = true
                 return await fetchNextBatch()
@@ -385,6 +414,7 @@ private struct PhotoGridView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("photos.grid.item")
                 .accessibilityLabel(AppLocalization.string("Photo"))
                 .accessibilityValue(photo.date.formatted(date: .abbreviated, time: .omitted))
             }
@@ -401,10 +431,13 @@ private extension PhotoView {
 
         ToolbarItem(placement: .topBarLeading) {
             Button {
-                if premiumStore.isPremium {
+                if premiumStore.isPremium || uiTestModeEnabled {
                     Haptics.selection()
                     isSelecting.toggle()
                     selectedPhotos.removeAll()
+                    if isSelecting && uiTestModeEnabled {
+                        selectFirstTwoPhotosForUITest()
+                    }
                 } else {
                     premiumStore.presentPaywall(reason: .feature("Photo comparison"))
                 }
@@ -415,6 +448,7 @@ private extension PhotoView {
                 }
             }
             .foregroundStyle(Color.appAccent)
+            .accessibilityIdentifier("photos.compare.mode.toggle")
             .accessibilityLabel(isSelecting
                 ? AppLocalization.string("accessibility.compare.exit")
                 : AppLocalization.string("accessibility.compare.enter"))
@@ -423,7 +457,7 @@ private extension PhotoView {
         
         ToolbarItem(placement: .topBarTrailing) {
             HStack(spacing: 16) {
-                // Filter button with badge
+                // Przycisk filtra z odznaka
                 Button {
                     Haptics.selection()
                     showFilters = true
@@ -449,6 +483,7 @@ private extension PhotoView {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityIdentifier("photos.add.button")
                 .accessibilityLabel(AppLocalization.string("Add photo"))
             }
         }

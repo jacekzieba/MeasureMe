@@ -11,7 +11,7 @@ struct RFMDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // Header Card
+                // Karta naglowka
                 VStack(alignment: .leading, spacing: 16) {
                     Text(AppLocalization.string("Relative Fat Mass"))
                         .font(AppTypography.sectionTitle)
@@ -57,7 +57,7 @@ struct RFMDetailView: View {
                         .stroke(Color(hex: "#FCA311").opacity(0.3), lineWidth: 1)
                 )
                 
-                // What is RFM?
+                // Czym jest RFM?
                 VStack(alignment: .leading, spacing: 12) {
                     Text(AppLocalization.string("What is RFM?"))
                         .font(AppTypography.bodyEmphasis)

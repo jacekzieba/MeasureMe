@@ -69,7 +69,7 @@ struct CrashReportView: View {
                     }
                 }
 
-                // Diagnostic report section
+                // Sekcja raportu diagnostycznego
                 Section {
                     Button {
                         Haptics.light()

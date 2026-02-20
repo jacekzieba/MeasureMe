@@ -2,15 +2,37 @@ import Foundation
 import SwiftUI
 import UIKit
 
-/// Small shared pipeline for downsampling + caching.
-/// Keeps view code minimal and ensures consistent behavior across screens.
+/// Maly wspolny pipeline dla downsamplingu i cache.
+/// Utrzymuje kod widokow prosty i zapewnia spojne zachowanie miedzy ekranami.
 enum ImagePipeline {
     private struct SendableCGImage: @unchecked Sendable {
         let cgImage: CGImage
     }
 
-    /// Loads a downsampled image for UI display.
-    /// Order: memory cache -> disk cache -> downsample -> store in caches.
+    private actor InFlightDownsampleTasks {
+        private var tasks: [String: Task<SendableCGImage?, Never>] = [:]
+
+        func task(
+            for key: String,
+            create: @escaping @Sendable () -> Task<SendableCGImage?, Never>
+        ) -> (task: Task<SendableCGImage?, Never>, isNew: Bool) {
+            if let existing = tasks[key] {
+                return (existing, false)
+            }
+            let newTask = create()
+            tasks[key] = newTask
+            return (newTask, true)
+        }
+
+        func removeTask(for key: String) {
+            tasks.removeValue(forKey: key)
+        }
+    }
+
+    private static let inFlightTasks = InFlightDownsampleTasks()
+
+    /// Laduje pomniejszony obraz do wyswietlania w UI.
+    /// Kolejnosc: cache pamieci -> cache dyskowy -> downsampling -> zapis do cache.
     static func downsampledImage(
         imageData: Data,
         cacheKey: String,
@@ -32,16 +54,21 @@ enum ImagePipeline {
         let sourceData = imageData
         let sourceSize = targetSize
         let sourceScale = scale
-        let task: Task<SendableCGImage?, Never> = Task.detached(priority: .userInitiated) {
-            guard let cg = ImageDownsampler.downsampleCGImage(
-                imageData: sourceData,
-                to: sourceSize,
-                scale: sourceScale
-            ) else { return nil }
-            return SendableCGImage(cgImage: cg)
+        let (task, isNewTask) = await inFlightTasks.task(for: cacheKey) {
+            Task.detached(priority: .userInitiated) {
+                guard let cg = ImageDownsampler.downsampleCGImage(
+                    imageData: sourceData,
+                    to: sourceSize,
+                    scale: sourceScale
+                ) else { return nil }
+                return SendableCGImage(cgImage: cg)
+            }
         }
-        let generated = await task.value
 
+        let generated = await task.value
+        if isNewTask {
+            await inFlightTasks.removeTask(for: cacheKey)
+        }
         guard let generated else { return nil }
 
         let image = UIImage(cgImage: generated.cgImage)
@@ -49,7 +76,7 @@ enum ImagePipeline {
             ImageCache.shared.setImage(image, forKey: cacheKey)
         }
 
-        if let data = image.jpegData(compressionQuality: 0.9) ?? image.pngData() {
+        if isNewTask, let data = image.jpegData(compressionQuality: 0.9) ?? image.pngData() {
             await DiskImageCache.shared.setData(data, forKey: cacheKey)
         }
         return image

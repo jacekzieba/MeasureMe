@@ -262,20 +262,37 @@ private extension AddPhotoView {
             return
         }
         
-        // Optymalizacja: zmniejsz rozmiar obrazu przed kompresją
-        let optimizedImage = image.resized(maxDimension: 1920).fixedOrientation()
-        
-        // Kompresuj z targetowym rozmiarem max 2MB
-        guard let imageData = optimizedImage.compressed(toMaxSize: 2_000_000) else {
+        let importStart = ContinuousClock().now
+        let optimizedImage: UIImage
+        if PhotoUtilities.isPreparedForImport(image, maxDimension: 2048) {
+            optimizedImage = image
+        } else {
+            optimizedImage = PhotoUtilities.prepareImportedImage(image)
+        }
+        let preprocessElapsed = importStart.duration(to: ContinuousClock().now)
+        let preprocessMs = Int(preprocessElapsed.components.seconds * 1_000)
+            + Int(preprocessElapsed.components.attoseconds / 1_000_000_000_000_000)
+
+        let encodeStart = ContinuousClock().now
+        guard let encoded = PhotoUtilities.encodeForStorage(
+            optimizedImage,
+            maxSize: 2_000_000,
+            alreadyPrepared: true
+        ) else {
             AppLog.debug("❌ AddPhotoView: Failed to compress image")
             return
         }
-        
-        AppLog.debug("✅ AddPhotoView: Image compressed, size: \(PhotoUtilities.formatFileSize(imageData.count))")
+        let encodeElapsed = encodeStart.duration(to: ContinuousClock().now)
+        let encodeMs = Int(encodeElapsed.components.seconds * 1_000)
+            + Int(encodeElapsed.components.attoseconds / 1_000_000_000_000_000)
+
+        AppLog.debug(
+            "✅ AddPhotoView: format=\(encoded.format) quality=\(String(format: "%.2f", encoded.quality)) size=\(PhotoUtilities.formatFileSize(encoded.data.count)) preprocess=\(preprocessMs)ms encode=\(encodeMs)ms"
+        )
         
         let snapshots = createMetricSnapshots()
         
-        // Also create MetricSample entries for Measurements with the same date
+        // Tworzy tez wpisy MetricSample dla Measurements z ta sama data
         for (kind, displayValue) in metricValues {
             guard displayValue > 0 else { continue }
             let metric = kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
@@ -284,7 +301,7 @@ private extension AddPhotoView {
         }
         
         let entry = PhotoEntry(
-            imageData: imageData,
+            imageData: encoded.data,
             date: date,
             tags: Array(selectedTags),
             linkedMetrics: snapshots
@@ -386,4 +403,3 @@ private func makePreviewContainer() -> ModelContainer {
         .modelContainer(makePreviewContainer())
         .environmentObject(ActiveMetricsStore())
 }
-

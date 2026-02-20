@@ -788,4 +788,4 @@ struct MetricDetailView: View {
         }
     }
 }
-// Extension methods are defined in MetricDetailComponents.swift
+// Metody rozszerzenia sa zdefiniowane w MetricDetailComponents.swift

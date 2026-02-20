@@ -31,7 +31,7 @@ enum PhotoTag: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-// MARK: - UI helpers
+// MARK: - pomocniki UI
 extension PhotoTag {
 
     var title: String {
@@ -59,10 +59,10 @@ extension PhotoTag {
         }
     }
     
-    // Alias for consistency across views
+    // Alias dla spojnosci miedzy widokami
     var displayName: String { title }
     
-    // System image for the tag
+    // Ikona systemowa dla tagu
     var systemImage: String {
         switch self {
         case .wholeBody: return "figure.stand"

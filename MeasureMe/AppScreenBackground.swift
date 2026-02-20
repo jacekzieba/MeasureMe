@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Shared atmospheric background with subtle motion and film grain.
+/// Wspolne tlo atmosferyczne z subtelnym ruchem i ziarnem.
 struct AppScreenBackground: View {
     var topHeight: CGFloat = 320
     var scrollOffset: CGFloat = 0

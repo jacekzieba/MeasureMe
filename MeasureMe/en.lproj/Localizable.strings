@@ -537,7 +537,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Above typical range" = "Above typical range";
 "Significantly above range" = "Significantly above range";
 
-/* Missing data strings */
+/* Napisy dla brakujacych danych */
 "Missing waist or height measurement" = "Missing waist or height measurement";
 "Missing waist or hip measurement" = "Missing waist or hip measurement";
 
@@ -626,7 +626,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "goal.away" = "%.1f %@ away from goal";
 "Importing Health data in background. You can continue." = "Importing Health data in background. You can continue.";
 
-/* Onboarding v2 and checklist */
+/* Onboarding v2 i checklista */
 "Your first check-in" = "Your first check-in";
 "A few details (optional)" = "A few details (optional)";
 "Make it effortless" = "Make it effortless";
@@ -810,7 +810,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "You can skip and fill this later." = "You can skip and fill this later.";
 "Show %d more" = "Show %d more";
 
-/* Charts and trends */
+/* Wykresy i trendy */
 "Date" = "Date";
 "trend.steady" = "steady";
 "trend.up" = "trending up";
@@ -819,7 +819,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "chart.summary.empty" = "%@, no chart data yet.";
 "chart.title.metric" = "%@ trend";
 
-/* Goals and timeframes */
+/* Cele i ramy czasowe */
 "Set Goal" = "Set Goal";
 "Update Goal" = "Update Goal";
 "Set" = "Set";
@@ -830,7 +830,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "All time" = "All time";
 "Goal already achieved." = "Goal already achieved.";
 
-/* Messaging and permissions */
+/* Komunikaty i uprawnienia */
 "No products returned by StoreKit." = "No products returned by StoreKit.";
 "Unable to save this image." = "Unable to save this image.";
 "Permission denied. Enable Photos access in Settings." = "Permission denied. Enable Photos access in Settings.";
@@ -845,7 +845,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Weekly" = "Weekly";
 "Failed to delete HealthKit samples." = "Failed to delete HealthKit samples.";
 
-/* Accessibility & UI labels (added for UX audit) */
+/* Etykiety dostepnosci i UI (dodane do audytu UX) */
 "Close" = "Close";
 "Show Less" = "Show Less";
 "View All" = "View All";

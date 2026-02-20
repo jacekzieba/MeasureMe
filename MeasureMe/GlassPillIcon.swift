@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Reusable liquid-glass icon pill used across settings-like lists.
+/// Wielokrotnego uzytku ikona typu liquid-glass stosowana na listach podobnych do Ustawien.
 struct GlassPillIcon: View {
     @Environment(\.colorScheme) private var colorScheme
     let systemName: String

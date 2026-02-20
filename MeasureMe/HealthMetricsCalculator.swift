@@ -4,7 +4,7 @@
 // Kalkulator wskaźników zdrowotnych z kategoriami ryzyka.
 //
 // **Core Metrics:**
-// - WHtR (Waist-to-Height Ratio): Stosunek obwodu talii do wzrostu
+// - WHtR (stosunek talii do wzrostu): Stosunek obwodu talii do wzrostu
 // - RFM (Relative Fat Mass): Względna masa tłuszczowa
 // - BMI (Body Mass Index): Wskaźnik masy ciała z uwzględnieniem wieku
 //
@@ -45,7 +45,7 @@ enum Gender: String, CaseIterable {
 @MainActor
 final class HealthMetricsCalculator {
     
-    // MARK: - WHtR (Waist-to-Height Ratio)
+    // MARK: - WHtR (stosunek talii do wzrostu)
     
     struct WHtRResult {
         let ratio: Double
@@ -87,7 +87,7 @@ final class HealthMetricsCalculator {
         }
     }
     
-    /// Oblicza WHtR (Waist-to-Height Ratio)
+    /// Oblicza WHtR (stosunek talii do wzrostu)
     /// - Parameters:
     ///   - waistCm: Obwód talii w centymetrach
     ///   - heightCm: Wzrost w centymetrach
@@ -193,7 +193,7 @@ final class HealthMetricsCalculator {
         return RFMResult(rfm: rfm, category: category, gender: gender)
     }
     
-    // MARK: - WHR (Waist-to-Hip Ratio) - DEPRECATED
+    // MARK: - WHR (stosunek talii do bioder) - DEPRECATED
     
     struct WHRResult {
         let ratio: Double
@@ -256,7 +256,7 @@ final class HealthMetricsCalculator {
         }
     }
     
-    /// Oblicza WHR (Waist-to-Hip Ratio)
+    /// Oblicza WHR (stosunek talii do bioder)
     /// - Parameters:
     ///   - waistCm: Obwód talii w centymetrach
     ///   - hipsCm: Obwód bioder w centymetrach

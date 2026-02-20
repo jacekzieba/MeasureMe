@@ -1,7 +1,14 @@
+/// Cel testow: Weryfikuje definicje MetricKind (mapowania, jednostki, konwersje, nazwy).
+/// Dlaczego to wazne: MetricKind steruje UI i obliczeniami; blad psuje wiele ekranow naraz.
+/// Kryteria zaliczenia: Kontrakty enumow i konwersje sa zgodne z oczekiwaniami.
+
 import XCTest
 @testable import MeasureMe
 
 final class MetricKindTests: XCTestCase {
+    /// Co sprawdza: Sprawdza scenariusz: WeightConversionRoundTripForImperial.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testWeightConversionRoundTripForImperial() {
         let pounds = 180.0
 
@@ -12,6 +19,9 @@ final class MetricKindTests: XCTestCase {
         XCTAssertEqual(backToImperial, pounds, accuracy: 0.0001)
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: LengthConversionRoundTripForImperial.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testLengthConversionRoundTripForImperial() {
         let inches = 70.0
 
@@ -22,6 +32,9 @@ final class MetricKindTests: XCTestCase {
         XCTAssertEqual(backToImperial, inches, accuracy: 0.0001)
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: BodyFatUnitAndConversionRemainStableAcrossSystems.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testBodyFatUnitAndConversionRemainStableAcrossSystems() {
         XCTAssertEqual(MetricKind.bodyFat.unitSymbol(unitsSystem: "metric"), "%")
         XCTAssertEqual(MetricKind.bodyFat.unitSymbol(unitsSystem: "imperial"), "%")
@@ -46,6 +59,9 @@ final class MetricKindTests: XCTestCase {
         )
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: ValueConversionRoundTripStaysFiniteAndStable.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testValueConversionRoundTripStaysFiniteAndStable() {
         let systems = ["metric", "imperial"]
         let sampleValue = 50.0

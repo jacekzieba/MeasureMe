@@ -1,41 +1,55 @@
+/// Cel testow: Sprawdza logike pierwszego uruchomienia Quick Add (np. widocznosc miarki/rulera).
+/// Dlaczego to wazne: Pierwszy zapis jest krytyczny dla retencji i poprawnosci danych.
+/// Kryteria zaliczenia: UI/logika reaguje poprawnie na brak lub obecne dane historyczne.
+
 import XCTest
 @testable import MeasureMe
 
-/// Tests for the first-time flow logic: ruler visibility based on whether
-/// a previous measurement exists or the user has typed a value.
 final class QuickAddFirstTimeFlowTests: XCTestCase {
 
     // MARK: - shouldShowRuler
 
+    /// Co sprawdza: Sprawdza scenariusz: ShouldShowRulerFalseWhenNoLatestAndNoInput.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testShouldShowRulerFalseWhenNoLatestAndNoInput() {
-        // First-time user, hasn't typed anything → ruler hidden
+        // Pierwszy uzytkownik bez wpisanej wartosci -> miarka ukryta
         XCTAssertFalse(
             QuickAddMath.shouldShowRuler(hasLatest: false, currentInput: nil),
-            "Ruler should be hidden when there is no history and no user input"
+            "Miarka powinna byc ukryta, gdy nie ma historii i brak wpisu uzytkownika"
         )
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: ShouldShowRulerTrueWhenHasLatest.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testShouldShowRulerTrueWhenHasLatest() {
-        // Returning user with previous measurement → ruler visible
+        // Powracajacy uzytkownik z poprzednim pomiarem -> miarka widoczna
         XCTAssertTrue(
             QuickAddMath.shouldShowRuler(hasLatest: true, currentInput: nil),
-            "Ruler should be visible when a previous measurement exists"
+            "Miarka powinna byc widoczna, gdy istnieje poprzedni pomiar"
         )
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: ShouldShowRulerTrueWhenUserTypedValue.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testShouldShowRulerTrueWhenUserTypedValue() {
-        // First-time user who just typed a value → ruler appears
+        // Pierwszy uzytkownik po wpisaniu wartosci -> miarka sie pojawia
         XCTAssertTrue(
             QuickAddMath.shouldShowRuler(hasLatest: false, currentInput: 80.0),
-            "Ruler should appear after user types their first value"
+            "Miarka powinna sie pojawic po wpisaniu pierwszej wartosci"
         )
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: ShouldShowRulerTrueWhenBothExist.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testShouldShowRulerTrueWhenBothExist() {
-        // Returning user who also typed a new value → ruler stays visible
+        // Powracajacy uzytkownik po wpisaniu nowej wartosci -> miarka pozostaje widoczna
         XCTAssertTrue(
             QuickAddMath.shouldShowRuler(hasLatest: true, currentInput: 85.0),
-            "Ruler should remain visible when both history and input exist"
+            "Miarka powinna pozostac widoczna, gdy istnieje historia i wpis uzytkownika"
         )
     }
 }

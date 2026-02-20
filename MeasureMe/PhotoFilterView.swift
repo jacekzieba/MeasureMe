@@ -60,7 +60,7 @@ struct PhotoFilterView: View {
     }
 }
 
-// MARK: - Date Range Section
+// MARK: - Sekcja zakresu dat
 private extension PhotoFilterView {
     
     var dateRangeSection: some View {
@@ -102,7 +102,7 @@ private extension PhotoFilterView {
     }
 }
 
-// MARK: - Tags Section
+// MARK: - Sekcja tagow
 private extension PhotoFilterView {
     
     var tagsSection: some View {

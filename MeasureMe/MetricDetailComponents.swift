@@ -827,7 +827,7 @@ struct SetGoalView: View {
                                 .foregroundStyle(.white.opacity(0.7))
                         }
 
-                        // MARK: - Delete goal
+                        // MARK: - Usun cel
                         if currentGoal != nil {
                             Button(role: .destructive) {
                                 showDeleteConfirmation = true

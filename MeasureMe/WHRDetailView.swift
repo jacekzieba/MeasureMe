@@ -1,7 +1,7 @@
 // WHRDetailView.swift
 //
 // **WHRDetailView**
-// Szczegółowy widok wskaźnika WHR (Waist-to-Hip Ratio).
+// Szczegółowy widok wskaźnika WHR (stosunek talii do bioder).
 //
 import SwiftUI
 

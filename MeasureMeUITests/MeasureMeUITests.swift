@@ -1,3 +1,7 @@
+/// Cel testow: Smoke testy UI aplikacji (start i podstawowe scenariusze krytyczne).
+/// Dlaczego to wazne: To bezpiecznik przed regresjami startupowymi i bledami integracyjnymi.
+/// Kryteria zaliczenia: Aplikacja uruchamia sie i wykonuje podstawowe kroki bez bledow.
+
 import XCTest
 
 final class MeasureMeUITests: XCTestCase {
@@ -6,6 +10,9 @@ final class MeasureMeUITests: XCTestCase {
     }
 
     @MainActor
+    /// Co sprawdza: Sprawdza scenariusz: SmokeAppLaunches.
+    /// Dlaczego: Chroni krytyczny przeplyw przed regresja i nieoczekiwanymi crashami.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testSmokeAppLaunches() {
         let app = XCUIApplication()
         app.launch()
@@ -14,6 +21,9 @@ final class MeasureMeUITests: XCTestCase {
     }
 
     @MainActor
+    /// Co sprawdza: Sprawdza scenariusz: HealthSyncDeniedRollsBackToggleAndShowsError.
+    /// Dlaczego: Zapewnia poprawna obsluge uprawnien i integracji z systemem.
+    /// Kryteria: Asercje na elementach UI przechodza (m.in. `Settings`, `settings.health.sync.toggle`, `settings.health.sync.error`).
     func testHealthSyncDeniedRollsBackToggleAndShowsError() {
         let app = XCUIApplication()
         app.launchArguments = [
@@ -39,6 +49,9 @@ final class MeasureMeUITests: XCTestCase {
     }
 
     @MainActor
+    /// Co sprawdza: Sprawdza scenariusz: LongInsightTextExpandsTileHeight.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Asercje na elementach UI przechodza (m.in. `Measurements`, `insight.card.text.compact`, `metric.tile.open.weight`).
     func testLongInsightTextExpandsTileHeight() {
         let app = XCUIApplication()
         app.launchArguments = [

@@ -1,3 +1,7 @@
+/// Cel testow: Weryfikuje cache i pipeline obrazow (pamiec/dysk) oraz przewidywalnosc wyniku.
+/// Dlaczego to wazne: Bledy w cache pogarszaja wydajnosc i moga dawac nieaktualne miniatury.
+/// Kryteria zaliczenia: Trafienia/pudla cache oraz przetwarzanie zwracaja oczekiwane rezultaty.
+
 import XCTest
 import UIKit
 @testable import MeasureMe
@@ -13,6 +17,9 @@ final class ImageCachePipelineTests: XCTestCase {
         ImageCache.shared.countLimit = 50
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: MemoryCacheStoresAndReturnsImage.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testMemoryCacheStoresAndReturnsImage() {
         let image = makeTestImage()
         let key = "image-cache-test"
@@ -21,6 +28,9 @@ final class ImageCachePipelineTests: XCTestCase {
         XCTAssertNotNil(ImageCache.shared.image(forKey: key))
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: MemoryCacheLRUOrderUpdatesOnAccess.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testMemoryCacheLRUOrderUpdatesOnAccess() {
         let image = makeTestImage()
         let prefix = UUID().uuidString
@@ -41,6 +51,9 @@ final class ImageCachePipelineTests: XCTestCase {
         XCTAssertEqual(leastRecentlyUsed, [k2, k3, k1])
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: DiskCacheRemoveAllClearsStoredData.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testDiskCacheRemoveAllClearsStoredData() async throws {
         let key = "disk-cache-test"
         let data = Data([0xAA, 0xBB, 0xCC])

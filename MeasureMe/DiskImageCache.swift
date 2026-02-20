@@ -4,17 +4,20 @@ import Foundation
 import CryptoKit
 #endif
 
-/// Simple on-disk image cache (Caches directory).
-/// Used as a secondary cache below `ImageCache` (memory) to avoid re-decoding thumbnails between launches.
+/// Prosty cache obrazow na dysku (katalog Caches).
+/// Uzywany jako drugi poziom cache pod `ImageCache` (pamiec), aby unikac ponownego dekodowania miniatur miedzy uruchomieniami.
 actor DiskImageCache {
     static let shared = DiskImageCache()
 
     private let fileManager = FileManager.default
     private let directoryURL: URL
+    private let memoryDataCache = NSCache<NSString, NSData>()
 
     private init() {
         let base = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
         directoryURL = base.appendingPathComponent("MeasureMeImageCache", isDirectory: true)
+        memoryDataCache.countLimit = 300
+        memoryDataCache.totalCostLimit = 64 * 1024 * 1024
 
         do {
             try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
@@ -23,22 +26,34 @@ actor DiskImageCache {
                 ofItemAtPath: directoryURL.path
             )
         } catch {
-            // Non-fatal: if directory creation fails, cache operations will no-op.
+            // Niekrytyczne: jesli tworzenie katalogu sie nie powiedzie, operacje cache beda pomijane.
             AppLog.debug("⚠️ DiskImageCache: failed to create cache directory: \(error)")
         }
     }
 
     func data(forKey key: String) -> Data? {
+        let nsKey = NSString(string: key)
+        if let cached = memoryDataCache.object(forKey: nsKey) {
+            return cached as Data
+        }
+
         let url = fileURL(forKey: key)
-        return try? Data(contentsOf: url)
+        guard let loaded = try? Data(contentsOf: url, options: [.mappedIfSafe]) else {
+            return nil
+        }
+        memoryDataCache.setObject(loaded as NSData, forKey: nsKey, cost: loaded.count)
+        return loaded
     }
 
     func setData(_ data: Data, forKey key: String) {
+        let nsKey = NSString(string: key)
+        memoryDataCache.setObject(data as NSData, forKey: nsKey, cost: data.count)
+
         let url = fileURL(forKey: key)
         do {
             try data.write(to: url, options: [.atomic])
         } catch {
-            // Non-fatal: disk cache best-effort.
+            // Niekrytyczne: cache dyskowy dziala w trybie najlepszej starannosci.
             #if DEBUG
             AppLog.debug("⚠️ DiskImageCache: write failed for \(key): \(error)")
             #endif
@@ -46,11 +61,14 @@ actor DiskImageCache {
     }
 
     func removeImage(forKey key: String) {
+        let nsKey = NSString(string: key)
+        memoryDataCache.removeObject(forKey: nsKey)
         let url = fileURL(forKey: key)
         try? fileManager.removeItem(at: url)
     }
 
     func removeAll() throws {
+        memoryDataCache.removeAllObjects()
         let items: [URL]
         do {
             items = try fileManager.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: nil)
@@ -67,13 +85,13 @@ actor DiskImageCache {
     }
 
     private func hashedFileName(forKey key: String) -> String {
-        // File-system safe and stable.
+        // Bezpieczne dla systemu plikow i stabilne.
         #if canImport(CryptoKit)
         let digest = SHA256.hash(data: Data(key.utf8))
         let hex = digest.map { String(format: "%02x", $0) }.joined()
         return "\(hex).jpg"
         #else
-        // Fallback (less stable, but still file-safe).
+        // Zapasowe rozwiazanie (mniej stabilne, ale nadal bezpieczne dla plikow).
         let sanitized = key
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: ":", with: "_")

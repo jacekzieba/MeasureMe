@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Lightweight image view that downscales large image data before decoding to reduce memory pressure.
+/// Lekki widok, ktory zmniejsza duze dane obrazu przed dekodowaniem, aby ograniczyc zuzycie pamieci.
 struct DownsampledImageView: View {
     let imageData: Data
     let targetSize: CGSize
@@ -37,12 +37,18 @@ struct DownsampledImageView: View {
 
     @MainActor
     private func loadImage() async {
+        let renderStart = ContinuousClock().now
         image = await ImagePipeline.downsampledImage(
             imageData: imageData,
             cacheKey: cacheKey,
             targetSize: targetSize,
             scale: displayScale
         )
+        let renderElapsed = renderStart.duration(to: ContinuousClock().now)
+        let renderMs = Int(renderElapsed.components.seconds * 1_000)
+            + Int(renderElapsed.components.attoseconds / 1_000_000_000_000_000)
+        let targetPixels = Int(targetSize.width * displayScale) * Int(targetSize.height * displayScale)
+        AppLog.debug("🖼️ DownsampledImageView: render=\(renderMs)ms source=\(PhotoUtilities.formatFileSize(imageData.count)) targetPixels=\(targetPixels)")
     }
 
     @ViewBuilder

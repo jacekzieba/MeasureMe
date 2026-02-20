@@ -1,8 +1,8 @@
 import Foundation
 
 enum QuickAddMath {
-    /// Computes the visible ruler range centred on `base`, clamped to `validRange`.
-    /// Returns `validRange` when `base` is NaN/Infinity or when computed bounds are invalid.
+    /// Wylicza widoczny zakres miarki wycentrowany na `base`, ograniczony do `validRange`.
+    /// Zwraca `validRange`, gdy `base` to NaN/Infinity albo granice sa niepoprawne.
     static func rulerRange(
         base: Double,
         span: Double,
@@ -20,13 +20,13 @@ enum QuickAddMath {
         return max(8, min(40, raw.isFinite ? Int(raw) : 8))
     }
 
-    /// Integer step index for haptic feedback. Returns 0 for non-finite inputs.
+    /// Calkowity indeks kroku dla haptyki. Zwraca 0 dla danych niefinitywnych.
     static func stepIndex(value: Double, lowerBound: Double, step: Double) -> Int {
         let raw = (value - lowerBound) / step
         return raw.isFinite ? Int(raw) : 0
     }
 
-    /// Whether to show the ruler for a given metric.
+    /// Czy pokazywac miarke dla danej metryki.
     /// Returns `true` when we have a sensible base value — either from
     /// a previous measurement or because the user just typed one.
     static func shouldShowRuler(hasLatest: Bool, currentInput: Double?) -> Bool {

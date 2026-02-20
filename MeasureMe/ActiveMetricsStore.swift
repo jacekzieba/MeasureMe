@@ -30,9 +30,9 @@ final class ActiveMetricsStore: ObservableObject {
     
     /// Debouncing - zapobiega nadmiarowym publikacjom zmian.
     /// `nonisolated(unsafe)` allows safe access from `deinit` which is not
-    /// isolated to MainActor.  `Task.cancel()` is itself thread-safe (atomic),
+    /// izolowany do MainActor. `Task.cancel()` jest bezpieczne watkowo (atomowe),
     /// and all *writes* to this property happen exclusively on @MainActor,
-    /// so the only cross-isolation access is the final `.cancel()` in deinit.
+    /// wiec jedynym dostepem miedzy izolacjami jest koncowe `.cancel()` w deinit.
     nonisolated(unsafe) private var pendingPublish: Task<Void, Never>?
 
     // MARK: - Initialization
@@ -88,7 +88,7 @@ final class ActiveMetricsStore: ObservableObject {
     let bodyComposition: [MetricKind] = [.weight, .bodyFat, .leanBodyMass]
     
     /// Metryki rozmiaru ciała (sync z HealthKit)
-    /// Height is managed only in Settings for health calculations, not as a tracked metric.
+    /// Wzrost jest zarzadzany tylko w Ustawieniach do obliczen zdrowotnych, nie jako sledzona metryka.
     let bodySize: [MetricKind] = [.waist]
     
     /// Metryki górnej części ciała

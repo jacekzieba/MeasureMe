@@ -1,3 +1,7 @@
+/// Cel testow: Sprawdza UI Quick Add (otwarcie, zapis, puste stany, brak crashy).
+/// Dlaczego to wazne: To najczesciej uzywana akcja; musi byc szybka i niezawodna.
+/// Kryteria zaliczenia: Arkusz otwiera sie poprawnie, zapis dziala, a scenariusze brzegowe sa stabilne.
+
 import XCTest
 
 final class QuickAddUITests: XCTestCase {
@@ -22,32 +26,38 @@ final class QuickAddUITests: XCTestCase {
         app.launch()
     }
 
-    /// Open the QuickAdd sheet from Home and wait until it is ready.
+    /// Otworz arkusz QuickAdd z Home i poczekaj, az bedzie gotowy.
     private func openQuickAdd() {
         let addButton = app.buttons["home.quickadd.button"]
         XCTAssertTrue(addButton.waitForExistence(timeout: 5),
-                      "Add measurement button should exist on Home")
+                      "Przycisk dodania pomiaru powinien istniec na Home")
         addButton.tap()
 
-        // Wait for the save button — proves the sheet loaded with active metrics.
+        // Poczekaj na przycisk zapisu - to potwierdza zaladowanie arkusza z aktywnymi metrykami.
         let saveButton = app.buttons["quickadd.save"]
         XCTAssertTrue(saveButton.waitForExistence(timeout: 5),
-                      "QuickAdd sheet should appear with Save button")
+                      "Arkusz QuickAdd powinien sie pojawic z przyciskiem zapisu")
     }
 
     // MARK: - Tests
 
     @MainActor
+    /// Co sprawdza: Sprawdza, ze QuickAddSheetOpensWithSaveButton dziala poprawnie (otwarcie i podstawowe warunki).
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Asercje na elementach UI przechodza (m.in. `quickadd.save`).
     func testQuickAddSheetOpensWithSaveButton() {
         launchWithActiveMetrics()
         openQuickAdd()
 
-        // Save button visible means sheet has metric rows and keyboard is dismissed.
+        // Przycisk zapisu widoczny oznacza, ze arkusz ma wiersze metryk i klawiatura jest schowana.
         let saveButton = app.buttons["quickadd.save"]
-        XCTAssertTrue(saveButton.isHittable, "Save button should be tappable")
+        XCTAssertTrue(saveButton.isHittable, "Przycisk zapisu powinien byc klikalny")
     }
 
     @MainActor
+    /// Co sprawdza: Sprawdza, ze QuickAddRapidSaveTaps nie powoduje crasha.
+    /// Dlaczego: Chroni krytyczny przeplyw przed regresja i nieoczekiwanymi crashami.
+    /// Kryteria: Asercje na elementach UI przechodza (m.in. `quickadd.save`).
     func testQuickAddRapidSaveTapsDoesNotCrash() {
         launchWithActiveMetrics()
         openQuickAdd()
@@ -57,47 +67,56 @@ final class QuickAddUITests: XCTestCase {
         saveButton.tap()
         saveButton.tap()
 
-        // App should not crash
+        // Aplikacja nie powinna sie wysypac
         XCTAssertTrue(
             app.wait(for: .runningForeground, timeout: 5),
-            "App should remain running after rapid save taps"
+            "Aplikacja powinna pozostac uruchomiona po szybkich tapnieciach zapisu"
         )
     }
 
     @MainActor
+    /// Co sprawdza: Sprawdza scenariusz: QuickAddShowsEmptyStateWhenNoActiveMetrics.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Asercje na elementach UI przechodza (m.in. `home.quickadd.button`, `quickadd.save`).
     func testQuickAddShowsEmptyStateWhenNoActiveMetrics() {
         launchWithNoMetrics()
 
         let addButton = app.buttons["home.quickadd.button"]
         XCTAssertTrue(addButton.waitForExistence(timeout: 5),
-                      "Add measurement button should exist")
+                      "Przycisk dodania pomiaru powinien istniec")
         addButton.tap()
 
-        // Save button must NOT appear (empty state = no metrics = no save bar)
+        // Przycisk zapisu NIE moze sie pojawic (pusty stan = brak metryk = brak paska zapisu)
         let saveButton = app.buttons["quickadd.save"]
-        // Give the sheet a moment to load, then assert save is absent
+        // Daj arkuszowi chwile na zaladowanie, potem potwierdz brak przycisku zapisu
         sleep(2)
         XCTAssertFalse(saveButton.exists,
-                       "Save button should not appear when no metrics are active")
+                       "Przycisk zapisu nie powinien sie pojawic, gdy nie ma aktywnych metryk")
     }
 
     // MARK: - First-time flow
 
     @MainActor
+    /// Co sprawdza: Sprawdza scenariusz: QuickAddFirstTimeShowsHintText.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Asercje na elementach UI przechodza (m.in. `Enter your first value`).
     func testQuickAddFirstTimeShowsHintText() {
-        // Clean DB + active metrics → no `latest` → first-time flow
+        // Czysta baza + aktywne metryki -> brak `latest` -> przeplyw pierwszego uruchomienia
         launchWithActiveMetrics()
         openQuickAdd()
 
-        // The hint "Enter your first value" should be visible somewhere in the sheet
+        // Podpowiedz "Enter your first value" powinna byc widoczna w arkuszu
         let hint = app.staticTexts["Enter your first value"]
         XCTAssertTrue(hint.waitForExistence(timeout: 5),
-                      "First-time hint should appear when no previous measurements exist")
+                      "Podpowiedz pierwszego uruchomienia powinna sie pojawic, gdy brak poprzednich pomiarow")
     }
 
     @MainActor
+    /// Co sprawdza: Sprawdza scenariusz: QuickAddWithSeededDataShowsSaveButton.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Asercje na elementach UI przechodza (m.in. `home.quickadd.button`, `quickadd.save`).
     func testQuickAddWithSeededDataShowsSaveButton() {
-        // Seeded weight data → `latest` exists → ruler visible, normal flow
+        // Zasiane dane wagi -> istnieje `latest` -> miarka widoczna, normalny przeplyw
         app.launchArguments = ["-uiTestMode", "-uiTestSeedMeasurements"]
         app.launch()
 
@@ -107,10 +126,10 @@ final class QuickAddUITests: XCTestCase {
 
             let saveButton = app.buttons["quickadd.save"]
             XCTAssertTrue(saveButton.waitForExistence(timeout: 5),
-                          "Save button should appear when seeded data provides latest values")
-            XCTAssertTrue(saveButton.isHittable, "Save button should be tappable")
+                          "Przycisk zapisu powinien sie pojawic, gdy zasiane dane dostarczaja ostatnie wartosci")
+            XCTAssertTrue(saveButton.isHittable, "Przycisk zapisu powinien byc klikalny")
         }
-        // If addButton doesn't exist (seeded data = hasAnyMeasurements), that's also OK —
-        // QuickAdd is accessed differently when data exists.
+        // Jesli addButton nie istnieje (zasiane dane = hasAnyMeasurements), to tez poprawnie
+        // QuickAdd jest wtedy otwierany inaczej, gdy dane juz istnieja.
     }
 }

@@ -316,7 +316,7 @@ struct MetricChartTile: View {
 
     @State private var shortInsight: String?
     @State private var isLoadingInsight = false
-    // Chart scrubbing removed from tile — available only in MetricDetailView
+    // Scrubbing wykresu usuniety z kafelka - dostepny tylko w MetricDetailView
 
     init(kind: MetricKind, unitsSystem: String) {
         self.kind = kind
@@ -387,7 +387,7 @@ struct MetricChartTile: View {
 
     var body: some View {
         if recentSamples.isEmpty {
-            // MARK: - Compact empty tile (no data yet)
+            // MARK: - Kompaktowy pusty kafelek (brak danych)
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
@@ -437,7 +437,7 @@ struct MetricChartTile: View {
             .accessibilityLabel(AppLocalization.string("accessibility.metric.summary.nodata", kind.title))
             .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
         } else {
-            // MARK: - Full tile with chart
+            // MARK: - Pelny kafelek z wykresem
             VStack(alignment: .leading, spacing: 10) {
 
                 // Header
@@ -465,7 +465,7 @@ struct MetricChartTile: View {
                     .accessibilityIdentifier("metric.tile.open.\(kind.rawValue)")
                 }
 
-                // Value + trend + goal info
+                // Wartosc + trend + informacje o celu
                 if let latest {
                     Text(valueString(metricValue: latest.value))
                         .font(AppTypography.metricValue)

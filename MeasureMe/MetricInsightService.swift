@@ -13,7 +13,7 @@ nonisolated struct MetricInsightInput: Sendable, Hashable {
     let delta7DaysText: String?
     let delta30DaysText: String?
     let goalStatusText: String?
-    /// "increase" | "decrease" (nil means no active goal)
+    /// "increase" | "decrease" (nil oznacza brak aktywnego celu)
     let goalDirectionText: String?
     /// "increase" | "decrease" | "neutral"
     let defaultFavorableDirectionText: String

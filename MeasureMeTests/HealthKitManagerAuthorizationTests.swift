@@ -1,3 +1,7 @@
+/// Cel testow: Weryfikuje zachowanie autoryzacji HealthKit i reakcje managera na rozne stany dostepu.
+/// Dlaczego to wazne: Zle mapowanie uprawnien blokuje import i wprowadza uzytkownika w blad.
+/// Kryteria zaliczenia: Dla kazdego stanu autoryzacji wynik jest poprawny i bez nieoczekiwanych wyjatkow.
+
 import XCTest
 import HealthKit
 @testable import MeasureMe
@@ -54,6 +58,9 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
         super.tearDown()
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: RequestAuthorizationThrowsNotAvailable.
+    /// Dlaczego: Zapewnia poprawna obsluge uprawnien i integracji z systemem.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testRequestAuthorizationThrowsNotAvailable() async {
         let store = MockHealthStore()
         store.healthDataAvailable = false
@@ -69,6 +76,9 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
         }
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: RequestAuthorizationThrowsDeniedWhenNoTypeAuthorized.
+    /// Dlaczego: Zapewnia poprawna obsluge uprawnien i integracji z systemem.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testRequestAuthorizationThrowsDeniedWhenNoTypeAuthorized() async {
         let store = MockHealthStore()
         let manager = HealthKitManager(store: store)
@@ -83,6 +93,9 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
         }
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: RequestAuthorizationSucceedsWhenAtLeastOneTypeAuthorized.
+    /// Dlaczego: Zapewnia poprawna obsluge uprawnien i integracji z systemem.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testRequestAuthorizationSucceedsWhenAtLeastOneTypeAuthorized() async throws {
         let store = MockHealthStore()
         store.quantityStatuses[.bodyMass] = .sharingAuthorized
@@ -92,6 +105,9 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
         XCTAssertTrue(store.didRequestAuthorization)
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: ReconcileStoredSyncStateDisablesSyncWhenHealthUnavailable.
+    /// Dlaczego: Zapewnia poprawna obsluge uprawnien i integracji z systemem.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testReconcileStoredSyncStateDisablesSyncWhenHealthUnavailable() async {
         let store = MockHealthStore()
         store.healthDataAvailable = false
@@ -105,6 +121,9 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
         XCTAssertFalse(UserDefaults.standard.bool(forKey: "isSyncEnabled"))
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: ReconcileStoredSyncStateDisablesSyncWhenNoAuthorizedTypes.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testReconcileStoredSyncStateDisablesSyncWhenNoAuthorizedTypes() async {
         let store = MockHealthStore()
         let manager = HealthKitManager(store: store)

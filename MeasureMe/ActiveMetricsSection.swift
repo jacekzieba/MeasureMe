@@ -46,7 +46,7 @@ struct ActiveMetricsSection: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
 
-            // MARK: - Metric rows with stars
+            // MARK: - Wiersze metryk z gwiazdkami
             ForEach(store.activeKinds, id: \.self) { kind in
                 HStack(spacing: 0) {
                     MetricRowView(

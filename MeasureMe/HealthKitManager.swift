@@ -19,7 +19,7 @@ protocol HealthStore {
     func requestAuthorization(toShare: Set<HKSampleType>, read: Set<HKObjectType>) async throws
     func authorizationStatus(for identifier: HKQuantityTypeIdentifier) throws -> HKAuthorizationStatus
 
-    // Quantity helpers
+    // Pomocniki ilosci
     func latestQuantity(for identifier: HKQuantityTypeIdentifier, unit: HKUnit) async throws -> (value: Double, date: Date)?
     func anchoredQuantitySamples(
         for identifier: HKQuantityTypeIdentifier,
@@ -32,7 +32,7 @@ protocol HealthStore {
     )
     func saveQuantity(_ value: Double, unit: HKUnit, identifier: HKQuantityTypeIdentifier, date: Date) async throws
 
-    // Waist helpers
+    // Pomocniki talii
     func fetchWaistMeasurements() async throws -> [(value: Double, date: Date)]
     func saveWaistMeasurement(value: Double, date: Date) async throws
     func deleteWaistMeasurements(inDay date: Date) async throws
@@ -123,7 +123,7 @@ final class RealHealthStore: HealthStore {
         let type = try quantityType(for: identifier)
         let predicate: NSPredicate?
         if let since {
-            // Strictly newer than last processed point to avoid duplicate imports.
+            // Scisle nowsze od ostatniego przetworzonego punktu, aby unikac duplikatow importu.
             predicate = HKQuery.predicateForSamples(withStart: since, end: nil, options: .strictStartDate)
         } else {
             predicate = nil
@@ -424,7 +424,7 @@ final class HealthKitManager {
         }
     }
 
-    /// Stops all active HealthKit observer queries and disables background delivery.
+    /// Zatrzymuje aktywne zapytania obserwatorow HealthKit i wylacza background delivery.
     func stopObservingHealthKitUpdates() {
         guard let realStore = store as? RealHealthStore else { return }
         observerQueries.forEach { realStore.store.stop($0) }
@@ -529,7 +529,7 @@ final class HealthKitManager {
         }
     }
     
-    // MARK: - Date of Birth / Age
+    // MARK: - Data urodzenia / wiek
     
     /// Pobiera datę urodzenia z HealthKit
     func fetchDateOfBirth() throws -> Date? {
@@ -697,7 +697,7 @@ final class HealthKitManager {
         try await store.deleteWaistMeasurements(inDay: date)
     }
     
-    // MARK: - Import Height to SwiftData
+    // MARK: - Import wzrostu do SwiftData
     
     /// Importuje najnowszy wzrost z HealthKit do SwiftData
     func importHeightFromHealthKit(to context: ModelContext) async throws {
@@ -706,7 +706,7 @@ final class HealthKitManager {
             return
         }
         
-        // Extract date before using in predicate
+        // Wyciagnij date przed uzyciem w predykacie
         let latestDate = latest.date
         
         // Sprawdź czy już nie ma próbki z tą datą

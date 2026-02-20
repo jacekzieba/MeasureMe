@@ -166,9 +166,9 @@ struct OnboardingView: View {
 
             GeometryReader { proxy in
                 let baseReserve: CGFloat = {
-                    // When editing (keyboard visible), keep the gap minimal
+                    // Podczas edycji (widoczna klawiatura) utrzymuj minimalna przerwe
                     if focusedField != nil { return 8 }
-                    // Otherwise, reserve space for footer and status elements
+                    // W przeciwnym razie rezerwuj miejsce na stopke i elementy statusu
                     return (stepStatusText == nil) ? 122 : 146
                 }()
                 let keyboardReserve: CGFloat = 0

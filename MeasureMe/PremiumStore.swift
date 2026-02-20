@@ -302,7 +302,7 @@ final class PremiumStore: ObservableObject {
         if await hasActiveSubscriptionStatus(allowedProductIDs: allowedProductIDs, now: now) {
             active = true
         } else {
-            // Fallback for edge cases where status fetch is unavailable.
+            // Zapasowe rozwiazanie dla przypadkow brzegowych, gdy pobranie statusu jest niedostepne.
             for await result in billingClient.currentEntitlements() {
                 guard case .verified(let transaction) = result else { continue }
                 if Self.isEntitlementActive(

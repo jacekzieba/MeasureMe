@@ -1,3 +1,7 @@
+/// Cel testow: Sprawdza persystencje i integralnosc modeli po zapisie i odczycie (round-trip).
+/// Dlaczego to wazne: Regresje w persystencji niszcza historie pomiarow i zaufanie do aplikacji.
+/// Kryteria zaliczenia: Dane po zapisie/odczycie pozostaja spojne i kompletne.
+
 import XCTest
 import SwiftData
 @testable import MeasureMe
@@ -10,6 +14,9 @@ final class PersistenceAndModelIntegrityTests: XCTestCase {
         return try ModelContainer(for: schema, configurations: [config])
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: SwiftDataCRUDAndDeleteAllFlow.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testSwiftDataCRUDAndDeleteAllFlow() throws {
         let container = try makeContainer()
         let context = ModelContext(container)
@@ -42,6 +49,9 @@ final class PersistenceAndModelIntegrityTests: XCTestCase {
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<PhotoEntry>()), 0)
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: InvalidKindRawDoesNotFallbackToWeight.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testInvalidKindRawDoesNotFallbackToWeight() {
         let sample = MetricSample(kind: .weight, value: 80, date: .now)
         sample.kindRaw = "invalid-kind"

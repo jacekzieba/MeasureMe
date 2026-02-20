@@ -1,7 +1,7 @@
 // WHtRDetailView.swift
 //
 // **WHtRDetailView**
-// Szczegółowy widok wskaźnika WHtR (Waist-to-Height Ratio).
+// Szczegółowy widok wskaźnika WHtR (stosunek talii do wzrostu).
 //
 import SwiftUI
 

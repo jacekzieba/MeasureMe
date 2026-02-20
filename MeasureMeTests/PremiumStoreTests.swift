@@ -1,3 +1,7 @@
+/// Cel testow: Weryfikuje logike premium (entitlements), odblokowanie funkcji i zachowanie przy wygasnieciu.
+/// Dlaczego to wazne: Bledny stan premium psuje gating funkcji i moze prowadzic do blednego dostepu.
+/// Kryteria zaliczenia: Dla roznych stanow entitlement wynik jest zgodny z oczekiwaniem i stabilny.
+
 import XCTest
 import StoreKit
 import UserNotifications
@@ -63,6 +67,9 @@ private final class MockPremiumNotificationManager: PremiumNotificationManaging 
 
 @MainActor
 final class PremiumStoreTests: XCTestCase {
+    /// Co sprawdza: Sprawdza, ze IsEntitlementActive zwraca false w oczekiwanym scenariuszu.
+    /// Dlaczego: Zapewnia stabilny gating premium i poprawne odblokowanie funkcji.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testIsEntitlementActiveReturnsFalseForExpiredOutsideGracePeriod() {
         let now = Date()
         let isActive = PremiumStore.isEntitlementActive(
@@ -77,6 +84,9 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertFalse(isActive)
     }
 
+    /// Co sprawdza: Sprawdza, ze IsEntitlementActive zwraca true w oczekiwanym scenariuszu.
+    /// Dlaczego: Zapewnia stabilny gating premium i poprawne odblokowanie funkcji.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testIsEntitlementActiveReturnsTrueForExpiredInsideGracePeriod() {
         let now = Date()
         let isActive = PremiumStore.isEntitlementActive(
@@ -91,6 +101,9 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertTrue(isActive)
     }
 
+    /// Co sprawdza: Sprawdza, ze IsEntitlementActive zwraca false w oczekiwanym scenariuszu.
+    /// Dlaczego: Zapewnia stabilny gating premium i poprawne odblokowanie funkcji.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testIsEntitlementActiveReturnsFalseForRevokedTransaction() {
         let now = Date()
         let isActive = PremiumStore.isEntitlementActive(
@@ -105,6 +118,9 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertFalse(isActive)
     }
 
+    /// Co sprawdza: Sprawdza, ze IsEntitlementActive zwraca true w oczekiwanym scenariuszu.
+    /// Dlaczego: Zapewnia stabilny gating premium i poprawne odblokowanie funkcji.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testIsEntitlementActiveReturnsTrueForNonExpiredSubscription() {
         let now = Date()
         let isActive = PremiumStore.isEntitlementActive(
@@ -119,6 +135,9 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertTrue(isActive)
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: LoadProductsErrorSetsFailureState.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testLoadProductsErrorSetsFailureState() async {
         let billing = MockPremiumBillingClient()
         billing.productsError = NSError(domain: "test", code: 1)
@@ -135,6 +154,9 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertNotNil(store.productsLoadError)
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: RestorePurchasesFailureSetsErrorMessage.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testRestorePurchasesFailureSetsErrorMessage() async {
         let billing = MockPremiumBillingClient()
         billing.syncError = NSError(domain: "test", code: 2)
@@ -151,6 +173,9 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertNotNil(store.actionMessage)
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: TrialReminderOptInDeniedRollsBackPreference.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testTrialReminderOptInDeniedRollsBackPreference() async {
         let billing = MockPremiumBillingClient()
         let notifications = MockPremiumNotificationManager()
@@ -172,6 +197,9 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertEqual(store.actionMessage, AppLocalization.string("premium.purchase.trial.enable.notifications"))
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: TrialReminderOptInGrantedSchedulesReminder.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testTrialReminderOptInGrantedSchedulesReminder() async {
         let billing = MockPremiumBillingClient()
         let notifications = MockPremiumNotificationManager()

@@ -1002,7 +1002,7 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "goal.away" = "%.1f %@ od celu";
 "Importing Health data in background. You can continue." = "Import danych trwa w tle. Możesz przejść dalej.";
 
-/* Onboarding v2 and checklist */
+/* Onboarding v2 i checklista */
 "Your first check-in" = "Twój pierwszy check-in";
 "A few details (optional)" = "Kilka danych (opcjonalnie)";
 "Make it effortless" = "Ułatw sobie start";
@@ -1222,7 +1222,7 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Weekly" = "Co tydzień";
 "Failed to delete HealthKit samples." = "Nie udało się usunąć próbek HealthKit.";
 
-/* Accessibility & UI labels (added for UX audit) */
+/* Etykiety dostepnosci i UI (dodane do audytu UX) */
 "Close" = "Zamknij";
 "Show Less" = "Pokaż mniej";
 "View All" = "Pokaż wszystko";

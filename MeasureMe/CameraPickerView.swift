@@ -16,7 +16,7 @@ struct CameraPickerView: UIViewControllerRepresentable {
             picker.cameraCaptureMode = .photo
             picker.allowsEditing = false
         } else {
-            // Fallback do biblioteki na symulatorze
+            // Zapasowo przejdz do biblioteki na symulatorze
             picker.sourceType = .photoLibrary
         }
         
@@ -44,8 +44,11 @@ struct CameraPickerView: UIViewControllerRepresentable {
             _ picker: UIImagePickerController,
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.selectedImage = image
+            if let imageURL = info[.imageURL] as? URL,
+               let image = PhotoUtilities.downsampledImage(from: imageURL, maxDimension: 2048) {
+                parent.selectedImage = PhotoUtilities.prepareImportedImage(image, maxDimension: 2048)
+            } else if let image = info[.originalImage] as? UIImage {
+                parent.selectedImage = PhotoUtilities.prepareImportedImage(image, maxDimension: 2048)
             }
             parent.dismiss()
         }
@@ -89,8 +92,11 @@ struct PhotoLibraryPicker: UIViewControllerRepresentable {
             _ picker: UIImagePickerController,
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.selectedImage = image
+            if let imageURL = info[.imageURL] as? URL,
+               let image = PhotoUtilities.downsampledImage(from: imageURL, maxDimension: 2048) {
+                parent.selectedImage = PhotoUtilities.prepareImportedImage(image, maxDimension: 2048)
+            } else if let image = info[.originalImage] as? UIImage {
+                parent.selectedImage = PhotoUtilities.prepareImportedImage(image, maxDimension: 2048)
             }
             parent.dismiss()
         }

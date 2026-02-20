@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Reusable photo thumbnail view using the shared downsampling + caching pipeline.
+/// Widok miniatury wielokrotnego uzytku oparty o wspolny pipeline downsamplingu i cache.
 struct PhotoThumbnailView: View {
     let imageData: Data
     let size: CGFloat

@@ -30,7 +30,7 @@ struct PhotoFiltersSheet: View {
         }
     }
     
-    // MARK: - Date Range Section
+    // MARK: - Sekcja zakresu dat
     
     private var dateRangeSection: some View {
         Section(AppLocalization.string("Date Range")) {
@@ -55,7 +55,7 @@ struct PhotoFiltersSheet: View {
         }
     }
     
-    // MARK: - Tags Section
+    // MARK: - Sekcja tagow
     
     private var tagsSection: some View {
         Section(AppLocalization.string("Tags")) {

@@ -16,7 +16,7 @@ struct LeanMassDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // Header Card
+                // Karta naglowka
                 VStack(alignment: .leading, spacing: 16) {
                     Text(AppLocalization.string("Lean Body Mass"))
                         .font(AppTypography.sectionTitle)
@@ -94,7 +94,7 @@ struct LeanMassDetailView: View {
                         .stroke(Color(hex: "#FCA311").opacity(0.3), lineWidth: 1)
                 )
                 
-                // What is Lean Body Mass?
+                // Czym jest Lean Body Mass?
                 VStack(alignment: .leading, spacing: 12) {
                     Text(AppLocalization.string("What is Lean Body Mass?"))
                         .font(AppTypography.bodyEmphasis)

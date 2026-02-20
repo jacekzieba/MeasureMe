@@ -1,3 +1,7 @@
+/// Cel testow: Weryfikuje konfiguracje i zachowanie managera powiadomien (harmonogram i flagi).
+/// Dlaczego to wazne: Zle powiadomienia obnizaja zaufanie i lamia oczekiwania uzytkownika.
+/// Kryteria zaliczenia: Dodawanie/aktualizacja/odczyt ustawien dzialaja zgodnie z kontraktem.
+
 import XCTest
 import UserNotifications
 @testable import MeasureMe
@@ -80,6 +84,9 @@ final class NotificationManagerTests: XCTestCase {
         return manager
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: ScheduleReminderReportsAddError.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testScheduleReminderReportsAddError() async {
         let center = MockNotificationCenterClient()
         center.completionAddError = NSError(domain: "test", code: 1)
@@ -93,6 +100,9 @@ final class NotificationManagerTests: XCTestCase {
         XCTAssertEqual(center.addedIdentifiers.count, 1)
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: ScheduleReminderClearsErrorOnSuccess.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testScheduleReminderClearsErrorOnSuccess() async {
         let center = MockNotificationCenterClient()
         let manager = makeManager(center: center)
@@ -109,6 +119,9 @@ final class NotificationManagerTests: XCTestCase {
         XCTAssertNil(manager.lastSchedulingError)
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: CancelAllRemindersRemovesAllSavedIdentifiers.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testCancelAllRemindersRemovesAllSavedIdentifiers() {
         let center = MockNotificationCenterClient()
         let manager = makeManager(center: center)
@@ -125,6 +138,9 @@ final class NotificationManagerTests: XCTestCase {
         XCTAssertTrue(center.removedIdentifiers.contains("measurement_reminder_r2"))
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: ResetAllDataRemovesOwnedPendingRequestsAndDefaults.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testResetAllDataRemovesOwnedPendingRequestsAndDefaults() async {
         let center = MockNotificationCenterClient()
         center.pendingIdentifiers = [

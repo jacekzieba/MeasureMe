@@ -24,7 +24,7 @@ struct ActiveFiltersView: View {
                         )
                     }
                     
-                    // Clear all button
+                    // Przycisk wyczysc wszystko
                     Button {
                         onClearAll()
                     } label: {

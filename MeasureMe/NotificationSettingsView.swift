@@ -422,7 +422,7 @@ private struct AddReminderSheet: View {
     }
 }
 
-// GlassCard replaced by AppGlassCard from design system
+// GlassCard zastapiono przez AppGlassCard z systemu designu
 private typealias GlassCard = _NotificationGlassCard
 
 private struct _NotificationGlassCard<Content: View>: View {

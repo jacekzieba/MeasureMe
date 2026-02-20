@@ -12,7 +12,7 @@ struct ConicityDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // Header Card
+                // Karta naglowka
                 VStack(alignment: .leading, spacing: 16) {
                     Text(AppLocalization.string("Central Fat Risk"))
                         .font(AppTypography.sectionTitle)
@@ -52,7 +52,7 @@ struct ConicityDetailView: View {
                         .stroke(Color(hex: "#FCA311").opacity(0.3), lineWidth: 1)
                 )
                 
-                // What is Conicity?
+                // Czym jest Conicity?
                 VStack(alignment: .leading, spacing: 12) {
                     Text(AppLocalization.string("What is Central Fat Risk?"))
                         .font(AppTypography.bodyEmphasis)

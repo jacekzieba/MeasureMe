@@ -1,12 +1,12 @@
 import SwiftData
 import Foundation
 
-/// Abstraction for HealthKit syncing, enabling test stubs.
+/// Abstrakcja synchronizacji HealthKit, ulatwiajaca tworzenie atrap testowych.
 protocol HealthKitSyncing: Sendable {
     func sync(kind: MetricKind, metricValue: Double, date: Date) async throws
 }
 
-/// Handles persisting quick-add entries to SwiftData and optionally syncing to HealthKit.
+/// Obsluguje zapis wpisow Quick Add do SwiftData i opcjonalna synchronizacje z HealthKit.
 @MainActor
 final class QuickAddSaveService {
     private let context: ModelContext
@@ -22,7 +22,7 @@ final class QuickAddSaveService {
         let metricValue: Double
     }
 
-    /// Inserts samples into the context and saves.
+    /// Dodaje probki do kontekstu i zapisuje.
     func save(entries: [Entry], date: Date) throws {
         for entry in entries {
             context.insert(MetricSample(kind: entry.kind, value: entry.metricValue, date: date))
@@ -30,7 +30,7 @@ final class QuickAddSaveService {
         try context.save()
     }
 
-    /// Best-effort HealthKit sync — failures are logged but never thrown.
+    /// Synchronizacja HealthKit w trybie najlepszej starannosci — failures are logged but never thrown.
     func syncHealthKit(entries: [Entry], date: Date) async {
         guard let healthKit else { return }
         for entry in entries {

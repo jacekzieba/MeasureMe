@@ -206,7 +206,7 @@ struct SettingsView: View {
                                     .foregroundStyle(.white)
                                     .frame(maxWidth: .infinity, alignment: .center)
 
-                                // Keeps title optically centered while logo stays on the left.
+                                // Utrzymuje optyczne wycentrowanie tytulu, gdy logo zostaje po lewej.
                                 Color.clear
                                     .frame(width: 44, height: 44)
                             }

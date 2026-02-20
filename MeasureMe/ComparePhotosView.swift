@@ -38,6 +38,7 @@ struct ComparePhotosView: View {
                     Button(AppLocalization.string("Done")) {
                         dismiss()
                     }
+                    .accessibilityIdentifier("photos.compare.done")
                 }
                 
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -50,6 +51,7 @@ struct ComparePhotosView: View {
                         Image(systemName: "square.and.arrow.down")
                     }
                     .disabled(isExporting)
+                    .accessibilityIdentifier("photos.compare.export")
                     .accessibilityLabel(AppLocalization.string("Export comparison image"))
                     
                     Button {
@@ -219,7 +221,7 @@ struct ComparePhotosView: View {
     private var metricChanges: [MetricChange] {
         var changes: [MetricChange] = []
         
-        // Get all metrics from both photos
+        // Pobiera wszystkie metryki z obu zdjec
         let olderMetrics = Dictionary(uniqueKeysWithValues: olderPhoto.linkedMetrics.compactMap { snapshot -> (String, MetricValueSnapshot)? in
             guard let kind = snapshot.kind else { return nil }
             return (kind.rawValue, snapshot)
@@ -230,7 +232,7 @@ struct ComparePhotosView: View {
             return (kind.rawValue, snapshot)
         })
         
-        // Find common metrics and calculate changes
+        // Wyszukuje wspolne metryki i oblicza zmiany
         for (kindRaw, newerSnapshot) in newerMetrics {
             if let olderSnapshot = olderMetrics[kindRaw],
                let kind = newerSnapshot.kind {
@@ -286,16 +288,23 @@ struct ComparePhotosView: View {
         let newerData = newerPhoto.imageData
         
         Task.detached(priority: .userInitiated) {
+            let exportStart = ContinuousClock().now
             let mergedData = Self.mergeImagesHorizontallyJPEGData(leftData: olderData, rightData: newerData)
+            let exportElapsed = exportStart.duration(to: ContinuousClock().now)
+            let exportMs = Int(exportElapsed.components.seconds * 1_000)
+                + Int(exportElapsed.components.attoseconds / 1_000_000_000_000_000)
             
             await MainActor.run {
                 guard let mergedData,
                       let merged = UIImage(data: mergedData) else {
+                    AppLog.debug("❌ ComparePhotosView: export_merge_failed in \(exportMs)ms")
                     saveMessage = AppLocalization.string("Failed to prepare the comparison image.")
                     showSaveAlert = true
                     isExporting = false
                     return
                 }
+
+                AppLog.debug("✅ ComparePhotosView: export_merge_ms=\(exportMs) output=\(PhotoUtilities.formatFileSize(mergedData.count))")
                 
                 ImageSaver.save(merged) { result in
                     DispatchQueue.main.async {
@@ -315,10 +324,8 @@ struct ComparePhotosView: View {
     
     private nonisolated static func mergeImagesHorizontallyJPEGData(leftData: Data, rightData: Data) -> Data? {
         autoreleasepool {
-            guard let leftSource = CGImageSourceCreateWithData(leftData as CFData, nil),
-                  let rightSource = CGImageSourceCreateWithData(rightData as CFData, nil),
-                  let leftCG = CGImageSourceCreateImageAtIndex(leftSource, 0, nil),
-                  let rightCG = CGImageSourceCreateImageAtIndex(rightSource, 0, nil) else {
+            guard let leftCG = downsampleForExportCGImage(from: leftData, maxDimension: 2048),
+                  let rightCG = downsampleForExportCGImage(from: rightData, maxDimension: 2048) else {
                 return nil
             }
             
@@ -360,6 +367,24 @@ struct ComparePhotosView: View {
             guard let mergedCG = context.makeImage() else { return nil }
             return jpegData(from: mergedCG, quality: 0.95)
         }
+    }
+
+    private nonisolated static func downsampleForExportCGImage(from data: Data, maxDimension: Int) -> CGImage? {
+        let sourceOptions: [CFString: Any] = [
+            kCGImageSourceShouldCache: false,
+            kCGImageSourceShouldCacheImmediately: false
+        ]
+        guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions as CFDictionary) else {
+            return nil
+        }
+
+        let downsampleOptions: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxDimension
+        ]
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, downsampleOptions as CFDictionary)
     }
 
     private nonisolated static func jpegData(from cgImage: CGImage, quality: CGFloat) -> Data? {
@@ -492,8 +517,8 @@ private struct MetricChangeRow: View {
     }
     
     private var changeColor: Color {
-        // For most metrics, increase is red (bad), decrease is green (good)
-        // Exception: lean body mass where increase is good
+        // Dla wiekszosci metryk wzrost jest czerwony (niekorzystny), spadek zielony (korzystny)
+        // Wyjatek: lean body mass, gdzie wzrost jest korzystny
         let isGoodIncrease = change.kind == .leanBodyMass
         
         if change.difference > 0 {
@@ -518,7 +543,7 @@ private struct BeforeAfterSlider: View {
     @State private var sliderPosition: CGFloat = 0.5
     @State private var isDragging = false
     
-    // Computed property to ensure valid dimensions
+    // Wlasciwosc obliczana zapewniajaca poprawne wymiary
     private var validSize: CGSize {
         let validWidth = size.width.isFinite && size.width > 0 ? size.width : 300
         let validHeight = size.height.isFinite && size.height > 0 ? size.height : 300
@@ -544,7 +569,7 @@ private struct BeforeAfterSlider: View {
         let clampedSlider = sliderPosition.isFinite ? min(max(sliderPosition, 0), 1) : 0.5
 
         ZStack {
-            // Before image (background) - z cache
+            // Obraz "przed" (tlo) - z cache
             if let beforeUIImage = cachedBeforeImage {
                 Image(uiImage: beforeUIImage)
                     .resizable()
@@ -559,7 +584,7 @@ private struct BeforeAfterSlider: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             
-            // After image (masked) - z cache
+            // Obraz "po" (maska) - z cache
             if let afterUIImage = cachedAfterImage {
                 Image(uiImage: afterUIImage)
                     .resizable()

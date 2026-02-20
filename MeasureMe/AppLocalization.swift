@@ -31,9 +31,9 @@ enum AppLanguage: String {
 }
 
 enum AppLocalization {
-    /// Cached language + bundle to avoid reading UserDefaults and creating
+    /// Buforuje jezyk i bundle, aby ograniczyc koszt odczytu UserDefaults i tworzenia Bundle(path:) przy kazdym wywolaniu.
     /// Bundle(path:) on every call to `string()`.  Invalidated via
-    /// `reloadLanguage()` when the user changes the app language setting.
+    /// `reloadLanguage()` po zmianie jezyka aplikacji.
     private static var _cachedLanguage: AppLanguage?
     private static var _cachedBundle: Bundle?
 
@@ -58,7 +58,7 @@ enum AppLocalization {
         return AppLanguage(rawValue: raw) ?? .system
     }
 
-    /// Call when the user changes the app language to flush the cached bundle.
+    /// Wywolaj po zmianie jezyka aplikacji, aby odswiezyc zbuforowany bundle.
     static func reloadLanguage() {
         _cachedLanguage = nil
         _cachedBundle = nil

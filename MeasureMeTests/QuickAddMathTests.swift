@@ -1,7 +1,14 @@
+/// Cel testow: Weryfikuje obliczenia Quick Add (zakresy miarki, kroki, przypadki niefinitywne).
+/// Dlaczego to wazne: Bledna matematyka daje niepoprawne wartosci i psuje UX.
+/// Kryteria zaliczenia: Funkcje zwracaja przewidywalne wartosci dla przypadkow typowych i brzegowych.
+
 import XCTest
 @testable import MeasureMe
 
 final class QuickAddMathTests: XCTestCase {
+    /// Co sprawdza: Sprawdza scenariusz: RulerRangeFallsBackForNonFiniteBase.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testRulerRangeFallsBackForNonFiniteBase() {
         let valid = 0.1...300.0
 
@@ -18,6 +25,9 @@ final class QuickAddMathTests: XCTestCase {
         XCTAssertEqual(negInfResult, valid)
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: StepIndexHandlesNonFiniteWithoutCrash.
+    /// Dlaczego: Chroni krytyczny przeplyw przed regresja i nieoczekiwanymi crashami.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testStepIndexHandlesNonFiniteWithoutCrash() {
         // NaN value → raw is NaN → returns 0
         XCTAssertEqual(QuickAddMath.stepIndex(value: .nan, lowerBound: 0, step: 0.1), 0)
@@ -31,6 +41,9 @@ final class QuickAddMathTests: XCTestCase {
 
     // MARK: - rulerRange clamping
 
+    /// Co sprawdza: Sprawdza scenariusz: RulerRangeClampsToBounds.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testRulerRangeClampsToBounds() {
         let valid = 0.1...300.0
 
@@ -45,6 +58,9 @@ final class QuickAddMathTests: XCTestCase {
         XCTAssertEqual(highResult.upperBound, 300, accuracy: 0.001)
     }
 
+    /// Co sprawdza: Sprawdza scenariusz: RulerRangeNormalCase.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testRulerRangeNormalCase() {
         let valid = 0.1...300.0
         let result = QuickAddMath.rulerRange(base: 80, span: 30, validRange: valid)
@@ -54,6 +70,9 @@ final class QuickAddMathTests: XCTestCase {
 
     // MARK: - tickCount bounds
 
+    /// Co sprawdza: Sprawdza scenariusz: TickCountStaysInBounds.
+    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testTickCountStaysInBounds() {
         // Zero span → raw ≈ 1 → clamped to minimum 8
         XCTAssertEqual(QuickAddMath.tickCount(span: 0, step: 0.1), 8)

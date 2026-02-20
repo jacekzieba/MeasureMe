@@ -10,6 +10,7 @@
 # Build artifacts
 DerivedData/
 .derivedData/
+.derivedData-*/
 build/
 *.xcresult
 

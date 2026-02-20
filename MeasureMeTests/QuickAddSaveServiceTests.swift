@@ -1,12 +1,11 @@
+/// Cel testow: Sprawdza zapis Quick Add i kontrakt synchronizacji z HealthKit (w tym odpornosc na bledy).
+/// Dlaczego to wazne: To krytyczny przeplyw zapisu; bledy moga skutkowac utrata danych lub crashami.
+/// Kryteria zaliczenia: Zapis dziala dla poprawnych danych, a bledy HealthKit nie sa propagowane.
+
 import XCTest
 import SwiftData
 @testable import MeasureMe
 
-/// Tests for QuickAddSaveService.
-///
-/// Persistence round-trip (insert → save → fetch) is already covered by
-/// `PersistenceAndModelIntegrityTests`.  These tests focus on service-level
-/// behaviour: HealthKit sync contract and error resilience.
 @MainActor
 final class QuickAddSaveServiceTests: XCTestCase {
 
@@ -24,7 +23,9 @@ final class QuickAddSaveServiceTests: XCTestCase {
 
     // MARK: - Tests
 
-    /// syncHealthKit must swallow HealthKit errors — they must never propagate.
+    /// Co sprawdza: Sprawdza, ze SyncHealthKit nie propaguje bledow (nie rzuca wyjatku).
+    /// Dlaczego: Zapewnia poprawna obsluge uprawnien i integracji z systemem.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testSyncHealthKitDoesNotThrowOnFailure() async {
         let stub = StubHealthKit()
         stub.shouldThrow = true
@@ -39,14 +40,16 @@ final class QuickAddSaveServiceTests: XCTestCase {
             .init(kind: .weight, metricValue: 80),
         ]
 
-        // Must complete without throwing despite stub failure.
+        // Musi zakonczyc sie bez bledu mimo awarii atrapy.
         await svc.syncHealthKit(entries: entries, date: .now)
 
-        // Stub was called, error was swallowed.
-        XCTAssertTrue(stub.syncedEntries.isEmpty, "Failed sync should not append to syncedEntries")
+        // Atrapa zostala wywolana, a blad przechwycony.
+        XCTAssertTrue(stub.syncedEntries.isEmpty, "Synchronizacja po bledzie nie powinna dodawac wpisow do syncedEntries")
     }
 
-    /// syncHealthKit must call the HealthKit provider once per entry.
+    /// Co sprawdza: Sprawdza scenariusz: SyncHealthKitCallsProviderForEachEntry.
+    /// Dlaczego: Zapewnia poprawna obsluge uprawnien i integracji z systemem.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testSyncHealthKitCallsProviderForEachEntry() async {
         let stub = StubHealthKit()
 
@@ -71,7 +74,9 @@ final class QuickAddSaveServiceTests: XCTestCase {
         XCTAssertEqual(stub.syncedEntries[1].1, 18.5, accuracy: 0.001)
     }
 
-    /// syncHealthKit with nil provider does nothing (no crash).
+    /// Co sprawdza: Sprawdza scenariusz: SyncHealthKitSkipsWhenProviderIsNil.
+    /// Dlaczego: Zapewnia poprawna obsluge uprawnien i integracji z systemem.
+    /// Kryteria: Test konczy sie bez bledu i bez efektow ubocznych niezgodnych z oczekiwaniem.
     func testSyncHealthKitSkipsWhenProviderIsNil() async {
         let schema = Schema([MetricSample.self, MetricGoal.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)

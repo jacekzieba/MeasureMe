@@ -1,3 +1,7 @@
+/// Cel testow: Chroni UI przed regresjami wizualnymi poprzez snapshoty RootView.
+/// Dlaczego to wazne: Zmiany UI latwo przeoczyc bez automatycznego porownania.
+/// Kryteria zaliczenia: Render widoku zgadza sie ze wzorcem snapshot w kontrolowanych warunkach.
+
 @testable import MeasureMe
 
 import XCTest
@@ -8,6 +12,9 @@ import SwiftData
 final class RootViewSnapshotTests: XCTestCase {
 
   @MainActor
+  /// Co sprawdza: Sprawdza scenariusz: RootView_snapshot.
+  /// Dlaczego: Zapobiega regresjom UI/UX, ktore latwo przeoczyc recznie.
+  /// Kryteria: Test konczy sie bez bledu i bez efektow ubocznych niezgodnych z oczekiwaniem.
   func testRootView_snapshot() throws {
     let defaults = UserDefaults.standard
     let baselineLanguage = defaults.object(forKey: "appLanguage")

@@ -140,7 +140,7 @@ struct MeasureMeApp: App {
             .alert(AppLocalization.string("Crash Detected"), isPresented: $showCrashAlert) {
                 Button(AppLocalization.string("View Report")) {
                     CrashReporter.shared.markCrashReported()
-                    // User can navigate to Settings → Data → Crash Reports
+                    // Uzytkownik moze przejsc do Ustawienia -> Dane -> Raporty awarii
                 }
                 Button(AppLocalization.string("Dismiss"), role: .cancel) {
                     CrashReporter.shared.markCrashReported()
@@ -164,20 +164,23 @@ struct MeasureMeApp: App {
 
     @MainActor
     private func bootstrapApp() async {
+        let bootstrapState = StartupInstrumentation.begin("AppBootstrap")
         startupState = .loading
 
         do {
+            let containerSetupState = StartupInstrumentation.begin("CreatePersistentModelContainer")
             let container = try createPersistentModelContainer()
+            StartupInstrumentation.end("CreatePersistentModelContainer", state: containerSetupState)
+
+            let uiTestSetupState = StartupInstrumentation.begin("PrepareUITestData")
             try cleanUITestDataIfNeeded(container: container)
             try seedUITestDataIfNeeded(container: container)
-            DatabaseEncryption.applyRecommendedProtection()
-
-            NotificationManager.shared.scheduleSmartIfNeeded()
-            HealthKitManager.shared.configure(modelContainer: container)
-            _ = HealthKitManager.shared.reconcileStoredSyncState()
-            HealthKitManager.shared.startObservingHealthKitUpdates()
+            StartupInstrumentation.end("PrepareUITestData", state: uiTestSetupState)
 
             startupState = .ready(container)
+            StartupInstrumentation.event("FirstFrameReady")
+            runDeferredStartupWork(container: container)
+            StartupInstrumentation.end("AppBootstrap", state: bootstrapState)
         } catch {
             let message = AppLocalization.string(
                 "Could not start the app because local storage failed to initialize. Please retry. Error: %@",
@@ -185,6 +188,25 @@ struct MeasureMeApp: App {
             )
             AppLog.debug("❌ App startup failed: \(error)")
             startupState = .failed(message: message)
+            StartupInstrumentation.end("AppBootstrap", state: bootstrapState)
+        }
+    }
+
+    private func runDeferredStartupWork(container: ModelContainer) {
+        Task(priority: .utility) {
+            let storageProtectionState = StartupInstrumentation.begin("DeferredStorageProtection")
+            DatabaseEncryption.applyRecommendedProtectionIfNeeded()
+            StartupInstrumentation.end("DeferredStorageProtection", state: storageProtectionState)
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(200))
+            let healthSetupState = StartupInstrumentation.begin("DeferredHealthKitSetup")
+            NotificationManager.shared.scheduleSmartIfNeeded()
+            HealthKitManager.shared.configure(modelContainer: container)
+            _ = HealthKitManager.shared.reconcileStoredSyncState()
+            HealthKitManager.shared.startObservingHealthKitUpdates()
+            StartupInstrumentation.end("DeferredHealthKitSetup", state: healthSetupState)
         }
     }
 
@@ -252,7 +274,7 @@ struct MeasureMeApp: App {
         #endif
     }
 
-    /// Removes all persisted data so each UI test run starts clean.
+    /// Usuwa wszystkie utrwalone dane, aby kazdy test UI startowal od czystego stanu.
     private func cleanUITestDataIfNeeded(container: ModelContainer) throws {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
@@ -270,19 +292,78 @@ struct MeasureMeApp: App {
     private func seedUITestDataIfNeeded(container: ModelContainer) throws {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        guard args.contains("-uiTestSeedMeasurements") else { return }
+        let shouldSeedMeasurements = args.contains("-uiTestSeedMeasurements")
+        let requestedPhotoCount = requestedUITestPhotoSeedCount(from: args)
+        guard shouldSeedMeasurements || requestedPhotoCount > 0 else { return }
 
         let context = ModelContext(container)
-        let existingCount = try context.fetchCount(FetchDescriptor<MetricSample>())
-        if existingCount > 0 {
-            return
+        if shouldSeedMeasurements {
+            let existingCount = try context.fetchCount(FetchDescriptor<MetricSample>())
+            if existingCount == 0 {
+                let now = Date()
+                let older = Calendar.current.date(byAdding: .day, value: -10, to: now) ?? now
+                context.insert(MetricSample(kind: .weight, value: 82, date: older))
+                context.insert(MetricSample(kind: .weight, value: 80, date: now))
+            }
         }
 
-        let now = Date()
-        let older = Calendar.current.date(byAdding: .day, value: -10, to: now) ?? now
-        context.insert(MetricSample(kind: .weight, value: 82, date: older))
-        context.insert(MetricSample(kind: .weight, value: 80, date: now))
+        if requestedPhotoCount > 0 {
+            let existingPhotos = try context.fetchCount(FetchDescriptor<PhotoEntry>())
+            if existingPhotos == 0 {
+                seedUITestPhotos(count: requestedPhotoCount, into: context)
+            }
+        }
+
         try context.save()
         #endif
+    }
+
+    private func requestedUITestPhotoSeedCount(from args: [String]) -> Int {
+        guard let seedFlagIndex = args.firstIndex(of: "-uiTestSeedPhotos") else { return 0 }
+        let nextIndex = args.index(after: seedFlagIndex)
+        guard nextIndex < args.endIndex, let parsed = Int(args[nextIndex]), parsed > 0 else {
+            return 12
+        }
+        return parsed
+    }
+
+    private func seedUITestPhotos(count: Int, into context: ModelContext) {
+        let safeCount = max(0, min(count, 300))
+        let now = Date()
+        for idx in 0..<safeCount {
+            let date = Calendar.current.date(byAdding: .day, value: -idx, to: now) ?? now
+            let size = CGSize(width: 1280, height: 1706)
+            guard let imageData = makeUITestImageData(index: idx, size: size) else { continue }
+            let tags: [PhotoTag] = idx.isMultiple(of: 2) ? [.wholeBody] : [.waist]
+            context.insert(PhotoEntry(imageData: imageData, date: date, tags: tags, linkedMetrics: []))
+        }
+    }
+
+    private func makeUITestImageData(index: Int, size: CGSize) -> Data? {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image = renderer.image { ctx in
+            let hue = CGFloat((index % 12)) / 12.0
+            UIColor(hue: hue, saturation: 0.55, brightness: 0.95, alpha: 1.0).setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+
+            let insetRect = CGRect(x: 60, y: 60, width: size.width - 120, height: size.height - 120)
+            UIColor.white.withAlphaComponent(0.28).setFill()
+            UIBezierPath(roundedRect: insetRect, cornerRadius: 44).fill()
+
+            let label = "UI TEST \(index + 1)"
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.monospacedSystemFont(ofSize: 72, weight: .bold),
+                .foregroundColor: UIColor.white
+            ]
+            let textSize = label.size(withAttributes: attrs)
+            let textRect = CGRect(
+                x: (size.width - textSize.width) / 2,
+                y: (size.height - textSize.height) / 2,
+                width: textSize.width,
+                height: textSize.height
+            )
+            label.draw(in: textRect, withAttributes: attrs)
+        }
+        return image.jpegData(compressionQuality: 0.84)
     }
 }

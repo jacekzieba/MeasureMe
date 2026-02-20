@@ -5,8 +5,8 @@ import CryptoKit
 /// LRU (Least Recently Used) Cache dla obrazów
 /// Automatycznie zarządza pamięcią i usuwa najdawniej używane obrazy przy przekroczeniu limitu.
 ///
-/// Uses a `CacheEntry` wrapper so that when NSCache silently evicts objects
-/// under memory pressure, the wrapper's `deinit` records the evicted key.
+/// Uzywa opakowania `CacheEntry`; gdy NSCache cicho usuwa obiekty
+/// pod presja pamieci `deinit` opakowania zapisuje usuniety klucz.
 /// This keeps the LRU linked list (and therefore `cachedImagesCount`) accurate.
 @MainActor
 final class ImageCache {
@@ -262,21 +262,21 @@ struct CacheStatistics {
 
 // MARK: - Eviction Tracking
 
-/// Thread-safe collector of evicted cache keys.
-/// NSCache may evict on any thread, so writes are lock-protected.
+/// Bezpieczny watkowo kolektor kluczy usunietych z cache.
+/// NSCache moze usuwac wpisy na dowolnym watku, dlatego zapisy sa chronione blokada.
 /// Reads (drain) happen on @MainActor inside ImageCache.
 private final class EvictionTracker: @unchecked Sendable {
     private let lock = NSLock()
     private var _keys: [String] = []
 
-    /// Records that a key was evicted (called from CacheEntry.deinit, any thread).
+    /// Rejestruje usuniecie klucza (wywolywane z CacheEntry.deinit na dowolnym watku).
     func record(_ key: String) {
         lock.lock()
         _keys.append(key)
         lock.unlock()
     }
 
-    /// Returns and clears all collected evicted keys.
+    /// Zwraca i czysci wszystkie zebrane klucze usuniec.
     func drain() -> [String] {
         lock.lock()
         let result = _keys
@@ -287,8 +287,8 @@ private final class EvictionTracker: @unchecked Sendable {
 }
 
 /// Wrapper around UIImage stored in NSCache.
-/// When NSCache silently evicts this entry, `deinit` fires and records the key
-/// so that ImageCache can clean up `accessOrder` on the next access.
+/// Gdy NSCache cicho usunie wpis, `deinit` zapisuje klucz
+/// aby ImageCache mogl posprzatac `accessOrder` przy kolejnym dostepie.
 private final class CacheEntry {
     let key: String
     let image: UIImage
