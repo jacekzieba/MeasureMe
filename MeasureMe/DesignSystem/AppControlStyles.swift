@@ -46,6 +46,12 @@ struct AppCTAButtonStyle: ButtonStyle {
                     )
             )
             .scaleEffect(configuration.isPressed && shouldAnimate ? 0.98 : 1)
+            .shadow(
+                color: Color.appAccent.opacity(configuration.isPressed ? 0.14 : 0.24),
+                radius: configuration.isPressed ? 4 : 9,
+                x: 0,
+                y: configuration.isPressed ? 1 : 3
+            )
             .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimate), value: configuration.isPressed)
     }
 }

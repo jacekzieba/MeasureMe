@@ -403,14 +403,15 @@ private struct PhotoGridView: View {
             columns: [GridItem(.adaptive(minimum: 110), spacing: 8)],
             spacing: 8
         ) {
-            ForEach(photos) { photo in
+            ForEach(Array(photos.enumerated()), id: \.element.persistentModelID) { index, photo in
                 Button {
                     onPhotoTap(photo)
                 } label: {
                     PhotoGridCell(
                         photo: photo,
                         isSelected: selectedPhotos.contains(photo),
-                        isSelecting: isSelecting
+                        isSelecting: isSelecting,
+                        revealIndex: index
                     )
                 }
                 .buttonStyle(.plain)

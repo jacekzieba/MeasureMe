@@ -582,6 +582,16 @@ struct MetricDetailView: View {
                 .symbol(Circle())
                 .symbolSize(20)
                 .foregroundStyle(Color(hex: "#FCA311"))
+
+                if s.persistentModelID == chartSamples.last?.persistentModelID {
+                    PointMark(
+                        x: .value("Latest Date", s.date),
+                        y: .value("Latest Value", displayValue(s.value))
+                    )
+                    .symbol(Circle())
+                    .symbolSize(82)
+                    .foregroundStyle(Color(hex: "#FCA311").opacity(0.26))
+                }
             }
 
             if let goal = currentGoal {
