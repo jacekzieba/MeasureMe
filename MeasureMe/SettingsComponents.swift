@@ -54,13 +54,13 @@ struct HealthSettingsSection: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
                 GlassPillIcon(systemName: "heart.fill")
-                Text(AppLocalization.string("Sync with Health"))
+                Text(AppLocalization.string("Sync with Apple Health"))
                 Spacer()
                 Toggle("", isOn: $isSyncEnabled)
                     .labelsHidden()
                     .tint(Color.appAccent)
                     .frame(width: 52, alignment: .trailing)
-                    .accessibilityLabel(AppLocalization.string("Sync with Health"))
+                    .accessibilityLabel(AppLocalization.string("Sync with Apple Health"))
                     .accessibilityIdentifier("settings.health.sync.toggle")
             }
             .frame(minHeight: 44)
@@ -963,3 +963,4 @@ struct SettingsScrollOffsetKey: PreferenceKey {
         value = nextValue()
     }
 }
+

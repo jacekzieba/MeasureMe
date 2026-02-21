@@ -472,7 +472,7 @@ struct OnboardingView: View {
                 title: AppLocalization.systemString("Sync with Apple Health"),
                 detail: AppLocalization.systemString("Import history and keep measurements updated automatically."),
                 why: AppLocalization.systemString("Why: your charts start with more context."),
-                buttonTitle: isSyncEnabled ? AppLocalization.systemString("Connected") : AppLocalization.systemString("Connect"),
+                buttonTitle: isSyncEnabled ? AppLocalization.systemString("Connected") : AppLocalization.systemString("Next"),
                 isLoading: isRequestingHealthKit,
                 isComplete: isSyncEnabled,
                 buttonIdentifier: "onboarding.booster.healthkit",

@@ -187,7 +187,7 @@ struct HomeView: View {
         // Buduje cache istniejacych probek po (kindRaw, dayStart)
         var existingByKey: [String: MetricSample] = [:]
         do {
-            // Pobiera szerokie okno, aby ograniczyc nadmiar zapytan; dostosuj w razie potrzeby
+            // Pobiera szerokie okno, aby ograniczil nadmiar zapytan; dostosuj w razie potrzeby
             let descriptor = FetchDescriptor<MetricSample>(
                 sortBy: [SortDescriptor(\.date, order: .reverse)]
             )
@@ -463,7 +463,7 @@ struct HomeView: View {
         items.append(
             SetupChecklistItem(
                 id: "healthkit",
-                title: AppLocalization.string("Connect Apple Health"),
+                title: AppLocalization.string("Apple Health"),
                 detail: AppLocalization.string("Import history and keep data in sync."),
                 icon: "heart.text.square",
                 isCompleted: isSyncEnabled,
