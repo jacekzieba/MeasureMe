@@ -60,8 +60,10 @@ struct AuditConfig: Equatable {
 }
 
 enum AppClock {
+    static var overrideNowForTesting: Date?
+
     static var now: Date {
-        AuditConfig.current.fixedDate ?? Date()
+        overrideNowForTesting ?? AuditConfig.current.fixedDate ?? Date()
     }
 }
 

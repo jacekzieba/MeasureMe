@@ -189,7 +189,7 @@ struct OnboardingView: View {
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack(spacing: 0) {
-                            slideCard(isScrollEnabled: dynamicTypeSize.isAccessibilitySize) {
+                            slideCard {
                                 welcomeSlide
                             }
                             .containerRelativeFrame(.horizontal)
@@ -389,7 +389,7 @@ struct OnboardingView: View {
             }
 
             welcomeGoalSelector
-            welcomeCompactPreview
+            welcomeExamplePreview
         }
     }
 
@@ -675,7 +675,7 @@ struct OnboardingView: View {
     }
 
     private var welcomeTrendPreview: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Spacer()
                 Text(AppLocalization.systemString("onboarding.trend.delta"))
@@ -771,7 +771,7 @@ struct OnboardingView: View {
             .chartYScale(domain: welcomeTrendDomain)
             .frame(height: welcomeTrendChartHeight)
         }
-        .padding(10)
+        .padding(8)
         .background(Color.white.opacity(0.04))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
@@ -781,7 +781,7 @@ struct OnboardingView: View {
     }
 
     private var welcomeTrendChartHeight: CGFloat {
-        dynamicTypeSize.isAccessibilitySize ? 156 : 102
+        dynamicTypeSize.isAccessibilitySize ? 150 : 94
     }
 
     private var welcomeInsightPreview: some View {
@@ -795,7 +795,7 @@ struct OnboardingView: View {
     }
 
     private var welcomeExamplePreview: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Image(systemName: "sparkles.rectangle.stack.fill")
                     .font(AppTypography.microEmphasis)
@@ -810,8 +810,9 @@ struct OnboardingView: View {
             }
 
             welcomeTrendPreview
+            welcomeInsightPreview
         }
-        .padding(10)
+        .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(

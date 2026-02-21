@@ -239,6 +239,7 @@ final class AuditCaptureUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = [
             "-uiTestMode",
+            "-uiTestSeedMeasurements",
             "-auditCapture",
             "-useMockData",
             "-fixedDate", "2026-02-20T12:00:00Z"
@@ -250,6 +251,63 @@ final class AuditCaptureUITests: XCTestCase {
         XCTAssertTrue(app.buttons["quickadd.save"].waitForExistence(timeout: 6))
         XCTAssertTrue(app.staticTexts["quickadd.validation.hint"].waitForExistence(timeout: 6))
 
+        let firstInput = app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH 'quickadd.input.'")).firstMatch
+        if firstInput.waitForExistence(timeout: 4) {
+            firstInput.tap()
+            firstInput.typeText("9999")
+
+            let validationBanner = app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'quickadd.error.'")).firstMatch
+            XCTAssertTrue(validationBanner.waitForExistence(timeout: 6))
+            XCTAssertTrue(validationBanner.isHittable)
+        }
+
+    }
+
+    @MainActor
+    func testP1CTAMinHitTargetGuards() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestMode",
+            "-auditCapture",
+            "-useMockData",
+            "-fixedDate", "2026-02-20T12:00:00Z"
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
+        XCTAssertTrue(openQuickAdd(app))
+        let quickAddSave = app.buttons["quickadd.save"]
+        XCTAssertTrue(quickAddSave.waitForExistence(timeout: 8))
+        assertMinHitTarget(quickAddSave, minSize: 44, name: "quickadd.save")
+
+        app.terminate()
+
+        let onboardingApp = XCUIApplication()
+        onboardingApp.launchArguments = [
+            "-uiTestOnboardingMode",
+            "-auditCapture",
+            "-useMockData",
+            "-fixedDate", "2026-02-20T12:00:00Z"
+        ]
+        onboardingApp.launch()
+
+        XCTAssertTrue(onboardingApp.wait(for: .runningForeground, timeout: 10))
+        let onboardingNext = onboardingApp.buttons["onboarding.next"]
+        let onboardingBack = onboardingApp.buttons["onboarding.back"]
+        XCTAssertTrue(onboardingNext.waitForExistence(timeout: 8))
+        XCTAssertTrue(onboardingBack.waitForExistence(timeout: 8))
+        assertMinHitTarget(onboardingNext, minSize: 44, name: "onboarding.next")
+        assertMinHitTarget(onboardingBack, minSize: 44, name: "onboarding.back")
+
+        onboardingNext.tap()
+        onboardingNext.tap()
+        onboardingNext.tap()
+
+        let trial = onboardingApp.buttons["onboarding.premium.trial"]
+        XCTAssertTrue(trial.waitForExistence(timeout: 8))
+        scrollToReveal(trial, in: onboardingApp, maxSwipes: 6)
+        XCTAssertTrue(trial.isHittable)
+        assertMinHitTarget(trial, minSize: 44, name: "onboarding.premium.trial")
     }
 
     private func openTab(_ app: XCUIApplication, candidates: [String]) {
@@ -426,6 +484,12 @@ final class AuditCaptureUITests: XCTestCase {
         let secondFrame = second.frame
         guard !firstFrame.isEmpty, !secondFrame.isEmpty else { return false }
         return firstFrame.intersection(secondFrame).isNull
+    }
+
+    private func assertMinHitTarget(_ element: XCUIElement, minSize: CGFloat, name: String, file: StaticString = #filePath, line: UInt = #line) {
+        let frame = element.frame
+        XCTAssertGreaterThanOrEqual(frame.width, minSize, "\(name) width below \(minSize)pt", file: file, line: line)
+        XCTAssertGreaterThanOrEqual(frame.height, minSize, "\(name) height below \(minSize)pt", file: file, line: line)
     }
 
     private func sanitizePart(_ value: String) -> String {

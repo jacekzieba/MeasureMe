@@ -16,7 +16,13 @@ final class P1DesignSystemSnapshotTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        AppClock.overrideNowForTesting = referenceDate
         prepareDefaultsForSnapshot()
+    }
+
+    override func tearDown() {
+        AppClock.overrideNowForTesting = nil
+        super.tearDown()
     }
 
     func testQuickAddSheet_snapshot_darkDefault() throws {
