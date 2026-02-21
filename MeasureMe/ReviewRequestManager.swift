@@ -12,13 +12,16 @@ enum ReviewRequestManager {
 
     @MainActor
     static func recordMetricEntryAdded(count: Int = 1) {
+        if AuditConfig.current.isEnabled {
+            return
+        }
         guard count > 0 else { return }
 
         let defaults = UserDefaults.standard
         let newCount = defaults.integer(forKey: countKey) + count
         defaults.set(newCount, forKey: countKey)
 
-        let now = Date()
+        let now = AppClock.now
         let lastPrompt = defaults.object(forKey: lastPromptKey) as? Date
         let twoWeeks: TimeInterval = 14 * 24 * 60 * 60
 

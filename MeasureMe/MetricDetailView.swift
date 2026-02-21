@@ -66,7 +66,7 @@ struct MetricDetailView: View {
         /// Oblicza datę początkową dla danego zakresu
         /// - Parameter now: Data odniesienia (domyślnie teraz)
         /// - Returns: Data początkowa lub nil dla "All"
-        func startDate(from now: Date = .now) -> Date? {
+        func startDate(from now: Date = AppClock.now) -> Date? {
             let cal = Calendar.current
             switch self {
             case .week: return cal.date(byAdding: .day, value: -7, to: now)
@@ -120,7 +120,7 @@ struct MetricDetailView: View {
     
     /// Próbki przefiltrowane według wybranego zakresu czasowego
     var chartSamples: [MetricSample] {
-        if let start = timeframe.startDate() {
+        if let start = timeframe.startDate(from: AppClock.now) {
             return sortedSamplesAscending.filter { $0.date >= start }
         } else {
             return sortedSamplesAscending  // "All" - pokazuj wszystkie
@@ -582,6 +582,16 @@ struct MetricDetailView: View {
                 .symbol(Circle())
                 .symbolSize(20)
                 .foregroundStyle(Color(hex: "#FCA311"))
+
+                if s.persistentModelID == chartSamples.last?.persistentModelID {
+                    PointMark(
+                        x: .value("Latest Date", s.date),
+                        y: .value("Latest Value", displayValue(s.value))
+                    )
+                    .symbol(Circle())
+                    .symbolSize(82)
+                    .foregroundStyle(Color(hex: "#FCA311").opacity(0.26))
+                }
             }
 
             if let goal = currentGoal {

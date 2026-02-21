@@ -83,11 +83,11 @@ struct OnboardingHeroView: View {
         .scaleEffect(animate ? 1 : 0.96)
         .opacity(animate ? 1 : 0)
         .offset(y: animate ? 0 : 8)
-        .animation(shouldAnimate ? .easeOut(duration: 0.6) : nil, value: animate)
+        .animation(AppMotion.animation(.easeOut(duration: 0.6), enabled: shouldAnimate), value: animate)
     }
 
     private var shouldAnimate: Bool {
-        animationsEnabled && !reduceMotion
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 }
 

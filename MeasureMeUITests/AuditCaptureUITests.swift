@@ -87,10 +87,7 @@ final class AuditCaptureUITests: XCTestCase {
     func testCaptureQuickAddStates() {
         let app = XCUIApplication()
         app.launchArguments = [
-            "-uiTestMode",
-            "-auditCapture",
-            "-useMockData",
-            "-fixedDate", "2026-02-20T12:00:00Z"
+            "-uiTestMode"
         ]
         app.launch()
 
@@ -98,9 +95,7 @@ final class AuditCaptureUITests: XCTestCase {
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 15))
         openTab(app, candidates: TabLabel.home)
-        let quickAddButton = app.buttons["home.quickadd.button"].firstMatch
-        XCTAssertTrue(quickAddButton.waitForExistence(timeout: 8))
-        quickAddButton.tap()
+        XCTAssertTrue(openQuickAdd(app))
 
         let saveButton = app.buttons["quickadd.save"]
         XCTAssertTrue(saveButton.waitForExistence(timeout: 8))
@@ -137,11 +132,14 @@ final class AuditCaptureUITests: XCTestCase {
         emptyApp.launch()
         XCTAssertTrue(emptyApp.wait(for: .runningForeground, timeout: 10))
 
-        let emptyQuickAddButton = emptyApp.buttons["home.quickadd.button"]
-        XCTAssertTrue(emptyQuickAddButton.waitForExistence(timeout: 8))
-        emptyQuickAddButton.tap()
-        _ = emptyApp.otherElements["quickadd.empty"].waitForExistence(timeout: 8)
-        saveScreenshot(screen: "quickadd_empty")
+        XCTAssertTrue(openQuickAdd(emptyApp))
+        let quickAddEmpty = emptyApp.descendants(matching: .any).matching(NSPredicate(format: "identifier == 'quickadd.empty'")).firstMatch
+        if quickAddEmpty.waitForExistence(timeout: 8) {
+            saveScreenshot(screen: "quickadd_empty")
+        } else {
+            // Fallback capture so audit artifacts are still produced even if the runtime kept active metrics.
+            saveScreenshot(screen: "quickadd_form_no_empty")
+        }
     }
 
     @MainActor
@@ -172,6 +170,146 @@ final class AuditCaptureUITests: XCTestCase {
         saveScreenshot(screen: "paywall_onboarding")
     }
 
+    @MainActor
+    func testAccessibilityXLRegressionGuards() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestMode",
+            "-uiTestSeedMeasurements",
+            "-auditCapture",
+            "-useMockData",
+            "-fixedDate", "2026-02-20T12:00:00Z",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"
+        ]
+        app.launchEnvironment["AUDIT_CAPTURE"] = "1"
+        app.launchEnvironment["MOCK_DATA"] = "1"
+        app.launchEnvironment["FIXED_DATE"] = "2026-02-20T12:00:00Z"
+        app.launch()
+
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
+        openTab(app, candidates: TabLabel.measurements)
+
+        let tileButton = app.buttons["metric.tile.open.weight"].firstMatch
+        XCTAssertTrue(tileButton.waitForExistence(timeout: 8))
+        XCTAssertTrue(tileButton.isHittable)
+
+        openTab(app, candidates: TabLabel.home)
+        XCTAssertTrue(openQuickAdd(app))
+
+        let saveButton = app.buttons["quickadd.save"]
+        XCTAssertTrue(saveButton.waitForExistence(timeout: 8))
+
+        let validationHint = app.staticTexts["quickadd.validation.hint"]
+        XCTAssertTrue(validationHint.waitForExistence(timeout: 4))
+        scrollToReveal(validationHint, in: app)
+        let window = app.windows.element(boundBy: 0)
+        XCTAssertTrue(isPartiallyVisible(validationHint, in: window))
+        XCTAssertTrue(framesDoNotOverlap(validationHint, saveButton))
+
+        app.terminate()
+
+        let onboardingApp = XCUIApplication()
+        onboardingApp.launchArguments = [
+            "-uiTestOnboardingMode",
+            "-auditCapture",
+            "-useMockData",
+            "-fixedDate", "2026-02-20T12:00:00Z",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"
+        ]
+        onboardingApp.launch()
+
+        XCTAssertTrue(onboardingApp.wait(for: .runningForeground, timeout: 10))
+        let onboardingNext = onboardingApp.buttons["onboarding.next"]
+        XCTAssertTrue(onboardingNext.waitForExistence(timeout: 8))
+        onboardingNext.tap()
+        onboardingNext.tap()
+        onboardingNext.tap()
+
+        let onboardingBack = onboardingApp.buttons["onboarding.back"]
+        let onboardingTrial = onboardingApp.buttons["onboarding.premium.trial"]
+        XCTAssertTrue(onboardingBack.waitForExistence(timeout: 8))
+        XCTAssertTrue(onboardingBack.isHittable)
+        XCTAssertTrue(onboardingTrial.waitForExistence(timeout: 8))
+        scrollToReveal(onboardingTrial, in: onboardingApp, maxSwipes: 6)
+        XCTAssertTrue(onboardingTrial.isHittable)
+    }
+
+    @MainActor
+    func testP1QuickAddStateComponentsConsistencyGuards() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestMode",
+            "-uiTestSeedMeasurements",
+            "-auditCapture",
+            "-useMockData",
+            "-fixedDate", "2026-02-20T12:00:00Z"
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
+        XCTAssertTrue(openQuickAdd(app))
+        XCTAssertTrue(app.buttons["quickadd.save"].waitForExistence(timeout: 6))
+        XCTAssertTrue(app.staticTexts["quickadd.validation.hint"].waitForExistence(timeout: 6))
+
+        let firstInput = app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH 'quickadd.input.'")).firstMatch
+        if firstInput.waitForExistence(timeout: 4) {
+            firstInput.tap()
+            firstInput.typeText("9999")
+
+            let validationBanner = app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'quickadd.error.'")).firstMatch
+            XCTAssertTrue(validationBanner.waitForExistence(timeout: 6))
+            XCTAssertTrue(validationBanner.isHittable)
+        }
+
+    }
+
+    @MainActor
+    func testP1CTAMinHitTargetGuards() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestMode",
+            "-auditCapture",
+            "-useMockData",
+            "-fixedDate", "2026-02-20T12:00:00Z"
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
+        XCTAssertTrue(openQuickAdd(app))
+        let quickAddSave = app.buttons["quickadd.save"]
+        XCTAssertTrue(quickAddSave.waitForExistence(timeout: 8))
+        assertMinHitTarget(quickAddSave, minSize: 44, name: "quickadd.save")
+
+        app.terminate()
+
+        let onboardingApp = XCUIApplication()
+        onboardingApp.launchArguments = [
+            "-uiTestOnboardingMode",
+            "-auditCapture",
+            "-useMockData",
+            "-fixedDate", "2026-02-20T12:00:00Z"
+        ]
+        onboardingApp.launch()
+
+        XCTAssertTrue(onboardingApp.wait(for: .runningForeground, timeout: 10))
+        let onboardingNext = onboardingApp.buttons["onboarding.next"]
+        let onboardingBack = onboardingApp.buttons["onboarding.back"]
+        XCTAssertTrue(onboardingNext.waitForExistence(timeout: 8))
+        XCTAssertTrue(onboardingBack.waitForExistence(timeout: 8))
+        assertMinHitTarget(onboardingNext, minSize: 44, name: "onboarding.next")
+        assertMinHitTarget(onboardingBack, minSize: 44, name: "onboarding.back")
+
+        onboardingNext.tap()
+        onboardingNext.tap()
+        onboardingNext.tap()
+
+        let trial = onboardingApp.buttons["onboarding.premium.trial"]
+        XCTAssertTrue(trial.waitForExistence(timeout: 8))
+        scrollToReveal(trial, in: onboardingApp, maxSwipes: 6)
+        XCTAssertTrue(trial.isHittable)
+        assertMinHitTarget(trial, minSize: 44, name: "onboarding.premium.trial")
+    }
+
     private func openTab(_ app: XCUIApplication, candidates: [String]) {
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 8), "Expected tab bar.")
@@ -183,16 +321,30 @@ final class AuditCaptureUITests: XCTestCase {
             }
         }
 
-        let prefixQuery = tabBar.buttons.matching(NSPredicate(format: "label BEGINSWITH[c] %@", candidates.first ?? ""))
-        if prefixQuery.firstMatch.exists {
-            prefixQuery.firstMatch.tap()
-            return
+        for label in candidates {
+            let prefixQuery = tabBar.buttons.matching(NSPredicate(format: "label BEGINSWITH[c] %@", label))
+            if prefixQuery.firstMatch.exists {
+                prefixQuery.firstMatch.tap()
+                return
+            }
+
+            let containsQuery = tabBar.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", label))
+            if containsQuery.firstMatch.exists {
+                containsQuery.firstMatch.tap()
+                return
+            }
         }
 
         if let fallbackIndex = fallbackTabIndex(for: candidates) {
             let buttons = tabBar.buttons.allElementsBoundByIndex
             if buttons.indices.contains(fallbackIndex) {
                 buttons[fallbackIndex].tap()
+                return
+            }
+
+            if let normalizedX = fallbackTabNormalizedX(for: fallbackIndex) {
+                let coordinate = tabBar.coordinate(withNormalizedOffset: CGVector(dx: normalizedX, dy: 0.5))
+                coordinate.tap()
                 return
             }
         }
@@ -208,12 +360,22 @@ final class AuditCaptureUITests: XCTestCase {
             return 1
         }
         if candidates.contains(where: { $0.caseInsensitiveCompare("Photos") == .orderedSame || $0.caseInsensitiveCompare("Zdjęcia") == .orderedSame || $0.caseInsensitiveCompare("Zdjecia") == .orderedSame }) {
-            return 2
-        }
-        if candidates.contains(where: { $0.caseInsensitiveCompare("Settings") == .orderedSame || $0.caseInsensitiveCompare("Ustawienia") == .orderedSame }) {
             return 3
         }
+        if candidates.contains(where: { $0.caseInsensitiveCompare("Settings") == .orderedSame || $0.caseInsensitiveCompare("Ustawienia") == .orderedSame }) {
+            return 4
+        }
         return nil
+    }
+
+    private func fallbackTabNormalizedX(for tabIndex: Int) -> CGFloat? {
+        switch tabIndex {
+        case 0: return 0.10 // Home
+        case 1: return 0.30 // Measurements
+        case 3: return 0.70 // Photos
+        case 4: return 0.90 // Settings
+        default: return nil
+        }
     }
 
     private func firstExistingMetricTile(in app: XCUIApplication) -> XCUIElement? {
@@ -263,6 +425,71 @@ final class AuditCaptureUITests: XCTestCase {
         } catch {
             XCTFail("Failed to save screenshot to \(url.path): \(error)")
         }
+    }
+
+    private func openQuickAdd(_ app: XCUIApplication) -> Bool {
+        let quickAddButton = app.buttons["home.quickadd.button"].firstMatch
+        if quickAddButton.waitForExistence(timeout: 4) {
+            quickAddButton.tap()
+            return true
+        }
+
+        let tabBar = app.tabBars.firstMatch
+        if tabBar.waitForExistence(timeout: 3) {
+            let addCandidates = ["Add", "Dodaj", "+"]
+            for candidate in addCandidates {
+                let button = tabBar.buttons[candidate]
+                if button.exists {
+                    button.tap()
+                    return true
+                }
+            }
+
+            let addByPrefix = tabBar.buttons.matching(NSPredicate(format: "label BEGINSWITH[c] %@", "Add")).firstMatch
+            if addByPrefix.exists {
+                addByPrefix.tap()
+                return true
+            }
+        }
+
+        return false
+    }
+
+    private func scrollToReveal(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 4) {
+        guard element.exists else { return }
+        let window = app.windows.element(boundBy: 0)
+        if isPartiallyVisible(element, in: window) { return }
+        for _ in 0..<maxSwipes {
+            app.swipeUp()
+            if isPartiallyVisible(element, in: window) {
+                return
+            }
+        }
+    }
+
+    private func isPartiallyVisible(_ element: XCUIElement, in container: XCUIElement) -> Bool {
+        guard element.exists, container.exists else { return false }
+        let frame = element.frame
+        let containerFrame = container.frame
+        guard !frame.isEmpty, !containerFrame.isEmpty else { return false }
+        let intersection = frame.intersection(containerFrame)
+        guard !intersection.isNull, !intersection.isEmpty else { return false }
+        let visibleAreaRatio = (intersection.width * intersection.height) / (frame.width * frame.height)
+        return visibleAreaRatio >= 0.25
+    }
+
+    private func framesDoNotOverlap(_ first: XCUIElement, _ second: XCUIElement) -> Bool {
+        guard first.exists, second.exists else { return false }
+        let firstFrame = first.frame
+        let secondFrame = second.frame
+        guard !firstFrame.isEmpty, !secondFrame.isEmpty else { return false }
+        return firstFrame.intersection(secondFrame).isNull
+    }
+
+    private func assertMinHitTarget(_ element: XCUIElement, minSize: CGFloat, name: String, file: StaticString = #filePath, line: UInt = #line) {
+        let frame = element.frame
+        XCTAssertGreaterThanOrEqual(frame.width, minSize, "\(name) width below \(minSize)pt", file: file, line: line)
+        XCTAssertGreaterThanOrEqual(frame.height, minSize, "\(name) height below \(minSize)pt", file: file, line: line)
     }
 
     private func sanitizePart(_ value: String) -> String {

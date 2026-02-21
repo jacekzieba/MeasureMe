@@ -8,6 +8,8 @@ struct MeasurementsTabView: View {
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var router: AppRouter
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
     @AppStorage("quickAddHintDismissed") private var quickAddHintDismissed: Bool = false
@@ -92,7 +94,7 @@ struct MeasurementsTabView: View {
                             .accessibilityIdentifier("measurements.tab.segmented")
                             Spacer()
                         }
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, AppSpacing.md)
                         .onChange(of: selectedTab) { _, newValue in
                             guard newValue == .health else { return }
                             if !premiumStore.isPremium {
@@ -106,54 +108,29 @@ struct MeasurementsTabView: View {
                         if selectedTab == .metrics {
                             if samples.isEmpty {
                                 // MARK: - Hero empty state
-                                AppGlassCard(
-                                    depth: .floating,
-                                    cornerRadius: 24,
-                                    tint: Color.appAccent.opacity(0.22),
-                                    contentPadding: 24
-                                ) {
-                                    VStack(spacing: 16) {
-                                        Image(systemName: "chart.line.uptrend.xyaxis")
-                                            .font(.system(size: 40))
-                                            .foregroundStyle(Color.appAccent)
-
-                                        VStack(spacing: 8) {
-                                            Text(AppLocalization.string("measurements.empty.title"))
-                                                .font(AppTypography.sectionTitle)
-                                                .foregroundStyle(.white)
-                                                .multilineTextAlignment(.center)
-
-                                            Text(AppLocalization.string("measurements.empty.body"))
-                                                .font(AppTypography.body)
-                                                .foregroundStyle(.white.opacity(0.7))
-                                                .multilineTextAlignment(.center)
-                                        }
-
-                                        Button {
-                                            Haptics.light()
-                                            router.presentedSheet = .composer(mode: .newPost)
-                                        } label: {
-                                            Text(AppLocalization.string("Add measurement"))
-                                                .foregroundStyle(.black)
-                                                .frame(maxWidth: .infinity)
-                                        }
-                                        .buttonStyle(.borderedProminent)
-                                        .tint(Color.appAccent)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                }
-                                .padding(.horizontal, 16)
+                                EmptyStateCard(
+                                    title: AppLocalization.string("measurements.empty.title"),
+                                    message: AppLocalization.string("measurements.empty.body"),
+                                    systemImage: "chart.line.uptrend.xyaxis",
+                                    actionTitle: AppLocalization.string("Add measurement"),
+                                    action: {
+                                        Haptics.light()
+                                        router.presentedSheet = .composer(mode: .newPost)
+                                    },
+                                    accessibilityIdentifier: "measurements.empty.state"
+                                )
+                                .padding(.horizontal, AppSpacing.md)
                             }
 
                             // MARK: - Quick Add hint strip
                             if !quickAddHintDismissed {
                                 AppGlassCard(
                                     depth: .base,
-                                    cornerRadius: 14,
+                                    cornerRadius: AppRadius.md,
                                     tint: Color.cyan.opacity(0.12),
-                                    contentPadding: 12
+                                    contentPadding: AppSpacing.sm
                                 ) {
-                                    HStack(spacing: 10) {
+                                    HStack(spacing: AppSpacing.xs) {
                                         Image(systemName: "plus.circle.fill")
                                             .font(.body)
                                             .foregroundStyle(Color.appAccent)
@@ -165,7 +142,7 @@ struct MeasurementsTabView: View {
                                         Spacer(minLength: 4)
 
                                         Button {
-                                            withAnimation(.easeOut(duration: 0.3)) {
+                                            withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
                                                 quickAddHintDismissed = true
                                             }
                                         } label: {
@@ -178,7 +155,7 @@ struct MeasurementsTabView: View {
                                         .buttonStyle(.plain)
                                     }
                                 }
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, AppSpacing.md)
                                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
                             }
 
@@ -187,11 +164,11 @@ struct MeasurementsTabView: View {
                                     kind: kind,
                                     unitsSystem: unitsSystem
                                 )
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, AppSpacing.md)
                             }
 
                             trackedMetricsFooter
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, AppSpacing.md)
                         } else {
                             if premiumStore.isPremium {
                                 HealthMetricsSection(
@@ -203,7 +180,7 @@ struct MeasurementsTabView: View {
                                     displayMode: .indicatorsOnly,
                                     title: ""
                                 )
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, AppSpacing.md)
                                 .accessibilityIdentifier("measurements.ai.container")
                             } else {
                                 PremiumLockedCard(
@@ -212,12 +189,12 @@ struct MeasurementsTabView: View {
                                 ) {
                                     premiumStore.presentPaywall(reason: .feature("Health indicators"))
                                 }
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, AppSpacing.md)
                             }
                         }
                     }
-                    .padding(.top, 12)
-                    .padding(.bottom, 32)
+                    .padding(.top, AppSpacing.sm)
+                    .padding(.bottom, AppSpacing.xl)
                 }
                 .id(refreshToken)
                 .coordinateSpace(name: "measurementsScroll")
@@ -246,11 +223,11 @@ struct MeasurementsTabView: View {
     private var trackedMetricsFooter: some View {
         AppGlassCard(
             depth: .base,
-            cornerRadius: 18,
+            cornerRadius: AppRadius.lg,
             tint: Color.appAccent.opacity(0.10),
-            contentPadding: 14
+            contentPadding: AppSpacing.sm
         ) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text(AppLocalization.string("Tracked metric visibility can be changed in Settings."))
                     .font(AppTypography.caption)
                     .foregroundStyle(.white.opacity(0.82))
@@ -273,6 +250,10 @@ struct MeasurementsTabView: View {
                 .contentShape(Rectangle())
             }
         }
+    }
+
+    private var shouldAnimate: Bool {
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 
     private var samplesSignature: Int {
@@ -307,6 +288,7 @@ struct MeasurementsTabView: View {
 struct MetricChartTile: View {
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var router: AppRouter
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let kind: MetricKind
     let unitsSystem: String
     @AppStorage("userName") private var userName: String = ""
@@ -323,7 +305,7 @@ struct MetricChartTile: View {
         self.unitsSystem = unitsSystem
 
         let kindValue = kind.rawValue
-        let startDate = Calendar.current.date(byAdding: .day, value: -30, to: .now) ?? .distantPast
+        let startDate = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? .distantPast
         _samples = Query(
             filter: #Predicate<MetricSample> {
                 $0.kindRaw == kindValue && $0.date >= startDate
@@ -345,7 +327,7 @@ struct MetricChartTile: View {
     // MARK: - Data
 
     private var startDate30: Date {
-        Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? .distantPast
+        Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? .distantPast
     }
 
     private var recentSamples: [MetricSample] {
@@ -388,42 +370,93 @@ struct MetricChartTile: View {
     var body: some View {
         if recentSamples.isEmpty {
             // MARK: - Kompaktowy pusty kafelek (brak danych)
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Image(systemName: kind.systemImage)
-                            .foregroundStyle(.secondary)
-                            .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: kind.systemImage)
+                                .foregroundStyle(.secondary)
+                                .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
 
-                        Text(kind.title)
-                            .font(AppTypography.bodyEmphasis)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(kind.title)
+                                    .font(AppTypography.bodyEmphasis)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.85)
+                                    .layoutPriority(1)
+
+                                Text(AppLocalization.string("measurements.metric.nodata"))
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.white.opacity(0.5))
+                            }
+                        }
+
+                        HStack(spacing: 10) {
+                            Button {
+                                Haptics.light()
+                                router.presentedSheet = .addSample(kind: kind)
+                            } label: {
+                                Text(AppLocalization.string("Add"))
+                            }
+                            .buttonStyle(LiquidCapsuleButtonStyle())
+                            .frame(minHeight: 44)
+
+                            Spacer(minLength: 0)
+
+                            NavigationLink {
+                                MetricDetailView(kind: kind)
+                            } label: {
+                                Image(systemName: "chevron.right")
+                                    .font(.title3)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 44, height: 44)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("metric.tile.open.\(kind.rawValue)")
+                        }
                     }
+                } else {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 8) {
+                                Image(systemName: kind.systemImage)
+                                    .foregroundStyle(.secondary)
+                                    .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
 
-                    Text(AppLocalization.string("measurements.metric.nodata"))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.white.opacity(0.5))
+                                Text(kind.title)
+                                    .font(AppTypography.bodyEmphasis)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.85)
+                                    .layoutPriority(1)
+                            }
+
+                            Text(AppLocalization.string("measurements.metric.nodata"))
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+
+                        Spacer(minLength: 8)
+
+                        Button {
+                            Haptics.light()
+                            router.presentedSheet = .addSample(kind: kind)
+                        } label: {
+                            Text(AppLocalization.string("Add"))
+                        }
+                        .buttonStyle(LiquidCapsuleButtonStyle())
+
+                        NavigationLink {
+                            MetricDetailView(kind: kind)
+                        } label: {
+                            Image(systemName: "chevron.right")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 44, height: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("metric.tile.open.\(kind.rawValue)")
+                    }
                 }
-
-                Spacer(minLength: 8)
-
-                Button {
-                    Haptics.light()
-                    router.presentedSheet = .addSample(kind: kind)
-                } label: {
-                    Text(AppLocalization.string("Add"))
-                }
-                .buttonStyle(LiquidCapsuleButtonStyle())
-
-                NavigationLink {
-                    MetricDetailView(kind: kind)
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("metric.tile.open.\(kind.rawValue)")
             }
             .padding(14)
             .background(
@@ -741,7 +774,7 @@ struct MetricChartTile: View {
     }
 
     private func deltaText(days: Int, in source: [MetricSample]) -> String? {
-        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: Date()) else { return nil }
+        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: AppClock.now) else { return nil }
         let window = source.filter { $0.date >= start }
         guard let first = window.first, let last = window.last, first.persistentModelID != last.persistentModelID else {
             return nil

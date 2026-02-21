@@ -10,7 +10,7 @@ struct AddPhotoView: View {
     @State private var selectedImage: UIImage?
     @State private var showCamera = false
     @State private var showPhotoLibrary = false
-    @State private var date: Date = .now
+    @State private var date: Date = AppClock.now
     @State private var selectedTags: Set<PhotoTag> = [.wholeBody]
     @State private var metricValues: [MetricKind: Double] = [:]
     @State private var saveErrorMessage: String?

@@ -5,6 +5,7 @@ struct AppScreenBackground: View {
     var topHeight: CGFloat = 320
     var scrollOffset: CGFloat = 0
     var tint: Color = .appAccent.opacity(0.2)
+    var showsSpotlight: Bool = true
 
     var body: some View {
         GeometryReader { geometry in
@@ -54,6 +55,27 @@ struct AppScreenBackground: View {
                     x: -width * 0.18,
                     y: 62 + parallax * 0.5
                 )
+
+                if showsSpotlight {
+                    Ellipse()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.10),
+                                    Color.white.opacity(0.03),
+                                    .clear
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: width * 0.58, height: topHeight * 0.66)
+                        .blur(radius: 18)
+                        .offset(
+                            x: width * 0.22,
+                            y: -topHeight * 0.16 + parallax * 0.7
+                        )
+                }
 
                 FilmGrainOverlay()
                     .blendMode(.softLight)

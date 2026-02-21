@@ -6,6 +6,7 @@ struct RootView: View {
     @StateObject private var metricsStore: ActiveMetricsStore
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     private let autoCheckPaywallPrompt: Bool
+    private let isAuditCaptureEnabled = AuditConfig.current.isEnabled
 
     init(
         premiumStore: PremiumStore? = nil,
@@ -37,7 +38,7 @@ struct RootView: View {
         }
         .confirmationDialog(
             AppLocalization.string("premium.trial.reminder.prompt.title"),
-            isPresented: $premiumStore.showTrialReminderOptInPrompt,
+            isPresented: trialReminderPromptBinding,
             titleVisibility: .visible
         ) {
             Button(AppLocalization.string("Not now"), role: .cancel) {
@@ -51,11 +52,25 @@ struct RootView: View {
         }
         .alert(
             AppLocalization.string("premium.trial.thankyou.title"),
-            isPresented: $premiumStore.showTrialThankYouAlert
+            isPresented: trialThankYouAlertBinding
         ) {
             Button(AppLocalization.string("OK"), role: .cancel) {}
         } message: {
             Text(AppLocalization.string("premium.trial.thankyou.message"))
         }
+    }
+
+    private var trialReminderPromptBinding: Binding<Bool> {
+        if isAuditCaptureEnabled {
+            return .constant(false)
+        }
+        return $premiumStore.showTrialReminderOptInPrompt
+    }
+
+    private var trialThankYouAlertBinding: Binding<Bool> {
+        if isAuditCaptureEnabled {
+            return .constant(false)
+        }
+        return $premiumStore.showTrialThankYouAlert
     }
 }

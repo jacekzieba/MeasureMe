@@ -6,6 +6,8 @@ struct TabBarContainer: View {
     @StateObject private var router = AppRouter()
     @AppStorage("home_tab_scroll_offset") private var homeTabScrollOffset: Double = 0.0
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var premiumStore: PremiumStore
+    @State private var didApplyAuditRoute = false
 
     var body: some View {
         let tabBarShouldBeVisible = router.selectedTab != .home || homeTabScrollOffset < -14
@@ -124,7 +126,31 @@ struct TabBarContainer: View {
             }
         }
         .environmentObject(router)
+        .onAppear {
+            applyAuditRouteIfNeeded()
+        }
         .preferredColorScheme(.dark)
+    }
+
+    private func applyAuditRouteIfNeeded() {
+        guard AuditConfig.current.isEnabled else { return }
+        guard !didApplyAuditRoute else { return }
+        didApplyAuditRoute = true
+
+        guard let route = AuditConfig.current.route else { return }
+        switch route {
+        case .dashboard:
+            router.selectedTab = .home
+        case .measurements:
+            router.selectedTab = .measurements
+        case .photos:
+            router.selectedTab = .photos
+        case .settings:
+            router.selectedTab = .settings
+        case .paywall:
+            router.selectedTab = .settings
+            premiumStore.presentPaywall(reason: .settings)
+        }
     }
 }
 

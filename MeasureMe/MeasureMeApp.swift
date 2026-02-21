@@ -130,7 +130,7 @@ struct MeasureMeApp: App {
                 await bootstrapApp()
             }
             .onAppear {
-                if CrashReporter.shared.hasUnreportedCrash {
+                if !AuditConfig.current.isEnabled, CrashReporter.shared.hasUnreportedCrash {
                     showCrashAlert = true
                 }
             }
@@ -278,7 +278,9 @@ struct MeasureMeApp: App {
     private func cleanUITestDataIfNeeded(container: ModelContainer) throws {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        let shouldClean = args.contains("-uiTestMode") || args.contains("-uiTestOnboardingMode")
+        let shouldClean = args.contains("-uiTestMode")
+            || args.contains("-uiTestOnboardingMode")
+            || (AuditConfig.current.isEnabled && AuditConfig.current.useMockData)
         guard shouldClean else { return }
 
         let context = ModelContext(container)
@@ -292,25 +294,31 @@ struct MeasureMeApp: App {
     private func seedUITestDataIfNeeded(container: ModelContainer) throws {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        let shouldSeedMeasurements = args.contains("-uiTestSeedMeasurements")
+        let isAuditMockMode = AuditConfig.current.isEnabled && AuditConfig.current.useMockData
+        let shouldSkipMeasurementSeed = args.contains("-uiTestSkipMeasurementSeeding")
+        let forceNoActiveMetrics = args.contains("-uiTestNoActiveMetrics")
+        let shouldSeedMeasurements = (args.contains("-uiTestSeedMeasurements") || isAuditMockMode)
+            && !shouldSkipMeasurementSeed
+            && !forceNoActiveMetrics
         let requestedPhotoCount = requestedUITestPhotoSeedCount(from: args)
-        guard shouldSeedMeasurements || requestedPhotoCount > 0 else { return }
+        let effectivePhotoCount = requestedPhotoCount > 0 ? requestedPhotoCount : (isAuditMockMode ? 24 : 0)
+        guard shouldSeedMeasurements || effectivePhotoCount > 0 else { return }
 
         let context = ModelContext(container)
         if shouldSeedMeasurements {
             let existingCount = try context.fetchCount(FetchDescriptor<MetricSample>())
             if existingCount == 0 {
-                let now = Date()
+                let now = AppClock.now
                 let older = Calendar.current.date(byAdding: .day, value: -10, to: now) ?? now
                 context.insert(MetricSample(kind: .weight, value: 82, date: older))
                 context.insert(MetricSample(kind: .weight, value: 80, date: now))
             }
         }
 
-        if requestedPhotoCount > 0 {
+        if effectivePhotoCount > 0 {
             let existingPhotos = try context.fetchCount(FetchDescriptor<PhotoEntry>())
             if existingPhotos == 0 {
-                seedUITestPhotos(count: requestedPhotoCount, into: context)
+                seedUITestPhotos(count: effectivePhotoCount, into: context)
             }
         }
 
@@ -329,7 +337,7 @@ struct MeasureMeApp: App {
 
     private func seedUITestPhotos(count: Int, into context: ModelContext) {
         let safeCount = max(0, min(count, 300))
-        let now = Date()
+        let now = AppClock.now
         for idx in 0..<safeCount {
             let date = Calendar.current.date(byAdding: .day, value: -idx, to: now) ?? now
             let size = CGSize(width: 1280, height: 1706)

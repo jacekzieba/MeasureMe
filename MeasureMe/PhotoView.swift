@@ -158,12 +158,12 @@ private extension PhotoView {
             Label(AppLocalization.string("Compare"), systemImage: "photo.on.rectangle.angled")
                 .frame(maxWidth: .infinity)
         }
-        .buttonStyle(AppAccentButtonStyle(cornerRadius: 14))
+        .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
         .accessibilityIdentifier("photos.compare.open")
         .accessibilityLabel(AppLocalization.string("Compare selected photos"))
         .accessibilityHint(AppLocalization.string("accessibility.compare.opens"))
-        .padding(.horizontal)
-        .shadow(color: .black.opacity(0.2), radius: 10, y: 5)
+        .padding(.horizontal, AppSpacing.md)
+        .appElevation(AppElevation.card)
     }
     
     private func applyExternalFilterIfNeeded() {
@@ -403,23 +403,38 @@ private struct PhotoGridView: View {
             columns: [GridItem(.adaptive(minimum: 110), spacing: 8)],
             spacing: 8
         ) {
-            ForEach(photos) { photo in
+            ForEach(Array(photos.enumerated()), id: \.element.persistentModelID) { index, photo in
                 Button {
                     onPhotoTap(photo)
                 } label: {
                     PhotoGridCell(
                         photo: photo,
                         isSelected: selectedPhotos.contains(photo),
-                        isSelecting: isSelecting
+                        isSelecting: isSelecting,
+                        revealIndex: index
                     )
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("photos.grid.item")
                 .accessibilityLabel(AppLocalization.string("Photo"))
-                .accessibilityValue(photo.date.formatted(date: .abbreviated, time: .omitted))
+                .accessibilityValue(photoAccessibilityValue(for: photo))
+                .accessibilityHint(
+                    isSelecting
+                    ? AppLocalization.string("Double tap to select or deselect this photo for comparison")
+                    : AppLocalization.string("Double tap to open photo details")
+                )
             }
         }
         .padding(.bottom, isSelecting && selectedPhotos.count == 2 ? 80 : 0)
+    }
+
+    private func photoAccessibilityValue(for photo: PhotoEntry) -> String {
+        let dateText = photo.date.formatted(date: .abbreviated, time: .omitted)
+        guard isSelecting else { return dateText }
+        let selectedText = selectedPhotos.contains(photo)
+            ? AppLocalization.string("Selected")
+            : AppLocalization.string("Not selected")
+        return "\(dateText), \(selectedText)"
     }
 }
 

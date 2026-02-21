@@ -13,7 +13,9 @@ struct HomeView: View {
 
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var modelContext
+    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
     @AppStorage("userName") private var userName: String = ""
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
     @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
@@ -65,7 +67,7 @@ struct HomeView: View {
 
     init(autoCheckPaywallPrompt: Bool = true) {
         self.autoCheckPaywallPrompt = autoCheckPaywallPrompt
-        let recentWindowStart = Calendar.current.date(byAdding: .day, value: -120, to: Date()) ?? .distantPast
+        let recentWindowStart = Calendar.current.date(byAdding: .day, value: -120, to: AppClock.now) ?? .distantPast
         _recentSamples = Query(
             filter: #Predicate<MetricSample> { $0.date >= recentWindowStart },
             sort: [SortDescriptor(\.date, order: .reverse)]
@@ -668,7 +670,7 @@ struct HomeView: View {
     }
 
     private var dayPart: DayPart {
-        let hour = Calendar.current.component(.hour, from: .now)
+        let hour = Calendar.current.component(.hour, from: AppClock.now)
         if hour < 12 { return .morning }
         if hour < 18 { return .afternoon }
         return .evening
@@ -748,7 +750,8 @@ struct HomeView: View {
     private func autoHideChecklistIfCompleted() {
         guard allChecklistItemsCompleted, showOnboardingChecklistOnHome else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            withAnimation(.easeOut(duration: 0.4)) {
+            let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+            withAnimation(AppMotion.animation(AppMotion.reveal, enabled: shouldAnimate)) {
                 showOnboardingChecklistOnHome = false
             }
         }
@@ -1185,7 +1188,7 @@ private struct PressableTileStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
-        let shouldAnimate = animationsEnabled && !reduceMotion
+        let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
         configuration.label
             .scaleEffect(configuration.isPressed && shouldAnimate ? 0.98 : 1)
             .opacity(configuration.isPressed && shouldAnimate ? 0.9 : 1)

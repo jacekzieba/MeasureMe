@@ -140,7 +140,7 @@ struct TrackedMeasurementsView: View {
 
         snackbarMessage = message
         snackbarUndoAction = undo
-        withAnimation(.easeOut(duration: 0.2)) {
+        withAnimation(AppMotion.quick) {
             showSnackbar = true
         }
 
@@ -150,7 +150,7 @@ struct TrackedMeasurementsView: View {
     }
 
     private func dismissSnackbar() {
-        withAnimation(.easeIn(duration: 0.2)) {
+        withAnimation(AppMotion.toastOut) {
             showSnackbar = false
         }
     }

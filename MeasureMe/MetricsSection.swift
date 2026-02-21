@@ -34,17 +34,17 @@ struct MetricsSection: View {
             }
         }
         .textCase(nil)
-        .animation(shouldAnimate ? .spring(response: 0.34, dampingFraction: 0.88) : nil, value: isExpanded)
+        .animation(AppMotion.animation(AppMotion.emphasized, enabled: shouldAnimate), value: isExpanded)
     }
 
     private var shouldAnimate: Bool {
-        animationsEnabled && !reduceMotion
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 
     private var headerButton: some View {
         Button {
             if shouldAnimate {
-                withAnimation(.spring(response: 0.34, dampingFraction: 0.88)) {
+                withAnimation(AppMotion.emphasized) {
                     isExpanded.toggle()
                 }
             } else {
@@ -71,6 +71,9 @@ struct MetricsSection: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(isExpanded ? AppLocalization.string("Expanded") : AppLocalization.string("Collapsed"))
+        .accessibilityHint(AppLocalization.string("Double tap to show or hide this metrics group"))
         .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 4, trailing: 16))
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)

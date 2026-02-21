@@ -9,13 +9,16 @@ struct QuickAddSheetView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var router: AppRouter
+    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
     @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
     @AppStorage("save_unchanged_quick_add") private var saveUnchangedValues: Bool = false
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
 
     // Jedna data uzywana dla wszystkich szybkich wpisow
-    @State private var date: Date = .now
+    @State private var date: Date = AppClock.now
     // User inputs in display units; nil means “skip”
     @State private var inputs: [MetricKind: Double?] = [:]
     // Sledzi, ktore metryki uzytkownik rzeczywiscie edytowal
@@ -54,16 +57,17 @@ struct QuickAddSheetView: View {
                 AppScreenBackground(topHeight: 240)
 
                 if kinds.isEmpty {
-                    ContentUnavailableView(
-                        AppLocalization.string("No active measurements"),
+                    EmptyStateCard(
+                        title: AppLocalization.string("No active measurements"),
+                        message: AppLocalization.string("Enable metrics in the Measurements tab to add values quickly."),
                         systemImage: "square.and.pencil",
-                        description: Text(AppLocalization.string("Enable metrics in the Measurements tab to add values quickly."))
+                        accessibilityIdentifier: "quickadd.empty.state"
                     )
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, AppSpacing.lg)
                     .accessibilityIdentifier("quickadd.empty")
                 } else {
                     ScrollView {
-                        VStack(spacing: 14) {
+                        VStack(spacing: AppSpacing.sm) {
                             saveUnchangedCard
 
                             ForEach(kinds, id: \.self) { kind in
@@ -72,10 +76,13 @@ struct QuickAddSheetView: View {
 
                             dateCard
                             trackedMetricsFooter
+                            if useInlineSaveBar {
+                                inlineSaveSection
+                            }
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 12)
-                        .padding(.bottom, 120)
+                        .padding(.horizontal, AppSpacing.md)
+                        .padding(.top, AppSpacing.sm)
+                        .padding(.bottom, useInlineSaveBar ? AppSpacing.lg : 120)
                     }
                     .scrollIndicators(.hidden)
                     .scrollDismissesKeyboard(.interactively)
@@ -86,7 +93,7 @@ struct QuickAddSheetView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .accessibilityIdentifier("quickadd.sheet")
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !kinds.isEmpty && focusedKind == nil {
+                if !kinds.isEmpty && focusedKind == nil && !useInlineSaveBar {
                     saveBar
                 }
             }
@@ -125,8 +132,8 @@ struct QuickAddSheetView: View {
     private func row(for kind: MetricKind) -> some View {
         let showRuler = hasBaseValue(for: kind)
 
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack(spacing: AppSpacing.xs) {
                 Image(systemName: kind.systemImage)
                     .font(AppTypography.iconMedium)
                     .foregroundStyle(Color.appAccent)
@@ -138,7 +145,7 @@ struct QuickAddSheetView: View {
                             .fill(Color.appAccent.opacity(0.14))
                     )
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(kind.title)
                         .font(AppTypography.headline)
                         .foregroundStyle(.white)
@@ -176,58 +183,18 @@ struct QuickAddSheetView: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            HStack(spacing: 8) {
-                Text(AppLocalization.string(
-                    showRuler ? "Enter value" : "quickadd.first.value.hint"
-                ))
-                .font(showRuler ? AppTypography.caption : .subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.7))
-
-                Spacer()
-
-                TextField(
-                    "0.0",
-                    value: binding(for: kind),
-                    format: .number.precision(.fractionLength(1))
-                )
-                .focused($focusedKind, equals: kind)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .font(showRuler
-                    ? .title3.monospacedDigit().weight(.semibold)
-                    : .title.monospacedDigit().weight(.bold))
-                .frame(minWidth: showRuler ? 72 : 100)
-                .accessibilityIdentifier("quickadd.input.\(kind.rawValue)")
-                .accessibilityLabel(AppLocalization.string("accessibility.value", kind.title))
-
-                Text(kind.unitSymbol(unitsSystem: unitsSystem))
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.72))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, showRuler ? 9 : 14)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.black.opacity(0.26))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(Color.white.opacity(focusedKind == kind ? 0.36 : 0.16), lineWidth: 1)
-                    )
-            )
+            valueInputField(for: kind, showRuler: showRuler)
+                .appInputContainer(focused: focusedKind == kind)
 
             if let validationMessage = validationMessage(for: kind) {
-                Text(validationMessage)
-                    .font(AppTypography.micro)
-                    .foregroundStyle(Color.red.opacity(0.9))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                InlineErrorBanner(message: validationMessage, accessibilityIdentifier: "quickadd.error.banner.\(kind.rawValue)")
                     .accessibilityIdentifier("quickadd.error.\(kind.rawValue)")
             }
         }
-        .padding(14)
+        .padding(AppSpacing.sm)
         .accessibilityIdentifier("quickadd.row.\(kind.rawValue)")
-        .background(cardBackground(cornerRadius: 16))
-        .animation(.easeInOut(duration: 0.35), value: showRuler)
+        .background(cardBackground(cornerRadius: AppRadius.md))
+        .animation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate), value: showRuler)
         .onAppear {
             if rulerBaseValues[kind] == nil {
                 rulerBaseValues[kind] = baseValue(for: kind)
@@ -237,7 +204,7 @@ struct QuickAddSheetView: View {
 
     private var saveUnchangedCard: some View {
         Toggle(isOn: $saveUnchangedValues) {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 Text(AppLocalization.string("Save unchanged values"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
@@ -247,12 +214,12 @@ struct QuickAddSheetView: View {
             }
         }
         .tint(Color.appAccent)
-        .padding(14)
-        .background(cardBackground(cornerRadius: 16))
+        .padding(AppSpacing.sm)
+        .background(cardBackground(cornerRadius: AppRadius.md))
     }
 
     private var dateCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
             Label(AppLocalization.string("Measurement time"), systemImage: "calendar.badge.clock")
                 .font(AppTypography.sectionAction)
                 .foregroundStyle(.white)
@@ -267,12 +234,30 @@ struct QuickAddSheetView: View {
             .tint(Color.appAccent)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(14)
-        .background(cardBackground(cornerRadius: 16))
+        .padding(AppSpacing.sm)
+        .background(cardBackground(cornerRadius: AppRadius.md))
+    }
+
+    private var useInlineSaveBar: Bool {
+        dynamicTypeSize.isAccessibilitySize
+    }
+
+    private var inlineSaveSection: some View {
+        saveControls
+            .padding(AppSpacing.sm)
+            .background(cardBackground(cornerRadius: AppRadius.md))
     }
 
     private var saveBar: some View {
-        VStack(spacing: 8) {
+        saveControls
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.top, dynamicTypeSize.isAccessibilitySize ? 10 : 6)
+        .padding(.bottom, dynamicTypeSize.isAccessibilitySize ? 12 : 8)
+        .background(.thinMaterial)
+    }
+
+    private var saveControls: some View {
+        VStack(spacing: AppSpacing.xs) {
             Button {
                 if cannotSave {
                     Haptics.error()
@@ -292,26 +277,25 @@ struct QuickAddSheetView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .buttonStyle(AppAccentButtonStyle(cornerRadius: 14))
+            .buttonStyle(AppCTAButtonStyle(size: dynamicTypeSize.isAccessibilitySize ? .large : .regular, cornerRadius: AppRadius.md))
             .disabled(isSaving)
             .opacity(isSaving ? 0.64 : 1)
             .accessibilityIdentifier("quickadd.save")
+            .accessibilityHint(AppLocalization.systemString("Save entered measurements"))
+            .accessibilitySortPriority(2)
 
             if cannotSave {
                 Text(cannotSaveReasonText)
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.66))
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("quickadd.validation.hint")
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 10)
-        .padding(.bottom, 12)
-        .background(.thinMaterial)
     }
 
     private var trackedMetricsFooter: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
             Text(AppLocalization.string("Tracked metric visibility can be changed in Settings."))
                 .font(AppTypography.caption)
                 .foregroundStyle(.white.opacity(0.82))
@@ -331,21 +315,99 @@ struct QuickAddSheetView: View {
             .foregroundStyle(Color.appAccent)
             .frame(minHeight: 44, alignment: .leading)
             .contentShape(Rectangle())
+            .accessibilityHint(AppLocalization.systemString("Open tracked measurements settings"))
+            .accessibilitySortPriority(1)
         }
-        .padding(14)
-        .background(cardBackground(cornerRadius: 16))
+        .padding(AppSpacing.sm)
+        .background(cardBackground(cornerRadius: AppRadius.md))
     }
 
     private func cardBackground(cornerRadius: CGFloat) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(Color.white.opacity(0.07))
+            .fill(AppColorRoles.surfacePrimary)
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                    .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
             )
     }
 
+    private var shouldAnimate: Bool {
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+    }
+
     // MARK: - Helpers
+
+    @ViewBuilder
+    private func valueInputField(for kind: MetricKind, showRuler: Bool) -> some View {
+        ViewThatFits(in: .horizontal) {
+            inputRowHorizontal(for: kind, showRuler: showRuler)
+            inputRowVertical(for: kind, showRuler: showRuler)
+        }
+    }
+
+    private func inputRowHorizontal(for kind: MetricKind, showRuler: Bool) -> some View {
+        HStack(spacing: 8) {
+            Text(AppLocalization.string(
+                showRuler ? "Enter value" : "quickadd.first.value.hint"
+            ))
+            .font(showRuler ? AppTypography.caption : .subheadline.weight(.medium))
+            .foregroundStyle(.white.opacity(0.7))
+            .lineLimit(2)
+
+            Spacer(minLength: 0)
+
+            TextField(
+                "0.0",
+                value: binding(for: kind),
+                format: .number.precision(.fractionLength(1))
+            )
+            .focused($focusedKind, equals: kind)
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.trailing)
+            .font(showRuler
+                ? .title3.monospacedDigit().weight(.semibold)
+                : .title.monospacedDigit().weight(.bold))
+            .frame(minWidth: showRuler ? 72 : 88)
+            .accessibilityIdentifier("quickadd.input.\(kind.rawValue)")
+            .accessibilityLabel(AppLocalization.string("accessibility.value", kind.title))
+
+            Text(kind.unitSymbol(unitsSystem: unitsSystem))
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.white.opacity(0.72))
+        }
+    }
+
+    private func inputRowVertical(for kind: MetricKind, showRuler: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(AppLocalization.string(
+                showRuler ? "Enter value" : "quickadd.first.value.hint"
+            ))
+            .font(showRuler ? AppTypography.caption : .subheadline.weight(.medium))
+            .foregroundStyle(.white.opacity(0.7))
+            .fixedSize(horizontal: false, vertical: true)
+
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                TextField(
+                    "0.0",
+                    value: binding(for: kind),
+                    format: .number.precision(.fractionLength(1))
+                )
+                .focused($focusedKind, equals: kind)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.leading)
+                .font(showRuler
+                    ? .title3.monospacedDigit().weight(.semibold)
+                    : .title.monospacedDigit().weight(.bold))
+                .accessibilityIdentifier("quickadd.input.\(kind.rawValue)")
+                .accessibilityLabel(AppLocalization.string("accessibility.value", kind.title))
+
+                Text(kind.unitSymbol(unitsSystem: unitsSystem))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.72))
+                Spacer(minLength: 0)
+            }
+        }
+    }
 
     /// Returns `true` when we have a sensible base value for the ruler —
     /// either from a previous measurement or because the user just typed one.

@@ -912,19 +912,19 @@ struct SettingsCard<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
             content
         }
-        .padding(14)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             AppGlassBackground(
                 depth: .base,
-                cornerRadius: settingsComponentsCardCornerRadius,
+                cornerRadius: AppRadius.md,
                 tint: tint
             )
         )
-        .clipShape(RoundedRectangle(cornerRadius: settingsComponentsCardCornerRadius, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
     }
 }
 

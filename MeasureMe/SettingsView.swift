@@ -181,6 +181,7 @@ struct SettingsView: View {
                                     }
                                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                                 }
+                                .appHitTarget()
                             }
                         }
                     }
@@ -216,7 +217,7 @@ struct SettingsView: View {
                             } label: {
                                 Text(AppLocalization.string("What is in The Premium Edition?"))
                             }
-                            .buttonStyle(AppAccentButtonStyle(cornerRadius: 12))
+                            .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
                             .accessibilityHint(AppLocalization.string("View Premium options"))
                         }
                     }

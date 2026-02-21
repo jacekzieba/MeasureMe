@@ -6,6 +6,10 @@ struct PhotoGridCell: View {
     let photo: PhotoEntry
     let isSelected: Bool
     let isSelecting: Bool
+    var revealIndex: Int = 0
+    @State private var isVisible = false
+    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -20,6 +24,27 @@ struct PhotoGridCell: View {
                 selectionIndicator
             }
         }
+        .opacity(isVisible ? 1 : 0.0)
+        .offset(y: isVisible ? 0 : 8)
+        .scaleEffect(isVisible ? 1 : 0.985)
+        .onAppear {
+            guard shouldAnimateReveal else {
+                isVisible = true
+                return
+            }
+            guard !isVisible else { return }
+            let bucket = revealIndex % 12
+            let delay = Double(bucket) * 0.012
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                withAnimation(AppMotion.reveal) {
+                    isVisible = true
+                }
+            }
+        }
+    }
+
+    private var shouldAnimateReveal: Bool {
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 }
 
