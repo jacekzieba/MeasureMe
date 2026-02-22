@@ -64,6 +64,12 @@
 "accessibility.progress.hint" = "Current value %@, goal %@";
 "metric.goal.set.help" = "Set your target %@ to track your progress. The goal will appear as a dashed line on your chart.";
 "goal.delete.confirmation" = "This will remove the goal and hide progress tracking for this metric.";
+"goal.start.section.title" = "Change date and initial value";
+"goal.start.toggle.label" = "Customize starting point";
+"goal.start.value.label" = "Starting value";
+"goal.start.date.label" = "Starting date";
+"goal.start.help.default" = "Progress is calculated from this value. Defaults to your most recent measurement.";
+"goal.start.help.first" = "No measurements yet — this value will be saved as your first entry.";
 "quickadd.first.value.hint" = "Enter your first value";
 "metric.add.title" = "Add %@";
 "metric.edit.title" = "Edit %@";
@@ -878,3 +884,21 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "measurements.empty.body" = "Track weight, body measurements, and more. Your progress charts will appear here.";
 "measurements.quickadd.hint" = "Tip: Tap + in the tab bar for quick entry anytime";
 "measurements.metric.nodata" = "No data yet";
+
+// MARK: - Photo Selection & Batch Deletion
+"Select" = "Select";
+"Delete Photos" = "Delete Photos";
+"photos.selected.count" = "%d selected";
+"photos.selected.count.one" = "%d selected";
+"photos.selected.count.few" = "%d selected";
+"photos.selected.count.many" = "%d selected";
+"photos.delete.confirmation" = "Are you sure you want to delete %d photos? This cannot be undone.";
+"photos.delete.confirmation.one" = "Are you sure you want to delete %d photo? This cannot be undone.";
+"photos.delete.confirmation.few" = "Are you sure you want to delete %d photos? This cannot be undone.";
+"photos.delete.confirmation.many" = "Are you sure you want to delete %d photos? This cannot be undone.";
+"photos.delete.single.confirmation" = "Are you sure you want to delete this photo? This cannot be undone.";
+"photos.delete.count.a11y" = "Delete %d selected photos";
+"photos.delete.count.a11y.one" = "Delete %d selected photo";
+"photos.delete.count.a11y.few" = "Delete %d selected photos";
+"photos.delete.count.a11y.many" = "Delete %d selected photos";
+"Double tap to select or deselect this photo" = "Double tap to select or deselect this photo";

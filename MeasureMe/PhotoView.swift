@@ -19,7 +19,7 @@ struct PhotoView: View {
     @State private var isSelecting = false
     @State private var selectedPhotos: Set<PhotoEntry> = []
     @State private var selectedPhotoForDetail: PhotoEntry?
-    @State private var showMaxPhotosAlert = false
+    @State private var showDeleteConfirmation = false
     
     @AppStorage("photos_filter_tag") private var photosFilterTag: String = ""
     private var uiTestModeEnabled: Bool {
@@ -53,6 +53,7 @@ struct PhotoView: View {
                             isSelecting: isSelecting,
                             selectedPhotos: $selectedPhotos,
                             onPhotoTap: handlePhotoTap,
+                            onPhotoLongPress: handlePhotoLongPress,
                             onAddPhoto: {
                                 Haptics.light()
                                 showAddPhoto = true
@@ -77,11 +78,12 @@ struct PhotoView: View {
                                 .accessibilityIdentifier("photos.compare.selectTwoHook")
                             }
                         }
-                        
-                        // Przycisk Compare jako overlay na dole
-                        if isSelecting && selectedPhotos.count == 2 {
-                            compareButton
+
+                        // Pasek akcji na dole (usuwanie + porownywanie)
+                        if isSelecting && !selectedPhotos.isEmpty {
+                            selectionActionBar
                                 .padding(.bottom, 20)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                     }
                 }
@@ -122,28 +124,41 @@ struct PhotoView: View {
                 }
                     .environmentObject(metricsStore)
             }
-            .alert(AppLocalization.string("Maximum Photos Selected"), isPresented: $showMaxPhotosAlert) {
-                Button(AppLocalization.string("OK"), role: .cancel) { }
+            .alert(
+                AppLocalization.string("Delete Photos"),
+                isPresented: $showDeleteConfirmation
+            ) {
+                Button(AppLocalization.string("Cancel"), role: .cancel) { }
+                Button(AppLocalization.string("Delete"), role: .destructive) {
+                    performBatchDelete()
+                }
             } message: {
-                Text(AppLocalization.string("You can only compare two photos at a time. Please deselect one photo before selecting another."))
+                Text(AppLocalization.plural("photos.delete.confirmation", selectedPhotos.count))
             }
         }
         .preferredColorScheme(.dark)
     }
     
     func handlePhotoTap(_ photo: PhotoEntry) {
-        guard isSelecting else { 
-            // Otwórz szczegółowy widok zdjęcia - delikatny feedback
+        guard isSelecting else {
             selectedPhotoForDetail = photo
-            return 
+            return
         }
 
+        Haptics.selection()
         if selectedPhotos.contains(photo) {
             selectedPhotos.remove(photo)
-        } else if selectedPhotos.count < 2 {
-            selectedPhotos.insert(photo)
         } else {
-            showMaxPhotosAlert = true
+            selectedPhotos.insert(photo)
+        }
+    }
+
+    func handlePhotoLongPress(_ photo: PhotoEntry) {
+        guard !isSelecting else { return }
+        Haptics.medium()
+        withAnimation(.easeInOut(duration: 0.25)) {
+            isSelecting = true
+            selectedPhotos = [photo]
         }
     }
     
@@ -151,21 +166,73 @@ struct PhotoView: View {
 
 private extension PhotoView {
 
-    var compareButton: some View {
-        Button {
-            showCompare = true
-        } label: {
-            Label(AppLocalization.string("Compare"), systemImage: "photo.on.rectangle.angled")
-                .frame(maxWidth: .infinity)
+    var selectionActionBar: some View {
+        HStack(spacing: AppSpacing.sm) {
+            Button(role: .destructive) {
+                showDeleteConfirmation = true
+            } label: {
+                Label(AppLocalization.string("Delete"), systemImage: "trash")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(AppDestructiveButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+            .accessibilityIdentifier("photos.batch.delete")
+            .accessibilityLabel(AppLocalization.plural("photos.delete.count.a11y", selectedPhotos.count))
+
+            if selectedPhotos.count == 2 {
+                let canCompare = premiumStore.isPremium || uiTestModeEnabled
+
+                Button {
+                    if canCompare {
+                        showCompare = true
+                    } else {
+                        Haptics.selection()
+                        premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
+                    }
+                } label: {
+                    ZStack(alignment: .topTrailing) {
+                        Label(AppLocalization.string("Compare"), systemImage: "photo.on.rectangle.angled")
+                            .frame(maxWidth: .infinity)
+
+                        if !canCompare {
+                            Image(systemName: "lock.fill")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(Color(hex: "#FCA311"))
+                                .padding(4)
+                                .offset(x: 6, y: -6)
+                        }
+                    }
+                }
+                .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                .opacity(canCompare ? 1.0 : 0.55)
+                .accessibilityIdentifier("photos.compare.open")
+                .accessibilityLabel(canCompare
+                    ? AppLocalization.string("Compare selected photos")
+                    : AppLocalization.string("Compare selected photos — Premium required"))
+                .accessibilityHint(canCompare
+                    ? AppLocalization.string("accessibility.compare.opens")
+                    : AppLocalization.string("Tap to unlock Photo Comparison with Premium"))
+            }
         }
-        .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-        .accessibilityIdentifier("photos.compare.open")
-        .accessibilityLabel(AppLocalization.string("Compare selected photos"))
-        .accessibilityHint(AppLocalization.string("accessibility.compare.opens"))
         .padding(.horizontal, AppSpacing.md)
         .appElevation(AppElevation.card)
     }
-    
+
+    private func performBatchDelete() {
+        let photosToDelete = selectedPhotos
+        do {
+            try PhotoDeletionService.deletePhotos(photosToDelete, context: context)
+            Haptics.success()
+            withAnimation(.easeInOut(duration: 0.25)) {
+                selectedPhotos.removeAll()
+                isSelecting = false
+            }
+            refreshToken = UUID()
+        } catch {
+            Haptics.error()
+            AppLog.debug("⚠️ Batch delete failed: \(error.localizedDescription)")
+        }
+    }
+
     private func applyExternalFilterIfNeeded() {
         guard !photosFilterTag.isEmpty,
               let tag = PhotoTag(rawValue: photosFilterTag) else {
@@ -199,9 +266,10 @@ private struct PhotoContentView: View {
     let isSelecting: Bool
     @Binding var selectedPhotos: Set<PhotoEntry>
     let onPhotoTap: (PhotoEntry) -> Void
+    let onPhotoLongPress: (PhotoEntry) -> Void
     let onAddPhoto: () -> Void
     let refreshToken: UUID
-    
+
     @State private var photos: [PhotoEntry] = []
     @State private var isLoadingInitial: Bool = true
     @State private var isLoadingMore: Bool = false
@@ -225,6 +293,7 @@ private struct PhotoContentView: View {
             isSelecting: isSelecting,
             selectedPhotos: $selectedPhotos,
             onPhotoTap: onPhotoTap,
+            onPhotoLongPress: onPhotoLongPress,
             onAddPhoto: onAddPhoto,
             isLoadingInitial: isLoadingInitial,
             isLoadingMore: isLoadingMore,
@@ -328,6 +397,7 @@ private struct PhotoGridView: View {
     let isSelecting: Bool
     @Binding var selectedPhotos: Set<PhotoEntry>
     let onPhotoTap: (PhotoEntry) -> Void
+    let onPhotoLongPress: (PhotoEntry) -> Void
     let onAddPhoto: () -> Void
     let isLoadingInitial: Bool
     let isLoadingMore: Bool
@@ -415,17 +485,20 @@ private struct PhotoGridView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .onLongPressGesture(minimumDuration: 0.5) {
+                    onPhotoLongPress(photo)
+                }
                 .accessibilityIdentifier("photos.grid.item")
                 .accessibilityLabel(AppLocalization.string("Photo"))
                 .accessibilityValue(photoAccessibilityValue(for: photo))
                 .accessibilityHint(
                     isSelecting
-                    ? AppLocalization.string("Double tap to select or deselect this photo for comparison")
+                    ? AppLocalization.string("Double tap to select or deselect this photo")
                     : AppLocalization.string("Double tap to open photo details")
                 )
             }
         }
-        .padding(.bottom, isSelecting && selectedPhotos.count == 2 ? 80 : 0)
+        .padding(.bottom, isSelecting && !selectedPhotos.isEmpty ? 80 : 0)
     }
 
     private func photoAccessibilityValue(for photo: PhotoEntry) -> String {
@@ -445,31 +518,48 @@ private extension PhotoView {
     var toolbarContent: some ToolbarContent {
 
         ToolbarItem(placement: .topBarLeading) {
-            Button {
-                if premiumStore.isPremium || uiTestModeEnabled {
+            if isSelecting {
+                Button {
                     Haptics.selection()
-                    isSelecting.toggle()
-                    selectedPhotos.removeAll()
-                    if isSelecting && uiTestModeEnabled {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isSelecting = false
+                        selectedPhotos.removeAll()
+                    }
+                } label: {
+                    Text(AppLocalization.string("Done"))
+                }
+                .foregroundStyle(Color.appAccent)
+                .accessibilityIdentifier("photos.selection.done")
+            } else {
+                Button {
+                    Haptics.selection()
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isSelecting = true
+                        selectedPhotos.removeAll()
+                    }
+                    if uiTestModeEnabled {
                         selectFirstTwoPhotosForUITest()
                     }
-                } else {
-                    premiumStore.presentPaywall(reason: .feature("Photo comparison"))
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle")
+                        Text(AppLocalization.string("Select"))
+                    }
                 }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: isSelecting ? "xmark" : "checkmark.circle")
-                    Text(AppLocalization.string("Compare"))
-                }
+                .foregroundStyle(Color.appAccent)
+                .accessibilityIdentifier("photos.select.mode.toggle")
             }
-            .foregroundStyle(Color.appAccent)
-            .accessibilityIdentifier("photos.compare.mode.toggle")
-            .accessibilityLabel(isSelecting
-                ? AppLocalization.string("accessibility.compare.exit")
-                : AppLocalization.string("accessibility.compare.enter"))
-            .accessibilityHint(AppLocalization.string("accessibility.compare.select.two"))
         }
-        
+
+        if isSelecting {
+            ToolbarItem(placement: .principal) {
+                Text(AppLocalization.plural("photos.selected.count", selectedPhotos.count))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .accessibilityLabel(AppLocalization.plural("photos.selected.count", selectedPhotos.count))
+            }
+        }
+
         ToolbarItem(placement: .topBarTrailing) {
             HStack(spacing: 16) {
                 // Przycisk filtra z odznaka
@@ -481,7 +571,7 @@ private extension PhotoView {
                         Image(systemName: filters.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                             .symbolRenderingMode(.hierarchical)
                             .foregroundStyle(filters.isActive ? Color.appAccent : .primary)
-                        
+
                         if filters.isActive {
                             Circle()
                                 .fill(Color.red)
@@ -491,15 +581,17 @@ private extension PhotoView {
                     }
                 }
                 .accessibilityLabel(AppLocalization.string("Open photo filters"))
-                
-                Button {
-                    Haptics.light()
-                    showAddPhoto = true
-                } label: {
-                    Image(systemName: "plus")
+
+                if !isSelecting {
+                    Button {
+                        Haptics.light()
+                        showAddPhoto = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityIdentifier("photos.add.button")
+                    .accessibilityLabel(AppLocalization.string("Add photo"))
                 }
-                .accessibilityIdentifier("photos.add.button")
-                .accessibilityLabel(AppLocalization.string("Add photo"))
             }
         }
     }

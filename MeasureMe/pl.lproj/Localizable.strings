@@ -85,6 +85,12 @@
 "accessibility.progress.hint" = "Aktualna wartość %@, cel %@";
 "metric.goal.set.help" = "Ustaw docelową wartość %@, aby śledzić postęp. Cel pojawi się jako linia przerywana na wykresie.";
 "goal.delete.confirmation" = "Spowoduje to usunięcie celu i ukrycie śledzenia postępu dla tej metryki.";
+"goal.start.section.title" = "Zmień datę i wartość początkową";
+"goal.start.toggle.label" = "Dostosuj punkt startowy";
+"goal.start.value.label" = "Wartość startowa";
+"goal.start.date.label" = "Data startowa";
+"goal.start.help.default" = "Postęp jest liczony od tej wartości. Domyślnie: ostatni pomiar.";
+"goal.start.help.first" = "Brak pomiarów — ta wartość zostanie zapisana jako pierwszy wpis.";
 "quickadd.first.value.hint" = "Wpisz swoją pierwszą wartość";
 "metric.add.title" = "Dodaj %@";
 "metric.edit.title" = "Edytuj %@";
@@ -1253,3 +1259,21 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "measurements.empty.body" = "Śledź wagę, wymiary ciała i więcej. Twoje wykresy postępów pojawią się tutaj.";
 "measurements.quickadd.hint" = "Porada: stuknij + w prawym dolnym rogu, aby szybko dodać pomiar";
 "measurements.metric.nodata" = "Brak danych";
+
+// MARK: - Photo Selection & Batch Deletion
+"Select" = "Zaznacz";
+"Delete Photos" = "Usuń zdjęcia";
+"photos.selected.count" = "Wybrano: %d";
+"photos.selected.count.one" = "Wybrano: %d";
+"photos.selected.count.few" = "Wybrano: %d";
+"photos.selected.count.many" = "Wybrano: %d";
+"photos.delete.confirmation" = "Czy na pewno chcesz usunąć %d zdjęć? Tej czynności nie można cofnąć.";
+"photos.delete.confirmation.one" = "Czy na pewno chcesz usunąć %d zdjęcie? Tej czynności nie można cofnąć.";
+"photos.delete.confirmation.few" = "Czy na pewno chcesz usunąć %d zdjęcia? Tej czynności nie można cofnąć.";
+"photos.delete.confirmation.many" = "Czy na pewno chcesz usunąć %d zdjęć? Tej czynności nie można cofnąć.";
+"photos.delete.single.confirmation" = "Czy na pewno chcesz usunąć to zdjęcie? Tej czynności nie można cofnąć.";
+"photos.delete.count.a11y" = "Usuń %d wybranych zdjęć";
+"photos.delete.count.a11y.one" = "Usuń %d wybrane zdjęcie";
+"photos.delete.count.a11y.few" = "Usuń %d wybrane zdjęcia";
+"photos.delete.count.a11y.many" = "Usuń %d wybranych zdjęć";
+"Double tap to select or deselect this photo" = "Stuknij dwukrotnie, aby zaznaczyć lub odznaczyć to zdjęcie";

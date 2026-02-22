@@ -111,6 +111,24 @@ final class ImageCache {
         #endif
     }
 
+    /// Usuwa wszystkie obrazy, ktorych klucz zaczyna sie od podanego prefixu.
+    /// Uzywane przy usuwaniu zdjecia, aby wyrzucic wszystkie warianty miniatur.
+    func removeImages(withPrefix prefix: String) {
+        let keysToRemove = lruNodes.keys.filter { $0.hasPrefix(prefix) }
+        for key in keysToRemove {
+            let nsKey = NSString(string: key)
+            cache.removeObject(forKey: nsKey)
+            removeFromLRU(key: key)
+        }
+        drainEvictedKeys()
+
+        #if DEBUG
+        if !keysToRemove.isEmpty {
+            AppLog.debug("🗑️ Removed \(keysToRemove.count) cache entries with prefix: \(prefix)")
+        }
+        #endif
+    }
+
     /// Czyści cały cache
     func removeAll() {
         cache.removeAllObjects()

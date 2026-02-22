@@ -33,14 +33,18 @@ final class PhotoFlowUITests: XCTestCase {
     }
 
     private func openCompareWithHook() {
-        let compareMode = app.buttons["photos.compare.mode.toggle"]
-        XCTAssertTrue(compareMode.waitForExistence(timeout: 5), "Expected compare mode toggle.")
-        compareMode.tap()
+        // Wejdź w tryb selekcji (przycisk "Zaznacz", wcześniej "Compare mode")
+        let selectMode = app.buttons["photos.select.mode.toggle"]
+        XCTAssertTrue(selectMode.waitForExistence(timeout: 5), "Expected select mode toggle.")
+        selectMode.tap()
 
+        // Hook UI test: zaznacza pierwsze 2 zdjęcia z bazy
+        let selectTwoHook = app.buttons["photos.compare.selectTwoHook"]
+        XCTAssertTrue(selectTwoHook.waitForExistence(timeout: 3), "Expected UI test select-two hook.")
+        selectTwoHook.tap()
+
+        // Teraz 2 zdjęcia zaznaczone → przycisk Compare widoczny
         let openCompare = app.buttons["photos.compare.open"]
-        if !openCompare.waitForExistence(timeout: 2) {
-            compareMode.tap()
-        }
         XCTAssertTrue(openCompare.waitForExistence(timeout: 5), "Expected compare action button.")
         openCompare.tap()
 

@@ -1114,6 +1114,10 @@ struct HomeKeyMetricRow: View {
     }
 
     private func baselineValue(for goal: MetricGoal) -> Double {
+        // Priorytet: użytkownik podał jawny punkt startowy
+        if let sv = goal.startValue { return sv }
+
+        // Stare zachowanie: ostatnia próbka ≤ daty utworzenia celu
         guard !samples.isEmpty else { return latest?.value ?? goal.targetValue }
         let sorted = samples.sorted { $0.date < $1.date }
         if let baseline = sorted.last(where: { $0.date <= goal.createdDate }) {
@@ -1132,17 +1136,29 @@ private struct HomeGoalProgressBar: View {
     var body: some View {
         let currentVal = latest.value
         let goalVal = goal.targetValue
-        let isAchieved = goal.isAchieved(currentValue: currentVal)
         let progress: Double
+        let isAchieved: Bool
         switch goal.direction {
         case .increase:
             let denominator = goalVal - baselineValue
-            let raw = denominator == 0 ? (isAchieved ? 1.0 : 0.0) : (currentVal - baselineValue) / denominator
-            progress = min(max(raw, 0.0), 1.0)
+            if denominator <= 0 {
+                progress = 0.0
+                isAchieved = false
+            } else {
+                let raw = (currentVal - baselineValue) / denominator
+                progress = min(max(raw, 0.0), 1.0)
+                isAchieved = progress >= 1.0
+            }
         case .decrease:
             let denominator = baselineValue - goalVal
-            let raw = denominator == 0 ? (isAchieved ? 1.0 : 0.0) : (baselineValue - currentVal) / denominator
-            progress = min(max(raw, 0.0), 1.0)
+            if denominator <= 0 {
+                progress = 0.0
+                isAchieved = false
+            } else {
+                let raw = (baselineValue - currentVal) / denominator
+                progress = min(max(raw, 0.0), 1.0)
+                isAchieved = progress >= 1.0
+            }
         }
 
         return VStack(alignment: .leading, spacing: 6) {

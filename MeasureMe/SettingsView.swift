@@ -698,10 +698,27 @@ struct SettingsView: View {
     }
 
     private struct MetricCSVRowSnapshot: Sendable {
-        let metricTitle: String
-        let displayValue: Double
-        let unit: String
+        let kindRaw: String           // MetricKind.rawValue — klucz do importu
+        let metricTitle: String       // englishTitle — czytelna etykieta (zawsze EN)
+        let metricValue: Double       // wartość w jednostkach bazowych (kg/cm/%)
+        let metricUnit: String        // jednostka bazowa (kg/cm/%)
+        let displayValue: Double      // wartość w jednostkach display
+        let unit: String              // jednostka display
         let date: Date
+    }
+
+    private struct MetricGoalSnapshot: Sendable {
+        let kindRaw: String
+        let metricTitle: String       // englishTitle
+        let direction: String         // "increase" lub "decrease"
+        let targetMetricValue: Double // wartość celu w jednostkach bazowych
+        let targetMetricUnit: String  // jednostka bazowa celu
+        let targetDisplayValue: Double
+        let targetDisplayUnit: String
+        let startMetricValue: Double? // opcjonalny punkt startowy (bazowy)
+        let startDisplayValue: Double?
+        let startDate: Date?
+        let createdDate: Date
     }
 
     private struct DeviceSnapshot: Sendable {
@@ -711,29 +728,69 @@ struct SettingsView: View {
     }
 
     private func exportMetricsCSV() {
-        let snapshot = fetchAllMetricSamplesSorted()
+        let samplesSnapshot = fetchAllMetricSamplesSorted()
+        let goalsSnapshot = fetchAllGoals()
         let currentUnitsSystem = unitsSystem
-        let csvRows: [MetricCSVRowSnapshot] = snapshot.compactMap { sample in
+        let csvRows: [MetricCSVRowSnapshot] = samplesSnapshot.compactMap { sample in
             guard let kind = MetricKind(rawValue: sample.kindRaw) else { return nil }
+            let metricUnit: String
+            switch kind.unitCategory {
+            case .weight: metricUnit = "kg"
+            case .length: metricUnit = "cm"
+            case .percent: metricUnit = "%"
+            }
             return MetricCSVRowSnapshot(
-                metricTitle: kind.title,
+                kindRaw: sample.kindRaw,
+                metricTitle: kind.englishTitle,
+                metricValue: sample.value,
+                metricUnit: metricUnit,
                 displayValue: kind.valueForDisplay(fromMetric: sample.value, unitsSystem: currentUnitsSystem),
                 unit: kind.unitSymbol(unitsSystem: currentUnitsSystem),
                 date: sample.date
             )
         }
+        let goalRows: [MetricGoalSnapshot] = goalsSnapshot.compactMap { goal in
+            guard let kind = MetricKind(rawValue: goal.kindRaw) else { return nil }
+            let metricUnit: String
+            switch kind.unitCategory {
+            case .weight: metricUnit = "kg"
+            case .length: metricUnit = "cm"
+            case .percent: metricUnit = "%"
+            }
+            let startDisplay = goal.startMetricValue.map {
+                kind.valueForDisplay(fromMetric: $0, unitsSystem: currentUnitsSystem)
+            }
+            return MetricGoalSnapshot(
+                kindRaw: goal.kindRaw,
+                metricTitle: kind.englishTitle,
+                direction: goal.directionRaw,
+                targetMetricValue: goal.targetValue,
+                targetMetricUnit: metricUnit,
+                targetDisplayValue: kind.valueForDisplay(fromMetric: goal.targetValue, unitsSystem: currentUnitsSystem),
+                targetDisplayUnit: kind.unitSymbol(unitsSystem: currentUnitsSystem),
+                startMetricValue: goal.startMetricValue,
+                startDisplayValue: startDisplay,
+                startDate: goal.startDate,
+                createdDate: goal.createdDate
+            )
+        }
         exportMessage = AppLocalization.string("Preparing data export...")
         isExporting = true
+        let ts = timestampString()
         Task {
-            let csv = await Task.detached(priority: .userInitiated) {
-                SettingsView.buildMetricsCSV(from: csvRows)
+            let (metricsCSV, goalsCSV) = await Task.detached(priority: .userInitiated) {
+                (SettingsView.buildMetricsCSV(from: csvRows),
+                 SettingsView.buildGoalsCSV(from: goalRows))
             }.value
-            let fileName = "measureme-metrics-\(timestampString()).csv"
-            let url = writeTempFile(named: fileName, contents: csv)
+            let metricsURL = writeTempFile(named: "measureme-metrics-\(ts).csv", contents: metricsCSV)
+            let goalsURL = writeTempFile(named: "measureme-goals-\(ts).csv", contents: goalsCSV)
             await MainActor.run {
                 isExporting = false
-                guard let url else { return }
-                shareItems = [url]
+                var items: [Any] = []
+                if let u = metricsURL { items.append(u) }
+                if let u = goalsURL { items.append(u) }
+                guard !items.isEmpty else { return }
+                shareItems = items
                 shareSubject = AppLocalization.string("MeasureMe data export")
                 isPresentingShareSheet = true
             }
@@ -784,6 +841,32 @@ struct SettingsView: View {
         let samples = (try? modelContext.fetch(descriptor)) ?? []
         return samples.map {
             MetricSampleSnapshot(kindRaw: $0.kindRaw, value: $0.value, date: $0.date)
+        }
+    }
+
+    private struct GoalFetchSnapshot: Sendable {
+        let kindRaw: String
+        let directionRaw: String
+        let targetValue: Double
+        let startMetricValue: Double?
+        let startDate: Date?
+        let createdDate: Date
+    }
+
+    private func fetchAllGoals() -> [GoalFetchSnapshot] {
+        let descriptor = FetchDescriptor<MetricGoal>(
+            sortBy: [SortDescriptor(\.kindRaw, order: .forward)]
+        )
+        let goals = (try? modelContext.fetch(descriptor)) ?? []
+        return goals.map {
+            GoalFetchSnapshot(
+                kindRaw: $0.kindRaw,
+                directionRaw: $0.directionRaw,
+                targetValue: $0.targetValue,
+                startMetricValue: $0.startValue,
+                startDate: $0.startDate,
+                createdDate: $0.createdDate
+            )
         }
     }
 
@@ -949,11 +1032,53 @@ struct SettingsView: View {
     private nonisolated static func buildMetricsCSV(from rows: [MetricCSVRowSnapshot]) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        var lines: [String] = ["metric,value,unit,timestamp"]
+        // metric_id — stały klucz do importu (MetricKind.rawValue, language-agnostic)
+        // value_metric / unit_metric — wartości bazowe (kg/cm/%) — determinizm przy imporcie
+        // value / unit — wartości display (lb/in gdy imperial) — wygoda w Excelu
+        var lines: [String] = ["metric_id,metric,value_metric,unit_metric,value,unit,timestamp"]
         for row in rows {
-            let valueString = String(format: "%.2f", row.displayValue)
+            let metricValueStr = String(format: "%.4f", row.metricValue)
+            let displayValueStr = String(format: "%.2f", row.displayValue)
             let dateString = formatter.string(from: row.date)
-            lines.append("\(csvField(row.metricTitle)),\(valueString),\(csvField(row.unit)),\(dateString)")
+            lines.append([
+                csvField(row.kindRaw),
+                csvField(row.metricTitle),
+                metricValueStr,
+                csvField(row.metricUnit),
+                displayValueStr,
+                csvField(row.unit),
+                dateString
+            ].joined(separator: ","))
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private nonisolated static func buildGoalsCSV(from rows: [MetricGoalSnapshot]) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var lines: [String] = [
+            "metric_id,metric,direction,target_value_metric,target_unit_metric,target_value,target_unit,start_value_metric,start_value,start_date,created_date"
+        ]
+        for row in rows {
+            let targetMetricStr = String(format: "%.4f", row.targetMetricValue)
+            let targetDisplayStr = String(format: "%.2f", row.targetDisplayValue)
+            let startMetricStr = row.startMetricValue.map { String(format: "%.4f", $0) } ?? ""
+            let startDisplayStr = row.startDisplayValue.map { String(format: "%.2f", $0) } ?? ""
+            let startDateStr = row.startDate.map { formatter.string(from: $0) } ?? ""
+            let createdStr = formatter.string(from: row.createdDate)
+            lines.append([
+                csvField(row.kindRaw),
+                csvField(row.metricTitle),
+                csvField(row.direction),
+                targetMetricStr,
+                csvField(row.targetMetricUnit),
+                targetDisplayStr,
+                csvField(row.targetDisplayUnit),
+                startMetricStr,
+                startDisplayStr,
+                startDateStr,
+                createdStr
+            ].joined(separator: ","))
         }
         return lines.joined(separator: "\n")
     }

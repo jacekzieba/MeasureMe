@@ -39,12 +39,23 @@ final class MetricGoal {
     
     /// Kierunek celu jako String (rawValue z Direction enum)
     var directionRaw: String
-    
-    init(kind: MetricKind, targetValue: Double, direction: Direction = .decrease, createdDate: Date = .now) {
+
+    /// Opcjonalna wartość startowa celu podana przez użytkownika (jednostki bazowe: kg, cm, %).
+    /// Gdy nil, baseline jest wyliczany dynamicznie z próbek (stare zachowanie).
+    var startValue: Double?
+
+    /// Opcjonalna data startowa celu podana przez użytkownika.
+    /// Gdy nil, baseline pochodzi z próbek ≤ createdDate (stare zachowanie).
+    var startDate: Date?
+
+    init(kind: MetricKind, targetValue: Double, direction: Direction = .decrease,
+         createdDate: Date = .now, startValue: Double? = nil, startDate: Date? = nil) {
         self.kindRaw = kind.rawValue
         self.targetValue = targetValue
         self.directionRaw = direction.rawValue
         self.createdDate = createdDate
+        self.startValue = startValue
+        self.startDate = startDate
     }
     
     /// Wygodny accessor do konwersji String -> MetricKind.

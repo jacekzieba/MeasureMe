@@ -223,11 +223,18 @@ struct MetricDetailView: View {
             EditMetricSampleView(kind: kind, sample: sample)
         }
         .sheet(isPresented: $showGoalSheet) {
-            SetGoalView(kind: kind, currentGoal: currentGoal, onSet: { targetValue, direction in
-                setGoal(targetValue: targetValue, direction: direction)
-            }, onDelete: {
-                deleteGoal()
-            })
+            SetGoalView(
+                kind: kind,
+                currentGoal: currentGoal,
+                latestMetricValue: latestSampleValue,
+                onSet: { targetValue, direction, startValue, startDate in
+                    setGoal(targetValue: targetValue, direction: direction,
+                            startValue: startValue, startDate: startDate)
+                },
+                onDelete: {
+                    deleteGoal()
+                }
+            )
         }
         .task(id: insightInput) {
             await loadInsightIfNeeded()
