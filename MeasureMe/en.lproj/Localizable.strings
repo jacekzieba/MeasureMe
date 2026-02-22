@@ -902,3 +902,13 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "photos.delete.count.a11y.few" = "Delete %d selected photos";
 "photos.delete.count.a11y.many" = "Delete %d selected photos";
 "Double tap to select or deselect this photo" = "Double tap to select or deselect this photo";
+
+// MARK: - Data Import
+"Import data" = "Import data";
+"Merge (keep existing data)" = "Merge (keep existing data)";
+"Replace (delete existing data)" = "Replace (delete existing data)";
+"How should MeasureMe handle existing data?" = "How should MeasureMe handle existing data?";
+"Import complete" = "Import complete";
+"Imported %d measurements and %d goals." = "Imported %d measurements and %d goals.";
+"%d rows skipped." = "%d rows skipped.";
+"Could not open file: " = "Could not open file: ";

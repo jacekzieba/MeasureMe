@@ -1277,3 +1277,13 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "photos.delete.count.a11y.few" = "Usuń %d wybrane zdjęcia";
 "photos.delete.count.a11y.many" = "Usuń %d wybranych zdjęć";
 "Double tap to select or deselect this photo" = "Stuknij dwukrotnie, aby zaznaczyć lub odznaczyć to zdjęcie";
+
+// MARK: - Data Import
+"Import data" = "Importuj dane";
+"Merge (keep existing data)" = "Połącz (zachowaj istniejące dane)";
+"Replace (delete existing data)" = "Zastąp (usuń istniejące dane)";
+"How should MeasureMe handle existing data?" = "Jak MeasureMe ma obsłużyć istniejące dane?";
+"Import complete" = "Import zakończony";
+"Imported %d measurements and %d goals." = "Zaimportowano %d pomiarów i %d celów.";
+"%d rows skipped." = "Pominięto %d wierszy.";
+"Could not open file: " = "Nie można otworzyć pliku: ";

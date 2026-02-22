@@ -412,6 +412,7 @@ struct LanguageSettingsDetailView: View {
 struct DataSettingsDetailView: View {
     @AppStorage("diagnostics_logging_enabled") private var diagnosticsLoggingEnabled: Bool = true
     let onExport: () -> Void
+    let onImport: () -> Void
     let onDeleteAll: () -> Void
 
     var body: some View {
@@ -425,6 +426,19 @@ struct DataSettingsDetailView: View {
                             HStack(spacing: 12) {
                                 GlassPillIcon(systemName: "square.and.arrow.up")
                                 Text(AppLocalization.string("Export data"))
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        SettingsRowDivider()
+
+                        Button(action: onImport) {
+                            HStack(spacing: 12) {
+                                GlassPillIcon(systemName: "square.and.arrow.down")
+                                Text(AppLocalization.string("Import data"))
                                 Spacer()
                             }
                             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)

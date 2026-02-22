@@ -560,14 +560,15 @@ struct MetricDetailView: View {
             ForEach(chartSamples, id: \.persistentModelID) { s in
                 AreaMark(
                     x: .value("Date", s.date),
-                    y: .value("Value", displayValue(s.value))
+                    yStart: .value("Baseline", yDomain.lowerBound),
+                    yEnd: .value("Value", displayValue(s.value))
                 )
                 .interpolationMethod(.monotone)
                 .foregroundStyle(
                     LinearGradient(
                         colors: [
-                            Color(hex: "#FCA311").opacity(0.1),
-                            Color(hex: "#FCA311").opacity(0.0)
+                            Color(hex: "#FCA311").opacity(0.28),
+                            Color(hex: "#FCA311").opacity(0.02)
                         ],
                         startPoint: .top,
                         endPoint: .bottom

@@ -585,14 +585,24 @@ struct MetricChartTile: View {
 
                         Chart {
 
-                        // 🔹 AREA – JEDEN mark, jeden gradient
+                        // 🔹 AREA – gradient zanikający od linii w dół
                         ForEach(recentSamples) { s in
                             AreaMark(
                                 x: .value("Date", s.date),
-                                y: .value("Value", displayValue(s.value))
+                                yStart: .value("Baseline", yDomain.lowerBound),
+                                yEnd: .value("Value", displayValue(s.value))
                             )
                             .interpolationMethod(.monotone)
-                            .foregroundStyle(by: .value("Area", "fill"))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [
+                                        Color(hex: "#FCA311").opacity(0.28),
+                                        Color(hex: "#FCA311").opacity(0.02)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
 
                         }
 
@@ -639,18 +649,6 @@ struct MetricChartTile: View {
                         }
                         .padding(.horizontal, 2)
                         .padding(.vertical, 2)
-                        .chartForegroundStyleScale([
-                            "fill": LinearGradient(
-                                colors: [
-                                    Color(hex: "#FCA311").opacity(0.1),
-                                    Color(hex: "#FCA311").opacity(0.1),
-                                    Color(hex: "#FCA311").opacity(0.1)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        ])
-                        .chartLegend(.hidden)
                         .chartYScale(domain: yDomain)
                         .chartXAxis {
                             AxisMarks(values: .automatic(desiredCount: 3)) { _ in
