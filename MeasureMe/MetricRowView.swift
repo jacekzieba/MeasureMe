@@ -12,8 +12,7 @@ struct MetricRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: kind.systemImage)
-                .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
+            kind.iconView(size: MetricsLayout.iconWidth, tint: .white)
                 .frame(width: MetricsLayout.iconWidth)
 
             ViewThatFits(in: .vertical) {

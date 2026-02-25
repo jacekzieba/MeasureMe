@@ -243,6 +243,26 @@ struct MeasureMeApp: App {
             "metric_weight_enabled", "metric_bodyFat_enabled",
             "metric_nonFatMass_enabled", "metric_waist_enabled"
         ]
+        let indicatorKeysEnabledByDefault = [
+            "showWHtROnHome",
+            "showRFMOnHome",
+            "showBMIOnHome",
+            "showBodyFatOnHome",
+            "showLeanMassOnHome",
+            "showWHROnHome",
+            "showWaistRiskOnHome",
+            "showABSIOnHome",
+            "showBodyShapeScoreOnHome",
+            "showCentralFatRiskOnHome",
+            "showPhysiqueSWR",
+            "showPhysiqueCWR",
+            "showPhysiqueSHR",
+            "showPhysiqueHWR",
+            "showPhysiqueBWR",
+            "showPhysiqueWHtR",
+            "showPhysiqueBodyFat",
+            "showPhysiqueRFM"
+        ]
 
         if args.contains("-uiTestOnboardingMode") {
             defaults.set(false, forKey: "hasCompletedOnboarding")
@@ -254,6 +274,9 @@ struct MeasureMeApp: App {
             for key in metricKeys {
                 defaults.set(enabledByDefault.contains(key), forKey: key)
             }
+            for key in indicatorKeysEnabledByDefault {
+                defaults.set(true, forKey: key)
+            }
         }
 
         guard args.contains("-uiTestMode") else { return }
@@ -263,6 +286,9 @@ struct MeasureMeApp: App {
         defaults.set(true, forKey: "apple_intelligence_enabled")
         defaults.set(false, forKey: "onboarding_checklist_show")
         defaults.set(-20.0, forKey: "home_tab_scroll_offset")
+        defaults.set(true, forKey: "showLastPhotosOnHome")
+        defaults.set(true, forKey: "showMeasurementsOnHome")
+        defaults.set(true, forKey: "showHealthMetricsOnHome")
 
         if args.contains("-uiTestNoActiveMetrics") {
             for key in metricKeys { defaults.set(false, forKey: key) }
@@ -270,6 +296,22 @@ struct MeasureMeApp: App {
             for key in metricKeys {
                 defaults.set(enabledByDefault.contains(key), forKey: key)
             }
+        }
+        for key in indicatorKeysEnabledByDefault {
+            defaults.set(true, forKey: key)
+        }
+        if args.contains("-uiTestForceNonPremium") {
+            defaults.set(false, forKey: "premium_entitlement")
+        }
+        if args.contains("-uiTestPhysiqueSWROff") {
+            defaults.set(false, forKey: "showPhysiqueSWR")
+        }
+        if args.contains("-uiTestGenderNotSpecified") {
+            defaults.set("notSpecified", forKey: "userGender")
+        } else if args.contains("-uiTestGenderMale") {
+            defaults.set("male", forKey: "userGender")
+        } else if args.contains("-uiTestGenderFemale") {
+            defaults.set("female", forKey: "userGender")
         }
         #endif
     }

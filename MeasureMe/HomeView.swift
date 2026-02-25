@@ -13,6 +13,7 @@ struct HomeView: View {
 
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
+    @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var modelContext
     @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
@@ -50,6 +51,8 @@ struct HomeView: View {
     @State private var reminderChecklistCompleted: Bool = false
     @State private var showMoreChecklistItems: Bool = false
     @State private var didCheckSevenDayPaywallPrompt: Bool = false
+    @State private var didScheduleInitialPhotoMetricSync = false
+    @State private var isPhotoMetricSyncInFlight = false
     
     // Dane HealthKit
     @State private var latestBodyFat: Double?
@@ -82,6 +85,29 @@ struct HomeView: View {
         let isCompleted: Bool
         let isLoading: Bool
     }
+
+    private enum HomePhotoTile: Identifiable {
+        case persisted(PhotoEntry)
+        case pending(PendingPhotoSaveItem)
+
+        var id: String {
+            switch self {
+            case .persisted(let photo):
+                return "persisted_\(String(describing: photo.persistentModelID))"
+            case .pending(let item):
+                return "pending_\(item.id.uuidString)"
+            }
+        }
+
+        var date: Date {
+            switch self {
+            case .persisted(let photo):
+                return photo.date
+            case .pending(let item):
+                return item.date
+            }
+        }
+    }
     
     private var lastPhotosGridSide: CGFloat {
         let spacing: CGFloat = 8
@@ -99,9 +125,18 @@ struct HomeView: View {
     }
     
     
-    /// Widoczne zdjęcia (maksymalnie 6)
-    private var visiblePhotos: [PhotoEntry] {
-        Array(allPhotos.prefix(maxVisiblePhotos))
+    /// Widoczne kafelki zdjęć (persisted + pending, maksymalnie 6)
+    private var visiblePhotoTiles: [HomePhotoTile] {
+        let persistedTiles = allPhotos.map { HomePhotoTile.persisted($0) }
+        let pendingTiles = pendingPhotoSaveStore.pendingItems.map { HomePhotoTile.pending($0) }
+        return (persistedTiles + pendingTiles)
+            .sorted { lhs, rhs in lhs.date > rhs.date }
+            .prefix(maxVisiblePhotos)
+            .map { $0 }
+    }
+
+    private var hasAnyPhotoContent: Bool {
+        !allPhotos.isEmpty || !pendingPhotoSaveStore.pendingItems.isEmpty
     }
     
     /// Słownik próbek dla każdego rodzaju metryki
@@ -184,13 +219,36 @@ struct HomeView: View {
     ///   - If none exists, insert a new MetricSample.
     ///   - Nigdy nie usuwa MetricSample po usunieciu zdjecia; funkcja wykonuje tylko upsert.
     private func syncMeasurementsFromPhotosIfNeeded() {
+        guard !isPhotoMetricSyncInFlight else { return }
+        isPhotoMetricSyncInFlight = true
+        defer { isPhotoMetricSyncInFlight = false }
+
+        let photosWithMetrics = allPhotos.filter { !$0.linkedMetrics.isEmpty }
+        guard !photosWithMetrics.isEmpty else { return }
+
+        let syncedKindsRaw = Set(
+            photosWithMetrics
+                .flatMap(\.linkedMetrics)
+                .compactMap { $0.kind?.rawValue }
+        )
+
         // Buduje cache istniejacych probek po (kindRaw, dayStart)
         var existingByKey: [String: MetricSample] = [:]
         do {
-            // Pobiera szerokie okno, aby ograniczil nadmiar zapytan; dostosuj w razie potrzeby
-            let descriptor = FetchDescriptor<MetricSample>(
-                sortBy: [SortDescriptor(\.date, order: .reverse)]
-            )
+            let descriptor: FetchDescriptor<MetricSample>
+            if syncedKindsRaw.isEmpty {
+                descriptor = FetchDescriptor<MetricSample>(
+                    sortBy: [SortDescriptor(\.date, order: .reverse)]
+                )
+            } else {
+                let kinds = Array(syncedKindsRaw)
+                descriptor = FetchDescriptor<MetricSample>(
+                    predicate: #Predicate<MetricSample> { sample in
+                        kinds.contains(sample.kindRaw)
+                    },
+                    sortBy: [SortDescriptor(\.date, order: .reverse)]
+                )
+            }
             let existing = try modelContext.fetch(descriptor)
             let cal = Calendar.current
             for s in existing {
@@ -203,9 +261,10 @@ struct HomeView: View {
         }
 
         // Iteruje po zdjeciach i wykonuje upsert probek dla kazdego snapshotu
-        for photo in allPhotos {
+        let calendar = Calendar.current
+        for photo in photosWithMetrics {
             let photoDate = photo.date
-            let dayStart = Calendar.current.startOfDay(for: photoDate)
+            let dayStart = calendar.startOfDay(for: photoDate)
             for snapshot in photo.linkedMetrics {
                 guard let kind = snapshot.kind else { continue }
                 let kindRaw = kind.rawValue
@@ -223,6 +282,16 @@ struct HomeView: View {
         }
 
         // Celowo bez usuwania (usuniecie zdjecia nie powinno kasowac probek)
+    }
+
+    private func scheduleInitialPhotoMetricSyncIfNeeded() {
+        guard !didScheduleInitialPhotoMetricSync else { return }
+        didScheduleInitialPhotoMetricSync = true
+
+        Task(priority: .utility) { @MainActor in
+            await Task.yield()
+            syncMeasurementsFromPhotosIfNeeded()
+        }
     }
 
     /// Przebudowuje goalsByKind na podstawie tablicy celow @Query.
@@ -270,7 +339,7 @@ struct HomeView: View {
                     
                     // SEKCJA: LAST PHOTOS
                     if showLastPhotosOnHome {
-                        if allPhotos.isEmpty {
+                        if !hasAnyPhotoContent {
                             lastPhotosEmptyState
                         } else {
                             lastPhotosSection
@@ -289,6 +358,7 @@ struct HomeView: View {
                                 latestWaist: latestWaist,
                                 latestHeight: latestHeight,
                                 latestWeight: latestWeight,
+                                latestHips: cachedLatestByKind[.hips]?.value,
                                 latestBodyFat: latestBodyFat,
                                 latestLeanMass: latestLeanMass,
                                 displayMode: .summaryOnly,
@@ -333,7 +403,7 @@ struct HomeView: View {
             rebuildGoalsCache()
             fetchHealthKitData()
             refreshChecklistState()
-            syncMeasurementsFromPhotosIfNeeded()
+            scheduleInitialPhotoMetricSyncIfNeeded()
         }
         .onChange(of: recentSamplesSignature) { _, _ in
             refreshMeasurementCaches()
@@ -349,7 +419,6 @@ struct HomeView: View {
         }
         .onChange(of: allPhotos.count) { _, _ in
             refreshChecklistState()
-            syncMeasurementsFromPhotosIfNeeded()
         }
         .onChange(of: onboardingChecklistMetricsCompleted) { _, _ in
             refreshChecklistState()
@@ -455,7 +524,7 @@ struct HomeView: View {
                 title: AppLocalization.string("First Photo"),
                 detail: AppLocalization.string("Photos make progress easier to notice."),
                 icon: "camera.fill",
-                isCompleted: !allPhotos.isEmpty,
+                isCompleted: hasAnyPhotoContent,
                 isLoading: false
             )
         ]
@@ -910,7 +979,7 @@ struct HomeView: View {
                     
                     Spacer()
                     
-                    if allPhotos.count > maxVisiblePhotos {
+                    if (allPhotos.count + pendingPhotoSaveStore.pendingItems.count) > maxVisiblePhotos {
                         Button {
                             router.selectedTab = .photos
                         } label: {
@@ -932,23 +1001,38 @@ struct HomeView: View {
                     columns: Array(repeating: GridItem(.fixed(lastPhotosGridSide), spacing: 8), count: 3),
                     spacing: 8
                 ) {
-                    ForEach(visiblePhotos) { photo in
-                        Button {
-                            selectedPhotoForFullScreen = photo
-                        } label: {
-                            PhotoGridThumb(
-                                imageData: photo.imageData,
-                                size: lastPhotosGridSide,
-                                cacheID: String(describing: photo.id)
+                    ForEach(visiblePhotoTiles) { tile in
+                        switch tile {
+                        case .persisted(let photo):
+                            Button {
+                                selectedPhotoForFullScreen = photo
+                            } label: {
+                                PhotoGridThumb(
+                                    imageData: photo.imageData,
+                                    size: lastPhotosGridSide,
+                                    cacheID: String(describing: photo.id)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(AppLocalization.string("accessibility.open.photo.details"))
+                            .accessibilityValue(photo.date.formatted(date: .abbreviated, time: .omitted))
+                        case .pending(let pending):
+                            PendingPhotoGridCell(
+                                thumbnailData: pending.thumbnailData,
+                                progress: pending.progress,
+                                status: pending.status,
+                                targetSize: CGSize(width: lastPhotosGridSide, height: lastPhotosGridSide),
+                                cornerRadius: 12,
+                                cacheID: pending.id.uuidString,
+                                showsStatusLabel: false,
+                                accessibilityIdentifier: "home.lastPhotos.pending.item"
                             )
+                            .frame(width: lastPhotosGridSide, height: lastPhotosGridSide)
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(AppLocalization.string("accessibility.open.photo.details"))
-                        .accessibilityValue(photo.date.formatted(date: .abbreviated, time: .omitted))
                     }
                 }
                 .frame(height: {
-                    let rows = max(1, Int(ceil(Double(visiblePhotos.count) / 3.0)))
+                    let rows = max(1, Int(ceil(Double(visiblePhotoTiles.count) / 3.0)))
                     let spacing: CGFloat = 8
                     return CGFloat(rows) * lastPhotosGridSide + CGFloat(max(rows - 1, 0)) * spacing
                 }())
@@ -1037,11 +1121,7 @@ struct HomeKeyMetricRow: View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
-                    Image(systemName: kind.systemImage)
-                        .font(AppTypography.metricTitle)
-                        .foregroundStyle(Color(hex: "#FCA311"))
-                        .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
-                        .frame(width: 16, height: 16)
+                    kind.iconView(font: AppTypography.metricTitle, size: 16, tint: Color.appAccent)
 
                     ViewThatFits(in: .vertical) {
                         Text(kind.title)

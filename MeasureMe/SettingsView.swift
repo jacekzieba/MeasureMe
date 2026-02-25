@@ -44,8 +44,21 @@ struct SettingsView: View {
     @AppStorage("showLeanMassOnHome") private var showLeanMassOnHome: Bool = true
     
     // Risk Indicators visibility
+    @AppStorage("showWHROnHome") private var showWHROnHome: Bool = true
+    @AppStorage("showWaistRiskOnHome") private var showWaistRiskOnHome: Bool = true
     @AppStorage("showABSIOnHome") private var showABSIOnHome: Bool = true
-    @AppStorage("showConicityOnHome") private var showConicityOnHome: Bool = true
+    @AppStorage("showBodyShapeScoreOnHome") private var showBodyShapeScoreOnHome: Bool = true
+    @AppStorage("showCentralFatRiskOnHome") private var showCentralFatRiskOnHome: Bool = true
+
+    // Physique indicators visibility
+    @AppStorage("showPhysiqueSWR") private var showPhysiqueSWR: Bool = true
+    @AppStorage("showPhysiqueCWR") private var showPhysiqueCWR: Bool = true
+    @AppStorage("showPhysiqueSHR") private var showPhysiqueSHR: Bool = true
+    @AppStorage("showPhysiqueHWR") private var showPhysiqueHWR: Bool = true
+    @AppStorage("showPhysiqueBWR") private var showPhysiqueBWR: Bool = true
+    @AppStorage("showPhysiqueWHtR") private var showPhysiqueWHtR: Bool = true
+    @AppStorage("showPhysiqueBodyFat") private var showPhysiqueBodyFat: Bool = true
+    @AppStorage("showPhysiqueRFM") private var showPhysiqueRFM: Bool = true
     
     @AppStorage("userGender") private var userGender: String = "notSpecified"
     @AppStorage("manualHeight") private var manualHeight: Double = 0.0
@@ -74,6 +87,9 @@ struct SettingsView: View {
     @State private var isImporting = false
     @State private var showImportResult = false
     @State private var importResultMessage = ""
+    @State private var showSeedDummyDataConfirm = false
+    @State private var showSeedDummyDataResult = false
+    @State private var seedDummyDataResultMessage = ""
     @State private var navigateToTrackedMeasurements: Bool = false
     @State private var navigateToReminders: Bool = false
     @State private var settingsSearchQuery: String = ""
@@ -88,6 +104,7 @@ struct SettingsView: View {
         case profile
         case metrics
         case healthIndicators
+        case physiqueIndicators
         case health
         case notifications
         case home
@@ -97,6 +114,7 @@ struct SettingsView: View {
         case language
         case data
         case faq
+        case about
     }
 
     private struct SettingsSearchItem: Identifiable {
@@ -117,6 +135,7 @@ struct SettingsView: View {
             SettingsSearchItem(route: .profile, title: AppLocalization.string("Profile"), subtitle: AppLocalization.string("Name, gender, age, height"), keywords: ["profile", "name", "gender", "age", "height", "profil", "imię", "płeć", "wiek", "wzrost"]),
             SettingsSearchItem(route: .metrics, title: AppLocalization.string("Metrics"), subtitle: AppLocalization.string("Tracked measurements"), keywords: ["metrics", "tracked", "measurements", "metryki", "śledzone", "pomiary"]),
             SettingsSearchItem(route: .healthIndicators, title: AppLocalization.string("Health indicators"), subtitle: AppLocalization.string("Choose indicators to show"), keywords: ["health indicators", "indicators", "wskaźniki", "zdrowia"]),
+            SettingsSearchItem(route: .physiqueIndicators, title: AppLocalization.string("Physique indicators"), subtitle: AppLocalization.string("Choose physique indicators"), keywords: ["physique", "physique indicators", "sylwetka", "wskaźniki sylwetki", "proportions"]),
             SettingsSearchItem(route: .health, title: AppLocalization.string("Health"), subtitle: AppLocalization.string("Sync and synced data"), keywords: ["health", "sync", "synced", "zdrowie", "synchronizacja", "synchronizowane"]),
             SettingsSearchItem(route: .notifications, title: AppLocalization.string("Notifications"), subtitle: AppLocalization.string("Manage reminders"), keywords: ["notifications", "reminders", "powiadomienia", "przypomnienia"]),
             SettingsSearchItem(route: .home, title: AppLocalization.string("Home"), subtitle: AppLocalization.string("Home sections visibility"), keywords: ["home", "strona główna", "widoczność"]),
@@ -325,13 +344,42 @@ struct SettingsView: View {
                                 showWHtROnHome: $showWHtROnHome,
                                 showRFMOnHome: $showRFMOnHome,
                                 showBMIOnHome: $showBMIOnHome,
+                                showWHROnHome: $showWHROnHome,
+                                showWaistRiskOnHome: $showWaistRiskOnHome,
                                 showBodyFatOnHome: $showBodyFatOnHome,
                                 showLeanMassOnHome: $showLeanMassOnHome,
                                 showABSIOnHome: $showABSIOnHome,
-                                showConicityOnHome: $showConicityOnHome
+                                showBodyShapeScoreOnHome: $showBodyShapeScoreOnHome,
+                                showCentralFatRiskOnHome: $showCentralFatRiskOnHome
                             )
                         } label: {
                             Text(AppLocalization.string("Choose indicators to show"))
+                                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .listRowSeparator(.hidden)
+                .listSectionSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(Self.settingsRowInsets)
+
+                Section {
+                    SettingsCard(tint: Color(hex: "#14B8A6").opacity(0.16)) {
+                        SettingsCardHeader(title: AppLocalization.string("Physique indicators"), systemImage: "figure.strengthtraining.traditional")
+                        NavigationLink {
+                            PhysiqueIndicatorsSettingsDetailView(
+                                showPhysiqueSWR: $showPhysiqueSWR,
+                                showPhysiqueCWR: $showPhysiqueCWR,
+                                showPhysiqueSHR: $showPhysiqueSHR,
+                                showPhysiqueHWR: $showPhysiqueHWR,
+                                showPhysiqueBWR: $showPhysiqueBWR,
+                                showPhysiqueWHtR: $showPhysiqueWHtR,
+                                showPhysiqueBodyFat: $showPhysiqueBodyFat,
+                                showPhysiqueRFM: $showPhysiqueRFM
+                            )
+                        } label: {
+                            Text(AppLocalization.string("Choose physique indicators"))
                                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                         }
                         .buttonStyle(.plain)
@@ -398,7 +446,7 @@ struct SettingsView: View {
 
                 Section {
                     SettingsCard(tint: Color.white.opacity(0.08)) {
-                        SettingsCardHeader(title: AppLocalization.string("Animations and haptics"), systemImage: "sparkles")
+                        SettingsCardHeader(title: AppLocalization.string("Animations and haptics"), systemImage: "apple.haptics.and.music.note")
                         NavigationLink {
                             ExperienceSettingsDetailView(
                                 animationsEnabled: $animationsEnabled,
@@ -456,6 +504,10 @@ struct SettingsView: View {
                                         premiumStore.presentPaywall(reason: .feature("Data import"))
                                     }
                                 },
+                                onSeedDummyData: {
+                                    Haptics.light()
+                                    showSeedDummyDataConfirm = true
+                                },
                                 onDeleteAll: {
                                     Haptics.light()
                                     showDeleteAllDataConfirm = true
@@ -491,7 +543,7 @@ struct SettingsView: View {
 
                 Section {
                     SettingsCard(tint: Color.white.opacity(0.07)) {
-                        SettingsCardHeader(title: AppLocalization.string("App"), systemImage: "info.circle")
+                        SettingsCardHeader(title: AppLocalization.string("App"), systemImage: "iphone.gen3.sizes")
 
                         if premiumStore.isPremium {
                             NavigationLink {
@@ -557,46 +609,28 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    }
+                }
+                .listRowSeparator(.hidden)
+                .listSectionSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(Self.settingsRowInsets)
 
-                        SettingsRowDivider()
-
-                        Button {
-                            openURL(LegalLinks.about)
-                        } label: {
-                            appSectionRowLabel(
-                                title: AppLocalization.string("About"),
-                                trailingSymbol: "arrow.up.right.square"
+                Section {
+                    SettingsCard(tint: Color.white.opacity(0.07)) {
+                        SettingsCardHeader(title: AppLocalization.string("About"), systemImage: "info.circle")
+                        NavigationLink {
+                            AboutSettingsDetailView(
+                                onReportBug: {
+                                    Haptics.light()
+                                    exportDiagnosticsJSON()
+                                }
                             )
+                        } label: {
+                            Text(AppLocalization.string("About MeasureMe"))
+                                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                         }
                         .buttonStyle(.plain)
-                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-
-                        SettingsRowDivider()
-
-                        Button {
-                            openURL(LegalLinks.featureRequest)
-                        } label: {
-                            appSectionRowLabel(
-                                title: AppLocalization.string("Feature request"),
-                                trailingSymbol: "arrow.up.right.square"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-
-                        SettingsRowDivider()
-
-                        Button {
-                            Haptics.light()
-                            exportDiagnosticsJSON()
-                        } label: {
-                            appSectionRowLabel(
-                                title: AppLocalization.string("Report a bug"),
-                                trailingSymbol: "ladybug"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     }
                 }
                 .listRowSeparator(.hidden)
@@ -658,6 +692,19 @@ struct SettingsView: View {
                 Button(AppLocalization.string("OK"), role: .cancel) { }
             } message: {
                 Text(deleteAllDataResultMessage)
+            }
+            .alert(AppLocalization.string("Seed dummy data"), isPresented: $showSeedDummyDataConfirm) {
+                Button(AppLocalization.string("Cancel"), role: .cancel) { }
+                Button(AppLocalization.string("Seed dummy data")) {
+                    seedDummyData()
+                }
+            } message: {
+                Text(AppLocalization.string("This will add realistic sample measurements for recent weeks. Existing data will remain unchanged."))
+            }
+            .alert(AppLocalization.string("Seed dummy data"), isPresented: $showSeedDummyDataResult) {
+                Button(AppLocalization.string("OK"), role: .cancel) { }
+            } message: {
+                Text(seedDummyDataResultMessage)
             }
             .fileImporter(
                 isPresented: $showImportPicker,
@@ -943,6 +990,12 @@ struct SettingsView: View {
         }
     }
 
+    private func seedDummyData() {
+        Task { @MainActor in
+            await performSeedDummyData()
+        }
+    }
+
     @MainActor
     private func performDeleteAllUserData() async {
         do {
@@ -971,6 +1024,108 @@ struct SettingsView: View {
             showDeleteAllDataResult = true
             Haptics.error()
         }
+    }
+
+    @MainActor
+    private func performSeedDummyData() async {
+        do {
+            let existing = (try? modelContext.fetch(FetchDescriptor<MetricSample>())) ?? []
+            var existingKeys = Set<String>()
+            for sample in existing {
+                existingKeys.insert(metricSampleSeedKey(kindRaw: sample.kindRaw, date: sample.date))
+            }
+
+            let calendar = Calendar.current
+            let startOfToday = calendar.startOfDay(for: AppClock.now)
+            let dayOffsets = stride(from: 56, through: 0, by: -4).map { $0 }
+            var inserted = 0
+
+            for (step, offset) in dayOffsets.enumerated() {
+                guard let day = calendar.date(byAdding: .day, value: -offset, to: startOfToday),
+                      let timestamp = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day) else {
+                    continue
+                }
+
+                for kind in MetricKind.allCases {
+                    guard let value = seededMetricValue(for: kind, step: step) else { continue }
+                    let key = metricSampleSeedKey(kindRaw: kind.rawValue, date: timestamp)
+                    guard !existingKeys.contains(key) else { continue }
+                    modelContext.insert(MetricSample(kind: kind, value: value, date: timestamp))
+                    existingKeys.insert(key)
+                    inserted += 1
+                }
+            }
+
+            try modelContext.save()
+
+            if userGender == "notSpecified" {
+                userGender = "male"
+            }
+            if userAge <= 0 {
+                userAge = 29
+            }
+            if manualHeight <= 0 {
+                manualHeight = 180
+            }
+
+            seedDummyDataResultMessage = String(
+                format: AppLocalization.string("Dummy data added: %d measurements."),
+                inserted
+            )
+            showSeedDummyDataResult = true
+            Haptics.success()
+        } catch {
+            AppLog.debug("⚠️ Failed to seed dummy data: \(error)")
+            seedDummyDataResultMessage = AppLocalization.string("Could not seed dummy data. Please try again.")
+            showSeedDummyDataResult = true
+            Haptics.error()
+        }
+    }
+
+    private func seededMetricValue(for kind: MetricKind, step: Int) -> Double? {
+        let s = Double(step)
+        switch kind {
+        case .weight:
+            return 92.0 - (0.35 * s)
+        case .bodyFat:
+            return 27.0 - (0.28 * s)
+        case .height:
+            return 180.0
+        case .leanBodyMass:
+            return 66.0 + (0.08 * s)
+        case .waist:
+            return 101.0 - (0.45 * s)
+        case .neck:
+            return 40.0 - (0.03 * s)
+        case .shoulders:
+            return 118.0 + (0.12 * s)
+        case .bust:
+            return 96.0 + (0.05 * s)
+        case .chest:
+            return 103.0 + (0.11 * s)
+        case .leftBicep:
+            return 33.0 + (0.10 * s)
+        case .rightBicep:
+            return 33.2 + (0.10 * s)
+        case .leftForearm:
+            return 28.0 + (0.05 * s)
+        case .rightForearm:
+            return 28.1 + (0.05 * s)
+        case .hips:
+            return 106.0 - (0.20 * s)
+        case .leftThigh:
+            return 60.0 - (0.07 * s)
+        case .rightThigh:
+            return 60.3 - (0.07 * s)
+        case .leftCalf:
+            return 38.0 + (0.03 * s)
+        case .rightCalf:
+            return 38.2 + (0.03 * s)
+        }
+    }
+
+    private func metricSampleSeedKey(kindRaw: String, date: Date) -> String {
+        "\(kindRaw)_\(Int(date.timeIntervalSince1970))"
     }
 
     private func deleteAllEntities<T: PersistentModel>(of type: T.Type) throws {
@@ -1024,10 +1179,24 @@ struct SettingsView: View {
                 showWHtROnHome: $showWHtROnHome,
                 showRFMOnHome: $showRFMOnHome,
                 showBMIOnHome: $showBMIOnHome,
+                showWHROnHome: $showWHROnHome,
+                showWaistRiskOnHome: $showWaistRiskOnHome,
                 showBodyFatOnHome: $showBodyFatOnHome,
                 showLeanMassOnHome: $showLeanMassOnHome,
                 showABSIOnHome: $showABSIOnHome,
-                showConicityOnHome: $showConicityOnHome
+                showBodyShapeScoreOnHome: $showBodyShapeScoreOnHome,
+                showCentralFatRiskOnHome: $showCentralFatRiskOnHome
+            )
+        case .physiqueIndicators:
+            PhysiqueIndicatorsSettingsDetailView(
+                showPhysiqueSWR: $showPhysiqueSWR,
+                showPhysiqueCWR: $showPhysiqueCWR,
+                showPhysiqueSHR: $showPhysiqueSHR,
+                showPhysiqueHWR: $showPhysiqueHWR,
+                showPhysiqueBWR: $showPhysiqueBWR,
+                showPhysiqueWHtR: $showPhysiqueWHtR,
+                showPhysiqueBodyFat: $showPhysiqueBodyFat,
+                showPhysiqueRFM: $showPhysiqueRFM
             )
         case .health:
             HealthSettingsDetailView(
@@ -1077,6 +1246,10 @@ struct SettingsView: View {
                         premiumStore.presentPaywall(reason: .feature("Data import"))
                     }
                 },
+                onSeedDummyData: {
+                    Haptics.light()
+                    showSeedDummyDataConfirm = true
+                },
                 onDeleteAll: {
                     Haptics.light()
                     showDeleteAllDataConfirm = true
@@ -1084,6 +1257,13 @@ struct SettingsView: View {
             )
         case .faq:
             FAQView()
+        case .about:
+            AboutSettingsDetailView(
+                onReportBug: {
+                    Haptics.light()
+                    exportDiagnosticsJSON()
+                }
+            )
         }
     }
 

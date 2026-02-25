@@ -1,12 +1,16 @@
 import SwiftUI
+import SwiftData
 
 @MainActor
 struct RootView: View {
     @StateObject private var premiumStore: PremiumStore
     @StateObject private var metricsStore: ActiveMetricsStore
+    @StateObject private var pendingPhotoSaveStore = PendingPhotoSaveStore()
+    @Environment(\.modelContext) private var modelContext
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     private let autoCheckPaywallPrompt: Bool
     private let isAuditCaptureEnabled = AuditConfig.current.isEnabled
+    @State private var didConfigurePendingStore = false
 
     init(
         premiumStore: PremiumStore? = nil,
@@ -23,6 +27,7 @@ struct RootView: View {
             TabBarContainer(autoCheckPaywallPrompt: autoCheckPaywallPrompt)
                 .environmentObject(premiumStore)
                 .environmentObject(metricsStore)
+                .environmentObject(pendingPhotoSaveStore)
                 .sheet(isPresented: $premiumStore.isPaywallPresented) {
                     PremiumPaywallView()
                         .environmentObject(premiumStore)
@@ -32,9 +37,13 @@ struct RootView: View {
                 OnboardingView()
                     .environmentObject(metricsStore)
                     .environmentObject(premiumStore)
+                    .environmentObject(pendingPhotoSaveStore)
                     .transition(.opacity)
                     .zIndex(2)
             }
+        }
+        .onAppear {
+            configurePendingStoreIfNeeded()
         }
         .confirmationDialog(
             AppLocalization.string("premium.trial.reminder.prompt.title"),
@@ -72,5 +81,12 @@ struct RootView: View {
             return .constant(false)
         }
         return $premiumStore.showTrialThankYouAlert
+    }
+
+    private func configurePendingStoreIfNeeded() {
+        guard !didConfigurePendingStore else { return }
+        didConfigurePendingStore = true
+        pendingPhotoSaveStore.configure(container: modelContext.container)
+        pendingPhotoSaveStore.restoreAndResume()
     }
 }

@@ -272,7 +272,7 @@
 "Stay consistent with gentle nudges." = "Stay consistent with gentle nudges.";
 "Premium stays optional" = "Premium stays optional";
 "Deeper insights" = "Deeper insights";
-"Apple Intelligence insights, Health Indicators, and photo comparison." = "Apple Intelligence insights, Health Indicators, and photo comparison.";
+"Apple Intelligence insights, Health Indicators, Physique Indicators, and photo comparison." = "Apple Intelligence insights, Health Indicators, Physique Indicators, and photo comparison.";
 "Premium helps you stay consistent, hit your goals, and supports a small business from Poland." = "Premium helps you stay consistent, hit your goals, and supports a small business from Poland.";
 "See Premium Edition" = "See Premium Edition";
 "Back" = "Back";
@@ -312,7 +312,7 @@
 
 /* Premium paywall */
 "premium.benefit.ai" = "AI Insights";
-"premium.benefit.indicators" = "Full Health Indicators";
+"premium.benefit.indicators" = "Health & Physique Indicators";
 "premium.benefit.export" = "Data export";
 "premium.benefit.photos" = "Photo comparison";
 "premium.plan.monthly" = "Monthly";
@@ -325,6 +325,7 @@
 "premium.subscription.loading" = "Loading subscription options...";
 "premium.subscription.error" = "Could not load subscriptions (%@)";
 "premium.subscription.retry" = "Retry loading";
+"premium.subscription.disabled" = "Subscription loading is disabled by current debug/audit flags.";
 "premium.purchase.success" = "Purchase completed. Premium is now active.";
 "premium.purchase.cancelled" = "Purchase cancelled.";
 "premium.purchase.pending" = "Purchase pending approval.";
@@ -350,7 +351,7 @@
 "premium.carousel.photos.title" = "Your Transformation, Side by Side";
 "premium.carousel.photos.body" = "Compare photos over time. See changes the scale can't show.";
 "premium.carousel.indicators.title" = "Beyond the Scale";
-"premium.carousel.indicators.body" = "Health indicators let see what your numbers actually mean for your health.";
+"premium.carousel.indicators.body" = "Health and physique indicators show what your numbers mean for health and visual progress.";
 "premium.carousel.unlock.title" = "Train smarter. See real progress.";
 "premium.carousel.unlock.body" = "Get everything in one place to stay consistent and move faster with confidence.";
 "premium.carousel.unlock.item.ai" = "Unlimited AI Body Insights";
@@ -394,7 +395,7 @@
 "premium.carousel.indicator.status.stable" = "Stable trend";
 "premium.slide.ai.title" = "AI Insights";
 "premium.slide.ai.body" = "MeasureMe draws conclusions for you, highlights what to watch next, supports motivation and consistency, and points out details that are easy to miss.";
-"premium.slide.indicators.title" = "Full Health Indicators";
+"premium.slide.indicators.title" = "Health & Physique Indicators";
 "premium.slide.indicators.body" = "Health is your most valuable asset. Measurements and weight matter, but what matters most is how those changes affect your health.";
 "premium.slide.export.title" = "Data export";
 "premium.slide.export.body" = "Your data stays safe. Create a backup anytime or generate an export to share with your coach or dietitian.";
@@ -422,7 +423,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 /* FAQ - Premium */
 "Premium and subscriptions" = "Premium and subscriptions";
 "What is Premium Edition?" = "What is Premium Edition?";
-"Premium unlocks Apple Intelligence insights, Health Indicators, data export, and photo comparison. It also supports a small business from Poland." = "Premium unlocks AI Insights, Health Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence and require it to be available and enabled.";
+"Premium unlocks Apple Intelligence insights, Health Indicators, data export, and photo comparison. It also supports a small business from Poland." = "Premium unlocks AI Insights, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence and require it to be available and enabled.";
 "Is there a free trial?" = "Is there a free trial?";
 "Yes. Premium includes a free trial period when available. You can cancel before it ends to avoid being charged." = "Yes. Premium includes a free trial period when available. You can cancel before it ends to avoid being charged.";
 "How do I cancel or manage my subscription?" = "How do I cancel or manage my subscription?";
@@ -499,6 +500,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Overweight" = "Overweight";
 "Obese" = "Obese";
 "Low risk" = "Low risk";
+"Increased risk" = "Increased risk";
 "Moderate risk" = "Moderate risk";
 "High risk" = "High risk";
 "Child/Adolescent" = "Child/Adolescent";
@@ -512,6 +514,8 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Your waist-to-hip ratio is within the healthy range." = "Your waist-to-hip ratio is within the healthy range.";
 "Your waist-to-hip ratio indicates overweight." = "Your waist-to-hip ratio indicates overweight.";
 "Your waist-to-hip ratio indicates obesity." = "Your waist-to-hip ratio indicates obesity.";
+"Your waist-to-hip ratio is within the low-risk range." = "Your waist-to-hip ratio is within the low-risk range.";
+"Your waist-to-hip ratio is above the low-risk threshold." = "Your waist-to-hip ratio is above the low-risk threshold.";
 "Your relative fat mass is within a healthy range." = "Your relative fat mass is within a healthy range.";
 "Your relative fat mass indicates increased body fat." = "Your relative fat mass indicates increased body fat.";
 "Your relative fat mass indicates high body fat." = "Your relative fat mass indicates high body fat.";
@@ -691,7 +695,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Connect Apple Health" = "Connect Apple Health";
 "Import history and keep data in sync." = "Import history and keep data in sync.";
 "Explore Premium" = "Explore Premium";
-"Try deeper insights and compare photos side-by-side." = "Get AI Insights, Health indicators, data export, and photo comparison.";
+"Try deeper insights and compare photos side-by-side." = "Get AI Insights, Health indicators, Physique indicators, data export, and photo comparison.";
 "Finish setup (optional)" = "Finish setup (optional)";
 "Hide checklist" = "Hide checklist";
 "Show setup checklist on Home" = "Show setup checklist on Home";
@@ -702,7 +706,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "AI Insights: unavailable (Premium Edition required)" = "AI Insights: unavailable (Premium Edition required)";
 "What if AI Insights are unavailable?" = "What if AI Insights are unavailable?";
 "AI Insights in MeasureMe use Apple Intelligence. You need a supported device and language, plus Apple Intelligence enabled in system settings." = "AI Insights in MeasureMe use Apple Intelligence. You need a supported device and language, plus Apple Intelligence enabled in system settings.";
-"Premium unlocks AI Insights, Health Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled." = "Premium unlocks AI Insights, Health Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled.";
+"Premium unlocks AI Insights, Health Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled." = "Premium unlocks AI Insights, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled.";
 "premium.carousel.indicators.more" = "And 5 more";
 "premium.compare.benefit.visual" = "Visual proof";
 "premium.compare.benefit.timeline" = "Timeline context";
@@ -739,7 +743,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Start with one metric. Add more whenever you want." = "Start with one metric. Add more whenever you want.";
 "Optional details for more accurate health indicators." = "Optional details for more accurate health indicators.";
 "Optional automations to keep momentum." = "Optional automations to keep momentum.";
-"Optional support with deeper insights." = "AI Insights, Health Indicators, photo comparison, data export, and support for a Polish indie app.";
+"Optional support with deeper insights." = "AI Insights, Health Indicators, Physique Indicators, photo comparison, data export, and support for a Polish indie app.";
 "Great start. Your trend begins today." = "Great start. Your trend begins today.";
 "Save and continue" = "Save and continue";
 "Weight is useful. We focus on trend, not daily noise." = "Weight is useful. We focus on trend, not daily noise.";
@@ -912,3 +916,56 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Imported %d measurements and %d goals." = "Imported %d measurements and %d goals.";
 "%d rows skipped." = "%d rows skipped.";
 "Could not open file: " = "Could not open file: ";
+"Seed dummy data" = "Seed dummy data";
+"This will add realistic sample measurements for recent weeks. Existing data will remain unchanged." = "This will add realistic sample measurements for recent weeks. Existing data will remain unchanged.";
+"Dummy data added: %d measurements." = "Dummy data added: %d measurements.";
+"Could not seed dummy data. Please try again." = "Could not seed dummy data. Please try again.";
+
+// MARK: - About Section
+"Website" = "Website";
+"About MeasureMe" = "About MeasureMe";
+"Credits" = "Credits";
+"Icons by Icons8" = "Icons by Icons8";
+"Diagnostics" = "Diagnostics";
+"Physique indicators" = "Physique indicators";
+"Choose physique indicators" = "Choose physique indicators";
+"Upgrade to Premium Edition to unlock Physique indicators." = "Upgrade to Premium Edition to unlock Physique indicators.";
+"Enable physique indicators in Settings to see results here." = "Enable physique indicators in Settings to see results here.";
+"Proportion ratios" = "Proportion ratios";
+"Hybrid metrics" = "Hybrid metrics";
+"Shoulder-to-Waist Ratio" = "Shoulder-to-Waist Ratio";
+"Chest-to-Waist Ratio" = "Chest-to-Waist Ratio";
+"Hip-to-Waist Ratio" = "Hip-to-Waist Ratio";
+"Bust-to-Waist Ratio" = "Bust-to-Waist Ratio";
+"Set gender" = "Set gender";
+"Set gender to unlock these indicators" = "Set gender to unlock these indicators";
+"Physique ratio interpretation in this section is sex-specific. Set your profile gender to view values and ranges." = "Physique ratio interpretation in this section is sex-specific. Set your profile gender to view values and ranges.";
+"Set your gender in Profile to unlock this indicator and its ranges." = "Set your gender in Profile to unlock this indicator and its ranges.";
+"Body Shape Risk in this app is standardized ABSI (z-score), not an arbitrary composite." = "Body Shape Risk in this app is standardized ABSI (z-score), not an arbitrary composite.";
+"Fat distribution" = "Fat distribution";
+"Waist circumference" = "Waist circumference";
+"ABSI (technical)" = "ABSI (technical)";
+"To calculate this indicator, add:" = "To calculate this indicator, add:";
+"Formula" = "Formula";
+"What it means" = "What it means";
+"How to improve" = "How to improve";
+"Reference ranges" = "Reference ranges";
+"Reference interpretation" = "Reference interpretation";
+"Visible definition" = "Visible definition";
+"Soft definition" = "Soft definition";
+"Hidden proportions" = "Hidden proportions";
+"Lower-body dominant" = "Lower-body dominant";
+"Balanced frame" = "Balanced frame";
+"Upper-body dominant" = "Upper-body dominant";
+"Athletes" = "Athletes";
+"Average" = "Average";
+"Top" = "Top";
+"High" = "High";
+"Required for range interpretation" = "Required for range interpretation";
+"Shoulders" = "Shoulders";
+"Chest" = "Chest";
+"Bust or chest" = "Bust or chest";
+"Hips" = "Hips";
+"Are physique indicators medical?" = "Are physique indicators medical?";
+"No. Physique indicators are visual and proportion-focused heuristics designed for appearance tracking, not medical diagnosis." = "No. Physique indicators are visual and proportion-focused heuristics designed for appearance tracking, not medical diagnosis.";
+"Apple Intelligence insights, Health Indicators, and photo comparison." = "Apple Intelligence insights, Health Indicators, Physique Indicators, and photo comparison.";

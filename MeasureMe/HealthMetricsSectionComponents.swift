@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HealthMetricsSectionCard<Content: View>: View {
+    private let healthAccent = Color(hex: "#F59E0B")
     let title: String
     let icon: String
     @ViewBuilder let content: Content
@@ -11,7 +12,7 @@ struct HealthMetricsSectionCard<Content: View>: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.title3)
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(healthAccent)
                 
                 Text(title)
                     .font(AppTypography.bodyEmphasis)
@@ -25,11 +26,11 @@ struct HealthMetricsSectionCard<Content: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(hex: "#1C1C1E"))
+                .fill(Color(hex: "#1E1812"))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .stroke(healthAccent.opacity(0.34), lineWidth: 1)
         )
     }
 }
@@ -37,6 +38,7 @@ struct HealthMetricsSectionCard<Content: View>: View {
 // MARK: - Health Metric Row
 
 struct HealthMetricRow<Destination: View>: View {
+    private let warmRowFill = Color(hex: "#271E15")
     let title: String
     let value: String
     let category: String
@@ -86,7 +88,7 @@ struct HealthMetricRow<Destination: View>: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.white.opacity(0.05))
+                    .fill(warmRowFill.opacity(0.88))
             )
         }
         .contentShape(Rectangle())
@@ -168,6 +170,9 @@ struct HealthMetricRow<Destination: View>: View {
         UserDefaults.standard.set(false, forKey: "showBodyFatOnHome")
         UserDefaults.standard.set(false, forKey: "showLeanMassOnHome")
         UserDefaults.standard.set(false, forKey: "showABSIOnHome")
-        UserDefaults.standard.set(false, forKey: "showConicityOnHome")
+        UserDefaults.standard.set(false, forKey: "showBodyShapeScoreOnHome")
+        UserDefaults.standard.set(false, forKey: "showCentralFatRiskOnHome")
+        UserDefaults.standard.set(false, forKey: "showWHROnHome")
+        UserDefaults.standard.set(false, forKey: "showWaistRiskOnHome")
     }
 }

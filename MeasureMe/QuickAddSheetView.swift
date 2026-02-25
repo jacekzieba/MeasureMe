@@ -134,10 +134,7 @@ struct QuickAddSheetView: View {
 
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack(spacing: AppSpacing.xs) {
-                Image(systemName: kind.systemImage)
-                    .font(AppTypography.iconMedium)
-                    .foregroundStyle(Color.appAccent)
-                    .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
+                kind.iconView(font: AppTypography.iconMedium, size: 22, tint: Color.appAccent)
                     .frame(width: 30, height: 30)
                     .accessibilityHidden(true)
                     .background(

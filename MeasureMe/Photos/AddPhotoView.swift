@@ -4,8 +4,8 @@ import SwiftData
 /// Widok do dodawania nowego zdjęcia z tagami i opcjonalnymi pomiarami
 struct AddPhotoView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var context
     @EnvironmentObject private var activeMetrics: ActiveMetricsStore
+    @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
 
     @State private var selectedImage: UIImage?
     @State private var showCamera = false
@@ -14,12 +14,11 @@ struct AddPhotoView: View {
     @State private var selectedTags: Set<PhotoTag> = [.wholeBody]
     @State private var metricValues: [MetricKind: Double] = [:]
     @State private var saveErrorMessage: String?
+    @State private var isSaving = false
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
-    private let onSaved: (() -> Void)?
     
-    init(previewImage: UIImage? = nil, onSaved: (() -> Void)? = nil) {
+    init(previewImage: UIImage? = nil) {
         self._selectedImage = State(initialValue: previewImage)
-        self.onSaved = onSaved
     }
 
     var body: some View {
@@ -47,14 +46,16 @@ struct AddPhotoView: View {
                     Button(AppLocalization.string("Cancel")) {
                         dismiss()
                     }
+                    .accessibilityIdentifier("addPhoto.cancelButton")
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
                     Button(AppLocalization.string("Save")) {
                         Haptics.medium()
-                        savePhoto()
+                        Task { await savePhoto() }
                     }
-                    .disabled(!canSave)
+                    .disabled(!canSave || isSaving)
+                    .accessibilityIdentifier("addPhoto.saveButton")
                 }
             }
             .sheet(isPresented: $showCamera) {
@@ -78,37 +79,42 @@ struct AddPhotoView: View {
 // MARK: - Glass Cards
 private extension AddPhotoView {
 
+    @ViewBuilder
     var photoSelectionCard: some View {
-        AppGlassCard(
-            depth: .elevated,
-            tint: Color.cyan.opacity(0.08),
-            contentPadding: 16
-        ) {
-            VStack(alignment: .leading, spacing: 12) {
-                Button {
-                    Haptics.light()
-                    showCamera = true
-                } label: {
-                    HStack(spacing: 12) {
-                        GlassPillIcon(systemName: "camera.fill")
-                        Text(AppLocalization.string("Take Photo"))
-                            .font(AppTypography.bodyEmphasis)
+        // Karta wyboru zdjęcia znika gdy obraz jest już wybrany.
+        // Kamera i biblioteka nadal dostępne przez photoPreviewCard (zamiana zdjęcia).
+        if selectedImage == nil {
+            AppGlassCard(
+                depth: .elevated,
+                tint: Color.cyan.opacity(0.08),
+                contentPadding: 16
+            ) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Button {
+                        Haptics.light()
+                        showCamera = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            GlassPillIcon(systemName: "camera.fill")
+                            Text(AppLocalization.string("Take Photo"))
+                                .font(AppTypography.bodyEmphasis)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
 
-                Divider().overlay(Color.white.opacity(0.12))
+                    Divider().overlay(Color.white.opacity(0.12))
 
-                Button {
-                    Haptics.light()
-                    showPhotoLibrary = true
-                } label: {
-                    HStack(spacing: 12) {
-                        GlassPillIcon(systemName: "photo.on.rectangle")
-                        Text(AppLocalization.string("Choose from Library"))
-                            .font(AppTypography.bodyEmphasis)
+                    Button {
+                        Haptics.light()
+                        showPhotoLibrary = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            GlassPillIcon(systemName: "photo.on.rectangle")
+                            Text(AppLocalization.string("Choose from Library"))
+                                .font(AppTypography.bodyEmphasis)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
@@ -250,7 +256,8 @@ private extension AddPhotoView {
 // MARK: - Actions
 private extension AddPhotoView {
     
-    func savePhoto() {
+    @MainActor
+    func savePhoto() async {
         guard let image = selectedImage else {
             AppLog.debug("❌ AddPhotoView: No image selected")
             return
@@ -261,89 +268,37 @@ private extension AddPhotoView {
             Haptics.error()
             return
         }
-        
-        let importStart = ContinuousClock().now
-        let optimizedImage: UIImage
-        if PhotoUtilities.isPreparedForImport(image, maxDimension: 2048) {
-            optimizedImage = image
-        } else {
-            optimizedImage = PhotoUtilities.prepareImportedImage(image)
-        }
-        let preprocessElapsed = importStart.duration(to: ContinuousClock().now)
-        let preprocessMs = Int(preprocessElapsed.components.seconds * 1_000)
-            + Int(preprocessElapsed.components.attoseconds / 1_000_000_000_000_000)
 
-        let encodeStart = ContinuousClock().now
-        guard let encoded = PhotoUtilities.encodeForStorage(
-            optimizedImage,
-            maxSize: 2_000_000,
-            alreadyPrepared: true
-        ) else {
-            AppLog.debug("❌ AddPhotoView: Failed to compress image")
-            return
-        }
-        let encodeElapsed = encodeStart.duration(to: ContinuousClock().now)
-        let encodeMs = Int(encodeElapsed.components.seconds * 1_000)
-            + Int(encodeElapsed.components.attoseconds / 1_000_000_000_000_000)
-
-        AppLog.debug(
-            "✅ AddPhotoView: format=\(encoded.format) quality=\(String(format: "%.2f", encoded.quality)) size=\(PhotoUtilities.formatFileSize(encoded.data.count)) preprocess=\(preprocessMs)ms encode=\(encodeMs)ms"
-        )
-        
-        let snapshots = createMetricSnapshots()
-        
-        // Tworzy tez wpisy MetricSample dla Measurements z ta sama data
-        for (kind, displayValue) in metricValues {
-            guard displayValue > 0 else { continue }
-            let metric = kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
-            let sample = MetricSample(kind: kind, value: metric, date: date)
-            context.insert(sample)
-        }
-        
-        let entry = PhotoEntry(
-            imageData: encoded.data,
-            date: date,
-            tags: Array(selectedTags),
-            linkedMetrics: snapshots
-        )
-
-        AppLog.debug("✅ AddPhotoView: Creating PhotoEntry with \(selectedTags.count) tags and \(snapshots.count) metrics")
-        
-        // Wstaw do kontekstu
-        context.insert(entry)
-        
+        isSaving = true
+        let enqueueStart = ContinuousClock.now
         do {
-            // Zapisz kontekst
-            try context.save()
-            AppLog.debug("✅ AddPhotoView: Context saved successfully")
-            
-            // Wymuś odświeżenie kontekstu aby @Query w PhotosView się zaktualizował
-            context.processPendingChanges()
+            let jobID = try await pendingPhotoSaveStore.enqueueSingle(
+                sourceImage: image,
+                date: date,
+                tags: selectedTags,
+                metricValues: metricValues,
+                unitsSystem: unitsSystem
+            )
+            let enqueueMs = milliseconds(from: enqueueStart.duration(to: .now))
+            let dismissStart = ContinuousClock.now
 
-            NotificationManager.shared.recordPhotoAdded(date: date)
-            
-            onSaved?()
-            
-            // Zamknij widok
+            isSaving = false
             dismiss()
+            let enqueueToDismissMs = milliseconds(from: dismissStart.duration(to: .now))
+            AppLog.debug(
+                "✅ AddPhotoView: enqueue=\(enqueueMs)ms enqueueToDismiss=\(enqueueToDismissMs)ms jobID=\(jobID.uuidString)"
+            )
         } catch {
-            AppLog.debug("❌ AddPhotoView: Failed to save context: \(error)")
+            isSaving = false
+            AppLog.debug("❌ AddPhotoView: Failed to enqueue single save: \(error)")
             saveErrorMessage = AppLocalization.string("Could not save photo. Please try again.")
             Haptics.error()
         }
     }
-    
-    func createMetricSnapshots() -> [MetricValueSnapshot] {
-        metricValues.compactMap { kind, value in
-            guard value > 0 else { return nil }
-            let metricValue = kind.valueToMetric(fromDisplay: value, unitsSystem: unitsSystem)
-            
-            return MetricValueSnapshot(
-                kind: kind,
-                value: metricValue,
-                unit: kind.unitSymbol(unitsSystem: "metric")
-            )
-        }
+
+    func milliseconds(from duration: Duration) -> Int {
+        Int(duration.components.seconds * 1_000)
+            + Int(duration.components.attoseconds / 1_000_000_000_000_000)
     }
 }
 
@@ -382,6 +337,15 @@ private struct MetricValueField: View {
     }
 }
 
+// MARK: - Multi-photo payload
+
+/// Wrapper Identifiable przekazujący obrazy do sheet(item:).
+/// Gwarantuje że SwiftUI czyta dane w momencie prezentacji sheetu.
+struct MultiPhotoImportPayload: Identifiable {
+    let id = UUID()
+    let images: [UIImage]
+}
+
 // MARK: - Preview
 private func makePreviewContainer() -> ModelContainer {
     do {
@@ -396,10 +360,12 @@ private func makePreviewContainer() -> ModelContainer {
     AddPhotoView()
         .modelContainer(makePreviewContainer())
         .environmentObject(ActiveMetricsStore())
+        .environmentObject(PendingPhotoSaveStore(autoStartProcessing: false))
 }
 
 #Preview("With Image") {
     AddPhotoView(previewImage: UIImage(systemName: "photo.fill"))
         .modelContainer(makePreviewContainer())
         .environmentObject(ActiveMetricsStore())
+        .environmentObject(PendingPhotoSaveStore(autoStartProcessing: false))
 }

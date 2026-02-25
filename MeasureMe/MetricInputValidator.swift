@@ -101,13 +101,36 @@ enum MetricInputValidator {
     }
 
     static func metricDisplayRange(for kind: MetricKind, unitsSystem: String) -> ClosedRange<Double> {
-        switch kind.unitCategory {
-        case .percent:
-            return 0.0...100.0
+        let imperial = unitsSystem == "imperial"
+        switch kind {
         case .weight:
-            return unitsSystem == "imperial" ? 0.1...660.0 : 0.1...300.0
-        case .length:
-            return unitsSystem == "imperial" ? 0.1...120.0 : 0.1...300.0
+            return imperial ? 44.0...660.0  : 20.0...300.0
+        case .bodyFat:
+            return 1.0...70.0
+        case .leanBodyMass:
+            return imperial ? 22.0...440.0  : 10.0...200.0
+        case .height:
+            return imperial ? 20.0...107.0  : 50.0...272.0
+        case .waist:
+            return imperial ? 12.0...79.0   : 30.0...200.0
+        case .neck:
+            return imperial ? 6.0...28.0    : 15.0...70.0
+        case .shoulders:
+            return imperial ? 24.0...79.0   : 60.0...200.0
+        case .bust:
+            return imperial ? 20.0...79.0   : 50.0...200.0
+        case .chest:
+            return imperial ? 20.0...79.0   : 50.0...200.0
+        case .leftBicep, .rightBicep:
+            return imperial ? 6.0...28.0    : 15.0...70.0
+        case .leftForearm, .rightForearm:
+            return imperial ? 4.0...24.0    : 10.0...60.0
+        case .hips:
+            return imperial ? 20.0...79.0   : 50.0...200.0
+        case .leftThigh, .rightThigh:
+            return imperial ? 8.0...47.0    : 20.0...120.0
+        case .leftCalf, .rightCalf:
+            return imperial ? 6.0...31.0    : 15.0...80.0
         }
     }
 }

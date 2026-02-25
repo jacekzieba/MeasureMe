@@ -17,6 +17,7 @@
 // - Lower Body: hips, thighs, calves (left & right)
 //
 import Foundation
+import SwiftUI
 
 enum MetricKind: String, CaseIterable, Hashable, Identifiable {
     var id: String { rawValue }
@@ -119,13 +120,60 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable {
         }
     }
 
-    /// Czy SF Symbol powinien byc odbity poziomo dla lepszej semantyki lewo/prawo
+    /// Czy ikona powinna być odbita poziomo.
+    /// Bicep i calf: ikona domyślnie pokazuje prawą stronę → right=oryginał, left=mirror.
+    /// Forearm: ikona domyślnie pokazuje lewą stronę → left=oryginał, right=mirror.
+    /// Thigh: nie mirroruje — crop po lewej/prawej stronie sam załatwia semantykę lewo/prawo.
     var shouldMirrorSymbol: Bool {
         switch self {
-        case .leftBicep, .leftForearm, .leftThigh, .leftCalf:
-            return true
-        default:
-            return false
+        case .leftBicep, .rightCalf: return true  // bicep: left mirroruje; calf: right mirroruje
+        case .rightForearm:         return true  // forearm: right mirroruje
+        default:                    return false
+        }
+    }
+
+    /// Nazwa custom image asset (Icons8) lub nil — wtedy używaj systemImage
+    var customImageName: String? {
+        switch self {
+        case .weight:                       return "icons8.scale"
+        case .bodyFat:                      return "icons8.weightCare"
+        case .leanBodyMass:                 return "icons8.fit"
+        case .waist:                        return "icons8.femaleBack"
+        case .neck:                         return "icons8.neck"
+        case .shoulders:                    return "icons8.shoulders"
+        case .bust:                         return "icons8.bra"
+        case .chest:                        return "icons8.torso"
+        case .leftBicep, .rightBicep:       return "icons8.muscle"
+        case .leftForearm, .rightForearm:   return "icons8.forearm"
+        case .hips:                         return "icons8.womanHips"
+        case .leftThigh:                    return "icons8.leftThigh"
+        case .rightThigh:                   return "icons8.rightThigh"
+        case .leftCalf, .rightCalf:         return "icons8.leg"
+        default:                            return nil
+        }
+    }
+
+    // MARK: - Icon View Builder
+
+    /// Zwraca ikonę metryki — custom PNG (Icons8) jeśli dostępna, inaczej SF Symbol.
+    /// - `font`:  stosowany tylko dla SF Symbol fallback
+    /// - `size`:  rozmiar ikony w punktach
+    /// - `tint`:  kolor ikony; dla PNG używa renderingMode(.template) + foregroundStyle
+    @ViewBuilder
+    func iconView(font: Font? = nil, size: CGFloat? = nil, tint: Color? = nil) -> some View {
+        if let name = customImageName {
+            let s = size ?? 20
+            Image(name)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(tint ?? .primary)
+                .frame(width: s, height: s)
+                .scaleEffect(x: shouldMirrorSymbol ? -1 : 1, y: 1)
+        } else {
+            Image(systemName: systemImage)
+                .font(font ?? .body)
+                .scaleEffect(x: shouldMirrorSymbol ? -1 : 1, y: 1)
         }
     }
 

@@ -44,13 +44,34 @@ struct CameraPickerView: UIViewControllerRepresentable {
             _ picker: UIImagePickerController,
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
-            if let imageURL = info[.imageURL] as? URL,
-               let image = PhotoUtilities.downsampledImage(from: imageURL, maxDimension: 2048) {
-                parent.selectedImage = PhotoUtilities.prepareImportedImage(image, maxDimension: 2048)
-            } else if let image = info[.originalImage] as? UIImage {
-                parent.selectedImage = PhotoUtilities.prepareImportedImage(image, maxDimension: 2048)
+            let imageURL = info[.imageURL] as? URL
+            let originalImage = info[.originalImage] as? UIImage
+
+            DispatchQueue.global(qos: .userInitiated).async {
+                let preparedImage: UIImage? = {
+                    if let imageURL,
+                       let downsampled = PhotoUtilities.downsampledImage(from: imageURL, maxDimension: 2048) {
+                        if PhotoUtilities.isPreparedForImport(downsampled, maxDimension: 2048) {
+                            return downsampled
+                        }
+                        return PhotoUtilities.prepareImportedImage(downsampled, maxDimension: 2048)
+                    }
+
+                    if let originalImage {
+                        if PhotoUtilities.isPreparedForImport(originalImage, maxDimension: 2048) {
+                            return originalImage
+                        }
+                        return PhotoUtilities.prepareImportedImage(originalImage, maxDimension: 2048)
+                    }
+
+                    return nil
+                }()
+
+                DispatchQueue.main.async {
+                    self.parent.selectedImage = preparedImage
+                    self.parent.dismiss()
+                }
             }
-            parent.dismiss()
         }
         
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
@@ -92,13 +113,34 @@ struct PhotoLibraryPicker: UIViewControllerRepresentable {
             _ picker: UIImagePickerController,
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
-            if let imageURL = info[.imageURL] as? URL,
-               let image = PhotoUtilities.downsampledImage(from: imageURL, maxDimension: 2048) {
-                parent.selectedImage = PhotoUtilities.prepareImportedImage(image, maxDimension: 2048)
-            } else if let image = info[.originalImage] as? UIImage {
-                parent.selectedImage = PhotoUtilities.prepareImportedImage(image, maxDimension: 2048)
+            let imageURL = info[.imageURL] as? URL
+            let originalImage = info[.originalImage] as? UIImage
+
+            DispatchQueue.global(qos: .userInitiated).async {
+                let preparedImage: UIImage? = {
+                    if let imageURL,
+                       let downsampled = PhotoUtilities.downsampledImage(from: imageURL, maxDimension: 2048) {
+                        if PhotoUtilities.isPreparedForImport(downsampled, maxDimension: 2048) {
+                            return downsampled
+                        }
+                        return PhotoUtilities.prepareImportedImage(downsampled, maxDimension: 2048)
+                    }
+
+                    if let originalImage {
+                        if PhotoUtilities.isPreparedForImport(originalImage, maxDimension: 2048) {
+                            return originalImage
+                        }
+                        return PhotoUtilities.prepareImportedImage(originalImage, maxDimension: 2048)
+                    }
+
+                    return nil
+                }()
+
+                DispatchQueue.main.async {
+                    self.parent.selectedImage = preparedImage
+                    self.parent.dismiss()
+                }
             }
-            parent.dismiss()
         }
         
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {

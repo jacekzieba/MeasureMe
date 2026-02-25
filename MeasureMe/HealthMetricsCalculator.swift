@@ -40,6 +40,12 @@ enum Gender: String, CaseIterable {
     }
 }
 
+/// Evaluation wrapper for indicators that can require the user's gender.
+enum GenderDependentResult<Value> {
+    case value(Value)
+    case requiresGender
+}
+
 // MARK: - Health Metrics Calculator
 
 @MainActor
@@ -193,7 +199,7 @@ final class HealthMetricsCalculator {
         return RFMResult(rfm: rfm, category: category, gender: gender)
     }
     
-    // MARK: - WHR (stosunek talii do bioder) - DEPRECATED
+    // MARK: - WHR (stosunek talii do bioder)
     
     struct WHRResult {
         let ratio: Double
@@ -201,56 +207,34 @@ final class HealthMetricsCalculator {
         let gender: Gender
         
         enum WHRCategory: String {
-            case normal = "Normal weight"
-            case overweight = "Overweight"
-            case obese = "Obese"
+            case lowRisk = "Low risk"
+            case increasedRisk = "Increased risk"
             
             var color: String {
                 switch self {
-                case .normal: return "#22C55E"      // Zielony
-                case .overweight: return "#FCA311"  // Żółty
-                case .obese: return "#EF4444"       // Czerwony
+                case .lowRisk: return "#22C55E"
+                case .increasedRisk: return "#FCA311"
                 }
             }
             
             var description: String {
                 switch self {
-                case .normal:
-                    return "Your waist-to-hip ratio is within the healthy range."
-                case .overweight:
-                    return "Your waist-to-hip ratio indicates overweight."
-                case .obese:
-                    return "Your waist-to-hip ratio indicates obesity."
+                case .lowRisk:
+                    return "Your waist-to-hip ratio is within the low-risk range."
+                case .increasedRisk:
+                    return "Your waist-to-hip ratio is above the low-risk threshold."
                 }
             }
             
             static func fromRatio(_ ratio: Double, gender: Gender) -> WHRCategory {
                 switch gender {
                 case .male:
-                    if ratio < 0.90 {
-                        return .normal
-                    } else if ratio < 1.0 {
-                        return .overweight
-                    } else {
-                        return .obese
-                    }
+                    return ratio < 0.90 ? .lowRisk : .increasedRisk
                 case .female:
-                    if ratio < 0.80 {
-                        return .normal
-                    } else if ratio < 0.85 {
-                        return .overweight
-                    } else {
-                        return .obese
-                    }
+                    return ratio < 0.85 ? .lowRisk : .increasedRisk
                 case .notSpecified:
-                    // Używamy bardziej konserwatywnych (niższych) progów dla kobiet
-                    if ratio < 0.80 {
-                        return .normal
-                    } else if ratio < 0.85 {
-                        return .overweight
-                    } else {
-                        return .obese
-                    }
+                    // Fallback do progu żeńskiego; ścieżki produkcyjne używają wrappera requiresGender.
+                    return ratio < 0.85 ? .lowRisk : .increasedRisk
                 }
             }
         }
@@ -400,7 +384,132 @@ final class HealthMetricsCalculator {
         
         return BMIResult(bmi: bmi, category: category, age: age, ageGroup: ageGroup)
     }
-    
+
+    // MARK: - Central Fat Risk (CFR)
+
+    struct CentralFatRiskResult {
+        let score: Double
+        let category: Category
+
+        enum Category: String {
+            case low = "Low risk"
+            case moderate = "Moderate risk"
+            case high = "High risk"
+
+            var color: String {
+                switch self {
+                case .low: return "#22C55E"
+                case .moderate: return "#FCA311"
+                case .high: return "#EF4444"
+                }
+            }
+        }
+    }
+
+    /// CFR = WHtR / 0.50 where 1.00 is the primary threshold.
+    static func calculateCentralFatRisk(waistCm: Double?, heightCm: Double?) -> CentralFatRiskResult? {
+        guard let whtr = calculateWHtR(waistCm: waistCm, heightCm: heightCm) else {
+            return nil
+        }
+        let score = whtr.ratio / 0.50
+        let category: CentralFatRiskResult.Category
+        if score < 1.0 {
+            category = .low
+        } else if score <= 1.2 {
+            category = .moderate
+        } else {
+            category = .high
+        }
+        return CentralFatRiskResult(score: score, category: category)
+    }
+
+    // MARK: - Waist Circumference Risk
+
+    struct WaistRiskResult {
+        let waistCm: Double
+        let category: Category
+        let gender: Gender
+
+        enum Category: String {
+            case low = "Low risk"
+            case moderate = "Moderate risk"
+            case high = "High risk"
+
+            var color: String {
+                switch self {
+                case .low: return "#22C55E"
+                case .moderate: return "#FCA311"
+                case .high: return "#EF4444"
+                }
+            }
+        }
+    }
+
+    static func calculateWaistRisk(waistCm: Double?, gender: Gender) -> GenderDependentResult<WaistRiskResult>? {
+        guard let waist = waistCm, waist > 0 else { return nil }
+        guard gender != .notSpecified else { return .requiresGender }
+
+        let category: WaistRiskResult.Category
+        switch gender {
+        case .male:
+            if waist <= 94 {
+                category = .low
+            } else if waist <= 102 {
+                category = .moderate
+            } else {
+                category = .high
+            }
+        case .female:
+            if waist <= 80 {
+                category = .low
+            } else if waist <= 88 {
+                category = .moderate
+            } else {
+                category = .high
+            }
+        case .notSpecified:
+            return .requiresGender
+        }
+
+        return .value(WaistRiskResult(waistCm: waist, category: category, gender: gender))
+    }
+
+    // MARK: - Gender-dependent wrappers
+
+    static func calculateRFMWithGenderRequirement(
+        waistCm: Double?,
+        heightCm: Double?,
+        gender: Gender
+    ) -> GenderDependentResult<RFMResult>? {
+        guard waistCm != nil, heightCm != nil else { return nil }
+        guard gender != .notSpecified else { return .requiresGender }
+        guard let result = calculateRFM(waistCm: waistCm, heightCm: heightCm, gender: gender) else { return nil }
+        return .value(result)
+    }
+
+    static func calculateWHRWithGenderRequirement(
+        waistCm: Double?,
+        hipsCm: Double?,
+        gender: Gender
+    ) -> GenderDependentResult<WHRResult>? {
+        guard waistCm != nil, hipsCm != nil else { return nil }
+        guard gender != .notSpecified else { return .requiresGender }
+        guard let result = calculateWHR(waistCm: waistCm, hipsCm: hipsCm, gender: gender) else { return nil }
+        return .value(result)
+    }
+
+    static func calculateABSIWithGenderRequirement(
+        waistCm: Double?,
+        heightCm: Double?,
+        weightKg: Double?,
+        gender: Gender
+    ) -> GenderDependentResult<ABSIResult>? {
+        guard waistCm != nil, heightCm != nil, weightKg != nil else { return nil }
+        guard gender != .notSpecified else { return .requiresGender }
+        guard let result = calculateABSI(waistCm: waistCm, heightCm: heightCm, weightKg: weightKg, gender: gender) else { return nil }
+        return .value(result)
+    }
+
     // MARK: - ABSI (A Body Shape Index)
     
     struct ABSIResult {
@@ -494,7 +603,85 @@ final class HealthMetricsCalculator {
         let category = ABSIResult.ABSICategory.fromABSI(absi, gender: gender)
         return ABSIResult(absi: absi, category: category, gender: gender)
     }
-    
+
+    // MARK: - Body Shape Risk (standardized ABSI z-score)
+
+    struct BodyShapeRiskResult {
+        let score: Double
+        let zScore: Double
+        let category: Category
+        let gender: Gender
+        let absi: Double
+
+        enum Category: String {
+            case low = "Low risk"
+            case moderate = "Moderate risk"
+            case high = "High risk"
+
+            var color: String {
+                switch self {
+                case .low: return "#22C55E"
+                case .moderate: return "#FCA311"
+                case .high: return "#EF4444"
+                }
+            }
+        }
+    }
+
+    /// ABSI reference constants used to standardize to z-score.
+    /// Source baseline: Krakauer et al. population-level ABSI distributions.
+    private struct ABSIReference {
+        let mean: Double
+        let stdDev: Double
+
+        static func forGender(_ gender: Gender) -> ABSIReference? {
+            switch gender {
+            case .male:
+                return ABSIReference(mean: 0.0807, stdDev: 0.0053)
+            case .female:
+                return ABSIReference(mean: 0.0799, stdDev: 0.0057)
+            case .notSpecified:
+                return nil
+            }
+        }
+    }
+
+    static func calculateBodyShapeRisk(
+        waistCm: Double?,
+        heightCm: Double?,
+        weightKg: Double?,
+        gender: Gender
+    ) -> GenderDependentResult<BodyShapeRiskResult>? {
+        guard waistCm != nil, heightCm != nil, weightKg != nil else { return nil }
+        guard gender != .notSpecified else { return .requiresGender }
+        guard let absi = calculateABSI(waistCm: waistCm, heightCm: heightCm, weightKg: weightKg, gender: gender)?.absi,
+              let reference = ABSIReference.forGender(gender),
+              reference.stdDev > 0 else {
+            return nil
+        }
+
+        let zScore = (absi - reference.mean) / reference.stdDev
+        let category: BodyShapeRiskResult.Category
+        if zScore < -0.272 {
+            category = .low
+        } else if zScore <= 0.229 {
+            category = .moderate
+        } else {
+            category = .high
+        }
+
+        let score = max(0.0, min(2.0, 1.0 + (zScore / 2.0)))
+        return .value(
+            BodyShapeRiskResult(
+                score: score,
+                zScore: zScore,
+                category: category,
+                gender: gender,
+                absi: absi
+            )
+        )
+    }
+
     // MARK: - Conicity Index
     
     struct ConicityResult {
@@ -639,15 +826,13 @@ struct HealthMetricsReference {
     // MARK: - WHR Reference
 
     static let whrRangesMale: [(title: String, range: String, description: String)] = [
-        ("Normal weight", "< 0.90", "Low health risk"),
-        ("Overweight", "0.90 - 1.0", "Moderate health risk"),
-        ("Obese", "> 1.0", "High health risk")
+        ("Low risk", "< 0.90", "Low health risk"),
+        ("Increased risk", ">= 0.90", "Moderate health risk")
     ]
     
     static let whrRangesFemale: [(title: String, range: String, description: String)] = [
-        ("Normal weight", "< 0.80", "Low health risk"),
-        ("Overweight", "0.80 - 0.85", "Moderate health risk"),
-        ("Obese", "> 0.85", "High health risk")
+        ("Low risk", "< 0.85", "Low health risk"),
+        ("Increased risk", ">= 0.85", "Moderate health risk")
     ]
     
     // MARK: - BMI Reference

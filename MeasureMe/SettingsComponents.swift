@@ -235,10 +235,13 @@ struct HealthIndicatorsSettingsDetailView: View {
     @Binding var showWHtROnHome: Bool
     @Binding var showRFMOnHome: Bool
     @Binding var showBMIOnHome: Bool
+    @Binding var showWHROnHome: Bool
+    @Binding var showWaistRiskOnHome: Bool
     @Binding var showBodyFatOnHome: Bool
     @Binding var showLeanMassOnHome: Bool
     @Binding var showABSIOnHome: Bool
-    @Binding var showConicityOnHome: Bool
+    @Binding var showBodyShapeScoreOnHome: Bool
+    @Binding var showCentralFatRiskOnHome: Bool
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -248,10 +251,13 @@ struct HealthIndicatorsSettingsDetailView: View {
                     showWHtROnHome: $showWHtROnHome,
                     showRFMOnHome: $showRFMOnHome,
                     showBMIOnHome: $showBMIOnHome,
+                    showWHROnHome: $showWHROnHome,
+                    showWaistRiskOnHome: $showWaistRiskOnHome,
                     showBodyFatOnHome: $showBodyFatOnHome,
                     showLeanMassOnHome: $showLeanMassOnHome,
                     showABSIOnHome: $showABSIOnHome,
-                    showConicityOnHome: $showConicityOnHome
+                    showBodyShapeScoreOnHome: $showBodyShapeScoreOnHome,
+                    showCentralFatRiskOnHome: $showCentralFatRiskOnHome
                 )
             }
             .scrollContentBackground(.hidden)
@@ -262,6 +268,44 @@ struct HealthIndicatorsSettingsDetailView: View {
             .padding(.top, 8)
         }
         .navigationTitle(AppLocalization.string("Health indicators"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+    }
+}
+
+struct PhysiqueIndicatorsSettingsDetailView: View {
+    @Binding var showPhysiqueSWR: Bool
+    @Binding var showPhysiqueCWR: Bool
+    @Binding var showPhysiqueSHR: Bool
+    @Binding var showPhysiqueHWR: Bool
+    @Binding var showPhysiqueBWR: Bool
+    @Binding var showPhysiqueWHtR: Bool
+    @Binding var showPhysiqueBodyFat: Bool
+    @Binding var showPhysiqueRFM: Bool
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
+            List {
+                PhysiqueIndicatorsSettingsSection(
+                    showPhysiqueSWR: $showPhysiqueSWR,
+                    showPhysiqueCWR: $showPhysiqueCWR,
+                    showPhysiqueSHR: $showPhysiqueSHR,
+                    showPhysiqueHWR: $showPhysiqueHWR,
+                    showPhysiqueBWR: $showPhysiqueBWR,
+                    showPhysiqueWHtR: $showPhysiqueWHtR,
+                    showPhysiqueBodyFat: $showPhysiqueBodyFat,
+                    showPhysiqueRFM: $showPhysiqueRFM
+                )
+            }
+            .scrollContentBackground(.hidden)
+            .listStyle(.plain)
+            .listSectionSpacing(24)
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+            .padding(.top, 8)
+        }
+        .navigationTitle(AppLocalization.string("Physique indicators"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
     }
@@ -307,7 +351,7 @@ struct ExperienceSettingsDetailView: View {
             List {
                 Section {
                     SettingsCard(tint: Color.white.opacity(0.08)) {
-                        SettingsCardHeader(title: AppLocalization.string("Animations and haptics"), systemImage: "sparkles")
+                        SettingsCardHeader(title: AppLocalization.string("Animations and haptics"), systemImage: "apple.haptics.and.music.note")
                         Toggle(isOn: $animationsEnabled) {
                             Text(AppLocalization.string("Animations"))
                         }
@@ -410,9 +454,9 @@ struct LanguageSettingsDetailView: View {
 }
 
 struct DataSettingsDetailView: View {
-    @AppStorage("diagnostics_logging_enabled") private var diagnosticsLoggingEnabled: Bool = true
     let onExport: () -> Void
     let onImport: () -> Void
+    let onSeedDummyData: () -> Void
     let onDeleteAll: () -> Void
 
     var body: some View {
@@ -447,6 +491,120 @@ struct DataSettingsDetailView: View {
                         .buttonStyle(.plain)
 
                         SettingsRowDivider()
+
+                        Button(action: onSeedDummyData) {
+                            HStack(spacing: 12) {
+                                GlassPillIcon(systemName: "wand.and.stars")
+                                Text(AppLocalization.string("Seed dummy data"))
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        SettingsRowDivider()
+
+                        Button(role: .destructive, action: onDeleteAll) {
+                            HStack(spacing: 12) {
+                                GlassPillIcon(systemName: "trash")
+                                Text(AppLocalization.string("Delete all data"))
+                                    .foregroundStyle(.red)
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .listRowSeparator(.hidden)
+                .listSectionSeparator(.hidden)
+                .listRowInsets(settingsComponentsRowInsets)
+                .listRowBackground(Color.clear)
+            }
+            .scrollContentBackground(.hidden)
+            .listStyle(.plain)
+            .listSectionSpacing(24)
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+            .padding(.top, 8)
+        }
+        .navigationTitle(AppLocalization.string("Data"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+    }
+}
+
+struct AboutSettingsDetailView: View {
+    @AppStorage("diagnostics_logging_enabled") private var diagnosticsLoggingEnabled: Bool = true
+    @Environment(\.openURL) private var openURL
+    let onReportBug: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
+            List {
+                Section {
+                    SettingsCard(tint: Color.white.opacity(0.07)) {
+                        SettingsCardHeader(title: AppLocalization.string("About"), systemImage: "info.circle")
+
+                        Button {
+                            openURL(LegalLinks.about)
+                        } label: {
+                            HStack(spacing: 12) {
+                                GlassPillIcon(systemName: "safari")
+                                Text(AppLocalization.string("Website"))
+                                Spacer()
+                                Image(systemName: "arrow.up.right.square")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        SettingsRowDivider()
+
+                        Button {
+                            openURL(LegalLinks.featureRequest)
+                        } label: {
+                            HStack(spacing: 12) {
+                                GlassPillIcon(systemName: "lightbulb")
+                                Text(AppLocalization.string("Feature request"))
+                                Spacer()
+                                Image(systemName: "arrow.up.right.square")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        SettingsRowDivider()
+
+                        Button {
+                            onReportBug()
+                        } label: {
+                            HStack(spacing: 12) {
+                                GlassPillIcon(systemName: "ladybug")
+                                Text(AppLocalization.string("Report a bug"))
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .listRowSeparator(.hidden)
+                .listSectionSeparator(.hidden)
+                .listRowInsets(settingsComponentsRowInsets)
+                .listRowBackground(Color.clear)
+
+                Section {
+                    SettingsCard(tint: Color.appAccent.opacity(0.10)) {
+                        SettingsCardHeader(title: AppLocalization.string("Diagnostics"), systemImage: "exclamationmark.bubble")
 
                         NavigationLink {
                             CrashReportView()
@@ -484,15 +642,26 @@ struct DataSettingsDetailView: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                         .accessibilityIdentifier("settings.data.diagnostics.logging.toggle")
+                    }
+                }
+                .listRowSeparator(.hidden)
+                .listSectionSeparator(.hidden)
+                .listRowInsets(settingsComponentsRowInsets)
+                .listRowBackground(Color.clear)
 
-                        SettingsRowDivider()
+                Section {
+                    SettingsCard(tint: Color.white.opacity(0.04)) {
+                        SettingsCardHeader(title: AppLocalization.string("Credits"), systemImage: "heart")
 
-                        Button(role: .destructive, action: onDeleteAll) {
+                        Button {
+                            openURL(URL(string: "https://icons8.com")!)
+                        } label: {
                             HStack(spacing: 12) {
-                                GlassPillIcon(systemName: "trash")
-                                Text(AppLocalization.string("Delete all data"))
-                                    .foregroundStyle(.red)
+                                GlassPillIcon(systemName: "paintbrush")
+                                Text(AppLocalization.string("Icons by Icons8"))
                                 Spacer()
+                                Image(systemName: "arrow.up.right.square")
+                                    .foregroundStyle(.secondary)
                             }
                             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                             .contentShape(Rectangle())
@@ -512,7 +681,7 @@ struct DataSettingsDetailView: View {
             .listSectionSeparator(.hidden)
             .padding(.top, 8)
         }
-        .navigationTitle(AppLocalization.string("Data"))
+        .navigationTitle(AppLocalization.string("About"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
     }
@@ -853,10 +1022,13 @@ struct HealthIndicatorsSettingsSection: View {
     @Binding var showWHtROnHome: Bool
     @Binding var showRFMOnHome: Bool
     @Binding var showBMIOnHome: Bool
+    @Binding var showWHROnHome: Bool
+    @Binding var showWaistRiskOnHome: Bool
     @Binding var showBodyFatOnHome: Bool
     @Binding var showLeanMassOnHome: Bool
     @Binding var showABSIOnHome: Bool
-    @Binding var showConicityOnHome: Bool
+    @Binding var showBodyShapeScoreOnHome: Bool
+    @Binding var showCentralFatRiskOnHome: Bool
 
     var body: some View {
         Section {
@@ -875,10 +1047,17 @@ struct HealthIndicatorsSettingsSection: View {
                     rowDivider
                     metricToggle(AppLocalization.string("Lean Body Mass"), isOn: $showLeanMassOnHome)
 
-                    metricsGroupTitle("Risk signals")
-                    metricToggle(AppLocalization.string("Body Shape Risk (ABSI)"), isOn: $showABSIOnHome)
+                    metricsGroupTitle("Fat distribution")
+                    metricToggle(AppLocalization.string("Waist-to-Hip Ratio"), isOn: $showWHROnHome)
                     rowDivider
-                    metricToggle(AppLocalization.string("Central Fat Risk (Conicity)"), isOn: $showConicityOnHome)
+                    metricToggle(AppLocalization.string("Waist circumference"), isOn: $showWaistRiskOnHome)
+
+                    metricsGroupTitle("Risk signals")
+                    metricToggle(AppLocalization.string("ABSI (technical)"), isOn: $showABSIOnHome)
+                    rowDivider
+                    metricToggle(AppLocalization.string("Body Shape Risk"), isOn: $showBodyShapeScoreOnHome)
+                    rowDivider
+                    metricToggle(AppLocalization.string("Central Fat Risk"), isOn: $showCentralFatRiskOnHome)
                 }
                 .padding(.top, 6)
             }
@@ -904,6 +1083,75 @@ struct HealthIndicatorsSettingsSection: View {
             Text(title)
         }
         .tint(Color.appAccent)
+        .onChange(of: isOn.wrappedValue) { _, _ in Haptics.selection() }
+        .padding(.vertical, 10)
+        .frame(minHeight: 44)
+    }
+
+    private var rowDivider: some View {
+        Divider()
+            .overlay(Color.white.opacity(0.12))
+            .padding(.vertical, 4)
+    }
+}
+
+struct PhysiqueIndicatorsSettingsSection: View {
+    @Binding var showPhysiqueSWR: Bool
+    @Binding var showPhysiqueCWR: Bool
+    @Binding var showPhysiqueSHR: Bool
+    @Binding var showPhysiqueHWR: Bool
+    @Binding var showPhysiqueBWR: Bool
+    @Binding var showPhysiqueWHtR: Bool
+    @Binding var showPhysiqueBodyFat: Bool
+    @Binding var showPhysiqueRFM: Bool
+
+    var body: some View {
+        Section {
+            SettingsCard(tint: Color(hex: "#14B8A6").opacity(0.16)) {
+                SettingsCardHeader(title: AppLocalization.string("Physique indicators"), systemImage: "figure.strengthtraining.traditional")
+                VStack(spacing: 0) {
+                    metricsGroupTitle("Proportion ratios")
+                    metricToggle(AppLocalization.string("Shoulder-to-Waist Ratio"), isOn: $showPhysiqueSWR)
+                    rowDivider
+                    metricToggle(AppLocalization.string("Chest-to-Waist Ratio"), isOn: $showPhysiqueCWR)
+                    rowDivider
+                    metricToggle(AppLocalization.string("Hip-to-Waist Ratio"), isOn: $showPhysiqueHWR)
+                    rowDivider
+                    metricToggle(AppLocalization.string("Bust-to-Waist Ratio"), isOn: $showPhysiqueBWR)
+                    rowDivider
+                    metricToggle(AppLocalization.string("Shoulder-to-Hip Ratio"), isOn: $showPhysiqueSHR)
+
+                    metricsGroupTitle("Hybrid metrics")
+                    metricToggle(AppLocalization.string("Waist-Height Ratio"), isOn: $showPhysiqueWHtR)
+                    rowDivider
+                    metricToggle(AppLocalization.string("Body Fat Percentage"), isOn: $showPhysiqueBodyFat)
+                    rowDivider
+                    metricToggle(AppLocalization.string("Relative Fat Mass"), isOn: $showPhysiqueRFM)
+                }
+                .padding(.top, 6)
+            }
+        }
+        .listRowSeparator(.hidden)
+        .listSectionSeparator(.hidden)
+        .listRowInsets(settingsComponentsRowInsets)
+        .listRowBackground(Color.clear)
+    }
+
+    private func metricsGroupTitle(_ title: String) -> some View {
+        Text(AppLocalization.string(title))
+            .font(AppTypography.captionEmphasis)
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .padding(.top, 10)
+            .padding(.bottom, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func metricToggle(_ title: String, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) {
+            Text(title)
+        }
+        .tint(Color(hex: "#14B8A6"))
         .onChange(of: isOn.wrappedValue) { _, _ in Haptics.selection() }
         .padding(.vertical, 10)
         .frame(minHeight: 44)
@@ -977,4 +1225,3 @@ struct SettingsScrollOffsetKey: PreferenceKey {
         value = nextValue()
     }
 }
-

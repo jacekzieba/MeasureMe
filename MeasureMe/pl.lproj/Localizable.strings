@@ -220,6 +220,7 @@
 "Overweight" = "Nadwaga";
 "Obese" = "Znaczna nadwaga";
 "Low risk" = "Niskie ryzyko";
+"Increased risk" = "Podwyższone ryzyko";
 "Moderate risk" = "Umiarkowane ryzyko";
 "High risk" = "Podwyższone ryzyko";
 "Child/Adolescent" = "Dziecko/Nastolatek";
@@ -656,6 +657,8 @@
 "Your waist-to-hip ratio is within the healthy range." = "Twój stosunek talii do bioder mieści się w zdrowym zakresie.";
 "Your waist-to-hip ratio indicates overweight." = "Twój stosunek talii do bioder wskazuje na nadwagę.";
 "Your waist-to-hip ratio indicates obesity." = "Twój stosunek talii do bioder wskazuje na otyłość.";
+"Your waist-to-hip ratio is within the low-risk range." = "Twój stosunek talii do bioder mieści się w zakresie niskiego ryzyka.";
+"Your waist-to-hip ratio is above the low-risk threshold." = "Twój stosunek talii do bioder przekracza próg niskiego ryzyka.";
 "Your relative fat mass is within a healthy range." = "Twoja względna masa tłuszczu mieści się w zdrowym zakresie.";
 "Your relative fat mass indicates increased body fat." = "Twoja względna masa tłuszczu wskazuje na podwyższony poziom tkanki tłuszczowej.";
 "Your relative fat mass indicates high body fat." = "Twoja względna masa tłuszczu wskazuje na wysoki poziom tkanki tłuszczowej.";
@@ -819,7 +822,7 @@
 
 /* Premium paywall */
 "premium.benefit.ai" = "Analizy AI";
-"premium.benefit.indicators" = "Pełne wskaźniki zdrowia";
+"premium.benefit.indicators" = "Wskaźniki zdrowia i sylwetki";
 "premium.benefit.export" = "Eksport danych";
 "premium.benefit.photos" = "Porównywanie zdjęć";
 "premium.plan.monthly" = "Miesięcznie";
@@ -832,6 +835,7 @@
 "premium.subscription.loading" = "Ładowanie opcji subskrypcji...";
 "premium.subscription.error" = "Nie udało się wczytać subskrypcji (%@)";
 "premium.subscription.retry" = "Ponów ładowanie";
+"premium.subscription.disabled" = "Ładowanie subskrypcji jest wyłączone przez bieżące flagi debug/audit.";
 "premium.purchase.success" = "Zakup zakończony. Premium jest aktywne.";
 "premium.purchase.cancelled" = "Zakup anulowany.";
 "premium.purchase.pending" = "Zakup oczekuje na zatwierdzenie.";
@@ -857,7 +861,7 @@
 "premium.carousel.photos.title" = "Twoja transformacja widoczna gołym okiem";
 "premium.carousel.photos.body" = "Porównuj zdjęcia w czasie. Zobacz zmiany, których nie pokazuje sama waga.";
 "premium.carousel.indicators.title" = "Więcej niż waga";
-"premium.carousel.indicators.body" = "Wskaźniki zdrowia pokazują, co Twoje liczby naprawdę oznaczają dla zdrowia.";
+"premium.carousel.indicators.body" = "Wskaźniki zdrowia i sylwetki pokazują, co Twoje liczby oznaczają dla zdrowia i wyglądu.";
 "premium.carousel.unlock.title" = "Trenuj mądrzej, zobacz progres";
 "premium.carousel.unlock.body" = "Miej wszystko w jednym miejscu, aby utrzymać regularność i przyspieszyć postępy.";
 "premium.carousel.unlock.item.ai" = "Nielimitowane analizy AI";
@@ -901,7 +905,7 @@
 "premium.carousel.indicator.status.stable" = "Stabilny trend";
 "premium.slide.ai.title" = "Analizy AI";
 "premium.slide.ai.body" = "Aplikacja wyciągnie wnioski za Ciebie, zasugeruje na co zwrócić uwagę, pomoże utrzymać motywację i systematyczność oraz pokaże to, co może Ci umknąć.";
-"premium.slide.indicators.title" = "Pełne wskaźniki zdrowia";
+"premium.slide.indicators.title" = "Wskaźniki zdrowia i sylwetki";
 "premium.slide.indicators.body" = "Zdrowie to najcenniejsze, co mamy. Wymiary i waga to jedno, ale najważniejsze jest to, jak wszystkie zmiany wpływają na Twoje zdrowie.";
 "premium.slide.export.title" = "Eksport danych";
 "premium.slide.export.body" = "Twoje dane są bezpieczne. Możesz zrobić backup albo wygenerować eksport, aby pokazać postępy trenerowi lub dietetykowi.";
@@ -929,7 +933,7 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 /* FAQ - Premium */
 "Premium and subscriptions" = "Premium i subskrypcje";
 "What is Premium Edition?" = "Czym jest Premium Edition?";
-"Premium unlocks Apple Intelligence insights, Health Indicators, data export, and photo comparison. It also supports a small business from Poland." = "Premium odblokowuje Analizy AI, wskaźniki zdrowia, eksport danych i porównywanie zdjęć. Analizy AI w MeasureMe używają Apple Intelligence, które musi być dostępne i włączone.";
+"Premium unlocks Apple Intelligence insights, Health Indicators, data export, and photo comparison. It also supports a small business from Poland." = "Premium odblokowuje Analizy AI, wskaźniki zdrowia, wskaźniki sylwetki, eksport danych i porównywanie zdjęć. Analizy AI w MeasureMe używają Apple Intelligence, które musi być dostępne i włączone.";
 "Is there a free trial?" = "Czy jest okres próbny?";
 "Yes. Premium includes a free trial period when available. You can cancel before it ends to avoid being charged." = "Tak. Premium oferuje okres próbny, gdy jest dostępny. Możesz anulować przed jego końcem, aby uniknąć opłaty.";
 "How do I cancel or manage my subscription?" = "Jak anulować lub zarządzać subskrypcją?";
@@ -1068,7 +1072,7 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Import history and keep data in sync." = "Zaimportuj historię i utrzymuj dane na bieżąco.";
 "Explore Premium" = "Sprawdz premium";
 "Explore Premium (14 days free)" = "Sprawdz premium (14 dni za darmo)";
-"Try deeper insights and compare photos side-by-side." = "Otrzymuj Analizy AI, wskaźniki zdrowia, eksport danych i porównanie zdjęć.";
+"Try deeper insights and compare photos side-by-side." = "Otrzymuj Analizy AI, wskaźniki zdrowia, wskaźniki sylwetki, eksport danych i porównanie zdjęć.";
 "Finish setup (optional)" = "Dokończ konfigurację (opcjonalnie)";
 "Hide checklist" = "Ukryj checklistę";
 "Show setup checklist on Home" = "Pokaż checklistę konfiguracji na Home";
@@ -1127,7 +1131,7 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "AI Insights: unavailable (Premium Edition required)" = "Analizy AI: niedostępne (wymagana edycja Premium)";
 "What if AI Insights are unavailable?" = "Co jeśli Analizy AI są niedostępne?";
 "AI Insights in MeasureMe use Apple Intelligence. You need a supported device and language, plus Apple Intelligence enabled in system settings." = "Analizy AI w MeasureMe korzystają z Apple Intelligence. Potrzebujesz obsługiwanego urządzenia i języka oraz włączonego Apple Intelligence w ustawieniach systemu.";
-"Premium unlocks AI Insights, Health Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled." = "Premium odblokowuje Analizy AI, wskaźniki zdrowia, eksport danych i porównanie zdjęć. Analizy AI w MeasureMe korzystają z Apple Intelligence, więc Apple Intelligence musi być dostępne i włączone.";
+"Premium unlocks AI Insights, Health Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled." = "Premium odblokowuje Analizy AI, wskaźniki zdrowia, wskaźniki sylwetki, eksport danych i porównanie zdjęć. Analizy AI w MeasureMe korzystają z Apple Intelligence, więc Apple Intelligence musi być dostępne i włączone.";
 "premium.carousel.indicators.more" = "I 5 więcej";
 "premium.compare.benefit.visual" = "Wizualny dowód";
 "premium.compare.benefit.timeline" = "Kontekst czasu";
@@ -1287,3 +1291,56 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Imported %d measurements and %d goals." = "Zaimportowano %d pomiarów i %d celów.";
 "%d rows skipped." = "Pominięto %d wierszy.";
 "Could not open file: " = "Nie można otworzyć pliku: ";
+"Seed dummy data" = "Dodaj dane testowe";
+"This will add realistic sample measurements for recent weeks. Existing data will remain unchanged." = "To doda realistyczne przykładowe pomiary z ostatnich tygodni. Istniejące dane pozostaną bez zmian.";
+"Dummy data added: %d measurements." = "Dodano dane testowe: %d pomiarów.";
+"Could not seed dummy data. Please try again." = "Nie udało się dodać danych testowych. Spróbuj ponownie.";
+
+// MARK: - About Section
+"Website" = "Strona internetowa";
+"About MeasureMe" = "O MeasureMe";
+"Credits" = "Podziękowania";
+"Icons by Icons8" = "Ikony: Icons8";
+"Diagnostics" = "Diagnostyka";
+"Physique indicators" = "Wskaźniki sylwetki";
+"Choose physique indicators" = "Wybierz wskaźniki sylwetki";
+"Upgrade to Premium Edition to unlock Physique indicators." = "Przejdź na edycję premium, aby odblokować wskaźniki sylwetki.";
+"Enable physique indicators in Settings to see results here." = "Włącz wskaźniki sylwetki w Ustawieniach, aby zobaczyć wyniki.";
+"Proportion ratios" = "Wskaźniki proporcji";
+"Hybrid metrics" = "Wskaźniki hybrydowe";
+"Shoulder-to-Waist Ratio" = "Stosunek barków do talii";
+"Chest-to-Waist Ratio" = "Stosunek klatki do talii";
+"Hip-to-Waist Ratio" = "Stosunek bioder do talii";
+"Bust-to-Waist Ratio" = "Stosunek biustu do talii";
+"Set gender" = "Ustaw płeć";
+"Set gender to unlock these indicators" = "Ustaw płeć, aby odblokować te wskaźniki";
+"Physique ratio interpretation in this section is sex-specific. Set your profile gender to view values and ranges." = "Interpretacja wskaźników sylwetki w tej sekcji zależy od płci. Ustaw płeć w profilu, aby zobaczyć wartości i zakresy.";
+"Set your gender in Profile to unlock this indicator and its ranges." = "Ustaw płeć w Profilu, aby odblokować ten wskaźnik i jego zakresy.";
+"Body Shape Risk in this app is standardized ABSI (z-score), not an arbitrary composite." = "Body Shape Risk w tej aplikacji to standaryzowany ABSI (z-score), a nie arbitralny kompozyt.";
+"Fat distribution" = "Dystrybucja tłuszczu";
+"Waist circumference" = "Obwód talii";
+"ABSI (technical)" = "ABSI (techniczne)";
+"To calculate this indicator, add:" = "Aby obliczyć ten wskaźnik, dodaj:";
+"Formula" = "Wzór";
+"What it means" = "Co to oznacza";
+"How to improve" = "Jak poprawić";
+"Reference ranges" = "Zakresy referencyjne";
+"Reference interpretation" = "Interpretacja zakresów";
+"Visible definition" = "Widoczna definicja";
+"Soft definition" = "Miękka definicja";
+"Hidden proportions" = "Ukryte proporcje";
+"Lower-body dominant" = "Dominacja dolnej części";
+"Balanced frame" = "Zbalansowana sylwetka";
+"Upper-body dominant" = "Dominacja górnej części";
+"Athletes" = "Atletycznie";
+"Average" = "Średnio";
+"Top" = "Top";
+"High" = "Wysoko";
+"Required for range interpretation" = "Wymagane do interpretacji zakresów";
+"Shoulders" = "Barki";
+"Chest" = "Klatka";
+"Bust or chest" = "Biust lub klatka";
+"Hips" = "Biodra";
+"Are physique indicators medical?" = "Czy wskaźniki sylwetki są medyczne?";
+"No. Physique indicators are visual and proportion-focused heuristics designed for appearance tracking, not medical diagnosis." = "Nie. Wskaźniki sylwetki to heurystyki wizualne i proporcyjne do śledzenia wyglądu, a nie diagnoza medyczna.";
+"Apple Intelligence insights, Health Indicators, and photo comparison." = "Analizy Apple Intelligence, wskaźniki zdrowia, wskaźniki sylwetki i porównanie zdjęć.";

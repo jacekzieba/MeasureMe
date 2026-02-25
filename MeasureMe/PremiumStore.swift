@@ -3,6 +3,7 @@ import StoreKit
 import UIKit
 import Combine
 import UserNotifications
+import Foundation
 
 protocol PremiumBillingClient {
     func products(for identifiers: [String]) async throws -> [Product]
@@ -20,6 +21,14 @@ protocol PremiumNotificationManaging: AnyObject {
 }
 
 extension NotificationManager: PremiumNotificationManaging {}
+
+private enum PremiumStoreTimeoutError: LocalizedError {
+    case operationTimedOut
+
+    var errorDescription: String? {
+        "The operation timed out."
+    }
+}
 
 struct StoreKitBillingClient: PremiumBillingClient {
     func products(for identifiers: [String]) async throws -> [Product] {
@@ -97,6 +106,7 @@ final class PremiumStore: ObservableObject {
     private let forcePremiumForUITests: Bool
     #endif
     private var updateListenerTask: Task<Void, Never>?
+    private var foregroundObserver: NSObjectProtocol?
 
     init(
         billingClient: PremiumBillingClient? = nil,
@@ -119,8 +129,16 @@ final class PremiumStore: ObservableObject {
         }
         #endif
 
-        let networkDisabledForAudit = AuditConfig.current.disablePaywallNetwork || AuditConfig.current.isEnabled
-        if startListener && !networkDisabledForAudit {
+        if startListener {
+            foregroundObserver = NotificationCenter.default.addObserver(
+                forName: UIApplication.willEnterForegroundNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    await self?.syncEntitlements()
+                }
+            }
             updateListenerTask = Task {
                 await loadProducts()
                 await refreshEntitlements()
@@ -131,6 +149,9 @@ final class PremiumStore: ObservableObject {
 
     deinit {
         updateListenerTask?.cancel()
+        if let foregroundObserver {
+            NotificationCenter.default.removeObserver(foregroundObserver)
+        }
     }
 
     func presentPaywall(reason: PaywallReason) {
@@ -145,6 +166,10 @@ final class PremiumStore: ObservableObject {
     func clearActionMessage() {
         actionMessage = nil
         actionMessageIsError = false
+    }
+
+    func syncEntitlements() async {
+        await refreshEntitlements()
     }
 
     func checkSevenDayPromptIfNeeded() {
@@ -173,14 +198,14 @@ final class PremiumStore: ObservableObject {
         if AuditConfig.current.disablePaywallNetwork || AuditConfig.current.isEnabled {
             isLoading = false
             products = []
-            productsLoadError = nil
+            productsLoadError = AppLocalization.string("premium.subscription.disabled")
             return
         }
 
         isLoading = true
         productsLoadError = nil
         do {
-            let fetched = try await billingClient.products(for: productIDs)
+            let fetched = try await productsWithTimeout()
             products = fetched.sorted { $0.price < $1.price }
             if products.isEmpty {
                 productsLoadError = AppLocalization.string("No products returned by StoreKit.")
@@ -190,6 +215,22 @@ final class PremiumStore: ObservableObject {
             productsLoadError = error.localizedDescription
         }
         isLoading = false
+    }
+
+    private func productsWithTimeout(seconds: Double = 8) async throws -> [Product] {
+        try await withThrowingTaskGroup(of: [Product].self) { group in
+            group.addTask {
+                try await self.billingClient.products(for: self.productIDs)
+            }
+            group.addTask {
+                let nanos = UInt64(max(seconds, 1) * 1_000_000_000)
+                try await Task.sleep(nanoseconds: nanos)
+                throw PremiumStoreTimeoutError.operationTimedOut
+            }
+            let result = try await group.next() ?? []
+            group.cancelAll()
+            return result
+        }
     }
 
     func purchase(_ product: Product) async {
@@ -298,11 +339,6 @@ final class PremiumStore: ObservableObject {
     }
 
     private func refreshEntitlements() async {
-        if AuditConfig.current.disablePaywallNetwork || AuditConfig.current.isEnabled {
-            isPremium = UserDefaults.standard.bool(forKey: entitlementKey)
-            return
-        }
-
         #if DEBUG
         if forcePremiumForUITests {
             isPremium = true
@@ -312,6 +348,8 @@ final class PremiumStore: ObservableObject {
         #endif
 
         var active = false
+        var sawVerifiedEntitlement = false
+        var sawUnverifiedEntitlement = false
         let allowedProductIDs = Set(productIDs)
         let now = AppClock.now
 
@@ -320,19 +358,29 @@ final class PremiumStore: ObservableObject {
         } else {
             // Zapasowe rozwiazanie dla przypadkow brzegowych, gdy pobranie statusu jest niedostepne.
             for await result in billingClient.currentEntitlements() {
-                guard case .verified(let transaction) = result else { continue }
-                if Self.isEntitlementActive(
-                    productID: transaction.productID,
-                    revocationDate: transaction.revocationDate,
-                    expirationDate: transaction.expirationDate,
-                    isInBillingGracePeriod: false,
-                    allowedProductIDs: allowedProductIDs,
-                    now: now
-                ) {
-                    active = true
-                    break
+                switch result {
+                case .verified(let transaction):
+                    sawVerifiedEntitlement = true
+                    if Self.isEntitlementActive(
+                        productID: transaction.productID,
+                        revocationDate: transaction.revocationDate,
+                        expirationDate: transaction.expirationDate,
+                        isInBillingGracePeriod: false,
+                        allowedProductIDs: allowedProductIDs,
+                        now: now
+                    ) {
+                        active = true
+                        break
+                    }
+                case .unverified:
+                    // Nie zaniżaj stanu premium na podstawie nieweryfikowalnych danych.
+                    sawUnverifiedEntitlement = true
                 }
             }
+        }
+
+        if !active && !sawVerifiedEntitlement && sawUnverifiedEntitlement {
+            return
         }
 
         isPremium = active
@@ -340,16 +388,8 @@ final class PremiumStore: ObservableObject {
     }
 
     private func hasActiveSubscriptionStatus(allowedProductIDs: Set<String>, now: Date) async -> Bool {
-        let entitlementProducts: [Product]
-        if products.isEmpty {
-            do {
-                entitlementProducts = try await billingClient.products(for: productIDs)
-            } catch {
-                return false
-            }
-        } else {
-            entitlementProducts = products
-        }
+        guard !products.isEmpty else { return false }
+        let entitlementProducts = products
 
         for product in entitlementProducts where allowedProductIDs.contains(product.id) {
             guard let subscription = product.subscription else { continue }
@@ -393,6 +433,9 @@ final class PremiumStore: ObservableObject {
             do {
                 let transaction = try verification.payloadValue
                 let startedIntroTrial = transaction.offer?.type == .introductory
+                // Natychmiast odblokuj premium po zweryfikowanym zakupie.
+                isPremium = true
+                UserDefaults.standard.set(true, forKey: entitlementKey)
                 await transaction.finish()
                 await refreshEntitlements()
                 if startedIntroTrial {

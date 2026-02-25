@@ -260,11 +260,20 @@ struct MetricDetailView: View {
     }
 
     private var emptyStateSection: some View {
-        ContentUnavailableView(
-            AppLocalization.string("No data"),
-            systemImage: kind.systemImage,
-            description: Text(AppLocalization.string("Add your first entry to see history and charts."))
-        )
+        VStack(spacing: 16) {
+            kind.iconView(size: 56, tint: Color.appAccent)
+                .opacity(0.7)
+            VStack(spacing: 6) {
+                Text(AppLocalization.string("No data"))
+                    .font(.headline)
+                Text(AppLocalization.string("Add your first entry to see history and charts."))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
     }
 
     @ViewBuilder
