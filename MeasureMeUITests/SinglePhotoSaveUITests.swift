@@ -60,9 +60,61 @@ final class SinglePhotoSaveUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter.wait(for: [exactlyOne], timeout: 12), .completed)
         XCTAssertFalse(app.alerts.firstMatch.exists)
     }
+
+    @MainActor
+    func testMeasurementsSectionIsCollapsedByDefault() {
+        launchWithSingleAdd()
+        waitForSingleAddSheet()
+
+        let toggle = app.buttons["addPhoto.measurements.toggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 3), "Measurements section toggle should exist")
+
+        let content = element("addPhoto.measurements.content")
+        XCTAssertFalse(content.exists, "Measurements section should be collapsed initially")
+    }
+
+    @MainActor
+    func testMeasurementsSectionExpandsAfterTap() {
+        launchWithSingleAdd()
+        waitForSingleAddSheet()
+
+        let toggle = app.buttons["addPhoto.measurements.toggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 3), "Measurements section toggle should exist")
+        toggle.tap()
+
+        let content = element("addPhoto.measurements.content")
+        XCTAssertTrue(content.waitForExistence(timeout: 3), "Measurements section content should expand")
+    }
+
+    @MainActor
+    func testMeasurementsFilledCounterUpdatesAfterInput() {
+        launchWithSingleAdd()
+        waitForSingleAddSheet()
+
+        let toggle = app.buttons["addPhoto.measurements.toggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 3), "Measurements section toggle should exist")
+        toggle.tap()
+
+        let weightField = app.textFields["addPhoto.metricField.weight"]
+        if !weightField.waitForExistence(timeout: 1) {
+            app.swipeUp()
+        }
+        XCTAssertTrue(weightField.waitForExistence(timeout: 3), "Weight metric field should exist after expanding section")
+
+        weightField.tap()
+        weightField.typeText("82")
+
+        let filledCount = app.staticTexts["addPhoto.measurements.filledCount"]
+        XCTAssertTrue(filledCount.waitForExistence(timeout: 3), "Filled counter should appear after entering a measurement")
+        XCTAssertTrue(filledCount.label.contains("1"), "Filled counter should show one completed metric")
+    }
 }
 
 private extension SinglePhotoSaveUITests {
+    func element(_ identifier: String) -> XCUIElement {
+        app.descendants(matching: .any)[identifier].firstMatch
+    }
+
     func launchWithSingleAdd() {
         app.launchArguments = ["-uiTestMode", "-uiTestOpenSingleAdd"]
         app.launch()

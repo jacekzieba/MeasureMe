@@ -196,7 +196,7 @@ struct HealthMetricsSection: View {
                                 Text(AppLocalization.string("Settings"))
                                     .font(AppTypography.sectionAction)
                             }
-                            .foregroundStyle(Color(hex: "#FCA311"))
+                            .foregroundStyle(HealthIndicatorPalette.accent)
                         }
                     } else if !missingMetrics.isEmpty {
                         HStack(spacing: 4) {
@@ -205,7 +205,7 @@ struct HealthMetricsSection: View {
                             Text(AppLocalization.string("Missing data"))
                                 .font(AppTypography.sectionAction)
                         }
-                        .foregroundStyle(Color(hex: "#FCA311"))
+                        .foregroundStyle(HealthIndicatorPalette.accent)
                     }
                 }
             }
@@ -267,7 +267,7 @@ struct HealthMetricsSection: View {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "sparkles")
                         .font(AppTypography.iconSmall)
-                        .foregroundStyle(Color(hex: "#FCA311"))
+                        .foregroundStyle(HealthIndicatorPalette.accent)
                         .padding(8)
                         .background(Color.white.opacity(0.08))
                         .clipShape(Circle())
@@ -578,16 +578,16 @@ struct HealthMetricsSection: View {
 
         if age >= 19 && age <= 39 {
             if lbmPercent >= 80 && lbmPercent <= 92 { return (AppLocalization.string("In range"), "#34D399") }
-            if lbmPercent > 92 { return (AppLocalization.string("Above range"), "#FCA311") }
+            if lbmPercent > 92 { return (AppLocalization.string("Above range"), HealthIndicatorPalette.emphasisHex) }
             return (AppLocalization.string("Below range"), "#60A5FA")
         }
         if age >= 40 && age <= 59 {
             if lbmPercent >= 78 && lbmPercent <= 89 { return (AppLocalization.string("In range"), "#34D399") }
-            if lbmPercent > 89 { return (AppLocalization.string("Above range"), "#FCA311") }
+            if lbmPercent > 89 { return (AppLocalization.string("Above range"), HealthIndicatorPalette.emphasisHex) }
             return (AppLocalization.string("Below range"), "#60A5FA")
         }
         if lbmPercent >= 75 && lbmPercent <= 87 { return (AppLocalization.string("In range"), "#34D399") }
-        if lbmPercent > 87 { return (AppLocalization.string("Above range"), "#FCA311") }
+        if lbmPercent > 87 { return (AppLocalization.string("Above range"), HealthIndicatorPalette.emphasisHex) }
         return (AppLocalization.string("Below range"), "#60A5FA")
     }
 
@@ -595,7 +595,7 @@ struct HealthMetricsSection: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(HealthIndicatorPalette.accent)
                 Text(AppLocalization.string("Missing data"))
                     .font(AppTypography.bodyEmphasis)
                     .foregroundStyle(.white)
@@ -641,7 +641,7 @@ struct HealthMetricsSection: View {
             title: title,
             value: "—",
             category: AppLocalization.string("Add data"),
-            categoryColor: "#FCA311",
+            categoryColor: HealthIndicatorPalette.emphasisHex,
             destination: HealthIndicatorMissingDataView(indicatorTitle: title, missingItems: missingInputs(for: kind))
         )
     }
@@ -652,7 +652,7 @@ struct HealthMetricsSection: View {
             title: title,
             value: "—",
             category: AppLocalization.string("Set gender"),
-            categoryColor: "#FCA311",
+            categoryColor: HealthIndicatorPalette.emphasisHex,
             destination: GenderRequiredIndicatorView(indicatorTitle: title)
         )
     }
@@ -742,7 +742,7 @@ struct HealthMetricsSection: View {
         case "low risk":
             return (AppLocalization.string("Excellence"), "#22C55E")
         case "moderate risk":
-            return (AppLocalization.string("Keep steady"), "#FCA311")
+            return (AppLocalization.string("Keep steady"), HealthIndicatorPalette.emphasisHex)
         case "high risk":
             return (AppLocalization.string("Worth attention"), "#F97316")
         case "increased risk":
@@ -752,7 +752,7 @@ struct HealthMetricsSection: View {
         case "normal weight":
             return (AppLocalization.string("On track"), "#34D399")
         case "high weight", "overweight":
-            return (AppLocalization.string("Room to improve"), "#FCA311")
+            return (AppLocalization.string("Room to improve"), HealthIndicatorPalette.emphasisHex)
         case "obese":
             return (AppLocalization.string("Focus area"), "#F97316")
         case "normal fat level":
@@ -762,15 +762,15 @@ struct HealthMetricsSection: View {
         case "low":
             return (AppLocalization.string("Excellence"), "#22C55E")
         case "moderate":
-            return (AppLocalization.string("Keep steady"), "#FCA311")
+            return (AppLocalization.string("Keep steady"), HealthIndicatorPalette.emphasisHex)
         case "high":
             return (AppLocalization.string("Worth attention"), "#F97316")
         case "optimal":
             return (AppLocalization.string("Excellence"), "#22C55E")
         case "elevated":
-            return (AppLocalization.string("Room to improve"), "#FCA311")
+            return (AppLocalization.string("Room to improve"), HealthIndicatorPalette.emphasisHex)
         default:
-            return (AppLocalization.string(raw), "#FCA311")
+            return (AppLocalization.string(raw), HealthIndicatorPalette.emphasisHex)
         }
     }
 
@@ -781,6 +781,18 @@ struct HealthMetricsSection: View {
             isLoadingInsight = false
             return
         }
+
+        do {
+            try await Task.sleep(for: .milliseconds(650))
+        } catch {
+            isLoadingInsight = false
+            return
+        }
+        guard !Task.isCancelled else {
+            isLoadingInsight = false
+            return
+        }
+
         isLoadingInsight = true
         healthInsightText = await MetricInsightService.shared.generateHealthInsight(for: input)
         isLoadingInsight = false
@@ -791,7 +803,7 @@ struct HealthMetricsSection: View {
             HStack(spacing: 8) {
                 Image(systemName: "gearshape.fill")
                     .font(.title3)
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(HealthIndicatorPalette.accent)
 
                 Text(AppLocalization.string("No indicators selected"))
                     .font(AppTypography.bodyEmphasis)
@@ -813,7 +825,7 @@ struct HealthMetricsSection: View {
                 .foregroundStyle(.black)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(Color(hex: "#FCA311"))
+                .background(HealthIndicatorPalette.accent)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .padding(.top, 4)
@@ -822,11 +834,11 @@ struct HealthMetricsSection: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(hex: "#1E1812"))
+                .fill(HealthIndicatorPalette.cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(hex: "#F59E0B").opacity(0.34), lineWidth: 1)
+                .stroke(HealthIndicatorPalette.accent.opacity(0.34), lineWidth: 1)
         )
     }
 }
@@ -838,7 +850,7 @@ private struct HealthIndicatorMissingDataView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 320, tint: Color(hex: "#F59E0B").opacity(0.24))
+            AppScreenBackground(topHeight: 320, tint: HealthIndicatorPalette.accent.opacity(0.24))
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -871,7 +883,7 @@ private struct HealthIndicatorMissingDataView: View {
                             .foregroundStyle(.black)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(Color(hex: "#FCA311"), in: RoundedRectangle(cornerRadius: 8))
+                            .background(HealthIndicatorPalette.accent, in: RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.plain)
                 }
@@ -889,7 +901,7 @@ private struct GenderRequiredIndicatorView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 320, tint: Color(hex: "#FCA311").opacity(0.22))
+            AppScreenBackground(topHeight: 320, tint: HealthIndicatorPalette.accent.opacity(0.22))
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
@@ -910,7 +922,7 @@ private struct GenderRequiredIndicatorView: View {
                             .foregroundStyle(.black)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(Color(hex: "#FCA311"), in: RoundedRectangle(cornerRadius: 8))
+                            .background(HealthIndicatorPalette.accent, in: RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.plain)
                 }
@@ -935,7 +947,7 @@ private struct CentralFatRiskDetailView: View {
             notes: AppLocalization.string("A simple scale based on WHtR where 1.00 is the core threshold."),
             ranges: [
                 (AppLocalization.string("Low risk"), "< 1.00", "#22C55E"),
-                (AppLocalization.string("Moderate risk"), "1.00 - 1.20", "#FCA311"),
+                (AppLocalization.string("Moderate risk"), "1.00 - 1.20", HealthIndicatorPalette.emphasisHex),
                 (AppLocalization.string("High risk"), "> 1.20", "#EF4444")
             ]
         )
@@ -958,7 +970,7 @@ private struct CentralFatRiskDetailView: View {
 
                 Text(category)
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.bestAccessibleTextColor(onHex: categoryColor))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(Color(hex: categoryColor), in: RoundedRectangle(cornerRadius: 8))
@@ -1004,7 +1016,7 @@ private struct BodyShapeRiskScoreDetailView: View {
 
                 Text(AppLocalization.string(result.category.rawValue))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.bestAccessibleTextColor(onHex: result.category.color))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(Color(hex: result.category.color), in: RoundedRectangle(cornerRadius: 8))
@@ -1022,7 +1034,7 @@ private struct BodyShapeRiskScoreDetailView: View {
                         .font(AppTypography.bodyEmphasis)
                         .foregroundStyle(.white)
                     rangeRow(color: "#22C55E", title: AppLocalization.string("Low risk"), value: "z < -0.272")
-                    rangeRow(color: "#FCA311", title: AppLocalization.string("Moderate risk"), value: "-0.272 ... 0.229")
+                    rangeRow(color: HealthIndicatorPalette.emphasisHex, title: AppLocalization.string("Moderate risk"), value: "-0.272 ... 0.229")
                     rangeRow(color: "#EF4444", title: AppLocalization.string("High risk"), value: "z > 0.229")
                 }
                 .padding(12)
@@ -1065,7 +1077,7 @@ private struct WaistRiskDetailView: View {
 
                 Text(AppLocalization.string(result.category.rawValue))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.bestAccessibleTextColor(onHex: result.category.color))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(Color(hex: result.category.color), in: RoundedRectangle(cornerRadius: 8))
@@ -1077,11 +1089,11 @@ private struct WaistRiskDetailView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     if result.gender == .male {
                         row(title: AppLocalization.string("Low risk"), value: "<= 94 cm", color: "#22C55E")
-                        row(title: AppLocalization.string("Moderate risk"), value: "> 94 - 102 cm", color: "#FCA311")
+                        row(title: AppLocalization.string("Moderate risk"), value: "> 94 - 102 cm", color: HealthIndicatorPalette.emphasisHex)
                         row(title: AppLocalization.string("High risk"), value: "> 102 cm", color: "#EF4444")
                     } else {
                         row(title: AppLocalization.string("Low risk"), value: "<= 80 cm", color: "#22C55E")
-                        row(title: AppLocalization.string("Moderate risk"), value: "> 80 - 88 cm", color: "#FCA311")
+                        row(title: AppLocalization.string("Moderate risk"), value: "> 80 - 88 cm", color: HealthIndicatorPalette.emphasisHex)
                         row(title: AppLocalization.string("High risk"), value: "> 88 cm", color: "#EF4444")
                     }
                 }

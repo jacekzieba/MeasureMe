@@ -74,6 +74,11 @@ final class MultiPhotoImportServiceTests: XCTestCase {
         XCTAssertEqual(count, 1, "📸 SinglePhoto: powinien stworzyć 1 PhotoEntry")
         XCTAssertEqual(result.savedCount, 1)
         XCTAssertEqual(result.failedCount, 0)
+        let entry = try XCTUnwrap(try context.fetch(FetchDescriptor<PhotoEntry>()).first)
+        XCTAssertNotNil(entry.thumbnailData)
+        if let thumbnailSize = entry.thumbnailData?.count {
+            XCTAssertLessThanOrEqual(thumbnailSize, PhotoUtilities.gridThumbnailMaxBytes)
+        }
     }
 
     /// N obrazów → N PhotoEntry.

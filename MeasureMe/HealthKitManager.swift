@@ -768,6 +768,10 @@ final class HealthKitManager {
             if importResult.didInsertAny {
                 try context.save()
                 UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "healthkit_last_import")
+                let sampleDates = samples.map(\.date)
+                await MainActor.run {
+                    StreakManager.shared.recordHealthKitImport(sampleDates: sampleDates)
+                }
             }
 
             if let newAnchorData = anchored.newAnchorData {

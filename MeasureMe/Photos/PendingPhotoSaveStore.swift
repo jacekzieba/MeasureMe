@@ -30,6 +30,7 @@ enum PendingPhotoSaveStatus: String, Codable {
 struct PendingPhotoSaveItem: Identifiable, Equatable {
     let id: UUID
     let createdAt: Date
+    let batchID: UUID?
     let date: Date
     let tags: [PhotoTag]
     let thumbnailData: Data
@@ -39,30 +40,57 @@ struct PendingPhotoSaveItem: Identifiable, Equatable {
 
 struct PendingPhotoSaveCompletedEvent {
     let id: UUID
-    let entry: PhotoEntry
+    let entryPersistentModelID: PersistentIdentifier
+    let batchID: UUID?
     let eventID: UUID
 }
 
-private struct PendingPhotoSaveMetricRecord: Codable {
+private nonisolated struct PendingPhotoSaveMetricRecord: Codable {
     let kindRaw: String
     let displayValue: Double
 }
 
-private struct PendingPhotoSpoolRecord: Codable {
+private nonisolated struct PendingPhotoSpoolRecord: Codable {
     let id: UUID
     let createdAt: Date
+    let batchID: UUID?
     let date: Date
     let tags: [String]
     let metricValues: [PendingPhotoSaveMetricRecord]
     let unitsSystem: String
 }
 
+private struct PendingEnqueuePreparedArtifacts {
+    let sourceData: Data
+    let thumbnailData: Data
+}
+
+private struct RestoredPendingSnapshot: Sendable {
+    let id: UUID
+    let createdAt: Date
+    let batchID: UUID?
+    let date: Date
+    let tagRawValues: [String]
+    let thumbnailData: Data
+}
+
+private struct RestorePayload: Sendable {
+    let hasDirectory: Bool
+    let restoredItems: [RestoredPendingSnapshot]
+    let orphanIDs: [UUID]
+}
+
+private struct UncheckedUIImageBox: @unchecked Sendable {
+    let image: UIImage
+}
+
 @MainActor
 final class PendingPhotoSaveStore: ObservableObject {
-    enum PendingSaveError: LocalizedError {
+    enum PendingSaveError: LocalizedError, Equatable {
         case modelContainerNotConfigured
         case sourceEncodingFailed
         case spoolWriteFailed
+        case cancelled
 
         var errorDescription: String? {
             switch self {
@@ -72,6 +100,8 @@ final class PendingPhotoSaveStore: ObservableObject {
                 return "Could not encode source image"
             case .spoolWriteFailed:
                 return "Could not persist queued image"
+            case .cancelled:
+                return "Pending photo save job cancelled"
             }
         }
     }
@@ -91,6 +121,8 @@ final class PendingPhotoSaveStore: ObservableObject {
     private var progressAnimationTasks: [UUID: Task<Void, Never>] = [:]
     private var movingAverageEncodeDuration: TimeInterval = 0.85
     private var didInjectUITestFailure = false
+    private var cancelledBatchIDs: Set<UUID> = []
+    private var cancelledJobIDs: Set<UUID> = []
 
     init(
         fileManager: FileManager = .default,
@@ -120,43 +152,91 @@ final class PendingPhotoSaveStore: ObservableObject {
     func restoreAndResume() {
         do {
             let directory = try spoolDirectoryURL()
-            guard fileManager.fileExists(atPath: directory.path) else {
-                pendingItems = []
-                processQueueIfNeeded()
-                return
-            }
-            let jsonURLs = try fileManager
-                .contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
-                .filter { $0.pathExtension == "json" }
-            var restored: [PendingPhotoSaveItem] = []
-            for jsonURL in jsonURLs {
-                guard let id = pendingID(from: jsonURL) else { continue }
-                let jsonData = try Data(contentsOf: jsonURL)
-                let record = try JSONDecoder().decode(PendingPhotoSpoolRecord.self, from: jsonData)
-                let thumbURL = thumbnailURL(for: id)
-                guard fileManager.fileExists(atPath: thumbURL.path) else {
-                    try? cleanupSpoolFiles(for: id)
-                    continue
-                }
-                let thumbData = try Data(contentsOf: thumbURL)
-                let tags = record.tags.compactMap { PhotoTag(rawValue: $0) }
-                restored.append(
-                    PendingPhotoSaveItem(
-                        id: record.id,
-                        createdAt: record.createdAt,
-                        date: record.date,
-                        tags: tags,
-                        thumbnailData: thumbData,
-                        progress: 0.10,
-                        status: .queued
-                    )
-                )
-            }
-            pendingItems = dedupAndSort(restored)
-            processQueueIfNeeded()
+            let payload = try Self.loadRestorePayload(from: directory)
+            applyRestorePayload(payload)
         } catch {
             AppLog.debug("⚠️ PendingPhotoSaveStore restore failed: \(error)")
         }
+    }
+
+    func restoreAndResumeAsync() async {
+        do {
+            let directory = try spoolDirectoryURL()
+            let payload = try await Task.detached(priority: .utility) {
+                try Self.loadRestorePayload(from: directory)
+            }.value
+            applyRestorePayload(payload)
+        } catch {
+            AppLog.debug("⚠️ PendingPhotoSaveStore restore failed: \(error)")
+        }
+    }
+
+    private func applyRestorePayload(_ payload: RestorePayload) {
+        guard payload.hasDirectory else {
+            pendingItems = []
+            processQueueIfNeeded()
+            return
+        }
+
+        for orphanID in payload.orphanIDs {
+            try? cleanupSpoolFiles(for: orphanID)
+        }
+
+        let restoredItems = payload.restoredItems.map { snapshot in
+            PendingPhotoSaveItem(
+                id: snapshot.id,
+                createdAt: snapshot.createdAt,
+                batchID: snapshot.batchID,
+                date: snapshot.date,
+                tags: snapshot.tagRawValues.compactMap(PhotoTag.init(rawValue:)),
+                thumbnailData: snapshot.thumbnailData,
+                progress: 0.10,
+                status: .queued
+            )
+        }
+        pendingItems = dedupAndSort(restoredItems)
+        processQueueIfNeeded()
+    }
+
+    private nonisolated static func loadRestorePayload(from directory: URL) throws -> RestorePayload {
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: directory.path) else {
+            return RestorePayload(hasDirectory: false, restoredItems: [], orphanIDs: [])
+        }
+
+        let jsonURLs = try fileManager
+            .contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "json" }
+        var restored: [RestoredPendingSnapshot] = []
+        var orphanIDs: [UUID] = []
+
+        for jsonURL in jsonURLs {
+            guard let id = UUID(uuidString: jsonURL.deletingPathExtension().lastPathComponent) else { continue }
+            let jsonData = try Data(contentsOf: jsonURL)
+            let record = try JSONDecoder().decode(PendingPhotoSpoolRecord.self, from: jsonData)
+            let thumbURL = directory.appendingPathComponent("\(id.uuidString).thumb.jpg", isDirectory: false)
+            guard fileManager.fileExists(atPath: thumbURL.path) else {
+                orphanIDs.append(id)
+                continue
+            }
+            let thumbData = try Data(contentsOf: thumbURL)
+            restored.append(
+                RestoredPendingSnapshot(
+                    id: record.id,
+                    createdAt: record.createdAt,
+                    batchID: record.batchID,
+                    date: record.date,
+                    tagRawValues: record.tags,
+                    thumbnailData: thumbData
+                )
+            )
+        }
+
+        return RestorePayload(
+            hasDirectory: true,
+            restoredItems: restored,
+            orphanIDs: orphanIDs
+        )
     }
 
     func enqueueSingle(
@@ -164,7 +244,8 @@ final class PendingPhotoSaveStore: ObservableObject {
         date: Date,
         tags: Set<PhotoTag>,
         metricValues: [MetricKind: Double],
-        unitsSystem: String
+        unitsSystem: String,
+        batchID: UUID? = nil
     ) async throws -> UUID {
         guard modelContainer != nil else {
             throw PendingSaveError.modelContainerNotConfigured
@@ -172,14 +253,7 @@ final class PendingPhotoSaveStore: ObservableObject {
 
         let id = UUID()
         let createdAt = AppClock.now
-
-        guard let sourceData = sourceImage.jpegData(compressionQuality: 0.95) ?? sourceImage.pngData() else {
-            throw PendingSaveError.sourceEncodingFailed
-        }
-        let thumbImage = PhotoUtilities.thumbnail(from: sourceImage, size: CGSize(width: 220, height: 240))
-        guard let thumbData = thumbImage.jpegData(compressionQuality: 0.85) ?? thumbImage.pngData() else {
-            throw PendingSaveError.sourceEncodingFailed
-        }
+        let preparedArtifacts = try await prepareEnqueueArtifacts(sourceImage: sourceImage)
 
         let metricRecords = metricValues
             .filter { $0.value > 0 }
@@ -188,6 +262,7 @@ final class PendingPhotoSaveStore: ObservableObject {
         let record = PendingPhotoSpoolRecord(
             id: id,
             createdAt: createdAt,
+            batchID: batchID,
             date: date,
             tags: tags.map(\.rawValue),
             metricValues: metricRecords,
@@ -195,7 +270,11 @@ final class PendingPhotoSaveStore: ObservableObject {
         )
 
         do {
-            try persist(record: record, sourceData: sourceData, thumbnailData: thumbData)
+            try persist(
+                record: record,
+                sourceData: preparedArtifacts.sourceData,
+                thumbnailData: preparedArtifacts.thumbnailData
+            )
         } catch {
             throw PendingSaveError.spoolWriteFailed
         }
@@ -203,9 +282,10 @@ final class PendingPhotoSaveStore: ObservableObject {
         let pendingItem = PendingPhotoSaveItem(
             id: id,
             createdAt: createdAt,
+            batchID: batchID,
             date: date,
             tags: Array(tags),
-            thumbnailData: thumbData,
+            thumbnailData: preparedArtifacts.thumbnailData,
             progress: 0.10,
             status: .queued
         )
@@ -221,6 +301,7 @@ final class PendingPhotoSaveStore: ObservableObject {
         tags: Set<PhotoTag>,
         metricValues: [MetricKind: Double],
         unitsSystem: String,
+        batchID: UUID = UUID(),
         progress: ((Int, Int) -> Void)? = nil
     ) async throws -> [UUID] {
         guard modelContainer != nil else {
@@ -238,7 +319,8 @@ final class PendingPhotoSaveStore: ObservableObject {
                     date: date,
                     tags: tags,
                     metricValues: metricValues,
-                    unitsSystem: unitsSystem
+                    unitsSystem: unitsSystem,
+                    batchID: batchID
                 )
                 queuedIDs.append(id)
             } catch {
@@ -251,7 +333,34 @@ final class PendingPhotoSaveStore: ObservableObject {
             throw PendingSaveError.spoolWriteFailed
         }
 
+        AppLog.debug("📸 PendingPhotoSaveStore: enqueueMany queued=\(queuedIDs.count) batchID=\(batchID.uuidString)")
         return queuedIDs
+    }
+
+    func cancelPending(batchIDs: Set<UUID>) {
+        guard !batchIDs.isEmpty else { return }
+
+        cancelledBatchIDs.formUnion(batchIDs)
+        let matchedJobs = pendingItems.filter { item in
+            guard let batchID = item.batchID else { return false }
+            return batchIDs.contains(batchID)
+        }
+        cancelledJobIDs.formUnion(matchedJobs.map(\.id))
+
+        for item in matchedJobs {
+            progressAnimationTasks[item.id]?.cancel()
+            progressAnimationTasks[item.id] = nil
+            try? cleanupSpoolFiles(for: item.id)
+        }
+
+        pendingItems.removeAll { item in
+            guard let batchID = item.batchID else { return false }
+            return batchIDs.contains(batchID)
+        }
+
+        AppLog.debug(
+            "🧹 PendingPhotoSaveStore: cancelledBatchCount=\(batchIDs.count) cancelledJobsCount=\(matchedJobs.count)"
+        )
     }
 
     func clearFailureMessage() {
@@ -277,12 +386,19 @@ final class PendingPhotoSaveStore: ObservableObject {
     }
 
     private func processJob(id: UUID) async {
+        defer {
+            cancelledJobIDs.remove(id)
+        }
+
         do {
             guard modelContainer != nil else {
                 throw PendingSaveError.modelContainerNotConfigured
             }
             guard let record = try loadRecord(for: id) else {
                 throw PendingSaveError.spoolWriteFailed
+            }
+            if isCancelled(jobID: id, batchID: record.batchID) {
+                throw PendingSaveError.cancelled
             }
 
             updateItem(id: id, status: .encoding)
@@ -300,6 +416,10 @@ final class PendingPhotoSaveStore: ObservableObject {
             updateEncodeAverage(with: encodeElapsed)
             completeProgressAnimation(id: id, to: 0.85)
 
+            if isCancelled(jobID: id, batchID: record.batchID) {
+                throw PendingSaveError.cancelled
+            }
+
             guard let encoded else {
                 throw PendingSaveError.sourceEncodingFailed
             }
@@ -314,8 +434,21 @@ final class PendingPhotoSaveStore: ObservableObject {
 
             await sleepForUITestIfNeeded(milliseconds: 2_000)
 
-            let saveResult = try saveRecord(record, encoded: encoded)
+            let queuedThumbnailData = try? Data(contentsOf: thumbnailURL(for: id))
+            let saveResult = try saveRecord(
+                record,
+                encoded: encoded,
+                thumbnailData: queuedThumbnailData
+            )
             completeProgressAnimation(id: id, to: 0.97)
+
+            if isCancelled(jobID: id, batchID: record.batchID) {
+                try deleteEntryByPersistentModelID(saveResult.entryPersistentModelID)
+                AppLog.debug(
+                    "🧹 PendingPhotoSaveStore: postCancelLateCompletionDropped jobID=\(id.uuidString) batchID=\(record.batchID?.uuidString ?? "none")"
+                )
+                throw PendingSaveError.cancelled
+            }
 
             updateItem(id: id, status: .finalizing)
             startProgressAnimation(id: id, to: 1.0, duration: 0.18)
@@ -329,7 +462,8 @@ final class PendingPhotoSaveStore: ObservableObject {
 
             completedEvent = PendingPhotoSaveCompletedEvent(
                 id: id,
-                entry: saveResult.entry,
+                entryPersistentModelID: saveResult.entryPersistentModelID,
+                batchID: record.batchID,
                 eventID: UUID()
             )
             lastCompletedProgress = 1.0
@@ -344,11 +478,18 @@ final class PendingPhotoSaveStore: ObservableObject {
             }
 
             NotificationManager.shared.recordPhotoAdded(date: record.date)
+            StreakManager.shared.recordPhotoSaved(date: record.date)
         } catch {
             progressAnimationTasks[id]?.cancel()
             progressAnimationTasks[id] = nil
             pendingItems.removeAll { $0.id == id }
             try? cleanupSpoolFiles(for: id)
+
+            if isCancellationError(error, jobID: id) {
+                AppLog.debug("ℹ️ PendingPhotoSaveStore: job=\(id.uuidString) cancelled")
+                return
+            }
+
             lastFailureMessage = AppLocalization.string("Could not save photo. Please try again.")
             AppLog.debug("❌ PendingPhotoSaveStore: job=\(id.uuidString) failed: \(error)")
         }
@@ -356,14 +497,16 @@ final class PendingPhotoSaveStore: ObservableObject {
 
     private func saveRecord(
         _ record: PendingPhotoSpoolRecord,
-        encoded: PhotoUtilities.EncodedPhoto
-    ) throws -> (entry: PhotoEntry, prewarmData: Data, prewarmCacheID: String) {
+        encoded: PhotoUtilities.EncodedPhoto,
+        thumbnailData: Data?
+    ) throws -> (entryPersistentModelID: PersistentIdentifier, prewarmData: Data, prewarmCacheID: String) {
         guard let modelContainer else {
             throw PendingSaveError.modelContainerNotConfigured
         }
 
         let context = ModelContext(modelContainer)
         context.autosaveEnabled = false
+        let previousPhotoCount = AnalyticsFirstEventTracker.photoCount(in: context)
 
         var snapshots: [MetricValueSnapshot] = []
         for metricRecord in record.metricValues {
@@ -381,17 +524,26 @@ final class PendingPhotoSaveStore: ObservableObject {
             )
         }
 
+        let resolvedThumbnailData = thumbnailData
+            ?? PhotoUtilities.makeGridThumbnailData(from: encoded.data)
+
         let resolvedTags = record.tags.compactMap { PhotoTag(rawValue: $0) }
         let entry = PhotoEntry(
             imageData: encoded.data,
+            thumbnailData: resolvedThumbnailData,
             date: record.date,
             tags: resolvedTags.isEmpty ? [.wholeBody] : resolvedTags,
             linkedMetrics: snapshots
         )
         context.insert(entry)
         try context.save()
+        AnalyticsFirstEventTracker.trackFirstPhotoIfNeeded(previousPhotoCount: previousPhotoCount)
 
-        return (entry: entry, prewarmData: encoded.data, prewarmCacheID: String(describing: entry.id))
+        return (
+            entryPersistentModelID: entry.persistentModelID,
+            prewarmData: encoded.data,
+            prewarmCacheID: String(describing: entry.id)
+        )
     }
 
     private func updateItem(id: UUID, status: PendingPhotoSaveStatus? = nil, progress: Double? = nil) {
@@ -447,6 +599,49 @@ final class PendingPhotoSaveStore: ObservableObject {
             + (Double(duration.components.attoseconds) / 1_000_000_000_000_000_000.0)
         let value = min(max(elapsed, 0.10), 3.0)
         movingAverageEncodeDuration = movingAverageEncodeDuration * 0.75 + value * 0.25
+    }
+
+    private func prepareEnqueueArtifacts(sourceImage: UIImage) async throws -> PendingEnqueuePreparedArtifacts {
+        let box = UncheckedUIImageBox(image: sourceImage)
+        return try await Task.detached(priority: .userInitiated) {
+            guard let sourceData = box.image.jpegData(compressionQuality: 0.95) ?? box.image.pngData() else {
+                throw PendingSaveError.sourceEncodingFailed
+            }
+            guard let thumbData = PhotoUtilities.makeGridThumbnailData(from: box.image) else {
+                throw PendingSaveError.sourceEncodingFailed
+            }
+            return PendingEnqueuePreparedArtifacts(
+                sourceData: sourceData,
+                thumbnailData: thumbData
+            )
+        }.value
+    }
+
+    private func isCancelled(jobID: UUID, batchID: UUID?) -> Bool {
+        if cancelledJobIDs.contains(jobID) {
+            return true
+        }
+        guard let batchID else { return false }
+        return cancelledBatchIDs.contains(batchID)
+    }
+
+    private func isCancellationError(_ error: Error, jobID: UUID) -> Bool {
+        if let pendingError = error as? PendingSaveError, pendingError == .cancelled {
+            return true
+        }
+        return cancelledJobIDs.contains(jobID)
+    }
+
+    private func deleteEntryByPersistentModelID(_ id: PersistentIdentifier) throws {
+        guard let modelContainer else {
+            throw PendingSaveError.modelContainerNotConfigured
+        }
+        let context = ModelContext(modelContainer)
+        context.autosaveEnabled = false
+        if let model = context.model(for: id) as? PhotoEntry {
+            context.delete(model)
+            try context.save()
+        }
     }
 
     private func persist(record: PendingPhotoSpoolRecord, sourceData: Data, thumbnailData: Data) throws {

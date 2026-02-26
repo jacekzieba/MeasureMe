@@ -12,8 +12,12 @@ private final class MockPremiumBillingClient: PremiumBillingClient {
     var productsError: Error?
     var purchaseError: Error?
     var syncError: Error?
+    private(set) var productsCallCount: Int = 0
+    private(set) var currentEntitlementsCallCount: Int = 0
+    private(set) var transactionUpdatesCallCount: Int = 0
 
     func products(for identifiers: [String]) async throws -> [Product] {
+        productsCallCount += 1
         if let productsError {
             throw productsError
         }
@@ -34,13 +38,15 @@ private final class MockPremiumBillingClient: PremiumBillingClient {
     }
 
     func currentEntitlements() -> AsyncStream<VerificationResult<Transaction>> {
-        AsyncStream { continuation in
+        currentEntitlementsCallCount += 1
+        return AsyncStream<VerificationResult<Transaction>> { continuation in
             continuation.finish()
         }
     }
 
     func transactionUpdates() -> AsyncStream<VerificationResult<Transaction>> {
-        AsyncStream { continuation in
+        transactionUpdatesCallCount += 1
+        return AsyncStream<VerificationResult<Transaction>> { continuation in
             continuation.finish()
         }
     }
@@ -218,5 +224,49 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertEqual(notifications.scheduledTrialReminderDays, [12])
         XCTAssertTrue(store.showTrialThankYouAlert)
         XCTAssertFalse(store.actionMessageIsError)
+    }
+
+    func testStartIfNeeded_DoesNotStartInInitWhenDisabledAndIsIdempotent() async throws {
+        let billing = MockPremiumBillingClient()
+        let notifications = MockPremiumNotificationManager()
+        let store = PremiumStore(
+            billingClient: billing,
+            notificationManager: notifications,
+            startListener: false
+        )
+
+        try? await Task.sleep(for: .milliseconds(120))
+        XCTAssertEqual(billing.productsCallCount, 0)
+        XCTAssertEqual(billing.currentEntitlementsCallCount, 0)
+        XCTAssertEqual(billing.transactionUpdatesCallCount, 0)
+
+        store.startIfNeeded()
+        try await waitUntil(timeout: 1.5) {
+            billing.productsCallCount > 0 &&
+            billing.currentEntitlementsCallCount > 0 &&
+            billing.transactionUpdatesCallCount > 0
+        }
+
+        let productsAfterFirstStart = billing.productsCallCount
+        let entitlementsAfterFirstStart = billing.currentEntitlementsCallCount
+        let updatesAfterFirstStart = billing.transactionUpdatesCallCount
+
+        store.startIfNeeded()
+        try? await Task.sleep(for: .milliseconds(250))
+
+        XCTAssertEqual(billing.productsCallCount, productsAfterFirstStart)
+        XCTAssertEqual(billing.currentEntitlementsCallCount, entitlementsAfterFirstStart)
+        XCTAssertEqual(billing.transactionUpdatesCallCount, updatesAfterFirstStart)
+    }
+}
+
+private extension PremiumStoreTests {
+    func waitUntil(timeout: TimeInterval, condition: @escaping () -> Bool) async throws {
+        let deadline = Date.now.addingTimeInterval(timeout)
+        while Date.now < deadline {
+            if condition() { return }
+            try? await Task.sleep(for: .milliseconds(40))
+        }
+        XCTFail("Condition was not met before timeout")
     }
 }

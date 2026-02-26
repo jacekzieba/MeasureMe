@@ -105,6 +105,7 @@ final class PremiumStore: ObservableObject {
     #if DEBUG
     private let forcePremiumForUITests: Bool
     #endif
+    private var hasStarted = false
     private var updateListenerTask: Task<Void, Never>?
     private var foregroundObserver: NSObjectProtocol?
 
@@ -130,20 +131,7 @@ final class PremiumStore: ObservableObject {
         #endif
 
         if startListener {
-            foregroundObserver = NotificationCenter.default.addObserver(
-                forName: UIApplication.willEnterForegroundNotification,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    await self?.syncEntitlements()
-                }
-            }
-            updateListenerTask = Task {
-                await loadProducts()
-                await refreshEntitlements()
-                await listenForUpdates()
-            }
+            startIfNeeded()
         }
     }
 
@@ -170,6 +158,26 @@ final class PremiumStore: ObservableObject {
 
     func syncEntitlements() async {
         await refreshEntitlements()
+    }
+
+    func startIfNeeded() {
+        guard !hasStarted else { return }
+        hasStarted = true
+
+        foregroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                await self?.syncEntitlements()
+            }
+        }
+        updateListenerTask = Task {
+            await loadProducts()
+            await refreshEntitlements()
+            await listenForUpdates()
+        }
     }
 
     func checkSevenDayPromptIfNeeded() {

@@ -561,7 +561,7 @@ private struct PhysiqueMetricRow<Destination: View>: View {
 
                     Text(category)
                         .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.9))
+                        .foregroundStyle(Color.bestAccessibleTextColor(onHex: categoryColor))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(Color(hex: categoryColor), in: RoundedRectangle(cornerRadius: 4))
@@ -664,7 +664,7 @@ private struct PhysiqueRatioDetailView: View {
                             .foregroundStyle(.white)
                         Text(categoryName)
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Color.bestAccessibleTextColor(onHex: categoryColor))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(Color(hex: categoryColor), in: RoundedRectangle(cornerRadius: 8))

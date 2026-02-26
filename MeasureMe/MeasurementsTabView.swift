@@ -22,7 +22,7 @@ struct MeasurementsTabView: View {
 
     @State private var selectedTab: MeasurementsTab = .metrics
 
-    private let healthAccent = Color(hex: "#F59E0B")
+    private let healthAccent = HealthIndicatorPalette.accent
 
     enum MeasurementsTab: String, CaseIterable, Identifiable {
         case metrics = "Metrics"

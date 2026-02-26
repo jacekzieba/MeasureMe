@@ -36,6 +36,8 @@
 "Notification error" = "Błąd powiadomień";
 "Could not schedule notifications. Please check notification permissions and try again." = "Nie udało się zaplanować powiadomień. Sprawdź uprawnienia i spróbuj ponownie.";
 "Include diagnostic logs in crash reports" = "Dołącz logi diagnostyczne do raportów awarii";
+"Share anonymous analytics" = "Udostępniaj anonimową analitykę";
+"Helps improve app quality and UX. No health values or personal data are sent." = "Pomaga ulepszać jakość aplikacji i UX. Nie wysyłamy wartości zdrowotnych ani danych osobowych.";
 "When enabled, recent app logs may be attached to reports you share." = "Po włączeniu do udostępnianych raportów mogą być dołączane ostatnie logi aplikacji.";
 "Could not start the app because local storage failed to initialize. Please retry. Error: %@" = "Nie udało się uruchomić aplikacji, ponieważ nie można zainicjalizować pamięci lokalnej. Spróbuj ponownie. Błąd: %@";
 
@@ -806,7 +808,9 @@
 "Measurements" = "Pomiary";
 "Settings" = "Ustawienia";
 "Metrics" = "Metryki";
+"Indicators" = "Wskaźniki";
 "Health indicators" = "Wskaźniki zdrowia";
+"Choose health and physique indicators" = "Wybierz wskaźniki zdrowia i sylwetki";
 
 /* Apple Intelligence availability */
 "Apple Intelligence isn’t available right now." = "Analizy AI są teraz niedostępne.";
@@ -1076,6 +1080,19 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Finish setup (optional)" = "Dokończ konfigurację (opcjonalnie)";
 "Hide checklist" = "Ukryj checklistę";
 "Show setup checklist on Home" = "Pokaż checklistę konfiguracji na Home";
+"Show streak on Home" = "Pokaż passę na stronie głównej";
+"accessibility.streak.count" = "Passa %d tygodni";
+"Your Progress" = "Twoje postępy";
+"total measurements" = "wszystkich pomiarów";
+"profile.stats.accessibility" = "%d zarejestrowanych pomiarów";
+"profile.stats.phrase.0" = "Dodaj pierwszy pomiar, żeby zacząć swoją historię.";
+"profile.stats.phrase.1" = "Każdy pomiar to krok ku poznaniu siebie.";
+"profile.stats.phrase.2" = "Budujesz nawyk. Jesteś na dobrej drodze.";
+"profile.stats.phrase.3" = "Konsekwencja to prawdziwa miara postępu.";
+"profile.stats.phrase.4" = "Ponad 100 wpisów — Twoje dane opowiadają prawdziwą historię.";
+"profile.stats.phrase.5" = "250+ wpisów. Znasz swoje ciało lepiej niż ktokolwiek.";
+"profile.stats.phrase.6" = "500+ wpisów. Prawdziwe oddanie.";
+"profile.stats.phrase.7" = "1000+ wpisów. Legendarna konsekwencja.";
 
 /* Onboarding carousel rebuild */
 "A few details" = "Kilka danych";
@@ -1344,3 +1361,5 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Are physique indicators medical?" = "Czy wskaźniki sylwetki są medyczne?";
 "No. Physique indicators are visual and proportion-focused heuristics designed for appearance tracking, not medical diagnosis." = "Nie. Wskaźniki sylwetki to heurystyki wizualne i proporcyjne do śledzenia wyglądu, a nie diagnoza medyczna.";
 "Apple Intelligence insights, Health Indicators, and photo comparison." = "Analizy Apple Intelligence, wskaźniki zdrowia, wskaźniki sylwetki i porównanie zdjęć.";
+
+"photo.measurements.filled" = "%d uzupełnione";

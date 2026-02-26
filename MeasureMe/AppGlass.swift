@@ -194,6 +194,60 @@ struct LiquidSwitchToggleStyle: ToggleStyle {
     }
 }
 
+struct PhotoTagChipToggleStyle: ToggleStyle {
+    var tint: Color = .appAccent
+    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shouldAnimate = animationsEnabled && !reduceMotion
+        let foregroundColor = configuration.isOn ? Color.black.opacity(0.92) : AppColorRoles.textPrimary
+
+        Button {
+            configuration.isOn.toggle()
+            Haptics.selection()
+        } label: {
+            HStack(spacing: AppSpacing.xxs) {
+                if configuration.isOn {
+                    Image(systemName: "checkmark")
+                        .font(AppTypography.microBold)
+                }
+                configuration.label
+                    .font(AppTypography.captionEmphasis)
+                    .lineLimit(1)
+            }
+            .foregroundStyle(foregroundColor)
+            .padding(.horizontal, AppSpacing.sm)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                            .fill(tint.opacity(configuration.isOn ? 0.88 : 0.08))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                            .stroke(Color.white.opacity(configuration.isOn ? 0.34 : 0.18), lineWidth: 1)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                            .inset(by: 0.5)
+                            .stroke(Color.black.opacity(configuration.isOn ? 0.12 : 0.24), lineWidth: 0.6)
+                    )
+            )
+            .shadow(
+                color: tint.opacity(configuration.isOn ? 0.34 : 0.0),
+                radius: configuration.isOn ? 8 : 0,
+                x: 0,
+                y: configuration.isOn ? 3 : 0
+            )
+            .scaleEffect(configuration.isOn && shouldAnimate ? 1.01 : 1)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 struct GlassSegmentedControlModifier: ViewModifier {
     var tint: Color = .appAccent
 

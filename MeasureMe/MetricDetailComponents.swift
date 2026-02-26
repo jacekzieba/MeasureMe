@@ -222,8 +222,10 @@ extension MetricDetailView {
     
     /// Dodaje nową próbkę do bazy danych
     func add(date: Date, value: Double) {
+        let previousMetricCount = AnalyticsFirstEventTracker.metricCount(in: context)
         let sample = MetricSample(kind: kind, value: value, date: date)
         context.insert(sample)
+        AnalyticsFirstEventTracker.trackFirstMetricIfNeeded(previousMetricCount: previousMetricCount)
         NotificationManager.shared.recordMeasurement(date: date)
         if let goal = currentGoal, goal.isAchieved(currentValue: value) {
             NotificationManager.shared.sendGoalAchievedNotification(
@@ -299,6 +301,7 @@ struct MetricChartAXDescriptor: AXChartDescriptorRepresentable {
 struct MetricPhotosRow: View {
     let photos: [PhotoEntry]
     @State private var availableWidth: CGFloat = 0
+    @Environment(\.modelContext) private var modelContext
 
     private let spacing: CGFloat = 8
 
@@ -316,7 +319,7 @@ struct MetricPhotosRow: View {
         ) {
             ForEach(photos) { photo in
                 DownsampledImageView(
-                    imageData: photo.imageData,
+                    imageData: photo.thumbnailOrImageData,
                     targetSize: CGSize(width: side, height: side),
                     contentMode: .fill,
                     cornerRadius: 12,
@@ -325,6 +328,18 @@ struct MetricPhotosRow: View {
                 )
                 .frame(width: side, height: side)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .onAppear {
+                    guard photo.thumbnailData == nil else { return }
+                    Task(priority: .utility) {
+                        await PhotoThumbnailBackfillService.shared.enqueueIfNeeded(
+                            photoID: photo.persistentModelID,
+                            originalImageData: photo.imageData,
+                            existingThumbnailData: photo.thumbnailData,
+                            modelContainer: modelContext.container,
+                            source: "metric_detail"
+                        )
+                    }
+                }
             }
         }
         .frame(height: {

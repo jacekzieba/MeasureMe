@@ -90,6 +90,29 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
         XCTAssertEqual(restored.pendingItems.first?.status, .queued)
     }
 
+    func testRestoreAndResumeAsync_LoadsPendingItemsFromDisk() async throws {
+        let container = try makeContainer()
+
+        let first = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, autoStartProcessing: false)
+        first.configure(container: container)
+        let id = try await first.enqueueSingle(
+            sourceImage: makeImage(),
+            date: Date(timeIntervalSince1970: 1_735_120_000),
+            tags: [.wholeBody],
+            metricValues: [.waist: 88],
+            unitsSystem: "metric"
+        )
+        XCTAssertEqual(first.pendingItems.count, 1)
+
+        let restored = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, autoStartProcessing: false)
+        restored.configure(container: container)
+        await restored.restoreAndResumeAsync()
+
+        XCTAssertEqual(restored.pendingItems.count, 1)
+        XCTAssertEqual(restored.pendingItems.first?.id, id)
+        XCTAssertEqual(restored.pendingItems.first?.status, .queued)
+    }
+
     func testCompletion_RemovesSpoolAndEmitsCompletedEvent() async throws {
         let container = try makeContainer()
         let store = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory)
@@ -113,7 +136,75 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
         let context = ModelContext(container)
         let photos = try context.fetch(FetchDescriptor<PhotoEntry>())
         XCTAssertEqual(photos.count, 1)
+        XCTAssertNotNil(photos.first?.thumbnailData)
+        if let thumbnailSize = photos.first?.thumbnailData?.count {
+            XCTAssertLessThanOrEqual(thumbnailSize, PhotoUtilities.gridThumbnailMaxBytes)
+        }
         XCTAssertEqual(store.completedEvent?.id, id)
+        XCTAssertNotNil(store.completedEvent?.entryPersistentModelID)
+        if let persistentID = store.completedEvent?.entryPersistentModelID {
+            XCTAssertTrue(photos.contains(where: { $0.persistentModelID == persistentID }))
+        }
+    }
+
+    func testCancelPendingBatch_RemovesPendingAndSpool() async throws {
+        let store = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, autoStartProcessing: false)
+        store.configure(container: try makeContainer())
+
+        let batchID = UUID()
+        let ids = try await store.enqueueMany(
+            sourceImages: [makeImage(), makeImage(), makeImage()],
+            date: Date(timeIntervalSince1970: 1_735_260_000),
+            tags: [.wholeBody],
+            metricValues: [:],
+            unitsSystem: "metric",
+            batchID: batchID
+        )
+        XCTAssertEqual(store.pendingItems.count, 3)
+
+        store.cancelPending(batchIDs: [batchID])
+        XCTAssertTrue(store.pendingItems.isEmpty)
+
+        let spoolDir = tempDirectory.appendingPathComponent("PendingPhotoSaves", isDirectory: true)
+        for id in ids {
+            XCTAssertFalse(FileManager.default.fileExists(atPath: spoolDir.appendingPathComponent("\(id.uuidString).json").path))
+            XCTAssertFalse(FileManager.default.fileExists(atPath: spoolDir.appendingPathComponent("\(id.uuidString).source.jpg").path))
+            XCTAssertFalse(FileManager.default.fileExists(atPath: spoolDir.appendingPathComponent("\(id.uuidString).thumb.jpg").path))
+        }
+    }
+
+    func testCancelPendingBatch_DropsLateCompletion() async throws {
+        let container = try makeContainer()
+        let store = PendingPhotoSaveStore(
+            baseDirectoryURL: tempDirectory,
+            encodeSourceData: { sourceData in
+                Thread.sleep(forTimeInterval: 0.9)
+                guard let image = UIImage(data: sourceData) else { return nil }
+                return PhotoUtilities.encodeForStorage(image, maxSize: 2_000_000)
+            }
+        )
+        store.configure(container: container)
+
+        let batchID = UUID()
+        _ = try await store.enqueueMany(
+            sourceImages: [makeImage(), makeImage()],
+            date: Date(timeIntervalSince1970: 1_735_280_000),
+            tags: [.wholeBody],
+            metricValues: [:],
+            unitsSystem: "metric",
+            batchID: batchID
+        )
+
+        store.cancelPending(batchIDs: [batchID])
+
+        try await waitUntil(timeout: 6) {
+            store.pendingItems.isEmpty
+        }
+
+        XCTAssertNil(store.completedEvent)
+        let context = ModelContext(container)
+        let count = try context.fetchCount(FetchDescriptor<PhotoEntry>())
+        XCTAssertEqual(count, 0)
     }
 
     func testFailure_RemovesPendingAndSetsFailureMessage() async throws {

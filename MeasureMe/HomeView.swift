@@ -23,6 +23,7 @@ struct HomeView: View {
     @AppStorage("showLastPhotosOnHome") private var showLastPhotosOnHome: Bool = true
     @AppStorage("showMeasurementsOnHome") private var showMeasurementsOnHome: Bool = true
     @AppStorage("showHealthMetricsOnHome") private var showHealthMetricsOnHome: Bool = true
+    @AppStorage("showStreakOnHome") private var showStreakOnHome: Bool = true
     @AppStorage("home_tab_scroll_offset") private var homeTabScrollOffset: Double = 0.0
     @AppStorage("onboarding_skipped_healthkit") private var onboardingSkippedHealthKit: Bool = false
     @AppStorage("onboarding_skipped_reminders") private var onboardingSkippedReminders: Bool = false
@@ -32,9 +33,11 @@ struct HomeView: View {
     @AppStorage("onboarding_checklist_collapsed") private var onboardingChecklistCollapsed: Bool = false
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
     @AppStorage("settings_open_reminders") private var settingsOpenReminders: Bool = false
+    @AppStorage("home_photo_metric_sync_signature") private var photoMetricSyncSignature: String = ""
     
     @EnvironmentObject private var router: AppRouter
-    
+    @ObservedObject private var streakManager = StreakManager.shared
+
     @Query private var recentSamples: [MetricSample]
     
     @Query private var goals: [MetricGoal]
@@ -51,8 +54,11 @@ struct HomeView: View {
     @State private var reminderChecklistCompleted: Bool = false
     @State private var showMoreChecklistItems: Bool = false
     @State private var didCheckSevenDayPaywallPrompt: Bool = false
-    @State private var didScheduleInitialPhotoMetricSync = false
+    @State private var didRunStartupPhases = false
+    @State private var didEmitHomeInitialRender = false
     @State private var isPhotoMetricSyncInFlight = false
+    @State private var deferredPhaseBTask: Task<Void, Never>?
+    @State private var deferredPhaseCTask: Task<Void, Never>?
     
     // Dane HealthKit
     @State private var latestBodyFat: Double?
@@ -211,6 +217,21 @@ struct HomeView: View {
         refreshHasAnyMeasurements()
         autoHideChecklistIfCompleted()
     }
+
+    private var currentPhotoMetricSyncSignature: String {
+        var hasher = Hasher()
+        hasher.combine(allPhotos.count)
+        for photo in allPhotos where !photo.linkedMetrics.isEmpty {
+            hasher.combine(photo.persistentModelID)
+            hasher.combine(photo.date.timeIntervalSince1970)
+            hasher.combine(photo.linkedMetrics.count)
+            for snapshot in photo.linkedMetrics {
+                hasher.combine(snapshot.kind?.rawValue ?? "unknown")
+                hasher.combine(snapshot.value.bitPattern)
+            }
+        }
+        return String(hasher.finalize())
+    }
     
     /// Synchronizuje probki Measurement ze snapshotami metryk zapisanymi przy zdjeciach.
     /// - Behavior:
@@ -218,10 +239,15 @@ struct HomeView: View {
     ///   - Jesli probka dla (kind,date) istnieje, aktualizuje jej wartosc do wartosci snapshotu.
     ///   - If none exists, insert a new MetricSample.
     ///   - Nigdy nie usuwa MetricSample po usunieciu zdjecia; funkcja wykonuje tylko upsert.
-    private func syncMeasurementsFromPhotosIfNeeded() {
+    private func syncMeasurementsFromPhotosIfNeeded(force: Bool = false) {
         guard !isPhotoMetricSyncInFlight else { return }
+        let signature = currentPhotoMetricSyncSignature
+        guard force || signature != photoMetricSyncSignature else { return }
         isPhotoMetricSyncInFlight = true
-        defer { isPhotoMetricSyncInFlight = false }
+        defer {
+            photoMetricSyncSignature = signature
+            isPhotoMetricSyncInFlight = false
+        }
 
         let photosWithMetrics = allPhotos.filter { !$0.linkedMetrics.isEmpty }
         guard !photosWithMetrics.isEmpty else { return }
@@ -284,13 +310,50 @@ struct HomeView: View {
         // Celowo bez usuwania (usuniecie zdjecia nie powinno kasowac probek)
     }
 
-    private func scheduleInitialPhotoMetricSyncIfNeeded() {
-        guard !didScheduleInitialPhotoMetricSync else { return }
-        didScheduleInitialPhotoMetricSync = true
+    private func emitHomeInitialRenderIfNeeded() {
+        guard !didEmitHomeInitialRender else { return }
+        didEmitHomeInitialRender = true
+        StartupInstrumentation.event("HomeInitialRender")
+    }
 
-        Task(priority: .utility) { @MainActor in
-            await Task.yield()
-            syncMeasurementsFromPhotosIfNeeded()
+    private func runStartupPhasesIfNeeded() {
+        guard !didRunStartupPhases else { return }
+        didRunStartupPhases = true
+        runCriticalStartupPhaseA()
+        scheduleDeferredStartupPhaseB()
+        scheduleDeferredStartupPhaseC()
+    }
+
+    private func runCriticalStartupPhaseA() {
+        refreshMeasurementCaches()
+        rebuildGoalsCache()
+        streakManager.recordAppOpen(context: modelContext)
+    }
+
+    private func scheduleDeferredStartupPhaseB() {
+        deferredPhaseBTask?.cancel()
+        deferredPhaseBTask = Task(priority: .utility) { @MainActor in
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled else { return }
+            refreshChecklistState()
+            fetchHealthKitData()
+        }
+    }
+
+    private func scheduleDeferredStartupPhaseC(
+        delayMilliseconds: Int = 800,
+        forceSync: Bool = false
+    ) {
+        deferredPhaseCTask?.cancel()
+        deferredPhaseCTask = Task(priority: .background) { @MainActor in
+            try? await Task.sleep(for: .milliseconds(delayMilliseconds))
+            guard !Task.isCancelled else { return }
+
+            let deferredSyncState = StartupInstrumentation.begin("HomeDeferredSync")
+            StartupInstrumentation.event("HomeDeferredSyncStart")
+            syncMeasurementsFromPhotosIfNeeded(force: forceSync)
+            StartupInstrumentation.event("HomeDeferredSyncEnd")
+            StartupInstrumentation.end("HomeDeferredSync", state: deferredSyncState)
         }
     }
 
@@ -399,11 +462,8 @@ struct HomeView: View {
                 didCheckSevenDayPaywallPrompt = true
                 premiumStore.checkSevenDayPromptIfNeeded()
             }
-            refreshMeasurementCaches()
-            rebuildGoalsCache()
-            fetchHealthKitData()
-            refreshChecklistState()
-            scheduleInitialPhotoMetricSyncIfNeeded()
+            emitHomeInitialRenderIfNeeded()
+            runStartupPhasesIfNeeded()
         }
         .onChange(of: recentSamplesSignature) { _, _ in
             refreshMeasurementCaches()
@@ -416,9 +476,13 @@ struct HomeView: View {
         }
         .onChange(of: isSyncEnabled) { _, _ in
             refreshChecklistState()
+            fetchHealthKitData()
         }
         .onChange(of: allPhotos.count) { _, _ in
             refreshChecklistState()
+            if didRunStartupPhases {
+                scheduleDeferredStartupPhaseC(delayMilliseconds: 350)
+            }
         }
         .onChange(of: onboardingChecklistMetricsCompleted) { _, _ in
             refreshChecklistState()
@@ -433,7 +497,7 @@ struct HomeView: View {
             refreshChecklistState()
         }
         .refreshable {
-            syncMeasurementsFromPhotosIfNeeded()
+            syncMeasurementsFromPhotosIfNeeded(force: true)
             refreshMeasurementCaches()
             rebuildGoalsCache()
             fetchHealthKitData()
@@ -487,6 +551,14 @@ struct HomeView: View {
                         .font(AppTypography.captionEmphasis)
                         .foregroundStyle(.white.opacity(0.75))
                     Spacer()
+                    if showStreakOnHome && streakManager.currentStreak > 0 {
+                        StreakBadge(
+                            count: streakManager.currentStreak,
+                            shouldAnimate: streakManager.shouldPlayAnimation,
+                            onAnimationComplete: { streakManager.markAnimationPlayed() }
+                        )
+                        .transition(.scale.combined(with: .opacity))
+                    }
                 }
 
                 Text(greetingTitle)
@@ -1008,7 +1080,7 @@ struct HomeView: View {
                                 selectedPhotoForFullScreen = photo
                             } label: {
                                 PhotoGridThumb(
-                                    imageData: photo.imageData,
+                                    photo: photo,
                                     size: lastPhotosGridSide,
                                     cacheID: String(describing: photo.id)
                                 )
@@ -1088,13 +1160,14 @@ struct HomeView: View {
 }
 
 private struct PhotoGridThumb: View {
-    let imageData: Data
+    let photo: PhotoEntry
     let size: CGFloat
     let cacheID: String
+    @Environment(\.modelContext) private var modelContext
     
     var body: some View {
         DownsampledImageView(
-            imageData: imageData,
+            imageData: photo.thumbnailOrImageData,
             targetSize: CGSize(width: size, height: size),
             contentMode: .fill,
             cornerRadius: 12,
@@ -1103,6 +1176,18 @@ private struct PhotoGridThumb: View {
         )
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onAppear {
+            guard photo.thumbnailData == nil else { return }
+            Task(priority: .utility) {
+                await PhotoThumbnailBackfillService.shared.enqueueIfNeeded(
+                    photoID: photo.persistentModelID,
+                    originalImageData: photo.imageData,
+                    existingThumbnailData: photo.thumbnailData,
+                    modelContainer: modelContext.container,
+                    source: "home_last_photos"
+                )
+            }
+        }
     }
 }
 

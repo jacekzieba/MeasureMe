@@ -29,6 +29,8 @@ struct MeasureMeApp: App {
     init() {
         // Zainstaluj crash reporter jako pierwszy krok
         CrashReporter.shared.install()
+        Analytics.shared.setup()
+        Analytics.shared.track(.appLaunched)
 
         UserDefaults.standard.register(defaults: [
             "hasCompletedOnboarding": false,
@@ -54,12 +56,14 @@ struct MeasureMeApp: App {
             "settings_open_tracked_measurements": false,
             "settings_open_reminders": false,
             "appLanguage": "system",
+            "analytics_enabled": true,
             "diagnostics_logging_enabled": true,
             "healthkit_sync_weight": true,
             "healthkit_sync_bodyFat": true,
             "healthkit_sync_height": true,
             "healthkit_sync_leanBodyMass": true,
-            "healthkit_sync_waist": true
+            "healthkit_sync_waist": true,
+            "showStreakOnHome": true
         ])
         configureUITestDefaultsIfNeeded()
 
@@ -179,6 +183,7 @@ struct MeasureMeApp: App {
 
             startupState = .ready(container)
             StartupInstrumentation.event("FirstFrameReady")
+            Analytics.shared.track(.appFirstFrameReady)
             runDeferredStartupWork(container: container)
             StartupInstrumentation.end("AppBootstrap", state: bootstrapState)
         } catch {

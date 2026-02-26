@@ -10,6 +10,10 @@ enum PhotoUtilities {
         let format: String
         let quality: CGFloat
     }
+
+    nonisolated static let gridThumbnailSize = CGSize(width: 220, height: 240)
+    nonisolated static let gridThumbnailTargetBytes = 40_000
+    nonisolated static let gridThumbnailMaxBytes = 60_000
     
     // MARK: - Image Compression
     
@@ -143,6 +147,68 @@ enum PhotoUtilities {
         return renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: size))
         }
+    }
+
+    nonisolated static func makeGridThumbnailData(
+        from image: UIImage,
+        size: CGSize = gridThumbnailSize,
+        targetBytes: Int = gridThumbnailTargetBytes,
+        maxBytes: Int = gridThumbnailMaxBytes
+    ) -> Data? {
+        let thumbnailImage = thumbnail(from: image, size: size)
+        if let optimistic = thumbnailImage.jpegData(compressionQuality: 0.82),
+           optimistic.count <= targetBytes {
+            return optimistic
+        }
+
+        let minQuality: CGFloat = 0.35
+        let maxQuality: CGFloat = 0.92
+        var lower = minQuality
+        var upper = maxQuality
+        var bestData: Data?
+
+        for _ in 0..<6 {
+            let quality = (lower + upper) / 2
+            guard let data = thumbnailImage.jpegData(compressionQuality: quality) else {
+                break
+            }
+            if data.count <= targetBytes {
+                bestData = data
+                lower = quality
+            } else {
+                upper = quality
+            }
+        }
+
+        if let bestData {
+            return bestData
+        }
+
+        var quality = minQuality
+        while quality >= 0.1 {
+            if let data = thumbnailImage.jpegData(compressionQuality: quality),
+               data.count <= maxBytes {
+                return data
+            }
+            quality -= 0.08
+        }
+
+        return thumbnailImage.jpegData(compressionQuality: 0.1)
+    }
+
+    nonisolated static func makeGridThumbnailData(
+        from imageData: Data,
+        size: CGSize = gridThumbnailSize,
+        targetBytes: Int = gridThumbnailTargetBytes,
+        maxBytes: Int = gridThumbnailMaxBytes
+    ) -> Data? {
+        guard let image = UIImage(data: imageData) else { return nil }
+        return makeGridThumbnailData(
+            from: image,
+            size: size,
+            targetBytes: targetBytes,
+            maxBytes: maxBytes
+        )
     }
     
     // MARK: - Format Detection

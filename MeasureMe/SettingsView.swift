@@ -26,6 +26,7 @@ struct SettingsView: View {
     @AppStorage("showLastPhotosOnHome") private var showLastPhotosOnHome: Bool = true
     @AppStorage("showMeasurementsOnHome") private var showMeasurementsOnHome: Bool = true
     @AppStorage("showHealthMetricsOnHome") private var showHealthMetricsOnHome: Bool = true
+    @AppStorage("showStreakOnHome") private var showStreakOnHome: Bool = true
     @AppStorage("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
     @AppStorage("settings_open_reminders") private var settingsOpenReminders: Bool = false
@@ -103,8 +104,7 @@ struct SettingsView: View {
     private enum SettingsSearchRoute: String, Hashable {
         case profile
         case metrics
-        case healthIndicators
-        case physiqueIndicators
+        case indicators
         case health
         case notifications
         case home
@@ -134,8 +134,7 @@ struct SettingsView: View {
         [
             SettingsSearchItem(route: .profile, title: AppLocalization.string("Profile"), subtitle: AppLocalization.string("Name, gender, age, height"), keywords: ["profile", "name", "gender", "age", "height", "profil", "imię", "płeć", "wiek", "wzrost"]),
             SettingsSearchItem(route: .metrics, title: AppLocalization.string("Metrics"), subtitle: AppLocalization.string("Tracked measurements"), keywords: ["metrics", "tracked", "measurements", "metryki", "śledzone", "pomiary"]),
-            SettingsSearchItem(route: .healthIndicators, title: AppLocalization.string("Health indicators"), subtitle: AppLocalization.string("Choose indicators to show"), keywords: ["health indicators", "indicators", "wskaźniki", "zdrowia"]),
-            SettingsSearchItem(route: .physiqueIndicators, title: AppLocalization.string("Physique indicators"), subtitle: AppLocalization.string("Choose physique indicators"), keywords: ["physique", "physique indicators", "sylwetka", "wskaźniki sylwetki", "proportions"]),
+            SettingsSearchItem(route: .indicators, title: AppLocalization.string("Indicators"), subtitle: AppLocalization.string("Choose health and physique indicators"), keywords: ["indicators", "health indicators", "physique indicators", "wskaźniki", "zdrowia", "sylwetki"]),
             SettingsSearchItem(route: .health, title: AppLocalization.string("Health"), subtitle: AppLocalization.string("Sync and synced data"), keywords: ["health", "sync", "synced", "zdrowie", "synchronizacja", "synchronizowane"]),
             SettingsSearchItem(route: .notifications, title: AppLocalization.string("Notifications"), subtitle: AppLocalization.string("Manage reminders"), keywords: ["notifications", "reminders", "powiadomienia", "przypomnienia"]),
             SettingsSearchItem(route: .home, title: AppLocalization.string("Home"), subtitle: AppLocalization.string("Home sections visibility"), keywords: ["home", "strona główna", "widoczność"]),
@@ -338,9 +337,9 @@ struct SettingsView: View {
 
                 Section {
                     SettingsCard(tint: Color.appAccent.opacity(0.10)) {
-                        SettingsCardHeader(title: AppLocalization.string("Health indicators"), systemImage: "heart.text.square.fill")
+                        SettingsCardHeader(title: AppLocalization.string("Indicators"), systemImage: "slider.horizontal.3")
                         NavigationLink {
-                            HealthIndicatorsSettingsDetailView(
+                            IndicatorsSettingsDetailView(
                                 showWHtROnHome: $showWHtROnHome,
                                 showRFMOnHome: $showRFMOnHome,
                                 showBMIOnHome: $showBMIOnHome,
@@ -350,25 +349,7 @@ struct SettingsView: View {
                                 showLeanMassOnHome: $showLeanMassOnHome,
                                 showABSIOnHome: $showABSIOnHome,
                                 showBodyShapeScoreOnHome: $showBodyShapeScoreOnHome,
-                                showCentralFatRiskOnHome: $showCentralFatRiskOnHome
-                            )
-                        } label: {
-                            Text(AppLocalization.string("Choose indicators to show"))
-                                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .listRowSeparator(.hidden)
-                .listSectionSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .listRowInsets(Self.settingsRowInsets)
-
-                Section {
-                    SettingsCard(tint: Color(hex: "#14B8A6").opacity(0.16)) {
-                        SettingsCardHeader(title: AppLocalization.string("Physique indicators"), systemImage: "figure.strengthtraining.traditional")
-                        NavigationLink {
-                            PhysiqueIndicatorsSettingsDetailView(
+                                showCentralFatRiskOnHome: $showCentralFatRiskOnHome,
                                 showPhysiqueSWR: $showPhysiqueSWR,
                                 showPhysiqueCWR: $showPhysiqueCWR,
                                 showPhysiqueSHR: $showPhysiqueSHR,
@@ -379,7 +360,7 @@ struct SettingsView: View {
                                 showPhysiqueRFM: $showPhysiqueRFM
                             )
                         } label: {
-                            Text(AppLocalization.string("Choose physique indicators"))
+                            Text(AppLocalization.string("Choose health and physique indicators"))
                                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                         }
                         .buttonStyle(.plain)
@@ -426,7 +407,8 @@ struct SettingsView: View {
                                 showMeasurementsOnHome: $showMeasurementsOnHome,
                                 showLastPhotosOnHome: $showLastPhotosOnHome,
                                 showHealthMetricsOnHome: $showHealthMetricsOnHome,
-                                showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome
+                                showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome,
+                                showStreakOnHome: $showStreakOnHome
                             )
                         } label: {
                             Text(AppLocalization.string("Open Home settings"))
@@ -1174,8 +1156,8 @@ struct SettingsView: View {
             )
         case .metrics:
             TrackedMeasurementsView()
-        case .healthIndicators:
-            HealthIndicatorsSettingsDetailView(
+        case .indicators:
+            IndicatorsSettingsDetailView(
                 showWHtROnHome: $showWHtROnHome,
                 showRFMOnHome: $showRFMOnHome,
                 showBMIOnHome: $showBMIOnHome,
@@ -1185,10 +1167,7 @@ struct SettingsView: View {
                 showLeanMassOnHome: $showLeanMassOnHome,
                 showABSIOnHome: $showABSIOnHome,
                 showBodyShapeScoreOnHome: $showBodyShapeScoreOnHome,
-                showCentralFatRiskOnHome: $showCentralFatRiskOnHome
-            )
-        case .physiqueIndicators:
-            PhysiqueIndicatorsSettingsDetailView(
+                showCentralFatRiskOnHome: $showCentralFatRiskOnHome,
                 showPhysiqueSWR: $showPhysiqueSWR,
                 showPhysiqueCWR: $showPhysiqueCWR,
                 showPhysiqueSHR: $showPhysiqueSHR,
@@ -1215,7 +1194,8 @@ struct SettingsView: View {
                 showMeasurementsOnHome: $showMeasurementsOnHome,
                 showLastPhotosOnHome: $showLastPhotosOnHome,
                 showHealthMetricsOnHome: $showHealthMetricsOnHome,
-                showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome
+                showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome,
+                showStreakOnHome: $showStreakOnHome
             )
         case .aiInsights:
             AIInsightsSettingsDetailView(appleIntelligenceEnabled: $appleIntelligenceEnabled)
@@ -1446,6 +1426,7 @@ struct SettingsView: View {
     private struct MetricsParseResult {
         var rows: [ParsedSampleRow] = []
         var skipped: Int = 0
+        nonisolated init() { rows = []; skipped = 0 }
     }
 
     private struct ParsedGoalRow {
@@ -1460,6 +1441,7 @@ struct SettingsView: View {
     private struct GoalsParseResult {
         var rows: [ParsedGoalRow] = []
         var skipped: Int = 0
+        nonisolated init() { rows = []; skipped = 0 }
     }
 
     // MARK: - Import logic

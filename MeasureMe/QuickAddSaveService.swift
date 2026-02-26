@@ -24,10 +24,16 @@ final class QuickAddSaveService {
 
     /// Dodaje probki do kontekstu i zapisuje.
     func save(entries: [Entry], date: Date) throws {
+        let previousMetricCount = AnalyticsFirstEventTracker.metricCount(in: context)
+
         for entry in entries {
             context.insert(MetricSample(kind: entry.kind, value: entry.metricValue, date: date))
         }
         try context.save()
+        if !entries.isEmpty {
+            AnalyticsFirstEventTracker.trackFirstMetricIfNeeded(previousMetricCount: previousMetricCount)
+            StreakManager.shared.recordMetricSaved(date: date)
+        }
     }
 
     /// Synchronizacja HealthKit w trybie najlepszej starannosci — failures are logged but never thrown.

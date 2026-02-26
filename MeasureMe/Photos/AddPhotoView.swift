@@ -7,70 +7,97 @@ struct AddPhotoView: View {
     @EnvironmentObject private var activeMetrics: ActiveMetricsStore
     @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
 
+    private let initialPreviewSource: PhotoLibraryImageSource?
     @State private var selectedImage: UIImage?
+    @State private var didLoadInitialSource = false
+    @State private var isLoadingPreview = false
     @State private var showCamera = false
     @State private var showPhotoLibrary = false
     @State private var date: Date = AppClock.now
     @State private var selectedTags: Set<PhotoTag> = [.wholeBody]
     @State private var metricValues: [MetricKind: Double] = [:]
+    @State private var isMeasurementsExpanded = false
     @State private var saveErrorMessage: String?
     @State private var isSaving = false
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
     
-    init(previewImage: UIImage? = nil) {
+    init(previewImage: UIImage? = nil, previewSource: PhotoLibraryImageSource? = nil) {
+        self.initialPreviewSource = previewSource
         self._selectedImage = State(initialValue: previewImage)
+        self._isLoadingPreview = State(initialValue: previewImage == nil && previewSource != nil)
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                AppScreenBackground(topHeight: 220, tint: Color.cyan.opacity(0.18))
+        ZStack {
+            AppScreenBackground(topHeight: 220, tint: Color.cyan.opacity(0.18))
 
-                ScrollView {
-                    VStack(spacing: 16) {
-                        photoSelectionCard
-                        photoPreviewCard
-                        tagsCard
-                        dateCard
-                        measurementsCard
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
+            ScrollView {
+                VStack(spacing: 16) {
+                    photoSelectionCard
+                    photoPreviewCard
+                    tagsCard
+                    dateCard
+                    measurementsCard
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
             }
-            .navigationTitle(AppLocalization.string("Add Photo"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(AppLocalization.string("Cancel")) {
-                        dismiss()
-                    }
-                    .accessibilityIdentifier("addPhoto.cancelButton")
+        }
+        .navigationTitle(AppLocalization.string("Add Photo"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button(AppLocalization.string("Cancel")) {
+                    dismiss()
                 }
-                
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(AppLocalization.string("Save")) {
-                        Haptics.medium()
-                        Task { await savePhoto() }
-                    }
-                    .disabled(!canSave || isSaving)
-                    .accessibilityIdentifier("addPhoto.saveButton")
+                .accessibilityIdentifier("addPhoto.cancelButton")
+            }
+            
+            ToolbarItem(placement: .confirmationAction) {
+                Button(AppLocalization.string("Save")) {
+                    Haptics.medium()
+                    Task { await savePhoto() }
                 }
+                .disabled(!canSave || isSaving || isLoadingPreview)
+                .accessibilityIdentifier("addPhoto.saveButton")
             }
-            .sheet(isPresented: $showCamera) {
-                CameraPickerView(selectedImage: $selectedImage)
+        }
+        .sheet(isPresented: $showCamera) {
+            CameraPickerView(selectedImage: $selectedImage)
+        }
+        .sheet(isPresented: $showPhotoLibrary) {
+            PhotoLibraryPicker(selectedImage: $selectedImage)
+        }
+        .alert(AppLocalization.string("Save Failed"), isPresented: Binding(
+            get: { saveErrorMessage != nil },
+            set: { if !$0 { saveErrorMessage = nil } }
+        )) {
+            Button(AppLocalization.string("OK"), role: .cancel) { saveErrorMessage = nil }
+        } message: {
+            Text(saveErrorMessage ?? "")
+        }
+        .task(id: initialPreviewSource?.id) {
+            guard !didLoadInitialSource else { return }
+            guard selectedImage == nil else { return }
+            guard let initialPreviewSource else { return }
+            didLoadInitialSource = true
+            if let exifDate = PhotoLibraryImageLoader.fetchCreationDate(from: initialPreviewSource) {
+                date = exifDate
             }
-            .sheet(isPresented: $showPhotoLibrary) {
-                PhotoLibraryPicker(selectedImage: $selectedImage)
+            do {
+                isLoadingPreview = true
+                let loadedImage = try await PhotoLibraryImageLoader.loadPreparedImage(from: initialPreviewSource)
+                selectedImage = loadedImage
+            } catch {
+                AppLog.debug("⚠️ AddPhotoView: failed loading initial picker image: \(error)")
+                saveErrorMessage = AppLocalization.string("Could not load photo. Please try again.")
             }
-            .alert(AppLocalization.string("Save Failed"), isPresented: Binding(
-                get: { saveErrorMessage != nil },
-                set: { if !$0 { saveErrorMessage = nil } }
-            )) {
-                Button(AppLocalization.string("OK"), role: .cancel) { saveErrorMessage = nil }
-            } message: {
-                Text(saveErrorMessage ?? "")
+            isLoadingPreview = false
+        }
+        .onChange(of: selectedImage) { _, newValue in
+            if newValue != nil {
+                isLoadingPreview = false
             }
         }
     }
@@ -83,7 +110,7 @@ private extension AddPhotoView {
     var photoSelectionCard: some View {
         // Karta wyboru zdjęcia znika gdy obraz jest już wybrany.
         // Kamera i biblioteka nadal dostępne przez photoPreviewCard (zamiana zdjęcia).
-        if selectedImage == nil {
+        if selectedImage == nil && !isLoadingPreview {
             AppGlassCard(
                 depth: .elevated,
                 tint: Color.cyan.opacity(0.08),
@@ -122,7 +149,18 @@ private extension AddPhotoView {
 
     @ViewBuilder
     var photoPreviewCard: some View {
-        if let image = selectedImage {
+        if isLoadingPreview {
+            AppGlassCard(depth: .elevated, tint: Color.cyan.opacity(0.08), contentPadding: 20) {
+                HStack(spacing: 12) {
+                    ProgressView().tint(.white)
+                    Text(AppLocalization.string("Preparing"))
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .accessibilityIdentifier("addPhoto.preview.loading")
+        } else if let image = selectedImage {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
@@ -135,39 +173,33 @@ private extension AddPhotoView {
     }
 
     var tagsCard: some View {
-        AppGlassCard(depth: .base) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(AppLocalization.string("Tags"))
-                    .font(AppTypography.caption)
-                    .foregroundStyle(.secondary)
-
-                ForEach(availableTags) { tag in
-                    Toggle(tag.title, isOn: tagBinding(for: tag))
-                        .toggleStyle(LiquidSwitchToggleStyle())
-                }
-            }
-        }
+        PhotoFormTagsSection(
+            title: AppLocalization.string("Tags"),
+            tags: availableTags,
+            accessibilityPrefix: "addPhoto",
+            tagBinding: tagBinding(for:)
+        )
     }
 
     var dateCard: some View {
-        AppGlassCard(depth: .base) {
-            DatePicker(
-                AppLocalization.string("Date"),
-                selection: $date,
-                displayedComponents: [.date, .hourAndMinute]
-            )
-        }
+        PhotoFormDateSection(
+            title: AppLocalization.string("Date"),
+            date: $date
+        )
     }
 
     @ViewBuilder
     var measurementsCard: some View {
         if !activeMetrics.activeKinds.isEmpty {
-            AppGlassCard(depth: .base) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(AppLocalization.string("Measurements (Optional)"))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.secondary)
-
+            CollapsibleMeasurementsSection(
+                title: AppLocalization.string("Measurements (Optional)"),
+                filledCount: filledMetricCount,
+                isExpanded: $isMeasurementsExpanded,
+                toggleAccessibilityIdentifier: "addPhoto.measurements.toggle",
+                contentAccessibilityIdentifier: "addPhoto.measurements.content",
+                filledCountAccessibilityIdentifier: "addPhoto.measurements.filledCount"
+            ) {
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     ForEach(activeMetrics.activeKinds, id: \.self) { kind in
                         MetricValueField(
                             kind: kind,
@@ -208,10 +240,20 @@ private extension AddPhotoView {
         selectedImage != nil && !hasInvalidMetricInputs
     }
 
+    var filledMetricCount: Int {
+        activeMetrics.activeKinds.reduce(0) { result, kind in
+            guard let value = metricValues[kind], value != 0 else { return result }
+            return result + 1
+        }
+    }
+
+    var sanitizedMetricValues: [MetricKind: Double] {
+        metricValues.filter { _, value in value != 0 }
+    }
+
     var hasInvalidMetricInputs: Bool {
         activeMetrics.activeKinds.contains { kind in
-            let value = metricValues[kind] ?? 0
-            if value == 0 { return false }
+            guard let value = metricValues[kind], value != 0 else { return false }
             return !MetricInputValidator
                 .validateMetricDisplayValue(value, kind: kind, unitsSystem: unitsSystem)
                 .isValid
@@ -219,8 +261,7 @@ private extension AddPhotoView {
     }
 
     func metricValidationMessage(for kind: MetricKind) -> String? {
-        let value = metricValues[kind] ?? 0
-        if value == 0 { return nil }
+        guard let value = metricValues[kind], value != 0 else { return nil }
         let result = MetricInputValidator.validateMetricDisplayValue(value, kind: kind, unitsSystem: unitsSystem)
         if result.isValid {
             return nil
@@ -245,10 +286,16 @@ private extension AddPhotoView {
         )
     }
     
-    func metricBinding(for kind: MetricKind) -> Binding<Double> {
+    func metricBinding(for kind: MetricKind) -> Binding<Double?> {
         Binding(
-            get: { metricValues[kind] ?? 0 },
-            set: { metricValues[kind] = $0 }
+            get: { metricValues[kind] },
+            set: { newValue in
+                if let newValue {
+                    metricValues[kind] = newValue
+                } else {
+                    metricValues.removeValue(forKey: kind)
+                }
+            }
         )
     }
 }
@@ -276,7 +323,7 @@ private extension AddPhotoView {
                 sourceImage: image,
                 date: date,
                 tags: selectedTags,
-                metricValues: metricValues,
+                metricValues: sanitizedMetricValues,
                 unitsSystem: unitsSystem
             )
             let enqueueMs = milliseconds(from: enqueueStart.duration(to: .now))
@@ -307,25 +354,39 @@ private extension AddPhotoView {
 /// Pole do wprowadzania wartości metryki
 private struct MetricValueField: View {
     let kind: MetricKind
-    @Binding var value: Double
+    @Binding var value: Double?
     let unitsSystem: String
     let validationMessage: String?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
+            HStack(spacing: AppSpacing.xs) {
+                kind.iconView(font: AppTypography.iconSmall, size: 16, tint: Color.appAccent)
+                    .frame(width: 20, height: 20)
+                    .accessibilityHidden(true)
+
                 Text(kind.title)
+                    .font(AppTypography.body)
+                    .foregroundStyle(AppColorRoles.textPrimary)
 
-                Spacer()
+                Spacer(minLength: 0)
 
-                TextField(AppLocalization.string("Value"), value: $value, format: .number)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 80)
+                TextField(
+                    AppLocalization.string("Value"),
+                    value: $value,
+                    format: .number.precision(.fractionLength(1))
+                )
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .font(AppTypography.bodyEmphasis.monospacedDigit())
+                .frame(minWidth: 64)
+                .accessibilityIdentifier("addPhoto.metricField.\(kind.rawValue)")
 
                 Text(kind.unitSymbol(unitsSystem: unitsSystem))
-                    .foregroundStyle(.secondary)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
             }
+            .appInputContainer()
 
             if let validationMessage {
                 Text(validationMessage)
@@ -343,7 +404,43 @@ private struct MetricValueField: View {
 /// Gwarantuje że SwiftUI czyta dane w momencie prezentacji sheetu.
 struct MultiPhotoImportPayload: Identifiable {
     let id = UUID()
-    let images: [UIImage]
+    let items: [Item]
+
+    struct Item: Identifiable {
+        let id: UUID
+        let image: UIImage?
+        let librarySource: PhotoLibraryImageSource?
+
+        init(image: UIImage) {
+            self.id = UUID()
+            self.image = image
+            self.librarySource = nil
+        }
+
+        init(librarySource: PhotoLibraryImageSource) {
+            self.id = librarySource.id
+            self.image = nil
+            self.librarySource = librarySource
+        }
+    }
+
+    init(images: [UIImage]) {
+        self.items = images.map { Item(image: $0) }
+    }
+
+    init(librarySources: [PhotoLibraryImageSource]) {
+        self.items = librarySources
+            .sorted(by: { $0.selectionIndex < $1.selectionIndex })
+            .map { Item(librarySource: $0) }
+    }
+
+    var images: [UIImage] {
+        items.compactMap(\.image)
+    }
+
+    var librarySources: [PhotoLibraryImageSource] {
+        items.compactMap(\.librarySource)
+    }
 }
 
 // MARK: - Preview

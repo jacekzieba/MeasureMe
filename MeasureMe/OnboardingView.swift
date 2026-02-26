@@ -188,7 +188,7 @@ struct OnboardingView: View {
                     topBar
 
                     ScrollView(.horizontal, showsIndicators: false) {
-                        LazyHStack(spacing: 0) {
+                        LazyHStack(spacing: AppSpacing.sm) {
                             slideCard {
                                 welcomeSlide
                             }
@@ -252,6 +252,10 @@ struct OnboardingView: View {
             if onboardingSelectedPremiumProductID == nil {
                 onboardingSelectedPremiumProductID = PremiumConstants.yearlyProductID
             }
+            Analytics.shared.track(.onboardingStarted)
+            if let signal = AnalyticsSignal.onboardingStepViewed(stepIndex: currentStepIndex) {
+                Analytics.shared.track(signal)
+            }
         }
         .onChange(of: scrolledStepID) { _, newValue in
             guard let newValue, newValue != currentStepIndex else { return }
@@ -262,6 +266,9 @@ struct OnboardingView: View {
             Haptics.selection()
             if currentStep == .premium, onboardingPremiumProducts.isEmpty {
                 Task { await premiumStore.loadProducts() }
+            }
+            if let signal = AnalyticsSignal.onboardingStepViewed(stepIndex: currentStepIndex) {
+                Analytics.shared.track(signal)
             }
         }
         .sheet(isPresented: $showReminderSetupSheet) {
@@ -364,18 +371,19 @@ struct OnboardingView: View {
             contentPadding: 0
         ) {
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 20) {
                     content()
                 }
-                .padding(dynamicTypeSize.isAccessibilitySize ? 18 : 14)
+                .padding(dynamicTypeSize.isAccessibilitySize ? 20 : 16)
             }
             .scrollDisabled(!isScrollEnabled)
             .scrollDismissesKeyboard(.immediately)
         }
+        .shadow(color: .clear, radius: 0, x: 0, y: 0)
     }
 
     private var welcomeSlide: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 12) {
                 slideHeader(title: Step.welcome.title, subtitle: Step.welcome.subtitle)
                 Spacer(minLength: 0)
@@ -548,7 +556,7 @@ struct OnboardingView: View {
     }
 
     private var welcomeGoalSelector: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(AppLocalization.systemString("What's your goal?"))
                 .font(AppTypography.headlineEmphasis)
                 .lineLimit(2)
@@ -561,7 +569,7 @@ struct OnboardingView: View {
                 }
             }
         }
-        .padding(10)
+        .padding(12)
         .background(Color.white.opacity(0.04))
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         .overlay(
@@ -1304,6 +1312,7 @@ struct OnboardingView: View {
     }
 
     private func skipCurrentStep() {
+        Analytics.shared.track(.onboardingSkipped)
         dismissKeyboard()
         if currentStep == .boosters {
             persistBoostersOutcome()
@@ -1342,6 +1351,7 @@ struct OnboardingView: View {
         showOnboardingChecklistOnHome = true
         onboardingChecklistPremiumExplored = onboardingChecklistPremiumExplored || premiumStore.isPremium
         Haptics.success()
+        Analytics.shared.track(.onboardingCompleted)
 
         if shouldAnimate {
             withAnimation(AppMotion.quick) {

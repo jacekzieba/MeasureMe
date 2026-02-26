@@ -8,6 +8,7 @@ struct TabBarContainer: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var premiumStore: PremiumStore
     @State private var didApplyAuditRoute = false
+    @State private var mountedTabs: Set<AppTab> = [.home]
 
     var body: some View {
         let tabBarShouldBeVisible = router.selectedTab != .home || homeTabScrollOffset < -14
@@ -29,7 +30,9 @@ struct TabBarContainer: View {
 
                     // MEASUREMENTS
                     Tab(value: AppTab.measurements) {
-                        MeasurementsTabView()
+                        LazyMountedTab(isMounted: mountedTabs.contains(.measurements)) {
+                            MeasurementsTabView()
+                        }
                     } label: {
                         Label(AppLocalization.string("Measurements"), systemImage: "ruler")
                     }
@@ -43,14 +46,18 @@ struct TabBarContainer: View {
 
                     // PHOTOS
                     Tab(value: AppTab.photos) {
-                        PhotoView()
+                        LazyMountedTab(isMounted: mountedTabs.contains(.photos)) {
+                            PhotoView()
+                        }
                     } label: {
                         Label(AppLocalization.string("Photos"), systemImage: "photo")
                     }
 
                     // SETTINGS
                     Tab(value: AppTab.settings) {
-                        SettingsView()
+                        LazyMountedTab(isMounted: mountedTabs.contains(.settings)) {
+                            SettingsView()
+                        }
                     } label: {
                         Label(AppLocalization.string("Settings"), systemImage: "gearshape")
                     }
@@ -60,10 +67,7 @@ struct TabBarContainer: View {
                 .toolbarBackground(.ultraThinMaterial, for: .tabBar)
                 .applyTabBarMinimizeBehaviorIfAvailable()
                 .onChange(of: router.selectedTab) { oldTab, newTab in
-                    if newTab == .compose {
-                        router.presentedSheet = .composer(mode: .newPost)
-                        router.selectedTab = oldTab
-                    }
+                    handleSelectedTabChange(oldTab: oldTab, newTab: newTab)
                 }
             } else {
                 TabView(selection: $router.selectedTab) {
@@ -75,7 +79,9 @@ struct TabBarContainer: View {
                     }
                     .tag(AppTab.home)
 
-                    MeasurementsTabView()
+                    LazyMountedTab(isMounted: mountedTabs.contains(.measurements)) {
+                        MeasurementsTabView()
+                    }
                         .tabItem {
                             Label(AppLocalization.string("Measurements"), systemImage: "ruler")
                         }
@@ -87,13 +93,17 @@ struct TabBarContainer: View {
                         }
                         .tag(AppTab.compose)
 
-                    PhotoView()
+                    LazyMountedTab(isMounted: mountedTabs.contains(.photos)) {
+                        PhotoView()
+                    }
                         .tabItem {
                             Label(AppLocalization.string("Photos"), systemImage: "photo")
                         }
                         .tag(AppTab.photos)
 
-                    SettingsView()
+                    LazyMountedTab(isMounted: mountedTabs.contains(.settings)) {
+                        SettingsView()
+                    }
                         .tabItem {
                             Label(AppLocalization.string("Settings"), systemImage: "gearshape")
                         }
@@ -104,10 +114,7 @@ struct TabBarContainer: View {
                 .toolbarBackground(.ultraThinMaterial, for: .tabBar)
                 .applyTabBarMinimizeBehaviorIfAvailable()
                 .onChange(of: router.selectedTab) { oldTab, newTab in
-                    if newTab == .compose {
-                        router.presentedSheet = .composer(mode: .newPost)
-                        router.selectedTab = oldTab
-                    }
+                    handleSelectedTabChange(oldTab: oldTab, newTab: newTab)
                 }
             }
         }
@@ -128,6 +135,7 @@ struct TabBarContainer: View {
         .environmentObject(router)
         .onAppear {
             applyAuditRouteIfNeeded()
+            mountTabIfNeeded(router.selectedTab)
         }
         .preferredColorScheme(.dark)
     }
@@ -152,6 +160,25 @@ struct TabBarContainer: View {
             premiumStore.presentPaywall(reason: .settings)
         }
     }
+
+    private func handleSelectedTabChange(oldTab: AppTab, newTab: AppTab) {
+        if newTab == .compose {
+            router.presentedSheet = .composer(mode: .newPost)
+            router.selectedTab = oldTab
+            return
+        }
+
+        mountTabIfNeeded(newTab)
+
+        if let signal = newTab.analyticsSelectionSignal {
+            Analytics.shared.track(signal)
+        }
+    }
+
+    private func mountTabIfNeeded(_ tab: AppTab) {
+        guard tab != .compose else { return }
+        mountedTabs.insert(tab)
+    }
 }
 
 private extension View {
@@ -161,6 +188,19 @@ private extension View {
             self.tabBarMinimizeBehavior(.onScrollDown)
         } else {
             self
+        }
+    }
+}
+
+private struct LazyMountedTab<Content: View>: View {
+    let isMounted: Bool
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        if isMounted {
+            content()
+        } else {
+            Color.clear
         }
     }
 }

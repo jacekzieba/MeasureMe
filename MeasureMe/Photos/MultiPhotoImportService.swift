@@ -75,9 +75,12 @@ enum MultiPhotoImportService {
                 "📸 MultiPhotoImportService: Encoded \(index + 1)/\(total) format=\(encoded.format) size=\(PhotoUtilities.formatFileSize(encoded.data.count))"
             )
 
+            let thumbnailData = PhotoUtilities.makeGridThumbnailData(from: image)
+
             // Wstaw do kontekstu na MainActor (jesteśmy już na MainActor)
             let entry = PhotoEntry(
                 imageData: encoded.data,
+                thumbnailData: thumbnailData,
                 date: date,
                 tags: tags,
                 linkedMetrics: []

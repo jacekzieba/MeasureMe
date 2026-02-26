@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HealthMetricsSectionCard<Content: View>: View {
-    private let healthAccent = Color(hex: "#F59E0B")
+    private let healthAccent = HealthIndicatorPalette.accent
     let title: String
     let icon: String
     @ViewBuilder let content: Content
@@ -26,7 +26,7 @@ struct HealthMetricsSectionCard<Content: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(hex: "#1E1812"))
+                .fill(HealthIndicatorPalette.cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
@@ -38,7 +38,7 @@ struct HealthMetricsSectionCard<Content: View>: View {
 // MARK: - Health Metric Row
 
 struct HealthMetricRow<Destination: View>: View {
-    private let warmRowFill = Color(hex: "#271E15")
+    private let rowFill = HealthIndicatorPalette.rowBackground
     let title: String
     let value: String
     let category: String
@@ -64,7 +64,7 @@ struct HealthMetricRow<Destination: View>: View {
                     
                     Text(category)
                         .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.9))
+                        .foregroundStyle(Color.bestAccessibleTextColor(onHex: categoryColor))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(Color(hex: categoryColor), in: RoundedRectangle(cornerRadius: 4))
@@ -88,7 +88,7 @@ struct HealthMetricRow<Destination: View>: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(warmRowFill.opacity(0.88))
+                    .fill(rowFill.opacity(0.88))
             )
         }
         .contentShape(Rectangle())

@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 
 struct PhotoGridCell: View {
@@ -10,6 +11,7 @@ struct PhotoGridCell: View {
     @State private var isVisible = false
     @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -28,6 +30,23 @@ struct PhotoGridCell: View {
         .offset(y: isVisible ? 0 : 8)
         .scaleEffect(isVisible ? 1 : 0.985)
         .onAppear {
+            let hasStoredThumbnail = photo.thumbnailData != nil
+            PhotoThumbnailTelemetry.recordPhotosTileAppearance(
+                photoID: String(describing: photo.persistentModelID),
+                hasStoredThumbnail: hasStoredThumbnail
+            )
+            if !hasStoredThumbnail {
+                Task(priority: .utility) {
+                    await PhotoThumbnailBackfillService.shared.enqueueIfNeeded(
+                        photoID: photo.persistentModelID,
+                        originalImageData: photo.imageData,
+                        existingThumbnailData: photo.thumbnailData,
+                        modelContainer: modelContext.container,
+                        source: "photos_grid"
+                    )
+                }
+            }
+
             guard shouldAnimateReveal else {
                 isVisible = true
                 return
@@ -77,7 +96,7 @@ private extension PhotoGridCell {
 
     var photoImage: some View {
         DownsampledImageView(
-            imageData: photo.imageData,
+            imageData: photo.thumbnailOrImageData,
             targetSize: CGSize(width: 110, height: 120),
             contentMode: .fill,
             cornerRadius: 12,

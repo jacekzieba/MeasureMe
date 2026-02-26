@@ -27,6 +27,8 @@
 "Notification error" = "Notification error";
 "Could not schedule notifications. Please check notification permissions and try again." = "Could not schedule notifications. Please check notification permissions and try again.";
 "Include diagnostic logs in crash reports" = "Include diagnostic logs in crash reports";
+"Share anonymous analytics" = "Share anonymous analytics";
+"Helps improve app quality and UX. No health values or personal data are sent." = "Helps improve app quality and UX. No health values or personal data are sent.";
 "When enabled, recent app logs may be attached to reports you share." = "When enabled, recent app logs may be attached to reports you share.";
 "Could not start the app because local storage failed to initialize. Please retry. Error: %@" = "Could not start the app because local storage failed to initialize. Please retry. Error: %@";
 
@@ -296,7 +298,9 @@
 "Measurements" = "Measurements";
 "Settings" = "Settings";
 "Metrics" = "Metrics";
+"Indicators" = "Indicators";
 "Health indicators" = "Health indicators";
+"Choose health and physique indicators" = "Choose health and physique indicators";
 
 /* Apple Intelligence availability */
 "Apple Intelligence isn’t available right now." = "AI Insights aren’t available right now.";
@@ -699,6 +703,19 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Finish setup (optional)" = "Finish setup (optional)";
 "Hide checklist" = "Hide checklist";
 "Show setup checklist on Home" = "Show setup checklist on Home";
+"Show streak on Home" = "Show streak on Home";
+"accessibility.streak.count" = "%d week streak";
+"Your Progress" = "Your Progress";
+"total measurements" = "total measurements";
+"profile.stats.accessibility" = "%d measurements logged";
+"profile.stats.phrase.0" = "Log your first measurement to start your journey.";
+"profile.stats.phrase.1" = "Every measurement is a step toward knowing yourself.";
+"profile.stats.phrase.2" = "Building the habit. You're on the right track.";
+"profile.stats.phrase.3" = "Consistency is the true measure of progress.";
+"profile.stats.phrase.4" = "Over 100 entries — your data tells a real story.";
+"profile.stats.phrase.5" = "250+ logs. You know your body better than anyone.";
+"profile.stats.phrase.6" = "500+ entries. Dedication at its finest.";
+"profile.stats.phrase.7" = "1000+ entries. Legendary commitment.";
 "Enable AI Insights" = "Enable AI Insights";
 "AI Insights" = "AI Insights";
 "AI Insights aren’t available right now." = "AI Insights aren’t available right now.";
@@ -969,3 +986,5 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Are physique indicators medical?" = "Are physique indicators medical?";
 "No. Physique indicators are visual and proportion-focused heuristics designed for appearance tracking, not medical diagnosis." = "No. Physique indicators are visual and proportion-focused heuristics designed for appearance tracking, not medical diagnosis.";
 "Apple Intelligence insights, Health Indicators, and photo comparison." = "Apple Intelligence insights, Health Indicators, Physique Indicators, and photo comparison.";
+
+"photo.measurements.filled" = "%d filled";

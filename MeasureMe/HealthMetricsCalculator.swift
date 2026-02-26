@@ -65,7 +65,7 @@ final class HealthMetricsCalculator {
             var color: String {
                 switch self {
                 case .normal: return "#22C55E"      // Zielony
-                case .increased: return "#FCA311"   // Żółty
+                case .increased: return HealthIndicatorPalette.emphasisHex   // Niebieski
                 case .high: return "#EF4444"        // Czerwony
                 }
             }
@@ -124,7 +124,7 @@ final class HealthMetricsCalculator {
             var color: String {
                 switch self {
                 case .normal: return "#22C55E"      // Zielony
-                case .increased: return "#FCA311"   // Żółty
+                case .increased: return HealthIndicatorPalette.emphasisHex   // Niebieski
                 case .high: return "#EF4444"        // Czerwony
                 }
             }
@@ -213,7 +213,7 @@ final class HealthMetricsCalculator {
             var color: String {
                 switch self {
                 case .lowRisk: return "#22C55E"
-                case .increasedRisk: return "#FCA311"
+                case .increasedRisk: return HealthIndicatorPalette.emphasisHex
                 }
             }
             
@@ -296,7 +296,7 @@ final class HealthMetricsCalculator {
                 switch self {
                 case .underweight: return "#3B82F6"  // Niebieski
                 case .normal: return "#22C55E"        // Zielony
-                case .overweight: return "#FCA311"    // Żółty
+                case .overweight: return HealthIndicatorPalette.emphasisHex   // Niebieski
                 case .obese: return "#EF4444"         // Czerwony
                 }
             }
@@ -399,7 +399,7 @@ final class HealthMetricsCalculator {
             var color: String {
                 switch self {
                 case .low: return "#22C55E"
-                case .moderate: return "#FCA311"
+                case .moderate: return HealthIndicatorPalette.emphasisHex
                 case .high: return "#EF4444"
                 }
             }
@@ -438,7 +438,7 @@ final class HealthMetricsCalculator {
             var color: String {
                 switch self {
                 case .low: return "#22C55E"
-                case .moderate: return "#FCA311"
+                case .moderate: return HealthIndicatorPalette.emphasisHex
                 case .high: return "#EF4444"
                 }
             }
@@ -525,7 +525,7 @@ final class HealthMetricsCalculator {
             var color: String {
                 switch self {
                 case .low: return "#22C55E"         // Zielony
-                case .moderate: return "#FCA311"    // Żółty
+                case .moderate: return HealthIndicatorPalette.emphasisHex   // Niebieski
                 case .high: return "#EF4444"        // Czerwony
                 }
             }
@@ -621,7 +621,7 @@ final class HealthMetricsCalculator {
             var color: String {
                 switch self {
                 case .low: return "#22C55E"
-                case .moderate: return "#FCA311"
+                case .moderate: return HealthIndicatorPalette.emphasisHex
                 case .high: return "#EF4444"
                 }
             }
@@ -697,7 +697,7 @@ final class HealthMetricsCalculator {
             var color: String {
                 switch self {
                 case .low: return "#22C55E"         // Zielony
-                case .moderate: return "#FCA311"    // Żółty
+                case .moderate: return HealthIndicatorPalette.emphasisHex   // Niebieski
                 case .high: return "#EF4444"        // Czerwony
                 }
             }

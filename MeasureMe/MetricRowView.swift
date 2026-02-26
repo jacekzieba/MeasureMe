@@ -9,10 +9,11 @@ struct MetricRowView: View {
     let kind: MetricKind
     let isOn: Binding<Bool>
     let context: Context
+    private let iconTint = AppColorRoles.textPrimary.opacity(0.82)
 
     var body: some View {
         HStack(spacing: 12) {
-            kind.iconView(size: MetricsLayout.iconWidth, tint: .white)
+            kind.iconView(size: MetricsLayout.iconWidth, tint: iconTint)
                 .frame(width: MetricsLayout.iconWidth)
 
             ViewThatFits(in: .vertical) {

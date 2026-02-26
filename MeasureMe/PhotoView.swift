@@ -18,9 +18,12 @@ struct PhotoView: View {
     @State private var showCamera = false
     @State private var cameraPickerImage: UIImage? = nil
     @State private var showLibraryPicker = false   // PHPicker (1 i wiele)
-    @State private var pendingLibrarySelection: [UIImage] = []
-    @State private var singlePickerResult: MultiPhotoImportPayload? = nil
+    @State private var pendingLibrarySelection: MultiPhotoLibrarySelectionPayload? = nil
+    @State private var singlePickerImage: UIImage? = nil
+    @State private var singlePickerSource: PhotoLibraryImageSource? = nil
     @State private var multiPhotoImportPayload: MultiPhotoImportPayload? = nil
+    @State private var showSingleImportFlow = false
+    @State private var showMultiImportFlow = false
     @State private var showCompare = false
     @State private var refreshToken = UUID()
     @State private var recentlySavedPhoto: PhotoEntry?
@@ -33,6 +36,8 @@ struct PhotoView: View {
     @State private var didRunUITestAutoOpen = false
     @State private var failureToastMessage: String?
     @State private var showsFailureToast = false
+    @State private var pickerDismissedAt: ContinuousClock.Instant?
+    @State private var photoBatchByPersistentID: [String: UUID] = [:]
     
     @AppStorage("photos_filter_tag") private var photosFilterTag: String = ""
     private var uiTestModeEnabled: Bool {
@@ -154,13 +159,15 @@ struct PhotoView: View {
             }
             // Deep link / empty state — otwiera AddPhotoView bez zdjęcia
             .sheet(isPresented: $showAddPhoto) {
-                AddPhotoView()
-                    .environmentObject(metricsStore)
+                NavigationStack {
+                    AddPhotoView()
+                        .environmentObject(metricsStore)
+                }
             }
             // Kamera → AddPhotoView z podglądem (onDismiss po dismiss, który jest po onSelect)
             .sheet(isPresented: $showCamera, onDismiss: {
                 if let img = cameraPickerImage {
-                    singlePickerResult = MultiPhotoImportPayload(images: [img])
+                    presentSingleImport(images: [img])
                     cameraPickerImage = nil
                 }
             }) {
@@ -168,21 +175,30 @@ struct PhotoView: View {
             }
             // PHPicker (1 i wiele) — routing po liczbie wybranych zdjęć.
             .sheet(isPresented: $showLibraryPicker, onDismiss: {
+                pickerDismissedAt = ContinuousClock.now
                 routePendingLibrarySelection()
             }) {
-                MultiPhotoLibraryPicker { images in
-                    pendingLibrarySelection = images
+                MultiPhotoLibraryPicker { selection in
+                    pendingLibrarySelection = selection
                 }
             }
-            // AddPhotoView dla pojedynczego zdjęcia (z kamery lub biblioteki)
-            .sheet(item: $singlePickerResult) { payload in
-                AddPhotoView(previewImage: payload.images.first)
-                    .environmentObject(metricsStore)
+            // Flow importu po wyborze zdjęć z galerii uruchamiamy jako push w NavigationStack,
+            // co eliminuje "sheet-on-sheet" i daje płynniejsze przejście po dismiss PHPicker.
+            .navigationDestination(isPresented: $showSingleImportFlow) {
+                if singlePickerImage != nil || singlePickerSource != nil {
+                    AddPhotoView(previewImage: singlePickerImage, previewSource: singlePickerSource)
+                        .environmentObject(metricsStore)
+                } else {
+                    EmptyView()
+                }
             }
-            // MultiPhotoImportView dla wielu zdjęć
-            .sheet(item: $multiPhotoImportPayload) { payload in
-                MultiPhotoImportView(images: payload.images)
-                    .environmentObject(metricsStore)
+            .navigationDestination(isPresented: $showMultiImportFlow) {
+                if let payload = multiPhotoImportPayload {
+                    MultiPhotoImportView(payload: payload)
+                        .environmentObject(metricsStore)
+                } else {
+                    EmptyView()
+                }
             }
             // Confirmation dialog — dwie opcje (PHPicker obsługuje i 1, i wiele)
             .confirmationDialog(
@@ -315,12 +331,25 @@ private extension PhotoView {
 
     private func performBatchDelete() {
         let photosToDelete = selectedPhotos
+        let selectedPersistentIDs = Set(photosToDelete.map(\.persistentModelID))
+        let selectedPhotoIDs = Set(photosToDelete.map(singlePhotoSaveID(for:)))
+        let batchIDsToCancel = Set(selectedPhotoIDs.compactMap { photoBatchByPersistentID[$0] })
+
         do {
-            try PhotoDeletionService.deletePhotos(photosToDelete, context: context)
+            if !batchIDsToCancel.isEmpty {
+                pendingPhotoSaveStore.cancelPending(batchIDs: batchIDsToCancel)
+            }
+            try PhotoDeletionService.deletePhotos(
+                withPersistentModelIDs: selectedPersistentIDs,
+                context: context
+            )
             Haptics.success()
             withAnimation(.easeInOut(duration: 0.25)) {
                 selectedPhotos.removeAll()
                 isSelecting = false
+            }
+            for id in selectedPhotoIDs {
+                photoBatchByPersistentID.removeValue(forKey: id)
             }
             refreshToken = UUID()
         } catch {
@@ -343,26 +372,68 @@ private extension PhotoView {
     }
 
     private func routePendingLibrarySelection() {
-        guard !pendingLibrarySelection.isEmpty else { return }
+        guard let selection = pendingLibrarySelection else { return }
+        pendingLibrarySelection = nil
 
-        let images = pendingLibrarySelection
-        pendingLibrarySelection = []
+        let sources = selection.sources.sorted(by: { $0.selectionIndex < $1.selectionIndex })
+        guard !sources.isEmpty else { return }
 
-        Task { @MainActor in
-            // Daj czas na domknięcie animacji PHPicker, żeby uniknąć "sheet-on-sheet" szarpnięcia.
-            try? await Task.sleep(for: .milliseconds(160))
-            let payload = MultiPhotoImportPayload(images: images)
-            if images.count == 1 {
-                singlePickerResult = payload
-            } else {
-                multiPhotoImportPayload = payload
-            }
+        if sources.count == 1, let first = sources.first {
+            presentSingleImport(source: first)
+        } else {
+            presentMultiImport(payload: MultiPhotoImportPayload(librarySources: sources))
         }
+
+        if let dismissedAt = pickerDismissedAt {
+            let elapsed = dismissedAt.duration(to: .now)
+            let dismissToImportMs = Int(elapsed.components.seconds * 1_000)
+                + Int(elapsed.components.attoseconds / 1_000_000_000_000_000)
+            AppLog.debug("📸 PhotoView: pickerDismissToImportVisibleMs=\(dismissToImportMs) count=\(sources.count)")
+        }
+        pickerDismissedAt = nil
+    }
+
+    private func presentSingleImport(images: [UIImage]) {
+        multiPhotoImportPayload = nil
+        showMultiImportFlow = false
+        singlePickerImage = images.first
+        singlePickerSource = nil
+        showSingleImportFlow = true
+    }
+
+    private func presentMultiImport(images: [UIImage]) {
+        presentMultiImport(payload: MultiPhotoImportPayload(images: images))
+    }
+
+    private func presentSingleImport(source: PhotoLibraryImageSource) {
+        multiPhotoImportPayload = nil
+        showMultiImportFlow = false
+        singlePickerImage = nil
+        singlePickerSource = source
+        showSingleImportFlow = true
+    }
+
+    private func presentMultiImport(payload: MultiPhotoImportPayload) {
+        singlePickerImage = nil
+        singlePickerSource = nil
+        showSingleImportFlow = false
+        multiPhotoImportPayload = payload
+        showMultiImportFlow = true
     }
 
     private func handlePendingPhotoCompletedEvent() {
         guard let completed = pendingPhotoSaveStore.completedEvent else { return }
-        recentlySavedPhoto = completed.entry
+        guard let resolved = context.model(for: completed.entryPersistentModelID) as? PhotoEntry else {
+            refreshToken = UUID()
+            AppLog.debug("⚠️ PhotoView: completed photo not resolvable in main context, fallback refresh")
+            return
+        }
+
+        if let batchID = completed.batchID {
+            photoBatchByPersistentID[singlePhotoSaveID(for: resolved)] = batchID
+        }
+
+        recentlySavedPhoto = resolved
         recentlySavedPhotoEventID = completed.eventID
     }
 
@@ -413,7 +484,7 @@ private extension PhotoView {
                 .foregroundColor: UIColor.white
             ])
         }
-        singlePickerResult = MultiPhotoImportPayload(images: [image])
+        presentSingleImport(images: [image])
     }
 
     /// Otwiera MultiPhotoImportView z wygenerowanymi zdjęciami testowymi.
@@ -431,7 +502,7 @@ private extension PhotoView {
                 ])
             }
         }
-        multiPhotoImportPayload = MultiPhotoImportPayload(images: images)
+        presentMultiImport(images: images)
     }
     #endif
 
@@ -706,6 +777,7 @@ private struct PhotoContentView: View {
     
     @MainActor
     private func reload() async {
+        PhotoThumbnailTelemetry.beginPhotosReload()
         isLoadingInitial = true
         isLoadingMore = false
         hasMore = true

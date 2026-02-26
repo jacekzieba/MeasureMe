@@ -26,22 +26,40 @@ enum PhotoDeletionService {
         context: ModelContext,
         displayScale: CGFloat? = nil
     ) throws {
+        let modelIDs = Set(photos.map(\.persistentModelID))
+        try deletePhotos(
+            withPersistentModelIDs: modelIDs,
+            context: context,
+            displayScale: displayScale
+        )
+    }
+
+    /// Usuwa zdjęcia po persistentModelID, rozwiązując obiekty w bieżącym ModelContext.
+    /// Dzięki temu działa poprawnie także gdy wejściowe PhotoEntry pochodzą z innego contextu.
+    @MainActor
+    static func deletePhotos(
+        withPersistentModelIDs modelIDs: Set<PersistentIdentifier>,
+        context: ModelContext,
+        displayScale: CGFloat? = nil
+    ) throws {
         let resolvedScale = displayScale
             ?? UIApplication.shared.connectedScenes
                 .compactMap { ($0 as? UIWindowScene)?.windows.first?.screen.scale }
                 .first
             ?? 3.0
-        guard !photos.isEmpty else { return }
+        guard !modelIDs.isEmpty else { return }
+
+        let resolvedPhotos = modelIDs.compactMap { context.model(for: $0) as? PhotoEntry }
+        guard !resolvedPhotos.isEmpty else { return }
 
         // 1. Zbierz identyfikatory cache PRZED usunieciem (po delete staja sie niewazne)
-        let cacheIDs = photos.map { String(describing: $0.id) }
+        let cacheIDs = resolvedPhotos.map { String(describing: $0.id) }
 
         // 2. Usun z bazy SwiftData
-        for photo in photos {
+        for photo in resolvedPhotos {
             context.delete(photo)
         }
         try context.save()
-        context.processPendingChanges()
 
         // 3. Wyrzuc wpisy z cache pamieci (dopasowanie po prefixie)
         for cacheID in cacheIDs {
@@ -62,6 +80,6 @@ enum PhotoDeletionService {
             }
         }
 
-        AppLog.debug("🗑️ Batch deleted \(photos.count) photos, evicted cache for \(cacheIDs.count) IDs")
+        AppLog.debug("🗑️ Batch deleted \(resolvedPhotos.count) photos, evicted cache for \(cacheIDs.count) IDs")
     }
 }

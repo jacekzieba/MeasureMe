@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A31FCE332F295FBB00E3253D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A31FCE322F295FBB00E3253D /* Assets.xcassets */; };
 		A345A4F92F475DFF0068BE76 /* Premium.storekit in Resources */ = {isa = PBXBuildFile; fileRef = A345A4F82F475DFF0068BE76 /* Premium.storekit */; };
+		A38326A02F4F7EEA00545E2C /* TelemetryDeck in Frameworks */ = {isa = PBXBuildFile; productRef = A383269F2F4F7EEA00545E2C /* TelemetryDeck */; };
 		A3B1D6022F45CB4A00DA3275 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = A3B1D6012F45CB4A00DA3275 /* SnapshotTesting */; };
 /* End PBXBuildFile section */
 
@@ -60,6 +61,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A38326A02F4F7EEA00545E2C /* TelemetryDeck in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -131,6 +133,7 @@
 			);
 			name = MeasureMe;
 			packageProductDependencies = (
+				A383269F2F4F7EEA00545E2C /* TelemetryDeck */,
 			);
 			productName = MeasureMe;
 			productReference = A3BAF7BC2F27B74C00269A9A /* MeasureMe.app */;
@@ -218,6 +221,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				A3B1D5F72F45C90800DA3275 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+				A383269E2F4F7EEA00545E2C /* XCRemoteSwiftPackageReference "SwiftSDK" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A3BAF7BD2F27B74C00269A9A /* Products */;
@@ -644,6 +648,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		A383269E2F4F7EEA00545E2C /* XCRemoteSwiftPackageReference "SwiftSDK" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TelemetryDeck/SwiftSDK";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.11.0;
+			};
+		};
 		A3B1D5F72F45C90800DA3275 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing";
@@ -655,6 +667,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		A383269F2F4F7EEA00545E2C /* TelemetryDeck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A383269E2F4F7EEA00545E2C /* XCRemoteSwiftPackageReference "SwiftSDK" */;
+			productName = TelemetryDeck;
+		};
 		A3B1D6012F45CB4A00DA3275 /* SnapshotTesting */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = A3B1D5F72F45C90800DA3275 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;

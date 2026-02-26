@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 import UIKit
 
@@ -217,6 +218,7 @@ struct ProfileSettingsDetailView: View {
                     manualHeight: $manualHeight,
                     unitsSystem: $unitsSystem
                 )
+                ProfileStatsCard()
             }
             .scrollContentBackground(.hidden)
             .listStyle(.plain)
@@ -226,6 +228,64 @@ struct ProfileSettingsDetailView: View {
             .padding(.top, 8)
         }
         .navigationTitle(AppLocalization.string("Profile"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+    }
+}
+
+struct IndicatorsSettingsDetailView: View {
+    @Binding var showWHtROnHome: Bool
+    @Binding var showRFMOnHome: Bool
+    @Binding var showBMIOnHome: Bool
+    @Binding var showWHROnHome: Bool
+    @Binding var showWaistRiskOnHome: Bool
+    @Binding var showBodyFatOnHome: Bool
+    @Binding var showLeanMassOnHome: Bool
+    @Binding var showABSIOnHome: Bool
+    @Binding var showBodyShapeScoreOnHome: Bool
+    @Binding var showCentralFatRiskOnHome: Bool
+    @Binding var showPhysiqueSWR: Bool
+    @Binding var showPhysiqueCWR: Bool
+    @Binding var showPhysiqueSHR: Bool
+    @Binding var showPhysiqueHWR: Bool
+    @Binding var showPhysiqueBWR: Bool
+    @Binding var showPhysiqueWHtR: Bool
+    @Binding var showPhysiqueBodyFat: Bool
+    @Binding var showPhysiqueRFM: Bool
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
+            List {
+                IndicatorsSettingsSection(
+                    showWHtROnHome: $showWHtROnHome,
+                    showRFMOnHome: $showRFMOnHome,
+                    showBMIOnHome: $showBMIOnHome,
+                    showWHROnHome: $showWHROnHome,
+                    showWaistRiskOnHome: $showWaistRiskOnHome,
+                    showBodyFatOnHome: $showBodyFatOnHome,
+                    showLeanMassOnHome: $showLeanMassOnHome,
+                    showABSIOnHome: $showABSIOnHome,
+                    showBodyShapeScoreOnHome: $showBodyShapeScoreOnHome,
+                    showCentralFatRiskOnHome: $showCentralFatRiskOnHome,
+                    showPhysiqueSWR: $showPhysiqueSWR,
+                    showPhysiqueCWR: $showPhysiqueCWR,
+                    showPhysiqueSHR: $showPhysiqueSHR,
+                    showPhysiqueHWR: $showPhysiqueHWR,
+                    showPhysiqueBWR: $showPhysiqueBWR,
+                    showPhysiqueWHtR: $showPhysiqueWHtR,
+                    showPhysiqueBodyFat: $showPhysiqueBodyFat,
+                    showPhysiqueRFM: $showPhysiqueRFM
+                )
+            }
+            .scrollContentBackground(.hidden)
+            .listStyle(.plain)
+            .listSectionSpacing(24)
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+            .padding(.top, 8)
+        }
+        .navigationTitle(AppLocalization.string("Indicators"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
     }
@@ -316,6 +376,7 @@ struct HomeSettingsDetailView: View {
     @Binding var showLastPhotosOnHome: Bool
     @Binding var showHealthMetricsOnHome: Bool
     @Binding var showOnboardingChecklistOnHome: Bool
+    @Binding var showStreakOnHome: Bool
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -325,7 +386,8 @@ struct HomeSettingsDetailView: View {
                     showMeasurementsOnHome: $showMeasurementsOnHome,
                     showLastPhotosOnHome: $showLastPhotosOnHome,
                     showHealthMetricsOnHome: $showHealthMetricsOnHome,
-                    showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome
+                    showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome,
+                    showStreakOnHome: $showStreakOnHome
                 )
             }
             .scrollContentBackground(.hidden)
@@ -454,6 +516,7 @@ struct LanguageSettingsDetailView: View {
 }
 
 struct DataSettingsDetailView: View {
+    @AppStorage("analytics_enabled") private var analyticsEnabled: Bool = true
     let onExport: () -> Void
     let onImport: () -> Void
     let onSeedDummyData: () -> Void
@@ -489,6 +552,32 @@ struct DataSettingsDetailView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+
+                        SettingsRowDivider()
+
+                        HStack(alignment: .top, spacing: 12) {
+                            GlassPillIcon(systemName: "chart.xyaxis.line")
+                                .padding(.top, 2)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(AppLocalization.string("Share anonymous analytics"))
+                                Text(AppLocalization.string("Helps improve app quality and UX. No health values or personal data are sent."))
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer(minLength: 12)
+
+                            Toggle("", isOn: $analyticsEnabled)
+                                .labelsHidden()
+                                .frame(width: 52, alignment: .trailing)
+                        }
+                        .tint(Color.appAccent)
+                        .onChange(of: analyticsEnabled) { _, _ in
+                            Haptics.selection()
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .accessibilityIdentifier("settings.data.analytics.toggle")
 
                         SettingsRowDivider()
 
@@ -964,16 +1053,89 @@ struct ProfileSettingsSection: View {
     }
 }
 
+// MARK: - Profile Stats Card
+
+struct ProfileStatsCard: View {
+    @Query private var allSamples: [MetricSample]
+
+    var body: some View {
+        Section {
+            SettingsCard(tint: Color.appAccent.opacity(0.08)) {
+                SettingsCardHeader(
+                    title: AppLocalization.string("Your Progress"),
+                    systemImage: "chart.line.uptrend.xyaxis"
+                )
+
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    Text("\(allSamples.count)")
+                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                        .foregroundStyle(Color.appAccent)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                        .accessibilityLabel(AppLocalization.string("profile.stats.accessibility", allSamples.count))
+
+                    Text(AppLocalization.string("total measurements"))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                SettingsRowDivider()
+
+                Text(motivationalPhrase)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(.secondary)
+                    .italic()
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .listRowSeparator(.hidden)
+        .listSectionSeparator(.hidden)
+        .listRowInsets(settingsComponentsRowInsets)
+        .listRowBackground(Color.clear)
+    }
+
+    private var motivationalPhrase: String {
+        switch allSamples.count {
+        case 0:
+            return AppLocalization.string("profile.stats.phrase.0")
+        case 1...10:
+            return AppLocalization.string("profile.stats.phrase.1")
+        case 11...50:
+            return AppLocalization.string("profile.stats.phrase.2")
+        case 51...100:
+            return AppLocalization.string("profile.stats.phrase.3")
+        case 101...250:
+            return AppLocalization.string("profile.stats.phrase.4")
+        case 251...500:
+            return AppLocalization.string("profile.stats.phrase.5")
+        case 501...1000:
+            return AppLocalization.string("profile.stats.phrase.6")
+        default:
+            return AppLocalization.string("profile.stats.phrase.7")
+        }
+    }
+}
+
 struct HomeSettingsSection: View {
     @Binding var showMeasurementsOnHome: Bool
     @Binding var showLastPhotosOnHome: Bool
     @Binding var showHealthMetricsOnHome: Bool
     @Binding var showOnboardingChecklistOnHome: Bool
-    
+    @Binding var showStreakOnHome: Bool
+
     var body: some View {
         Section {
             SettingsCard(tint: Color.appAccent.opacity(0.10)) {
                 SettingsCardHeader(title: AppLocalization.string("Home"), systemImage: "house.fill")
+                Toggle(isOn: $showStreakOnHome) {
+                    HStack(spacing: 12) {
+                        GlassPillIcon(systemName: "flame.fill")
+                        Text(AppLocalization.string("Show streak on Home"))
+                    }
+                }
+                .tint(Color.appAccent)
+                .onChange(of: showStreakOnHome) { _, _ in Haptics.selection() }
+                SettingsRowDivider()
                 Toggle(isOn: $showMeasurementsOnHome) {
                     HStack(spacing: 12) {
                         GlassPillIcon(systemName: "chart.line.uptrend.xyaxis")
@@ -1015,6 +1177,176 @@ struct HomeSettingsSection: View {
         .listSectionSeparator(.hidden)
         .listRowInsets(settingsComponentsRowInsets)
         .listRowBackground(Color.clear)
+    }
+}
+
+struct IndicatorsSettingsSection: View {
+    @Binding var showWHtROnHome: Bool
+    @Binding var showRFMOnHome: Bool
+    @Binding var showBMIOnHome: Bool
+    @Binding var showWHROnHome: Bool
+    @Binding var showWaistRiskOnHome: Bool
+    @Binding var showBodyFatOnHome: Bool
+    @Binding var showLeanMassOnHome: Bool
+    @Binding var showABSIOnHome: Bool
+    @Binding var showBodyShapeScoreOnHome: Bool
+    @Binding var showCentralFatRiskOnHome: Bool
+    @Binding var showPhysiqueSWR: Bool
+    @Binding var showPhysiqueCWR: Bool
+    @Binding var showPhysiqueSHR: Bool
+    @Binding var showPhysiqueHWR: Bool
+    @Binding var showPhysiqueBWR: Bool
+    @Binding var showPhysiqueWHtR: Bool
+    @Binding var showPhysiqueBodyFat: Bool
+    @Binding var showPhysiqueRFM: Bool
+
+    @State private var isHealthExpanded: Bool = false
+    @State private var isPhysiqueExpanded: Bool = false
+
+    var body: some View {
+        Section {
+            SettingsCard(tint: Color.appAccent.opacity(0.10)) {
+                SettingsCardHeader(title: AppLocalization.string("Indicators"), systemImage: "slider.horizontal.3")
+
+                disclosureRow(
+                    title: AppLocalization.string("Health indicators"),
+                    isExpanded: $isHealthExpanded
+                ) {
+                    healthIndicatorsContent
+                }
+
+                SettingsRowDivider()
+
+                disclosureRow(
+                    title: AppLocalization.string("Physique indicators"),
+                    isExpanded: $isPhysiqueExpanded
+                ) {
+                    physiqueIndicatorsContent
+                }
+            }
+        }
+        .listRowSeparator(.hidden)
+        .listSectionSeparator(.hidden)
+        .listRowInsets(settingsComponentsRowInsets)
+        .listRowBackground(Color.clear)
+    }
+
+    private func disclosureRow<Content: View>(
+        title: String,
+        isExpanded: Binding<Bool>,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                isExpanded.wrappedValue.toggle()
+                Haptics.selection()
+            } label: {
+                HStack(spacing: 12) {
+                    Text(title)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .rotationEffect(.degrees(isExpanded.wrappedValue ? 180 : 0))
+                        .foregroundStyle(.white)
+                }
+                .contentShape(Rectangle())
+                .frame(minHeight: 44)
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded.wrappedValue {
+                VStack(spacing: 0) {
+                    content()
+                }
+                .padding(.top, 2)
+            }
+        }
+    }
+
+    private var healthIndicatorsContent: some View {
+        Group {
+            metricsGroupTitle("Core indicators")
+            healthMetricToggle(AppLocalization.string("WHtR (Waist-to-Height Ratio)"), isOn: $showWHtROnHome)
+            rowDivider
+            healthMetricToggle(AppLocalization.string("RFM (Relative Fat Mass)"), isOn: $showRFMOnHome)
+            rowDivider
+            healthMetricToggle(AppLocalization.string("BMI (Body Mass Index)"), isOn: $showBMIOnHome)
+
+            metricsGroupTitle("Body composition")
+            healthMetricToggle(AppLocalization.string("Body Fat Percentage"), isOn: $showBodyFatOnHome)
+            rowDivider
+            healthMetricToggle(AppLocalization.string("Lean Body Mass"), isOn: $showLeanMassOnHome)
+
+            metricsGroupTitle("Fat distribution")
+            healthMetricToggle(AppLocalization.string("Waist-to-Hip Ratio"), isOn: $showWHROnHome)
+            rowDivider
+            healthMetricToggle(AppLocalization.string("Waist circumference"), isOn: $showWaistRiskOnHome)
+
+            metricsGroupTitle("Risk signals")
+            healthMetricToggle(AppLocalization.string("ABSI (technical)"), isOn: $showABSIOnHome)
+            rowDivider
+            healthMetricToggle(AppLocalization.string("Body Shape Risk"), isOn: $showBodyShapeScoreOnHome)
+            rowDivider
+            healthMetricToggle(AppLocalization.string("Central Fat Risk"), isOn: $showCentralFatRiskOnHome)
+        }
+    }
+
+    private var physiqueIndicatorsContent: some View {
+        Group {
+            metricsGroupTitle("Proportion ratios")
+            physiqueMetricToggle(AppLocalization.string("Shoulder-to-Waist Ratio"), isOn: $showPhysiqueSWR)
+            rowDivider
+            physiqueMetricToggle(AppLocalization.string("Chest-to-Waist Ratio"), isOn: $showPhysiqueCWR)
+            rowDivider
+            physiqueMetricToggle(AppLocalization.string("Hip-to-Waist Ratio"), isOn: $showPhysiqueHWR)
+            rowDivider
+            physiqueMetricToggle(AppLocalization.string("Bust-to-Waist Ratio"), isOn: $showPhysiqueBWR)
+            rowDivider
+            physiqueMetricToggle(AppLocalization.string("Shoulder-to-Hip Ratio"), isOn: $showPhysiqueSHR)
+
+            metricsGroupTitle("Hybrid metrics")
+            physiqueMetricToggle(AppLocalization.string("Waist-Height Ratio"), isOn: $showPhysiqueWHtR)
+            rowDivider
+            physiqueMetricToggle(AppLocalization.string("Body Fat Percentage"), isOn: $showPhysiqueBodyFat)
+            rowDivider
+            physiqueMetricToggle(AppLocalization.string("Relative Fat Mass"), isOn: $showPhysiqueRFM)
+        }
+    }
+
+    private func metricsGroupTitle(_ title: String) -> some View {
+        Text(AppLocalization.string(title))
+            .font(AppTypography.captionEmphasis)
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .padding(.top, 10)
+            .padding(.bottom, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func healthMetricToggle(_ title: String, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) {
+            Text(title)
+        }
+        .tint(Color.appAccent)
+        .onChange(of: isOn.wrappedValue) { _, _ in Haptics.selection() }
+        .padding(.vertical, 10)
+        .frame(minHeight: 44)
+    }
+
+    private func physiqueMetricToggle(_ title: String, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) {
+            Text(title)
+        }
+        .tint(Color(hex: "#14B8A6"))
+        .onChange(of: isOn.wrappedValue) { _, _ in Haptics.selection() }
+        .padding(.vertical, 10)
+        .frame(minHeight: 44)
+    }
+
+    private var rowDivider: some View {
+        Divider()
+            .overlay(Color.white.opacity(0.12))
+            .padding(.vertical, 4)
     }
 }
 

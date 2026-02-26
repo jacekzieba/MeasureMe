@@ -11,13 +11,14 @@ struct RootView: View {
     private let autoCheckPaywallPrompt: Bool
     private let isAuditCaptureEnabled = AuditConfig.current.isEnabled
     @State private var didConfigurePendingStore = false
+    @State private var didScheduleDeferredStartupWork = false
 
     init(
         premiumStore: PremiumStore? = nil,
         metricsStore: ActiveMetricsStore? = nil,
         autoCheckPaywallPrompt: Bool = true
     ) {
-        _premiumStore = StateObject(wrappedValue: premiumStore ?? PremiumStore())
+        _premiumStore = StateObject(wrappedValue: premiumStore ?? PremiumStore(startListener: false))
         _metricsStore = StateObject(wrappedValue: metricsStore ?? ActiveMetricsStore())
         self.autoCheckPaywallPrompt = autoCheckPaywallPrompt
     }
@@ -44,6 +45,7 @@ struct RootView: View {
         }
         .onAppear {
             configurePendingStoreIfNeeded()
+            scheduleDeferredStartupWorkIfNeeded()
         }
         .confirmationDialog(
             AppLocalization.string("premium.trial.reminder.prompt.title"),
@@ -87,6 +89,23 @@ struct RootView: View {
         guard !didConfigurePendingStore else { return }
         didConfigurePendingStore = true
         pendingPhotoSaveStore.configure(container: modelContext.container)
-        pendingPhotoSaveStore.restoreAndResume()
+        StartupInstrumentation.event("RootViewConfigured")
+    }
+
+    private func scheduleDeferredStartupWorkIfNeeded() {
+        guard !didScheduleDeferredStartupWork else { return }
+        didScheduleDeferredStartupWork = true
+
+        Task(priority: .utility) { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
+
+            premiumStore.startIfNeeded()
+
+            let pendingRestoreState = StartupInstrumentation.begin("PendingRestore")
+            StartupInstrumentation.event("PendingRestoreStart")
+            await pendingPhotoSaveStore.restoreAndResumeAsync()
+            StartupInstrumentation.event("PendingRestoreEnd")
+            StartupInstrumentation.end("PendingRestore", state: pendingRestoreState)
+        }
     }
 }

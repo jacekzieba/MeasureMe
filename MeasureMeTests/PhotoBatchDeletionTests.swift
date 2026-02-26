@@ -162,4 +162,31 @@ final class PhotoBatchDeletionTests: XCTestCase {
         let remaining = try context.fetchCount(FetchDescriptor<PhotoEntry>())
         XCTAssertEqual(remaining, 2, "Po usunieciu 1 z 3 zdjec powinny zostac 2")
     }
+
+    /// Co sprawdza: Usuwanie po modelID działa poprawnie, gdy obiekty pochodzą z innego ModelContext.
+    /// Dlaczego: Chroni przed regresją "nieznikających" zdjęć po bulk delete.
+    /// Kryteria: Rekord wskazany przez persistentModelID znika z głównego contextu.
+    func testDeletePhotos_WhenInputFromDifferentContext_DeletesCorrectRows() throws {
+        let container = try makeContainer()
+        let writeContext = ModelContext(container)
+        _ = makeTestPhotos(count: 3, in: writeContext)
+        try writeContext.save()
+
+        let foreignContext = ModelContext(container)
+        let foreignPhotos = try foreignContext.fetch(FetchDescriptor<PhotoEntry>())
+        XCTAssertEqual(foreignPhotos.count, 3)
+
+        let mainContext = ModelContext(container)
+        let idToDelete = Set([foreignPhotos[0].persistentModelID])
+
+        try PhotoDeletionService.deletePhotos(
+            withPersistentModelIDs: idToDelete,
+            context: mainContext
+        )
+
+        let remaining = try mainContext.fetch(FetchDescriptor<PhotoEntry>())
+        XCTAssertEqual(remaining.count, 2)
+        let removedID = foreignPhotos[0].persistentModelID
+        XCTAssertFalse(remaining.contains(where: { $0.persistentModelID == removedID }))
+    }
 }
