@@ -159,6 +159,7 @@ struct QuickAddSheetView: View {
                 if let current = inputs[kind] ?? nil {
                     Text(formatted(current, for: kind))
                         .font(.caption.monospacedDigit().weight(.semibold))
+                        .contentTransition(.numericText())
                         .foregroundStyle(Color.appAccent)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)

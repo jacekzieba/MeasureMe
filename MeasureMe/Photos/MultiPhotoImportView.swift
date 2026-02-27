@@ -197,7 +197,7 @@ private extension MultiPhotoImportView {
     @MainActor
     func preloadContent() async {
         if let firstSource = payload.items.compactMap(\.librarySource).first,
-           let exifDate = PhotoLibraryImageLoader.fetchCreationDate(from: firstSource) {
+           let exifDate = await PhotoLibraryImageLoader.fetchCreationDate(from: firstSource) {
             date = exifDate
         }
 

@@ -988,3 +988,13 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Apple Intelligence insights, Health Indicators, and photo comparison." = "Apple Intelligence insights, Health Indicators, Physique Indicators, and photo comparison.";
 
 "photo.measurements.filled" = "%d filled";
+"startup.loading.status.initializingStorage" = "Initializing your workspace...";
+"startup.loading.status.preparingData" = "Preparing your data...";
+"startup.loading.status.finalizing" = "Finalizing startup...";
+"startup.loading.progress.label" = "Startup progress";
+
+/* Widget */
+"widget.metric.name" = "Metric";
+"widget.metric.description" = "Shows your selected metric with trend chart and 30-day change.";
+"widget.metric.no_data" = "No data yet";
+"widget.metric.chart_label" = "30d";

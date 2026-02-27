@@ -1363,3 +1363,13 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Apple Intelligence insights, Health Indicators, and photo comparison." = "Analizy Apple Intelligence, wskaźniki zdrowia, wskaźniki sylwetki i porównanie zdjęć.";
 
 "photo.measurements.filled" = "%d uzupełnione";
+"startup.loading.status.initializingStorage" = "Inicjalizuję Twoją przestrzeń...";
+"startup.loading.status.preparingData" = "Przygotowuję dane...";
+"startup.loading.status.finalizing" = "Finalizuję uruchamianie...";
+"startup.loading.progress.label" = "Postęp uruchamiania";
+
+/* Widget */
+"widget.metric.name" = "Metryka";
+"widget.metric.description" = "Pokazuje wybraną metrykę z wykresem trendu i zmianą z 30 dni.";
+"widget.metric.no_data" = "Brak danych";
+"widget.metric.chart_label" = "30 dni";

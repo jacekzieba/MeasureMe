@@ -1446,6 +1446,12 @@ struct OnboardingView: View {
         let defaults = UserDefaults.standard
         let key = "onboarding_goal_selection_stat_\(goal.rawValue)"
         defaults.set(defaults.integer(forKey: key) + 1, forKey: key)
+
+        switch goal {
+        case .loseWeight:  Analytics.shared.track(.onboardingGoalLoseWeight)
+        case .buildMuscle: Analytics.shared.track(.onboardingGoalBuildMuscle)
+        case .trackHealth: Analytics.shared.track(.onboardingGoalTrackHealth)
+        }
     }
 
     private func persistProfile() {

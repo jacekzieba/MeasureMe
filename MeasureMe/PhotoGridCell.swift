@@ -3,6 +3,7 @@ import SwiftData
 
 
 struct PhotoGridCell: View {
+    private static var revealedPhotoIDs: Set<String> = []
 
     let photo: PhotoEntry
     let isSelected: Bool
@@ -12,6 +13,7 @@ struct PhotoGridCell: View {
     @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var modelContext
+    private var photoID: String { String(describing: photo.persistentModelID) }
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -32,7 +34,7 @@ struct PhotoGridCell: View {
         .onAppear {
             let hasStoredThumbnail = photo.thumbnailData != nil
             PhotoThumbnailTelemetry.recordPhotosTileAppearance(
-                photoID: String(describing: photo.persistentModelID),
+                photoID: photoID,
                 hasStoredThumbnail: hasStoredThumbnail
             )
             if !hasStoredThumbnail {
@@ -49,15 +51,21 @@ struct PhotoGridCell: View {
 
             guard shouldAnimateReveal else {
                 isVisible = true
+                Self.revealedPhotoIDs.insert(photoID)
                 return
             }
             guard !isVisible else { return }
+            if Self.revealedPhotoIDs.contains(photoID) {
+                isVisible = true
+                return
+            }
             let bucket = revealIndex % 12
             let delay = Double(bucket) * 0.012
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                withAnimation(AppMotion.reveal) {
+                withAnimation(AppMotion.sectionEnter) {
                     isVisible = true
                 }
+                Self.revealedPhotoIDs.insert(photoID)
             }
         }
     }

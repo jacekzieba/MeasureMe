@@ -1,6 +1,8 @@
 import SwiftUI
 import Photos
 import PhotosUI
+import ImageIO
+import UniformTypeIdentifiers
 
 struct PhotoLibraryImageSource: Identifiable {
     let id: UUID
@@ -33,6 +35,11 @@ private struct PhotoLibraryUncheckedImageBox: @unchecked Sendable {
 }
 
 enum PhotoLibraryImageLoader {
+    private static var canReadPhotoLibraryMetadata: Bool {
+        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        return status == .authorized || status == .limited
+    }
+
     static func loadPreparedImage(
         from source: PhotoLibraryImageSource,
         maxDimension: CGFloat = 2048
@@ -58,8 +65,13 @@ enum PhotoLibraryImageLoader {
         }.value
     }
 
-    static func fetchCreationDate(from source: PhotoLibraryImageSource) -> Date? {
+    static func fetchCreationDate(from source: PhotoLibraryImageSource) async -> Date? {
+        if let metadataDate = await loadCreationDateFromProvider(source.itemProvider) {
+            return metadataDate
+        }
+
         guard let identifier = source.assetIdentifier else { return nil }
+        guard canReadPhotoLibraryMetadata else { return nil }
         let result = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil)
         return result.firstObject?.creationDate
     }
@@ -81,6 +93,105 @@ enum PhotoLibraryImageLoader {
                 continuation.resume(returning: image)
             }
         }
+    }
+
+    private static func loadCreationDateFromProvider(_ provider: NSItemProvider) async -> Date? {
+        let typeIdentifier = UTType.image.identifier
+        if let date = await loadCreationDateFromFileRepresentation(provider, typeIdentifier: typeIdentifier) {
+            return date
+        }
+        if let date = await loadCreationDateFromDataRepresentation(provider, typeIdentifier: typeIdentifier) {
+            return date
+        }
+        return nil
+    }
+
+    private static func loadCreationDateFromFileRepresentation(
+        _ provider: NSItemProvider,
+        typeIdentifier: String
+    ) async -> Date? {
+        guard provider.hasItemConformingToTypeIdentifier(typeIdentifier) else { return nil }
+        return await withCheckedContinuation { continuation in
+            provider.loadFileRepresentation(forTypeIdentifier: typeIdentifier) { url, _ in
+                guard let url else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                continuation.resume(returning: metadataCreationDate(fromFileURL: url))
+            }
+        }
+    }
+
+    private static func loadCreationDateFromDataRepresentation(
+        _ provider: NSItemProvider,
+        typeIdentifier: String
+    ) async -> Date? {
+        guard provider.hasItemConformingToTypeIdentifier(typeIdentifier) else { return nil }
+        return await withCheckedContinuation { continuation in
+            provider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, _ in
+                guard let data else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                continuation.resume(returning: metadataCreationDate(fromImageData: data))
+            }
+        }
+    }
+
+    private static func metadataCreationDate(fromFileURL fileURL: URL) -> Date? {
+        guard let source = CGImageSourceCreateWithURL(fileURL as CFURL, nil) else { return nil }
+        return metadataCreationDate(from: source)
+    }
+
+    private static func metadataCreationDate(fromImageData imageData: Data) -> Date? {
+        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil) else { return nil }
+        return metadataCreationDate(from: source)
+    }
+
+    private static func metadataCreationDate(from imageSource: CGImageSource) -> Date? {
+        guard let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any] else {
+            return nil
+        }
+        return metadataCreationDate(fromProperties: properties)
+    }
+
+    private static func metadataCreationDate(fromProperties properties: [CFString: Any]) -> Date? {
+        if let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any] {
+            if let original = exif[kCGImagePropertyExifDateTimeOriginal] as? String,
+               let parsed = parseExifDate(original) {
+                return parsed
+            }
+            if let digitized = exif[kCGImagePropertyExifDateTimeDigitized] as? String,
+               let parsed = parseExifDate(digitized) {
+                return parsed
+            }
+        }
+
+        if let tiff = properties[kCGImagePropertyTIFFDictionary] as? [CFString: Any],
+           let tiffDate = tiff[kCGImagePropertyTIFFDateTime] as? String,
+           let parsed = parseExifDate(tiffDate) {
+            return parsed
+        }
+
+        return nil
+    }
+
+    private static func parseExifDate(_ rawValue: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+
+        let formats = [
+            "yyyy:MM:dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm:ss"
+        ]
+        for format in formats {
+            formatter.dateFormat = format
+            if let parsed = formatter.date(from: rawValue) {
+                return parsed
+            }
+        }
+        return nil
     }
 }
 

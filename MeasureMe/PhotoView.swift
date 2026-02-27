@@ -7,6 +7,7 @@ import SwiftData
 struct PhotoView: View {
 
     @Environment(\.modelContext) private var context
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
@@ -39,7 +40,12 @@ struct PhotoView: View {
     @State private var pickerDismissedAt: ContinuousClock.Instant?
     @State private var photoBatchByPersistentID: [String: UUID] = [:]
     
+    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
     @AppStorage("photos_filter_tag") private var photosFilterTag: String = ""
+    private var shouldAnimate: Bool {
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+    }
+
     private var uiTestModeEnabled: Bool {
         ProcessInfo.processInfo.arguments.contains("-uiTestMode")
     }
@@ -267,8 +273,8 @@ struct PhotoView: View {
 
     func handlePhotoLongPress(_ photo: PhotoEntry) {
         guard !isSelecting else { return }
-        Haptics.medium()
-        withAnimation(.easeInOut(duration: 0.25)) {
+        Haptics.trigger(.confirmSoft)
+        withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
             isSelecting = true
             selectedPhotos = [photo]
         }
@@ -344,7 +350,7 @@ private extension PhotoView {
                 context: context
             )
             Haptics.success()
-            withAnimation(.easeInOut(duration: 0.25)) {
+            withAnimation(AppMotion.animation(AppMotion.sectionExit, enabled: shouldAnimate)) {
                 selectedPhotos.removeAll()
                 isSelecting = false
             }
@@ -916,16 +922,25 @@ private struct PhotoGridView: View {
     
     var body: some View {
         Group {
-            if renderItems.isEmpty, !isLoadingInitial {
-                emptyState
+            if renderItems.isEmpty {
+                if isLoadingInitial {
+                    ScrollView {
+                        PhotoGridSkeletonView()
+                            .padding(.horizontal, 12)
+                            .padding(.top, 8)
+                            .padding(.bottom, 12)
+                    }
+                } else {
+                    emptyState
+                }
             } else {
                 ScrollView {
                     photoGrid
                         .padding(.horizontal, 12)
                         .padding(.top, 8)
                         .padding(.bottom, 12)
-                    
-                    if hasMore || isLoadingMore || isLoadingInitial {
+
+                    if hasMore || isLoadingMore {
                         ProgressView()
                             .tint(.white)
                             .padding(.vertical, 18)
@@ -1044,7 +1059,7 @@ private extension PhotoView {
             if isSelecting {
                 Button {
                     Haptics.selection()
-                    withAnimation(.easeInOut(duration: 0.25)) {
+                    withAnimation(AppMotion.animation(AppMotion.sectionExit, enabled: shouldAnimate)) {
                         isSelecting = false
                         selectedPhotos.removeAll()
                     }
@@ -1056,7 +1071,7 @@ private extension PhotoView {
             } else {
                 Button {
                     Haptics.selection()
-                    withAnimation(.easeInOut(duration: 0.25)) {
+                    withAnimation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate)) {
                         isSelecting = true
                         selectedPhotos.removeAll()
                     }

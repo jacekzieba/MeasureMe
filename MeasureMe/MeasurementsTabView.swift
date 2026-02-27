@@ -367,7 +367,7 @@ private struct MeasurementsCategoryTabs: View {
             ForEach(tabs) { tab in
                 Button {
                     if animateSelection {
-                        withAnimation(.easeInOut(duration: 0.24)) {
+                        withAnimation(AppMotion.standard) {
                             selectedTab = tab
                         }
                     } else {
@@ -417,7 +417,7 @@ private struct MeasurementsCategoryTabs: View {
                 )
         )
         .frame(minHeight: 64)
-        .animation(animateSelection ? .easeInOut(duration: 0.24) : nil, value: selectedTab)
+        .animation(animateSelection ? AppMotion.standard : nil, value: selectedTab)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("measurements.tab.segmented")
     }

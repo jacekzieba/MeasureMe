@@ -82,7 +82,7 @@ struct AddPhotoView: View {
             guard selectedImage == nil else { return }
             guard let initialPreviewSource else { return }
             didLoadInitialSource = true
-            if let exifDate = PhotoLibraryImageLoader.fetchCreationDate(from: initialPreviewSource) {
+            if let exifDate = await PhotoLibraryImageLoader.fetchCreationDate(from: initialPreviewSource) {
                 date = exifDate
             }
             do {

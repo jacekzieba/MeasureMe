@@ -22,6 +22,9 @@ enum AnalyticsSignal: String, CaseIterable {
     case onboardingStepPremiumViewed = "com.jacekzieba.measureme.onboarding.step.premium.viewed"
     case onboardingCompleted = "com.jacekzieba.measureme.onboarding.completed"
     case onboardingSkipped = "com.jacekzieba.measureme.onboarding.skipped"
+    case onboardingGoalLoseWeight  = "com.jacekzieba.measureme.onboarding.goal.lose_weight"
+    case onboardingGoalBuildMuscle = "com.jacekzieba.measureme.onboarding.goal.build_muscle"
+    case onboardingGoalTrackHealth = "com.jacekzieba.measureme.onboarding.goal.track_health"
 
     case firstMetricAdded = "com.jacekzieba.measureme.metric.first_added"
     case firstPhotoAdded = "com.jacekzieba.measureme.photo.first_added"

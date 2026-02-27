@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 struct HealthMetricsSection: View {
     enum DisplayMode {
@@ -46,6 +45,8 @@ struct HealthMetricsSection: View {
     let latestHips: Double?
     let latestBodyFat: Double?
     let latestLeanMass: Double?
+    let weightDelta7dText: String?
+    let waistDelta7dText: String?
     let displayMode: DisplayMode
     let title: String
 
@@ -56,6 +57,8 @@ struct HealthMetricsSection: View {
         latestHips: Double? = nil,
         latestBodyFat: Double?,
         latestLeanMass: Double?,
+        weightDelta7dText: String? = nil,
+        waistDelta7dText: String? = nil,
         displayMode: DisplayMode = .full,
         title: String = "Health"
     ) {
@@ -65,12 +68,11 @@ struct HealthMetricsSection: View {
         self.latestHips = latestHips
         self.latestBodyFat = latestBodyFat
         self.latestLeanMass = latestLeanMass
+        self.weightDelta7dText = weightDelta7dText
+        self.waistDelta7dText = waistDelta7dText
         self.displayMode = displayMode
         self.title = title
     }
-
-    @Query(sort: [SortDescriptor(\MetricSample.date, order: .forward)])
-    private var samples: [MetricSample]
 
     @State private var healthInsightText: String?
     @State private var isLoadingInsight = false
@@ -715,26 +717,12 @@ struct HealthMetricsSection: View {
             latestWaistText: latestWaist.map { formatLength($0, kind: .waist) },
             latestBodyFatText: latestBodyFat.map { String(format: "%.1f%%", $0) },
             latestLeanMassText: latestLeanMass.map { formatWeight($0) },
-            weightDelta7dText: metricDeltaText(kind: .weight, days: 7),
-            waistDelta7dText: metricDeltaText(kind: .waist, days: 7),
+            weightDelta7dText: weightDelta7dText,
+            waistDelta7dText: waistDelta7dText,
             coreWHtRText: whtrResult.map { String(format: "%.2f", $0.ratio) },
             coreBMIText: bmiResult.map { String(format: "%.1f", $0.bmi) },
             coreRFMText: coreRFM
         )
-    }
-
-    private func metricDeltaText(kind: MetricKind, days: Int) -> String? {
-        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: Date()) else { return nil }
-        let kindSamples = samples.filter { $0.kindRaw == kind.rawValue && $0.date >= start }
-        guard let first = kindSamples.first,
-              let last = kindSamples.last,
-              first.persistentModelID != last.persistentModelID else {
-            return nil
-        }
-        let firstValue = kind.valueForDisplay(fromMetric: first.value, unitsSystem: unitsSystem)
-        let lastValue = kind.valueForDisplay(fromMetric: last.value, unitsSystem: unitsSystem)
-        let delta = lastValue - firstValue
-        return String(format: "%+.1f %@", delta, kind.unitSymbol(unitsSystem: unitsSystem))
     }
 
     private func softCategoryStyle(_ raw: String) -> (name: String, color: String) {

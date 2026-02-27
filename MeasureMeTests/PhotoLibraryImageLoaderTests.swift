@@ -28,25 +28,28 @@ final class PhotoLibraryImageLoaderTests: XCTestCase {
     /// Co sprawdza: assetIdentifier == nil zwraca nil bez odpytywania PHAsset.
     /// Dlaczego: Zdjęcia z kamery nie mają identyfikatora — fallback na AppClock.now.
     /// Kryteria: Wynik to nil.
-    func testFetchCreationDate_nilAssetIdentifier_returnsNil() {
+    func testFetchCreationDate_nilAssetIdentifier_returnsNil() async {
         let source = makeSource(assetIdentifier: nil)
-        XCTAssertNil(PhotoLibraryImageLoader.fetchCreationDate(from: source))
+        let result = await PhotoLibraryImageLoader.fetchCreationDate(from: source)
+        XCTAssertNil(result)
     }
 
     /// Co sprawdza: Nieznany identyfikator (nie pasuje do żadnego PHAsset) zwraca nil.
     /// Dlaczego: PHAsset.fetchAssets z nieznanym ID zwraca pusty wynik — funkcja musi
     ///           obsłużyć brak firstObject.
     /// Kryteria: Wynik to nil.
-    func testFetchCreationDate_unknownAssetIdentifier_returnsNil() {
+    func testFetchCreationDate_unknownAssetIdentifier_returnsNil() async {
         let source = makeSource(assetIdentifier: UUID().uuidString)
-        XCTAssertNil(PhotoLibraryImageLoader.fetchCreationDate(from: source))
+        let result = await PhotoLibraryImageLoader.fetchCreationDate(from: source)
+        XCTAssertNil(result)
     }
 
     /// Co sprawdza: Pusty string jako identyfikator zwraca nil.
     /// Dlaczego: Defensywne sprawdzenie na wypadek pustego stringa z PHPickerResult.
     /// Kryteria: Wynik to nil.
-    func testFetchCreationDate_emptyAssetIdentifier_returnsNil() {
+    func testFetchCreationDate_emptyAssetIdentifier_returnsNil() async {
         let source = makeSource(assetIdentifier: "")
-        XCTAssertNil(PhotoLibraryImageLoader.fetchCreationDate(from: source))
+        let result = await PhotoLibraryImageLoader.fetchCreationDate(from: source)
+        XCTAssertNil(result)
     }
 }

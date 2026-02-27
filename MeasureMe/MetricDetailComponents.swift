@@ -246,6 +246,7 @@ extension MetricDetailView {
     /// Usuwa próbkę z bazy danych
     func delete(sample: MetricSample) {
         context.delete(sample)
+        WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
     }
     
     /// Ustawia lub aktualizuje cel dla metryki.
@@ -279,12 +280,14 @@ extension MetricDetailView {
                 context.insert(MetricSample(kind: kind, value: sv, date: sd))
             }
         }
+        WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
     }
     
     /// Usuwa cel z bazy danych
     func deleteGoal() {
         if let goal = currentGoal {
             context.delete(goal)
+            WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
         }
     }
 }
@@ -502,6 +505,7 @@ struct AddMetricSampleView: View {
     var onAdd: (Date, Double) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
     @FocusState private var isValueFocused: Bool
 
     @State private var date: Date = .now
@@ -603,6 +607,7 @@ struct AddMetricSampleView: View {
                         // Konwersja z jednostek wyświetlanych na bazowe (metryczne)
                         let metric = kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
                         onAdd(date, metric)
+                        WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
                         dismiss()
                     }
                     .disabled(!valueValidation.isValid)
@@ -627,6 +632,7 @@ struct EditMetricSampleView: View {
     let sample: MetricSample
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
     @FocusState private var isValueFocused: Bool
     @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
 
@@ -728,6 +734,7 @@ struct EditMetricSampleView: View {
                         let metric = kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
                         sample.value = metric
                         sample.date = date
+                        WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
                         dismiss()
                     }
                     .disabled(!valueValidation.isValid)

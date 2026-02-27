@@ -6,6 +6,11 @@ import UIKit
 struct MeasureMeApp: App {
     @AppStorage("appLanguage") private var appLanguage: String = "system"
     @State private var startupState: StartupState = .loading
+    @State private var startupLoadingState = StartupLoadingState(
+        phase: .initializingStorage,
+        progress: 0.08,
+        statusKey: StartupLoadingPhase.initializingStorage.statusKey
+    )
     @State private var startupAttemptID: Int = 0
     @State private var showCrashAlert = false
 
@@ -13,6 +18,29 @@ struct MeasureMeApp: App {
         case loading
         case ready(ModelContainer)
         case failed(message: String)
+    }
+
+    private enum StartupLoadingPhase {
+        case initializingStorage
+        case preparingData
+        case finalizing
+
+        var statusKey: String {
+            switch self {
+            case .initializingStorage:
+                return "startup.loading.status.initializingStorage"
+            case .preparingData:
+                return "startup.loading.status.preparingData"
+            case .finalizing:
+                return "startup.loading.status.finalizing"
+            }
+        }
+    }
+
+    private struct StartupLoadingState {
+        var phase: StartupLoadingPhase
+        var progress: Double
+        var statusKey: String
     }
 
     private enum StartupStorageError: LocalizedError {
@@ -112,14 +140,15 @@ struct MeasureMeApp: App {
             Group {
                 switch startupState {
                 case .loading:
-                    ProgressView()
-                        .controlSize(.large)
-                        .tint(Color.appAccent)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black.ignoresSafeArea())
+                    StartupLoadingView(
+                        statusKey: startupLoadingState.statusKey,
+                        progress: startupLoadingState.progress
+                    )
+                    .transition(.opacity)
                 case .ready(let container):
                     RootView()
                         .modelContainer(container)
+                        .transition(.opacity)
                 case .failed(let message):
                     StartupErrorView(
                         message: message,
@@ -169,19 +198,50 @@ struct MeasureMeApp: App {
     @MainActor
     private func bootstrapApp() async {
         let bootstrapState = StartupInstrumentation.begin("AppBootstrap")
+        resetStartupLoadingState()
         startupState = .loading
 
         do {
+            updateStartupLoading(
+                phase: .initializingStorage,
+                targetProgress: 0.18,
+                duration: 0.16
+            )
             let containerSetupState = StartupInstrumentation.begin("CreatePersistentModelContainer")
             let container = try createPersistentModelContainer()
             StartupInstrumentation.end("CreatePersistentModelContainer", state: containerSetupState)
+            updateStartupLoading(
+                phase: .initializingStorage,
+                targetProgress: 0.44,
+                duration: 0.24
+            )
 
+            updateStartupLoading(
+                phase: .preparingData,
+                targetProgress: 0.58,
+                duration: 0.22
+            )
             let uiTestSetupState = StartupInstrumentation.begin("PrepareUITestData")
             try cleanUITestDataIfNeeded(container: container)
             try seedUITestDataIfNeeded(container: container)
             StartupInstrumentation.end("PrepareUITestData", state: uiTestSetupState)
+            updateStartupLoading(
+                phase: .preparingData,
+                targetProgress: 0.78,
+                duration: 0.24
+            )
 
-            startupState = .ready(container)
+            updateStartupLoading(
+                phase: .finalizing,
+                targetProgress: 0.90,
+                duration: 0.16
+            )
+            withAnimation(.easeOut(duration: 0.14)) {
+                startupLoadingState.progress = 1.0
+            }
+            withAnimation(.easeInOut(duration: 0.22)) {
+                startupState = .ready(container)
+            }
             StartupInstrumentation.event("FirstFrameReady")
             Analytics.shared.track(.appFirstFrameReady)
             runDeferredStartupWork(container: container)
@@ -194,6 +254,31 @@ struct MeasureMeApp: App {
             AppLog.debug("❌ App startup failed: \(error)")
             startupState = .failed(message: message)
             StartupInstrumentation.end("AppBootstrap", state: bootstrapState)
+        }
+    }
+
+    @MainActor
+    private func resetStartupLoadingState() {
+        startupLoadingState = StartupLoadingState(
+            phase: .initializingStorage,
+            progress: 0.08,
+            statusKey: StartupLoadingPhase.initializingStorage.statusKey
+        )
+    }
+
+    @MainActor
+    private func updateStartupLoading(
+        phase: StartupLoadingPhase,
+        targetProgress: Double,
+        duration: Double
+    ) {
+        startupLoadingState.phase = phase
+        startupLoadingState.statusKey = phase.statusKey
+        let clampedTarget = min(max(targetProgress, 0.0), 1.0)
+        let monotonicProgress = max(startupLoadingState.progress, clampedTarget)
+
+        withAnimation(.easeOut(duration: duration)) {
+            startupLoadingState.progress = monotonicProgress
         }
     }
 
@@ -212,6 +297,13 @@ struct MeasureMeApp: App {
             _ = HealthKitManager.shared.reconcileStoredSyncState()
             HealthKitManager.shared.startObservingHealthKitUpdates()
             StartupInstrumentation.end("DeferredHealthKitSetup", state: healthSetupState)
+        }
+
+        Task(priority: .background) {
+            try? await Task.sleep(for: .milliseconds(600))
+            let context = ModelContext(container)
+            let units = UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
+            WidgetDataWriter.writeAllAndReload(context: context, unitsSystem: units)
         }
     }
 

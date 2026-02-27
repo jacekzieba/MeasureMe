@@ -33,7 +33,8 @@ struct HomeView: View {
     @AppStorage("onboarding_checklist_collapsed") private var onboardingChecklistCollapsed: Bool = false
     @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
     @AppStorage("settings_open_reminders") private var settingsOpenReminders: Bool = false
-    @AppStorage("home_photo_metric_sync_signature") private var photoMetricSyncSignature: String = ""
+    @AppStorage("home_photo_metric_sync_last_date") private var photoMetricSyncLastDate: Double = 0
+    @AppStorage("home_photo_metric_sync_last_id") private var photoMetricSyncLastID: String = ""
     
     @EnvironmentObject private var router: AppRouter
     @ObservedObject private var streakManager = StreakManager.shared
@@ -57,8 +58,11 @@ struct HomeView: View {
     @State private var didRunStartupPhases = false
     @State private var didEmitHomeInitialRender = false
     @State private var isPhotoMetricSyncInFlight = false
+    @State private var isLastPhotosSectionMounted = false
+    @State private var isHealthSectionMounted = false
     @State private var deferredPhaseBTask: Task<Void, Never>?
     @State private var deferredPhaseCTask: Task<Void, Never>?
+    @State private var deferredSectionMountTask: Task<Void, Never>?
     
     // Dane HealthKit
     @State private var latestBodyFat: Double?
@@ -73,6 +77,55 @@ struct HomeView: View {
     private let maxVisibleMetrics = 3
     private let maxVisiblePhotos = 6
     private let autoCheckPaywallPrompt: Bool
+    private var shouldAnimate: Bool {
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+    }
+
+    static func deltaText(
+        samples: [MetricSample],
+        kind: MetricKind,
+        unitsSystem: String,
+        days: Int,
+        now: Date = Date()
+    ) -> String? {
+        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: now) else { return nil }
+        let kindSamples = samples.filter { $0.date >= start }
+        guard let newest = kindSamples.first,
+              let oldest = kindSamples.last,
+              newest.persistentModelID != oldest.persistentModelID else {
+            return nil
+        }
+        let newestValue = kind.valueForDisplay(fromMetric: newest.value, unitsSystem: unitsSystem)
+        let oldestValue = kind.valueForDisplay(fromMetric: oldest.value, unitsSystem: unitsSystem)
+        let delta = newestValue - oldestValue
+        return String(format: "%+.1f %@", delta, kind.unitSymbol(unitsSystem: unitsSystem))
+    }
+
+    static func isAfterPhotoSyncCursor(
+        photoDate: Date,
+        photoID: String,
+        cursorDate: Double,
+        cursorID: String
+    ) -> Bool {
+        let photoTime = photoDate.timeIntervalSince1970
+        if photoTime > cursorDate {
+            return true
+        }
+        if photoTime < cursorDate {
+            return false
+        }
+        return photoID > cursorID
+    }
+
+    static func newestPhotoSyncCursor(candidates: [(date: Date, id: String)]) -> (date: Double, id: String)? {
+        guard let newest = candidates.max(by: { lhs, rhs in
+            if lhs.date != rhs.date {
+                return lhs.date < rhs.date
+            }
+            return lhs.id < rhs.id
+        }) else { return nil }
+        return (newest.date.timeIntervalSince1970, newest.id)
+    }
 
     init(autoCheckPaywallPrompt: Bool = true) {
         self.autoCheckPaywallPrompt = autoCheckPaywallPrompt
@@ -133,7 +186,8 @@ struct HomeView: View {
     
     /// Widoczne kafelki zdjęć (persisted + pending, maksymalnie 6)
     private var visiblePhotoTiles: [HomePhotoTile] {
-        let persistedTiles = allPhotos.map { HomePhotoTile.persisted($0) }
+        let persistedCandidateLimit = maxVisiblePhotos * 3
+        let persistedTiles = allPhotos.prefix(persistedCandidateLimit).map { HomePhotoTile.persisted($0) }
         let pendingTiles = pendingPhotoSaveStore.pendingItems.map { HomePhotoTile.pending($0) }
         return (persistedTiles + pendingTiles)
             .sorted { lhs, rhs in lhs.date > rhs.date }
@@ -163,74 +217,124 @@ struct HomeView: View {
         cachedLatestByKind[.weight]?.value
     }
 
-    // MARK: - Cache Rebuild Helpers
-
-    private var recentSamplesSignature: Int {
-        var hasher = Hasher()
-        for sample in recentSamples {
-            hasher.combine(sample.persistentModelID)
-            hasher.combine(sample.value.bitPattern)
-            hasher.combine(sample.date.timeIntervalSinceReferenceDate)
-        }
-        return hasher.finalize()
+    private var weightDelta7dText: String? {
+        metricDeltaTextFromCache(kind: .weight, days: 7)
     }
 
-    /// Przebudowuje samplesByKind na podstawie ostatniego okna @Query.
-    private func rebuildSamplesCache() {
+    private var waistDelta7dText: String? {
+        metricDeltaTextFromCache(kind: .waist, days: 7)
+    }
+
+    // MARK: - Cache Rebuild Helpers
+
+    private var recentSamplesSignature: String {
+        guard let newest = recentSamples.first else { return "0" }
+        let oldest = recentSamples.last ?? newest
+        return [
+            String(recentSamples.count),
+            String(describing: newest.persistentModelID),
+            String(newest.date.timeIntervalSinceReferenceDate),
+            String(describing: oldest.persistentModelID),
+            String(oldest.date.timeIntervalSinceReferenceDate)
+        ].joined(separator: "|")
+    }
+
+    private func refreshMeasurementCaches(allowFallbackFetch: Bool = true) {
         var grouped: [MetricKind: [MetricSample]] = [:]
+        var latest: [MetricKind: MetricSample] = [:]
+        let kindsToKeep = Set(metricsStore.activeKinds).union([.waist, .height, .weight, .bodyFat, .leanBodyMass, .hips])
+
         for sample in recentSamples {
             guard let kind = MetricKind(rawValue: sample.kindRaw) else {
                 AppLog.debug("⚠️ Ignoring MetricSample with invalid kindRaw: \(sample.kindRaw)")
                 continue
             }
             grouped[kind, default: []].append(sample)
-        }
-        cachedSamplesByKind = grouped
-    }
-
-    private func refreshLatestSamplesCache() {
-        var latest: [MetricKind: MetricSample] = [:]
-        let kindsToFetch = Set(metricsStore.activeKinds).union([.waist, .height, .weight, .bodyFat, .leanBodyMass])
-        for kind in kindsToFetch {
-            let kindValue = kind.rawValue
-            var descriptor = FetchDescriptor<MetricSample>(
-                predicate: #Predicate { $0.kindRaw == kindValue },
-                sortBy: [SortDescriptor(\.date, order: .reverse)]
-            )
-            descriptor.fetchLimit = 1
-            if let sample = try? modelContext.fetch(descriptor).first {
+            if kindsToKeep.contains(kind), latest[kind] == nil {
                 latest[kind] = sample
             }
         }
+
+        cachedSamplesByKind = grouped
         cachedLatestByKind = latest
-    }
 
-    private func refreshHasAnyMeasurements() {
-        let descriptor = FetchDescriptor<MetricSample>()
-        let count = (try? modelContext.fetchCount(descriptor)) ?? 0
-        hasAnyMeasurements = count > 0
-    }
+        if !recentSamples.isEmpty {
+            hasAnyMeasurements = true
+        } else if allowFallbackFetch {
+            var descriptor = FetchDescriptor<MetricSample>(
+                sortBy: [SortDescriptor(\.date, order: .reverse)]
+            )
+            descriptor.fetchLimit = 1
+            hasAnyMeasurements = ((try? modelContext.fetch(descriptor).isEmpty) == false)
+        } else {
+            hasAnyMeasurements = false
+        }
 
-    private func refreshMeasurementCaches() {
-        rebuildSamplesCache()
-        refreshLatestSamplesCache()
-        refreshHasAnyMeasurements()
         autoHideChecklistIfCompleted()
     }
 
-    private var currentPhotoMetricSyncSignature: String {
-        var hasher = Hasher()
-        hasher.combine(allPhotos.count)
-        for photo in allPhotos where !photo.linkedMetrics.isEmpty {
-            hasher.combine(photo.persistentModelID)
-            hasher.combine(photo.date.timeIntervalSince1970)
-            hasher.combine(photo.linkedMetrics.count)
-            for snapshot in photo.linkedMetrics {
-                hasher.combine(snapshot.kind?.rawValue ?? "unknown")
-                hasher.combine(snapshot.value.bitPattern)
-            }
+    private func metricDeltaTextFromCache(kind: MetricKind, days: Int) -> String? {
+        HomeView.deltaText(
+            samples: cachedSamplesByKind[kind] ?? [],
+            kind: kind,
+            unitsSystem: unitsSystem,
+            days: days
+        )
+    }
+
+    private enum PhotoSyncMode {
+        case full
+        case incremental
+    }
+
+    private var hasPhotoSyncCursor: Bool {
+        photoMetricSyncLastDate > 0
+    }
+
+    private func syncMode(force: Bool) -> PhotoSyncMode {
+        if force || !hasPhotoSyncCursor {
+            return .full
         }
-        return String(hasher.finalize())
+        return .incremental
+    }
+
+    private func photoCursorID(for photo: PhotoEntry) -> String {
+        String(describing: photo.persistentModelID)
+    }
+
+    private func isPhotoAfterSyncCursor(_ photo: PhotoEntry) -> Bool {
+        HomeView.isAfterPhotoSyncCursor(
+            photoDate: photo.date,
+            photoID: photoCursorID(for: photo),
+            cursorDate: photoMetricSyncLastDate,
+            cursorID: photoMetricSyncLastID
+        )
+    }
+
+    private func updatePhotoSyncCursor(using photos: [PhotoEntry]) {
+        let candidates = photos.map { (date: $0.date, id: photoCursorID(for: $0)) }
+        guard let cursor = HomeView.newestPhotoSyncCursor(candidates: candidates) else { return }
+        photoMetricSyncLastDate = cursor.date
+        photoMetricSyncLastID = cursor.id
+    }
+
+    private func fetchSyncCandidatePhotos(mode: PhotoSyncMode) throws -> [PhotoEntry] {
+        let descriptor: FetchDescriptor<PhotoEntry>
+        switch mode {
+        case .full:
+            descriptor = FetchDescriptor<PhotoEntry>(
+                sortBy: [SortDescriptor(\.date, order: .forward)]
+            )
+        case .incremental:
+            let cursorDate = Date(timeIntervalSince1970: photoMetricSyncLastDate)
+            descriptor = FetchDescriptor<PhotoEntry>(
+                predicate: #Predicate<PhotoEntry> { photo in
+                    photo.date >= cursorDate
+                },
+                sortBy: [SortDescriptor(\.date, order: .forward)]
+            )
+        }
+        return try modelContext.fetch(descriptor)
     }
     
     /// Synchronizuje probki Measurement ze snapshotami metryk zapisanymi przy zdjeciach.
@@ -241,16 +345,46 @@ struct HomeView: View {
     ///   - Nigdy nie usuwa MetricSample po usunieciu zdjecia; funkcja wykonuje tylko upsert.
     private func syncMeasurementsFromPhotosIfNeeded(force: Bool = false) {
         guard !isPhotoMetricSyncInFlight else { return }
-        let signature = currentPhotoMetricSyncSignature
-        guard force || signature != photoMetricSyncSignature else { return }
+        let mode = syncMode(force: force)
+        let isIncrementalMode = mode == .incremental
         isPhotoMetricSyncInFlight = true
         defer {
-            photoMetricSyncSignature = signature
+            if isIncrementalMode {
+                StartupInstrumentation.event("HomePhotoSyncIncrementalEnd")
+            }
             isPhotoMetricSyncInFlight = false
         }
 
-        let photosWithMetrics = allPhotos.filter { !$0.linkedMetrics.isEmpty }
-        guard !photosWithMetrics.isEmpty else { return }
+        switch mode {
+        case .full:
+            StartupInstrumentation.event("HomePhotoSyncModeFull")
+        case .incremental:
+            StartupInstrumentation.event("HomePhotoSyncModeIncremental")
+            StartupInstrumentation.event("HomePhotoSyncIncrementalStart")
+        }
+
+        let candidatePhotos: [PhotoEntry]
+        do {
+            candidatePhotos = try fetchSyncCandidatePhotos(mode: mode)
+        } catch {
+            AppLog.debug("⚠️ Failed to fetch sync candidate photos: \(error)")
+            return
+        }
+        guard !candidatePhotos.isEmpty else { return }
+
+        let photosWithMetrics: [PhotoEntry]
+        switch mode {
+        case .full:
+            photosWithMetrics = candidatePhotos.filter { !$0.linkedMetrics.isEmpty }
+        case .incremental:
+            photosWithMetrics = candidatePhotos.filter { photo in
+                !photo.linkedMetrics.isEmpty && isPhotoAfterSyncCursor(photo)
+            }
+        }
+        guard !photosWithMetrics.isEmpty else {
+            updatePhotoSyncCursor(using: candidatePhotos)
+            return
+        }
 
         let syncedKindsRaw = Set(
             photosWithMetrics
@@ -308,6 +442,7 @@ struct HomeView: View {
         }
 
         // Celowo bez usuwania (usuniecie zdjecia nie powinno kasowac probek)
+        updatePhotoSyncCursor(using: candidatePhotos)
     }
 
     private func emitHomeInitialRenderIfNeeded() {
@@ -322,26 +457,30 @@ struct HomeView: View {
         runCriticalStartupPhaseA()
         scheduleDeferredStartupPhaseB()
         scheduleDeferredStartupPhaseC()
+        scheduleDeferredSectionMounts()
     }
 
     private func runCriticalStartupPhaseA() {
-        refreshMeasurementCaches()
-        rebuildGoalsCache()
-        streakManager.recordAppOpen(context: modelContext)
+        hasAnyMeasurements = !recentSamples.isEmpty
+        isLastPhotosSectionMounted = false
+        isHealthSectionMounted = false
     }
 
     private func scheduleDeferredStartupPhaseB() {
         deferredPhaseBTask?.cancel()
         deferredPhaseBTask = Task(priority: .utility) { @MainActor in
-            try? await Task.sleep(for: .milliseconds(450))
+            try? await Task.sleep(for: .milliseconds(900))
             guard !Task.isCancelled else { return }
+            refreshMeasurementCaches()
+            rebuildGoalsCache()
             refreshChecklistState()
             fetchHealthKitData()
+            streakManager.recordAppOpen(context: modelContext)
         }
     }
 
     private func scheduleDeferredStartupPhaseC(
-        delayMilliseconds: Int = 800,
+        delayMilliseconds: Int = 1500,
         forceSync: Bool = false
     ) {
         deferredPhaseCTask?.cancel()
@@ -354,6 +493,23 @@ struct HomeView: View {
             syncMeasurementsFromPhotosIfNeeded(force: forceSync)
             StartupInstrumentation.event("HomeDeferredSyncEnd")
             StartupInstrumentation.end("HomeDeferredSync", state: deferredSyncState)
+        }
+    }
+
+    private func scheduleDeferredSectionMounts() {
+        deferredSectionMountTask?.cancel()
+        deferredSectionMountTask = Task(priority: .utility) { @MainActor in
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled else { return }
+            StartupInstrumentation.event("HomeLastPhotosMountStart")
+            isLastPhotosSectionMounted = true
+            StartupInstrumentation.event("HomeLastPhotosMountEnd")
+
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            StartupInstrumentation.event("HomeHealthMountStart")
+            isHealthSectionMounted = true
+            StartupInstrumentation.event("HomeHealthMountEnd")
         }
     }
 
@@ -402,32 +558,42 @@ struct HomeView: View {
                     
                     // SEKCJA: LAST PHOTOS
                     if showLastPhotosOnHome {
-                        if !hasAnyPhotoContent {
-                            lastPhotosEmptyState
+                        if isLastPhotosSectionMounted {
+                            if !hasAnyPhotoContent {
+                                lastPhotosEmptyState
+                            } else {
+                                lastPhotosSection
+                            }
                         } else {
-                            lastPhotosSection
+                            lastPhotosPlaceholder
                         }
                     }
                     
                     // SEKCJA: HEALTH
                     if showHealthMetricsOnHome, premiumStore.isPremium {
-                        AppGlassCard(
-                            depth: .base,
-                            cornerRadius: 24,
-                            tint: Color.cyan.opacity(0.16),
-                            contentPadding: 12
-                        ) {
-                            HealthMetricsSection(
-                                latestWaist: latestWaist,
-                                latestHeight: latestHeight,
-                                latestWeight: latestWeight,
-                                latestHips: cachedLatestByKind[.hips]?.value,
-                                latestBodyFat: latestBodyFat,
-                                latestLeanMass: latestLeanMass,
-                                displayMode: .summaryOnly,
-                                title: "Health"
-                            )
-                            .fixedSize(horizontal: false, vertical: true)
+                        if isHealthSectionMounted {
+                            AppGlassCard(
+                                depth: .base,
+                                cornerRadius: 24,
+                                tint: Color.cyan.opacity(0.16),
+                                contentPadding: 12
+                            ) {
+                                HealthMetricsSection(
+                                    latestWaist: latestWaist,
+                                    latestHeight: latestHeight,
+                                    latestWeight: latestWeight,
+                                    latestHips: cachedLatestByKind[.hips]?.value,
+                                    latestBodyFat: latestBodyFat,
+                                    latestLeanMass: latestLeanMass,
+                                    weightDelta7dText: weightDelta7dText,
+                                    waistDelta7dText: waistDelta7dText,
+                                    displayMode: .summaryOnly,
+                                    title: "Health"
+                                )
+                                .fixedSize(horizontal: false, vertical: true)
+                            }
+                        } else {
+                            healthSectionPlaceholder
                         }
                     }
                 }
@@ -481,7 +647,7 @@ struct HomeView: View {
         .onChange(of: allPhotos.count) { _, _ in
             refreshChecklistState()
             if didRunStartupPhases {
-                scheduleDeferredStartupPhaseC(delayMilliseconds: 350)
+                scheduleDeferredStartupPhaseC(delayMilliseconds: 900)
             }
         }
         .onChange(of: onboardingChecklistMetricsCompleted) { _, _ in
@@ -891,8 +1057,7 @@ struct HomeView: View {
     private func autoHideChecklistIfCompleted() {
         guard allChecklistItemsCompleted, showOnboardingChecklistOnHome else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
-            withAnimation(AppMotion.animation(AppMotion.reveal, enabled: shouldAnimate)) {
+            withAnimation(AppMotion.animation(AppMotion.sectionExit, enabled: shouldAnimate)) {
                 showOnboardingChecklistOnHome = false
             }
         }
@@ -1034,6 +1199,44 @@ struct HomeView: View {
     }
     
     // MARK: - Last Photos Section
+
+    private var lastPhotosPlaceholder: some View {
+        AppGlassCard(
+            depth: .elevated,
+            cornerRadius: 24,
+            tint: Color.cyan.opacity(0.14),
+            contentPadding: 16
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(AppLocalization.string("Last Photos"))
+                    .font(AppTypography.sectionTitle)
+                    .foregroundStyle(.white)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white.opacity(0.08))
+                    .frame(height: 160)
+            }
+            .redacted(reason: .placeholder)
+        }
+    }
+
+    private var healthSectionPlaceholder: some View {
+        AppGlassCard(
+            depth: .base,
+            cornerRadius: 24,
+            tint: Color.cyan.opacity(0.16),
+            contentPadding: 12
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(AppLocalization.string("Health"))
+                    .font(AppTypography.sectionTitle)
+                    .foregroundStyle(.white)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white.opacity(0.08))
+                    .frame(height: 92)
+            }
+            .redacted(reason: .placeholder)
+        }
+    }
     
     private var lastPhotosSection: some View {
         AppGlassCard(
@@ -1225,6 +1428,7 @@ struct HomeKeyMetricRow: View {
                 if let latest {
                     Text(valueString(metricValue: latest.value))
                         .font(AppTypography.metricValue)
+                        .contentTransition(.numericText())
                         .foregroundStyle(.white)
 
                     if let goal = goal {
@@ -1334,6 +1538,7 @@ private struct HomeGoalProgressBar: View {
                 Spacer()
                 Text("\(Int(progress * 100))%")
                     .font(AppTypography.microEmphasis.monospacedDigit())
+                    .contentTransition(.numericText())
                     .foregroundStyle(isAchieved ? Color(hex: "#22C55E") : Color(hex: "#FCA311"))
             }
 
