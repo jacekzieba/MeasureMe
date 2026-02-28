@@ -1,43 +1,25 @@
 # MeasureMe
 
-MeasureMe is an iOS app for tracking body measurements, progress photos, and health-related trends in one place.
-It is built for consistent check-ins, long-term progress tracking, and privacy-first use.
+MeasureMe is an iOS app for tracking body measurements, health trends, and progress photos in one place.
+The app is designed for quick daily/weekly check-ins and long-term progress monitoring with privacy-first defaults.
 
-## Features
+## What It Includes
 
-- Track body metrics (weight, waist, body fat, lean mass, and circumference)
-- Fast logging with a Quick Add flow
-- Set goals per metric and monitor progress
-- Add progress photos and compare them side-by-side
-- Optional HealthKit sync (opt-in)
+- Metric tracking (weight, waist, body fat, lean mass, and additional body measurements)
+- Quick Add flow for fast logging
+- Goals and progress visualization
+- Photo tracking, tags, and side-by-side comparison
+- Optional HealthKit integration
 - Reminder notifications
-- AI Insights (premium + Apple Intelligence capable device)
-- Data export from Settings (premium)
+- Premium features (AI insights, advanced indicators, export, and comparison tools)
 - English and Polish localization
+- Home screen widget target (`MeasureMeWidget`)
 
-## iOS Support
+## Platform Support
 
-- Deployment target: iOS 17.2
+- Deployment target: iOS `17.2`
 - Recommended: latest iOS available for your device
-- AI Insights availability: iOS 26+ with Apple Intelligence support
-
-## Premium
-
-Premium unlocks:
-
-- AI Insights
-- Health indicators
-- Data export
-- Photo comparison tools
-
-StoreKit product identifiers:
-
-- `com.measureme.premium.monthly`
-- `com.measureme.premium.yearly`
-
-Local StoreKit config included for testing:
-
-- `MeasureMe/Premium.storekit`
+- AI insights: iOS `26+` on Apple Intelligence-capable devices
 
 ## Tech Stack
 
@@ -45,41 +27,47 @@ Local StoreKit config included for testing:
 - SwiftData
 - HealthKit
 - StoreKit 2
-- Charts
+- WidgetKit
 - XCTest / XCUITest
 
-## Project Structure
+## Project Layout
 
-- `MeasureMe` - main application source
+- `MeasureMe` - app source code
+- `MeasureMeWidget` - widget extension
 - `MeasureMeTests` - unit and snapshot tests
 - `MeasureMeUITests` - UI tests
-- `Assets.xcassets` - shared assets (icons/branding)
-- `MeasureMe.xcodeproj` - Xcode project
+- `MeasureMe.xcodeproj` - Xcode project and schemes
+- `.github/workflows/ios-ci.yml` - CI pipeline
 
 ## Getting Started
 
 ### Requirements
 
-- macOS with Xcode
-- Xcode 26.2+
+- macOS with Xcode (project CI uses Xcode `26.2`)
 - iOS Simulator or physical iPhone
-- Apple Developer account (only for running on physical device with your own signing)
+- Apple Developer account (only required for running on a physical device with your own signing)
 
-### Run Locally
+### Open In Xcode
 
 ```bash
 open MeasureMe.xcodeproj
 ```
 
-Then in Xcode:
+Then:
 
 1. Select the `MeasureMe` scheme.
-2. Choose a simulator/device.
+2. Select a simulator or device.
 3. Build and run (`Cmd + R`).
 
-## CLI Build / Test
+## Command Line Build And Test
 
-Example simulator run:
+List available simulator destinations first:
+
+```bash
+xcodebuild -project MeasureMe.xcodeproj -scheme MeasureMe -showdestinations
+```
+
+Build (replace destination with one from your machine):
 
 ```bash
 xcodebuild \
@@ -103,7 +91,7 @@ xcodebuild \
   test
 ```
 
-Optional static analysis:
+Run static analysis (non-blocking in CI):
 
 ```bash
 xcodebuild \
@@ -115,30 +103,44 @@ xcodebuild \
   analyze
 ```
 
-SwiftLint (repository config):
+Lint:
 
 ```bash
 swiftlint lint --config .swiftlint.yml
 ```
 
+## Premium / StoreKit
+
+Product identifiers:
+
+- `com.measureme.premium.monthly`
+- `com.measureme.premium.yearly`
+
+Local StoreKit configuration used by the shared scheme:
+
+- `MeasureMe/Premium_local.storekit`
+
+Additional local config file in repository:
+
+- `Premium.storekit`
+
 ## CI
 
 GitHub Actions workflow (`.github/workflows/ios-ci.yml`) runs:
 
-- SwiftLint (changed files as blocking + full report as non-blocking)
+- SwiftLint (changed files blocking, full run non-blocking report)
 - Build
 - Analyze (non-blocking)
 - Tests
-- Matrix lanes targeting iOS `18.x` and `26.1` (runtime-dependent fallback/skip handling)
+- Matrix lanes for iOS runtimes `18.0` and `26.1`, with runtime fallback/skip logic when unavailable
 
 ## Privacy
 
 - Data is stored on-device.
-- App is offline-first.
+- App is offline-first by default.
 - HealthKit access is optional and user-controlled.
-- Export/sharing is user-initiated.
+- Export and sharing are user-initiated.
 
 ## License
 
-No license file is currently included in this repository.
-If you plan to publish this project publicly, add a `LICENSE` file to define usage terms.
+This repository does not currently include a `LICENSE` file.
