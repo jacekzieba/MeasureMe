@@ -71,7 +71,7 @@ enum AnalyticsPolicy {
     static func isEnabled(
         auditConfig: AuditConfig = .current,
         arguments: [String] = ProcessInfo.processInfo.arguments,
-        userDefaults: UserDefaults = .standard,
+        userDefaults: AppSettingsStore,
         isDebugBuild: Bool = isDebugFlag
     ) -> Bool {
         if auditConfig.disableAnalytics {
@@ -92,6 +92,19 @@ enum AnalyticsPolicy {
         }
 
         return true
+    }
+
+    static func isEnabled(
+        auditConfig: AuditConfig = .current,
+        arguments: [String] = ProcessInfo.processInfo.arguments,
+        isDebugBuild: Bool = isDebugFlag
+    ) -> Bool {
+        isEnabled(
+            auditConfig: auditConfig,
+            arguments: arguments,
+            userDefaults: .shared,
+            isDebugBuild: isDebugBuild
+        )
     }
 
     private static var isDebugFlag: Bool {

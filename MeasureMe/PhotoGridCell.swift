@@ -10,7 +10,7 @@ struct PhotoGridCell: View {
     let isSelecting: Bool
     var revealIndex: Int = 0
     @State private var isVisible = false
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var modelContext
     private var photoID: String { String(describing: photo.persistentModelID) }

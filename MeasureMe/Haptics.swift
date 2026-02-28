@@ -19,7 +19,7 @@ enum Haptics {
     private static let notificationGenerator = UINotificationFeedbackGenerator()
 
     private static var isEnabled: Bool {
-        UserDefaults.standard.object(forKey: "hapticsEnabled") as? Bool ?? true
+        AppSettingsStore.shared.object(forKey: "hapticsEnabled") as? Bool ?? true
     }
 
     static func trigger(_ event: HapticEvent) {

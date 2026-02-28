@@ -511,14 +511,14 @@ struct AddMetricSampleView: View {
     @State private var date: Date = .now
     @State private var displayValue: Double
 
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
 
     init(kind: MetricKind, defaultMetricValue: Double? = nil, onAdd: @escaping (Date, Double) -> Void) {
         self.kind = kind
         self.onAdd = onAdd
 
         // Konwertuj domyślną wartość na jednostki wyświetlania
-        let units = UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
+        let units = AppSettingsStore.shared.string(forKey: "unitsSystem") ?? "metric"
         if let metric = defaultMetricValue {
             _displayValue = State(initialValue: kind.valueForDisplay(fromMetric: metric, unitsSystem: units))
         } else {
@@ -634,7 +634,7 @@ struct EditMetricSampleView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @FocusState private var isValueFocused: Bool
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
 
     @State private var date: Date
     @State private var displayValue: Double
@@ -648,7 +648,7 @@ struct EditMetricSampleView: View {
         _displayValue = State(
             initialValue: kind.valueForDisplay(
                 fromMetric: sample.value,
-                unitsSystem: UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
+                unitsSystem: AppSettingsStore.shared.string(forKey: "unitsSystem") ?? "metric"
             )
         )
     }
@@ -769,7 +769,7 @@ struct SetGoalView: View {
     var onDelete: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
     @FocusState private var isValueFocused: Bool
     @FocusState private var isStartValueFocused: Bool
 
@@ -790,7 +790,7 @@ struct SetGoalView: View {
         self.onDelete = onDelete
 
         // Załaduj istniejący cel lub zacznij od zera
-        let units = UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
+        let units = AppSettingsStore.shared.string(forKey: "unitsSystem") ?? "metric"
         if let goal = currentGoal {
             _displayValue = State(initialValue: kind.valueForDisplay(fromMetric: goal.targetValue, unitsSystem: units))
             _direction = State(initialValue: goal.direction)

@@ -4,22 +4,22 @@ import Charts
 import StoreKit
 
 struct OnboardingView: View {
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
-    @AppStorage("userName") private var userName: String = ""
-    @AppStorage("userAge") private var userAge: Int = 0
-    @AppStorage("userGender") private var userGender: String = "notSpecified"
-    @AppStorage("manualHeight") private var manualHeight: Double = 0.0
-    @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppStorage("onboarding_skipped_healthkit") private var onboardingSkippedHealthKit: Bool = false
-    @AppStorage("onboarding_skipped_reminders") private var onboardingSkippedReminders: Bool = false
-    @AppStorage("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
-    @AppStorage("onboarding_checklist_premium_explored") private var onboardingChecklistPremiumExplored: Bool = false
-    @AppStorage("onboarding_primary_goal") private var onboardingPrimaryGoalsRaw: String = ""
+    @AppSetting("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
+    @AppSetting("userName") private var userName: String = ""
+    @AppSetting("userAge") private var userAge: Int = 0
+    @AppSetting("userGender") private var userGender: String = "notSpecified"
+    @AppSetting("manualHeight") private var manualHeight: Double = 0.0
+    @AppSetting("isSyncEnabled") private var isSyncEnabled: Bool = false
+    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("onboarding_skipped_healthkit") private var onboardingSkippedHealthKit: Bool = false
+    @AppSetting("onboarding_skipped_reminders") private var onboardingSkippedReminders: Bool = false
+    @AppSetting("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
+    @AppSetting("onboarding_checklist_premium_explored") private var onboardingChecklistPremiumExplored: Bool = false
+    @AppSetting("onboarding_primary_goal") private var onboardingPrimaryGoalsRaw: String = ""
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.dynamicTypeSize) var dynamicTypeSize
     @EnvironmentObject private var premiumStore: PremiumStore
 
     @State private var currentStepIndex: Int
@@ -50,64 +50,6 @@ struct OnboardingView: View {
     init(initialStepIndex: Int = 0) {
         let clamped = max(0, min(initialStepIndex, Step.allCases.count - 1))
         _currentStepIndex = State(initialValue: clamped)
-    }
-
-    private enum FocusField: Hashable {
-        case name
-        case age
-        case height
-        case feet
-        case inches
-    }
-
-    private enum WelcomeGoal: String, CaseIterable {
-        case loseWeight
-        case buildMuscle
-        case trackHealth
-
-        var title: String {
-            switch self {
-            case .loseWeight:
-                return AppLocalization.systemString("Lose weight")
-            case .buildMuscle:
-                return AppLocalization.systemString("Build muscles")
-            case .trackHealth:
-                return AppLocalization.systemString("Improve my health")
-            }
-        }
-    }
-
-    private enum Step: Int, CaseIterable {
-        case welcome
-        case profile
-        case boosters
-        case premium
-
-        var title: String {
-            switch self {
-            case .welcome:
-                return AppLocalization.systemString("MeasureMe")
-            case .profile:
-                return AppLocalization.systemString("A few details")
-            case .boosters:
-                return AppLocalization.systemString("Boosters")
-            case .premium:
-                return AppLocalization.systemString("Premium Edition")
-            }
-        }
-
-        var subtitle: String {
-            switch self {
-            case .welcome:
-                return ""
-            case .profile:
-                return AppLocalization.systemString("Optional details for more accurate health indicators.")
-            case .boosters:
-                return AppLocalization.systemString("Optional automations to keep momentum.")
-            case .premium:
-                return ""
-            }
-        }
     }
 
     private var shouldAnimate: Bool {
@@ -1427,23 +1369,8 @@ struct OnboardingView: View {
         onboardingPrimaryGoalsRaw = sortedWelcomeGoals.map(\.rawValue).joined(separator: ",")
     }
 
-    private func safeCardHeight(from containerHeight: CGFloat, reserved: CGFloat, extra: CGFloat = 0) -> CGFloat {
-        guard containerHeight.isFinite, containerHeight > 0 else { return 1 }
-        let safeReserved = reserved.isFinite ? max(reserved, 0) : 82
-        let safeExtra = extra.isFinite ? extra : 0
-        let candidate = containerHeight - safeReserved + safeExtra
-        let minimumRatio: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.62 : 0.55
-        let minimumCardHeight = min(max(containerHeight * minimumRatio, 180), containerHeight)
-        let maxInset: CGFloat = dynamicTypeSize.isAccessibilitySize ? 44 : 10
-        let maximumCardHeight = max(containerHeight - maxInset, minimumCardHeight)
-        guard candidate.isFinite else {
-            return minimumCardHeight
-        }
-        return min(max(candidate, minimumCardHeight), maximumCardHeight)
-    }
-
     private func recordWelcomeGoalSelectionStat(for goal: WelcomeGoal) {
-        let defaults = UserDefaults.standard
+        let defaults = AppSettingsStore.shared
         let key = "onboarding_goal_selection_stat_\(goal.rawValue)"
         defaults.set(defaults.integer(forKey: key) + 1, forKey: key)
 
@@ -1474,11 +1401,6 @@ struct OnboardingView: View {
     private func persistBoostersOutcome() {
         onboardingSkippedHealthKit = !isSyncEnabled
         onboardingSkippedReminders = !isReminderScheduled
-    }
-
-    private func parseLocalizedDouble(_ raw: String) -> Double? {
-        let normalized = raw.replacingOccurrences(of: ",", with: ".")
-        return Double(normalized)
     }
 
     private func requestHealthKitAccess() {
@@ -1600,80 +1522,5 @@ struct OnboardingView: View {
     private func dismissKeyboard() {
         focusedField = nil
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-    }
-}
-
-private struct OnboardingReminderSetupSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var repeatRule: ReminderRepeat
-    @Binding var weekday: Int
-    @Binding var time: Date
-    @Binding var onceDate: Date
-    let onConfirm: () -> Void
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                AppScreenBackground(topHeight: 180, tint: Color.appAccent.opacity(0.16))
-                Form {
-                    Picker(AppLocalization.systemString("Repeat"), selection: $repeatRule) {
-                        ForEach(ReminderRepeat.allCases) { rule in
-                            Text(rule.title).tag(rule)
-                        }
-                    }
-
-                    switch repeatRule {
-                    case .once:
-                        DatePicker(
-                            AppLocalization.systemString("Reminder time"),
-                            selection: $onceDate,
-                            displayedComponents: [.date, .hourAndMinute]
-                        )
-                    case .daily:
-                        DatePicker(
-                            AppLocalization.systemString("Reminder time"),
-                            selection: $time,
-                            displayedComponents: .hourAndMinute
-                        )
-                    case .weekly:
-                        Picker(AppLocalization.systemString("Reminder day"), selection: $weekday) {
-                            ForEach(1...7, id: \.self) { index in
-                                Text(weekdayTitle(index)).tag(index)
-                            }
-                        }
-
-                        DatePicker(
-                            AppLocalization.systemString("Reminder time"),
-                            selection: $time,
-                            displayedComponents: .hourAndMinute
-                        )
-                    }
-                }
-                .scrollContentBackground(.hidden)
-            }
-            .navigationTitle(AppLocalization.systemString("Reminder schedule"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(AppLocalization.systemString("Cancel")) {
-                        dismiss()
-                    }
-                    .accessibilityIdentifier("onboarding.reminder.cancel")
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(AppLocalization.systemString("Set reminder")) {
-                        onConfirm()
-                        dismiss()
-                    }
-                    .accessibilityIdentifier("onboarding.reminder.confirm")
-                }
-            }
-        }
-    }
-
-    private func weekdayTitle(_ weekday: Int) -> String {
-        let symbols = Calendar.current.weekdaySymbols
-        return symbols[safe: weekday - 1] ?? symbols.first ?? "—"
     }
 }

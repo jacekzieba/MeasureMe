@@ -128,7 +128,7 @@ struct AppGlassCard<Content: View>: View {
 struct LiquidCapsuleButtonStyle: ButtonStyle {
     var tint: Color = .appAccent
     var textColor: Color = .white
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
@@ -196,7 +196,7 @@ struct LiquidSwitchToggleStyle: ToggleStyle {
 
 struct PhotoTagChipToggleStyle: ToggleStyle {
     var tint: Color = .appAccent
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {

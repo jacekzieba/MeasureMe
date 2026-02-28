@@ -9,10 +9,10 @@ struct MeasurementsTabView: View {
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var router: AppRouter
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
-    @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
-    @AppStorage("quickAddHintDismissed") private var quickAddHintDismissed: Bool = false
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
+    @AppSetting("quickAddHintDismissed") private var quickAddHintDismissed: Bool = false
     @State private var scrollOffset: CGFloat = 0
     @State private var refreshToken = UUID()
     @Query(sort: [SortDescriptor(\MetricSample.date, order: .reverse)])
@@ -430,7 +430,7 @@ struct MetricChartTile: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let kind: MetricKind
     let unitsSystem: String
-    @AppStorage("userName") private var userName: String = ""
+    @AppSetting("userName") private var userName: String = ""
 
     @Query private var samples: [MetricSample]
     @Query private var goals: [MetricGoal]

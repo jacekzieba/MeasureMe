@@ -40,6 +40,7 @@ final class DynamicAnalyticsClient: AnalyticsClient {
 }
 
 enum AnalyticsFirstEventTracker {
+    static var settings: AppSettingsStore = .shared
     private static let firstMetricTrackedKey = "analytics_first_metric_added_tracked"
     private static let firstPhotoTrackedKey = "analytics_first_photo_added_tracked"
     private static let onboardingCompletedKey = "hasCompletedOnboarding"
@@ -49,7 +50,7 @@ enum AnalyticsFirstEventTracker {
         guard shouldTrackFirstEvent(forKey: firstMetricTrackedKey) else { return }
 
         Analytics.shared.track(.firstMetricAdded)
-        UserDefaults.standard.set(true, forKey: firstMetricTrackedKey)
+        settings.set(true, forKey: firstMetricTrackedKey)
     }
 
     static func trackFirstPhotoIfNeeded(previousPhotoCount: Int) {
@@ -57,7 +58,7 @@ enum AnalyticsFirstEventTracker {
         guard shouldTrackFirstEvent(forKey: firstPhotoTrackedKey) else { return }
 
         Analytics.shared.track(.firstPhotoAdded)
-        UserDefaults.standard.set(true, forKey: firstPhotoTrackedKey)
+        settings.set(true, forKey: firstPhotoTrackedKey)
     }
 
     static func metricCount(in context: ModelContext) -> Int {
@@ -69,7 +70,7 @@ enum AnalyticsFirstEventTracker {
     }
 
     private static func shouldTrackFirstEvent(forKey key: String) -> Bool {
-        let defaults = UserDefaults.standard
+        let defaults = settings
         guard defaults.bool(forKey: onboardingCompletedKey) else { return false }
         guard defaults.bool(forKey: key) == false else { return false }
         return true

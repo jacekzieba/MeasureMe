@@ -11,13 +11,16 @@ enum ReviewRequestManager {
     private static let lastPromptKey = "review_prompt_last_date"
 
     @MainActor
-    static func recordMetricEntryAdded(count: Int = 1) {
+    static func recordMetricEntryAdded(
+        count: Int = 1,
+        settings: AppSettingsStore
+    ) {
         if AuditConfig.current.isEnabled {
             return
         }
         guard count > 0 else { return }
 
-        let defaults = UserDefaults.standard
+        let defaults = settings
         let newCount = defaults.integer(forKey: countKey) + count
         defaults.set(newCount, forKey: countKey)
 
@@ -41,5 +44,10 @@ enum ReviewRequestManager {
             defaults.set(now, forKey: lastPromptKey)
             defaults.set(0, forKey: countKey)
         }
+    }
+
+    @MainActor
+    static func recordMetricEntryAdded(count: Int = 1) {
+        recordMetricEntryAdded(count: count, settings: .shared)
     }
 }

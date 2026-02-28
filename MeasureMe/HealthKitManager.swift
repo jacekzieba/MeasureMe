@@ -277,6 +277,7 @@ final class HealthKitManager {
     }
 
     private let store: HealthStore
+    private let settings: AppSettingsStore
     private let quantityCacheTTL: TimeInterval = 60 * 30
     private var latestQuantityCache: [HKQuantityTypeIdentifier: (value: Double, date: Date)] = [:]
     private var latestQuantityFetchDate: [HKQuantityTypeIdentifier: Date] = [:]
@@ -302,12 +303,17 @@ final class HealthKitManager {
 
     // Produkcyjny init
     convenience init() {
-        self.init(store: RealHealthStore())
+        self.init(store: RealHealthStore(), settings: .shared)
     }
 
     // Init do testów/iniekcji
-    init(store: HealthStore) {
+    init(store: HealthStore, settings: AppSettingsStore) {
         self.store = store
+        self.settings = settings
+    }
+
+    convenience init(store: HealthStore) {
+        self.init(store: store, settings: .shared)
     }
 
     func configure(modelContainer: ModelContainer) {
@@ -370,14 +376,14 @@ final class HealthKitManager {
     }
 
     func reconcileStoredSyncState() -> HealthKitAuthorizationError? {
-        guard UserDefaults.standard.bool(forKey: "isSyncEnabled") else {
+        guard settings.bool(forKey: "isSyncEnabled") else {
             stopObservingHealthKitUpdates()
             return nil
         }
 
         if let syncError = currentSyncAuthorizationError() {
             stopObservingHealthKitUpdates()
-            UserDefaults.standard.set(false, forKey: "isSyncEnabled")
+            settings.set(false, forKey: "isSyncEnabled")
             return syncError
         }
 
@@ -386,23 +392,23 @@ final class HealthKitManager {
 
     func startObservingHealthKitUpdates() {
         guard let realStore = store as? RealHealthStore else { return }
-        guard UserDefaults.standard.bool(forKey: "isSyncEnabled") else {
+        guard settings.bool(forKey: "isSyncEnabled") else {
             stopObservingHealthKitUpdates()
             return
         }
         if let syncError = currentSyncAuthorizationError() {
             AppLog.debug("⚠️ HealthKit sync disabled due to authorization state: \(syncError.localizedDescription)")
             stopObservingHealthKitUpdates()
-            UserDefaults.standard.set(false, forKey: "isSyncEnabled")
+            settings.set(false, forKey: "isSyncEnabled")
             return
         }
 
         observerQueries.forEach { realStore.store.stop($0) }
         observerQueries.removeAll()
-        let initialImportCompleted = UserDefaults.standard.bool(forKey: initialHistoricalImportKey)
+        let initialImportCompleted = settings.bool(forKey: initialHistoricalImportKey)
 
         for (identifier, kind, unit, isPercent01) in syncTypes {
-            if !UserDefaults.standard.bool(forKey: "healthkit_sync_\(kind.rawValue)") {
+            if !settings.bool(forKey: "healthkit_sync_\(kind.rawValue)") {
                 continue
             }
             guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else { continue }
@@ -466,13 +472,13 @@ final class HealthKitManager {
 
     private func importHistoricalDataIfNeeded() async {
         guard let container = modelContainer else { return }
-        guard !UserDefaults.standard.bool(forKey: initialHistoricalImportKey) else { return }
+        guard !settings.bool(forKey: initialHistoricalImportKey) else { return }
         let context = ModelContext(container)
         context.autosaveEnabled = false
 
         var hadFailure = false
         for (identifier, kind, unit, isPercent01) in syncTypes where initialHistoricalKinds.contains(kind) {
-            guard UserDefaults.standard.bool(forKey: "healthkit_sync_\(kind.rawValue)") else { continue }
+            guard settings.bool(forKey: "healthkit_sync_\(kind.rawValue)") else { continue }
             do {
                 try await importAllHistoricalSamples(
                     identifier: identifier,
@@ -488,7 +494,7 @@ final class HealthKitManager {
         }
 
         if !hadFailure {
-            UserDefaults.standard.set(true, forKey: initialHistoricalImportKey)
+            settings.set(true, forKey: initialHistoricalImportKey)
             startObservingHealthKitUpdates()
         }
     }
@@ -518,7 +524,7 @@ final class HealthKitManager {
 
         if importResult.didInsertAny {
             try context.save()
-            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "healthkit_last_import")
+            settings.set(Date().timeIntervalSince1970, forKey: "healthkit_last_import")
         }
 
         if let newAnchorData = anchored.newAnchorData {
@@ -739,8 +745,8 @@ final class HealthKitManager {
         unit: HKUnit,
         percent01: Bool
     ) async {
-        guard UserDefaults.standard.bool(forKey: "isSyncEnabled") else { return }
-        guard UserDefaults.standard.bool(forKey: "healthkit_sync_\(kind.rawValue)") else { return }
+        guard settings.bool(forKey: "isSyncEnabled") else { return }
+        guard settings.bool(forKey: "healthkit_sync_\(kind.rawValue)") else { return }
         guard let container = modelContainer else { return }
 
         do {
@@ -767,7 +773,7 @@ final class HealthKitManager {
 
             if importResult.didInsertAny {
                 try context.save()
-                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "healthkit_last_import")
+                settings.set(Date().timeIntervalSince1970, forKey: "healthkit_last_import")
                 let sampleDates = samples.map(\.date)
                 await MainActor.run {
                     StreakManager.shared.recordHealthKitImport(sampleDates: sampleDates)
@@ -786,21 +792,21 @@ final class HealthKitManager {
     }
 
     private func storedAnchorData(for kind: MetricKind) -> Data? {
-        UserDefaults.standard.data(forKey: anchorDataPrefix + kind.rawValue)
+        settings.data(forKey: anchorDataPrefix + kind.rawValue)
     }
 
     private func setStoredAnchorData(_ data: Data, for kind: MetricKind) {
-        UserDefaults.standard.set(data, forKey: anchorDataPrefix + kind.rawValue)
+        settings.set(data, forKey: anchorDataPrefix + kind.rawValue)
     }
 
     private func lastProcessedDate(for kind: MetricKind) -> Date? {
-        let value = UserDefaults.standard.double(forKey: processedDatePrefix + kind.rawValue)
+        let value = settings.double(forKey: processedDatePrefix + kind.rawValue)
         guard value > 0 else { return nil }
         return Date(timeIntervalSince1970: value)
     }
 
     private func setLastProcessedDate(_ date: Date, for kind: MetricKind) {
-        UserDefaults.standard.set(date.timeIntervalSince1970, forKey: processedDatePrefix + kind.rawValue)
+        settings.set(date.timeIntervalSince1970, forKey: processedDatePrefix + kind.rawValue)
     }
 
     private func importSamples(

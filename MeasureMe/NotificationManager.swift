@@ -81,6 +81,7 @@ final class NotificationManager: ObservableObject {
     static let notificationsDidChange = Notification.Name("measurement_notifications_did_change")
     
     private let center: NotificationCenterClient
+    private let settings: AppSettingsStore
     private let remindersKey = "measurement_reminders"
     private let notificationsEnabledKey = "measurement_notifications_enabled"
     private let smartEnabledKey = "measurement_smart_enabled"
@@ -103,18 +104,23 @@ final class NotificationManager: ObservableObject {
     private var pendingImportTask: Task<Void, Never>?
     @Published private(set) var lastSchedulingError: String?
     
-    init(center: NotificationCenterClient? = nil) {
+    init(center: NotificationCenterClient? = nil, settings: AppSettingsStore) {
+        self.settings = settings
         if let center {
             self.center = center
         } else {
             self.center = RealNotificationCenterClient()
         }
     }
+
+    convenience init(center: NotificationCenterClient? = nil) {
+        self.init(center: center, settings: .shared)
+    }
     
     var notificationsEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: notificationsEnabledKey) }
+        get { settings.bool(forKey: notificationsEnabledKey) }
         set {
-            UserDefaults.standard.set(newValue, forKey: notificationsEnabledKey)
+            settings.set(newValue, forKey: notificationsEnabledKey)
             if !newValue {
                 cancelImportNotifications()
             }
@@ -123,56 +129,56 @@ final class NotificationManager: ObservableObject {
     }
     
     var smartEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: smartEnabledKey) }
+        get { settings.bool(forKey: smartEnabledKey) }
         set {
-            UserDefaults.standard.set(newValue, forKey: smartEnabledKey)
+            settings.set(newValue, forKey: smartEnabledKey)
             notifyStateChanged()
         }
     }
     
     var smartDays: Int {
-        get { max(UserDefaults.standard.integer(forKey: smartDaysKey), 0) }
-        set { UserDefaults.standard.set(newValue, forKey: smartDaysKey) }
+        get { max(settings.integer(forKey: smartDaysKey), 0) }
+        set { settings.set(newValue, forKey: smartDaysKey) }
     }
     
     var smartTime: Date {
         get {
-            let time = UserDefaults.standard.double(forKey: smartTimeKey)
+            let time = settings.double(forKey: smartTimeKey)
             return time > 0 ? Date(timeIntervalSince1970: time) : defaultSmartTime()
         }
         set {
-            UserDefaults.standard.set(newValue.timeIntervalSince1970, forKey: smartTimeKey)
+            settings.set(newValue.timeIntervalSince1970, forKey: smartTimeKey)
         }
     }
     
     var lastLogDate: Date? {
         get {
-            let time = UserDefaults.standard.double(forKey: lastLogDateKey)
+            let time = settings.double(forKey: lastLogDateKey)
             return time > 0 ? Date(timeIntervalSince1970: time) : nil
         }
         set {
             if let newValue {
-                UserDefaults.standard.set(newValue.timeIntervalSince1970, forKey: lastLogDateKey)
+                settings.set(newValue.timeIntervalSince1970, forKey: lastLogDateKey)
             } else {
-                UserDefaults.standard.removeObject(forKey: lastLogDateKey)
+                settings.removeObject(forKey: lastLogDateKey)
             }
         }
     }
 
     var photoRemindersEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: photoRemindersEnabledKey) as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: photoRemindersEnabledKey) }
+        get { settings.object(forKey: photoRemindersEnabledKey) as? Bool ?? true }
+        set { settings.set(newValue, forKey: photoRemindersEnabledKey) }
     }
 
     var goalAchievedEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: goalAchievedEnabledKey) as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: goalAchievedEnabledKey) }
+        get { settings.object(forKey: goalAchievedEnabledKey) as? Bool ?? true }
+        set { settings.set(newValue, forKey: goalAchievedEnabledKey) }
     }
 
     var importNotificationsEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: importNotificationsEnabledKey) as? Bool ?? true }
+        get { settings.object(forKey: importNotificationsEnabledKey) as? Bool ?? true }
         set {
-            UserDefaults.standard.set(newValue, forKey: importNotificationsEnabledKey)
+            settings.set(newValue, forKey: importNotificationsEnabledKey)
             if !newValue {
                 cancelImportNotifications()
             }
@@ -180,7 +186,7 @@ final class NotificationManager: ObservableObject {
     }
 
     private var lastPhotoDate: Date? {
-        let time = UserDefaults.standard.double(forKey: lastPhotoDateKey)
+        let time = settings.double(forKey: lastPhotoDateKey)
         return time > 0 ? Date(timeIntervalSince1970: time) : nil
     }
     
@@ -198,7 +204,7 @@ final class NotificationManager: ObservableObject {
     }
     
     func loadReminders() -> [MeasurementReminder] {
-        guard let data = UserDefaults.standard.data(forKey: remindersKey) else {
+        guard let data = settings.data(forKey: remindersKey) else {
             return []
         }
         do {
@@ -213,7 +219,7 @@ final class NotificationManager: ObservableObject {
     func saveReminders(_ reminders: [MeasurementReminder]) {
         do {
             let data = try JSONEncoder().encode(reminders)
-            UserDefaults.standard.set(data, forKey: remindersKey)
+            settings.set(data, forKey: remindersKey)
             notifyStateChanged()
         } catch {
             recordSchedulingError(error)
@@ -233,7 +239,7 @@ final class NotificationManager: ObservableObject {
         guard notificationsEnabled else { return }
         
         let content = UNMutableNotificationContent()
-        let name = UserDefaults.standard.string(forKey: "userName")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let name = settings.string(forKey: "userName")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let prefix = name.isEmpty ? "" : "\(name), "
         content.title = AppLocalization.string("notification.log.title", prefix)
         content.body = AppLocalization.string("notification.log.body")
@@ -315,7 +321,7 @@ final class NotificationManager: ObservableObject {
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         
         let content = UNMutableNotificationContent()
-        let name = UserDefaults.standard.string(forKey: "userName")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let name = settings.string(forKey: "userName")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let prefix = name.isEmpty ? "" : "\(name), "
         content.title = AppLocalization.string("notification.smart.title", prefix)
         let daysSince = lastLogDate.map { max(1, Int(ceil(now.timeIntervalSince($0) / 86400.0))) } ?? days
@@ -347,7 +353,7 @@ final class NotificationManager: ObservableObject {
     }
 
     func recordPhotoAdded(date: Date = .now) {
-        UserDefaults.standard.set(date.timeIntervalSince1970, forKey: lastPhotoDateKey)
+        settings.set(date.timeIntervalSince1970, forKey: lastPhotoDateKey)
         cancelPhotoReminder()
     }
 
@@ -373,7 +379,7 @@ final class NotificationManager: ObservableObject {
         }
 
         let content = UNMutableNotificationContent()
-        let name = UserDefaults.standard.string(forKey: "userName")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let name = settings.string(forKey: "userName")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let prefix = name.isEmpty ? "" : "\(name), "
         content.title = AppLocalization.string("notification.photo.title", prefix)
         let daysSince = max(1, Int(ceil(since / 86400.0)))
@@ -524,11 +530,11 @@ final class NotificationManager: ObservableObject {
             guard goalAchievedEnabled else { return }
 
             let key = "\(goalAchievementPrefix)\(kind.rawValue)_\(goalCreatedDate.timeIntervalSince1970)"
-            if UserDefaults.standard.bool(forKey: key) {
+            if settings.bool(forKey: key) {
                 return
             }
 
-            let name = UserDefaults.standard.string(forKey: "userName")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let name = settings.string(forKey: "userName")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let suffix = name.isEmpty ? "" : ", \(name)"
             let content = UNMutableNotificationContent()
             content.title = AppLocalization.string("notification.goal.title", suffix)
@@ -549,7 +555,7 @@ final class NotificationManager: ObservableObject {
                 recordSchedulingError(error)
                 return
             }
-            UserDefaults.standard.set(true, forKey: key)
+            settings.set(true, forKey: key)
         }
     }
 
@@ -575,7 +581,7 @@ final class NotificationManager: ObservableObject {
             center.removePendingNotificationRequests(withIdentifiers: appOwnedPendingIdentifiers)
         }
 
-        let defaults = UserDefaults.standard
+        let defaults = settings
         [
             remindersKey,
             notificationsEnabledKey,
@@ -631,4 +637,3 @@ final class NotificationManager: ObservableObject {
         NotificationCenter.default.post(name: Self.notificationsDidChange, object: nil)
     }
 }
-

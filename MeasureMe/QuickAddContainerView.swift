@@ -4,7 +4,7 @@ import SwiftData
 struct QuickAddContainerView: View {
 
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
     
     @Query(sort: [SortDescriptor(\MetricSample.date, order: .reverse)])
     private var samples: [MetricSample]

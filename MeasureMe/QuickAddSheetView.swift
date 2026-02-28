@@ -12,10 +12,10 @@ struct QuickAddSheetView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var router: AppRouter
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
-    @AppStorage("save_unchanged_quick_add") private var saveUnchangedValues: Bool = false
-    @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("isSyncEnabled") private var isSyncEnabled: Bool = false
+    @AppSetting("save_unchanged_quick_add") private var saveUnchangedValues: Bool = false
+    @AppSetting("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
 
     // Jedna data uzywana dla wszystkich szybkich wpisow
     @State private var date: Date = AppClock.now
@@ -28,6 +28,7 @@ struct QuickAddSheetView: View {
     @State private var saveErrorMessage: String?
     @FocusState private var focusedKind: MetricKind?
     @State private var rulerBaseValues: [MetricKind: Double] = [:]
+    private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
 
     init(
         kinds: [MetricKind],
@@ -93,7 +94,7 @@ struct QuickAddSheetView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .accessibilityIdentifier("quickadd.sheet")
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !kinds.isEmpty && focusedKind == nil && !useInlineSaveBar {
+                if !kinds.isEmpty && !useInlineSaveBar {
                     saveBar
                 }
             }
@@ -237,7 +238,7 @@ struct QuickAddSheetView: View {
     }
 
     private var useInlineSaveBar: Bool {
-        dynamicTypeSize.isAccessibilitySize
+        dynamicTypeSize.isAccessibilitySize && !isUITestMode
     }
 
     private var inlineSaveSection: some View {

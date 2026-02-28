@@ -46,9 +46,9 @@ enum AppleIntelligenceSupport {
             return true
         }
         #endif
-        let enabled = UserDefaults.standard.object(forKey: "apple_intelligence_enabled") as? Bool ?? true
+        let enabled = AppSettingsStore.shared.object(forKey: "apple_intelligence_enabled") as? Bool ?? true
         guard enabled else { return false }
-        let premium = UserDefaults.standard.bool(forKey: "premium_entitlement")
+        let premium = AppSettingsStore.shared.bool(forKey: "premium_entitlement")
         guard premium else { return false }
         #if targetEnvironment(simulator)
         return false
@@ -64,9 +64,9 @@ enum AppleIntelligenceSupport {
 
 #if DEBUG
     static func debugAvailabilityText() -> String {
-        let enabled = UserDefaults.standard.object(forKey: "apple_intelligence_enabled") as? Bool ?? true
+        let enabled = AppSettingsStore.shared.object(forKey: "apple_intelligence_enabled") as? Bool ?? true
         guard enabled else { return "AI Insights: unavailable (disabled in app)" }
-        let premium = UserDefaults.standard.bool(forKey: "premium_entitlement")
+        let premium = AppSettingsStore.shared.bool(forKey: "premium_entitlement")
         guard premium else { return AppLocalization.string("AI Insights: unavailable (Premium Edition required)") }
         #if targetEnvironment(simulator)
         return "AI Insights: unavailable (not supported in Simulator)"

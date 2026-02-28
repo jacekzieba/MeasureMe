@@ -1,11 +1,13 @@
 import XCTest
 @testable import MeasureMe
 
+@MainActor
 final class AnalyticsClientTests: XCTestCase {
     func testPolicyDisabledWhenAuditDisablesAnalytics() {
         let defaults = UserDefaults(suiteName: "AnalyticsClientTests.audit")!
         defaults.removePersistentDomain(forName: "AnalyticsClientTests.audit")
         defaults.set(true, forKey: AnalyticsPolicy.analyticsEnabledKey)
+        let settings = AppSettingsStore(defaults: defaults)
 
         let config = AuditConfig(
             isEnabled: true,
@@ -19,7 +21,7 @@ final class AnalyticsClientTests: XCTestCase {
         let enabled = AnalyticsPolicy.isEnabled(
             auditConfig: config,
             arguments: ["MeasureMe"],
-            userDefaults: defaults,
+            userDefaults: settings,
             isDebugBuild: false
         )
 
@@ -30,6 +32,7 @@ final class AnalyticsClientTests: XCTestCase {
         let defaults = UserDefaults(suiteName: "AnalyticsClientTests.userOff")!
         defaults.removePersistentDomain(forName: "AnalyticsClientTests.userOff")
         defaults.set(false, forKey: AnalyticsPolicy.analyticsEnabledKey)
+        let settings = AppSettingsStore(defaults: defaults)
 
         let config = AuditConfig(
             isEnabled: false,
@@ -43,7 +46,7 @@ final class AnalyticsClientTests: XCTestCase {
         let enabled = AnalyticsPolicy.isEnabled(
             auditConfig: config,
             arguments: ["MeasureMe"],
-            userDefaults: defaults,
+            userDefaults: settings,
             isDebugBuild: false
         )
 
@@ -54,6 +57,7 @@ final class AnalyticsClientTests: XCTestCase {
         let defaults = UserDefaults(suiteName: "AnalyticsClientTests.debug")!
         defaults.removePersistentDomain(forName: "AnalyticsClientTests.debug")
         defaults.set(true, forKey: AnalyticsPolicy.analyticsEnabledKey)
+        let settings = AppSettingsStore(defaults: defaults)
 
         let config = AuditConfig(
             isEnabled: false,
@@ -67,7 +71,7 @@ final class AnalyticsClientTests: XCTestCase {
         let enabled = AnalyticsPolicy.isEnabled(
             auditConfig: config,
             arguments: ["MeasureMe"],
-            userDefaults: defaults,
+            userDefaults: settings,
             isDebugBuild: true
         )
 
@@ -78,6 +82,7 @@ final class AnalyticsClientTests: XCTestCase {
         let defaults = UserDefaults(suiteName: "AnalyticsClientTests.uitest")!
         defaults.removePersistentDomain(forName: "AnalyticsClientTests.uitest")
         defaults.set(true, forKey: AnalyticsPolicy.analyticsEnabledKey)
+        let settings = AppSettingsStore(defaults: defaults)
 
         let config = AuditConfig(
             isEnabled: false,
@@ -91,13 +96,13 @@ final class AnalyticsClientTests: XCTestCase {
         let modeDisabled = AnalyticsPolicy.isEnabled(
             auditConfig: config,
             arguments: ["MeasureMe", "-uiTestMode"],
-            userDefaults: defaults,
+            userDefaults: settings,
             isDebugBuild: false
         )
         let onboardingDisabled = AnalyticsPolicy.isEnabled(
             auditConfig: config,
             arguments: ["MeasureMe", "-uiTestOnboardingMode"],
-            userDefaults: defaults,
+            userDefaults: settings,
             isDebugBuild: false
         )
 
@@ -109,6 +114,7 @@ final class AnalyticsClientTests: XCTestCase {
         let defaults = UserDefaults(suiteName: "AnalyticsClientTests.enabled")!
         defaults.removePersistentDomain(forName: "AnalyticsClientTests.enabled")
         defaults.set(true, forKey: AnalyticsPolicy.analyticsEnabledKey)
+        let settings = AppSettingsStore(defaults: defaults)
 
         let config = AuditConfig(
             isEnabled: false,
@@ -122,7 +128,7 @@ final class AnalyticsClientTests: XCTestCase {
         let enabled = AnalyticsPolicy.isEnabled(
             auditConfig: config,
             arguments: ["MeasureMe"],
-            userDefaults: defaults,
+            userDefaults: settings,
             isDebugBuild: false
         )
 

@@ -10,7 +10,7 @@ import UIKit
 /// - Zapis raportów do pliku .crash w Application Support/CrashReports/
 /// - Sprawdzanie niezgłoszonych raportów przy starcie app
 final class CrashReporter {
-    static let shared = CrashReporter()
+    static let shared = CrashReporter(settings: .shared)
 
     // MARK: - Configuration
 
@@ -18,6 +18,7 @@ final class CrashReporter {
     private let reportsDirectoryName = "CrashReports"
     private let latestLogFileName = "latest_log.txt"
     private let unreportedKey = "crashreporter_has_unreported"
+    private let settings: AppSettingsStore
 
     // MARK: - State
 
@@ -26,7 +27,9 @@ final class CrashReporter {
     private var currentScreen: String = "Unknown"
     private var isInstalled = false
 
-    private init() {}
+    private init(settings: AppSettingsStore) {
+        self.settings = settings
+    }
 
     // MARK: - Setup
 
@@ -107,7 +110,7 @@ final class CrashReporter {
             let dir = try reportsDirectory()
             let url = dir.appendingPathComponent(filename)
             try data.write(to: url, options: .atomic)
-            UserDefaults.standard.set(true, forKey: unreportedKey)
+            settings.set(true, forKey: unreportedKey)
         } catch {
             // Nie możemy logować — app crashuje
         }
@@ -124,8 +127,8 @@ final class CrashReporter {
         let memoryInfo = ProcessInfo.processInfo.physicalMemory
         let memoryGB = String(format: "%.1f", Double(memoryInfo) / 1_073_741_824)
 
-        let unitsSystem = UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
-        let language = UserDefaults.standard.string(forKey: "appLanguage") ?? "system"
+        let unitsSystem = settings.string(forKey: "unitsSystem") ?? "metric"
+        let language = settings.string(forKey: "appLanguage") ?? "system"
 
         return """
         ============================
@@ -169,12 +172,12 @@ final class CrashReporter {
 
     /// Czy jest niezgłoszony crash report?
     var hasUnreportedCrash: Bool {
-        UserDefaults.standard.bool(forKey: unreportedKey)
+        settings.bool(forKey: unreportedKey)
     }
 
     /// Oznacz crash jako zgłoszony
     func markCrashReported() {
-        UserDefaults.standard.set(false, forKey: unreportedKey)
+        settings.set(false, forKey: unreportedKey)
     }
 
     /// Zwróć listę wszystkich raportów (najnowsze pierwsze)

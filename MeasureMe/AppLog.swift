@@ -1,13 +1,14 @@
 import Foundation
 
 enum AppLog {
+    static var settings: AppSettingsStore = .shared
     private static let diagnosticsLoggingEnabledKey = "diagnostics_logging_enabled"
 
     private nonisolated static var shouldPersistLogs: Bool {
         #if DEBUG
         return true
         #else
-        let defaults = UserDefaults.standard
+        let defaults = settings
         if defaults.object(forKey: diagnosticsLoggingEnabledKey) == nil {
             return true
         }

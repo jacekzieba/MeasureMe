@@ -459,7 +459,7 @@ private struct MetricChange {
 // MARK: - Metric Change Row
 private struct MetricChangeRow: View {
     let change: MetricChange
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
     
     var body: some View {
         HStack {

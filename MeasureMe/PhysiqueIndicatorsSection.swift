@@ -1,18 +1,18 @@
 import SwiftUI
 
 struct PhysiqueIndicatorsSection: View {
-    @AppStorage("userGender") private var userGenderRaw: String = "notSpecified"
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
-    @AppStorage("manualHeight") private var manualHeight: Double = 0.0
+    @AppSetting("userGender") private var userGenderRaw: String = "notSpecified"
+    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting("manualHeight") private var manualHeight: Double = 0.0
 
-    @AppStorage("showPhysiqueSWR") private var showPhysiqueSWR: Bool = true
-    @AppStorage("showPhysiqueCWR") private var showPhysiqueCWR: Bool = true
-    @AppStorage("showPhysiqueSHR") private var showPhysiqueSHR: Bool = true
-    @AppStorage("showPhysiqueHWR") private var showPhysiqueHWR: Bool = true
-    @AppStorage("showPhysiqueBWR") private var showPhysiqueBWR: Bool = true
-    @AppStorage("showPhysiqueWHtR") private var showPhysiqueWHtR: Bool = true
-    @AppStorage("showPhysiqueBodyFat") private var showPhysiqueBodyFat: Bool = true
-    @AppStorage("showPhysiqueRFM") private var showPhysiqueRFM: Bool = true
+    @AppSetting("showPhysiqueSWR") private var showPhysiqueSWR: Bool = true
+    @AppSetting("showPhysiqueCWR") private var showPhysiqueCWR: Bool = true
+    @AppSetting("showPhysiqueSHR") private var showPhysiqueSHR: Bool = true
+    @AppSetting("showPhysiqueHWR") private var showPhysiqueHWR: Bool = true
+    @AppSetting("showPhysiqueBWR") private var showPhysiqueBWR: Bool = true
+    @AppSetting("showPhysiqueWHtR") private var showPhysiqueWHtR: Bool = true
+    @AppSetting("showPhysiqueBodyFat") private var showPhysiqueBodyFat: Bool = true
+    @AppSetting("showPhysiqueRFM") private var showPhysiqueRFM: Bool = true
 
     let latestWaist: Double?
     let latestHeight: Double?

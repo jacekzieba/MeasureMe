@@ -235,16 +235,19 @@ final class ComputeStreakTests: XCTestCase {
 
 @MainActor
 final class StreakManagerIntegrationTests: XCTestCase {
+    private var suiteName: String!
     private var defaults: UserDefaults!
+    private var settings: AppSettingsStore!
     private var fixedDate: Date!
     private var manager: StreakManager!
     private let cal = Calendar(identifier: .iso8601)
 
     override func setUp() {
         super.setUp()
-        let suiteName = "StreakManagerTests.\(name)"
+        suiteName = "StreakManagerTests.\(UUID().uuidString)"
         defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
+        settings = AppSettingsStore(defaults: defaults)
 
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
@@ -252,14 +255,20 @@ final class StreakManagerIntegrationTests: XCTestCase {
         fixedDate = formatter.date(from: "2026-02-25 12:00:00")!
 
         manager = StreakManager(
-            defaults: defaults,
+            defaults: settings,
             clock: { [fixedDate] in fixedDate! },
             calendar: cal
         )
     }
 
     override func tearDown() {
-        defaults.removePersistentDomain(forName: "StreakManagerTests.\(name)")
+        manager = nil
+        settings = nil
+        defaults = nil
+        if let suiteName, let cleanupDefaults = UserDefaults(suiteName: suiteName) {
+            cleanupDefaults.removePersistentDomain(forName: suiteName)
+        }
+        suiteName = nil
         super.tearDown()
     }
 
@@ -286,7 +295,7 @@ final class StreakManagerIntegrationTests: XCTestCase {
 
         let weekID = fixedDate.isoWeekIdentifier(calendar: cal)
         let data = try! JSONEncoder().encode([weekID])
-        defaults.set(data, forKey: "streak_app_opened_weeks")
+        settings.set(data, forKey: "streak_app_opened_weeks")
 
         manager.recordHealthKitImport(sampleDates: [fixedDate])
         XCTAssertEqual(manager.currentStreak, 1)
@@ -297,18 +306,12 @@ final class StreakManagerIntegrationTests: XCTestCase {
         manager.recordMetricSaved(date: w08Date)
         manager.recordMetricSaved(date: fixedDate)
 
-        defaults.set("2026-W08", forKey: "streak_animation_played_week")
-
-        let freshManager = StreakManager(
-            defaults: defaults,
-            clock: { [fixedDate] in fixedDate! },
-            calendar: cal
-        )
+        settings.set("2026-W08", forKey: "streak_animation_played_week")
 
         let currentWeek = fixedDate.isoWeekIdentifier(calendar: cal)
-        let animPlayedWeek = defaults.string(forKey: "streak_animation_played_week")
+        let animPlayedWeek = settings.string(forKey: "streak_animation_played_week")
         XCTAssertNotEqual(animPlayedWeek, currentWeek)
-        XCTAssertGreaterThan(freshManager.currentStreak, 0)
+        XCTAssertGreaterThan(manager.currentStreak, 0)
     }
 
     func testMarkAnimationPlayed_preventsReplay() {

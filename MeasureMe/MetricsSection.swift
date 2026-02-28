@@ -10,7 +10,7 @@ struct MetricsSection: View {
     var onToggleChanged: ((_ kind: MetricKind, _ isNowEnabled: Bool) -> Void)?
 
     @State private var isExpanded = true
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {

@@ -7,32 +7,32 @@ struct HealthMetricsSection: View {
         case full
     }
 
-    @AppStorage("userName") private var userName: String = ""
+    @AppSetting("userName") private var userName: String = ""
     @EnvironmentObject private var premiumStore: PremiumStore
-    @AppStorage("userGender") private var userGenderRaw: String = "notSpecified"
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
-    @AppStorage("manualHeight") private var manualHeight: Double = 0.0
-    @AppStorage("userAge") private var userAgeValue: Int = 0
+    @AppSetting("userGender") private var userGenderRaw: String = "notSpecified"
+    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting("manualHeight") private var manualHeight: Double = 0.0
+    @AppSetting("userAge") private var userAgeValue: Int = 0
 
     // Core Metrics visibility
-    @AppStorage("showWHtROnHome") private var showWHtROnHome: Bool = true
-    @AppStorage("showRFMOnHome") private var showRFMOnHome: Bool = true
-    @AppStorage("showBMIOnHome") private var showBMIOnHome: Bool = true
+    @AppSetting("showWHtROnHome") private var showWHtROnHome: Bool = true
+    @AppSetting("showRFMOnHome") private var showRFMOnHome: Bool = true
+    @AppSetting("showBMIOnHome") private var showBMIOnHome: Bool = true
 
     // Body Composition visibility
-    @AppStorage("showBodyFatOnHome") private var showBodyFatOnHome: Bool = true
-    @AppStorage("showLeanMassOnHome") private var showLeanMassOnHome: Bool = true
+    @AppSetting("showBodyFatOnHome") private var showBodyFatOnHome: Bool = true
+    @AppSetting("showLeanMassOnHome") private var showLeanMassOnHome: Bool = true
 
     // Health distribution and risk visibility
-    @AppStorage("showWHROnHome") private var showWHROnHome: Bool = true
-    @AppStorage("showWaistRiskOnHome") private var showWaistRiskOnHome: Bool = true
-    @AppStorage("showABSIOnHome") private var showABSIOnHome: Bool = true
-    @AppStorage("showBodyShapeScoreOnHome") private var showBodyShapeScoreOnHome: Bool = true
-    @AppStorage("showCentralFatRiskOnHome") private var showCentralFatRiskOnHome: Bool = true
+    @AppSetting("showWHROnHome") private var showWHROnHome: Bool = true
+    @AppSetting("showWaistRiskOnHome") private var showWaistRiskOnHome: Bool = true
+    @AppSetting("showABSIOnHome") private var showABSIOnHome: Bool = true
+    @AppSetting("showBodyShapeScoreOnHome") private var showBodyShapeScoreOnHome: Bool = true
+    @AppSetting("showCentralFatRiskOnHome") private var showCentralFatRiskOnHome: Bool = true
 
     // Legacy migration
-    @AppStorage("showConicityOnHome") private var showConicityOnHome: Bool = true
-    @AppStorage("health_indicators_v2_migrated") private var hasMigratedHealthIndicatorsV2: Bool = false
+    @AppSetting("showConicityOnHome") private var showConicityOnHome: Bool = true
+    @AppSetting("health_indicators_v2_migrated") private var hasMigratedHealthIndicatorsV2: Bool = false
 
     #if DEBUG
     private var uiTestForcePremium: Bool { ProcessInfo.processInfo.arguments.contains("-uiTestForcePremium") }
@@ -549,7 +549,7 @@ struct HealthMetricsSection: View {
     private func migrateLegacyVisibilityIfNeeded() {
         guard !hasMigratedHealthIndicatorsV2 else { return }
 
-        let defaults = UserDefaults.standard
+        let defaults = AppSettingsStore.shared
         if defaults.object(forKey: "showCentralFatRiskOnHome") == nil {
             showCentralFatRiskOnHome = showConicityOnHome
         }

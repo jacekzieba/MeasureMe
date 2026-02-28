@@ -19,7 +19,7 @@ struct HealthSettingsSection: View {
     @State private var authorizationTask: Task<Void, Never>?
     @State private var isMetricsExpanded: Bool = false
     @State private var syncStatusMessage: String?
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     var body: some View {
@@ -516,7 +516,7 @@ struct LanguageSettingsDetailView: View {
 }
 
 struct DataSettingsDetailView: View {
-    @AppStorage("analytics_enabled") private var analyticsEnabled: Bool = true
+    @AppSetting("analytics_enabled") private var analyticsEnabled: Bool = true
     let onExport: () -> Void
     let onImport: () -> Void
     let onSeedDummyData: () -> Void
@@ -626,7 +626,7 @@ struct DataSettingsDetailView: View {
 }
 
 struct AboutSettingsDetailView: View {
-    @AppStorage("diagnostics_logging_enabled") private var diagnosticsLoggingEnabled: Bool = true
+    @AppSetting("diagnostics_logging_enabled") private var diagnosticsLoggingEnabled: Bool = true
     @Environment(\.openURL) private var openURL
     let onReportBug: () -> Void
 

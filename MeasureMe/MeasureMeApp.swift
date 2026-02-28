@@ -4,7 +4,8 @@ import UIKit
 
 @main
 struct MeasureMeApp: App {
-    @AppStorage("appLanguage") private var appLanguage: String = "system"
+    @AppSetting("appLanguage") private var appLanguage: String = "system"
+    @StateObject private var settingsStore = AppSettingsStore.shared
     @State private var startupState: StartupState = .loading
     @State private var startupLoadingState = StartupLoadingState(
         phase: .initializingStorage,
@@ -60,39 +61,6 @@ struct MeasureMeApp: App {
         Analytics.shared.setup()
         Analytics.shared.track(.appLaunched)
 
-        UserDefaults.standard.register(defaults: [
-            "hasCompletedOnboarding": false,
-            "userName": "",
-            "userAge": 0,
-            "metric_weight_enabled": true,
-            "metric_waist_enabled": true,
-            "metric_bodyFat_enabled": true,
-            "metric_nonFatMass_enabled": true,
-            "unitsSystem": "metric",
-            "animationsEnabled": true,
-            "hapticsEnabled": true,
-            "save_unchanged_quick_add": false,
-            "measurement_photo_reminders_enabled": true,
-            "measurement_goal_achieved_enabled": true,
-            "onboarding_skipped_healthkit": false,
-            "onboarding_skipped_reminders": false,
-            "onboarding_checklist_show": true,
-            "onboarding_checklist_collapsed": false,
-            "onboarding_checklist_hide_completed": false,
-            "onboarding_checklist_metrics_completed": false,
-            "onboarding_checklist_premium_explored": false,
-            "settings_open_tracked_measurements": false,
-            "settings_open_reminders": false,
-            "appLanguage": "system",
-            "analytics_enabled": true,
-            "diagnostics_logging_enabled": true,
-            "healthkit_sync_weight": true,
-            "healthkit_sync_bodyFat": true,
-            "healthkit_sync_height": true,
-            "healthkit_sync_leanBodyMass": true,
-            "healthkit_sync_waist": true,
-            "showStreakOnHome": true
-        ])
         configureUITestDefaultsIfNeeded()
 
         let segmentedFont = UIFont.systemFont(ofSize: 13, weight: .semibold).withMonospacedDigits()
@@ -159,6 +127,7 @@ struct MeasureMeApp: App {
                 }
             }
             .environment(\.locale, appLocale)
+            .environmentObject(settingsStore)
             .task(id: startupAttemptID) {
                 await bootstrapApp()
             }
@@ -302,7 +271,7 @@ struct MeasureMeApp: App {
         Task(priority: .background) {
             try? await Task.sleep(for: .milliseconds(600))
             let context = ModelContext(container)
-            let units = UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
+            let units = settingsStore.string(forKey: "unitsSystem") ?? "metric"
             WidgetDataWriter.writeAllAndReload(context: context, unitsSystem: units)
         }
     }
@@ -326,7 +295,7 @@ struct MeasureMeApp: App {
     private func configureUITestDefaultsIfNeeded() {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        let defaults = UserDefaults.standard
+        let defaults = AppSettingsStore.shared
         let metricKeys = [
             "metric_weight_enabled", "metric_bodyFat_enabled", "metric_height_enabled",
             "metric_nonFatMass_enabled", "metric_waist_enabled", "metric_neck_enabled",

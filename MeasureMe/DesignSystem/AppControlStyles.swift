@@ -25,7 +25,7 @@ enum AppCTAButtonSize {
 struct AppCTAButtonStyle: ButtonStyle {
     var size: AppCTAButtonSize = .regular
     var cornerRadius: CGFloat = AppRadius.md
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
 
     func makeBody(configuration: Configuration) -> some View {
         _AnimatedButtonContent(
@@ -66,7 +66,7 @@ struct AppCTAButtonStyle: ButtonStyle {
 
 struct AppSecondaryButtonStyle: ButtonStyle {
     var cornerRadius: CGFloat = AppRadius.md
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
 
     func makeBody(configuration: Configuration) -> some View {
         _AnimatedButtonContent(
@@ -106,7 +106,7 @@ struct AppSecondaryButtonStyle: ButtonStyle {
 struct AppDestructiveButtonStyle: ButtonStyle {
     var size: AppCTAButtonSize = .regular
     var cornerRadius: CGFloat = AppRadius.md
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
 
     func makeBody(configuration: Configuration) -> some View {
         _AnimatedButtonContent(

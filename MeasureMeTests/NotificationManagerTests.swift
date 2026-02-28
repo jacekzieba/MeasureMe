@@ -51,9 +51,10 @@ private final class MockNotificationCenterClient: NotificationCenterClient {
 @MainActor
 final class NotificationManagerTests: XCTestCase {
     private static var retainedManagers: [NotificationManager] = []
+    private var defaults: UserDefaults!
+    private var settings: AppSettingsStore!
 
     private func resetNotificationDefaults() {
-        let defaults = UserDefaults.standard
         [
             "measurement_reminders",
             "measurement_notifications_enabled",
@@ -70,16 +71,22 @@ final class NotificationManagerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        let suiteName = "NotificationManagerTests.\(name)"
+        defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        settings = AppSettingsStore(defaults: defaults)
         resetNotificationDefaults()
     }
 
     override func tearDown() {
         resetNotificationDefaults()
+        defaults.removePersistentDomain(forName: "NotificationManagerTests.\(name)")
+        settings = nil
         super.tearDown()
     }
 
     private func makeManager(center: NotificationCenterClient) -> NotificationManager {
-        let manager = NotificationManager(center: center)
+        let manager = NotificationManager(center: center, settings: settings)
         Self.retainedManagers.append(manager)
         return manager
     }
@@ -161,9 +168,9 @@ final class NotificationManagerTests: XCTestCase {
         XCTAssertTrue(center.removedIdentifiers.contains("measurement_smart_reminder"))
         XCTAssertTrue(center.removedIdentifiers.contains("goal_achieved_weight_123_notification"))
         XCTAssertFalse(center.removedIdentifiers.contains("some_other_app_notification"))
-        XCTAssertFalse(UserDefaults.standard.bool(forKey: "measurement_notifications_enabled"))
-        XCTAssertFalse(UserDefaults.standard.bool(forKey: "measurement_smart_enabled"))
-        XCTAssertEqual(UserDefaults.standard.integer(forKey: "measurement_smart_days"), 0)
-        XCTAssertNil(UserDefaults.standard.data(forKey: "measurement_reminders"))
+        XCTAssertFalse(settings.bool(forKey: "measurement_notifications_enabled"))
+        XCTAssertFalse(settings.bool(forKey: "measurement_smart_enabled"))
+        XCTAssertEqual(settings.integer(forKey: "measurement_smart_days"), 0)
+        XCTAssertNil(settings.data(forKey: "measurement_reminders"))
     }
 }

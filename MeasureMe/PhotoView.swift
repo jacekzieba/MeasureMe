@@ -40,8 +40,8 @@ struct PhotoView: View {
     @State private var pickerDismissedAt: ContinuousClock.Instant?
     @State private var photoBatchByPersistentID: [String: UUID] = [:]
     
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppStorage("photos_filter_tag") private var photosFilterTag: String = ""
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("photos_filter_tag") private var photosFilterTag: String = ""
     private var shouldAnimate: Bool {
         AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }

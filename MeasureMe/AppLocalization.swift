@@ -31,6 +31,8 @@ enum AppLanguage: String {
 }
 
 enum AppLocalization {
+    static var settings: AppSettingsStore = .shared
+
     /// Buforuje jezyk i bundle, aby ograniczyc koszt odczytu UserDefaults i tworzenia Bundle(path:) przy kazdym wywolaniu.
     /// Bundle(path:) on every call to `string()`.  Invalidated via
     /// `reloadLanguage()` po zmianie jezyka aplikacji.
@@ -54,7 +56,7 @@ enum AppLocalization {
     }
 
     private static func loadLanguageFromDefaults() -> AppLanguage {
-        let raw = UserDefaults.standard.string(forKey: "appLanguage") ?? "system"
+        let raw = settings.string(forKey: "appLanguage") ?? "system"
         return AppLanguage(rawValue: raw) ?? .system
     }
 

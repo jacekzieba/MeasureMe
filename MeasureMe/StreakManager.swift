@@ -23,7 +23,7 @@ extension Date {
 @MainActor
 final class StreakManager: ObservableObject {
 
-    static let shared = StreakManager(clock: { AppClock.now })
+    static let shared = StreakManager(defaults: .shared, clock: { AppClock.now })
 
     // MARK: - Published State
 
@@ -32,7 +32,7 @@ final class StreakManager: ObservableObject {
 
     // MARK: - Dependencies
 
-    private let defaults: UserDefaults
+    private let defaults: AppSettingsStore
     private let clock: () -> Date
     private let calendar: Calendar
 
@@ -49,7 +49,7 @@ final class StreakManager: ObservableObject {
     // MARK: - Init
 
     init(
-        defaults: UserDefaults = .standard,
+        defaults: AppSettingsStore,
         clock: @escaping () -> Date = { Date() },
         calendar: Calendar = Calendar(identifier: .iso8601)
     ) {
@@ -57,6 +57,13 @@ final class StreakManager: ObservableObject {
         self.clock = clock
         self.calendar = calendar
         self.currentStreak = defaults.integer(forKey: Keys.currentCount)
+    }
+
+    convenience init(
+        clock: @escaping () -> Date,
+        calendar: Calendar = Calendar(identifier: .iso8601)
+    ) {
+        self.init(defaults: .shared, clock: clock, calendar: calendar)
     }
 
     // MARK: - Public API

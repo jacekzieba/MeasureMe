@@ -118,8 +118,8 @@ struct HealthMetricRow<Destination: View>: View {
         }
     }
     .onAppear {
-        UserDefaults.standard.set(30, forKey: "userAge")
-        UserDefaults.standard.set("male", forKey: "userGender")
+        AppSettingsStore.shared.set(30, forKey: "userAge")
+        AppSettingsStore.shared.set("male", forKey: "userGender")
     }
 }
 
@@ -164,15 +164,15 @@ struct HealthMetricRow<Destination: View>: View {
         }
     }
     .onAppear {
-        UserDefaults.standard.set(false, forKey: "showBMIOnHome")
-        UserDefaults.standard.set(false, forKey: "showWHtROnHome")
-        UserDefaults.standard.set(false, forKey: "showRFMOnHome")
-        UserDefaults.standard.set(false, forKey: "showBodyFatOnHome")
-        UserDefaults.standard.set(false, forKey: "showLeanMassOnHome")
-        UserDefaults.standard.set(false, forKey: "showABSIOnHome")
-        UserDefaults.standard.set(false, forKey: "showBodyShapeScoreOnHome")
-        UserDefaults.standard.set(false, forKey: "showCentralFatRiskOnHome")
-        UserDefaults.standard.set(false, forKey: "showWHROnHome")
-        UserDefaults.standard.set(false, forKey: "showWaistRiskOnHome")
+        AppSettingsStore.shared.set(false, forKey: "showBMIOnHome")
+        AppSettingsStore.shared.set(false, forKey: "showWHtROnHome")
+        AppSettingsStore.shared.set(false, forKey: "showRFMOnHome")
+        AppSettingsStore.shared.set(false, forKey: "showBodyFatOnHome")
+        AppSettingsStore.shared.set(false, forKey: "showLeanMassOnHome")
+        AppSettingsStore.shared.set(false, forKey: "showABSIOnHome")
+        AppSettingsStore.shared.set(false, forKey: "showBodyShapeScoreOnHome")
+        AppSettingsStore.shared.set(false, forKey: "showCentralFatRiskOnHome")
+        AppSettingsStore.shared.set(false, forKey: "showWHROnHome")
+        AppSettingsStore.shared.set(false, forKey: "showWaistRiskOnHome")
     }
 }

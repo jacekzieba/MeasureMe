@@ -16,25 +16,25 @@ struct HomeView: View {
     @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var modelContext
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppStorage("userName") private var userName: String = ""
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
-    @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
-    @AppStorage("showLastPhotosOnHome") private var showLastPhotosOnHome: Bool = true
-    @AppStorage("showMeasurementsOnHome") private var showMeasurementsOnHome: Bool = true
-    @AppStorage("showHealthMetricsOnHome") private var showHealthMetricsOnHome: Bool = true
-    @AppStorage("showStreakOnHome") private var showStreakOnHome: Bool = true
-    @AppStorage("home_tab_scroll_offset") private var homeTabScrollOffset: Double = 0.0
-    @AppStorage("onboarding_skipped_healthkit") private var onboardingSkippedHealthKit: Bool = false
-    @AppStorage("onboarding_skipped_reminders") private var onboardingSkippedReminders: Bool = false
-    @AppStorage("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
-    @AppStorage("onboarding_checklist_metrics_completed") private var onboardingChecklistMetricsCompleted: Bool = false
-    @AppStorage("onboarding_checklist_premium_explored") private var onboardingChecklistPremiumExplored: Bool = false
-    @AppStorage("onboarding_checklist_collapsed") private var onboardingChecklistCollapsed: Bool = false
-    @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
-    @AppStorage("settings_open_reminders") private var settingsOpenReminders: Bool = false
-    @AppStorage("home_photo_metric_sync_last_date") private var photoMetricSyncLastDate: Double = 0
-    @AppStorage("home_photo_metric_sync_last_id") private var photoMetricSyncLastID: String = ""
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("userName") private var userName: String = ""
+    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting("isSyncEnabled") var isSyncEnabled: Bool = false
+    @AppSetting("showLastPhotosOnHome") private var showLastPhotosOnHome: Bool = true
+    @AppSetting("showMeasurementsOnHome") private var showMeasurementsOnHome: Bool = true
+    @AppSetting("showHealthMetricsOnHome") private var showHealthMetricsOnHome: Bool = true
+    @AppSetting("showStreakOnHome") private var showStreakOnHome: Bool = true
+    @AppSetting("home_tab_scroll_offset") private var homeTabScrollOffset: Double = 0.0
+    @AppSetting("onboarding_skipped_healthkit") private var onboardingSkippedHealthKit: Bool = false
+    @AppSetting("onboarding_skipped_reminders") private var onboardingSkippedReminders: Bool = false
+    @AppSetting("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
+    @AppSetting("onboarding_checklist_metrics_completed") private var onboardingChecklistMetricsCompleted: Bool = false
+    @AppSetting("onboarding_checklist_premium_explored") private var onboardingChecklistPremiumExplored: Bool = false
+    @AppSetting("onboarding_checklist_collapsed") private var onboardingChecklistCollapsed: Bool = false
+    @AppSetting("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
+    @AppSetting("settings_open_reminders") private var settingsOpenReminders: Bool = false
+    @AppSetting("home_photo_metric_sync_last_date") private var photoMetricSyncLastDate: Double = 0
+    @AppSetting("home_photo_metric_sync_last_id") private var photoMetricSyncLastID: String = ""
     
     @EnvironmentObject private var router: AppRouter
     @ObservedObject private var streakManager = StreakManager.shared
@@ -65,8 +65,8 @@ struct HomeView: View {
     @State private var deferredSectionMountTask: Task<Void, Never>?
     
     // Dane HealthKit
-    @State private var latestBodyFat: Double?
-    @State private var latestLeanMass: Double?
+    @State var latestBodyFat: Double?
+    @State var latestLeanMass: Double?
     @State private var hasAnyMeasurements = false
 
     // Zbuforowane dane pochodne - odswiezane przez onChange zamiast przeliczania przy kazdym renderze
@@ -79,52 +79,6 @@ struct HomeView: View {
     private let autoCheckPaywallPrompt: Bool
     private var shouldAnimate: Bool {
         AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
-    }
-
-    static func deltaText(
-        samples: [MetricSample],
-        kind: MetricKind,
-        unitsSystem: String,
-        days: Int,
-        now: Date = Date()
-    ) -> String? {
-        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: now) else { return nil }
-        let kindSamples = samples.filter { $0.date >= start }
-        guard let newest = kindSamples.first,
-              let oldest = kindSamples.last,
-              newest.persistentModelID != oldest.persistentModelID else {
-            return nil
-        }
-        let newestValue = kind.valueForDisplay(fromMetric: newest.value, unitsSystem: unitsSystem)
-        let oldestValue = kind.valueForDisplay(fromMetric: oldest.value, unitsSystem: unitsSystem)
-        let delta = newestValue - oldestValue
-        return String(format: "%+.1f %@", delta, kind.unitSymbol(unitsSystem: unitsSystem))
-    }
-
-    static func isAfterPhotoSyncCursor(
-        photoDate: Date,
-        photoID: String,
-        cursorDate: Double,
-        cursorID: String
-    ) -> Bool {
-        let photoTime = photoDate.timeIntervalSince1970
-        if photoTime > cursorDate {
-            return true
-        }
-        if photoTime < cursorDate {
-            return false
-        }
-        return photoID > cursorID
-    }
-
-    static func newestPhotoSyncCursor(candidates: [(date: Date, id: String)]) -> (date: Double, id: String)? {
-        guard let newest = candidates.max(by: { lhs, rhs in
-            if lhs.date != rhs.date {
-                return lhs.date < rhs.date
-            }
-            return lhs.id < rhs.id
-        }) else { return nil }
-        return (newest.date.timeIntervalSince1970, newest.id)
     }
 
     init(autoCheckPaywallPrompt: Bool = true) {
@@ -671,33 +625,6 @@ struct HomeView: View {
         }
     }
     
-    // MARK: - HealthKit Data Fetching
-    
-    private func fetchHealthKitData() {
-        guard isSyncEnabled else {
-            latestBodyFat = nil
-            latestLeanMass = nil
-            return
-        }
-
-        Task {
-            do {
-                let composition = try await HealthKitManager.shared.fetchLatestBodyCompositionCached()
-                await MainActor.run {
-                    // Zachowuj prawdziwe wartosci: bez sztucznych placeholderow, gdy brakuje danych Health.
-                    latestBodyFat = composition.bodyFat
-                    latestLeanMass = composition.leanMass
-                }
-            } catch {
-                AppLog.debug("⚠️ Error fetching HealthKit data: \(error.localizedDescription)")
-                await MainActor.run {
-                    latestBodyFat = nil
-                    latestLeanMass = nil
-                }
-            }
-        }
-    }
-
     private var greetingCard: some View {
         return AppGlassCard(
             depth: .floating,
@@ -1055,7 +982,10 @@ struct HomeView: View {
     }
 
     private func autoHideChecklistIfCompleted() {
-        guard allChecklistItemsCompleted, showOnboardingChecklistOnHome else { return }
+        guard HomeChecklistLogic.shouldAutoHideChecklist(
+            allChecklistItemsCompleted: allChecklistItemsCompleted,
+            showOnboardingChecklistOnHome: showOnboardingChecklistOnHome
+        ) else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             withAnimation(AppMotion.animation(AppMotion.sectionExit, enabled: shouldAnimate)) {
                 showOnboardingChecklistOnHome = false
@@ -1359,232 +1289,5 @@ struct HomeView: View {
                 .tint(Color.appAccent)
             }
         }
-    }
-}
-
-private struct PhotoGridThumb: View {
-    let photo: PhotoEntry
-    let size: CGFloat
-    let cacheID: String
-    @Environment(\.modelContext) private var modelContext
-    
-    var body: some View {
-        DownsampledImageView(
-            imageData: photo.thumbnailOrImageData,
-            targetSize: CGSize(width: size, height: size),
-            contentMode: .fill,
-            cornerRadius: 12,
-            showsProgress: false,
-            cacheID: cacheID
-        )
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .onAppear {
-            guard photo.thumbnailData == nil else { return }
-            Task(priority: .utility) {
-                await PhotoThumbnailBackfillService.shared.enqueueIfNeeded(
-                    photoID: photo.persistentModelID,
-                    originalImageData: photo.imageData,
-                    existingThumbnailData: photo.thumbnailData,
-                    modelContainer: modelContext.container,
-                    source: "home_last_photos"
-                )
-            }
-        }
-    }
-}
-
-// MARK: - Home Key Metric Row
-
-struct HomeKeyMetricRow: View {
-    let kind: MetricKind
-    let latest: MetricSample?
-    let goal: MetricGoal?
-    let samples: [MetricSample]
-    let unitsSystem: String
-
-    private let cornerRadius: CGFloat = 16
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    kind.iconView(font: AppTypography.metricTitle, size: 16, tint: Color.appAccent)
-
-                    ViewThatFits(in: .vertical) {
-                        Text(kind.title)
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                        Text(kind.title)
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                if let latest {
-                    Text(valueString(metricValue: latest.value))
-                        .font(AppTypography.metricValue)
-                        .contentTransition(.numericText())
-                        .foregroundStyle(.white)
-
-                    if let goal = goal {
-                        HomeGoalProgressBar(
-                            goal: goal,
-                            latest: latest,
-                            baselineValue: baselineValue(for: goal),
-                            format: { valueString(metricValue: $0) }
-                        )
-                    } else {
-                        Text(AppLocalization.string("Set a goal to see progress."))
-                            .font(AppTypography.micro)
-                            .foregroundStyle(.white.opacity(0.6))
-                    }
-                } else {
-                    Text(AppLocalization.string("—"))
-                        .font(AppTypography.metricValue)
-                        .foregroundStyle(.white.opacity(0.6))
-                    Text(AppLocalization.string("No data yet"))
-                        .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.5))
-                }
-            }
-            .frame(maxHeight: .infinity, alignment: .top)
-
-            Spacer(minLength: 8)
-
-            if !samples.isEmpty {
-                MiniSparklineChart(samples: samples, kind: kind, goal: goal)
-                    .frame(width: 90, height: 44)
-            } else {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
-                    .frame(width: 90, height: 44)
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            AppGlassBackground(
-                depth: .base,
-                cornerRadius: cornerRadius,
-                tint: Color.appAccent.opacity(0.10)
-            )
-        )
-    }
-
-    private func valueString(metricValue: Double) -> String {
-        let shown = kind.valueForDisplay(fromMetric: metricValue, unitsSystem: unitsSystem)
-        let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-        return String(format: "%.1f %@", shown, unit)
-    }
-
-    private func baselineValue(for goal: MetricGoal) -> Double {
-        // Priorytet: użytkownik podał jawny punkt startowy
-        if let sv = goal.startValue { return sv }
-
-        // Stare zachowanie: ostatnia próbka ≤ daty utworzenia celu
-        guard !samples.isEmpty else { return latest?.value ?? goal.targetValue }
-        let sorted = samples.sorted { $0.date < $1.date }
-        if let baseline = sorted.last(where: { $0.date <= goal.createdDate }) {
-            return baseline.value
-        }
-        return sorted.first?.value ?? (latest?.value ?? goal.targetValue)
-    }
-}
-
-private struct HomeGoalProgressBar: View {
-    let goal: MetricGoal
-    let latest: MetricSample
-    let baselineValue: Double
-    let format: (Double) -> String
-
-    var body: some View {
-        let currentVal = latest.value
-        let goalVal = goal.targetValue
-        let progress: Double
-        let isAchieved: Bool
-        switch goal.direction {
-        case .increase:
-            let denominator = goalVal - baselineValue
-            if denominator <= 0 {
-                progress = 0.0
-                isAchieved = false
-            } else {
-                let raw = (currentVal - baselineValue) / denominator
-                progress = min(max(raw, 0.0), 1.0)
-                isAchieved = progress >= 1.0
-            }
-        case .decrease:
-            let denominator = baselineValue - goalVal
-            if denominator <= 0 {
-                progress = 0.0
-                isAchieved = false
-            } else {
-                let raw = (baselineValue - currentVal) / denominator
-                progress = min(max(raw, 0.0), 1.0)
-                isAchieved = progress >= 1.0
-            }
-        }
-
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(AppLocalization.string("Progress"))
-                    .font(AppTypography.micro)
-                    .foregroundStyle(.white.opacity(0.6))
-                Spacer()
-                Text("\(Int(progress * 100))%")
-                    .font(AppTypography.microEmphasis.monospacedDigit())
-                    .contentTransition(.numericText())
-                    .foregroundStyle(isAchieved ? Color(hex: "#22C55E") : Color(hex: "#FCA311"))
-            }
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.white.opacity(0.12))
-                    Capsule()
-                        .fill(isAchieved ? Color(hex: "#22C55E") : Color(hex: "#FCA311"))
-                        .frame(width: geo.size.width * max(0, min(1, progress)))
-                }
-            }
-            .frame(height: 6)
-
-            HStack {
-                Text(AppLocalization.string("progress.now", format(currentVal)))
-                    .font(AppTypography.micro)
-                    .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.7))
-                Spacer()
-                Text(AppLocalization.string("progress.goal", format(goalVal)))
-                    .font(AppTypography.micro)
-                    .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-        }
-    }
-}
-// MARK: - Button Style
-
-private struct PressableTileStyle: ButtonStyle {
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func makeBody(configuration: Configuration) -> some View {
-        let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
-        configuration.label
-            .scaleEffect(configuration.isPressed && shouldAnimate ? 0.98 : 1)
-            .opacity(configuration.isPressed && shouldAnimate ? 0.9 : 1)
-    }
-}
-
-private struct HomeScrollOffsetKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }

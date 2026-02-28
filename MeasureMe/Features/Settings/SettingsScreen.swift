@@ -21,57 +21,57 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
     @EnvironmentObject private var premiumStore: PremiumStore
-    @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
-    @AppStorage("showLastPhotosOnHome") private var showLastPhotosOnHome: Bool = true
-    @AppStorage("showMeasurementsOnHome") private var showMeasurementsOnHome: Bool = true
-    @AppStorage("showHealthMetricsOnHome") private var showHealthMetricsOnHome: Bool = true
-    @AppStorage("showStreakOnHome") private var showStreakOnHome: Bool = true
-    @AppStorage("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
-    @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
-    @AppStorage("settings_open_reminders") private var settingsOpenReminders: Bool = false
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppStorage("hapticsEnabled") private var hapticsEnabled: Bool = true
-    @AppStorage("userName") private var userName: String = ""
-    @AppStorage("appLanguage") private var appLanguage: String = "system"
+    @AppSetting("isSyncEnabled") private var isSyncEnabled: Bool = false
+    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting("showLastPhotosOnHome") private var showLastPhotosOnHome: Bool = true
+    @AppSetting("showMeasurementsOnHome") private var showMeasurementsOnHome: Bool = true
+    @AppSetting("showHealthMetricsOnHome") private var showHealthMetricsOnHome: Bool = true
+    @AppSetting("showStreakOnHome") private var showStreakOnHome: Bool = true
+    @AppSetting("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
+    @AppSetting("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
+    @AppSetting("settings_open_reminders") private var settingsOpenReminders: Bool = false
+    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting("hapticsEnabled") private var hapticsEnabled: Bool = true
+    @AppSetting("userName") private var userName: String = ""
+    @AppSetting("appLanguage") private var appLanguage: String = "system"
     
     // Core Metrics visibility
-    @AppStorage("showWHtROnHome") private var showWHtROnHome: Bool = true
-    @AppStorage("showRFMOnHome") private var showRFMOnHome: Bool = true
-    @AppStorage("showBMIOnHome") private var showBMIOnHome: Bool = true
+    @AppSetting("showWHtROnHome") private var showWHtROnHome: Bool = true
+    @AppSetting("showRFMOnHome") private var showRFMOnHome: Bool = true
+    @AppSetting("showBMIOnHome") private var showBMIOnHome: Bool = true
     
     // Body Composition visibility
-    @AppStorage("showBodyFatOnHome") private var showBodyFatOnHome: Bool = true
-    @AppStorage("showLeanMassOnHome") private var showLeanMassOnHome: Bool = true
+    @AppSetting("showBodyFatOnHome") private var showBodyFatOnHome: Bool = true
+    @AppSetting("showLeanMassOnHome") private var showLeanMassOnHome: Bool = true
     
     // Risk Indicators visibility
-    @AppStorage("showWHROnHome") private var showWHROnHome: Bool = true
-    @AppStorage("showWaistRiskOnHome") private var showWaistRiskOnHome: Bool = true
-    @AppStorage("showABSIOnHome") private var showABSIOnHome: Bool = true
-    @AppStorage("showBodyShapeScoreOnHome") private var showBodyShapeScoreOnHome: Bool = true
-    @AppStorage("showCentralFatRiskOnHome") private var showCentralFatRiskOnHome: Bool = true
+    @AppSetting("showWHROnHome") private var showWHROnHome: Bool = true
+    @AppSetting("showWaistRiskOnHome") private var showWaistRiskOnHome: Bool = true
+    @AppSetting("showABSIOnHome") private var showABSIOnHome: Bool = true
+    @AppSetting("showBodyShapeScoreOnHome") private var showBodyShapeScoreOnHome: Bool = true
+    @AppSetting("showCentralFatRiskOnHome") private var showCentralFatRiskOnHome: Bool = true
 
     // Physique indicators visibility
-    @AppStorage("showPhysiqueSWR") private var showPhysiqueSWR: Bool = true
-    @AppStorage("showPhysiqueCWR") private var showPhysiqueCWR: Bool = true
-    @AppStorage("showPhysiqueSHR") private var showPhysiqueSHR: Bool = true
-    @AppStorage("showPhysiqueHWR") private var showPhysiqueHWR: Bool = true
-    @AppStorage("showPhysiqueBWR") private var showPhysiqueBWR: Bool = true
-    @AppStorage("showPhysiqueWHtR") private var showPhysiqueWHtR: Bool = true
-    @AppStorage("showPhysiqueBodyFat") private var showPhysiqueBodyFat: Bool = true
-    @AppStorage("showPhysiqueRFM") private var showPhysiqueRFM: Bool = true
+    @AppSetting("showPhysiqueSWR") private var showPhysiqueSWR: Bool = true
+    @AppSetting("showPhysiqueCWR") private var showPhysiqueCWR: Bool = true
+    @AppSetting("showPhysiqueSHR") private var showPhysiqueSHR: Bool = true
+    @AppSetting("showPhysiqueHWR") private var showPhysiqueHWR: Bool = true
+    @AppSetting("showPhysiqueBWR") private var showPhysiqueBWR: Bool = true
+    @AppSetting("showPhysiqueWHtR") private var showPhysiqueWHtR: Bool = true
+    @AppSetting("showPhysiqueBodyFat") private var showPhysiqueBodyFat: Bool = true
+    @AppSetting("showPhysiqueRFM") private var showPhysiqueRFM: Bool = true
     
-    @AppStorage("userGender") private var userGender: String = "notSpecified"
-    @AppStorage("manualHeight") private var manualHeight: Double = 0.0
-    @AppStorage("userAge") private var userAge: Int = 0
-    @AppStorage("healthkit_last_import") private var lastHealthImportTimestamp: Double = 0.0
-    @AppStorage("apple_intelligence_enabled") private var appleIntelligenceEnabled: Bool = true
+    @AppSetting("userGender") private var userGender: String = "notSpecified"
+    @AppSetting("manualHeight") private var manualHeight: Double = 0.0
+    @AppSetting("userAge") private var userAge: Int = 0
+    @AppSetting("healthkit_last_import") private var lastHealthImportTimestamp: Double = 0.0
+    @AppSetting("apple_intelligence_enabled") private var appleIntelligenceEnabled: Bool = true
     
-    @AppStorage("healthkit_sync_weight") private var hkWeight: Bool = true
-    @AppStorage("healthkit_sync_bodyFat") private var hkBodyFat: Bool = true
-    @AppStorage("healthkit_sync_height") private var hkHeight: Bool = true
-    @AppStorage("healthkit_sync_leanBodyMass") private var hkLeanMass: Bool = true
-    @AppStorage("healthkit_sync_waist") private var hkWaist: Bool = true
+    @AppSetting("healthkit_sync_weight") private var hkWeight: Bool = true
+    @AppSetting("healthkit_sync_bodyFat") private var hkBodyFat: Bool = true
+    @AppSetting("healthkit_sync_height") private var hkHeight: Bool = true
+    @AppSetting("healthkit_sync_leanBodyMass") private var hkLeanMass: Bool = true
+    @AppSetting("healthkit_sync_waist") private var hkWaist: Bool = true
 
     @State private var scrollOffset: CGFloat = 0
     @State private var shareItems: [Any] = []
@@ -101,50 +101,12 @@ struct SettingsView: View {
         return date.formatted(date: .abbreviated, time: .shortened)
     }
 
-    private enum SettingsSearchRoute: String, Hashable {
-        case profile
-        case metrics
-        case indicators
-        case health
-        case notifications
-        case home
-        case aiInsights
-        case units
-        case experience
-        case language
-        case data
-        case faq
-        case about
-    }
-
-    private struct SettingsSearchItem: Identifiable {
-        let route: SettingsSearchRoute
-        let title: String
-        let subtitle: String
-        let keywords: [String]
-
-        var id: String { route.rawValue + "_" + title }
-    }
-
     private var isSearchingSettings: Bool {
         !settingsSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var settingsSearchItems: [SettingsSearchItem] {
-        [
-            SettingsSearchItem(route: .profile, title: AppLocalization.string("Profile"), subtitle: AppLocalization.string("Name, gender, age, height"), keywords: ["profile", "name", "gender", "age", "height", "profil", "imię", "płeć", "wiek", "wzrost"]),
-            SettingsSearchItem(route: .metrics, title: AppLocalization.string("Metrics"), subtitle: AppLocalization.string("Tracked measurements"), keywords: ["metrics", "tracked", "measurements", "metryki", "śledzone", "pomiary"]),
-            SettingsSearchItem(route: .indicators, title: AppLocalization.string("Indicators"), subtitle: AppLocalization.string("Choose health and physique indicators"), keywords: ["indicators", "health indicators", "physique indicators", "wskaźniki", "zdrowia", "sylwetki"]),
-            SettingsSearchItem(route: .health, title: AppLocalization.string("Health"), subtitle: AppLocalization.string("Sync and synced data"), keywords: ["health", "sync", "synced", "zdrowie", "synchronizacja", "synchronizowane"]),
-            SettingsSearchItem(route: .notifications, title: AppLocalization.string("Notifications"), subtitle: AppLocalization.string("Manage reminders"), keywords: ["notifications", "reminders", "powiadomienia", "przypomnienia"]),
-            SettingsSearchItem(route: .home, title: AppLocalization.string("Home"), subtitle: AppLocalization.string("Home sections visibility"), keywords: ["home", "strona główna", "widoczność"]),
-            SettingsSearchItem(route: .aiInsights, title: AppLocalization.string("AI Insights"), subtitle: AppLocalization.string("Enable AI Insights"), keywords: ["ai", "insights", "analizy ai", "apple intelligence"]),
-            SettingsSearchItem(route: .units, title: AppLocalization.string("Units"), subtitle: AppLocalization.string("Metric or imperial"), keywords: ["units", "metric", "imperial", "jednostki", "metryczny", "imperialne"]),
-            SettingsSearchItem(route: .experience, title: AppLocalization.string("Animations and haptics"), subtitle: AppLocalization.string("Animations and haptics"), keywords: ["animations", "haptics", "animacje", "haptyka"]),
-            SettingsSearchItem(route: .language, title: AppLocalization.string("Language"), subtitle: AppLocalization.string("App language"), keywords: ["language", "app language", "język", "polski", "english"]),
-            SettingsSearchItem(route: .data, title: AppLocalization.string("Data"), subtitle: AppLocalization.string("Export and delete"), keywords: ["data", "export", "delete", "dane", "eksport", "usuń"]),
-            SettingsSearchItem(route: .faq, title: AppLocalization.string("FAQ"), subtitle: AppLocalization.string("Read frequently asked questions"), keywords: ["faq", "help", "pomoc", "pytania"])
-        ]
+        SettingsSearchCatalog.items
     }
 
     private var filteredSettingsSearchItems: [SettingsSearchItem] {
@@ -214,6 +176,7 @@ struct SettingsView: View {
                     .listRowBackground(Color.clear)
                     .listRowInsets(Self.settingsRowInsets)
                 } else {
+                    Group {
 
                 if !premiumStore.isPremium {
                     Section {
@@ -251,46 +214,14 @@ struct SettingsView: View {
                     .listRowInsets(Self.settingsRowInsets)
                 }
 
-                Section {
-                    SettingsCard(tint: Color.cyan.opacity(0.12)) {
-                        SettingsCardHeader(title: AppLocalization.string("AI Insights"), systemImage: "sparkles")
-                        if premiumStore.isPremium {
-                            if AppleIntelligenceSupport.isAvailable() {
-                                Toggle(isOn: $appleIntelligenceEnabled) {
-                                    Text(AppLocalization.string("Enable AI Insights"))
-                                }
-                                .tint(Color.appAccent)
-                                .onChange(of: appleIntelligenceEnabled) { _, _ in Haptics.selection() }
-                            } else {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(AppLocalization.string("AI Insights aren’t available right now."))
-                                        .font(AppTypography.caption)
-                                        .foregroundStyle(.secondary)
-                                    NavigationLink {
-                                        FAQView()
-                                    } label: {
-                                        Text(AppLocalization.string("Learn more in FAQ"))
-                                            .font(AppTypography.captionEmphasis)
-                                            .foregroundStyle(Color.appAccent)
-                                    }
-                                }
-                            }
-                        } else {
-                            HStack {
-                                Text(AppLocalization.string("Premium Edition required"))
-                                    .font(AppTypography.caption)
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                                Button(AppLocalization.string("Unlock")) {
-                                    premiumStore.presentPaywall(reason: .feature("AI Insights"))
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(Color.appAccent)
-                                .frame(minHeight: 44, alignment: .trailing)
-                            }
-                        }
+                SettingsAISection(
+                    isPremium: premiumStore.isPremium,
+                    isAppleIntelligenceAvailable: AppleIntelligenceSupport.isAvailable(),
+                    appleIntelligenceEnabled: $appleIntelligenceEnabled,
+                    onUnlock: {
+                        premiumStore.presentPaywall(reason: .feature("AI Insights"))
                     }
-                }
+                )
                 .listRowSeparator(.hidden)
                 .listSectionSeparator(.hidden)
                 .listRowBackground(Color.clear)
@@ -371,7 +302,7 @@ struct SettingsView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(Self.settingsRowInsets)
 
-                HealthSettingsSection(
+                SettingsHealthSection(
                     isSyncEnabled: $isSyncEnabled,
                     lastImportText: lastImportText,
                     hkWeight: $hkWeight,
@@ -465,43 +396,34 @@ struct SettingsView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(Self.settingsRowInsets)
 
-                Section {
-                    SettingsCard(tint: Color.appAccent.opacity(0.10)) {
-                        SettingsCardHeader(title: AppLocalization.string("Data"), systemImage: "square.and.arrow.up")
-                        NavigationLink {
-                            DataSettingsDetailView(
-                                onExport: {
-                                    Haptics.light()
-                                    if premiumStore.isPremium {
-                                        exportMetricsCSV()
-                                    } else {
-                                        premiumStore.presentPaywall(reason: .feature("Data export"))
-                                    }
-                                },
-                                onImport: {
-                                    Haptics.light()
-                                    if premiumStore.isPremium {
-                                        showImportPicker = true
-                                    } else {
-                                        premiumStore.presentPaywall(reason: .feature("Data import"))
-                                    }
-                                },
-                                onSeedDummyData: {
-                                    Haptics.light()
-                                    showSeedDummyDataConfirm = true
-                                },
-                                onDeleteAll: {
-                                    Haptics.light()
-                                    showDeleteAllDataConfirm = true
-                                }
-                            )
-                        } label: {
-                            Text(AppLocalization.string("Open data settings"))
-                                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                        }
-                        .buttonStyle(.plain)
+                SettingsDataSection(
+                    onExport: {
+                        Haptics.light()
+                        SettingsDataActions.runPremiumAction(
+                            isPremium: premiumStore.isPremium,
+                            feature: "Data export",
+                            onAllowed: { exportMetricsCSV() },
+                            onLocked: { premiumStore.presentPaywall(reason: .feature($0)) }
+                        )
+                    },
+                    onImport: {
+                        Haptics.light()
+                        SettingsDataActions.runPremiumAction(
+                            isPremium: premiumStore.isPremium,
+                            feature: "Data import",
+                            onAllowed: { showImportPicker = true },
+                            onLocked: { premiumStore.presentPaywall(reason: .feature($0)) }
+                        )
+                    },
+                    onSeedDummyData: {
+                        Haptics.light()
+                        showSeedDummyDataConfirm = true
+                    },
+                    onDeleteAll: {
+                        Haptics.light()
+                        showDeleteAllDataConfirm = true
                     }
-                }
+                )
                 .listRowSeparator(.hidden)
                 .listSectionSeparator(.hidden)
                 .listRowBackground(Color.clear)
@@ -619,6 +541,7 @@ struct SettingsView: View {
                 .listSectionSeparator(.hidden)
                 .listRowBackground(Color.clear)
                 .listRowInsets(Self.settingsRowInsets)
+                    }
                 }
             }
             .tint(Color.appAccent)
@@ -1119,7 +1042,7 @@ struct SettingsView: View {
     }
 
     private func clearHealthKitSyncMetadata() {
-        let defaults = UserDefaults.standard
+        let defaults = AppSettingsStore.shared
         defaults.set(false, forKey: "isSyncEnabled")
         defaults.removeObject(forKey: "healthkit_last_import")
         defaults.removeObject(forKey: "healthkit_initial_historical_import_v1")
@@ -1132,7 +1055,7 @@ struct SettingsView: View {
     }
 
     private func clearUserDataDefaults() {
-        let defaults = UserDefaults.standard
+        let defaults = AppSettingsStore.shared
         defaults.removeObject(forKey: "userName")
         defaults.removeObject(forKey: "userAge")
         defaults.removeObject(forKey: "userGender")
@@ -1168,6 +1091,17 @@ struct SettingsView: View {
                 showABSIOnHome: $showABSIOnHome,
                 showBodyShapeScoreOnHome: $showBodyShapeScoreOnHome,
                 showCentralFatRiskOnHome: $showCentralFatRiskOnHome,
+                showPhysiqueSWR: $showPhysiqueSWR,
+                showPhysiqueCWR: $showPhysiqueCWR,
+                showPhysiqueSHR: $showPhysiqueSHR,
+                showPhysiqueHWR: $showPhysiqueHWR,
+                showPhysiqueBWR: $showPhysiqueBWR,
+                showPhysiqueWHtR: $showPhysiqueWHtR,
+                showPhysiqueBodyFat: $showPhysiqueBodyFat,
+                showPhysiqueRFM: $showPhysiqueRFM
+            )
+        case .physiqueIndicators:
+            PhysiqueIndicatorsSettingsDetailView(
                 showPhysiqueSWR: $showPhysiqueSWR,
                 showPhysiqueCWR: $showPhysiqueCWR,
                 showPhysiqueSHR: $showPhysiqueSHR,
@@ -1689,74 +1623,5 @@ struct SettingsView: View {
                 result.goalsInserted += 1
             }
         }
-    }
-}
-
-// MARK: - Sections
-
-private struct PremiumBenefitsInfoView: View {
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.appAccent.opacity(0.2))
-
-            List {
-                Section {
-                    SettingsCard(tint: Color.appAccent.opacity(0.12)) {
-                        SettingsCardHeader(title: AppLocalization.string("settings.app.subscription.active"), systemImage: "checkmark.seal.fill")
-
-                        Text(AppLocalization.string("settings.app.subscription.active.detail"))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.76))
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        SettingsRowDivider()
-
-                        benefitRow(icon: "sparkles", textKey: "premium.carousel.unlock.item.ai")
-                        SettingsRowDivider()
-                        benefitRow(icon: "photo.on.rectangle.angled", textKey: "premium.carousel.unlock.item.compare")
-                        SettingsRowDivider()
-                        benefitRow(icon: "heart.text.square.fill", textKey: "premium.carousel.unlock.item.health")
-                        SettingsRowDivider()
-                        benefitRow(icon: "doc.text.fill", textKey: "premium.carousel.unlock.item.export")
-                        SettingsRowDivider()
-                        benefitRow(icon: "flag.fill", textKey: "premium.carousel.unlock.item.support")
-                    }
-                }
-                .listRowSeparator(.hidden)
-                .listSectionSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                .listRowBackground(Color.clear)
-            }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .padding(.top, 8)
-        }
-        .navigationTitle(AppLocalization.string("Premium Edition"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-    }
-
-    private func benefitRow(icon: String, textKey: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(AppTypography.iconMedium)
-                .foregroundStyle(Color.appAccent)
-                .frame(width: 22, alignment: .leading)
-
-            Text(AppLocalization.string(textKey))
-                .font(AppTypography.body)
-                .foregroundStyle(.white)
-        }
-        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-    }
-}
-
-private extension View {
-    @ViewBuilder
-    func applyNoScrollContentInsetsIfAvailable() -> some View {
-        self
     }
 }

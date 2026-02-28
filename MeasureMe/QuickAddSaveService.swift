@@ -34,7 +34,7 @@ final class QuickAddSaveService {
             AnalyticsFirstEventTracker.trackFirstMetricIfNeeded(previousMetricCount: previousMetricCount)
             StreakManager.shared.recordMetricSaved(date: date)
             let savedKinds = entries.map(\.kind)
-            let units = UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
+            let units = AppSettingsStore.shared.string(forKey: "unitsSystem") ?? "metric"
             WidgetDataWriter.writeAndReload(kinds: savedKinds, context: context, unitsSystem: units)
         }
     }

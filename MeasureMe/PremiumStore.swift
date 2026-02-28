@@ -102,6 +102,7 @@ final class PremiumStore: ObservableObject {
     private let entitlementKey = "premium_entitlement"
     private let billingClient: PremiumBillingClient
     private let notificationManager: PremiumNotificationManaging
+    private let settings: AppSettingsStore
     #if DEBUG
     private let forcePremiumForUITests: Bool
     #endif
@@ -112,14 +113,16 @@ final class PremiumStore: ObservableObject {
     init(
         billingClient: PremiumBillingClient? = nil,
         notificationManager: PremiumNotificationManaging? = nil,
+        settings: AppSettingsStore,
         startListener: Bool = true
     ) {
         self.billingClient = billingClient ?? StoreKitBillingClient()
         self.notificationManager = notificationManager ?? NotificationManager.shared
+        self.settings = settings
         #if DEBUG
         self.forcePremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForcePremium")
         #endif
-        let defaults = UserDefaults.standard
+        let defaults = settings
         if defaults.double(forKey: firstLaunchKey) == 0 {
             defaults.set(AppClock.now.timeIntervalSince1970, forKey: firstLaunchKey)
         }
@@ -133,6 +136,19 @@ final class PremiumStore: ObservableObject {
         if startListener {
             startIfNeeded()
         }
+    }
+
+    convenience init(
+        billingClient: PremiumBillingClient? = nil,
+        notificationManager: PremiumNotificationManaging? = nil,
+        startListener: Bool = true
+    ) {
+        self.init(
+            billingClient: billingClient,
+            notificationManager: notificationManager,
+            settings: .shared,
+            startListener: startListener
+        )
     }
 
     deinit {
@@ -185,7 +201,7 @@ final class PremiumStore: ObservableObject {
             return
         }
         guard !isPremium else { return }
-        let defaults = UserDefaults.standard
+        let defaults = settings
         let firstLaunch = defaults.double(forKey: firstLaunchKey)
         guard firstLaunch > 0 else { return }
 
@@ -350,7 +366,7 @@ final class PremiumStore: ObservableObject {
         #if DEBUG
         if forcePremiumForUITests {
             isPremium = true
-            UserDefaults.standard.set(true, forKey: entitlementKey)
+            settings.set(true, forKey: entitlementKey)
             return
         }
         #endif
@@ -392,7 +408,7 @@ final class PremiumStore: ObservableObject {
         }
 
         isPremium = active
-        UserDefaults.standard.set(active, forKey: entitlementKey)
+        settings.set(active, forKey: entitlementKey)
     }
 
     private func hasActiveSubscriptionStatus(allowedProductIDs: Set<String>, now: Date) async -> Bool {
@@ -443,7 +459,7 @@ final class PremiumStore: ObservableObject {
                 let startedIntroTrial = transaction.offer?.type == .introductory
                 // Natychmiast odblokuj premium po zweryfikowanym zakupie.
                 isPremium = true
-                UserDefaults.standard.set(true, forKey: entitlementKey)
+                settings.set(true, forKey: entitlementKey)
                 await transaction.finish()
                 await refreshEntitlements()
                 if startedIntroTrial {
