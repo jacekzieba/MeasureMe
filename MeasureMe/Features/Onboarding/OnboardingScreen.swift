@@ -1,7 +1,5 @@
 import SwiftUI
 import UIKit
-import Charts
-import StoreKit
 
 struct OnboardingView: View {
     private let effects: OnboardingEffects
@@ -44,7 +42,6 @@ struct OnboardingView: View {
     @State private var healthKitStatusText: String?
     @State private var notificationsStatusText: String?
     @State private var selectedWelcomeGoals: Set<WelcomeGoal> = []
-    @State private var onboardingSelectedPremiumProductID: String? = PremiumConstants.yearlyProductID
 
     @State private var animateBackdrop: Bool = false
 
@@ -91,26 +88,7 @@ struct OnboardingView: View {
         selectedWelcomeGoals.sorted { $0.rawValue < $1.rawValue }
     }
 
-    private var yearlyProduct: Product? {
-        premiumStore.products.first { $0.id == PremiumConstants.yearlyProductID }
-    }
-
-    private var monthlyProduct: Product? {
-        premiumStore.products.first { $0.id == PremiumConstants.monthlyProductID }
-    }
-
-    private var onboardingPremiumProducts: [Product] {
-        premiumStore.products
-            .filter { $0.id == PremiumConstants.monthlyProductID || $0.id == PremiumConstants.yearlyProductID }
-            .sorted { $0.price < $1.price }
-    }
-
-    private var onboardingSelectedPremiumProduct: Product? {
-        if let onboardingSelectedPremiumProductID {
-            return onboardingPremiumProducts.first { $0.id == onboardingSelectedPremiumProductID }
-        }
-        return yearlyProduct ?? monthlyProduct
-    }
+    // MARK: - Body
 
     var body: some View {
         ZStack {
@@ -137,25 +115,44 @@ struct OnboardingView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack(spacing: AppSpacing.sm) {
                             slideCard {
-                                welcomeSlide
+                                OnboardingWelcomeStep(
+                                    selectedGoals: $selectedWelcomeGoals,
+                                    onGoalToggled: toggleWelcomeGoal
+                                )
                             }
                             .containerRelativeFrame(.horizontal)
                             .id(Step.welcome.rawValue)
 
                             slideCard {
-                                profileSlide
+                                OnboardingProfileStep(
+                                    nameInput: $nameInput,
+                                    ageInput: $ageInput,
+                                    heightInput: $heightInput,
+                                    feetInput: $feetInput,
+                                    inchesInput: $inchesInput,
+                                    userGender: $userGender,
+                                    unitsSystem: unitsSystem,
+                                    focused: $focusedField
+                                )
                             }
                             .containerRelativeFrame(.horizontal)
                             .id(Step.profile.rawValue)
 
                             slideCard {
-                                boostersSlide
+                                OnboardingBoostersStep(
+                                    isSyncEnabled: isSyncEnabled,
+                                    isReminderScheduled: isReminderScheduled,
+                                    isRequestingHealthKit: isRequestingHealthKit,
+                                    isRequestingNotifications: isRequestingNotifications,
+                                    onRequestHealthKit: requestHealthKitAccess,
+                                    onSetupReminder: { showReminderSetupSheet = true }
+                                )
                             }
                             .containerRelativeFrame(.horizontal)
                             .id(Step.boosters.rawValue)
 
                             slideCard {
-                                premiumSlide
+                                OnboardingPremiumStep()
                             }
                             .containerRelativeFrame(.horizontal)
                             .id(Step.premium.rawValue)
@@ -196,9 +193,6 @@ struct OnboardingView: View {
             hydrate()
             animateBackdrop = true
             scrolledStepID = currentStepIndex
-            if onboardingSelectedPremiumProductID == nil {
-                onboardingSelectedPremiumProductID = PremiumConstants.yearlyProductID
-            }
             effects.track(.onboardingStarted)
             if let signal = AnalyticsSignal.onboardingStepViewed(stepIndex: currentStepIndex) {
                 effects.track(signal)
@@ -211,9 +205,6 @@ struct OnboardingView: View {
         .onChange(of: currentStepIndex) { _, _ in
             dismissKeyboard()
             Haptics.selection()
-            if currentStep == .premium, onboardingPremiumProducts.isEmpty {
-                Task { await premiumStore.loadProducts() }
-            }
             if let signal = AnalyticsSignal.onboardingStepViewed(stepIndex: currentStepIndex) {
                 effects.track(signal)
             }
@@ -242,6 +233,8 @@ struct OnboardingView: View {
             isReminderScheduled = effects.isReminderScheduled()
         }
     }
+
+    // MARK: - Shared sub-views
 
     private var backdrop: some View {
         ZStack {
@@ -327,861 +320,6 @@ struct OnboardingView: View {
         .shadow(color: .clear, radius: 0, x: 0, y: 0)
     }
 
-    private var welcomeSlide: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                slideHeader(title: Step.welcome.title, subtitle: Step.welcome.subtitle)
-                Spacer(minLength: 0)
-                Image("BrandMark")
-                    .renderingMode(.original)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 44, height: 44)
-                    .padding(.top, 6)
-                    .accessibilityHidden(true)
-            }
-
-            welcomeGoalSelector
-            welcomeExamplePreview
-        }
-    }
-
-    private var profileSlide: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            slideHeader(title: Step.profile.title, subtitle: Step.profile.subtitle)
-
-            profileField(title: AppLocalization.systemString("Name")) {
-                TextField(AppLocalization.systemString("e.g., Jacek"), text: $nameInput)
-                    .textFieldStyle(.roundedBorder)
-                    .textInputAutocapitalization(.words)
-                    .autocorrectionDisabled()
-                    .focused($focusedField, equals: .name)
-                    .accessibilityIdentifier("onboarding.profile.name")
-            }
-
-            profileField(title: AppLocalization.systemString("Height")) {
-                if unitsSystem == "imperial" {
-                    HStack(spacing: 10) {
-                        TextField(AppLocalization.systemString("Feet"), text: $feetInput)
-                            .keyboardType(.numberPad)
-                            .textFieldStyle(.roundedBorder)
-                            .focused($focusedField, equals: .feet)
-                        TextField(AppLocalization.systemString("Inches"), text: $inchesInput)
-                            .keyboardType(.numberPad)
-                            .textFieldStyle(.roundedBorder)
-                            .focused($focusedField, equals: .inches)
-                    }
-                } else {
-                    TextField(AppLocalization.systemString("Centimeters"), text: $heightInput)
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(.roundedBorder)
-                        .focused($focusedField, equals: .height)
-                        .accessibilityIdentifier("onboarding.profile.height")
-                }
-            }
-
-            HStack(spacing: 10) {
-                profileField(title: AppLocalization.systemString("Sex")) {
-                    Picker("", selection: $userGender) {
-                        Text(AppLocalization.systemString("Not specified")).tag("notSpecified")
-                        Text(AppLocalization.systemString("Male")).tag("male")
-                        Text(AppLocalization.systemString("Female")).tag("female")
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .accessibilityIdentifier("onboarding.profile.sex")
-                }
-            }
-
-            profileField(title: AppLocalization.systemString("Age")) {
-                TextField(AppLocalization.systemString("Age in years"), text: $ageInput)
-                    .keyboardType(unitsSystem == "imperial" ? .numberPad : .decimalPad)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($focusedField, equals: .age)
-                    .accessibilityIdentifier("onboarding.profile.age")
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                reasonRow(icon: "person.fill", text: AppLocalization.systemString("Name helps personalize your experience."))
-                reasonRow(icon: "figure.stand", text: AppLocalization.systemString("Height improves BMI and waist-to-height indicators."))
-                reasonRow(icon: "calendar", text: AppLocalization.systemString("Age and sex tune ranges for selected indicators."))
-            }
-            .padding(12)
-            .background(Color.white.opacity(0.05))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-            Text(AppLocalization.systemString("You can skip and fill this later."))
-                .font(AppTypography.caption)
-                .foregroundStyle(Color.appGray)
-        }
-    }
-
-    private var boostersSlide: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            slideHeader(title: Step.boosters.title, subtitle: Step.boosters.subtitle)
-
-            boosterCard(
-                icon: "heart.text.square",
-                title: AppLocalization.systemString("Sync with Apple Health"),
-                detail: AppLocalization.systemString("Import history and keep measurements updated automatically."),
-                why: AppLocalization.systemString("Why: your charts start with more context."),
-                buttonTitle: isSyncEnabled ? AppLocalization.systemString("Connected") : AppLocalization.systemString("Next"),
-                isLoading: isRequestingHealthKit,
-                isComplete: isSyncEnabled,
-                buttonIdentifier: "onboarding.booster.healthkit",
-                action: requestHealthKitAccess
-            )
-
-            boosterCard(
-                icon: "bell.badge",
-                title: AppLocalization.systemString("Measurement reminders"),
-                detail: AppLocalization.systemString("Choose one-time, daily or weekly schedule."),
-                why: AppLocalization.systemString("Why: gentle nudges keep you consistent."),
-                buttonTitle: isReminderScheduled ? AppLocalization.systemString("Scheduled") : AppLocalization.systemString("Set schedule"),
-                isLoading: isRequestingNotifications,
-                isComplete: isReminderScheduled,
-                buttonIdentifier: "onboarding.booster.reminders",
-                action: { showReminderSetupSheet = true }
-            )
-        }
-    }
-
-    private var premiumSlide: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            slideHeader(title: Step.premium.title, subtitle: Step.premium.subtitle)
-
-            premiumUnlockBundleTile
-            onboardingPlanPicker
-
-            Button {
-                onboardingChecklistPremiumExplored = true
-                Haptics.light()
-                if let product = onboardingSelectedPremiumProduct {
-                    Task { await premiumStore.purchase(product) }
-                } else {
-                    premiumStore.presentPaywall(reason: .onboarding)
-                }
-            } label: {
-                Text(AppLocalization.systemString("Start my 14-day free trial"))
-                    .font(.system(.subheadline, design: .rounded).weight(.medium))
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 44)
-            }
-            .buttonStyle(.bordered)
-            .tint(Color.appAccent)
-            .appHitTarget()
-            .accessibilityIdentifier("onboarding.premium.trial")
-            .accessibilitySortPriority(3)
-
-            onboardingBilledAfterTrialText
-                .font(AppTypography.micro)
-                .foregroundStyle(.white.opacity(0.72))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, alignment: .center)
-
-            onboardingLegalBlock
-        }
-    }
-
-    private func slideHeader(title: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 42, weight: .bold, design: .rounded).monospacedDigit())
-                .minimumScaleFactor(0.72)
-                .lineLimit(2)
-                .foregroundStyle(Color.appWhite)
-
-            if !subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text(subtitle)
-                    .font(.system(.title3, design: .rounded).weight(.medium))
-                    .foregroundStyle(Color.appGray)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    private var welcomeGoalSelector: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(AppLocalization.systemString("What's your goal?"))
-                .font(AppTypography.headlineEmphasis)
-                .lineLimit(2)
-                .minimumScaleFactor(0.86)
-                .foregroundStyle(Color.appWhite)
-
-            VStack(spacing: 5) {
-                ForEach(WelcomeGoal.allCases, id: \.self) { goal in
-                    welcomeGoalOptionRow(goal)
-                }
-            }
-        }
-        .padding(12)
-        .background(Color.white.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                .stroke(Color.white.opacity(0.10), lineWidth: 1)
-        )
-    }
-
-    private func welcomeGoalOptionRow(_ goal: WelcomeGoal) -> some View {
-        let isSelected = selectedWelcomeGoals.contains(goal)
-        return Button {
-            toggleWelcomeGoal(goal)
-            Haptics.selection()
-        } label: {
-            HStack(spacing: 10) {
-                Text(goal.title)
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(isSelected ? 0.95 : 0.86))
-
-                Spacer(minLength: 0)
-
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(isSelected ? Color.appAccent : Color.white.opacity(0.35))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 8 : 7)
-            .frame(minHeight: 44)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(isSelected ? Color.appAccent.opacity(0.14) : Color.white.opacity(0.04))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(isSelected ? Color.appAccent.opacity(0.7) : Color.white.opacity(0.12), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("onboarding.goal.\(goal.rawValue)")
-        .accessibilityLabel(goal.title)
-        .accessibilityValue(isSelected ? AppLocalization.systemString("Selected") : AppLocalization.systemString("Not selected"))
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    private struct WelcomeTrendPoint: Identifiable {
-        let id: Int
-        let week: Int
-        let value: Double
-    }
-
-    private var welcomeTrendPoints: [WelcomeTrendPoint] {
-        [
-            WelcomeTrendPoint(id: 0, week: 1, value: 82.4),
-            WelcomeTrendPoint(id: 1, week: 2, value: 82.3),
-            WelcomeTrendPoint(id: 2, week: 3, value: 82.0),
-            WelcomeTrendPoint(id: 3, week: 4, value: 82.1),
-            WelcomeTrendPoint(id: 4, week: 5, value: 81.8),
-            WelcomeTrendPoint(id: 5, week: 6, value: 81.6),
-            WelcomeTrendPoint(id: 6, week: 7, value: 81.7),
-            WelcomeTrendPoint(id: 7, week: 8, value: 81.3),
-            WelcomeTrendPoint(id: 8, week: 9, value: 81.1),
-            WelcomeTrendPoint(id: 9, week: 10, value: 81.0),
-            WelcomeTrendPoint(id: 10, week: 11, value: 80.9),
-            WelcomeTrendPoint(id: 11, week: 12, value: 80.6),
-            WelcomeTrendPoint(id: 12, week: 13, value: 80.7),
-            WelcomeTrendPoint(id: 13, week: 14, value: 80.4),
-            WelcomeTrendPoint(id: 14, week: 15, value: 80.2),
-            WelcomeTrendPoint(id: 15, week: 16, value: 80.1),
-            WelcomeTrendPoint(id: 16, week: 17, value: 79.9),
-            WelcomeTrendPoint(id: 17, week: 18, value: 79.7)
-        ]
-    }
-
-    private var welcomeGoalValue: Double {
-        79.0
-    }
-
-    private var welcomeXAxisValues: [Int] {
-        [1, 4, 7, 10, 13, 16, 18]
-    }
-
-    private var welcomeLastTrendPoint: WelcomeTrendPoint? {
-        welcomeTrendPoints.last
-    }
-
-    private var welcomeWeekDomain: ClosedRange<Int> {
-        guard let firstWeek = welcomeTrendPoints.first?.week,
-              let lastWeek = welcomeTrendPoints.last?.week,
-              firstWeek < lastWeek else {
-            return 1...2
-        }
-        return firstWeek...lastWeek
-    }
-
-    private var welcomeTrendDomain: ClosedRange<Double> {
-        let values = (welcomeTrendPoints.map(\.value) + [welcomeGoalValue]).filter(\.isFinite)
-        guard let minValue = values.min(), let maxValue = values.max() else {
-            return 0...1
-        }
-
-        let padding = max((maxValue - minValue) * 0.18, 0.5)
-        let lower = minValue - padding
-        let upper = maxValue + padding
-
-        guard lower.isFinite, upper.isFinite, lower < upper else {
-            return 0...1
-        }
-
-        return lower...upper
-    }
-
-    private var welcomeTrendPreview: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Spacer()
-                Text(AppLocalization.systemString("onboarding.trend.delta"))
-                    .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color(hex: "#22C55E"))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color(hex: "#22C55E").opacity(0.16))
-                    .clipShape(Capsule(style: .continuous))
-
-                Text(AppLocalization.systemString("onboarding.goal.badge", welcomeGoalValue))
-                    .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color(hex: "#22C55E"))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color(hex: "#22C55E").opacity(0.16))
-                    .clipShape(Capsule(style: .continuous))
-            }
-
-            Chart {
-                RuleMark(y: .value("Goal", welcomeGoalValue))
-                    .lineStyle(StrokeStyle(lineWidth: 1.1, dash: [5, 4]))
-                    .foregroundStyle(Color(hex: "#22C55E").opacity(0.9))
-
-                ForEach(welcomeTrendPoints) { point in
-                    AreaMark(
-                        x: .value("Week", point.week),
-                        yStart: .value("Baseline", welcomeTrendDomain.lowerBound),
-                        yEnd: .value("Weight", point.value)
-                    )
-                    .interpolationMethod(.catmullRom)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color.appAccent.opacity(0.28), Color.appAccent.opacity(0.02)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-
-                    LineMark(
-                        x: .value("Week", point.week),
-                        y: .value("Weight", point.value)
-                    )
-                    .interpolationMethod(.catmullRom)
-                    .foregroundStyle(Color.appAccent)
-                    .lineStyle(StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
-
-                    if let lastPoint = welcomeLastTrendPoint, lastPoint.id == point.id {
-                        PointMark(
-                            x: .value("Week", point.week),
-                            y: .value("Weight", point.value)
-                        )
-                        .symbolSize(44)
-                        .foregroundStyle(Color.appAccent)
-
-                        PointMark(
-                            x: .value("Week", point.week),
-                            y: .value("Goal", welcomeGoalValue)
-                        )
-                        .symbolSize(36)
-                        .foregroundStyle(Color(hex: "#22C55E"))
-                    }
-                }
-            }
-            .chartPlotStyle { plotArea in
-                plotArea
-                    .padding(.bottom, 8)
-            }
-            .chartXAxis {
-                AxisMarks(values: welcomeXAxisValues) { value in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.8))
-                        .foregroundStyle(Color.white.opacity(0.08))
-                    AxisTick(stroke: StrokeStyle(lineWidth: 0.8))
-                        .foregroundStyle(Color.white.opacity(0.18))
-                    AxisValueLabel {
-                        if let week = value.as(Int.self) {
-                            Text(AppLocalization.systemString("onboarding.week.label", week))
-                                .font(AppTypography.micro)
-                                .foregroundStyle(Color.appGray)
-                        }
-                    }
-                }
-            }
-            .chartYAxis {
-                AxisMarks(position: .leading, values: .stride(by: 1)) { value in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.8))
-                        .foregroundStyle(Color.white.opacity(0.08))
-                    AxisTick(stroke: StrokeStyle(lineWidth: 0.8))
-                        .foregroundStyle(Color.white.opacity(0.18))
-                }
-            }
-            .chartXScale(domain: welcomeWeekDomain)
-            .chartYScale(domain: welcomeTrendDomain)
-            .frame(height: welcomeTrendChartHeight)
-        }
-        .padding(8)
-        .background(Color.white.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.10), lineWidth: 1)
-        )
-    }
-
-    private var welcomeTrendChartHeight: CGFloat {
-        dynamicTypeSize.isAccessibilitySize ? 150 : 94
-    }
-
-    private var welcomeInsightPreview: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            MetricInsightCard(
-                text: AppLocalization.systemString("You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week."),
-                compact: true,
-                isLoading: false
-            )
-        }
-    }
-
-    private var welcomeExamplePreview: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Image(systemName: "sparkles.rectangle.stack.fill")
-                    .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color.appAccent)
-                    .frame(width: 20, height: 20)
-                    .background(Color.appAccent.opacity(0.18))
-                    .clipShape(Circle())
-
-                Text(AppLocalization.systemString("onboarding.example.label"))
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(0.96))
-            }
-
-            welcomeTrendPreview
-            welcomeInsightPreview
-        }
-        .padding(8)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.06),
-                            Color.white.opacity(0.03)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.appAccent.opacity(0.26), lineWidth: 1)
-        )
-        .accessibilityElement(children: .contain)
-        .accessibilityHint(AppLocalization.systemString("Sample trend card to preview how progress insights will look."))
-    }
-
-    private var welcomeCompactPreview: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 7) {
-                Image(systemName: "sparkles.rectangle.stack.fill")
-                    .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color.appAccent)
-                Text(AppLocalization.systemString("onboarding.example.label"))
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(0.92))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.9)
-            }
-
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) {
-                    Text(AppLocalization.systemString("onboarding.trend.delta"))
-                        .font(AppTypography.microEmphasis)
-                        .foregroundStyle(Color(hex: "#22C55E"))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color(hex: "#22C55E").opacity(0.16))
-                        .clipShape(Capsule(style: .continuous))
-
-                    Text(AppLocalization.systemString("onboarding.goal.badge", welcomeGoalValue))
-                        .font(AppTypography.microEmphasis)
-                        .foregroundStyle(Color(hex: "#22C55E"))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color(hex: "#22C55E").opacity(0.16))
-                        .clipShape(Capsule(style: .continuous))
-                }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(AppLocalization.systemString("onboarding.trend.delta"))
-                        .font(AppTypography.microEmphasis)
-                        .foregroundStyle(Color(hex: "#22C55E"))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color(hex: "#22C55E").opacity(0.16))
-                        .clipShape(Capsule(style: .continuous))
-
-                    Text(AppLocalization.systemString("onboarding.goal.badge", welcomeGoalValue))
-                        .font(AppTypography.microEmphasis)
-                        .foregroundStyle(Color(hex: "#22C55E"))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color(hex: "#22C55E").opacity(0.16))
-                        .clipShape(Capsule(style: .continuous))
-                }
-            }
-        }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.appAccent.opacity(0.22), lineWidth: 1)
-                )
-        )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(AppLocalization.systemString("Sample preview of trend insights."))
-        .accessibilityValue(AppLocalization.systemString("onboarding.trend.delta"))
-    }
-
-    private var premiumUnlockBundleTile: some View {
-        VStack(alignment: .leading, spacing: dynamicTypeSize.isAccessibilitySize ? 12 : 8) {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(Color.appAccent.opacity(0.26))
-                    .frame(width: 24, height: 24)
-                    .overlay(
-                        Image(systemName: "crown.fill")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(Color.appAccent)
-                    )
-
-                Text(AppLocalization.string("premium.unlock.bundle.title"))
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(0.92))
-            }
-
-            premiumUnlockBenefitRow(icon: "sparkles", tint: Color(hex: "#4ADE80"), textKey: "premium.carousel.unlock.item.ai")
-            premiumUnlockBenefitRow(icon: "photo.on.rectangle.angled", tint: Color(hex: "#60A5FA"), textKey: "premium.carousel.unlock.item.compare")
-            premiumUnlockBenefitRow(icon: "heart.text.square.fill", tint: Color(hex: "#34D399"), textKey: "premium.carousel.unlock.item.health")
-            premiumUnlockBenefitRow(icon: "doc.text.fill", tint: Color(hex: "#FBBF24"), textKey: "premium.carousel.unlock.item.export")
-        }
-        .padding(dynamicTypeSize.isAccessibilitySize ? AppSpacing.sm : AppSpacing.xs)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.09), Color.white.opacity(0.04)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                )
-        )
-    }
-
-    private func premiumUnlockBenefitRow(icon: String, tint: Color, textKey: String) -> some View {
-        HStack(alignment: dynamicTypeSize.isAccessibilitySize ? .top : .center, spacing: dynamicTypeSize.isAccessibilitySize ? 12 : 9) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(minWidth: 18, alignment: .leading)
-
-            Text(AppLocalization.string(textKey))
-                .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(.white.opacity(0.92))
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 8)
-
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color(hex: "#FCA311"))
-        }
-        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 4 : 2)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var onboardingPlanPicker: some View {
-        VStack(spacing: dynamicTypeSize.isAccessibilitySize ? 14 : 10) {
-            if onboardingPremiumProducts.isEmpty {
-                LoadingBlock(
-                    title: AppLocalization.string("premium.subscription.loading"),
-                    accessibilityIdentifier: "onboarding.premium.loading"
-                )
-            } else {
-                ForEach(onboardingPremiumProducts, id: \.id) { product in
-                    onboardingPlanRow(product: product)
-                }
-            }
-        }
-    }
-
-    private func onboardingPlanRow(product: Product) -> some View {
-        let isSelected = product.id == onboardingSelectedPremiumProductID
-        let secondaryPrice = onboardingSecondaryPriceLine(for: product)
-
-        return Button {
-            onboardingSelectedPremiumProductID = product.id
-            Haptics.selection()
-        } label: {
-            Group {
-                if dynamicTypeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: 10) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(onboardingPlanTitle(for: product))
-                                .font(AppTypography.body)
-                                .foregroundStyle(.white.opacity(0.88))
-                            Text(onboardingPlanSubtitle(for: product))
-                                .font(AppTypography.caption)
-                                .foregroundStyle(.white.opacity(0.68))
-                        }
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(onboardingPrimaryPriceLine(for: product))
-                                .font(.system(.title3, design: .rounded).weight(.bold))
-                                .foregroundStyle(.white)
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.9)
-
-                            if let secondaryPrice {
-                                Text(secondaryPrice)
-                                    .font(AppTypography.micro)
-                                    .foregroundStyle(.white.opacity(0.6))
-                                    .lineLimit(2)
-                            }
-                        }
-                    }
-                } else {
-                    HStack(spacing: 10) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(onboardingPlanTitle(for: product))
-                                .font(AppTypography.body)
-                                .foregroundStyle(.white.opacity(0.88))
-                            Text(onboardingPlanSubtitle(for: product))
-                                .font(AppTypography.caption)
-                                .foregroundStyle(.white.opacity(0.68))
-                        }
-
-                        Spacer()
-
-                        VStack(alignment: .trailing, spacing: 3) {
-                            Text(onboardingPrimaryPriceLine(for: product))
-                                .font(.system(.title3, design: .rounded).weight(.bold))
-                                .foregroundStyle(.white)
-                                .minimumScaleFactor(0.82)
-
-                            if let secondaryPrice {
-                                Text(secondaryPrice)
-                                    .font(AppTypography.micro)
-                                    .foregroundStyle(.white.opacity(0.6))
-                                    .minimumScaleFactor(0.9)
-                            }
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, AppSpacing.sm)
-            .padding(.bottom, AppSpacing.sm)
-            .padding(.top, AppSpacing.sm)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                    .fill(isSelected ? Color.appAccent.opacity(0.16) : Color.white.opacity(0.05))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                            .stroke(isSelected ? Color.appAccent : Color.white.opacity(0.14), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func onboardingPlanTitle(for product: Product) -> String {
-        switch product.id {
-        case PremiumConstants.monthlyProductID:
-            return AppLocalization.string("premium.plan.monthly")
-        case PremiumConstants.yearlyProductID:
-            return AppLocalization.string("premium.plan.yearly")
-        default:
-            return product.displayName
-        }
-    }
-
-    private func onboardingPlanSubtitle(for product: Product) -> String {
-        switch product.id {
-        case PremiumConstants.monthlyProductID:
-            return AppLocalization.string("premium.plan.billing.monthly")
-        case PremiumConstants.yearlyProductID:
-            return AppLocalization.string("premium.plan.billing.yearly")
-        default:
-            return AppLocalization.string("premium.plan.billing.default")
-        }
-    }
-
-    private func onboardingPrimaryPriceLine(for product: Product) -> String {
-        let periodLabel: String
-        if product.id == PremiumConstants.yearlyProductID {
-            periodLabel = AppLocalization.string("premium.plan.period.year")
-        } else {
-            periodLabel = AppLocalization.string("premium.plan.period.month")
-        }
-        return "\(product.displayPrice)/\(periodLabel)"
-    }
-
-    private func onboardingSecondaryPriceLine(for product: Product) -> String? {
-        switch product.id {
-        case PremiumConstants.yearlyProductID:
-            let monthlyEquivalent = product.price / Decimal(12)
-            let monthlyEquivalentDisplay = monthlyEquivalent.formatted(product.priceFormatStyle)
-            return AppLocalization.string("premium.plan.equivalent.monthly.dynamic", monthlyEquivalentDisplay)
-        default:
-            return nil
-        }
-    }
-
-    private var onboardingBilledAfterTrialText: Text {
-        let product = onboardingSelectedPremiumProduct ?? yearlyProduct ?? monthlyProduct
-        guard let product else {
-            return Text(AppLocalization.string("premium.cta.billed.after.trial.fallback"))
-        }
-
-        let periodLabel: String
-        if product.id == PremiumConstants.yearlyProductID {
-            periodLabel = AppLocalization.string("premium.plan.period.year")
-        } else {
-            periodLabel = AppLocalization.string("premium.plan.period.month")
-        }
-
-        let amountWithPeriod = "\(product.displayPrice)/\(periodLabel)"
-        let prefix = AppLocalization.string("premium.cta.billed.prefix")
-        let suffix = AppLocalization.string("premium.cta.billed.suffix")
-
-        var attributed = AttributedString("\(prefix)\(amountWithPeriod)\(suffix)")
-        if let emphasizedRange = attributed.range(of: amountWithPeriod) {
-            attributed[emphasizedRange].inlinePresentationIntent = .stronglyEmphasized
-        }
-        return Text(attributed)
-    }
-
-    private var onboardingLegalBlock: some View {
-        VStack(spacing: 10) {
-            Group {
-                if dynamicTypeSize.isAccessibilitySize {
-                    VStack(spacing: 10) {
-                        Link(AppLocalization.string("Privacy Policy"), destination: LegalLinks.privacyPolicy)
-                            .accessibilityIdentifier("onboarding.premium.privacy")
-                        Button(AppLocalization.string("Restore purchases")) {
-                            Task { await premiumStore.restorePurchases() }
-                        }
-                        .accessibilityIdentifier("onboarding.premium.restore")
-                        Link(AppLocalization.string("Terms of Use"), destination: LegalLinks.termsOfUse)
-                            .accessibilityIdentifier("onboarding.premium.terms")
-                    }
-                } else {
-                    HStack(spacing: 18) {
-                        Link(AppLocalization.string("Privacy Policy"), destination: LegalLinks.privacyPolicy)
-                            .accessibilityIdentifier("onboarding.premium.privacy")
-                        Button(AppLocalization.string("Restore purchases")) {
-                            Task { await premiumStore.restorePurchases() }
-                        }
-                        .accessibilityIdentifier("onboarding.premium.restore")
-                        Link(AppLocalization.string("Terms of Use"), destination: LegalLinks.termsOfUse)
-                            .accessibilityIdentifier("onboarding.premium.terms")
-                    }
-                }
-            }
-            .font(AppTypography.captionEmphasis)
-            .foregroundStyle(Color.appAccent)
-
-            Text(AppLocalization.string("premium.disclaimer"))
-                .font(AppTypography.micro)
-                .foregroundStyle(.white.opacity(0.62))
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func profileField<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(AppTypography.captionEmphasis)
-                .foregroundStyle(Color.appWhite)
-            content()
-        }
-    }
-
-    private func reasonRow(icon: String, text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.appAccent)
-                .frame(width: 16)
-            Text(text)
-                .font(AppTypography.caption)
-                .foregroundStyle(Color.appGray)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private func boosterCard(
-        icon: String,
-        title: String,
-        detail: String,
-        why: String,
-        buttonTitle: String,
-        isLoading: Bool,
-        isComplete: Bool,
-        buttonIdentifier: String? = nil,
-        action: @escaping () -> Void
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            OnboardingFeatureCard(icon: icon, title: title, detail: detail)
-
-            Text(why)
-                .font(AppTypography.caption)
-                .foregroundStyle(Color.appGray)
-
-            Button {
-                action()
-            } label: {
-                HStack(spacing: 8) {
-                    if isLoading {
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(Color.appAccent)
-                    }
-                    Text(buttonTitle)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .buttonStyle(.bordered)
-            .tint(Color.appAccent)
-            .disabled(isLoading || isComplete)
-            .accessibilityIdentifier(buttonIdentifier ?? "")
-        }
-        .padding(12)
-        .background(Color.white.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
-    }
-
     private var privacyNote: some View {
         HStack(spacing: 8) {
             Image(systemName: "lock.fill")
@@ -1227,6 +365,8 @@ struct OnboardingView: View {
         }
         .padding(.horizontal, AppSpacing.lg)
     }
+
+    // MARK: - Navigation
 
     private func goToPreviousStep() {
         dismissKeyboard()
@@ -1306,6 +446,8 @@ struct OnboardingView: View {
             hasCompletedOnboarding = true
         }
     }
+
+    // MARK: - Data
 
     private func hydrate() {
         nameInput = userName
@@ -1389,6 +531,8 @@ struct OnboardingView: View {
         onboardingSkippedHealthKit = !isSyncEnabled
         onboardingSkippedReminders = !isReminderScheduled
     }
+
+    // MARK: - Effects
 
     private func requestHealthKitAccess() {
         guard !isSyncEnabled else { return }
