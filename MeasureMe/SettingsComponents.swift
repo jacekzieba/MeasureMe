@@ -40,10 +40,10 @@ struct HealthSettingsSection: View {
             authorizationTask?.cancel()
         }
         .onAppear {
-            reconcileSyncStateWithSystemAuthorization()
+            scheduleSyncStateReconciliation()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            reconcileSyncStateWithSystemAuthorization()
+            scheduleSyncStateReconciliation()
         }
     }
 
@@ -112,6 +112,12 @@ struct HealthSettingsSection: View {
         if let syncError = HealthKitManager.shared.reconcileStoredSyncState() {
             isSyncEnabled = false
             syncStatusMessage = HealthKitManager.userFacingSyncErrorMessage(for: syncError)
+        }
+    }
+
+    private func scheduleSyncStateReconciliation() {
+        DispatchQueue.main.async {
+            reconcileSyncStateWithSystemAuthorization()
         }
     }
     

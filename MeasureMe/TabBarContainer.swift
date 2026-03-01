@@ -134,8 +134,10 @@ struct TabBarContainer: View {
         }
         .environmentObject(router)
         .onAppear {
-            applyAuditRouteIfNeeded()
-            mountTabIfNeeded(router.selectedTab)
+            DispatchQueue.main.async {
+                applyAuditRouteIfNeeded()
+                mountTabIfNeeded(router.selectedTab)
+            }
         }
         .preferredColorScheme(.dark)
     }

@@ -10,7 +10,7 @@ extension HomeView {
 
         Task {
             do {
-                let composition = try await HealthKitManager.shared.fetchLatestBodyCompositionCached()
+                let composition = try await effects.fetchLatestBodyCompositionCached()
                 await MainActor.run {
                     latestBodyFat = composition.bodyFat
                     latestLeanMass = composition.leanMass

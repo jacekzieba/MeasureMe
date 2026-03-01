@@ -37,7 +37,7 @@ struct HomeView: View {
     @AppSetting("home_photo_metric_sync_last_id") private var photoMetricSyncLastID: String = ""
     
     @EnvironmentObject private var router: AppRouter
-    @ObservedObject private var streakManager = StreakManager.shared
+    @ObservedObject private var streakManager: StreakManager
 
     @Query private var recentSamples: [MetricSample]
     
@@ -77,12 +77,19 @@ struct HomeView: View {
     private let maxVisibleMetrics = 3
     private let maxVisiblePhotos = 6
     private let autoCheckPaywallPrompt: Bool
+    let effects: HomeEffects
     private var shouldAnimate: Bool {
         AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 
-    init(autoCheckPaywallPrompt: Bool = true) {
+    init(
+        autoCheckPaywallPrompt: Bool = true,
+        streakManager: StreakManager = .shared,
+        effects: HomeEffects = .live
+    ) {
         self.autoCheckPaywallPrompt = autoCheckPaywallPrompt
+        self.effects = effects
+        _streakManager = ObservedObject(wrappedValue: streakManager)
         let recentWindowStart = Calendar.current.date(byAdding: .day, value: -120, to: AppClock.now) ?? .distantPast
         _recentSamples = Query(
             filter: #Predicate<MetricSample> { $0.date >= recentWindowStart },
@@ -578,12 +585,14 @@ struct HomeView: View {
             PhotoDetailView(photo: photo)
         }
         .onAppear {
-            if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
-                didCheckSevenDayPaywallPrompt = true
-                premiumStore.checkSevenDayPromptIfNeeded()
+            DispatchQueue.main.async {
+                if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
+                    didCheckSevenDayPaywallPrompt = true
+                    premiumStore.checkSevenDayPromptIfNeeded()
+                }
+                emitHomeInitialRenderIfNeeded()
+                runStartupPhasesIfNeeded()
             }
-            emitHomeInitialRenderIfNeeded()
-            runStartupPhasesIfNeeded()
         }
         .onChange(of: recentSamplesSignature) { _, _ in
             refreshMeasurementCaches()
@@ -975,9 +984,7 @@ struct HomeView: View {
     }
 
     private func refreshChecklistState() {
-        let reminders = NotificationManager.shared.loadReminders()
-        let hasAnyReminder = NotificationManager.shared.smartEnabled || !reminders.isEmpty
-        reminderChecklistCompleted = NotificationManager.shared.notificationsEnabled && hasAnyReminder
+        reminderChecklistCompleted = effects.reminderChecklistCompleted()
         autoHideChecklistIfCompleted()
     }
 
@@ -1030,7 +1037,7 @@ struct HomeView: View {
         Task { @MainActor in
             defer { isChecklistConnectingHealth = false }
             do {
-                try await HealthKitManager.shared.requestAuthorization()
+                try await effects.requestHealthKitAuthorization()
                 isSyncEnabled = true
                 onboardingSkippedHealthKit = true
                 checklistStatusText = AppLocalization.string("Connected to Apple Health.")

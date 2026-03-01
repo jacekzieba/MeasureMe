@@ -189,16 +189,18 @@ struct PremiumPaywallView: View {
             }
         }
         .onAppear {
-            premium.clearActionMessage()
-            Task {
-                await premium.loadProducts()
-                await premium.syncEntitlements()
-            }
-            if selectedProductID == nil {
-                selectedProductID = PremiumConstants.yearlyProductID
-            }
-            if shouldAnimateCTA {
-                isCTAPulsing = true
+            DispatchQueue.main.async {
+                premium.clearActionMessage()
+                Task {
+                    await premium.loadProducts()
+                    await premium.syncEntitlements()
+                }
+                if selectedProductID == nil {
+                    selectedProductID = PremiumConstants.yearlyProductID
+                }
+                if shouldAnimateCTA {
+                    isCTAPulsing = true
+                }
             }
         }
         .onChange(of: premium.products.map(\.id)) { _, ids in

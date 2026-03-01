@@ -4,6 +4,7 @@ import Charts
 import StoreKit
 
 struct OnboardingView: View {
+    private let effects: OnboardingEffects
     @AppSetting("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     @AppSetting("userName") private var userName: String = ""
     @AppSetting("userAge") private var userAge: Int = 0
@@ -47,7 +48,11 @@ struct OnboardingView: View {
 
     @State private var animateBackdrop: Bool = false
 
-    init(initialStepIndex: Int = 0) {
+    init(
+        initialStepIndex: Int = 0,
+        effects: OnboardingEffects = .live
+    ) {
+        self.effects = effects
         let clamped = max(0, min(initialStepIndex, Step.allCases.count - 1))
         _currentStepIndex = State(initialValue: clamped)
     }
@@ -194,9 +199,9 @@ struct OnboardingView: View {
             if onboardingSelectedPremiumProductID == nil {
                 onboardingSelectedPremiumProductID = PremiumConstants.yearlyProductID
             }
-            Analytics.shared.track(.onboardingStarted)
+            effects.track(.onboardingStarted)
             if let signal = AnalyticsSignal.onboardingStepViewed(stepIndex: currentStepIndex) {
-                Analytics.shared.track(signal)
+                effects.track(signal)
             }
         }
         .onChange(of: scrolledStepID) { _, newValue in
@@ -210,7 +215,7 @@ struct OnboardingView: View {
                 Task { await premiumStore.loadProducts() }
             }
             if let signal = AnalyticsSignal.onboardingStepViewed(stepIndex: currentStepIndex) {
-                Analytics.shared.track(signal)
+                effects.track(signal)
             }
         }
         .sheet(isPresented: $showReminderSetupSheet) {
@@ -233,10 +238,8 @@ struct OnboardingView: View {
                 .padding(.bottom, 8)
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: NotificationManager.notificationsDidChange)) { _ in
-            let reminders = NotificationManager.shared.loadReminders()
-            let hasAnyReminder = NotificationManager.shared.smartEnabled || !reminders.isEmpty
-            isReminderScheduled = NotificationManager.shared.notificationsEnabled && hasAnyReminder
+        .onReceive(NotificationCenter.default.publisher(for: effects.notificationsDidChangeName)) { _ in
+            isReminderScheduled = effects.isReminderScheduled()
         }
     }
 
@@ -1254,7 +1257,7 @@ struct OnboardingView: View {
     }
 
     private func skipCurrentStep() {
-        Analytics.shared.track(.onboardingSkipped)
+        effects.track(.onboardingSkipped)
         dismissKeyboard()
         if currentStep == .boosters {
             persistBoostersOutcome()
@@ -1293,7 +1296,7 @@ struct OnboardingView: View {
         showOnboardingChecklistOnHome = true
         onboardingChecklistPremiumExplored = onboardingChecklistPremiumExplored || premiumStore.isPremium
         Haptics.success()
-        Analytics.shared.track(.onboardingCompleted)
+        effects.track(.onboardingCompleted)
 
         if shouldAnimate {
             withAnimation(AppMotion.quick) {
@@ -1323,26 +1326,12 @@ struct OnboardingView: View {
             }
         }
 
-        let reminders = NotificationManager.shared.loadReminders()
-        let calendar = Calendar.current
-        if let weeklyReminder = reminders.first(where: { $0.repeatRule == .weekly }) {
-            reminderRepeat = .weekly
-            reminderWeekday = calendar.component(.weekday, from: weeklyReminder.date)
-            reminderTime = weeklyReminder.date
-        } else if let dailyReminder = reminders.first(where: { $0.repeatRule == .daily }) {
-            reminderRepeat = .daily
-            reminderTime = dailyReminder.date
-        } else if let onceReminder = reminders.first(where: { $0.repeatRule == .once }) {
-            reminderRepeat = .once
-            reminderOnceDate = onceReminder.date
-        } else {
-            reminderRepeat = .weekly
-            let defaultReminder = defaultWeeklyReminderDate()
-            reminderWeekday = calendar.component(.weekday, from: defaultReminder)
-            reminderTime = defaultReminder
-        }
-        let hasAnyReminder = NotificationManager.shared.smartEnabled || !reminders.isEmpty
-        isReminderScheduled = NotificationManager.shared.notificationsEnabled && hasAnyReminder
+        let reminderSeed = effects.loadReminderSeed(defaultWeeklyReminderDate: defaultWeeklyReminderDate())
+        reminderRepeat = reminderSeed.repeatRule
+        reminderWeekday = reminderSeed.reminderWeekday
+        reminderTime = reminderSeed.reminderTime
+        reminderOnceDate = reminderSeed.reminderOnceDate
+        isReminderScheduled = reminderSeed.isReminderScheduled
     }
 
     private func toggleWelcomeGoal(_ goal: WelcomeGoal) {
@@ -1370,14 +1359,12 @@ struct OnboardingView: View {
     }
 
     private func recordWelcomeGoalSelectionStat(for goal: WelcomeGoal) {
-        let defaults = AppSettingsStore.shared
-        let key = "onboarding_goal_selection_stat_\(goal.rawValue)"
-        defaults.set(defaults.integer(forKey: key) + 1, forKey: key)
+        effects.incrementWelcomeGoalSelectionStat(goalRawValue: goal.rawValue)
 
         switch goal {
-        case .loseWeight:  Analytics.shared.track(.onboardingGoalLoseWeight)
-        case .buildMuscle: Analytics.shared.track(.onboardingGoalBuildMuscle)
-        case .trackHealth: Analytics.shared.track(.onboardingGoalTrackHealth)
+        case .loseWeight:  effects.track(.onboardingGoalLoseWeight)
+        case .buildMuscle: effects.track(.onboardingGoalBuildMuscle)
+        case .trackHealth: effects.track(.onboardingGoalTrackHealth)
         }
     }
 
@@ -1413,7 +1400,7 @@ struct OnboardingView: View {
 
         Task { @MainActor in
             do {
-                try await HealthKitManager.shared.requestAuthorization()
+                try await effects.requestHealthKitAuthorization()
                 isSyncEnabled = true
                 healthKitStatusText = AppLocalization.systemString("Health sync enabled. Importing data in background.")
                 Haptics.success()
@@ -1436,42 +1423,32 @@ struct OnboardingView: View {
         notificationsStatusText = AppLocalization.systemString("Requesting notification permission...")
 
         Task { @MainActor in
-            let granted = await NotificationManager.shared.requestAuthorization()
+            let granted = await effects.requestNotificationAuthorization()
             guard granted else {
-                NotificationManager.shared.notificationsEnabled = false
+                effects.setNotificationsEnabled(false)
                 notificationsStatusText = AppLocalization.systemString("Notifications denied. You can enable them later in Settings.")
                 isRequestingNotifications = false
                 Haptics.error()
                 return
             }
 
-            NotificationManager.shared.notificationsEnabled = true
+            effects.setNotificationsEnabled(true)
 
             let targetDate: Date
             switch reminderRepeat {
             case .weekly:
                 targetDate = reminderDate(weekday: reminderWeekday, time: reminderTime)
-                NotificationManager.shared.smartTime = reminderTime
+                effects.setSmartTime(reminderTime)
             case .daily:
                 targetDate = dailyReminderDate(time: reminderTime)
-                NotificationManager.shared.smartTime = reminderTime
+                effects.setSmartTime(reminderTime)
             case .once:
                 targetDate = reminderOnceDate
-                NotificationManager.shared.smartTime = reminderOnceDate
+                effects.setSmartTime(reminderOnceDate)
             }
 
-            var reminders = NotificationManager.shared.loadReminders()
-            if let index = reminders.firstIndex(where: { $0.repeatRule == reminderRepeat }) {
-                let existing = reminders[index]
-                reminders[index] = MeasurementReminder(id: existing.id, date: targetDate, repeatRule: reminderRepeat)
-            } else {
-                reminders.append(MeasurementReminder(date: targetDate, repeatRule: reminderRepeat))
-            }
-
-            NotificationManager.shared.saveReminders(reminders)
-            NotificationManager.shared.scheduleAllReminders(reminders)
-
-            isReminderScheduled = true
+            effects.upsertReminder(date: targetDate, repeatRule: reminderRepeat)
+            isReminderScheduled = effects.isReminderScheduled()
             notificationsStatusText = AppLocalization.systemString("Reminder is set.")
             isRequestingNotifications = false
             Haptics.success()

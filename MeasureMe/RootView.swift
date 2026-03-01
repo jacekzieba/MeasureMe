@@ -44,8 +44,10 @@ struct RootView: View {
             }
         }
         .onAppear {
-            configurePendingStoreIfNeeded()
-            scheduleDeferredStartupWorkIfNeeded()
+            DispatchQueue.main.async {
+                configurePendingStoreIfNeeded()
+                scheduleDeferredStartupWorkIfNeeded()
+            }
         }
         .confirmationDialog(
             AppLocalization.string("premium.trial.reminder.prompt.title"),

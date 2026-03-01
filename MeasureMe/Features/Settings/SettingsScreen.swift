@@ -560,13 +560,13 @@ struct SettingsView: View {
             }
             .scrollContentBackground(.hidden) // Ukryj domyślne tło List
             .onAppear {
-                handlePendingDeepLinks()
+                schedulePendingDeepLinksHandling()
             }
             .onChange(of: settingsOpenTrackedMeasurements) { _, _ in
-                handlePendingDeepLinks()
+                schedulePendingDeepLinksHandling()
             }
             .onChange(of: settingsOpenReminders) { _, _ in
-                handlePendingDeepLinks()
+                schedulePendingDeepLinksHandling()
             }
             .listSectionSpacing(24)
             .listRowSeparator(.hidden)
@@ -886,6 +886,12 @@ struct SettingsView: View {
         if settingsOpenReminders {
             settingsOpenReminders = false
             navigateToReminders = true
+        }
+    }
+
+    private func schedulePendingDeepLinksHandling() {
+        DispatchQueue.main.async {
+            handlePendingDeepLinks()
         }
     }
 

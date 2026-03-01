@@ -47,10 +47,12 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
                     defaults.removeObject(forKey: key)
                 }
             }
+            AppLocalization.reloadLanguage()
             UIView.setAnimationsEnabled(wereAnimationsEnabled)
         }
 
         defaults.set("en", forKey: "appLanguage")
+        AppLocalization.reloadLanguage()
         defaults.set("male", forKey: "userGender")
         defaults.set(180.0, forKey: "manualHeight")
         defaults.set("metric", forKey: "unitsSystem")
