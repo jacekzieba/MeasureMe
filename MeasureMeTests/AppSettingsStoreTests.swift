@@ -24,13 +24,16 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertTrue(store.snapshot.health.healthkitSyncWeight)
     }
 
-    func testSetAndReloadUpdatesSnapshot() {
+    func testSetAndReloadUpdatesSnapshot() async {
         let defaults = makeDefaults()
         let store = AppSettingsStore(defaults: defaults)
 
         store.set("imperial", forKey: AppSettingsKeys.Profile.unitsSystem)
         store.reload()
 
+        for _ in 0..<50 where store.snapshot.profile.unitsSystem != "imperial" {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
         XCTAssertEqual(store.snapshot.profile.unitsSystem, "imperial")
     }
 
@@ -87,7 +90,7 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertTrue(store.goalAchievedFlag(for: "goal-1"))
     }
 
-    func testFallbackBoolSemanticsForFeatureFlags() {
+    func testFallbackBoolSemanticsForFeatureFlags() async {
         let defaults = makeDefaults()
         let store = AppSettingsStore(defaults: defaults)
 
@@ -95,6 +98,10 @@ final class AppSettingsStoreTests: XCTestCase {
         defaults.removeObject(forKey: AppSettingsKeys.Notifications.goalAchievedEnabled)
         defaults.removeObject(forKey: AppSettingsKeys.Notifications.importNotificationsEnabled)
         store.reload()
+
+        for _ in 0..<50 where !store.snapshot.notifications.photoRemindersEnabled {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
 
         XCTAssertTrue(store.snapshot.notifications.photoRemindersEnabled)
         XCTAssertTrue(store.snapshot.notifications.goalAchievedEnabled)

@@ -82,9 +82,10 @@ struct HomeView: View {
         AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 
+    // Designated initializer that accepts an explicit streakManager to avoid touching MainActor in default params (Swift 6 safe)
     init(
         autoCheckPaywallPrompt: Bool = true,
-        streakManager: StreakManager = .shared,
+        streakManager: StreakManager,
         effects: HomeEffects = .live
     ) {
         self.autoCheckPaywallPrompt = autoCheckPaywallPrompt
@@ -94,6 +95,20 @@ struct HomeView: View {
         _recentSamples = Query(
             filter: #Predicate<MetricSample> { $0.date >= recentWindowStart },
             sort: [SortDescriptor(\.date, order: .reverse)]
+        )
+    }
+
+    // Convenience initializer that safely captures the MainActor-isolated singleton
+    init(
+        autoCheckPaywallPrompt: Bool = true,
+        effects: HomeEffects = .live
+    ) {
+        // Access StreakManager.shared on the main actor to satisfy isolation rules
+        let manager: StreakManager = StreakManager.shared
+        self.init(
+            autoCheckPaywallPrompt: autoCheckPaywallPrompt,
+            streakManager: manager,
+            effects: effects
         )
     }
 
@@ -1298,3 +1313,4 @@ struct HomeView: View {
         }
     }
 }
+

@@ -19,7 +19,11 @@ struct AppSetting<Value>: DynamicProperty {
 
     var wrappedValue: Value {
         get { settings.value(forKey: key, default: defaultValue) }
-        nonmutating set { settings.set(newValue, forKey: key) }
+        nonmutating set {
+            DispatchQueue.main.async {
+                settings.set(newValue, forKey: key)
+            }
+        }
     }
 
     var projectedValue: Binding<Value> {
