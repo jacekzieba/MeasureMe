@@ -100,8 +100,8 @@ extension MetricDetailView {
             latestValueText: valueString(latest.value),
             timeframeLabel: timeframeLabel,
             sampleCount: chartSamples.count,
-            delta7DaysText: deltaText(days: 7, in: chartSamples),
-            delta30DaysText: deltaText(days: 30, in: chartSamples),
+            delta7DaysText: chartSamples.deltaText(days: 7, kind: kind, unitsSystem: unitsSystem),
+            delta30DaysText: chartSamples.deltaText(days: 30, kind: kind, unitsSystem: unitsSystem),
             goalStatusText: goalStatusText,
             goalDirectionText: currentGoal?.direction.rawValue,
             defaultFavorableDirectionText: kind.defaultFavorableDirectionWhenNoGoal.rawValue
@@ -115,7 +115,7 @@ extension MetricDetailView {
         }
         let remaining = displayValue(abs(goal.remainingToGoal(currentValue: latest.value)))
         let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-        return String(format: "%.1f %@ away from goal", remaining, unit)
+        return AppLocalization.string("goal.away", remaining, unit)
     }
 
     var goalForecastText: String? {
@@ -183,17 +183,6 @@ extension MetricDetailView {
         case .year: return AppLocalization.string("Last year")
         case .all: return AppLocalization.string("All time")
         }
-    }
-
-    func deltaText(days: Int, in source: [MetricSample]) -> String? {
-        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: Date()) else { return nil }
-        let window = source.filter { $0.date >= start }
-        guard let first = window.first, let last = window.last, first.persistentModelID != last.persistentModelID else {
-            return nil
-        }
-        let delta = displayValue(last.value) - displayValue(first.value)
-        let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-        return String(format: "%+.1f %@", delta, unit)
     }
 
     @MainActor

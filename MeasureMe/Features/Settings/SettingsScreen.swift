@@ -128,55 +128,7 @@ struct SettingsView: View {
         }
     }
 
-    var body: some View {
-        NavigationStack {
-            ZStack(alignment: .top) {
-                AppScreenBackground(
-                    topHeight: 380,
-                    scrollOffset: scrollOffset,
-                    tint: Color.cyan.opacity(0.22)
-                )
-                .ignoresSafeArea(edges: .top)
-                
-                // Zawartość
-                List {
-                ScreenTitleHeader(title: AppLocalization.string("Settings"), topPadding: 0, bottomPadding: 4)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-
-                if isSearchingSettings {
-                    Section {
-                        if filteredSettingsSearchItems.isEmpty {
-                            Text(AppLocalization.string("No matching settings"))
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .frame(minHeight: 44)
-                        } else {
-                            ForEach(filteredSettingsSearchItems) { item in
-                                NavigationLink {
-                                    settingsSearchDestination(for: item.route)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(item.title)
-                                            .font(AppTypography.bodyEmphasis)
-                                            .foregroundStyle(.white)
-                                        Text(item.subtitle)
-                                            .font(AppTypography.caption)
-                                            .foregroundStyle(.white.opacity(0.72))
-                                    }
-                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                                }
-                                .appHitTarget()
-                            }
-                        }
-                    }
-                    .listRowSeparator(.hidden)
-                    .listSectionSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(Self.settingsRowInsets)
-                } else {
-                    Group {
+    @ViewBuilder private var settingsSections: some View {
 
                 if !premiumStore.isPremium {
                     Section {
@@ -302,7 +254,7 @@ struct SettingsView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(Self.settingsRowInsets)
 
-                SettingsHealthSection(
+                HealthSettingsSection(
                     isSyncEnabled: $isSyncEnabled,
                     lastImportText: lastImportText,
                     hkWeight: $hkWeight,
@@ -541,7 +493,57 @@ struct SettingsView: View {
                 .listSectionSeparator(.hidden)
                 .listRowBackground(Color.clear)
                 .listRowInsets(Self.settingsRowInsets)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack(alignment: .top) {
+                AppScreenBackground(
+                    topHeight: 380,
+                    scrollOffset: scrollOffset,
+                    tint: Color.cyan.opacity(0.22)
+                )
+                .ignoresSafeArea(edges: .top)
+                
+                // Zawartość
+                List {
+                ScreenTitleHeader(title: AppLocalization.string("Settings"), topPadding: 0, bottomPadding: 4)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+
+                if isSearchingSettings {
+                    Section {
+                        if filteredSettingsSearchItems.isEmpty {
+                            Text(AppLocalization.string("No matching settings"))
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .frame(minHeight: 44)
+                        } else {
+                            ForEach(filteredSettingsSearchItems) { item in
+                                NavigationLink {
+                                    settingsSearchDestination(for: item.route)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(item.title)
+                                            .font(AppTypography.bodyEmphasis)
+                                            .foregroundStyle(.white)
+                                        Text(item.subtitle)
+                                            .font(AppTypography.caption)
+                                            .foregroundStyle(.white.opacity(0.72))
+                                    }
+                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                                }
+                                .appHitTarget()
+                            }
+                        }
                     }
+                    .listRowSeparator(.hidden)
+                    .listSectionSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(Self.settingsRowInsets)
+                } else {
+                    settingsSections
                 }
             }
             .tint(Color.appAccent)
@@ -693,188 +695,32 @@ struct SettingsView: View {
         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
     }
 
-    private struct MetricSampleSnapshot: Sendable {
-        let kindRaw: String
-        let value: Double
-        let date: Date
-    }
-
-    private struct MetricCSVRowSnapshot: Sendable {
-        let kindRaw: String           // MetricKind.rawValue — klucz do importu
-        let metricTitle: String       // englishTitle — czytelna etykieta (zawsze EN)
-        let metricValue: Double       // wartość w jednostkach bazowych (kg/cm/%)
-        let metricUnit: String        // jednostka bazowa (kg/cm/%)
-        let displayValue: Double      // wartość w jednostkach display
-        let unit: String              // jednostka display
-        let date: Date
-    }
-
-    private struct MetricGoalSnapshot: Sendable {
-        let kindRaw: String
-        let metricTitle: String       // englishTitle
-        let direction: String         // "increase" lub "decrease"
-        let targetMetricValue: Double // wartość celu w jednostkach bazowych
-        let targetMetricUnit: String  // jednostka bazowa celu
-        let targetDisplayValue: Double
-        let targetDisplayUnit: String
-        let startMetricValue: Double? // opcjonalny punkt startowy (bazowy)
-        let startDisplayValue: Double?
-        let startDate: Date?
-        let createdDate: Date
-    }
-
-    private struct DeviceSnapshot: Sendable {
-        let systemName: String
-        let systemVersion: String
-        let model: String
-    }
-
     private func exportMetricsCSV() {
-        let samplesSnapshot = fetchAllMetricSamplesSorted()
-        let goalsSnapshot = fetchAllGoals()
-        let currentUnitsSystem = unitsSystem
-        let csvRows: [MetricCSVRowSnapshot] = samplesSnapshot.compactMap { sample in
-            guard let kind = MetricKind(rawValue: sample.kindRaw) else { return nil }
-            let metricUnit: String
-            switch kind.unitCategory {
-            case .weight: metricUnit = "kg"
-            case .length: metricUnit = "cm"
-            case .percent: metricUnit = "%"
-            }
-            return MetricCSVRowSnapshot(
-                kindRaw: sample.kindRaw,
-                metricTitle: kind.englishTitle,
-                metricValue: sample.value,
-                metricUnit: metricUnit,
-                displayValue: kind.valueForDisplay(fromMetric: sample.value, unitsSystem: currentUnitsSystem),
-                unit: kind.unitSymbol(unitsSystem: currentUnitsSystem),
-                date: sample.date
-            )
-        }
-        let goalRows: [MetricGoalSnapshot] = goalsSnapshot.compactMap { goal in
-            guard let kind = MetricKind(rawValue: goal.kindRaw) else { return nil }
-            let metricUnit: String
-            switch kind.unitCategory {
-            case .weight: metricUnit = "kg"
-            case .length: metricUnit = "cm"
-            case .percent: metricUnit = "%"
-            }
-            let startDisplay = goal.startMetricValue.map {
-                kind.valueForDisplay(fromMetric: $0, unitsSystem: currentUnitsSystem)
-            }
-            return MetricGoalSnapshot(
-                kindRaw: goal.kindRaw,
-                metricTitle: kind.englishTitle,
-                direction: goal.directionRaw,
-                targetMetricValue: goal.targetValue,
-                targetMetricUnit: metricUnit,
-                targetDisplayValue: kind.valueForDisplay(fromMetric: goal.targetValue, unitsSystem: currentUnitsSystem),
-                targetDisplayUnit: kind.unitSymbol(unitsSystem: currentUnitsSystem),
-                startMetricValue: goal.startMetricValue,
-                startDisplayValue: startDisplay,
-                startDate: goal.startDate,
-                createdDate: goal.createdDate
-            )
-        }
         exportMessage = AppLocalization.string("Preparing data export...")
         isExporting = true
-        let ts = timestampString()
         Task {
-            let (metricsCSV, goalsCSV) = await Task.detached(priority: .userInitiated) {
-                (SettingsView.buildMetricsCSV(from: csvRows),
-                 SettingsView.buildGoalsCSV(from: goalRows))
-            }.value
-            let metricsURL = writeTempFile(named: "measureme-metrics-\(ts).csv", contents: metricsCSV)
-            let goalsURL = writeTempFile(named: "measureme-goals-\(ts).csv", contents: goalsCSV)
-            await MainActor.run {
-                isExporting = false
-                var items: [Any] = []
-                if let u = metricsURL { items.append(u) }
-                if let u = goalsURL { items.append(u) }
-                guard !items.isEmpty else { return }
-                shareItems = items
-                shareSubject = AppLocalization.string("MeasureMe data export")
-                isPresentingShareSheet = true
-            }
+            let out = await SettingsExporter.exportMetrics(context: modelContext, unitsSystem: unitsSystem)
+            shareItems = out.items
+            shareSubject = out.subject
+            isExporting = false
+            isPresentingShareSheet = !out.items.isEmpty
         }
     }
 
     private func exportDiagnosticsJSON() {
-        let sampleSnapshot = fetchAllMetricSamplesSorted()
-        let photoCount = fetchPhotosCount()
-        let syncEnabled = isSyncEnabled
-        let lastImport = lastHealthImportTimestamp
-        let deviceSnapshot = DeviceSnapshot(
-            systemName: UIDevice.current.systemName,
-            systemVersion: UIDevice.current.systemVersion,
-            model: UIDevice.current.model
-        )
         exportMessage = AppLocalization.string("Generating diagnostics...")
         isExporting = true
         Task {
-            let data = await Task.detached(priority: .userInitiated) {
-                SettingsView.buildDiagnosticsJSON(
-                    samples: sampleSnapshot,
-                    photosCount: photoCount,
-                    isSyncEnabled: syncEnabled,
-                    lastHealthImportTimestamp: lastImport,
-                    device: deviceSnapshot
-                )
-            }.value
-            let fileName = "measureme-diagnostics-\(timestampString()).json"
-            let url = data.flatMap { writeTempFile(named: fileName, data: $0) }
-            await MainActor.run {
-                isExporting = false
-                guard let url else { return }
-                shareItems = [
-                    url,
-                    AppLocalization.string("Send diagnostics to ziebajacek@pm.me")
-                ]
-                shareSubject = AppLocalization.string("MeasureMe diagnostics")
-                isPresentingShareSheet = true
-            }
-        }
-    }
-
-    private func fetchAllMetricSamplesSorted() -> [MetricSampleSnapshot] {
-        let descriptor = FetchDescriptor<MetricSample>(
-            sortBy: [SortDescriptor(\.date, order: .forward)]
-        )
-        let samples = (try? modelContext.fetch(descriptor)) ?? []
-        return samples.map {
-            MetricSampleSnapshot(kindRaw: $0.kindRaw, value: $0.value, date: $0.date)
-        }
-    }
-
-    private struct GoalFetchSnapshot: Sendable {
-        let kindRaw: String
-        let directionRaw: String
-        let targetValue: Double
-        let startMetricValue: Double?
-        let startDate: Date?
-        let createdDate: Date
-    }
-
-    private func fetchAllGoals() -> [GoalFetchSnapshot] {
-        let descriptor = FetchDescriptor<MetricGoal>(
-            sortBy: [SortDescriptor(\.kindRaw, order: .forward)]
-        )
-        let goals = (try? modelContext.fetch(descriptor)) ?? []
-        return goals.map {
-            GoalFetchSnapshot(
-                kindRaw: $0.kindRaw,
-                directionRaw: $0.directionRaw,
-                targetValue: $0.targetValue,
-                startMetricValue: $0.startValue,
-                startDate: $0.startDate,
-                createdDate: $0.createdDate
+            let out = await SettingsExporter.exportDiagnostics(
+                context: modelContext,
+                isSyncEnabled: isSyncEnabled,
+                lastHealthImportTimestamp: lastHealthImportTimestamp
             )
+            shareItems = out.items
+            shareSubject = out.subject
+            isExporting = false
+            isPresentingShareSheet = !out.items.isEmpty
         }
-    }
-
-    private func fetchPhotosCount() -> Int {
-        let descriptor = FetchDescriptor<PhotoEntry>()
-        return (try? modelContext.fetchCount(descriptor)) ?? 0
     }
 
     private func handlePendingDeepLinks() {
@@ -1187,142 +1033,6 @@ struct SettingsView: View {
         }
     }
 
-    private nonisolated static func buildMetricsCSV(from rows: [MetricCSVRowSnapshot]) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        // metric_id — stały klucz do importu (MetricKind.rawValue, language-agnostic)
-        // value_metric / unit_metric — wartości bazowe (kg/cm/%) — determinizm przy imporcie
-        // value / unit — wartości display (lb/in gdy imperial) — wygoda w Excelu
-        var lines: [String] = ["metric_id,metric,value_metric,unit_metric,value,unit,timestamp"]
-        for row in rows {
-            let metricValueStr = String(format: "%.4f", row.metricValue)
-            let displayValueStr = String(format: "%.2f", row.displayValue)
-            let dateString = formatter.string(from: row.date)
-            lines.append([
-                csvField(row.kindRaw),
-                csvField(row.metricTitle),
-                metricValueStr,
-                csvField(row.metricUnit),
-                displayValueStr,
-                csvField(row.unit),
-                dateString
-            ].joined(separator: ","))
-        }
-        return lines.joined(separator: "\n")
-    }
-
-    private nonisolated static func buildGoalsCSV(from rows: [MetricGoalSnapshot]) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        var lines: [String] = [
-            "metric_id,metric,direction,target_value_metric,target_unit_metric,target_value,target_unit,start_value_metric,start_value,start_date,created_date"
-        ]
-        for row in rows {
-            let targetMetricStr = String(format: "%.4f", row.targetMetricValue)
-            let targetDisplayStr = String(format: "%.2f", row.targetDisplayValue)
-            let startMetricStr = row.startMetricValue.map { String(format: "%.4f", $0) } ?? ""
-            let startDisplayStr = row.startDisplayValue.map { String(format: "%.2f", $0) } ?? ""
-            let startDateStr = row.startDate.map { formatter.string(from: $0) } ?? ""
-            let createdStr = formatter.string(from: row.createdDate)
-            lines.append([
-                csvField(row.kindRaw),
-                csvField(row.metricTitle),
-                csvField(row.direction),
-                targetMetricStr,
-                csvField(row.targetMetricUnit),
-                targetDisplayStr,
-                csvField(row.targetDisplayUnit),
-                startMetricStr,
-                startDisplayStr,
-                startDateStr,
-                createdStr
-            ].joined(separator: ","))
-        }
-        return lines.joined(separator: "\n")
-    }
-
-    /// Escapuje pole CSV zgodnie z RFC 4180 — otacza cudzysłowami jeśli zawiera przecinek, cudzysłów lub nową linię.
-    private nonisolated static func csvField(_ value: String) -> String {
-        let needsQuoting = value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")
-        guard needsQuoting else { return value }
-        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
-        return "\"\(escaped)\""
-    }
-
-    private nonisolated static func buildDiagnosticsJSON(
-        samples: [MetricSampleSnapshot],
-        photosCount: Int,
-        isSyncEnabled: Bool,
-        lastHealthImportTimestamp: Double,
-        device: DeviceSnapshot
-    ) -> Data? {
-        let bundle = Bundle.main
-        let appVersion = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
-        let buildNumber = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
-        let now = Date()
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        let metricCounts = Dictionary(grouping: samples) { $0.kindRaw }
-            .mapValues { $0.count }
-
-        let healthKitStatus = healthKitStatusText()
-        let lastSync = lastHealthImportTimestamp > 0 ? iso.string(from: Date(timeIntervalSince1970: lastHealthImportTimestamp)) : nil
-
-        let payload: [String: Any] = [
-            "timestamp": iso.string(from: now),
-            "appVersion": appVersion,
-            "buildNumber": buildNumber,
-            "system": "\(device.systemName) \(device.systemVersion)",
-            "deviceModel": device.model,
-            "metricsCount": samples.count,
-            "metricsByKind": metricCounts,
-            "photosCount": photosCount,
-            "healthKit": [
-                "available": HKHealthStore.isHealthDataAvailable(),
-                "syncEnabled": isSyncEnabled,
-                "authorizationStatus": healthKitStatus,
-                "lastSync": lastSync as Any
-            ]
-        ]
-
-        return try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys])
-    }
-
-    private nonisolated static func healthKitStatusText() -> String {
-        guard HKHealthStore.isHealthDataAvailable() else { return "unavailable" }
-        guard let type = HKObjectType.quantityType(forIdentifier: .bodyMass) else { return "unknown" }
-        let status = HKHealthStore().authorizationStatus(for: type)
-        switch status {
-        case .notDetermined: return "notDetermined"
-        case .sharingDenied: return "denied"
-        case .sharingAuthorized: return "authorized"
-        @unknown default: return "unknown"
-        }
-    }
-
-    private func timestampString() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMdd-HHmmss"
-        return formatter.string(from: Date())
-    }
-
-    private func writeTempFile(named name: String, contents: String) -> URL? {
-        guard let data = contents.data(using: .utf8) else { return nil }
-        return writeTempFile(named: name, data: data)
-    }
-
-    private func writeTempFile(named name: String, data: Data) -> URL? {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
-        do {
-            try data.write(to: url, options: .atomic)
-            return url
-        } catch {
-            AppLog.debug("⚠️ Failed to write export file: \(error.localizedDescription)")
-            return nil
-        }
-    }
-
     private var exportOverlay: some View {
         ZStack {
             Color.black.opacity(0.35)
@@ -1346,288 +1056,18 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Import types
-
-    private enum ImportStrategy { case merge, replace }
-
-    private struct ImportResult {
-        var samplesInserted: Int = 0
-        var goalsInserted: Int = 0
-        var goalsUpdated: Int = 0
-        var rowsSkipped: Int = 0
-    }
-
-    private struct ParsedSampleRow {
-        let kindRaw: String
-        let value: Double   // value_metric — wartość bazowa (kg/cm/%)
-        let date: Date
-    }
-
-    private struct MetricsParseResult {
-        var rows: [ParsedSampleRow] = []
-        var skipped: Int = 0
-        nonisolated init() { rows = []; skipped = 0 }
-    }
-
-    private struct ParsedGoalRow {
-        let kindRaw: String
-        let direction: String
-        let targetValue: Double     // target_value_metric
-        let startValue: Double?     // start_value_metric (opcjonalne)
-        let startDate: Date?
-        let createdDate: Date
-    }
-
-    private struct GoalsParseResult {
-        var rows: [ParsedGoalRow] = []
-        var skipped: Int = 0
-        nonisolated init() { rows = []; skipped = 0 }
-    }
-
     // MARK: - Import logic
 
-    @MainActor
-    private func performImport(urls: [URL], strategy: ImportStrategy) {
+    private func performImport(urls: [URL], strategy: SettingsImporter.Strategy) {
         guard !urls.isEmpty else { return }
         isImporting = true
         Task {
-            let metricsURL = urls.first { $0.lastPathComponent.contains("metrics") }
-            let goalsURL   = urls.first { $0.lastPathComponent.contains("goals") }
-
-            var result = ImportResult()
-
-            if strategy == .replace {
-                try? deleteAllEntities(of: MetricSample.self)
-                try? deleteAllEntities(of: MetricGoal.self)
-                try? modelContext.save()
-            }
-
-            if let url = metricsURL {
-                let r = await Task.detached(priority: .userInitiated) {
-                    self.parseMetricsCSV(url: url)
-                }.value
-                insertSamples(r.rows, strategy: strategy, result: &result)
-                result.rowsSkipped += r.skipped
-            }
-
-            if let url = goalsURL {
-                let r = await Task.detached(priority: .userInitiated) {
-                    self.parseGoalsCSV(url: url)
-                }.value
-                insertGoals(r.rows, strategy: strategy, result: &result)
-                result.rowsSkipped += r.skipped
-            }
-
-            try? modelContext.save()
-
-            var msg = String(format: AppLocalization.string("Imported %d measurements and %d goals."),
-                             result.samplesInserted, result.goalsInserted + result.goalsUpdated)
-            if result.rowsSkipped > 0 {
-                msg += " " + String(format: AppLocalization.string("%d rows skipped."), result.rowsSkipped)
-            }
+            let msg = await SettingsImporter.importData(urls: urls, strategy: strategy, context: modelContext)
             importResultMessage = msg
             isImporting = false
             pendingImportURLs = []
             showImportResult = true
             Haptics.success()
-        }
-    }
-
-    // MARK: - CSV Parsers
-
-    private nonisolated func parseMetricsCSV(url: URL) -> MetricsParseResult {
-        var result = MetricsParseResult()
-        guard url.startAccessingSecurityScopedResource() else { return result }
-        defer { url.stopAccessingSecurityScopedResource() }
-
-        guard let content = try? String(contentsOf: url, encoding: .utf8) else { return result }
-        let lines = content.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        guard let headerLine = lines.first else { return result }
-
-        let cols = parseCSVLine(headerLine)
-        guard let idxId  = cols.firstIndex(of: "metric_id"),
-              let idxVal = cols.firstIndex(of: "value_metric"),
-              let idxTs  = cols.firstIndex(of: "timestamp")
-        else { return result }
-
-        let isoFull  = ISO8601DateFormatter()
-        isoFull.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let isoBasic = ISO8601DateFormatter()
-        isoBasic.formatOptions = [.withInternetDateTime]
-
-        for line in lines.dropFirst() {
-            let fields = parseCSVLine(line)
-            let maxIdx = max(idxId, idxVal, idxTs)
-            guard fields.count > maxIdx else { result.skipped += 1; continue }
-            let kindRaw = fields[idxId]
-            guard MetricKind(rawValue: kindRaw) != nil else { result.skipped += 1; continue }
-            guard let value = Double(fields[idxVal]) else { result.skipped += 1; continue }
-            let tsString = fields[idxTs]
-            guard let date = isoFull.date(from: tsString) ?? isoBasic.date(from: tsString)
-            else { result.skipped += 1; continue }
-            result.rows.append(ParsedSampleRow(kindRaw: kindRaw, value: value, date: date))
-        }
-        return result
-    }
-
-    private nonisolated func parseGoalsCSV(url: URL) -> GoalsParseResult {
-        var result = GoalsParseResult()
-        guard url.startAccessingSecurityScopedResource() else { return result }
-        defer { url.stopAccessingSecurityScopedResource() }
-
-        guard let content = try? String(contentsOf: url, encoding: .utf8) else { return result }
-        let lines = content.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        guard let headerLine = lines.first else { return result }
-
-        let cols = parseCSVLine(headerLine)
-        guard let idxId      = cols.firstIndex(of: "metric_id"),
-              let idxDir     = cols.firstIndex(of: "direction"),
-              let idxTarget  = cols.firstIndex(of: "target_value_metric"),
-              let idxCreated = cols.firstIndex(of: "created_date")
-        else { return result }
-
-        let idxStartVal  = cols.firstIndex(of: "start_value_metric")
-        let idxStartDate = cols.firstIndex(of: "start_date")
-
-        let isoFull  = ISO8601DateFormatter()
-        isoFull.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let isoBasic = ISO8601DateFormatter()
-        isoBasic.formatOptions = [.withInternetDateTime]
-
-        for line in lines.dropFirst() {
-            let fields = parseCSVLine(line)
-            let maxIdx = max(idxId, idxDir, idxTarget, idxCreated)
-            guard fields.count > maxIdx else { result.skipped += 1; continue }
-
-            let kindRaw = fields[idxId]
-            guard MetricKind(rawValue: kindRaw) != nil else { result.skipped += 1; continue }
-
-            let direction = fields[idxDir]
-            guard direction == "increase" || direction == "decrease" else { result.skipped += 1; continue }
-
-            guard let targetValue = Double(fields[idxTarget]) else { result.skipped += 1; continue }
-
-            let createdStr = fields[idxCreated]
-            guard let createdDate = isoFull.date(from: createdStr) ?? isoBasic.date(from: createdStr)
-            else { result.skipped += 1; continue }
-
-            var startValue: Double? = nil
-            if let idx = idxStartVal, idx < fields.count, !fields[idx].isEmpty {
-                startValue = Double(fields[idx])
-            }
-            var startDate: Date? = nil
-            if let idx = idxStartDate, idx < fields.count, !fields[idx].isEmpty {
-                startDate = isoFull.date(from: fields[idx]) ?? isoBasic.date(from: fields[idx])
-            }
-
-            result.rows.append(ParsedGoalRow(
-                kindRaw: kindRaw,
-                direction: direction,
-                targetValue: targetValue,
-                startValue: startValue,
-                startDate: startDate,
-                createdDate: createdDate
-            ))
-        }
-        return result
-    }
-
-    /// RFC 4180 CSV line splitter — obsługuje pola w cudzysłowach i podwójne cudzysłowy.
-    private nonisolated func parseCSVLine(_ line: String) -> [String] {
-        var fields: [String] = []
-        var current = ""
-        var inQuotes = false
-        var idx = line.startIndex
-        while idx < line.endIndex {
-            let c = line[idx]
-            if inQuotes {
-                if c == "\"" {
-                    let next = line.index(after: idx)
-                    if next < line.endIndex && line[next] == "\"" {
-                        current.append("\"")
-                        idx = line.index(after: next)
-                        continue
-                    } else {
-                        inQuotes = false
-                    }
-                } else {
-                    current.append(c)
-                }
-            } else {
-                if c == "\"" {
-                    inQuotes = true
-                } else if c == "," {
-                    fields.append(current)
-                    current = ""
-                } else if c == "\r" {
-                    // pomiń CR w CRLF
-                } else {
-                    current.append(c)
-                }
-            }
-            idx = line.index(after: idx)
-        }
-        fields.append(current)
-        return fields
-    }
-
-    // MARK: - SwiftData Insert helpers
-
-    @MainActor
-    private func insertSamples(_ rows: [ParsedSampleRow], strategy: ImportStrategy, result: inout ImportResult) {
-        var existingKeys = Set<String>()
-        if strategy == .merge {
-            let descriptor = FetchDescriptor<MetricSample>()
-            let existing = (try? modelContext.fetch(descriptor)) ?? []
-            for s in existing {
-                let epoch = Int(s.date.timeIntervalSince1970)
-                existingKeys.insert("\(s.kindRaw)_\(epoch)")
-            }
-        }
-        for row in rows {
-            if strategy == .merge {
-                let epoch = Int(row.date.timeIntervalSince1970)
-                let key = "\(row.kindRaw)_\(epoch)"
-                if existingKeys.contains(key) { continue }
-                existingKeys.insert(key)
-            }
-            guard let kind = MetricKind(rawValue: row.kindRaw) else { continue }
-            modelContext.insert(MetricSample(kind: kind, value: row.value, date: row.date))
-            result.samplesInserted += 1
-        }
-    }
-
-    @MainActor
-    private func insertGoals(_ rows: [ParsedGoalRow], strategy: ImportStrategy, result: inout ImportResult) {
-        let descriptor = FetchDescriptor<MetricGoal>()
-        let existing = (try? modelContext.fetch(descriptor)) ?? []
-        var existingByKind = Dictionary(uniqueKeysWithValues: existing.map { ($0.kindRaw, $0) })
-
-        for row in rows {
-            guard let kind = MetricKind(rawValue: row.kindRaw),
-                  let direction = MetricGoal.Direction(rawValue: row.direction)
-            else { continue }
-
-            if let existingGoal = existingByKind[row.kindRaw] {
-                existingGoal.targetValue = row.targetValue
-                existingGoal.directionRaw = row.direction
-                existingGoal.startValue = row.startValue
-                existingGoal.startDate = row.startDate
-                existingGoal.createdDate = row.createdDate
-                result.goalsUpdated += 1
-            } else {
-                let newGoal = MetricGoal(
-                    kind: kind,
-                    targetValue: row.targetValue,
-                    direction: direction,
-                    createdDate: row.createdDate,
-                    startValue: row.startValue,
-                    startDate: row.startDate
-                )
-                modelContext.insert(newGoal)
-                existingByKind[row.kindRaw] = newGoal
-                result.goalsInserted += 1
-            }
         }
     }
 }

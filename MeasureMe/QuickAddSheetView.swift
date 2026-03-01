@@ -577,7 +577,7 @@ struct QuickAddSheetView: View {
         )
 
         do {
-            try service.save(entries: entries, date: date)
+            try service.save(entries: entries, date: date, unitsSystem: unitsSystem)
         } catch {
             await MainActor.run {
                 isSaving = false

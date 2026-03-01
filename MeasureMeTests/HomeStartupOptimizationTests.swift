@@ -21,11 +21,10 @@ final class HomeStartupOptimizationTests: XCTestCase {
         context.insert(older)
         try context.save()
 
-        let text = HomeView.deltaText(
-            samples: [newer, older],
+        let text = [newer, older].deltaText(
+            days: 7,
             kind: .weight,
             unitsSystem: "metric",
-            days: 7,
             now: now
         )
 
@@ -35,11 +34,10 @@ final class HomeStartupOptimizationTests: XCTestCase {
     func testDeltaText_ReturnsNilForSingleSample() {
         let now = Date(timeIntervalSince1970: 1_770_000_000)
         let one = MetricSample(kind: .waist, value: 88, date: now.addingTimeInterval(-1 * 86_400))
-        let text = HomeView.deltaText(
-            samples: [one],
+        let text = [one].deltaText(
+            days: 7,
             kind: .waist,
             unitsSystem: "metric",
-            days: 7,
             now: now
         )
         XCTAssertNil(text)

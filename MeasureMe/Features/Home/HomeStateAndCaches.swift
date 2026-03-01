@@ -2,26 +2,6 @@ import SwiftUI
 import SwiftData
 
 extension HomeView {
-    static func deltaText(
-        samples: [MetricSample],
-        kind: MetricKind,
-        unitsSystem: String,
-        days: Int,
-        now: Date = Date()
-    ) -> String? {
-        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: now) else { return nil }
-        let kindSamples = samples.filter { $0.date >= start }
-        guard let newest = kindSamples.first,
-              let oldest = kindSamples.last,
-              newest.persistentModelID != oldest.persistentModelID else {
-            return nil
-        }
-        let newestValue = kind.valueForDisplay(fromMetric: newest.value, unitsSystem: unitsSystem)
-        let oldestValue = kind.valueForDisplay(fromMetric: oldest.value, unitsSystem: unitsSystem)
-        let delta = newestValue - oldestValue
-        return String(format: "%+.1f %@", delta, kind.unitSymbol(unitsSystem: unitsSystem))
-    }
-
     static func isAfterPhotoSyncCursor(
         photoDate: Date,
         photoID: String,

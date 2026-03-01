@@ -8,17 +8,10 @@ struct PhotoFilterView: View {
     @ObservedObject var filters: PhotoFilters
     
     @Query private var allPhotos: [PhotoEntry]
-    
-    // Oblicz dostępne tagi z istniejących zdjęć
-    private var availableTags: [PhotoTag] {
-        var tags = Set<PhotoTag>()
-        for photo in allPhotos {
-            tags.formUnion(photo.tags)
-        }
-        
-        return tags.sorted { $0.title < $1.title }
-    }
-    
+
+    /// Cache tagów — aktualizowany tylko przy zmianie bazy, nie przy każdym re-renderze.
+    @State private var availableTags: [PhotoTag] = []
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -40,14 +33,14 @@ struct PhotoFilterView: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button(AppLocalization.string("Apply")) {
                         dismiss()
                     }
                     .fontWeight(.semibold)
                 }
-                
+
                 ToolbarItem(placement: .bottomBar) {
                     if filters.isActive {
                         Button(AppLocalization.string("Reset Filters"), role: .destructive) {
@@ -57,6 +50,8 @@ struct PhotoFilterView: View {
                 }
             }
         }
+        .onAppear { updateAvailableTags() }
+        .onChange(of: allPhotos) { updateAvailableTags() }
     }
 }
 
@@ -104,7 +99,15 @@ private extension PhotoFilterView {
 
 // MARK: - Sekcja tagow
 private extension PhotoFilterView {
-    
+
+    /// Skanuje allPhotos raz (przy pojawieniu się widoku lub zmianie bazy)
+    /// i zapisuje wynik w @State, unikając powtórnych przeliczeń przy każdym re-renderze.
+    func updateAvailableTags() {
+        var tags = Set<PhotoTag>()
+        for photo in allPhotos { tags.formUnion(photo.tags) }
+        availableTags = tags.sorted { $0.title < $1.title }
+    }
+
     var tagsSection: some View {
         Section {
             if filters.selectedTags.isEmpty {

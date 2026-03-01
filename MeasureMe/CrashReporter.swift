@@ -50,7 +50,7 @@ final class CrashReporter {
     func appendLog(_ message: String) {
         lock.lock()
         defer { lock.unlock() }
-        logBuffer.append((timestamp: Date(), message: message))
+        logBuffer.append((timestamp: AppClock.now, message: message))
         if logBuffer.count > maxLogEntries {
             logBuffer.removeFirst(logBuffer.count - maxLogEntries)
         }
@@ -104,7 +104,7 @@ final class CrashReporter {
 
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
-        let filename = "crash_\(formatter.string(from: Date())).crash"
+        let filename = "crash_\(formatter.string(from: AppClock.now)).crash"
 
         do {
             let dir = try reportsDirectory()
@@ -137,7 +137,7 @@ final class CrashReporter {
 
         [App Info]
         Version: \(appVersion) (\(buildNumber))
-        Date: \(Date().formatted(.iso8601))
+        Date: \(AppClock.now.formatted(.iso8601))
 
         [Device Info]
         Model: \(device.model)

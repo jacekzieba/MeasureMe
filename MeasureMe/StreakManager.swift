@@ -50,7 +50,7 @@ final class StreakManager: ObservableObject {
 
     init(
         defaults: AppSettingsStore,
-        clock: @escaping () -> Date = { Date() },
+        clock: @escaping () -> Date = { AppClock.now },
         calendar: Calendar = Calendar(identifier: .iso8601)
     ) {
         self.defaults = defaults

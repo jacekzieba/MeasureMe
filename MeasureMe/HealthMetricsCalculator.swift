@@ -233,8 +233,8 @@ final class HealthMetricsCalculator {
                 case .female:
                     return ratio < 0.85 ? .lowRisk : .increasedRisk
                 case .notSpecified:
-                    // Fallback do progu żeńskiego; ścieżki produkcyjne używają wrappera requiresGender.
-                    return ratio < 0.85 ? .lowRisk : .increasedRisk
+                    // Fallback do progu męskiego (spójny z RFM/ABSI/Conicity); ścieżki produkcyjne używają wrappera requiresGender.
+                    return ratio < 0.90 ? .lowRisk : .increasedRisk
                 }
             }
         }

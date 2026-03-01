@@ -306,7 +306,7 @@ final class NotificationManager: ObservableObject {
         }
         
         let days = max(smartDays, 1)
-        let now = Date()
+        let now = AppClock.now
         if let last = lastLogDate {
             let since = now.timeIntervalSince(last)
             if since < TimeInterval(days) * 86400 {
@@ -371,7 +371,7 @@ final class NotificationManager: ObservableObject {
             return
         }
 
-        let now = Date()
+        let now = AppClock.now
         let since = now.timeIntervalSince(last)
         guard since >= TimeInterval(days) * 86400 else {
             cancelPhotoReminder()
@@ -616,10 +616,10 @@ final class NotificationManager: ObservableObject {
     
     private func defaultSmartTime() -> Date {
         let cal = Calendar.current
-        var comps = cal.dateComponents([.year, .month, .day], from: Date())
+        var comps = cal.dateComponents([.year, .month, .day], from: AppClock.now)
         comps.hour = 7
         comps.minute = 0
-        return cal.date(from: comps) ?? Date()
+        return cal.date(from: comps) ?? AppClock.now
     }
 
     private func recordSchedulingError(_ error: Error) {

@@ -171,7 +171,7 @@ final class RealHealthStore: HealthStore {
 
     func fetchWaistMeasurements() async throws -> [(value: Double, date: Date)] {
         let waistType = try quantityType(for: .waistCircumference)
-        let predicate = HKQuery.predicateForSamples(withStart: .distantPast, end: Date())
+        let predicate = HKQuery.predicateForSamples(withStart: .distantPast, end: AppClock.now)
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -524,7 +524,7 @@ final class HealthKitManager {
 
         if importResult.didInsertAny {
             try context.save()
-            settings.set(Date().timeIntervalSince1970, forKey: "healthkit_last_import")
+            settings.set(AppClock.now.timeIntervalSince1970, forKey: "healthkit_last_import")
         }
 
         if let newAnchorData = anchored.newAnchorData {
@@ -653,7 +653,7 @@ final class HealthKitManager {
         forceRefresh: Bool,
         fetch: () async throws -> (value: Double, date: Date)?
     ) async throws -> (value: Double, date: Date)? {
-        let now = Date()
+        let now = AppClock.now
         if !forceRefresh,
            let last = latestQuantityFetchDate[identifier],
            now.timeIntervalSince(last) < quantityCacheTTL,
@@ -675,7 +675,7 @@ final class HealthKitManager {
     // MARK: - Cached Waist Fetch
     
     func fetchWaistMeasurementsCached(forceRefresh: Bool = false) async throws -> [(value: Double, date: Date)] {
-        let now = Date()
+        let now = AppClock.now
         if !forceRefresh,
            let last = lastWaistFetch,
            now.timeIntervalSince(last) < waistCacheTTL,
@@ -773,7 +773,7 @@ final class HealthKitManager {
 
             if importResult.didInsertAny {
                 try context.save()
-                settings.set(Date().timeIntervalSince1970, forKey: "healthkit_last_import")
+                settings.set(AppClock.now.timeIntervalSince1970, forKey: "healthkit_last_import")
                 let sampleDates = samples.map(\.date)
                 await MainActor.run {
                     StreakManager.shared.recordHealthKitImport(sampleDates: sampleDates)

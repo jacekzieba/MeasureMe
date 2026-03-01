@@ -41,7 +41,7 @@ enum WidgetDataWriter {
         AppLog.debug("🧩 WidgetDataWriter: writeAndReload kinds=\(kindsDescription) count=\(kinds.count)")
         guard let defaults = UserDefaults(suiteName: appGroupID) else { return }
 
-        let cutoff = Date().addingTimeInterval(-90 * 24 * 3600)
+        let cutoff = AppClock.now.addingTimeInterval(-90 * 24 * 3600)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .secondsSince1970
 

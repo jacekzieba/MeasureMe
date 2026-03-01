@@ -250,12 +250,7 @@ struct HomeView: View {
     }
 
     private func metricDeltaTextFromCache(kind: MetricKind, days: Int) -> String? {
-        HomeView.deltaText(
-            samples: cachedSamplesByKind[kind] ?? [],
-            kind: kind,
-            unitsSystem: unitsSystem,
-            days: days
-        )
+        (cachedSamplesByKind[kind] ?? []).deltaText(days: days, kind: kind, unitsSystem: unitsSystem)
     }
 
     private enum PhotoSyncMode {

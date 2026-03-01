@@ -874,8 +874,8 @@ struct MetricChartTile: View {
             latestValueText: valueString(metricValue: latest.value),
             timeframeLabel: AppLocalization.string("Last 30 days"),
             sampleCount: recentSamples.count,
-            delta7DaysText: deltaText(days: 7, in: recentSamples),
-            delta30DaysText: deltaText(days: 30, in: recentSamples),
+            delta7DaysText: recentSamples.deltaText(days: 7, kind: kind, unitsSystem: unitsSystem),
+            delta30DaysText: recentSamples.deltaText(days: 30, kind: kind, unitsSystem: unitsSystem),
             goalStatusText: goalStatusText,
             goalDirectionText: currentGoal?.direction.rawValue,
             defaultFavorableDirectionText: kind.defaultFavorableDirectionWhenNoGoal.rawValue
@@ -902,17 +902,6 @@ struct MetricChartTile: View {
             return AppLocalization.string("accessibility.metric.summary.value", kind.title, value)
         }
         return AppLocalization.string("accessibility.metric.summary.nodata", kind.title)
-    }
-
-    private func deltaText(days: Int, in source: [MetricSample]) -> String? {
-        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: AppClock.now) else { return nil }
-        let window = source.filter { $0.date >= start }
-        guard let first = window.first, let last = window.last, first.persistentModelID != last.persistentModelID else {
-            return nil
-        }
-        let delta = displayValue(last.value) - displayValue(first.value)
-        let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-        return String(format: "%+.1f %@", delta, unit)
     }
 
     @MainActor
