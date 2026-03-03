@@ -97,9 +97,6 @@ final class PremiumStore: ObservableObject {
         PremiumConstants.yearlyProductID
     ]
 
-    private let firstLaunchKey = "premium_first_launch_date"
-    private let lastNagKey = "premium_last_nag_date"
-    private let entitlementKey = "premium_entitlement"
     private let billingClient: PremiumBillingClient
     private let notificationManager: PremiumNotificationManaging
     private let settings: AppSettingsStore
@@ -122,14 +119,13 @@ final class PremiumStore: ObservableObject {
         #if DEBUG
         self.forcePremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForcePremium")
         #endif
-        let defaults = settings
-        if defaults.double(forKey: firstLaunchKey) == 0 {
-            defaults.set(AppClock.now.timeIntervalSince1970, forKey: firstLaunchKey)
+        if settings.snapshot.premium.premiumFirstLaunchDate == 0 {
+            settings.set(\.premium.premiumFirstLaunchDate, AppClock.now.timeIntervalSince1970)
         }
         #if DEBUG
         if forcePremiumForUITests {
             isPremium = true
-            defaults.set(true, forKey: entitlementKey)
+            settings.set(\.premium.premiumEntitlement, true)
         }
         #endif
 
@@ -201,20 +197,19 @@ final class PremiumStore: ObservableObject {
             return
         }
         guard !isPremium else { return }
-        let defaults = settings
-        let firstLaunch = defaults.double(forKey: firstLaunchKey)
+        let firstLaunch = settings.snapshot.premium.premiumFirstLaunchDate
         guard firstLaunch > 0 else { return }
 
         let now = AppClock.now
         let daysSinceLaunch = now.timeIntervalSince1970 - firstLaunch
         guard daysSinceLaunch >= 7 * 24 * 3600 else { return }
 
-        let lastNag = defaults.double(forKey: lastNagKey)
+        let lastNag = settings.snapshot.premium.premiumLastNagDate
         if lastNag > 0, now.timeIntervalSince1970 - lastNag < 24 * 3600 {
             return
         }
 
-        defaults.set(now.timeIntervalSince1970, forKey: lastNagKey)
+        settings.set(\.premium.premiumLastNagDate, now.timeIntervalSince1970)
         presentPaywall(reason: .sevenDayPrompt)
     }
 
@@ -366,7 +361,7 @@ final class PremiumStore: ObservableObject {
         #if DEBUG
         if forcePremiumForUITests {
             isPremium = true
-            settings.set(true, forKey: entitlementKey)
+            settings.set(\.premium.premiumEntitlement, true)
             return
         }
         #endif
@@ -408,7 +403,7 @@ final class PremiumStore: ObservableObject {
         }
 
         isPremium = active
-        settings.set(active, forKey: entitlementKey)
+        settings.set(\.premium.premiumEntitlement, active)
     }
 
     private func hasActiveSubscriptionStatus(allowedProductIDs: Set<String>, now: Date) async -> Bool {
@@ -459,7 +454,7 @@ final class PremiumStore: ObservableObject {
                 let startedIntroTrial = transaction.offer?.type == .introductory
                 // Natychmiast odblokuj premium po zweryfikowanym zakupie.
                 isPremium = true
-                settings.set(true, forKey: entitlementKey)
+                settings.set(\.premium.premiumEntitlement, true)
                 await transaction.finish()
                 await refreshEntitlements()
                 if startedIntroTrial {

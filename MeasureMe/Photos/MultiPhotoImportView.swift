@@ -18,7 +18,7 @@ struct MultiPhotoImportView: View {
     @State private var loadedThumbnails: [UUID: UIImage] = [:]
     @State private var loadingThumbnailIDs: Set<UUID> = []
     @State private var singlePhotoPayload: MultiPhotoImportPayload.Item? = nil
-    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
     init(images: [UIImage]) {
         self.payload = MultiPhotoImportPayload(images: images)

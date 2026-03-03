@@ -7,7 +7,7 @@ struct RootView: View {
     @StateObject private var metricsStore: ActiveMetricsStore
     @StateObject private var pendingPhotoSaveStore = PendingPhotoSaveStore()
     @Environment(\.modelContext) private var modelContext
-    @AppSetting("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
+    @AppSetting(\.onboarding.hasCompletedOnboarding) private var hasCompletedOnboarding: Bool = false
     private let autoCheckPaywallPrompt: Bool
     private let isAuditCaptureEnabled = AuditConfig.current.isEnabled
     @State private var didConfigurePendingStore = false

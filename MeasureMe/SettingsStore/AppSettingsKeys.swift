@@ -112,5 +112,48 @@ enum AppSettingsKeys {
         static let firstMetricAddedTracked = "analytics_first_metric_added_tracked"
         static let firstPhotoAddedTracked = "analytics_first_photo_added_tracked"
         static let appleIntelligenceEnabled = "apple_intelligence_enabled"
+        static let onboardingGoalSelectionStatPrefix = "onboarding_goal_selection_stat_"
+    }
+
+    enum Metrics {
+        static let weightEnabled = "metric_weight_enabled"
+        static let bodyFatEnabled = "metric_bodyFat_enabled"
+        static let heightEnabled = "metric_height_enabled"
+        static let leanBodyMassEnabled = "metric_nonFatMass_enabled"
+        static let waistEnabled = "metric_waist_enabled"
+        static let neckEnabled = "metric_neck_enabled"
+        static let shouldersEnabled = "metric_shoulders_enabled"
+        static let bustEnabled = "metric_bust_enabled"
+        static let chestEnabled = "metric_chest_enabled"
+        static let leftBicepEnabled = "metric_leftBicep_enabled"
+        static let rightBicepEnabled = "metric_rightBicep_enabled"
+        static let leftForearmEnabled = "metric_leftForearm_enabled"
+        static let rightForearmEnabled = "metric_rightForearm_enabled"
+        static let hipsEnabled = "metric_hips_enabled"
+        static let leftThighEnabled = "metric_leftThigh_enabled"
+        static let rightThighEnabled = "metric_rightThigh_enabled"
+        static let leftCalfEnabled = "metric_leftCalf_enabled"
+        static let rightCalfEnabled = "metric_rightCalf_enabled"
+
+        static let allEnabledKeys: [String] = [
+            weightEnabled,
+            bodyFatEnabled,
+            heightEnabled,
+            leanBodyMassEnabled,
+            waistEnabled,
+            neckEnabled,
+            shouldersEnabled,
+            bustEnabled,
+            chestEnabled,
+            leftBicepEnabled,
+            rightBicepEnabled,
+            leftForearmEnabled,
+            rightForearmEnabled,
+            hipsEnabled,
+            leftThighEnabled,
+            rightThighEnabled,
+            leftCalfEnabled,
+            rightCalfEnabled
+        ]
     }
 }

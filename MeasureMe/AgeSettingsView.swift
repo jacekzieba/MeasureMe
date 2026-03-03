@@ -13,8 +13,8 @@ import SwiftUI
 struct AgeSettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
-    @AppSetting("userAge") private var userAge: Int = 0
-    @AppSetting("isSyncEnabled") private var isSyncEnabled: Bool = false
+    @AppSetting(\.profile.userAge) private var userAge: Int = 0
+    @AppSetting(\.health.isSyncEnabled) private var isSyncEnabled: Bool = false
 
     @State private var ageInput: String = ""
     @State private var isLoadingHealthKit = false

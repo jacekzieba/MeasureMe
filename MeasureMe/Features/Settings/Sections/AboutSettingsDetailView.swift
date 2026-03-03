@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AboutSettingsDetailView: View {
-    @AppSetting("diagnostics_logging_enabled") private var diagnosticsLoggingEnabled: Bool = true
+    @AppSetting(\.diagnostics.diagnosticsLoggingEnabled) private var diagnosticsLoggingEnabled: Bool = true
     @Environment(\.openURL) private var openURL
     let onReportBug: () -> Void
 

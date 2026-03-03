@@ -19,7 +19,7 @@ struct AddPhotoView: View {
     @State private var isMeasurementsExpanded = false
     @State private var saveErrorMessage: String?
     @State private var isSaving = false
-    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
     
     init(previewImage: UIImage? = nil, previewSource: PhotoLibraryImageSource? = nil) {
         self.initialPreviewSource = previewSource

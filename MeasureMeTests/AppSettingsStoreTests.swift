@@ -107,4 +107,56 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertTrue(store.snapshot.notifications.goalAchievedEnabled)
         XCTAssertTrue(store.snapshot.notifications.importNotificationsEnabled)
     }
+
+    func testClearHealthKitSyncMetadataClearsSyncStateAndDynamicKeys() async {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+
+        store.set(\.health.isSyncEnabled, true)
+        store.set(\.health.healthkitLastImport, 1234)
+        store.set(\.health.healthkitInitialHistoricalImport, true)
+        store.setHealthKitAnchor(Data([7, 8, 9]), for: .weight)
+        store.setLastProcessedHealthDate(Date(timeIntervalSince1970: 4567), for: .weight)
+
+        store.clearHealthKitSyncMetadata()
+
+        for _ in 0..<50 where store.snapshot.health.isSyncEnabled {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        XCTAssertFalse(store.snapshot.health.isSyncEnabled)
+        XCTAssertEqual(store.snapshot.health.healthkitLastImport, 0)
+        XCTAssertFalse(store.snapshot.health.healthkitInitialHistoricalImport)
+        XCTAssertNil(store.healthKitAnchor(for: .weight))
+        XCTAssertNil(store.lastProcessedHealthDate(for: .weight))
+    }
+
+    func testClearUserDataDefaultsClearsProfileAndNotificationState() async {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+
+        store.set(\.profile.userName, "Alice")
+        store.set(\.profile.userAge, 37)
+        store.set(\.profile.userGender, "female")
+        store.set(\.profile.manualHeight, 170)
+        store.set(\.notifications.measurementRemindersData, Data([1, 2, 3]))
+        store.set(\.notifications.lastLogDate, 111)
+        store.set(\.notifications.lastPhotoDate, 222)
+        store.set(\.diagnostics.diagnosticsLoggingEnabled, false)
+
+        store.clearUserDataDefaults()
+
+        for _ in 0..<50 where store.snapshot.profile.userName != "" {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        XCTAssertEqual(store.snapshot.profile.userName, "")
+        XCTAssertEqual(store.snapshot.profile.userAge, 0)
+        XCTAssertEqual(store.snapshot.profile.userGender, "notSpecified")
+        XCTAssertEqual(store.snapshot.profile.manualHeight, 0)
+        XCTAssertNil(store.snapshot.notifications.measurementRemindersData)
+        XCTAssertEqual(store.snapshot.notifications.lastLogDate, 0)
+        XCTAssertEqual(store.snapshot.notifications.lastPhotoDate, 0)
+        XCTAssertTrue(store.snapshot.diagnostics.diagnosticsLoggingEnabled)
+    }
 }

@@ -3,19 +3,19 @@ import UIKit
 
 struct OnboardingView: View {
     private let effects: OnboardingEffects
-    @AppSetting("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
-    @AppSetting("userName") private var userName: String = ""
-    @AppSetting("userAge") private var userAge: Int = 0
-    @AppSetting("userGender") private var userGender: String = "notSpecified"
-    @AppSetting("manualHeight") private var manualHeight: Double = 0.0
-    @AppSetting("isSyncEnabled") private var isSyncEnabled: Bool = false
-    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
-    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppSetting("onboarding_skipped_healthkit") private var onboardingSkippedHealthKit: Bool = false
-    @AppSetting("onboarding_skipped_reminders") private var onboardingSkippedReminders: Bool = false
-    @AppSetting("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
-    @AppSetting("onboarding_checklist_premium_explored") private var onboardingChecklistPremiumExplored: Bool = false
-    @AppSetting("onboarding_primary_goal") private var onboardingPrimaryGoalsRaw: String = ""
+    @AppSetting(\.onboarding.hasCompletedOnboarding) private var hasCompletedOnboarding: Bool = false
+    @AppSetting(\.profile.userName) private var userName: String = ""
+    @AppSetting(\.profile.userAge) private var userAge: Int = 0
+    @AppSetting(\.profile.userGender) private var userGender: String = "notSpecified"
+    @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
+    @AppSetting(\.health.isSyncEnabled) private var isSyncEnabled: Bool = false
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @AppSetting(\.onboarding.onboardingSkippedHealthKit) private var onboardingSkippedHealthKit: Bool = false
+    @AppSetting(\.onboarding.onboardingSkippedReminders) private var onboardingSkippedReminders: Bool = false
+    @AppSetting(\.onboarding.onboardingChecklistShow) private var showOnboardingChecklistOnHome: Bool = true
+    @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
+    @AppSetting(\.onboarding.onboardingPrimaryGoal) private var onboardingPrimaryGoalsRaw: String = ""
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) var dynamicTypeSize

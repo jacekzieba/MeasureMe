@@ -10,8 +10,8 @@ struct PremiumPaywallView: View {
     @State private var selectedProductID: String?
     @State private var selectedSlide: Int = 0
     @State private var isCTAPulsing: Bool = false
-    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppSetting("userName") private var userName: String = ""
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @AppSetting(\.profile.userName) private var userName: String = ""
 
     private enum SlideKind {
         case analyst

@@ -3,7 +3,7 @@ import SwiftUI
 struct PhotoGridSkeletonView: View {
     var itemCount: Int = 12
 
-    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var shouldShimmer: Bool {

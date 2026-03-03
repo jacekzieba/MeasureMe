@@ -4,7 +4,7 @@ import UIKit
 
 @main
 struct MeasureMeApp: App {
-    @AppSetting("appLanguage") private var appLanguage: String = "system"
+    @AppSetting(\.experience.appLanguage) private var appLanguage: String = "system"
     @StateObject private var settingsStore = AppSettingsStore.shared
     @State private var startupState: StartupState = .loading
     @State private var startupLoadingState = StartupLoadingState(
@@ -271,7 +271,7 @@ struct MeasureMeApp: App {
         Task(priority: .background) {
             try? await Task.sleep(for: .milliseconds(600))
             let context = ModelContext(container)
-            let units = settingsStore.string(forKey: "unitsSystem") ?? "metric"
+            let units = settingsStore.snapshot.profile.unitsSystem
             WidgetDataWriter.writeAllAndReload(context: context, unitsSystem: units)
         }
     }
@@ -296,65 +296,59 @@ struct MeasureMeApp: App {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
         let defaults = AppSettingsStore.shared
-        let metricKeys = [
-            "metric_weight_enabled", "metric_bodyFat_enabled", "metric_height_enabled",
-            "metric_nonFatMass_enabled", "metric_waist_enabled", "metric_neck_enabled",
-            "metric_shoulders_enabled", "metric_bust_enabled", "metric_chest_enabled",
-            "metric_leftBicep_enabled", "metric_rightBicep_enabled",
-            "metric_leftForearm_enabled", "metric_rightForearm_enabled",
-            "metric_hips_enabled", "metric_leftThigh_enabled", "metric_rightThigh_enabled",
-            "metric_leftCalf_enabled", "metric_rightCalf_enabled"
-        ]
+        let metricKeys = AppSettingsKeys.Metrics.allEnabledKeys
         let enabledByDefault: Set<String> = [
-            "metric_weight_enabled", "metric_bodyFat_enabled",
-            "metric_nonFatMass_enabled", "metric_waist_enabled"
+            AppSettingsKeys.Metrics.weightEnabled,
+            AppSettingsKeys.Metrics.bodyFatEnabled,
+            AppSettingsKeys.Metrics.leanBodyMassEnabled,
+            AppSettingsKeys.Metrics.waistEnabled
         ]
-        let indicatorKeysEnabledByDefault = [
-            "showWHtROnHome",
-            "showRFMOnHome",
-            "showBMIOnHome",
-            "showBodyFatOnHome",
-            "showLeanMassOnHome",
-            "showWHROnHome",
-            "showWaistRiskOnHome",
-            "showABSIOnHome",
-            "showBodyShapeScoreOnHome",
-            "showCentralFatRiskOnHome",
-            "showPhysiqueSWR",
-            "showPhysiqueCWR",
-            "showPhysiqueSHR",
-            "showPhysiqueHWR",
-            "showPhysiqueBWR",
-            "showPhysiqueWHtR",
-            "showPhysiqueBodyFat",
-            "showPhysiqueRFM"
+        let indicatorKeysEnabledByDefault: [WritableKeyPath<AppSettingsSnapshot, Bool>] = [
+            \.indicators.showWHtROnHome,
+            \.indicators.showRFMOnHome,
+            \.indicators.showBMIOnHome,
+            \.indicators.showBodyFatOnHome,
+            \.indicators.showLeanMassOnHome,
+            \.indicators.showWHROnHome,
+            \.indicators.showWaistRiskOnHome,
+            \.indicators.showABSIOnHome,
+            \.indicators.showBodyShapeScoreOnHome,
+            \.indicators.showCentralFatRiskOnHome,
+            \.indicators.showPhysiqueSWR,
+            \.indicators.showPhysiqueCWR,
+            \.indicators.showPhysiqueSHR,
+            \.indicators.showPhysiqueHWR,
+            \.indicators.showPhysiqueBWR,
+            \.indicators.showPhysiqueWHtR,
+            \.indicators.showPhysiqueBodyFat,
+            \.indicators.showPhysiqueRFM
         ]
 
         if args.contains("-uiTestOnboardingMode") {
-            defaults.set(false, forKey: "hasCompletedOnboarding")
-            defaults.set("en", forKey: "appLanguage")
-            defaults.set(false, forKey: "premium_entitlement")
-            defaults.set(true, forKey: "apple_intelligence_enabled")
-            defaults.set(true, forKey: "onboarding_checklist_show")
-            defaults.set(0.0, forKey: "home_tab_scroll_offset")
+            defaults.set(\.onboarding.hasCompletedOnboarding, false)
+            defaults.set(\.experience.appLanguage, "en")
+            defaults.set(\.premium.premiumEntitlement, false)
+            defaults.set(\.analytics.appleIntelligenceEnabled, true)
+            defaults.set(\.onboarding.onboardingChecklistShow, true)
+            defaults.set(\.home.homeTabScrollOffset, 0.0)
             for key in metricKeys {
                 defaults.set(enabledByDefault.contains(key), forKey: key)
             }
-            for key in indicatorKeysEnabledByDefault {
-                defaults.set(true, forKey: key)
+            for keyPath in indicatorKeysEnabledByDefault {
+                defaults.set(keyPath, true)
             }
         }
 
         guard args.contains("-uiTestMode") else { return }
-        defaults.set(true, forKey: "hasCompletedOnboarding")
-        defaults.set("en", forKey: "appLanguage")
-        defaults.set(true, forKey: "premium_entitlement")
-        defaults.set(true, forKey: "apple_intelligence_enabled")
-        defaults.set(false, forKey: "onboarding_checklist_show")
-        defaults.set(-20.0, forKey: "home_tab_scroll_offset")
-        defaults.set(true, forKey: "showLastPhotosOnHome")
-        defaults.set(true, forKey: "showMeasurementsOnHome")
-        defaults.set(true, forKey: "showHealthMetricsOnHome")
+        defaults.set(\.onboarding.hasCompletedOnboarding, true)
+        defaults.set(\.experience.appLanguage, "en")
+        defaults.set(\.premium.premiumEntitlement, true)
+        defaults.set(\.analytics.appleIntelligenceEnabled, true)
+        defaults.set(\.onboarding.onboardingChecklistShow, false)
+        defaults.set(\.home.homeTabScrollOffset, -20.0)
+        defaults.set(\.home.showLastPhotosOnHome, true)
+        defaults.set(\.home.showMeasurementsOnHome, true)
+        defaults.set(\.home.showHealthMetricsOnHome, true)
 
         if args.contains("-uiTestNoActiveMetrics") {
             for key in metricKeys { defaults.set(false, forKey: key) }
@@ -363,21 +357,21 @@ struct MeasureMeApp: App {
                 defaults.set(enabledByDefault.contains(key), forKey: key)
             }
         }
-        for key in indicatorKeysEnabledByDefault {
-            defaults.set(true, forKey: key)
+        for keyPath in indicatorKeysEnabledByDefault {
+            defaults.set(keyPath, true)
         }
         if args.contains("-uiTestForceNonPremium") {
-            defaults.set(false, forKey: "premium_entitlement")
+            defaults.set(\.premium.premiumEntitlement, false)
         }
         if args.contains("-uiTestPhysiqueSWROff") {
-            defaults.set(false, forKey: "showPhysiqueSWR")
+            defaults.set(\.indicators.showPhysiqueSWR, false)
         }
         if args.contains("-uiTestGenderNotSpecified") {
-            defaults.set("notSpecified", forKey: "userGender")
+            defaults.set(\.profile.userGender, "notSpecified")
         } else if args.contains("-uiTestGenderMale") {
-            defaults.set("male", forKey: "userGender")
+            defaults.set(\.profile.userGender, "male")
         } else if args.contains("-uiTestGenderFemale") {
-            defaults.set("female", forKey: "userGender")
+            defaults.set(\.profile.userGender, "female")
         }
         #endif
     }

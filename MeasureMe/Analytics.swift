@@ -41,24 +41,21 @@ final class DynamicAnalyticsClient: AnalyticsClient {
 
 enum AnalyticsFirstEventTracker {
     static var settings: AppSettingsStore = .shared
-    private static let firstMetricTrackedKey = "analytics_first_metric_added_tracked"
-    private static let firstPhotoTrackedKey = "analytics_first_photo_added_tracked"
-    private static let onboardingCompletedKey = "hasCompletedOnboarding"
 
     static func trackFirstMetricIfNeeded(previousMetricCount: Int) {
         guard previousMetricCount == 0 else { return }
-        guard shouldTrackFirstEvent(forKey: firstMetricTrackedKey) else { return }
+        guard shouldTrackFirstMetricEvent() else { return }
 
         Analytics.shared.track(.firstMetricAdded)
-        settings.set(true, forKey: firstMetricTrackedKey)
+        settings.set(\.analytics.firstMetricAddedTracked, true)
     }
 
     static func trackFirstPhotoIfNeeded(previousPhotoCount: Int) {
         guard previousPhotoCount == 0 else { return }
-        guard shouldTrackFirstEvent(forKey: firstPhotoTrackedKey) else { return }
+        guard shouldTrackFirstPhotoEvent() else { return }
 
         Analytics.shared.track(.firstPhotoAdded)
-        settings.set(true, forKey: firstPhotoTrackedKey)
+        settings.set(\.analytics.firstPhotoAddedTracked, true)
     }
 
     static func metricCount(in context: ModelContext) -> Int {
@@ -69,10 +66,15 @@ enum AnalyticsFirstEventTracker {
         (try? context.fetchCount(FetchDescriptor<PhotoEntry>())) ?? 0
     }
 
-    private static func shouldTrackFirstEvent(forKey key: String) -> Bool {
-        let defaults = settings
-        guard defaults.bool(forKey: onboardingCompletedKey) else { return false }
-        guard defaults.bool(forKey: key) == false else { return false }
-        return true
+    private static func shouldTrackFirstMetricEvent() -> Bool {
+        let snapshot = settings.snapshot
+        guard snapshot.onboarding.hasCompletedOnboarding else { return false }
+        return snapshot.analytics.firstMetricAddedTracked == false
+    }
+
+    private static func shouldTrackFirstPhotoEvent() -> Bool {
+        let snapshot = settings.snapshot
+        guard snapshot.onboarding.hasCompletedOnboarding else { return false }
+        return snapshot.analytics.firstPhotoAddedTracked == false
     }
 }

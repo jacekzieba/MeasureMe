@@ -3,7 +3,7 @@ import SwiftUI
 /// Rząd z pojedynczym snapshotem metryki (tryb wyświetlania)
 struct MetricSnapshotRow: View {
     let snapshot: MetricValueSnapshot
-    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
     
     var body: some View {
         HStack {

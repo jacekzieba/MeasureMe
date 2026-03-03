@@ -6,7 +6,7 @@ struct OnboardingWelcomeStep: View {
     @Binding var selectedGoals: Set<OnboardingView.WelcomeGoal>
     let onGoalToggled: (OnboardingView.WelcomeGoal) -> Void
 
-    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 

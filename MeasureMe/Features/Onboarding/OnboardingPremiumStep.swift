@@ -6,7 +6,7 @@ struct OnboardingPremiumStep: View {
     @EnvironmentObject private var premiumStore: PremiumStore
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    @AppSetting("onboarding_checklist_premium_explored") private var onboardingChecklistPremiumExplored: Bool = false
+    @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
 
     @State private var selectedProductID: String? = PremiumConstants.yearlyProductID
 

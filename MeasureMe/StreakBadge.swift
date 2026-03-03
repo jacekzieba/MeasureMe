@@ -9,7 +9,7 @@ struct StreakBadge: View {
     let shouldAnimate: Bool
     let onAnimationComplete: () -> Void
 
-    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var glowOpacity: Double = 0

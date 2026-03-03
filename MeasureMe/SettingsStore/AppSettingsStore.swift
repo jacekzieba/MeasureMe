@@ -93,6 +93,88 @@ final class AppSettingsStore: ObservableObject {
         set(value, forKey: AppSettingsKeys.Notifications.goalAchievementPrefix + goalID)
     }
 
+    func isHealthKitSyncEnabled(for kind: MetricKind) -> Bool {
+        switch kind {
+        case .weight:
+            snapshot.health.healthkitSyncWeight
+        case .bodyFat:
+            snapshot.health.healthkitSyncBodyFat
+        case .height:
+            snapshot.health.healthkitSyncHeight
+        case .leanBodyMass:
+            snapshot.health.healthkitSyncLeanBodyMass
+        case .waist:
+            snapshot.health.healthkitSyncWaist
+        default:
+            false
+        }
+    }
+
+    func setHealthKitSyncEnabled(_ enabled: Bool, for kind: MetricKind) {
+        switch kind {
+        case .weight:
+            set(\.health.healthkitSyncWeight, enabled)
+        case .bodyFat:
+            set(\.health.healthkitSyncBodyFat, enabled)
+        case .height:
+            set(\.health.healthkitSyncHeight, enabled)
+        case .leanBodyMass:
+            set(\.health.healthkitSyncLeanBodyMass, enabled)
+        case .waist:
+            set(\.health.healthkitSyncWaist, enabled)
+        default:
+            break
+        }
+    }
+
+    func incrementOnboardingGoalSelectionStat(for goalRawValue: String) {
+        let key = AppSettingsKeys.Analytics.onboardingGoalSelectionStatPrefix + goalRawValue
+        set(integer(forKey: key) + 1, forKey: key)
+    }
+
+    func resetNotificationSettingsToDefaults() {
+        performDefaultsWrite(scheduleSnapshotRefreshAfterWrite: true) {
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.reminders)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.notificationsEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.smartEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.smartDays)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.smartTime)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.lastLogDate)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.lastPhotoDate)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.photoRemindersEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.goalAchievedEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.importNotificationsEnabled)
+        }
+    }
+
+    func clearHealthKitSyncMetadata() {
+        performDefaultsWrite(scheduleSnapshotRefreshAfterWrite: true) {
+            defaults.set(false, forKey: AppSettingsKeys.Health.isSyncEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Health.healthkitLastImport)
+            defaults.removeObject(forKey: AppSettingsKeys.Health.healthkitInitialHistoricalImport)
+
+            for key in defaults.dictionaryRepresentation().keys {
+                if key.hasPrefix(AppSettingsKeys.Health.healthkitAnchorPrefix)
+                    || key.hasPrefix(AppSettingsKeys.Health.healthkitLastProcessedPrefix) {
+                    defaults.removeObject(forKey: key)
+                }
+            }
+        }
+    }
+
+    func clearUserDataDefaults() {
+        performDefaultsWrite(scheduleSnapshotRefreshAfterWrite: true) {
+            defaults.removeObject(forKey: AppSettingsKeys.Profile.userName)
+            defaults.removeObject(forKey: AppSettingsKeys.Profile.userAge)
+            defaults.removeObject(forKey: AppSettingsKeys.Profile.userGender)
+            defaults.removeObject(forKey: AppSettingsKeys.Profile.manualHeight)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.reminders)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.lastLogDate)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.lastPhotoDate)
+            defaults.removeObject(forKey: AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled)
+        }
+    }
+
     func value<Value>(forKey key: String, default defaultValue: Value) -> Value {
         if let value = object(forKey: key) as? Value {
             return value

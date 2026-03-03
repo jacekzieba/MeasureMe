@@ -16,25 +16,25 @@ struct HomeView: View {
     @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var modelContext
-    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppSetting("userName") private var userName: String = ""
-    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
-    @AppSetting("isSyncEnabled") var isSyncEnabled: Bool = false
-    @AppSetting("showLastPhotosOnHome") private var showLastPhotosOnHome: Bool = true
-    @AppSetting("showMeasurementsOnHome") private var showMeasurementsOnHome: Bool = true
-    @AppSetting("showHealthMetricsOnHome") private var showHealthMetricsOnHome: Bool = true
-    @AppSetting("showStreakOnHome") private var showStreakOnHome: Bool = true
-    @AppSetting("home_tab_scroll_offset") private var homeTabScrollOffset: Double = 0.0
-    @AppSetting("onboarding_skipped_healthkit") private var onboardingSkippedHealthKit: Bool = false
-    @AppSetting("onboarding_skipped_reminders") private var onboardingSkippedReminders: Bool = false
-    @AppSetting("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
-    @AppSetting("onboarding_checklist_metrics_completed") private var onboardingChecklistMetricsCompleted: Bool = false
-    @AppSetting("onboarding_checklist_premium_explored") private var onboardingChecklistPremiumExplored: Bool = false
-    @AppSetting("onboarding_checklist_collapsed") private var onboardingChecklistCollapsed: Bool = false
-    @AppSetting("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
-    @AppSetting("settings_open_reminders") private var settingsOpenReminders: Bool = false
-    @AppSetting("home_photo_metric_sync_last_date") private var photoMetricSyncLastDate: Double = 0
-    @AppSetting("home_photo_metric_sync_last_id") private var photoMetricSyncLastID: String = ""
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @AppSetting(\.profile.userName) private var userName: String = ""
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
+    @AppSetting(\.health.isSyncEnabled) var isSyncEnabled: Bool = false
+    @AppSetting(\.home.showLastPhotosOnHome) private var showLastPhotosOnHome: Bool = true
+    @AppSetting(\.home.showMeasurementsOnHome) private var showMeasurementsOnHome: Bool = true
+    @AppSetting(\.home.showHealthMetricsOnHome) private var showHealthMetricsOnHome: Bool = true
+    @AppSetting(\.home.showStreakOnHome) private var showStreakOnHome: Bool = true
+    @AppSetting(\.home.homeTabScrollOffset) private var homeTabScrollOffset: Double = 0.0
+    @AppSetting(\.onboarding.onboardingSkippedHealthKit) private var onboardingSkippedHealthKit: Bool = false
+    @AppSetting(\.onboarding.onboardingSkippedReminders) private var onboardingSkippedReminders: Bool = false
+    @AppSetting(\.onboarding.onboardingChecklistShow) private var showOnboardingChecklistOnHome: Bool = true
+    @AppSetting(\.onboarding.onboardingChecklistMetricsCompleted) private var onboardingChecklistMetricsCompleted: Bool = false
+    @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
+    @AppSetting(\.onboarding.onboardingChecklistCollapsed) private var onboardingChecklistCollapsed: Bool = false
+    @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
+    @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
+    @AppSetting(\.home.homePhotoMetricSyncLastDate) private var photoMetricSyncLastDate: Double = 0
+    @AppSetting(\.home.homePhotoMetricSyncLastID) private var photoMetricSyncLastID: String = ""
     
     @EnvironmentObject private var router: AppRouter
     @ObservedObject private var streakManager: StreakManager

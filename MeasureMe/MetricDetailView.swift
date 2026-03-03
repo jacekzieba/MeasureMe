@@ -46,11 +46,11 @@ struct MetricDetailView: View {
     @State var isLoadingInsight = false
     @State private var scrubbedSample: MetricSample?
     
-    @AppSetting("photos_filter_tag") var photosFilterTag: String = ""
+    @AppSetting(\.experience.photosFilterTag) var photosFilterTag: String = ""
 
     /// System jednostek: "metric" (kg, cm) lub "imperial" (lb, in)
-    @AppSetting("unitsSystem") internal var unitsSystem: String = "metric"
-    @AppSetting("userName") internal var userName: String = ""
+    @AppSetting(\.profile.unitsSystem) internal var unitsSystem: String = "metric"
+    @AppSetting(\.profile.userName) internal var userName: String = ""
     
     // MARK: - Timeframe Enum
     

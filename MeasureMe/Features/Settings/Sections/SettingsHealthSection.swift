@@ -13,7 +13,7 @@ struct HealthSettingsSection: View {
     @State private var authorizationTask: Task<Void, Never>?
     @State private var isMetricsExpanded: Bool = false
     @State private var syncStatusMessage: String?
-    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {

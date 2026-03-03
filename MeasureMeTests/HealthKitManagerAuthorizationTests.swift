@@ -53,9 +53,33 @@ private final class MockHealthStore: HealthStore {
 
 @MainActor
 final class HealthKitManagerAuthorizationTests: XCTestCase {
+    private var defaults: UserDefaults!
+    private var settings: AppSettingsStore!
+
+    override func setUp() {
+        super.setUp()
+        let suiteName = "HealthKitManagerAuthorizationTests.\(name)"
+        defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        settings = AppSettingsStore(defaults: defaults)
+    }
+
     override func tearDown() {
-        UserDefaults.standard.removeObject(forKey: "isSyncEnabled")
+        defaults.removePersistentDomain(forName: "HealthKitManagerAuthorizationTests.\(name)")
+        defaults = nil
+        settings = nil
         super.tearDown()
+    }
+
+    private func waitUntil(
+        timeoutNanoseconds: UInt64 = 1_000_000_000,
+        pollNanoseconds: UInt64 = 10_000_000,
+        _ condition: @autoclosure () -> Bool
+    ) async {
+        let deadline = DispatchTime.now().uptimeNanoseconds + timeoutNanoseconds
+        while !condition() && DispatchTime.now().uptimeNanoseconds < deadline {
+            try? await Task.sleep(nanoseconds: pollNanoseconds)
+        }
     }
 
     /// Co sprawdza: Sprawdza scenariusz: RequestAuthorizationThrowsNotAvailable.
@@ -64,7 +88,7 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
     func testRequestAuthorizationThrowsNotAvailable() async {
         let store = MockHealthStore()
         store.healthDataAvailable = false
-        let manager = HealthKitManager(store: store)
+        let manager = HealthKitManager(store: store, settings: settings)
 
         do {
             try await manager.requestAuthorization()
@@ -81,7 +105,7 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
     /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testRequestAuthorizationThrowsDeniedWhenNoTypeAuthorized() async {
         let store = MockHealthStore()
-        let manager = HealthKitManager(store: store)
+        let manager = HealthKitManager(store: store, settings: settings)
 
         do {
             try await manager.requestAuthorization()
@@ -99,7 +123,7 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
     func testRequestAuthorizationSucceedsWhenAtLeastOneTypeAuthorized() async throws {
         let store = MockHealthStore()
         store.quantityStatuses[.bodyMass] = .sharingAuthorized
-        let manager = HealthKitManager(store: store)
+        let manager = HealthKitManager(store: store, settings: settings)
 
         try await manager.requestAuthorization()
         XCTAssertTrue(store.didRequestAuthorization)
@@ -111,14 +135,15 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
     func testReconcileStoredSyncStateDisablesSyncWhenHealthUnavailable() async {
         let store = MockHealthStore()
         store.healthDataAvailable = false
-        let manager = HealthKitManager(store: store)
-        UserDefaults.standard.set(true, forKey: "isSyncEnabled")
-        defer { UserDefaults.standard.removeObject(forKey: "isSyncEnabled") }
+        let manager = HealthKitManager(store: store, settings: settings)
+        settings.set(\.health.isSyncEnabled, true)
+        await waitUntil(settings.snapshot.health.isSyncEnabled)
 
         let result = manager.reconcileStoredSyncState()
+        await waitUntil(!settings.snapshot.health.isSyncEnabled)
 
         XCTAssertEqual(result, .notAvailable)
-        XCTAssertFalse(UserDefaults.standard.bool(forKey: "isSyncEnabled"))
+        XCTAssertFalse(settings.snapshot.health.isSyncEnabled)
     }
 
     /// Co sprawdza: Sprawdza scenariusz: ReconcileStoredSyncStateDisablesSyncWhenNoAuthorizedTypes.
@@ -126,13 +151,14 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
     /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testReconcileStoredSyncStateDisablesSyncWhenNoAuthorizedTypes() async {
         let store = MockHealthStore()
-        let manager = HealthKitManager(store: store)
-        UserDefaults.standard.set(true, forKey: "isSyncEnabled")
-        defer { UserDefaults.standard.removeObject(forKey: "isSyncEnabled") }
+        let manager = HealthKitManager(store: store, settings: settings)
+        settings.set(\.health.isSyncEnabled, true)
+        await waitUntil(settings.snapshot.health.isSyncEnabled)
 
         let result = manager.reconcileStoredSyncState()
+        await waitUntil(!settings.snapshot.health.isSyncEnabled)
 
         XCTAssertEqual(result, .denied)
-        XCTAssertFalse(UserDefaults.standard.bool(forKey: "isSyncEnabled"))
+        XCTAssertFalse(settings.snapshot.health.isSyncEnabled)
     }
 }

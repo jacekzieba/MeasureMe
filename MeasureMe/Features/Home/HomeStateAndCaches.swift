@@ -199,7 +199,7 @@ private struct HomeGoalProgressBar: View {
 }
 
 struct PressableTileStyle: ButtonStyle {
-    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {

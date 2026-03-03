@@ -4,7 +4,7 @@ import SwiftData
 struct TabBarContainer: View {
     let autoCheckPaywallPrompt: Bool
     @StateObject private var router = AppRouter()
-    @AppSetting("home_tab_scroll_offset") private var homeTabScrollOffset: Double = 0.0
+    @AppSetting(\.home.homeTabScrollOffset) private var homeTabScrollOffset: Double = 0.0
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var premiumStore: PremiumStore
     @State private var didApplyAuditRoute = false

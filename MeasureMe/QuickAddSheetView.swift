@@ -12,10 +12,10 @@ struct QuickAddSheetView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var router: AppRouter
-    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppSetting("isSyncEnabled") private var isSyncEnabled: Bool = false
-    @AppSetting("save_unchanged_quick_add") private var saveUnchangedValues: Bool = false
-    @AppSetting("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @AppSetting(\.health.isSyncEnabled) private var isSyncEnabled: Bool = false
+    @AppSetting(\.experience.saveUnchangedQuickAdd) private var saveUnchangedValues: Bool = false
+    @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
 
     // Jedna data uzywana dla wszystkich szybkich wpisow
     @State private var date: Date = AppClock.now

@@ -21,57 +21,57 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
     @EnvironmentObject private var premiumStore: PremiumStore
-    @AppSetting("isSyncEnabled") private var isSyncEnabled: Bool = false
-    @AppSetting("unitsSystem") private var unitsSystem: String = "metric"
-    @AppSetting("showLastPhotosOnHome") private var showLastPhotosOnHome: Bool = true
-    @AppSetting("showMeasurementsOnHome") private var showMeasurementsOnHome: Bool = true
-    @AppSetting("showHealthMetricsOnHome") private var showHealthMetricsOnHome: Bool = true
-    @AppSetting("showStreakOnHome") private var showStreakOnHome: Bool = true
-    @AppSetting("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
-    @AppSetting("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
-    @AppSetting("settings_open_reminders") private var settingsOpenReminders: Bool = false
-    @AppSetting("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppSetting("hapticsEnabled") private var hapticsEnabled: Bool = true
-    @AppSetting("userName") private var userName: String = ""
-    @AppSetting("appLanguage") private var appLanguage: String = "system"
+    @AppSetting(\.health.isSyncEnabled) private var isSyncEnabled: Bool = false
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
+    @AppSetting(\.home.showLastPhotosOnHome) private var showLastPhotosOnHome: Bool = true
+    @AppSetting(\.home.showMeasurementsOnHome) private var showMeasurementsOnHome: Bool = true
+    @AppSetting(\.home.showHealthMetricsOnHome) private var showHealthMetricsOnHome: Bool = true
+    @AppSetting(\.home.showStreakOnHome) private var showStreakOnHome: Bool = true
+    @AppSetting(\.onboarding.onboardingChecklistShow) private var showOnboardingChecklistOnHome: Bool = true
+    @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
+    @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @AppSetting(\.experience.hapticsEnabled) private var hapticsEnabled: Bool = true
+    @AppSetting(\.profile.userName) private var userName: String = ""
+    @AppSetting(\.experience.appLanguage) private var appLanguage: String = "system"
     
     // Core Metrics visibility
-    @AppSetting("showWHtROnHome") private var showWHtROnHome: Bool = true
-    @AppSetting("showRFMOnHome") private var showRFMOnHome: Bool = true
-    @AppSetting("showBMIOnHome") private var showBMIOnHome: Bool = true
+    @AppSetting(\.indicators.showWHtROnHome) private var showWHtROnHome: Bool = true
+    @AppSetting(\.indicators.showRFMOnHome) private var showRFMOnHome: Bool = true
+    @AppSetting(\.indicators.showBMIOnHome) private var showBMIOnHome: Bool = true
     
     // Body Composition visibility
-    @AppSetting("showBodyFatOnHome") private var showBodyFatOnHome: Bool = true
-    @AppSetting("showLeanMassOnHome") private var showLeanMassOnHome: Bool = true
+    @AppSetting(\.indicators.showBodyFatOnHome) private var showBodyFatOnHome: Bool = true
+    @AppSetting(\.indicators.showLeanMassOnHome) private var showLeanMassOnHome: Bool = true
     
     // Risk Indicators visibility
-    @AppSetting("showWHROnHome") private var showWHROnHome: Bool = true
-    @AppSetting("showWaistRiskOnHome") private var showWaistRiskOnHome: Bool = true
-    @AppSetting("showABSIOnHome") private var showABSIOnHome: Bool = true
-    @AppSetting("showBodyShapeScoreOnHome") private var showBodyShapeScoreOnHome: Bool = true
-    @AppSetting("showCentralFatRiskOnHome") private var showCentralFatRiskOnHome: Bool = true
+    @AppSetting(\.indicators.showWHROnHome) private var showWHROnHome: Bool = true
+    @AppSetting(\.indicators.showWaistRiskOnHome) private var showWaistRiskOnHome: Bool = true
+    @AppSetting(\.indicators.showABSIOnHome) private var showABSIOnHome: Bool = true
+    @AppSetting(\.indicators.showBodyShapeScoreOnHome) private var showBodyShapeScoreOnHome: Bool = true
+    @AppSetting(\.indicators.showCentralFatRiskOnHome) private var showCentralFatRiskOnHome: Bool = true
 
     // Physique indicators visibility
-    @AppSetting("showPhysiqueSWR") private var showPhysiqueSWR: Bool = true
-    @AppSetting("showPhysiqueCWR") private var showPhysiqueCWR: Bool = true
-    @AppSetting("showPhysiqueSHR") private var showPhysiqueSHR: Bool = true
-    @AppSetting("showPhysiqueHWR") private var showPhysiqueHWR: Bool = true
-    @AppSetting("showPhysiqueBWR") private var showPhysiqueBWR: Bool = true
-    @AppSetting("showPhysiqueWHtR") private var showPhysiqueWHtR: Bool = true
-    @AppSetting("showPhysiqueBodyFat") private var showPhysiqueBodyFat: Bool = true
-    @AppSetting("showPhysiqueRFM") private var showPhysiqueRFM: Bool = true
+    @AppSetting(\.indicators.showPhysiqueSWR) private var showPhysiqueSWR: Bool = true
+    @AppSetting(\.indicators.showPhysiqueCWR) private var showPhysiqueCWR: Bool = true
+    @AppSetting(\.indicators.showPhysiqueSHR) private var showPhysiqueSHR: Bool = true
+    @AppSetting(\.indicators.showPhysiqueHWR) private var showPhysiqueHWR: Bool = true
+    @AppSetting(\.indicators.showPhysiqueBWR) private var showPhysiqueBWR: Bool = true
+    @AppSetting(\.indicators.showPhysiqueWHtR) private var showPhysiqueWHtR: Bool = true
+    @AppSetting(\.indicators.showPhysiqueBodyFat) private var showPhysiqueBodyFat: Bool = true
+    @AppSetting(\.indicators.showPhysiqueRFM) private var showPhysiqueRFM: Bool = true
     
-    @AppSetting("userGender") private var userGender: String = "notSpecified"
-    @AppSetting("manualHeight") private var manualHeight: Double = 0.0
-    @AppSetting("userAge") private var userAge: Int = 0
-    @AppSetting("healthkit_last_import") private var lastHealthImportTimestamp: Double = 0.0
-    @AppSetting("apple_intelligence_enabled") private var appleIntelligenceEnabled: Bool = true
+    @AppSetting(\.profile.userGender) private var userGender: String = "notSpecified"
+    @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
+    @AppSetting(\.profile.userAge) private var userAge: Int = 0
+    @AppSetting(\.health.healthkitLastImport) private var lastHealthImportTimestamp: Double = 0.0
+    @AppSetting(\.analytics.appleIntelligenceEnabled) private var appleIntelligenceEnabled: Bool = true
     
-    @AppSetting("healthkit_sync_weight") private var hkWeight: Bool = true
-    @AppSetting("healthkit_sync_bodyFat") private var hkBodyFat: Bool = true
-    @AppSetting("healthkit_sync_height") private var hkHeight: Bool = true
-    @AppSetting("healthkit_sync_leanBodyMass") private var hkLeanMass: Bool = true
-    @AppSetting("healthkit_sync_waist") private var hkWaist: Bool = true
+    @AppSetting(\.health.healthkitSyncWeight) private var hkWeight: Bool = true
+    @AppSetting(\.health.healthkitSyncBodyFat) private var hkBodyFat: Bool = true
+    @AppSetting(\.health.healthkitSyncHeight) private var hkHeight: Bool = true
+    @AppSetting(\.health.healthkitSyncLeanBodyMass) private var hkLeanMass: Bool = true
+    @AppSetting(\.health.healthkitSyncWaist) private var hkWaist: Bool = true
 
     @State private var scrollOffset: CGFloat = 0
     @State private var shareItems: [Any] = []
@@ -894,28 +894,11 @@ struct SettingsView: View {
     }
 
     private func clearHealthKitSyncMetadata() {
-        let defaults = AppSettingsStore.shared
-        defaults.set(false, forKey: "isSyncEnabled")
-        defaults.removeObject(forKey: "healthkit_last_import")
-        defaults.removeObject(forKey: "healthkit_initial_historical_import_v1")
-
-        for key in defaults.dictionaryRepresentation().keys {
-            if key.hasPrefix("healthkit_anchor_") || key.hasPrefix("healthkit_last_processed_") {
-                defaults.removeObject(forKey: key)
-            }
-        }
+        AppSettingsStore.shared.clearHealthKitSyncMetadata()
     }
 
     private func clearUserDataDefaults() {
-        let defaults = AppSettingsStore.shared
-        defaults.removeObject(forKey: "userName")
-        defaults.removeObject(forKey: "userAge")
-        defaults.removeObject(forKey: "userGender")
-        defaults.removeObject(forKey: "manualHeight")
-        defaults.removeObject(forKey: "measurement_reminders")
-        defaults.removeObject(forKey: "measurement_last_log_date")
-        defaults.removeObject(forKey: "photo_last_log_date")
-        defaults.removeObject(forKey: "diagnostics_logging_enabled")
+        AppSettingsStore.shared.clearUserDataDefaults()
     }
 
     @ViewBuilder

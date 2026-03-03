@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DataSettingsDetailView: View {
-    @AppSetting("analytics_enabled") private var analyticsEnabled: Bool = true
+    @AppSetting(\.analytics.analyticsEnabled) private var analyticsEnabled: Bool = true
     let onExport: () -> Void
     let onImport: () -> Void
     let onSeedDummyData: () -> Void

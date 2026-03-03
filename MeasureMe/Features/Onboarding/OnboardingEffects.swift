@@ -142,8 +142,7 @@ struct OnboardingEffects {
     }
 
     func incrementWelcomeGoalSelectionStat(goalRawValue: String) {
-        let key = "onboarding_goal_selection_stat_\(goalRawValue)"
-        settings.set(settings.integer(forKey: key) + 1, forKey: key)
+        settings.incrementOnboardingGoalSelectionStat(for: goalRawValue)
     }
 
     private func isReminderScheduled(reminders: [MeasurementReminder]) -> Bool {

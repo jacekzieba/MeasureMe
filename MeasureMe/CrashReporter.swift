@@ -17,7 +17,6 @@ final class CrashReporter {
     private let maxLogEntries = 200
     private let reportsDirectoryName = "CrashReports"
     private let latestLogFileName = "latest_log.txt"
-    private let unreportedKey = "crashreporter_has_unreported"
     private let settings: AppSettingsStore
 
     // MARK: - State
@@ -110,7 +109,7 @@ final class CrashReporter {
             let dir = try reportsDirectory()
             let url = dir.appendingPathComponent(filename)
             try data.write(to: url, options: .atomic)
-            settings.set(true, forKey: unreportedKey)
+            settings.set(\.diagnostics.crashReporterHasUnreported, true)
         } catch {
             // Nie możemy logować — app crashuje
         }
@@ -127,8 +126,8 @@ final class CrashReporter {
         let memoryInfo = ProcessInfo.processInfo.physicalMemory
         let memoryGB = String(format: "%.1f", Double(memoryInfo) / 1_073_741_824)
 
-        let unitsSystem = settings.string(forKey: "unitsSystem") ?? "metric"
-        let language = settings.string(forKey: "appLanguage") ?? "system"
+        let unitsSystem = settings.snapshot.profile.unitsSystem
+        let language = settings.snapshot.experience.appLanguage
 
         return """
         ============================
@@ -172,12 +171,12 @@ final class CrashReporter {
 
     /// Czy jest niezgłoszony crash report?
     var hasUnreportedCrash: Bool {
-        settings.bool(forKey: unreportedKey)
+        settings.snapshot.diagnostics.crashReporterHasUnreported
     }
 
     /// Oznacz crash jako zgłoszony
     func markCrashReported() {
-        settings.set(false, forKey: unreportedKey)
+        settings.set(\.diagnostics.crashReporterHasUnreported, false)
     }
 
     /// Zwróć listę wszystkich raportów (najnowsze pierwsze)

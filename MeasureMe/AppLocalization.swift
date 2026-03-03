@@ -56,7 +56,7 @@ enum AppLocalization {
     }
 
     private static func loadLanguageFromDefaults() -> AppLanguage {
-        let raw = settings.string(forKey: "appLanguage") ?? "system"
+        let raw = settings.snapshot.experience.appLanguage
         return AppLanguage(rawValue: raw) ?? .system
     }
 

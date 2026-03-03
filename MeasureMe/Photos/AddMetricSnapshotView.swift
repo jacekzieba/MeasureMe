@@ -9,7 +9,7 @@ struct AddMetricSnapshotView: View {
     
     @State private var selectedMetricKind: MetricKind?
     @State private var value: String = ""
-    @AppSetting("units_system") private var unitsSystem = "metric"
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem = "metric"
     
     @FocusState private var isValueFocused: Bool
 
