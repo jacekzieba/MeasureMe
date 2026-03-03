@@ -204,7 +204,7 @@ final class ImporterParseGoalsCSVTests: XCTestCase {
         XCTAssertEqual(result.rows.count, 1)
         XCTAssertEqual(result.skipped, 0)
         XCTAssertEqual(result.rows[0].targetValue, 75.0, accuracy: 0.001)
-        XCTAssertEqual(result.rows[0].startValue, 80.0, accuracy: 0.001)
+        XCTAssertEqual(result.rows[0].startValue ?? 0, 80.0, accuracy: 0.001)
     }
 
     /// Co sprawdza: Cel bez pól opcjonalnych (puste start) → startValue i startDate są nil.

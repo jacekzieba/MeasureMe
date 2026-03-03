@@ -123,6 +123,8 @@ final class PendingPhotoSaveStore: ObservableObject {
     private var didInjectUITestFailure = false
     private var cancelledBatchIDs: Set<UUID> = []
     private var cancelledJobIDs: Set<UUID> = []
+    private var processingOrder: [UUID] = []
+    private var processingOrderSet: Set<UUID> = []
 
     init(
         fileManager: FileManager = .default,
@@ -174,6 +176,7 @@ final class PendingPhotoSaveStore: ObservableObject {
     private func applyRestorePayload(_ payload: RestorePayload) {
         guard payload.hasDirectory else {
             pendingItems = []
+            rebuildProcessingOrder(from: [])
             processQueueIfNeeded()
             return
         }
@@ -194,7 +197,19 @@ final class PendingPhotoSaveStore: ObservableObject {
                 status: .queued
             )
         }
-        pendingItems = dedupAndSort(restoredItems)
+        var uniqueByID: [UUID: PendingPhotoSaveItem] = [:]
+        for item in restoredItems {
+            uniqueByID[item.id] = item
+        }
+        pendingItems = uniqueByID.values.sorted { lhs, rhs in
+            compareQueuePriority(
+                lhsID: lhs.id,
+                lhsCreatedAt: lhs.createdAt,
+                rhsID: rhs.id,
+                rhsCreatedAt: rhs.createdAt
+            )
+        }
+        rebuildProcessingOrder(from: pendingItems)
         processQueueIfNeeded()
     }
 
@@ -290,7 +305,8 @@ final class PendingPhotoSaveStore: ObservableObject {
             status: .queued
         )
 
-        pendingItems = dedupAndSort(pendingItems + [pendingItem])
+        insertPendingItemSorted(pendingItem)
+        insertIntoProcessingOrder(id: pendingItem.id, createdAt: pendingItem.createdAt)
         processQueueIfNeeded()
         return id
     }
@@ -351,6 +367,7 @@ final class PendingPhotoSaveStore: ObservableObject {
             progressAnimationTasks[item.id]?.cancel()
             progressAnimationTasks[item.id] = nil
             try? cleanupSpoolFiles(for: item.id)
+            removeFromProcessingOrder(id: item.id)
         }
 
         pendingItems.removeAll { item in
@@ -380,7 +397,7 @@ final class PendingPhotoSaveStore: ObservableObject {
     private func processQueueLoop() async {
         defer { processingTask = nil }
 
-        while let nextID = pendingItems.sorted(by: { $0.createdAt < $1.createdAt }).first?.id {
+        while let nextID = nextPendingProcessingID() {
             await processJob(id: nextID)
         }
     }
@@ -457,7 +474,7 @@ final class PendingPhotoSaveStore: ObservableObject {
 
             progressAnimationTasks[id]?.cancel()
             progressAnimationTasks[id] = nil
-            pendingItems.removeAll { $0.id == id }
+            removePendingItem(id: id)
             try? cleanupSpoolFiles(for: id)
 
             completedEvent = PendingPhotoSaveCompletedEvent(
@@ -482,7 +499,7 @@ final class PendingPhotoSaveStore: ObservableObject {
         } catch {
             progressAnimationTasks[id]?.cancel()
             progressAnimationTasks[id] = nil
-            pendingItems.removeAll { $0.id == id }
+            removePendingItem(id: id)
             try? cleanupSpoolFiles(for: id)
 
             if isCancellationError(error, jobID: id) {
@@ -666,17 +683,89 @@ final class PendingPhotoSaveStore: ObservableObject {
         }
     }
 
-    private func dedupAndSort(_ items: [PendingPhotoSaveItem]) -> [PendingPhotoSaveItem] {
-        var map: [UUID: PendingPhotoSaveItem] = [:]
-        for item in items {
-            map[item.id] = item
+    private func rebuildProcessingOrder(from items: [PendingPhotoSaveItem]) {
+        let sorted = items.sorted { lhs, rhs in
+            compareQueuePriority(
+                lhsID: lhs.id,
+                lhsCreatedAt: lhs.createdAt,
+                rhsID: rhs.id,
+                rhsCreatedAt: rhs.createdAt
+            )
         }
-        return map.values.sorted { lhs, rhs in
-            if lhs.createdAt == rhs.createdAt {
-                return lhs.id.uuidString < rhs.id.uuidString
+        processingOrder = sorted.map(\.id)
+        processingOrderSet = Set(processingOrder)
+    }
+
+    private func insertIntoProcessingOrder(id: UUID, createdAt: Date) {
+        guard !processingOrderSet.contains(id) else { return }
+        var insertionIndex = processingOrder.endIndex
+        for (index, existingID) in processingOrder.enumerated() {
+            guard let existingCreatedAt = pendingItems.first(where: { $0.id == existingID })?.createdAt else {
+                continue
             }
-            return lhs.createdAt < rhs.createdAt
+            if compareQueuePriority(
+                lhsID: id,
+                lhsCreatedAt: createdAt,
+                rhsID: existingID,
+                rhsCreatedAt: existingCreatedAt
+            ) {
+                insertionIndex = index
+                break
+            }
         }
+        processingOrder.insert(id, at: insertionIndex)
+        processingOrderSet.insert(id)
+    }
+
+    private func removeFromProcessingOrder(id: UUID) {
+        guard processingOrderSet.contains(id) else { return }
+        processingOrderSet.remove(id)
+        if let index = processingOrder.firstIndex(of: id) {
+            processingOrder.remove(at: index)
+        }
+    }
+
+    private func nextPendingProcessingID() -> UUID? {
+        while let firstID = processingOrder.first {
+            if pendingItems.contains(where: { $0.id == firstID }) {
+                return firstID
+            }
+            processingOrder.removeFirst()
+            processingOrderSet.remove(firstID)
+        }
+        return nil
+    }
+
+    private func compareQueuePriority(lhsID: UUID, lhsCreatedAt: Date, rhsID: UUID, rhsCreatedAt: Date) -> Bool {
+        if lhsCreatedAt == rhsCreatedAt {
+            return lhsID.uuidString < rhsID.uuidString
+        }
+        return lhsCreatedAt < rhsCreatedAt
+    }
+
+    private func insertPendingItemSorted(_ item: PendingPhotoSaveItem) {
+        if let existingIndex = pendingItems.firstIndex(where: { $0.id == item.id }) {
+            pendingItems.remove(at: existingIndex)
+            removeFromProcessingOrder(id: item.id)
+        }
+        var insertionIndex = pendingItems.endIndex
+        for (index, existing) in pendingItems.enumerated() {
+            if compareQueuePriority(
+                lhsID: item.id,
+                lhsCreatedAt: item.createdAt,
+                rhsID: existing.id,
+                rhsCreatedAt: existing.createdAt
+            ) {
+                insertionIndex = index
+                break
+            }
+        }
+        pendingItems.insert(item, at: insertionIndex)
+    }
+
+    private func removePendingItem(id: UUID) {
+        pendingItems.removeAll { $0.id == id }
+        removeFromProcessingOrder(id: id)
     }
 
     private func spoolDirectoryURL() throws -> URL {

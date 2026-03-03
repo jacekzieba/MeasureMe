@@ -137,6 +137,7 @@ struct MeasureMeApp: App {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+                WidgetDataWriter.flushPendingWrites()
                 CrashReporter.shared.persistLogBuffer()
             }
             .alert(AppLocalization.string("Crash Detected"), isPresented: $showCrashAlert) {

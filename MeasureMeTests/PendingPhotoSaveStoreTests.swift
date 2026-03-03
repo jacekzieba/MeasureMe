@@ -207,6 +207,98 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
         XCTAssertEqual(count, 0)
     }
 
+    func testProcessingOrder_UsesDeterministicQueueWithoutResortingLoop() async throws {
+        let container = try makeContainer()
+        let queuer = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, autoStartProcessing: false)
+        queuer.configure(container: container)
+
+        let firstDate = Date(timeIntervalSince1970: 1_736_000_000)
+        let thirdDate = firstDate.addingTimeInterval(1)
+        let firstID: UUID
+        let secondID: UUID
+        let thirdID: UUID
+        defer { AppClock.overrideNowForTesting = nil }
+
+        AppClock.overrideNowForTesting = firstDate
+        firstID = try await queuer.enqueueSingle(
+            sourceImage: makeImage(),
+            date: firstDate,
+            tags: [.wholeBody],
+            metricValues: [:],
+            unitsSystem: "metric"
+        )
+
+        AppClock.overrideNowForTesting = firstDate
+        secondID = try await queuer.enqueueSingle(
+            sourceImage: makeImage(),
+            date: firstDate,
+            tags: [.wholeBody],
+            metricValues: [:],
+            unitsSystem: "metric"
+        )
+
+        AppClock.overrideNowForTesting = thirdDate
+        thirdID = try await queuer.enqueueSingle(
+            sourceImage: makeImage(),
+            date: thirdDate,
+            tags: [.wholeBody],
+            metricValues: [:],
+            unitsSystem: "metric"
+        )
+
+        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory)
+        processor.configure(container: container)
+        processor.restoreAndResume()
+
+        let completedIDs = try await collectCompletedIDs(from: processor, expectedCount: 3, timeout: 8)
+        let expectedIDs = [firstID, secondID, thirdID].sorted { lhs, rhs in
+            let lhsDate = lhs == thirdID ? thirdDate : firstDate
+            let rhsDate = rhs == thirdID ? thirdDate : firstDate
+            if lhsDate == rhsDate {
+                return lhs.uuidString < rhs.uuidString
+            }
+            return lhsDate < rhsDate
+        }
+        XCTAssertEqual(completedIDs, expectedIDs)
+    }
+
+    func testCancelRemovesIDsFromProcessingOrder() async throws {
+        let container = try makeContainer()
+        let batchToCancel = UUID()
+        let batchToKeep = UUID()
+
+        let queuer = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, autoStartProcessing: false)
+        queuer.configure(container: container)
+
+        let cancelledIDs = try await queuer.enqueueMany(
+            sourceImages: [makeImage(), makeImage()],
+            date: Date(timeIntervalSince1970: 1_736_010_000),
+            tags: [.wholeBody],
+            metricValues: [:],
+            unitsSystem: "metric",
+            batchID: batchToCancel
+        )
+        let keptIDs = try await queuer.enqueueMany(
+            sourceImages: [makeImage()],
+            date: Date(timeIntervalSince1970: 1_736_010_100),
+            tags: [.wholeBody],
+            metricValues: [:],
+            unitsSystem: "metric",
+            batchID: batchToKeep
+        )
+
+        queuer.cancelPending(batchIDs: [batchToCancel])
+        XCTAssertEqual(queuer.pendingItems.count, keptIDs.count)
+
+        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory)
+        processor.configure(container: container)
+        processor.restoreAndResume()
+
+        let completedIDs = try await collectCompletedIDs(from: processor, expectedCount: keptIDs.count, timeout: 8)
+        XCTAssertEqual(Set(completedIDs), Set(keptIDs))
+        XCTAssertTrue(Set(completedIDs).isDisjoint(with: Set(cancelledIDs)))
+    }
+
     // MARK: - Spool directory failure tests
 
     /// When the spool directory cannot be created (a regular file blocks its path),
@@ -417,5 +509,29 @@ private extension PendingPhotoSaveStoreTests {
             try? await Task.sleep(for: .milliseconds(40))
         }
         XCTFail("Condition was not met before timeout")
+    }
+
+    func collectCompletedIDs(
+        from store: PendingPhotoSaveStore,
+        expectedCount: Int,
+        timeout: TimeInterval
+    ) async throws -> [UUID] {
+        let deadline = Date.now.addingTimeInterval(timeout)
+        var ids: [UUID] = []
+        var seenEventIDs: Set<UUID> = []
+
+        while Date.now < deadline {
+            if let event = store.completedEvent, !seenEventIDs.contains(event.eventID) {
+                seenEventIDs.insert(event.eventID)
+                ids.append(event.id)
+                if ids.count == expectedCount {
+                    return ids
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(40))
+        }
+
+        XCTFail("Expected \(expectedCount) completed events, got \(ids.count)")
+        return ids
     }
 }
