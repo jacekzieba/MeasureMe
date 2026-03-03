@@ -653,14 +653,14 @@ final class PendingPhotoSaveStore: ObservableObject {
     }
 
     private func loadRecord(for id: UUID) throws -> PendingPhotoSpoolRecord? {
-        let url = recordURL(for: id)
+        let url = try recordURL(for: id)
         guard fileManager.fileExists(atPath: url.path) else { return nil }
         let data = try Data(contentsOf: url)
         return try JSONDecoder().decode(PendingPhotoSpoolRecord.self, from: data)
     }
 
     private func cleanupSpoolFiles(for id: UUID) throws {
-        let urls = [recordURL(for: id), sourceURL(for: id), thumbnailURL(for: id)]
+        let urls = [try recordURL(for: id), try sourceURL(for: id), try thumbnailURL(for: id)]
         for url in urls where fileManager.fileExists(atPath: url.path) {
             try fileManager.removeItem(at: url)
         }
@@ -692,19 +692,16 @@ final class PendingPhotoSaveStore: ObservableObject {
         return base.appendingPathComponent("PendingPhotoSaves", isDirectory: true)
     }
 
-    private func recordURL(for id: UUID) -> URL {
-        (try? spoolDirectoryURL())?.appendingPathComponent("\(id.uuidString).json", isDirectory: false)
-            ?? URL(fileURLWithPath: "/tmp/\(id.uuidString).json")
+    private func recordURL(for id: UUID) throws -> URL {
+        try spoolDirectoryURL().appendingPathComponent("\(id.uuidString).json", isDirectory: false)
     }
 
-    private func sourceURL(for id: UUID) -> URL {
-        (try? spoolDirectoryURL())?.appendingPathComponent("\(id.uuidString).source.jpg", isDirectory: false)
-            ?? URL(fileURLWithPath: "/tmp/\(id.uuidString).source.jpg")
+    private func sourceURL(for id: UUID) throws -> URL {
+        try spoolDirectoryURL().appendingPathComponent("\(id.uuidString).source.jpg", isDirectory: false)
     }
 
-    private func thumbnailURL(for id: UUID) -> URL {
-        (try? spoolDirectoryURL())?.appendingPathComponent("\(id.uuidString).thumb.jpg", isDirectory: false)
-            ?? URL(fileURLWithPath: "/tmp/\(id.uuidString).thumb.jpg")
+    private func thumbnailURL(for id: UUID) throws -> URL {
+        try spoolDirectoryURL().appendingPathComponent("\(id.uuidString).thumb.jpg", isDirectory: false)
     }
 
     private func pendingID(from jsonURL: URL) -> UUID? {

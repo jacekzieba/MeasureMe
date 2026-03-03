@@ -207,6 +207,119 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
         XCTAssertEqual(count, 0)
     }
 
+    // MARK: - Spool directory failure tests
+
+    /// When the spool directory cannot be created (a regular file blocks its path),
+    /// `enqueueSingle` must throw `spoolWriteFailed` and leave `pendingItems` empty.
+    func testEnqueueSingle_ThrowsSpoolWriteFailed_WhenDirectoryIsBlocked() async throws {
+        // Create a file where the PendingPhotoSaves *directory* should be, blocking its creation.
+        let blockedPath = tempDirectory.appendingPathComponent("PendingPhotoSaves")
+        FileManager.default.createFile(atPath: blockedPath.path, contents: Data())
+
+        let store = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, autoStartProcessing: false)
+        store.configure(container: try makeContainer())
+
+        var caught: Error?
+        do {
+            _ = try await store.enqueueSingle(
+                sourceImage: makeImage(),
+                date: Date(timeIntervalSince1970: 1_735_500_000),
+                tags: [.wholeBody],
+                metricValues: [:],
+                unitsSystem: "metric"
+            )
+            XCTFail("Expected enqueueSingle to throw")
+        } catch {
+            caught = error
+        }
+
+        XCTAssertEqual(
+            caught as? PendingPhotoSaveStore.PendingSaveError,
+            .spoolWriteFailed,
+            "Error must be spoolWriteFailed"
+        )
+        XCTAssertTrue(store.pendingItems.isEmpty, "No item should be added when spool write fails")
+    }
+
+    /// Regression guard: when a spool write fails, no files should appear in the system
+    /// /tmp directory. This guards against the previous behaviour where URL helpers
+    /// silently fell back to `URL(fileURLWithPath: "/tmp/<uuid>.<ext>")` on failure.
+    func testEnqueueSingle_WritesNoFilesToTmp_WhenSpoolDirectoryIsBlocked() async throws {
+        let blockedPath = tempDirectory.appendingPathComponent("PendingPhotoSaves")
+        FileManager.default.createFile(atPath: blockedPath.path, contents: Data())
+
+        let store = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, autoStartProcessing: false)
+        store.configure(container: try makeContainer())
+
+        // Snapshot /tmp *before* the failed attempt so we detect only newly created files.
+        let tmpURL = URL(fileURLWithPath: "/tmp")
+        let namesBefore = Set(
+            ((try? FileManager.default.contentsOfDirectory(at: tmpURL, includingPropertiesForKeys: nil)) ?? [])
+                .map(\.lastPathComponent)
+        )
+
+        _ = try? await store.enqueueSingle(
+            sourceImage: makeImage(),
+            date: Date(timeIntervalSince1970: 1_735_510_000),
+            tags: [.wholeBody],
+            metricValues: [:],
+            unitsSystem: "metric"
+        )
+
+        let namesAfter = Set(
+            ((try? FileManager.default.contentsOfDirectory(at: tmpURL, includingPropertiesForKeys: nil)) ?? [])
+                .map(\.lastPathComponent)
+        )
+        let newNames = namesAfter.subtracting(namesBefore)
+        let spoolRelated = newNames.filter {
+            $0.hasSuffix(".json") || $0.hasSuffix(".source.jpg") || $0.hasSuffix(".thumb.jpg")
+        }
+
+        XCTAssertTrue(
+            spoolRelated.isEmpty,
+            "No spool-related files should be written to /tmp on failure, found: \(spoolRelated)"
+        )
+    }
+
+    /// When the source image file is removed from the spool directory after a successful
+    /// enqueue but before processing starts, the job must fail gracefully with a
+    /// `lastFailureMessage` rather than silently succeeding or reading from wrong paths.
+    func testProcessing_FailsWithLastFailureMessage_WhenSourceFileDeletedAfterEnqueue() async throws {
+        let container = try makeContainer()
+
+        // Stage 1: enqueue with processing disabled so spool files are written but not consumed.
+        let queuer = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, autoStartProcessing: false)
+        queuer.configure(container: container)
+        let id = try await queuer.enqueueSingle(
+            sourceImage: makeImage(),
+            date: Date(timeIntervalSince1970: 1_735_520_000),
+            tags: [.wholeBody],
+            metricValues: [:],
+            unitsSystem: "metric"
+        )
+
+        // Stage 2: delete the source image from the spool directory,
+        // simulating the file becoming inaccessible before the job runs.
+        let spoolDir = tempDirectory.appendingPathComponent("PendingPhotoSaves", isDirectory: true)
+        try FileManager.default.removeItem(
+            at: spoolDir.appendingPathComponent("\(id.uuidString).source.jpg")
+        )
+
+        // Stage 3: a fresh store restores the queued item from disk and starts processing.
+        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory)
+        processor.configure(container: container)
+        processor.restoreAndResume()
+
+        try await waitUntil(timeout: 5) {
+            processor.pendingItems.isEmpty && processor.lastFailureMessage != nil
+        }
+
+        XCTAssertNotNil(processor.lastFailureMessage, "User must be informed of the failure")
+        XCTAssertNil(processor.completedEvent, "No photo should be saved when source is missing")
+        let savedCount = try ModelContext(container).fetchCount(FetchDescriptor<PhotoEntry>())
+        XCTAssertEqual(savedCount, 0, "No PhotoEntry should be persisted when source file is missing")
+    }
+
     func testFailure_RemovesPendingAndSetsFailureMessage() async throws {
         let store = PendingPhotoSaveStore(
             baseDirectoryURL: tempDirectory,
