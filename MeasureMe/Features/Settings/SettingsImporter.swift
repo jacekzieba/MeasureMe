@@ -8,6 +8,27 @@ enum SettingsImporter {
     // MARK: - Types
 
     enum Strategy { case merge, replace }
+    enum CSVKind { case metrics, goals }
+
+    enum ImportError: LocalizedError, Equatable {
+        case noSupportedCSVFiles
+        case invalidCSVSchema
+        case fileReadFailed
+        case persistenceFailed
+
+        var errorDescription: String? {
+            switch self {
+            case .noSupportedCSVFiles:
+                return AppLocalization.string("import.error.no_supported_files")
+            case .invalidCSVSchema:
+                return AppLocalization.string("import.error.invalid_schema")
+            case .fileReadFailed:
+                return AppLocalization.string("import.error.file_read_failed")
+            case .persistenceFailed:
+                return AppLocalization.string("import.error.persistence_failed")
+            }
+        }
+    }
 
     struct ImportResult {
         var samplesInserted: Int = 0
@@ -43,45 +64,90 @@ enum SettingsImporter {
         nonisolated init() { rows = []; skipped = 0 }
     }
 
+    private nonisolated static let metricsRequiredColumns: Set<String> = [
+        "metric_id",
+        "value_metric",
+        "timestamp"
+    ]
+
+    private nonisolated static let goalsRequiredColumns: Set<String> = [
+        "metric_id",
+        "direction",
+        "target_value_metric",
+        "created_date"
+    ]
+
+    private nonisolated static let knownImportColumns: Set<String> = [
+        "metric_id",
+        "metric",
+        "value_metric",
+        "unit_metric",
+        "value",
+        "unit",
+        "timestamp",
+        "direction",
+        "target_value_metric",
+        "target_unit_metric",
+        "target_value",
+        "target_unit",
+        "start_value_metric",
+        "start_value",
+        "start_date",
+        "created_date"
+    ]
+
     // MARK: - Main import method
 
     /// Importuje dane z podanych URL-i i zwraca gotowy komunikat o wyniku.
     @MainActor
-    static func importData(urls: [URL], strategy: Strategy, context: ModelContext) async -> String {
-        let metricsURL = urls.first { $0.lastPathComponent.contains("metrics") }
-        let goalsURL   = urls.first { $0.lastPathComponent.contains("goals") }
-
+    static func importData(urls: [URL], strategy: Strategy, context: ModelContext) async throws -> String {
         var result = ImportResult()
+        var parsedSampleRows: [ParsedSampleRow] = []
+        var parsedGoalRows: [ParsedGoalRow] = []
+        var supportedFilesCount = 0
 
-        if strategy == .replace {
-            let sDescriptor = FetchDescriptor<MetricSample>()
-            let gDescriptor = FetchDescriptor<MetricGoal>()
-            if let samples = try? context.fetch(sDescriptor) {
-                samples.forEach { context.delete($0) }
+        for url in urls {
+            let content = try loadCSVContent(url: url)
+            guard let kind = try detectCSVKind(content: content) else { continue }
+            supportedFilesCount += 1
+
+            switch kind {
+            case .metrics:
+                let parseResult = await Task.detached(priority: .userInitiated) {
+                    SettingsImporter.parseMetricsCSV(content: content)
+                }.value
+                parsedSampleRows.append(contentsOf: parseResult.rows)
+                result.rowsSkipped += parseResult.skipped
+            case .goals:
+                let parseResult = await Task.detached(priority: .userInitiated) {
+                    SettingsImporter.parseGoalsCSV(content: content)
+                }.value
+                parsedGoalRows.append(contentsOf: parseResult.rows)
+                result.rowsSkipped += parseResult.skipped
             }
-            if let goals = try? context.fetch(gDescriptor) {
-                goals.forEach { context.delete($0) }
+        }
+
+        guard supportedFilesCount > 0 else {
+            throw ImportError.noSupportedCSVFiles
+        }
+
+        do {
+            if strategy == .replace {
+                let sampleDescriptor = FetchDescriptor<MetricSample>()
+                let goalDescriptor = FetchDescriptor<MetricGoal>()
+                let existingSamples = try context.fetch(sampleDescriptor)
+                let existingGoals = try context.fetch(goalDescriptor)
+                existingSamples.forEach { context.delete($0) }
+                existingGoals.forEach { context.delete($0) }
             }
-            try? context.save()
-        }
 
-        if let url = metricsURL {
-            let r = await Task.detached(priority: .userInitiated) {
-                SettingsImporter.parseMetricsCSV(url: url)
-            }.value
-            insertSamples(r.rows, strategy: strategy, context: context, result: &result)
-            result.rowsSkipped += r.skipped
+            insertSamples(parsedSampleRows, strategy: strategy, context: context, result: &result)
+            insertGoals(parsedGoalRows, strategy: strategy, context: context, result: &result)
+            try context.save()
+        } catch {
+            AppLog.debug("⚠️ SettingsImporter persistence failed: \(error)")
+            throw ImportError.persistenceFailed
         }
-
-        if let url = goalsURL {
-            let r = await Task.detached(priority: .userInitiated) {
-                SettingsImporter.parseGoalsCSV(url: url)
-            }.value
-            insertGoals(r.rows, strategy: strategy, context: context, result: &result)
-            result.rowsSkipped += r.skipped
-        }
-
-        try? context.save()
 
         var msg = String(format: AppLocalization.string("Imported %d measurements and %d goals."),
                          result.samplesInserted, result.goalsInserted + result.goalsUpdated)
@@ -93,12 +159,41 @@ enum SettingsImporter {
 
     // MARK: - CSV Parsers
 
-    nonisolated static func parseMetricsCSV(url: URL) -> MetricsParseResult {
-        var result = MetricsParseResult()
-        guard url.startAccessingSecurityScopedResource() else { return result }
-        defer { url.stopAccessingSecurityScopedResource() }
+    nonisolated static func detectCSVKind(url: URL) throws -> CSVKind? {
+        let content = try loadCSVContent(url: url)
+        return try detectCSVKind(content: content)
+    }
 
-        guard let content = try? String(contentsOf: url, encoding: .utf8) else { return result }
+    nonisolated static func parseMetricsCSV(url: URL) -> MetricsParseResult {
+        guard let content = try? loadCSVContent(url: url) else {
+            return MetricsParseResult()
+        }
+        return parseMetricsCSV(content: content)
+    }
+
+    nonisolated static func parseGoalsCSV(url: URL) -> GoalsParseResult {
+        guard let content = try? loadCSVContent(url: url) else {
+            return GoalsParseResult()
+        }
+        return parseGoalsCSV(content: content)
+    }
+
+    nonisolated static func parseCSVNumber(_ raw: String) -> Double? {
+        if let value = Double(raw) {
+            return value
+        }
+
+        if raw.contains(","), !raw.contains(".") {
+            return Double(raw.replacingOccurrences(of: ",", with: "."))
+        }
+
+        return nil
+    }
+
+    // MARK: - Internal parser implementations
+
+    private nonisolated static func parseMetricsCSV(content: String) -> MetricsParseResult {
+        var result = MetricsParseResult()
         let lines = content.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
         guard let headerLine = lines.first else { return result }
 
@@ -119,7 +214,7 @@ enum SettingsImporter {
             guard fields.count > maxIdx else { result.skipped += 1; continue }
             let kindRaw = fields[idxId]
             guard MetricKind(rawValue: kindRaw) != nil else { result.skipped += 1; continue }
-            guard let value = Double(fields[idxVal]) else { result.skipped += 1; continue }
+            guard let value = parseCSVNumber(fields[idxVal]) else { result.skipped += 1; continue }
             let tsString = fields[idxTs]
             guard let date = isoFull.date(from: tsString) ?? isoBasic.date(from: tsString)
             else { result.skipped += 1; continue }
@@ -128,12 +223,8 @@ enum SettingsImporter {
         return result
     }
 
-    nonisolated static func parseGoalsCSV(url: URL) -> GoalsParseResult {
+    private nonisolated static func parseGoalsCSV(content: String) -> GoalsParseResult {
         var result = GoalsParseResult()
-        guard url.startAccessingSecurityScopedResource() else { return result }
-        defer { url.stopAccessingSecurityScopedResource() }
-
-        guard let content = try? String(contentsOf: url, encoding: .utf8) else { return result }
         let lines = content.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
         guard let headerLine = lines.first else { return result }
 
@@ -163,7 +254,7 @@ enum SettingsImporter {
             let direction = fields[idxDir]
             guard direction == "increase" || direction == "decrease" else { result.skipped += 1; continue }
 
-            guard let targetValue = Double(fields[idxTarget]) else { result.skipped += 1; continue }
+            guard let targetValue = parseCSVNumber(fields[idxTarget]) else { result.skipped += 1; continue }
 
             let createdStr = fields[idxCreated]
             guard let createdDate = isoFull.date(from: createdStr) ?? isoBasic.date(from: createdStr)
@@ -171,7 +262,7 @@ enum SettingsImporter {
 
             var startValue: Double? = nil
             if let idx = idxStartVal, idx < fields.count, !fields[idx].isEmpty {
-                startValue = Double(fields[idx])
+                startValue = parseCSVNumber(fields[idx])
             }
             var startDate: Date? = nil
             if let idx = idxStartDate, idx < fields.count, !fields[idx].isEmpty {
@@ -227,6 +318,40 @@ enum SettingsImporter {
         }
         fields.append(current)
         return fields
+    }
+
+    private nonisolated static func loadCSVContent(url: URL) throws -> String {
+        guard url.startAccessingSecurityScopedResource() else {
+            throw ImportError.fileReadFailed
+        }
+        defer { url.stopAccessingSecurityScopedResource() }
+
+        do {
+            return try String(contentsOf: url, encoding: .utf8)
+        } catch {
+            throw ImportError.fileReadFailed
+        }
+    }
+
+    private nonisolated static func detectCSVKind(content: String) throws -> CSVKind? {
+        guard let headerLine = firstNonEmptyLine(in: content) else { return nil }
+        let columns = Set(parseCSVLine(headerLine).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+        if metricsRequiredColumns.isSubset(of: columns) {
+            return .metrics
+        }
+        if goalsRequiredColumns.isSubset(of: columns) {
+            return .goals
+        }
+        if !columns.isDisjoint(with: knownImportColumns) {
+            throw ImportError.invalidCSVSchema
+        }
+        return nil
+    }
+
+    private nonisolated static func firstNonEmptyLine(in content: String) -> String? {
+        content
+            .components(separatedBy: "\n")
+            .first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
 
     // MARK: - SwiftData Insert helpers

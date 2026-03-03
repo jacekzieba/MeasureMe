@@ -196,6 +196,8 @@ enum SettingsExporter {
 
     // MARK: - CSV Builders
 
+    private nonisolated static let posixLocale = Locale(identifier: "en_US_POSIX")
+
     nonisolated static func buildMetricsCSV(from rows: [MetricCSVRowSnapshot]) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -204,8 +206,8 @@ enum SettingsExporter {
         // value / unit — wartości display (lb/in gdy imperial) — wygoda w Excelu
         var lines: [String] = ["metric_id,metric,value_metric,unit_metric,value,unit,timestamp"]
         for row in rows {
-            let metricValueStr = String(format: "%.4f", row.metricValue)
-            let displayValueStr = String(format: "%.2f", row.displayValue)
+            let metricValueStr = String(format: "%.4f", locale: posixLocale, row.metricValue)
+            let displayValueStr = String(format: "%.2f", locale: posixLocale, row.displayValue)
             let dateString = formatter.string(from: row.date)
             lines.append([
                 csvField(row.kindRaw),
@@ -227,10 +229,10 @@ enum SettingsExporter {
             "metric_id,metric,direction,target_value_metric,target_unit_metric,target_value,target_unit,start_value_metric,start_value,start_date,created_date"
         ]
         for row in rows {
-            let targetMetricStr = String(format: "%.4f", row.targetMetricValue)
-            let targetDisplayStr = String(format: "%.2f", row.targetDisplayValue)
-            let startMetricStr = row.startMetricValue.map { String(format: "%.4f", $0) } ?? ""
-            let startDisplayStr = row.startDisplayValue.map { String(format: "%.2f", $0) } ?? ""
+            let targetMetricStr = String(format: "%.4f", locale: posixLocale, row.targetMetricValue)
+            let targetDisplayStr = String(format: "%.2f", locale: posixLocale, row.targetDisplayValue)
+            let startMetricStr = row.startMetricValue.map { String(format: "%.4f", locale: posixLocale, $0) } ?? ""
+            let startDisplayStr = row.startDisplayValue.map { String(format: "%.2f", locale: posixLocale, $0) } ?? ""
             let startDateStr = row.startDate.map { formatter.string(from: $0) } ?? ""
             let createdStr = formatter.string(from: row.createdDate)
             lines.append([

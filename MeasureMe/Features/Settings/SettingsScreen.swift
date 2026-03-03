@@ -1045,12 +1045,17 @@ struct SettingsView: View {
         guard !urls.isEmpty else { return }
         isImporting = true
         Task {
-            let msg = await SettingsImporter.importData(urls: urls, strategy: strategy, context: modelContext)
-            importResultMessage = msg
+            do {
+                let msg = try await SettingsImporter.importData(urls: urls, strategy: strategy, context: modelContext)
+                importResultMessage = msg
+                Haptics.success()
+            } catch {
+                importResultMessage = error.localizedDescription
+                Haptics.error()
+            }
             isImporting = false
             pendingImportURLs = []
             showImportResult = true
-            Haptics.success()
         }
     }
 }

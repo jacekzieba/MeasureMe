@@ -1308,6 +1308,10 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Imported %d measurements and %d goals." = "Zaimportowano %d pomiarów i %d celów.";
 "%d rows skipped." = "Pominięto %d wierszy.";
 "Could not open file: " = "Nie można otworzyć pliku: ";
+"import.error.no_supported_files" = "Nie wybrano obsługiwanych plików CSV.";
+"import.error.invalid_schema" = "Wybrany plik CSV ma nieprawidłowy schemat.";
+"import.error.file_read_failed" = "Nie można odczytać wybranego pliku.";
+"import.error.persistence_failed" = "Nie udało się zaimportować danych. Spróbuj ponownie.";
 "Seed dummy data" = "Dodaj dane testowe";
 "This will add realistic sample measurements for recent weeks. Existing data will remain unchanged." = "To doda realistyczne przykładowe pomiary z ostatnich tygodni. Istniejące dane pozostaną bez zmian.";
 "Dummy data added: %d measurements." = "Dodano dane testowe: %d pomiarów.";

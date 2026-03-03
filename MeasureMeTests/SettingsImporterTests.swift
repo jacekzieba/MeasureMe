@@ -90,6 +90,16 @@ final class ImporterParseMetricsCSVTests: XCTestCase {
         XCTAssertEqual(result.rows[0].value, 80.5, accuracy: 0.001)
     }
 
+    /// Co sprawdza: value_metric z przecinkiem dziesiętnym jest akceptowany.
+    func testValueMetricWithCommaDecimalIsAccepted() {
+        let csv = "\(header)\nweight,Weight,\"80,5000\",kg,80.50,kg,2025-01-03T08:00:00.000Z"
+        let url = makeTempFile(name: "imp-metrics-comma-decimal-\(UUID()).csv", content: csv)
+        let result = SettingsImporter.parseMetricsCSV(url: url)
+        XCTAssertEqual(result.rows.count, 1)
+        XCTAssertEqual(result.skipped, 0)
+        XCTAssertEqual(result.rows[0].value, 80.5, accuracy: 0.001)
+    }
+
     /// Co sprawdza: Nieznany metric_id → wiersz skipped, rows puste.
     func testUnknownMetricIdSkipped() {
         let csv = "\(header)\nnot_a_metric,Unknown,80.0,kg,80.0,kg,2025-01-03T08:00:00.000Z"
@@ -184,6 +194,17 @@ final class ImporterParseGoalsCSVTests: XCTestCase {
         XCTAssertEqual(result.rows[0].targetValue, 75.0, accuracy: 0.001)
         XCTAssertEqual(result.rows[0].startValue, 80.0)
         XCTAssertNotNil(result.rows[0].startDate)
+    }
+
+    /// Co sprawdza: target/start_value_metric z przecinkiem dziesiętnym są akceptowane.
+    func testGoalMetricValuesWithCommaDecimalAreAccepted() {
+        let csv = "\(header)\nweight,Weight,decrease,\"75,0000\",kg,75.00,kg,\"80,0000\",80.00,2024-12-01T08:00:00.000Z,2025-01-01T08:00:00.000Z"
+        let url = makeTempFile(name: "imp-goals-comma-decimal-\(UUID()).csv", content: csv)
+        let result = SettingsImporter.parseGoalsCSV(url: url)
+        XCTAssertEqual(result.rows.count, 1)
+        XCTAssertEqual(result.skipped, 0)
+        XCTAssertEqual(result.rows[0].targetValue, 75.0, accuracy: 0.001)
+        XCTAssertEqual(result.rows[0].startValue, 80.0, accuracy: 0.001)
     }
 
     /// Co sprawdza: Cel bez pól opcjonalnych (puste start) → startValue i startDate są nil.
@@ -520,7 +541,7 @@ final class ImportDataEndToEndTests: XCTestCase {
         let csv = "\(metricsHeader)\nweight,Weight,80.0000,kg,80.00,kg,2025-01-01T08:00:00.000Z"
         let url = makeTempFile(name: "measureme-metrics-20250101.csv", content: csv)
 
-        _ = await SettingsImporter.importData(urls: [url], strategy: .merge, context: context)
+        _ = try await SettingsImporter.importData(urls: [url], strategy: .merge, context: context)
 
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<MetricSample>()), 1)
     }
@@ -531,20 +552,20 @@ final class ImportDataEndToEndTests: XCTestCase {
         let csv = "\(goalsHeader)\nweight,Weight,decrease,75.0000,kg,75.00,kg,,,,2025-01-01T08:00:00.000Z"
         let url = makeTempFile(name: "measureme-goals-20250101.csv", content: csv)
 
-        _ = await SettingsImporter.importData(urls: [url], strategy: .merge, context: context)
+        _ = try await SettingsImporter.importData(urls: [url], strategy: .merge, context: context)
 
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<MetricGoal>()), 1)
     }
 
-    /// Co sprawdza: Plik bez "metrics" ani "goals" w nazwie → ignorowany.
-    func testUnrecognizedFilenameIgnored() async throws {
+    /// Co sprawdza: Routing odbywa się po nagłówku CSV, niezależnie od nazwy pliku.
+    func testHeaderRoutingWorksIndependentlyOfFilename() async throws {
         let context = ModelContext(try makeContainer())
         let csv = "\(metricsHeader)\nweight,Weight,80.0000,kg,80.00,kg,2025-01-01T08:00:00.000Z"
         let url = makeTempFile(name: "measureme-backup-20250101.csv", content: csv)
 
-        _ = await SettingsImporter.importData(urls: [url], strategy: .merge, context: context)
+        _ = try await SettingsImporter.importData(urls: [url], strategy: .merge, context: context)
 
-        XCTAssertEqual(try context.fetchCount(FetchDescriptor<MetricSample>()), 0, "Plik bez 'metrics'/'goals' w nazwie powinien być zignorowany")
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<MetricSample>()), 1, "Nagłówek metrics powinien uruchomić parser metryk")
     }
 
     /// Co sprawdza: Strategy.replace usuwa istniejące dane przed importem.
@@ -558,7 +579,7 @@ final class ImportDataEndToEndTests: XCTestCase {
         let csv = "\(metricsHeader)\nbodyFat,Body Fat,20.0000,%,20.00,%,2025-01-01T08:00:00.000Z"
         let url = makeTempFile(name: "measureme-metrics-replace-\(UUID()).csv", content: csv)
 
-        _ = await SettingsImporter.importData(urls: [url], strategy: .replace, context: context)
+        _ = try await SettingsImporter.importData(urls: [url], strategy: .replace, context: context)
 
         let samples = try context.fetch(FetchDescriptor<MetricSample>())
         XCTAssertEqual(samples.count, 1, "Replace powinien usunąć istniejące i wstawić tylko nowe")
@@ -577,7 +598,7 @@ final class ImportDataEndToEndTests: XCTestCase {
         let csv = "\(metricsHeader)\nweight,Weight,81.0000,kg,81.00,kg,\(isoFull.string(from: newDate))"
         let url = makeTempFile(name: "measureme-metrics-merge-\(UUID()).csv", content: csv)
 
-        _ = await SettingsImporter.importData(urls: [url], strategy: .merge, context: context)
+        _ = try await SettingsImporter.importData(urls: [url], strategy: .merge, context: context)
 
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<MetricSample>()), 2, "Merge powinien zachować stare i dodać nowe")
     }
@@ -591,17 +612,44 @@ final class ImportDataEndToEndTests: XCTestCase {
         let metricsURL = makeTempFile(name: "measureme-metrics-both-\(UUID()).csv", content: metricsCsv)
         let goalsURL   = makeTempFile(name: "measureme-goals-both-\(UUID()).csv",   content: goalsCsv)
 
-        _ = await SettingsImporter.importData(urls: [metricsURL, goalsURL], strategy: .merge, context: context)
+        _ = try await SettingsImporter.importData(urls: [metricsURL, goalsURL], strategy: .merge, context: context)
 
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<MetricSample>()), 1, "1 MetricSample")
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<MetricGoal>()),   1, "1 MetricGoal")
     }
 
-    /// Co sprawdza: Pusta lista URL-i → komunikat zawiera "0".
-    func testEmptyURLListReturnsZeroMessage() async throws {
+    /// Co sprawdza: Pusta lista URL-i zwraca błąd noSupportedCSVFiles.
+    func testEmptyURLListThrowsNoSupportedFiles() async throws {
         let context = ModelContext(try makeContainer())
-        let msg = await SettingsImporter.importData(urls: [], strategy: .merge, context: context)
-        XCTAssertTrue(msg.contains("0"), "Pusty import → komunikat powinien zawierać 0")
+        do {
+            _ = try await SettingsImporter.importData(urls: [], strategy: .merge, context: context)
+            XCTFail("Expected noSupportedCSVFiles")
+        } catch let error as SettingsImporter.ImportError {
+            XCTAssertEqual(error, .noSupportedCSVFiles)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    /// Co sprawdza: Replace + brak wspieranego CSV rzuca noSupportedCSVFiles i nie kasuje istniejących danych.
+    func testReplaceWithNoSupportedFilesDoesNotDeleteExistingData() async throws {
+        let context = ModelContext(try makeContainer())
+        context.insert(MetricSample(kind: .weight, value: 90.0, date: .now))
+        try context.save()
+
+        let unsupportedCSV = "foo,bar\n1,2"
+        let url = makeTempFile(name: "unsupported-\(UUID()).csv", content: unsupportedCSV)
+
+        do {
+            _ = try await SettingsImporter.importData(urls: [url], strategy: .replace, context: context)
+            XCTFail("Expected noSupportedCSVFiles")
+        } catch let error as SettingsImporter.ImportError {
+            XCTAssertEqual(error, .noSupportedCSVFiles)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<MetricSample>()), 1, "Replace nie powinien usuwać danych przy błędnym wejściu")
     }
 
     /// Co sprawdza: Skipped rows z parsera trafiają do rowsSkipped w ImportResult → komunikat zawiera info.
@@ -612,7 +660,7 @@ final class ImportDataEndToEndTests: XCTestCase {
         let csv = "\(metricsHeader)\nnot_a_metric,Unknown,80.0,kg,80.0,kg,2025-01-01T08:00:00.000Z"
         let url = makeTempFile(name: "measureme-metrics-skip-\(UUID()).csv", content: csv)
 
-        let msg = await SettingsImporter.importData(urls: [url], strategy: .merge, context: context)
+        let msg = try await SettingsImporter.importData(urls: [url], strategy: .merge, context: context)
         XCTAssertTrue(msg.contains("1"), "Komunikat powinien informować o pominiętych wierszach")
     }
 }

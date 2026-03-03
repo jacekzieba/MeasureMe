@@ -933,6 +933,10 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Imported %d measurements and %d goals." = "Imported %d measurements and %d goals.";
 "%d rows skipped." = "%d rows skipped.";
 "Could not open file: " = "Could not open file: ";
+"import.error.no_supported_files" = "No supported CSV files were selected.";
+"import.error.invalid_schema" = "The selected CSV file has an invalid schema.";
+"import.error.file_read_failed" = "Could not read the selected file.";
+"import.error.persistence_failed" = "Could not import data. Please try again.";
 "Seed dummy data" = "Seed dummy data";
 "This will add realistic sample measurements for recent weeks. Existing data will remain unchanged." = "This will add realistic sample measurements for recent weeks. Existing data will remain unchanged.";
 "Dummy data added: %d measurements." = "Dummy data added: %d measurements.";
