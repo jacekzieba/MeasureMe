@@ -88,6 +88,7 @@ final class PremiumStore: ObservableObject {
     @Published var isPremium: Bool = false
     @Published var showTrialThankYouAlert: Bool = false
     @Published var showTrialReminderOptInPrompt: Bool = false
+    @Published var showTrialNotificationPermissionPrompt: Bool = false
     @Published var isLoading: Bool = false
     @Published var isPaywallPresented: Bool = false
     @Published var paywallReason: PaywallReason = .settings
@@ -262,32 +263,33 @@ final class PremiumStore: ObservableObject {
         }
     }
 
-    private func handleTrialActivated() async {
-        let status = await notificationManager.authorizationStatus()
-        let isAuthorized = status == .authorized || status == .provisional || status == .ephemeral
-
-        if notificationManager.notificationsEnabled && isAuthorized {
-            showTrialThankYouAlert = true
-            notificationManager.scheduleTrialEndingReminder(daysFromNow: 12)
-            actionMessage = AppLocalization.string("premium.purchase.trial.success")
-            actionMessageIsError = false
-            return
-        }
-
+    func handleTrialActivated() async {
+        showTrialNotificationPermissionPrompt = false
         showTrialReminderOptInPrompt = true
     }
 
     func confirmTrialReminderOptIn() async {
-        let previousNotificationsPreference = notificationManager.notificationsEnabled
         let status = await notificationManager.authorizationStatus()
         let isAuthorized = status == .authorized || status == .provisional || status == .ephemeral
 
-        let granted: Bool
         if isAuthorized {
-            granted = true
+            notificationManager.notificationsEnabled = true
+            notificationManager.scheduleTrialEndingReminder(daysFromNow: 12)
+            actionMessage = AppLocalization.string("premium.purchase.trial.success")
+            showTrialReminderOptInPrompt = false
+            showTrialNotificationPermissionPrompt = false
+            showTrialThankYouAlert = true
+            actionMessageIsError = false
         } else {
-            granted = await notificationManager.requestAuthorization()
+            showTrialReminderOptInPrompt = false
+            showTrialNotificationPermissionPrompt = true
+            showTrialThankYouAlert = false
         }
+    }
+
+    func confirmTrialNotificationPermissionOptIn() async {
+        let previousNotificationsPreference = notificationManager.notificationsEnabled
+        let granted = await notificationManager.requestAuthorization()
 
         if granted {
             notificationManager.notificationsEnabled = true
@@ -299,12 +301,22 @@ final class PremiumStore: ObservableObject {
         }
 
         showTrialReminderOptInPrompt = false
+        showTrialNotificationPermissionPrompt = false
         showTrialThankYouAlert = true
         actionMessageIsError = false
     }
 
     func dismissTrialReminderOptIn() {
         showTrialReminderOptInPrompt = false
+        showTrialNotificationPermissionPrompt = false
+        showTrialThankYouAlert = true
+        actionMessage = AppLocalization.string("premium.purchase.trial.success")
+        actionMessageIsError = false
+    }
+
+    func dismissTrialNotificationPermissionOptIn() {
+        showTrialReminderOptInPrompt = false
+        showTrialNotificationPermissionPrompt = false
         showTrialThankYouAlert = true
         actionMessage = AppLocalization.string("premium.purchase.trial.enable.notifications")
         actionMessageIsError = false

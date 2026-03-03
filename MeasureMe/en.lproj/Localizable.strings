@@ -365,12 +365,16 @@
 "premium.carousel.unlock.item.support" = "Support independent developer from Poland 🇪🇺 🇵🇱";
 "premium.trial.timeline.title" = "Your 14-day trial";
 "premium.trial.timeline.today" = "Today — Unlock everything. No charge.";
-"premium.trial.timeline.day12" = "Day 12 — We'll remind you before trial ends.";
+"premium.trial.timeline.day12" = "Day 12 — Optional: enable a reminder before trial ends.";
 "premium.trial.timeline.day14" = "Day 14 — Decide to continue or cancel. No pressure.";
 "premium.trial.thankyou.title" = "Thank you!";
 "premium.trial.thankyou.message" = "Your 14-day trial is active. Enjoy Premium.";
 "premium.trial.reminder.prompt.title" = "Enable trial-ending reminder?";
 "premium.trial.reminder.prompt.message" = "Would you like a reminder 2 days before your trial ends?";
+"premium.trial.reminder.prompt.confirm" = "Yes, remind me";
+"premium.trial.notification_permission.prompt.title" = "Allow notifications for trial reminder?";
+"premium.trial.notification_permission.prompt.message" = "To send a reminder 2 days before your trial ends, MeasureMe needs notification permission.";
+"premium.trial.notification_permission.prompt.confirm" = "Enable notifications";
 "premium.cta.free.forever" = "Free forever • Cancel your Premium anytime";
 "premium.cta.billed.prefix" = "Billed ";
 "premium.cta.billed.suffix" = " after trial";

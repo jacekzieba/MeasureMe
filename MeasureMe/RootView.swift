@@ -57,11 +57,25 @@ struct RootView: View {
             Button(AppLocalization.string("Not now"), role: .cancel) {
                 premiumStore.dismissTrialReminderOptIn()
             }
-            Button(AppLocalization.string("Enable reminders")) {
+            Button(AppLocalization.string("premium.trial.reminder.prompt.confirm")) {
                 Task { await premiumStore.confirmTrialReminderOptIn() }
             }
         } message: {
             Text(AppLocalization.string("premium.trial.reminder.prompt.message"))
+        }
+        .confirmationDialog(
+            AppLocalization.string("premium.trial.notification_permission.prompt.title"),
+            isPresented: trialNotificationPermissionPromptBinding,
+            titleVisibility: .visible
+        ) {
+            Button(AppLocalization.string("Not now"), role: .cancel) {
+                premiumStore.dismissTrialNotificationPermissionOptIn()
+            }
+            Button(AppLocalization.string("premium.trial.notification_permission.prompt.confirm")) {
+                Task { await premiumStore.confirmTrialNotificationPermissionOptIn() }
+            }
+        } message: {
+            Text(AppLocalization.string("premium.trial.notification_permission.prompt.message"))
         }
         .alert(
             AppLocalization.string("premium.trial.thankyou.title"),
@@ -85,6 +99,13 @@ struct RootView: View {
             return .constant(false)
         }
         return $premiumStore.showTrialThankYouAlert
+    }
+
+    private var trialNotificationPermissionPromptBinding: Binding<Bool> {
+        if isAuditCaptureEnabled {
+            return .constant(false)
+        }
+        return $premiumStore.showTrialNotificationPermissionPrompt
     }
 
     private func configurePendingStoreIfNeeded() {

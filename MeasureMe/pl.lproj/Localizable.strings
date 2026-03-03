@@ -875,12 +875,16 @@
 "premium.carousel.unlock.item.support" = "Wspierasz niezależnego dewelopera z Polski 🇪🇺 🇵🇱";
 "premium.trial.timeline.title" = "Twój 14-dniowy okres próbny";
 "premium.trial.timeline.today" = "Dzisiaj — odblokowujesz wszystko. Bez opłat.";
-"premium.trial.timeline.day12" = "Dzień 12 — przypomnimy Ci przed końcem okresu próbnego.";
+"premium.trial.timeline.day12" = "Dzień 12 — opcjonalnie możesz włączyć przypomnienie przed końcem okresu próbnego.";
 "premium.trial.timeline.day14" = "Dzień 14 — zdecyduj, czy kontynuujesz, czy rezygnujesz. Bez presji.";
 "premium.trial.thankyou.title" = "Dziękujemy!";
 "premium.trial.thankyou.message" = "Twój 14-dniowy okres próbny jest aktywny. Korzystaj z Premium.";
 "premium.trial.reminder.prompt.title" = "Włączyć przypomnienie o końcu okresu próbnego?";
 "premium.trial.reminder.prompt.message" = "Czy chcesz otrzymać przypomnienie 2 dni przed końcem okresu próbnego?";
+"premium.trial.reminder.prompt.confirm" = "Tak, przypomnij mi";
+"premium.trial.notification_permission.prompt.title" = "Zezwolić na powiadomienia o przypomnieniu triala?";
+"premium.trial.notification_permission.prompt.message" = "Aby wysłać przypomnienie 2 dni przed końcem okresu próbnego, MeasureMe potrzebuje zgody na powiadomienia.";
+"premium.trial.notification_permission.prompt.confirm" = "Włącz powiadomienia";
 "premium.cta.free.forever" = "Na zawsze za darmo • Anuluj Premium w dowolnym momencie";
 "premium.cta.billed.prefix" = "Po okresie próbnym: ";
 "premium.cta.billed.suffix" = "";

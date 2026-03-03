@@ -57,6 +57,7 @@ private final class MockPremiumNotificationManager: PremiumNotificationManaging 
     var authorizationStatusValue: UNAuthorizationStatus = .notDetermined
     var requestAuthorizationResult = false
     private(set) var scheduledTrialReminderDays: [Int] = []
+    private(set) var requestAuthorizationCallCount: Int = 0
 
     func scheduleTrialEndingReminder(daysFromNow: Int) {
         scheduledTrialReminderDays.append(daysFromNow)
@@ -67,7 +68,8 @@ private final class MockPremiumNotificationManager: PremiumNotificationManaging 
     }
 
     func requestAuthorization() async -> Bool {
-        requestAuthorizationResult
+        requestAuthorizationCallCount += 1
+        return requestAuthorizationResult
     }
 }
 
@@ -179,34 +181,47 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertNotNil(store.actionMessage)
     }
 
-    /// Co sprawdza: Sprawdza scenariusz: TrialReminderOptInDeniedRollsBackPreference.
-    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
-    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
-    func testTrialReminderOptInDeniedRollsBackPreference() async {
+    /// Co sprawdza: Aktywacja triala pokazuje najpierw prompt intencji przypomnienia.
+    func testHandleTrialActivated_ShowsReminderIntentPrompt() async {
         let billing = MockPremiumBillingClient()
         let notifications = MockPremiumNotificationManager()
-        notifications.notificationsEnabled = true
-        notifications.authorizationStatusValue = .denied
-        notifications.requestAuthorizationResult = false
-
         let store = PremiumStore(
             billingClient: billing,
             notificationManager: notifications,
             startListener: false
         )
 
-        await store.confirmTrialReminderOptIn()
+        await store.handleTrialActivated()
 
-        XCTAssertTrue(notifications.notificationsEnabled)
-        XCTAssertTrue(store.showTrialThankYouAlert)
-        XCTAssertFalse(store.actionMessageIsError)
-        XCTAssertEqual(store.actionMessage, AppLocalization.string("premium.purchase.trial.enable.notifications"))
+        XCTAssertTrue(store.showTrialReminderOptInPrompt)
+        XCTAssertFalse(store.showTrialNotificationPermissionPrompt)
+        XCTAssertEqual(notifications.requestAuthorizationCallCount, 0)
+        XCTAssertTrue(notifications.scheduledTrialReminderDays.isEmpty)
     }
 
-    /// Co sprawdza: Sprawdza scenariusz: TrialReminderOptInGrantedSchedulesReminder.
-    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
-    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
-    func testTrialReminderOptInGrantedSchedulesReminder() async {
+    /// Co sprawdza: Odrzucenie kroku 1 nie pyta o permissions i kończy flow podziękowaniem.
+    func testTrialReminderIntentNo_ShowsThankYouWithoutAuthorizationRequest() async {
+        let billing = MockPremiumBillingClient()
+        let notifications = MockPremiumNotificationManager()
+        let store = PremiumStore(
+            billingClient: billing,
+            notificationManager: notifications,
+            startListener: false
+        )
+
+        await store.handleTrialActivated()
+        store.dismissTrialReminderOptIn()
+
+        XCTAssertFalse(store.showTrialReminderOptInPrompt)
+        XCTAssertFalse(store.showTrialNotificationPermissionPrompt)
+        XCTAssertTrue(store.showTrialThankYouAlert)
+        XCTAssertEqual(store.actionMessage, AppLocalization.string("premium.purchase.trial.success"))
+        XCTAssertEqual(notifications.requestAuthorizationCallCount, 0)
+        XCTAssertTrue(notifications.scheduledTrialReminderDays.isEmpty)
+    }
+
+    /// Co sprawdza: Potwierdzenie kroku 1 przy istniejącej autoryzacji planuje reminder bez kroku 2.
+    func testTrialReminderIntentYes_Authorized_SchedulesReminderWithoutSecondPrompt() async {
         let billing = MockPremiumBillingClient()
         let notifications = MockPremiumNotificationManager()
         notifications.authorizationStatusValue = .authorized
@@ -218,12 +233,90 @@ final class PremiumStoreTests: XCTestCase {
             startListener: false
         )
 
+        await store.handleTrialActivated()
         await store.confirmTrialReminderOptIn()
 
         XCTAssertTrue(notifications.notificationsEnabled)
         XCTAssertEqual(notifications.scheduledTrialReminderDays, [12])
+        XCTAssertFalse(store.showTrialNotificationPermissionPrompt)
         XCTAssertTrue(store.showTrialThankYouAlert)
         XCTAssertFalse(store.actionMessageIsError)
+        XCTAssertEqual(notifications.requestAuthorizationCallCount, 0)
+    }
+
+    /// Co sprawdza: Potwierdzenie kroku 1 bez autoryzacji otwiera krok 2 bez systemowego promptu.
+    func testTrialReminderIntentYes_NotDetermined_ShowsPermissionPromptWithoutAuthorizationRequest() async {
+        let billing = MockPremiumBillingClient()
+        let notifications = MockPremiumNotificationManager()
+        notifications.authorizationStatusValue = .notDetermined
+        notifications.notificationsEnabled = true
+
+        let store = PremiumStore(
+            billingClient: billing,
+            notificationManager: notifications,
+            startListener: false
+        )
+
+        await store.handleTrialActivated()
+        await store.confirmTrialReminderOptIn()
+
+        XCTAssertFalse(store.showTrialReminderOptInPrompt)
+        XCTAssertTrue(store.showTrialNotificationPermissionPrompt)
+        XCTAssertFalse(store.showTrialThankYouAlert)
+        XCTAssertEqual(notifications.requestAuthorizationCallCount, 0)
+        XCTAssertTrue(notifications.scheduledTrialReminderDays.isEmpty)
+    }
+
+    /// Co sprawdza: Potwierdzenie kroku 2 pyta system i planuje reminder przy zgodzie.
+    func testTrialPermissionPromptGranted_RequestsAuthorizationAndSchedulesReminder() async {
+        let billing = MockPremiumBillingClient()
+        let notifications = MockPremiumNotificationManager()
+        notifications.authorizationStatusValue = .notDetermined
+        notifications.requestAuthorizationResult = true
+        notifications.notificationsEnabled = false
+
+        let store = PremiumStore(
+            billingClient: billing,
+            notificationManager: notifications,
+            startListener: false
+        )
+
+        await store.handleTrialActivated()
+        await store.confirmTrialReminderOptIn()
+        await store.confirmTrialNotificationPermissionOptIn()
+
+        XCTAssertTrue(notifications.notificationsEnabled)
+        XCTAssertEqual(notifications.scheduledTrialReminderDays, [12])
+        XCTAssertEqual(notifications.requestAuthorizationCallCount, 1)
+        XCTAssertFalse(store.showTrialNotificationPermissionPrompt)
+        XCTAssertTrue(store.showTrialThankYouAlert)
+        XCTAssertFalse(store.actionMessageIsError)
+    }
+
+    /// Co sprawdza: Odmowa w kroku 2 nie planuje remindera i przywraca preferencję.
+    func testTrialPermissionPromptDenied_DoesNotScheduleReminderAndRestoresPreference() async {
+        let billing = MockPremiumBillingClient()
+        let notifications = MockPremiumNotificationManager()
+        notifications.authorizationStatusValue = .notDetermined
+        notifications.requestAuthorizationResult = false
+        notifications.notificationsEnabled = true
+
+        let store = PremiumStore(
+            billingClient: billing,
+            notificationManager: notifications,
+            startListener: false
+        )
+
+        await store.handleTrialActivated()
+        await store.confirmTrialReminderOptIn()
+        await store.confirmTrialNotificationPermissionOptIn()
+
+        XCTAssertTrue(notifications.notificationsEnabled)
+        XCTAssertEqual(notifications.requestAuthorizationCallCount, 1)
+        XCTAssertTrue(notifications.scheduledTrialReminderDays.isEmpty)
+        XCTAssertFalse(store.showTrialNotificationPermissionPrompt)
+        XCTAssertTrue(store.showTrialThankYouAlert)
+        XCTAssertEqual(store.actionMessage, AppLocalization.string("premium.purchase.trial.enable.notifications"))
     }
 
     func testStartIfNeeded_DoesNotStartInInitWhenDisabledAndIsIdempotent() async throws {
