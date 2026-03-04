@@ -28,6 +28,8 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
             "showABSIOnHome",
             "showBodyShapeScoreOnHome",
             "showCentralFatRiskOnHome",
+            "showConicityOnHome",
+            "health_indicators_v2_migrated",
             "showPhysiqueSWR",
             "showPhysiqueCWR",
             "showPhysiqueSHR",
@@ -61,6 +63,7 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
         for key in visibilityKeys {
             defaults.set(true, forKey: key)
         }
+        defaults.set(true, forKey: "health_indicators_v2_migrated")
         UIView.setAnimationsEnabled(false)
 
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
