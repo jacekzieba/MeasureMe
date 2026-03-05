@@ -15,7 +15,7 @@ final class PhotoFlowUITests: XCTestCase {
     func testPhotoCompareExportLoopDoesNotCrash() {
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 8))
-        tapTab(named: "Photos")
+        tapTab(named: "tab.photos")
 
         for _ in 0..<3 {
             openCompareWithHook()

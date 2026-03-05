@@ -21,7 +21,7 @@ final class MeasurementsPhysiqueUITests: XCTestCase {
     }
 
     private func openMeasurementsTab() {
-        let tab = app.tabBars.buttons["Measurements"]
+        let tab = app.tabBars.buttons["tab.measurements"]
         if tab.waitForExistence(timeout: 5) {
             tab.tap()
         }
@@ -55,8 +55,10 @@ final class MeasurementsPhysiqueUITests: XCTestCase {
             physiqueButton.tap()
         }
 
-        let paywallTitle = app.staticTexts["Premium Edition"]
-        XCTAssertTrue(paywallTitle.waitForExistence(timeout: 5), "Paywall should be shown for non-premium access")
+        // Tapping Physique when not premium triggers the paywall sheet and reverts to Metrics tab.
+        // The paywall sheet has a close button with accessibility label "Close Premium screen".
+        let paywallCloseButton = app.buttons["Close Premium screen"]
+        XCTAssertTrue(paywallCloseButton.waitForExistence(timeout: 5), "Paywall should be presented when non-premium user taps Physique tab")
     }
 
     @MainActor
@@ -76,7 +78,7 @@ final class MeasurementsPhysiqueUITests: XCTestCase {
     func testPhysiqueToggleInSettingsAffectsMeasurementsVisibility() {
         launchApp(arguments: ["-uiTestMode", "-uiTestForcePremium", "-uiTestGenderMale", "-uiTestPhysiqueSWROff"])
 
-        let settingsTab = app.tabBars.buttons["Settings"]
+        let settingsTab = app.tabBars.buttons["tab.settings"]
         XCTAssertTrue(settingsTab.waitForExistence(timeout: 5), "Settings tab should exist")
         settingsTab.tap()
 

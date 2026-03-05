@@ -56,10 +56,10 @@ final class PerformanceUITests: XCTestCase {
             XCTCPUMetric(application: app),
             XCTMemoryMetric(application: app)
         ]) {
-            tapTab(named: "Measurements")
-            tapTab(named: "Photos")
-            tapTab(named: "Settings")
-            tapTab(named: "Home")
+            tapTab(named: "tab.measurements")
+            tapTab(named: "tab.photos")
+            tapTab(named: "tab.settings")
+            tapTab(named: "tab.home")
         }
     }
 
@@ -79,17 +79,17 @@ final class PerformanceUITests: XCTestCase {
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 8))
 
         let firstOpenStart = Date()
-        tapTab(named: "Photos")
+        tapTab(named: "tab.photos")
         let firstGridItem = app.buttons["photos.grid.item"].firstMatch
         XCTAssertTrue(firstGridItem.waitForExistence(timeout: 10), "Expected Photos grid to appear on first open.")
         let firstOpenMs = Int(Date().timeIntervalSince(firstOpenStart) * 1_000)
         sleep(2)
 
-        tapTab(named: "Home")
+        tapTab(named: "tab.home")
         sleep(1)
 
         let secondOpenStart = Date()
-        tapTab(named: "Photos")
+        tapTab(named: "tab.photos")
         XCTAssertTrue(firstGridItem.waitForExistence(timeout: 10), "Expected Photos grid to appear on second open.")
         let secondOpenMs = Int(Date().timeIntervalSince(secondOpenStart) * 1_000)
         let improvementMs = firstOpenMs - secondOpenMs

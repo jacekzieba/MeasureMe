@@ -11,7 +11,8 @@ struct TabBarContainer: View {
     @State private var mountedTabs: Set<AppTab> = [.home]
 
     var body: some View {
-        let tabBarShouldBeVisible = router.selectedTab != .home || homeTabScrollOffset < -14
+        let isUITest = CommandLine.arguments.contains("-uiTestMode") || CommandLine.arguments.contains("-uiTestOnboardingMode")
+        let tabBarShouldBeVisible = isUITest || router.selectedTab != .home || homeTabScrollOffset < -14
 
         ZStack {
             Color.black
@@ -27,6 +28,7 @@ struct TabBarContainer: View {
                     } label: {
                         Label(AppLocalization.string("Home"), systemImage: "house.fill")
                     }
+                    .accessibilityIdentifier("tab.home")
 
                     // MEASUREMENTS
                     Tab(value: AppTab.measurements) {
@@ -36,6 +38,7 @@ struct TabBarContainer: View {
                     } label: {
                         Label(AppLocalization.string("Measurements"), systemImage: "ruler")
                     }
+                    .accessibilityIdentifier("tab.measurements")
 
                     // COMPOSE
                     Tab(value: AppTab.compose, role: .search) {
@@ -43,6 +46,7 @@ struct TabBarContainer: View {
                     } label: {
                         Label(AppLocalization.string("Add"), systemImage: "plus")
                     }
+                    .accessibilityIdentifier("tab.add")
 
                     // PHOTOS
                     Tab(value: AppTab.photos) {
@@ -52,6 +56,7 @@ struct TabBarContainer: View {
                     } label: {
                         Label(AppLocalization.string("Photos"), systemImage: "photo")
                     }
+                    .accessibilityIdentifier("tab.photos")
 
                     // SETTINGS
                     Tab(value: AppTab.settings) {
@@ -61,6 +66,7 @@ struct TabBarContainer: View {
                     } label: {
                         Label(AppLocalization.string("Settings"), systemImage: "gearshape")
                     }
+                    .accessibilityIdentifier("tab.settings")
                 }
                 .tint(Color(hex: "#FCA311"))
                 .toolbarBackground(tabBarShouldBeVisible ? .visible : .hidden, for: .tabBar)
@@ -78,6 +84,7 @@ struct TabBarContainer: View {
                         Label(AppLocalization.string("Home"), systemImage: "house.fill")
                     }
                     .tag(AppTab.home)
+                    .accessibilityIdentifier("tab.home")
 
                     LazyMountedTab(isMounted: mountedTabs.contains(.measurements)) {
                         MeasurementsTabView()
@@ -86,12 +93,14 @@ struct TabBarContainer: View {
                             Label(AppLocalization.string("Measurements"), systemImage: "ruler")
                         }
                         .tag(AppTab.measurements)
+                        .accessibilityIdentifier("tab.measurements")
 
                     Color.clear
                         .tabItem {
                             Label(AppLocalization.string("Add"), systemImage: "plus")
                         }
                         .tag(AppTab.compose)
+                        .accessibilityIdentifier("tab.add")
 
                     LazyMountedTab(isMounted: mountedTabs.contains(.photos)) {
                         PhotoView()
@@ -100,6 +109,7 @@ struct TabBarContainer: View {
                             Label(AppLocalization.string("Photos"), systemImage: "photo")
                         }
                         .tag(AppTab.photos)
+                        .accessibilityIdentifier("tab.photos")
 
                     LazyMountedTab(isMounted: mountedTabs.contains(.settings)) {
                         SettingsView()
@@ -108,6 +118,7 @@ struct TabBarContainer: View {
                             Label(AppLocalization.string("Settings"), systemImage: "gearshape")
                         }
                         .tag(AppTab.settings)
+                        .accessibilityIdentifier("tab.settings")
                 }
                 .tint(Color(hex: "#FCA311"))
                 .toolbarBackground(tabBarShouldBeVisible ? .visible : .hidden, for: .tabBar)

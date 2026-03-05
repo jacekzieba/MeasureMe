@@ -77,28 +77,43 @@ final class SinglePhotoSaveUITests: XCTestCase {
     func testMeasurementsSectionExpandsAfterTap() {
         launchWithSingleAdd()
         waitForSingleAddSheet()
+        // Let navigation push animation fully complete before interacting
+        Thread.sleep(forTimeInterval: 0.6)
 
         let toggle = app.buttons["addPhoto.measurements.toggle"]
-        XCTAssertTrue(toggle.waitForExistence(timeout: 3), "Measurements section toggle should exist")
-        toggle.tap()
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "Measurements section toggle should exist")
+        // Scroll in the sheet's scroll view until the toggle is hittable (measurements card is at the bottom)
+        scrollUntilHittable(toggle, maxAttempts: 5)
+        tapElementViaCoordinate(toggle)
 
+        // Wait for the weight field to appear — this confirms isExpanded flipped to true
+        // (checks the leaf element directly, bypassing any container accessibility quirks)
+        let weightField = element("addPhoto.metricField.weight")
+        XCTAssertTrue(weightField.waitForExistence(timeout: 8), "Measurements section should expand and show metric fields")
+
+        // Also confirm the content container exists (verifies .accessibilityElement(children: .contain))
         let content = element("addPhoto.measurements.content")
-        XCTAssertTrue(content.waitForExistence(timeout: 3), "Measurements section content should expand")
+        XCTAssertTrue(content.waitForExistence(timeout: 3), "Measurements section container should expand after tap")
     }
 
     @MainActor
     func testMeasurementsFilledCounterUpdatesAfterInput() {
         launchWithSingleAdd()
         waitForSingleAddSheet()
+        // Let navigation push animation fully complete before interacting
+        Thread.sleep(forTimeInterval: 0.6)
 
         let toggle = app.buttons["addPhoto.measurements.toggle"]
-        XCTAssertTrue(toggle.waitForExistence(timeout: 3), "Measurements section toggle should exist")
-        toggle.tap()
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "Measurements section toggle should exist")
+        // Scroll in the sheet's scroll view until the toggle is hittable (measurements card is at the bottom)
+        scrollUntilHittable(toggle, maxAttempts: 5)
+        tapElementViaCoordinate(toggle)
 
-        let weightField = app.textFields["addPhoto.metricField.weight"]
-        if !weightField.waitForExistence(timeout: 1) {
-            app.swipeUp()
-        }
+        // Wait for section to expand
+        let content = element("addPhoto.measurements.content")
+        XCTAssertTrue(content.waitForExistence(timeout: 5), "Measurements content should appear after expanding section")
+
+        let weightField = element("addPhoto.metricField.weight")
         XCTAssertTrue(weightField.waitForExistence(timeout: 3), "Weight metric field should exist after expanding section")
 
         weightField.tap()
@@ -115,6 +130,44 @@ private extension SinglePhotoSaveUITests {
         app.descendants(matching: .any)[identifier].firstMatch
     }
 
+    /// Scrolls AddPhotoView's scroll view until `element` is hittable or `maxAttempts` reached.
+    /// Uses a slow drag with a 0.5 s hold at the end so the scroll view is fully at rest
+    /// (no momentum / deceleration) before we lift the finger — ensuring the subsequent tap
+    /// is not absorbed by an active scroll-view gesture recogniser.
+    func scrollUntilHittable(_ element: XCUIElement, maxAttempts: Int = 5) {
+        let scrollView = app.scrollViews["addPhoto.scrollView"]
+        var attempts = 0
+        while !element.isHittable && attempts < maxAttempts {
+            let start = scrollView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+            let end   = scrollView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+            // withVelocity: .slow  → minimal momentum after lift
+            // thenHoldForDuration: 0.5  → scroll view settles fully before touch-up
+            start.press(forDuration: 0.05, thenDragTo: end,
+                        withVelocity: .slow, thenHoldForDuration: 0.5)
+            attempts += 1
+        }
+        // Extra settle time after all scrolling is complete.
+        // Also gives ScrollViewTouchDelayFixer's asyncAfter(0.3s) block time to run.
+        Thread.sleep(forTimeInterval: 0.5)
+    }
+
+    /// Taps an element.
+    /// `delaysContentTouches` is disabled for UI-test builds via `ScrollViewTouchDelayFixer`,
+    /// so a plain `.tap()` is sufficient — the scroll view forwards the touch immediately.
+    func tapElement(_ element: XCUIElement) {
+        element.tap()
+    }
+
+    /// Taps via an absolute-coordinate `XCUICoordinate` derived from the element's midpoint.
+    /// This routes through the app-level coordinate system rather than XCTest's element
+    /// interaction system, which can behave differently inside UIScrollView hierarchies.
+    func tapElementViaCoordinate(_ element: XCUIElement) {
+        let frame = element.frame
+        let origin = app.coordinate(withNormalizedOffset: .zero)
+        let target = origin.withOffset(CGVector(dx: frame.midX, dy: frame.midY))
+        target.tap()
+    }
+
     func launchWithSingleAdd() {
         app.launchArguments = ["-uiTestMode", "-uiTestOpenSingleAdd"]
         app.launch()
@@ -123,7 +176,7 @@ private extension SinglePhotoSaveUITests {
     }
 
     func tapPhotosTab() {
-        let tab = app.tabBars.buttons["Photos"]
+        let tab = app.tabBars.buttons["tab.photos"]
         XCTAssertTrue(tab.waitForExistence(timeout: 6), "Tab 'Photos' should exist")
         tab.tap()
     }

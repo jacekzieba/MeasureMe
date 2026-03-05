@@ -52,10 +52,8 @@ final class AppSettingsStore: ObservableObject {
     }
 
     func set<Value>(_ keyPath: WritableKeyPath<AppSettingsSnapshot, Value>, _ value: Value) {
-        var updatedSnapshot = snapshot
-        updatedSnapshot[keyPath: keyPath] = value
-        persistSnapshot(updatedSnapshot)
-        scheduleSnapshotRefresh()
+        snapshot[keyPath: keyPath] = value
+        persistSnapshot(snapshot)
     }
 
     func reload() {

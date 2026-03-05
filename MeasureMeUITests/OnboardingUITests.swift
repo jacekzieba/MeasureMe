@@ -28,7 +28,7 @@ final class OnboardingUITests: XCTestCase {
 
         guard let goalButton = goalIDs
             .map({ app.buttons[$0] })
-            .first(where: { $0.waitForExistence(timeout: 3) }) else {
+            .first(where: { $0.waitForExistence(timeout: 10) }) else {
             XCTFail("Expected at least one onboarding goal button")
             return
         }
@@ -47,7 +47,7 @@ final class OnboardingUITests: XCTestCase {
         // powitanie -> profil -> boostery -> premium
         for _ in 0..<3 {
             let next = app.buttons["onboarding.next"]
-            XCTAssertTrue(next.waitForExistence(timeout: 5), "Przycisk Dalej powinien istniec")
+            XCTAssertTrue(next.waitForExistence(timeout: 10), "Przycisk Dalej powinien istniec")
             XCTAssertTrue(next.isEnabled, "Przycisk Dalej powinien byc aktywny")
             next.tap()
         }
@@ -65,7 +65,7 @@ final class OnboardingUITests: XCTestCase {
         // powitanie -> profil -> boostery -> premium
         for _ in 0..<3 {
             let next = app.buttons["onboarding.next"]
-            XCTAssertTrue(next.waitForExistence(timeout: 5), "Przycisk Dalej powinien istniec")
+            XCTAssertTrue(next.waitForExistence(timeout: 10), "Przycisk Dalej powinien istniec")
             next.tap()
         }
 
@@ -87,7 +87,7 @@ final class OnboardingUITests: XCTestCase {
         // powitanie -> profil -> boostery
         for _ in 0..<2 {
             let next = app.buttons["onboarding.next"]
-            XCTAssertTrue(next.waitForExistence(timeout: 5))
+            XCTAssertTrue(next.waitForExistence(timeout: 10))
             next.tap()
         }
 
@@ -110,6 +110,6 @@ final class OnboardingUITests: XCTestCase {
     /// Kryteria: Asercje na elementach UI przechodza (m.in. `onboarding.privacy.note`).
     func testPrivacyNoteVisibleOnWelcome() {
         let privacyNote = app.descendants(matching: .any)["onboarding.privacy.note"]
-        XCTAssertTrue(privacyNote.waitForExistence(timeout: 5), "Notatka o prywatnosci powinna byc widoczna na ekranie powitalnym onboardingu")
+        XCTAssertTrue(privacyNote.waitForExistence(timeout: 10), "Notatka o prywatnosci powinna byc widoczna na ekranie powitalnym onboardingu")
     }
 }

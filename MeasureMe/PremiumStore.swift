@@ -103,6 +103,7 @@ final class PremiumStore: ObservableObject {
     private let settings: AppSettingsStore
     #if DEBUG
     private let forcePremiumForUITests: Bool
+    private let forceNonPremiumForUITests: Bool
     #endif
     private var hasStarted = false
     private var updateListenerTask: Task<Void, Never>?
@@ -119,6 +120,7 @@ final class PremiumStore: ObservableObject {
         self.settings = settings
         #if DEBUG
         self.forcePremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForcePremium")
+        self.forceNonPremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForceNonPremium")
         #endif
         if settings.snapshot.premium.premiumFirstLaunchDate == 0 {
             settings.set(\.premium.premiumFirstLaunchDate, AppClock.now.timeIntervalSince1970)
@@ -374,6 +376,11 @@ final class PremiumStore: ObservableObject {
         if forcePremiumForUITests {
             isPremium = true
             settings.set(\.premium.premiumEntitlement, true)
+            return
+        }
+        if forceNonPremiumForUITests {
+            isPremium = false
+            settings.set(\.premium.premiumEntitlement, false)
             return
         }
         #endif

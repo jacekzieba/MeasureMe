@@ -341,6 +341,11 @@ struct MeasureMeApp: App {
         }
 
         guard args.contains("-uiTestMode") else { return }
+        // Swizzle UIScrollView so every future instance has delaysContentTouches = false.
+        // This lets XCTest synthesised taps reach SwiftUI's .buttonStyle(.plain) buttons
+        // without the 150 ms hold that UIScrollView normally uses to distinguish tap vs scroll.
+        UIScrollView.swizzleDelaysContentTouchesForUITesting()
+        UIScrollView.appearance().delaysContentTouches = false
         defaults.set(\.onboarding.hasCompletedOnboarding, true)
         defaults.set(\.experience.appLanguage, "en")
         defaults.set(\.premium.premiumEntitlement, true)
@@ -478,3 +483,29 @@ struct MeasureMeApp: App {
         return image.jpegData(compressionQuality: 0.84)
     }
 }
+
+// MARK: - UI-Test: UIScrollView touch-delay swizzle
+
+#if DEBUG
+private extension UIScrollView {
+    /// Swizzles `setDelaysContentTouches:` so every UIScrollView instance (including
+    /// SwiftUI's internal one) always uses `delaysContentTouches = false` in UI-test
+    /// builds.  Must be called once, before any scroll views are created.
+    static func swizzleDelaysContentTouchesForUITesting() {
+        let originalSel = #selector(setter: UIScrollView.delaysContentTouches)
+        let swizzledSel = #selector(UIScrollView.uitest_setDelaysContentTouches(_:))
+        guard
+            let original = class_getInstanceMethod(UIScrollView.self, originalSel),
+            let swizzled = class_getInstanceMethod(UIScrollView.self, swizzledSel)
+        else { return }
+        method_exchangeImplementations(original, swizzled)
+    }
+
+    /// After swizzling this IS the original `setDelaysContentTouches:` implementation;
+    /// calling `self.uitest_setDelaysContentTouches(false)` inside our replacement
+    /// therefore invokes the original with `false`, not our code again.
+    @objc func uitest_setDelaysContentTouches(_ newValue: Bool) {
+        uitest_setDelaysContentTouches(false)
+    }
+}
+#endif

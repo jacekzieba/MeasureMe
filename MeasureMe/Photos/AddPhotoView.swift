@@ -38,10 +38,22 @@ struct AddPhotoView: View {
                     tagsCard
                     dateCard
                     measurementsCard
+                    #if DEBUG
+                    if ProcessInfo.processInfo.arguments.contains("-uiTestMode") {
+                        // 1×1 pt fixer view: on appear it traverses the full UIKit window
+                        // tree and sets delaysContentTouches = false on every UIScrollView,
+                        // letting XCTest synthesised taps reach SwiftUI buttons immediately.
+                        ScrollViewTouchDelayFixer()
+                            .frame(width: 1, height: 1)
+                            .accessibilityHidden(true)
+                            .allowsHitTesting(false)
+                    }
+                    #endif
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
             }
+            .accessibilityIdentifier("addPhoto.scrollView")
         }
         .navigationTitle(AppLocalization.string("Add Photo"))
         .navigationBarTitleDisplayMode(.inline)
@@ -442,6 +454,50 @@ struct MultiPhotoImportPayload: Identifiable {
         items.compactMap(\.librarySource)
     }
 }
+
+// MARK: - UI-Test Helpers
+
+#if DEBUG
+/// Walks the **entire UIKit window tree** and sets `delaysContentTouches = false` on
+/// every `UIScrollView` (and subclass) it finds.  This makes XCTest synthesised taps
+/// reach SwiftUI `.buttonStyle(.plain)` buttons without the 150 ms hold that
+/// `UIScrollView` normally uses to distinguish a tap from a scroll gesture.
+///
+/// The window-level scan is necessary because SwiftUI may use a private UIScrollView
+/// subclass whose `setDelaysContentTouches:` overrides the base-class implementation,
+/// bypassing appearance-proxy or class-level swizzling.
+///
+/// Only rendered when the `-uiTestMode` launch argument is present (see AddPhotoView body).
+private struct ScrollViewTouchDelayFixer: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.isUserInteractionEnabled = false
+        // Run immediately (after layout) and again after a short pause in case
+        // SwiftUI re-configures the scroll view after its initial setup.
+        DispatchQueue.main.async { Self.disableTouchDelay() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { Self.disableTouchDelay() }
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
+
+    private static func disableTouchDelay() {
+        for scene in UIApplication.shared.connectedScenes {
+            guard let ws = scene as? UIWindowScene else { continue }
+            for window in ws.windows {
+                fix(window)
+            }
+        }
+    }
+
+    private static func fix(_ view: UIView) {
+        if let sv = view as? UIScrollView {
+            sv.delaysContentTouches = false
+        }
+        for sub in view.subviews { fix(sub) }
+    }
+}
+#endif
 
 // MARK: - Preview
 private func makePreviewContainer() -> ModelContainer {

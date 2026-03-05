@@ -33,7 +33,7 @@ final class MultiPhotoImportUITests: XCTestCase {
     }
 
     private func tapPhotosTab() {
-        let tab = app.tabBars.buttons["Photos"]
+        let tab = app.tabBars.buttons["tab.photos"]
         XCTAssertTrue(tab.waitForExistence(timeout: 6), "Tab 'Photos' powinien istnieć")
         tab.tap()
     }

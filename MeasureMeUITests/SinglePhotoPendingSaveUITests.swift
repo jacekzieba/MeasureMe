@@ -90,7 +90,7 @@ final class SinglePhotoPendingSaveUITests: XCTestCase {
 
         app.buttons["addPhoto.saveButton"].tap()
 
-        let homeTab = app.tabBars.buttons["Home"]
+        let homeTab = app.tabBars.buttons["tab.home"]
         XCTAssertTrue(homeTab.waitForExistence(timeout: 4))
         homeTab.tap()
 
@@ -109,7 +109,7 @@ private extension SinglePhotoPendingSaveUITests {
     }
 
     func tapPhotosTab() {
-        let tab = app.tabBars.buttons["Photos"]
+        let tab = app.tabBars.buttons["tab.photos"]
         XCTAssertTrue(tab.waitForExistence(timeout: 6), "Tab 'Photos' should exist")
         tab.tap()
     }

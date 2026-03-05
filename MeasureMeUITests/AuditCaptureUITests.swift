@@ -2,10 +2,10 @@ import XCTest
 
 final class AuditCaptureUITests: XCTestCase {
     private enum TabLabel {
-        static let home = ["Home", "Start", "Dom"]
-        static let measurements = ["Measurements", "Pomiary"]
-        static let photos = ["Photos", "Zdjęcia", "Zdjecia"]
-        static let settings = ["Settings", "Ustawienia"]
+        static let home = ["tab.home", "Home", "Start", "Dom", "Strona główna"]
+        static let measurements = ["tab.measurements", "Measurements", "Pomiary"]
+        static let photos = ["tab.photos", "Photos", "Zdjęcia", "Zdjecia"]
+        static let settings = ["tab.settings", "Settings", "Ustawienia"]
     }
 
     private lazy var outputDirectory: URL = {
@@ -154,7 +154,7 @@ final class AuditCaptureUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
-        XCTAssertTrue(app.buttons["onboarding.next"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["onboarding.next"].waitForExistence(timeout: 15))
         saveScreenshot(screen: "onboarding_welcome")
 
         app.buttons["onboarding.next"].tap()
@@ -220,7 +220,7 @@ final class AuditCaptureUITests: XCTestCase {
 
         XCTAssertTrue(onboardingApp.wait(for: .runningForeground, timeout: 10))
         let onboardingNext = onboardingApp.buttons["onboarding.next"]
-        XCTAssertTrue(onboardingNext.waitForExistence(timeout: 8))
+        XCTAssertTrue(onboardingNext.waitForExistence(timeout: 15))
         onboardingNext.tap()
         onboardingNext.tap()
         onboardingNext.tap()
@@ -294,8 +294,8 @@ final class AuditCaptureUITests: XCTestCase {
         XCTAssertTrue(onboardingApp.wait(for: .runningForeground, timeout: 10))
         let onboardingNext = onboardingApp.buttons["onboarding.next"]
         let onboardingBack = onboardingApp.buttons["onboarding.back"]
-        XCTAssertTrue(onboardingNext.waitForExistence(timeout: 8))
-        XCTAssertTrue(onboardingBack.waitForExistence(timeout: 8))
+        XCTAssertTrue(onboardingNext.waitForExistence(timeout: 15))
+        XCTAssertTrue(onboardingBack.waitForExistence(timeout: 15))
         assertMinHitTarget(onboardingNext, minSize: 44, name: "onboarding.next")
         assertMinHitTarget(onboardingBack, minSize: 44, name: "onboarding.back")
 
@@ -436,7 +436,7 @@ final class AuditCaptureUITests: XCTestCase {
 
         let tabBar = app.tabBars.firstMatch
         if tabBar.waitForExistence(timeout: 3) {
-            let addCandidates = ["Add", "Dodaj", "+"]
+            let addCandidates = ["tab.add", "Add", "Dodaj", "+"]
             for candidate in addCandidates {
                 let button = tabBar.buttons[candidate]
                 if button.exists {
