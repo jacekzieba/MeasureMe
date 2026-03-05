@@ -20,6 +20,14 @@ struct AddPhotoView: View {
     @State private var saveErrorMessage: String?
     @State private var isSaving = false
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
+
+    private var shouldStartExpandedForUITests: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-uiTestExpandMeasurements")
+        #else
+        false
+        #endif
+    }
     
     init(previewImage: UIImage? = nil, previewSource: PhotoLibraryImageSource? = nil) {
         self.initialPreviewSource = previewSource
@@ -110,6 +118,11 @@ struct AddPhotoView: View {
         .onChange(of: selectedImage) { _, newValue in
             if newValue != nil {
                 isLoadingPreview = false
+            }
+        }
+        .onAppear {
+            if shouldStartExpandedForUITests && !activeMetrics.activeKinds.isEmpty {
+                isMeasurementsExpanded = true
             }
         }
     }

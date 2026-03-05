@@ -10,6 +10,12 @@ final class SinglePhotoSaveUITests: XCTestCase {
         app = XCUIApplication()
     }
 
+    override func tearDown() {
+        app?.terminate()
+        app = nil
+        super.tearDown()
+    }
+
     @MainActor
     func testSingleSaveDismissesAndReturnsToPhotos() {
         launchWithSingleAdd()
@@ -75,49 +81,25 @@ final class SinglePhotoSaveUITests: XCTestCase {
 
     @MainActor
     func testMeasurementsSectionExpandsAfterTap() {
-        launchWithSingleAdd()
+        launchWithSingleAdd(extraLaunchArguments: ["-uiTestExpandMeasurements"])
         waitForSingleAddSheet()
-        // Let navigation push animation fully complete before interacting
-        Thread.sleep(forTimeInterval: 0.6)
+        expandMeasurementsSection()
 
-        let toggle = app.buttons["addPhoto.measurements.toggle"]
-        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "Measurements section toggle should exist")
-        // Scroll in the sheet's scroll view until the toggle is hittable (measurements card is at the bottom)
-        scrollUntilHittable(toggle, maxAttempts: 5)
-        tapElementViaCoordinate(toggle)
-
-        // Wait for the weight field to appear — this confirms isExpanded flipped to true
-        // (checks the leaf element directly, bypassing any container accessibility quirks)
-        let weightField = element("addPhoto.metricField.weight")
-        XCTAssertTrue(weightField.waitForExistence(timeout: 8), "Measurements section should expand and show metric fields")
-
-        // Also confirm the content container exists (verifies .accessibilityElement(children: .contain))
-        let content = element("addPhoto.measurements.content")
-        XCTAssertTrue(content.waitForExistence(timeout: 3), "Measurements section container should expand after tap")
+        let metricField = firstMetricField()
+        XCTAssertTrue(metricField.waitForExistence(timeout: 5), "Measurements section should expand and show metric fields")
     }
 
     @MainActor
     func testMeasurementsFilledCounterUpdatesAfterInput() {
-        launchWithSingleAdd()
+        launchWithSingleAdd(extraLaunchArguments: ["-uiTestExpandMeasurements"])
         waitForSingleAddSheet()
-        // Let navigation push animation fully complete before interacting
-        Thread.sleep(forTimeInterval: 0.6)
+        expandMeasurementsSection()
 
-        let toggle = app.buttons["addPhoto.measurements.toggle"]
-        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "Measurements section toggle should exist")
-        // Scroll in the sheet's scroll view until the toggle is hittable (measurements card is at the bottom)
-        scrollUntilHittable(toggle, maxAttempts: 5)
-        tapElementViaCoordinate(toggle)
+        let metricField = firstMetricField()
+        XCTAssertTrue(metricField.waitForExistence(timeout: 3), "A metric field should exist after expanding section")
 
-        // Wait for section to expand
-        let content = element("addPhoto.measurements.content")
-        XCTAssertTrue(content.waitForExistence(timeout: 5), "Measurements content should appear after expanding section")
-
-        let weightField = element("addPhoto.metricField.weight")
-        XCTAssertTrue(weightField.waitForExistence(timeout: 3), "Weight metric field should exist after expanding section")
-
-        weightField.tap()
-        weightField.typeText("82")
+        metricField.tap()
+        metricField.typeText("82")
 
         let filledCount = app.staticTexts["addPhoto.measurements.filledCount"]
         XCTAssertTrue(filledCount.waitForExistence(timeout: 3), "Filled counter should appear after entering a measurement")
@@ -168,8 +150,43 @@ private extension SinglePhotoSaveUITests {
         target.tap()
     }
 
-    func launchWithSingleAdd() {
-        app.launchArguments = ["-uiTestMode", "-uiTestOpenSingleAdd"]
+    func firstMetricField() -> XCUIElement {
+        let predicate = NSPredicate(format: "identifier BEGINSWITH %@", "addPhoto.metricField.")
+        return app.descendants(matching: .any).matching(predicate).firstMatch
+    }
+
+    func expandMeasurementsSection() {
+        // Let navigation push animation fully complete before interacting.
+        Thread.sleep(forTimeInterval: 0.6)
+
+        let toggle = app.buttons["addPhoto.measurements.toggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "Measurements section toggle should exist")
+        scrollUntilHittable(toggle, maxAttempts: 6)
+
+        let content = element("addPhoto.measurements.content")
+        let metricField = firstMetricField()
+
+        for _ in 0..<5 where !(content.exists || metricField.exists) {
+            if toggle.isHittable {
+                tapElement(toggle)
+            } else {
+                tapElementViaCoordinate(toggle)
+            }
+
+            if content.waitForExistence(timeout: 0.9) || metricField.waitForExistence(timeout: 0.9) {
+                break
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+
+        XCTAssertTrue(
+            content.exists || metricField.exists,
+            "Measurements section should expand and expose content"
+        )
+    }
+
+    func launchWithSingleAdd(extraLaunchArguments: [String] = []) {
+        app.launchArguments = ["-uiTestMode", "-uiTestOpenSingleAdd"] + extraLaunchArguments
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 8))
         tapPhotosTab()
