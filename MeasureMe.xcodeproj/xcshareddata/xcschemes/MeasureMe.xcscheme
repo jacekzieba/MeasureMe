@@ -76,11 +76,6 @@
                BlueprintName = "MeasureMeTests"
                ReferencedContainer = "container:MeasureMe.xcodeproj">
             </BuildableReference>
-            <SkippedTests>
-               <Test
-                  Identifier = "RootViewSnapshotTests/testRootView_snapshot()">
-               </Test>
-            </SkippedTests>
          </TestableReference>
          <TestableReference
             skipped = "NO">
