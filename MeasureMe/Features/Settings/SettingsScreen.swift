@@ -430,6 +430,20 @@ struct SettingsView: View {
                         SettingsRowDivider()
 
                         Button {
+                            shareApp()
+                        } label: {
+                            appSectionRowLabel(
+                                title: AppLocalization.string("Share app"),
+                                subtitle: "MeasureMe – Body Tracker",
+                                trailingSymbol: "square.and.arrow.up"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+
+                        SettingsRowDivider()
+
+                        Button {
                             openURL(LegalLinks.termsOfUse)
                         } label: {
                             appSectionRowLabel(
@@ -721,6 +735,18 @@ struct SettingsView: View {
             isExporting = false
             isPresentingShareSheet = !out.items.isEmpty
         }
+    }
+
+    private func shareApp() {
+        let appName = "MeasureMe – Body Tracker"
+        let shareText = AppLocalization.string(
+            "share.app.message",
+            appName,
+            LegalLinks.appStore.absoluteString
+        )
+        shareItems = [shareText, LegalLinks.appStore]
+        shareSubject = appName
+        isPresentingShareSheet = true
     }
 
     private func handlePendingDeepLinks() {
