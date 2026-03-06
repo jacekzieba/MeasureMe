@@ -16,9 +16,9 @@ struct HeightSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
-    @AppStorage("manualHeight") private var manualHeight: Double = 0.0
-    @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
+    @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
+    @AppSetting(\.health.isSyncEnabled) private var isSyncEnabled: Bool = false
     
     @Query(sort: [SortDescriptor(\MetricSample.date, order: .reverse)])
     private var samples: [MetricSample]
@@ -265,7 +265,7 @@ struct HeightSettingsView: View {
 
 struct ManualHeightInputView: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("manualHeight") private var manualHeight: Double = 0.0
+    @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
     
     let currentHeight: Double?
     let unitsSystem: String

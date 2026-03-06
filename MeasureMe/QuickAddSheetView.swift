@@ -12,10 +12,10 @@ struct QuickAddSheetView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var router: AppRouter
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
-    @AppStorage("save_unchanged_quick_add") private var saveUnchangedValues: Bool = false
-    @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @AppSetting(\.health.isSyncEnabled) private var isSyncEnabled: Bool = false
+    @AppSetting(\.experience.saveUnchangedQuickAdd) private var saveUnchangedValues: Bool = false
+    @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
 
     // Jedna data uzywana dla wszystkich szybkich wpisow
     @State private var date: Date = AppClock.now
@@ -28,6 +28,7 @@ struct QuickAddSheetView: View {
     @State private var saveErrorMessage: String?
     @FocusState private var focusedKind: MetricKind?
     @State private var rulerBaseValues: [MetricKind: Double] = [:]
+    private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
 
     init(
         kinds: [MetricKind],
@@ -93,7 +94,7 @@ struct QuickAddSheetView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .accessibilityIdentifier("quickadd.sheet")
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !kinds.isEmpty && focusedKind == nil && !useInlineSaveBar {
+                if !kinds.isEmpty && !useInlineSaveBar {
                     saveBar
                 }
             }
@@ -134,10 +135,7 @@ struct QuickAddSheetView: View {
 
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack(spacing: AppSpacing.xs) {
-                Image(systemName: kind.systemImage)
-                    .font(AppTypography.iconMedium)
-                    .foregroundStyle(Color.appAccent)
-                    .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
+                kind.iconView(font: AppTypography.iconMedium, size: 22, tint: Color.appAccent)
                     .frame(width: 30, height: 30)
                     .accessibilityHidden(true)
                     .background(
@@ -162,6 +160,7 @@ struct QuickAddSheetView: View {
                 if let current = inputs[kind] ?? nil {
                     Text(formatted(current, for: kind))
                         .font(.caption.monospacedDigit().weight(.semibold))
+                        .contentTransition(.numericText())
                         .foregroundStyle(Color.appAccent)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -239,7 +238,7 @@ struct QuickAddSheetView: View {
     }
 
     private var useInlineSaveBar: Bool {
-        dynamicTypeSize.isAccessibilitySize
+        dynamicTypeSize.isAccessibilitySize && !isUITestMode
     }
 
     private var inlineSaveSection: some View {
@@ -578,7 +577,7 @@ struct QuickAddSheetView: View {
         )
 
         do {
-            try service.save(entries: entries, date: date)
+            try service.save(entries: entries, date: date, unitsSystem: unitsSystem)
         } catch {
             await MainActor.run {
                 isSaving = false

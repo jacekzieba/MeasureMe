@@ -8,17 +8,24 @@ final class PhotoEntry {
     @Attribute(.externalStorage)
     var imageData: Data
 
+    var thumbnailData: Data?
     var date: Date
     var tags: [PhotoTag]
     var linkedMetrics: [MetricValueSnapshot]
 
+    var thumbnailOrImageData: Data {
+        thumbnailData ?? imageData
+    }
+
     init(
         imageData: Data,
+        thumbnailData: Data? = nil,
         date: Date = .now,
         tags: [PhotoTag],
         linkedMetrics: [MetricValueSnapshot] = []
     ) {
         self.imageData = imageData
+        self.thumbnailData = thumbnailData
         self.date = date
         self.tags = tags
         self.linkedMetrics = linkedMetrics

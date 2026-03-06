@@ -46,11 +46,11 @@ struct MetricDetailView: View {
     @State var isLoadingInsight = false
     @State private var scrubbedSample: MetricSample?
     
-    @AppStorage("photos_filter_tag") var photosFilterTag: String = ""
+    @AppSetting(\.experience.photosFilterTag) var photosFilterTag: String = ""
 
     /// System jednostek: "metric" (kg, cm) lub "imperial" (lb, in)
-    @AppStorage("unitsSystem") internal var unitsSystem: String = "metric"
-    @AppStorage("userName") internal var userName: String = ""
+    @AppSetting(\.profile.unitsSystem) internal var unitsSystem: String = "metric"
+    @AppSetting(\.profile.userName) internal var userName: String = ""
     
     // MARK: - Timeframe Enum
     
@@ -223,11 +223,18 @@ struct MetricDetailView: View {
             EditMetricSampleView(kind: kind, sample: sample)
         }
         .sheet(isPresented: $showGoalSheet) {
-            SetGoalView(kind: kind, currentGoal: currentGoal, onSet: { targetValue, direction in
-                setGoal(targetValue: targetValue, direction: direction)
-            }, onDelete: {
-                deleteGoal()
-            })
+            SetGoalView(
+                kind: kind,
+                currentGoal: currentGoal,
+                latestMetricValue: latestSampleValue,
+                onSet: { targetValue, direction, startValue, startDate in
+                    setGoal(targetValue: targetValue, direction: direction,
+                            startValue: startValue, startDate: startDate)
+                },
+                onDelete: {
+                    deleteGoal()
+                }
+            )
         }
         .task(id: insightInput) {
             await loadInsightIfNeeded()
@@ -253,11 +260,20 @@ struct MetricDetailView: View {
     }
 
     private var emptyStateSection: some View {
-        ContentUnavailableView(
-            AppLocalization.string("No data"),
-            systemImage: kind.systemImage,
-            description: Text(AppLocalization.string("Add your first entry to see history and charts."))
-        )
+        VStack(spacing: 16) {
+            kind.iconView(size: 56, tint: Color.appAccent)
+                .opacity(0.7)
+            VStack(spacing: 6) {
+                Text(AppLocalization.string("No data"))
+                    .font(.headline)
+                Text(AppLocalization.string("Add your first entry to see history and charts."))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
     }
 
     @ViewBuilder
@@ -553,14 +569,15 @@ struct MetricDetailView: View {
             ForEach(chartSamples, id: \.persistentModelID) { s in
                 AreaMark(
                     x: .value("Date", s.date),
-                    y: .value("Value", displayValue(s.value))
+                    yStart: .value("Baseline", yDomain.lowerBound),
+                    yEnd: .value("Value", displayValue(s.value))
                 )
                 .interpolationMethod(.monotone)
                 .foregroundStyle(
                     LinearGradient(
                         colors: [
-                            Color(hex: "#FCA311").opacity(0.1),
-                            Color(hex: "#FCA311").opacity(0.0)
+                            Color(hex: "#FCA311").opacity(0.28),
+                            Color(hex: "#FCA311").opacity(0.02)
                         ],
                         startPoint: .top,
                         endPoint: .bottom

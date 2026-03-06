@@ -96,6 +96,25 @@ final class PhotoFilters: ObservableObject {
 
         return matchesDate && matchesTags
     }
+
+    func matches(date: Date, tags: [PhotoTag]) -> Bool {
+        let matchesDate: Bool
+        if let start = dateRange.startDate(customStart: customStartDate),
+           let end = dateRange.endDate(customEnd: customEndDate) {
+            matchesDate = date >= start && date <= end
+        } else {
+            matchesDate = true
+        }
+
+        let matchesTags: Bool
+        if selectedTags.isEmpty {
+            matchesTags = true
+        } else {
+            matchesTags = !selectedTags.isDisjoint(with: Set(tags))
+        }
+
+        return matchesDate && matchesTags
+    }
 }
 
 // MARK: - Date Range Enum

@@ -30,6 +30,10 @@ enum ImagePipeline {
     }
 
     private static let inFlightTasks = InFlightDownsampleTasks()
+    private static let prewarmSizes: [CGSize] = [
+        CGSize(width: 110, height: 120), // Photos grid
+        CGSize(width: 128, height: 128)  // Home "Last Photos" (typowy zakres)
+    ]
 
     /// Laduje pomniejszony obraz do wyswietlania w UI.
     /// Kolejnosc: cache pamieci -> cache dyskowy -> downsampling -> zapis do cache.
@@ -80,5 +84,33 @@ enum ImagePipeline {
             await DiskImageCache.shared.setData(data, forKey: cacheKey)
         }
         return image
+    }
+
+    /// Asynchronicznie prewarmuje najczestsze warianty miniatur nowo zapisanego zdjecia.
+    /// Dziala best-effort: wynik nie jest wymagany do kontynuacji flow zapisu.
+    static func prewarmRecentPhotoVariants(
+        imageData: Data,
+        cacheID: String,
+        scale: CGFloat? = nil
+    ) async {
+        let resolvedScale: CGFloat
+        if let scale {
+            resolvedScale = scale
+        } else {
+            resolvedScale = await MainActor.run { UIScreen.main.scale }
+        }
+
+        for size in prewarmSizes {
+            let width = Int(max(size.width * resolvedScale, 1))
+            let height = Int(max(size.height * resolvedScale, 1))
+            let cacheKey = "\(cacheID)_downsample_\(width)x\(height)"
+            _ = await downsampledImage(
+                imageData: imageData,
+                cacheKey: cacheKey,
+                targetSize: size,
+                scale: resolvedScale
+            )
+            await Task.yield()
+        }
     }
 }

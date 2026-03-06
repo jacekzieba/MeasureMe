@@ -7,24 +7,67 @@ import SwiftData
 struct PhotoView: View {
 
     @Environment(\.modelContext) private var context
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
+    @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
     
     @StateObject private var filters = PhotoFilters()
     @State private var showFilters = false
-    @State private var showAddPhoto = false
+    @State private var showAddPhoto = false        // deep link / empty state
+    @State private var showSourcePicker = false    // confirmationDialog
+    @State private var showCamera = false
+    @State private var cameraPickerImage: UIImage? = nil
+    @State private var showLibraryPicker = false   // PHPicker (1 i wiele)
+    @State private var pendingLibrarySelection: MultiPhotoLibrarySelectionPayload? = nil
+    @State private var singlePickerImage: UIImage? = nil
+    @State private var singlePickerSource: PhotoLibraryImageSource? = nil
+    @State private var multiPhotoImportPayload: MultiPhotoImportPayload? = nil
+    @State private var showSingleImportFlow = false
+    @State private var showMultiImportFlow = false
     @State private var showCompare = false
     @State private var refreshToken = UUID()
+    @State private var recentlySavedPhoto: PhotoEntry?
+    @State private var recentlySavedPhotoEventID = UUID()
 
     @State private var isSelecting = false
     @State private var selectedPhotos: Set<PhotoEntry> = []
     @State private var selectedPhotoForDetail: PhotoEntry?
-    @State private var showMaxPhotosAlert = false
+    @State private var showDeleteConfirmation = false
+    @State private var didRunUITestAutoOpen = false
+    @State private var failureToastMessage: String?
+    @State private var showsFailureToast = false
+    @State private var pickerDismissedAt: ContinuousClock.Instant?
+    @State private var photoBatchByPersistentID: [String: UUID] = [:]
     
-    @AppStorage("photos_filter_tag") private var photosFilterTag: String = ""
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @AppSetting(\.experience.photosFilterTag) private var photosFilterTag: String = ""
+    private var shouldAnimate: Bool {
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+    }
+
     private var uiTestModeEnabled: Bool {
         ProcessInfo.processInfo.arguments.contains("-uiTestMode")
     }
+
+    #if DEBUG
+    /// Liczba zdjęć do otwarcia w MultiPhotoImportView podczas testu UI.
+    /// Aktywowana przez launch argument: -uiTestOpenMultiImport {count}
+    private var uiTestMultiImportCount: Int? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let idx = args.firstIndex(of: "-uiTestOpenMultiImport"),
+              args.indices.contains(idx + 1),
+              let count = Int(args[idx + 1]),
+              count > 0 else { return nil }
+        return count
+    }
+
+    /// Otwiera AddPhotoView z wygenerowanym zdjęciem testowym.
+    /// Aktywowane przez launch argument: -uiTestOpenSingleAdd
+    private var uiTestShouldOpenSingleAdd: Bool {
+        ProcessInfo.processInfo.arguments.contains("-uiTestOpenSingleAdd")
+    }
+    #endif
 
     var body: some View {
         NavigationStack {
@@ -53,16 +96,30 @@ struct PhotoView: View {
                             isSelecting: isSelecting,
                             selectedPhotos: $selectedPhotos,
                             onPhotoTap: handlePhotoTap,
+                            onPhotoLongPress: handlePhotoLongPress,
                             onAddPhoto: {
                                 Haptics.light()
-                                showAddPhoto = true
+                                showSourcePicker = true
                             },
-                            refreshToken: refreshToken
+                            refreshToken: refreshToken,
+                            recentlySavedPhoto: recentlySavedPhoto,
+                            recentlySavedPhotoEventID: recentlySavedPhotoEventID,
+                            pendingItems: pendingPhotoSaveStore.pendingItems
                         )
                         .refreshable {
                             refreshToken = UUID()
                         }
-                        .id(refreshToken)
+                        .overlay(alignment: .top) {
+                            if showsFailureToast, let failureToastMessage {
+                                InlineErrorBanner(
+                                    message: failureToastMessage,
+                                    accessibilityIdentifier: "photos.pending.failureToast"
+                                )
+                                .padding(.horizontal, 12)
+                                .padding(.top, 8)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                            }
+                        }
                         .overlay(alignment: .topLeading) {
                             if uiTestModeEnabled && isSelecting {
                                 Button("Select 2") {
@@ -77,11 +134,12 @@ struct PhotoView: View {
                                 .accessibilityIdentifier("photos.compare.selectTwoHook")
                             }
                         }
-                        
-                        // Przycisk Compare jako overlay na dole
-                        if isSelecting && selectedPhotos.count == 2 {
-                            compareButton
+
+                        // Pasek akcji na dole (usuwanie + porownywanie)
+                        if isSelecting && !selectedPhotos.isEmpty {
+                            selectionActionBar
                                 .padding(.bottom, 20)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
                     }
                 }
@@ -92,13 +150,75 @@ struct PhotoView: View {
             .toolbar { toolbarContent }
             .onAppear {
                 applyExternalFilterIfNeeded()
+                #if DEBUG
+                openUITestImportHookIfNeeded()
+                #endif
             }
             .onChange(of: photosFilterTag) { _, _ in
                 applyExternalFilterIfNeeded()
             }
+            .onChange(of: pendingPhotoSaveStore.completedEvent?.eventID) { _, _ in
+                handlePendingPhotoCompletedEvent()
+            }
+            .onChange(of: pendingPhotoSaveStore.lastFailureMessage) { _, newValue in
+                handlePendingPhotoFailure(newValue)
+            }
+            // Deep link / empty state — otwiera AddPhotoView bez zdjęcia
             .sheet(isPresented: $showAddPhoto) {
-                AddPhotoView(onSaved: { refreshToken = UUID() })
-                    .environmentObject(metricsStore)
+                NavigationStack {
+                    AddPhotoView()
+                        .environmentObject(metricsStore)
+                }
+            }
+            // Kamera → AddPhotoView z podglądem (onDismiss po dismiss, który jest po onSelect)
+            .sheet(isPresented: $showCamera, onDismiss: {
+                if let img = cameraPickerImage {
+                    presentSingleImport(images: [img])
+                    cameraPickerImage = nil
+                }
+            }) {
+                CameraPickerView(selectedImage: $cameraPickerImage)
+            }
+            // PHPicker (1 i wiele) — routing po liczbie wybranych zdjęć.
+            .sheet(isPresented: $showLibraryPicker, onDismiss: {
+                pickerDismissedAt = ContinuousClock.now
+                routePendingLibrarySelection()
+            }) {
+                MultiPhotoLibraryPicker { selection in
+                    pendingLibrarySelection = selection
+                }
+            }
+            // Flow importu po wyborze zdjęć z galerii uruchamiamy jako push w NavigationStack,
+            // co eliminuje "sheet-on-sheet" i daje płynniejsze przejście po dismiss PHPicker.
+            .navigationDestination(isPresented: $showSingleImportFlow) {
+                if singlePickerImage != nil || singlePickerSource != nil {
+                    AddPhotoView(previewImage: singlePickerImage, previewSource: singlePickerSource)
+                        .environmentObject(metricsStore)
+                } else {
+                    EmptyView()
+                }
+            }
+            .navigationDestination(isPresented: $showMultiImportFlow) {
+                if let payload = multiPhotoImportPayload {
+                    MultiPhotoImportView(payload: payload)
+                        .environmentObject(metricsStore)
+                } else {
+                    EmptyView()
+                }
+            }
+            // Confirmation dialog — dwie opcje (PHPicker obsługuje i 1, i wiele)
+            .confirmationDialog(
+                AppLocalization.string("Add Photo"),
+                isPresented: $showSourcePicker,
+                titleVisibility: .visible
+            ) {
+                Button(AppLocalization.string("Take Photo")) {
+                    showCamera = true
+                }
+                Button(AppLocalization.string("Choose from Library")) {
+                    showLibraryPicker = true
+                }
+                Button(AppLocalization.string("Cancel"), role: .cancel) {}
             }
             .sheet(isPresented: $showFilters) {
                 PhotoFilterView(filters: filters)
@@ -122,28 +242,41 @@ struct PhotoView: View {
                 }
                     .environmentObject(metricsStore)
             }
-            .alert(AppLocalization.string("Maximum Photos Selected"), isPresented: $showMaxPhotosAlert) {
-                Button(AppLocalization.string("OK"), role: .cancel) { }
+            .alert(
+                AppLocalization.string("Delete Photos"),
+                isPresented: $showDeleteConfirmation
+            ) {
+                Button(AppLocalization.string("Cancel"), role: .cancel) { }
+                Button(AppLocalization.string("Delete"), role: .destructive) {
+                    performBatchDelete()
+                }
             } message: {
-                Text(AppLocalization.string("You can only compare two photos at a time. Please deselect one photo before selecting another."))
+                Text(AppLocalization.plural("photos.delete.confirmation", selectedPhotos.count))
             }
         }
         .preferredColorScheme(.dark)
     }
     
     func handlePhotoTap(_ photo: PhotoEntry) {
-        guard isSelecting else { 
-            // Otwórz szczegółowy widok zdjęcia - delikatny feedback
+        guard isSelecting else {
             selectedPhotoForDetail = photo
-            return 
+            return
         }
 
+        Haptics.selection()
         if selectedPhotos.contains(photo) {
             selectedPhotos.remove(photo)
-        } else if selectedPhotos.count < 2 {
-            selectedPhotos.insert(photo)
         } else {
-            showMaxPhotosAlert = true
+            selectedPhotos.insert(photo)
+        }
+    }
+
+    func handlePhotoLongPress(_ photo: PhotoEntry) {
+        guard !isSelecting else { return }
+        Haptics.trigger(.confirmSoft)
+        withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+            isSelecting = true
+            selectedPhotos = [photo]
         }
     }
     
@@ -151,21 +284,86 @@ struct PhotoView: View {
 
 private extension PhotoView {
 
-    var compareButton: some View {
-        Button {
-            showCompare = true
-        } label: {
-            Label(AppLocalization.string("Compare"), systemImage: "photo.on.rectangle.angled")
-                .frame(maxWidth: .infinity)
+    var selectionActionBar: some View {
+        HStack(spacing: AppSpacing.sm) {
+            Button(role: .destructive) {
+                showDeleteConfirmation = true
+            } label: {
+                Label(AppLocalization.string("Delete"), systemImage: "trash")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(AppDestructiveButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+            .accessibilityIdentifier("photos.batch.delete")
+            .accessibilityLabel(AppLocalization.plural("photos.delete.count.a11y", selectedPhotos.count))
+
+            if selectedPhotos.count == 2 {
+                let canCompare = premiumStore.isPremium || uiTestModeEnabled
+
+                Button {
+                    if canCompare {
+                        showCompare = true
+                    } else {
+                        Haptics.selection()
+                        premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
+                    }
+                } label: {
+                    ZStack(alignment: .topTrailing) {
+                        Label(AppLocalization.string("Compare"), systemImage: "photo.on.rectangle.angled")
+                            .frame(maxWidth: .infinity)
+
+                        if !canCompare {
+                            Image(systemName: "lock.fill")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(Color(hex: "#FCA311"))
+                                .padding(4)
+                                .offset(x: 6, y: -6)
+                        }
+                    }
+                }
+                .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                .opacity(canCompare ? 1.0 : 0.55)
+                .accessibilityIdentifier("photos.compare.open")
+                .accessibilityLabel(canCompare
+                    ? AppLocalization.string("Compare selected photos")
+                    : AppLocalization.string("Compare selected photos — Premium required"))
+                .accessibilityHint(canCompare
+                    ? AppLocalization.string("accessibility.compare.opens")
+                    : AppLocalization.string("Tap to unlock Photo Comparison with Premium"))
+            }
         }
-        .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-        .accessibilityIdentifier("photos.compare.open")
-        .accessibilityLabel(AppLocalization.string("Compare selected photos"))
-        .accessibilityHint(AppLocalization.string("accessibility.compare.opens"))
         .padding(.horizontal, AppSpacing.md)
         .appElevation(AppElevation.card)
     }
-    
+
+    private func performBatchDelete() {
+        let photosToDelete = selectedPhotos
+        let selectedPersistentIDs = Set(photosToDelete.map(\.persistentModelID))
+        let selectedPhotoIDs = Set(photosToDelete.map(singlePhotoSaveID(for:)))
+        let batchIDsToCancel = Set(selectedPhotoIDs.compactMap { photoBatchByPersistentID[$0] })
+
+        do {
+            if !batchIDsToCancel.isEmpty {
+                pendingPhotoSaveStore.cancelPending(batchIDs: batchIDsToCancel)
+            }
+            try PhotoDeletionService.deletePhotos(
+                withPersistentModelIDs: selectedPersistentIDs,
+                context: context
+            )
+            Haptics.success()
+            withAnimation(AppMotion.animation(AppMotion.sectionExit, enabled: shouldAnimate)) {
+                selectedPhotos.removeAll()
+                isSelecting = false
+            }
+            for id in selectedPhotoIDs {
+                photoBatchByPersistentID.removeValue(forKey: id)
+            }
+            refreshToken = UUID()
+        } catch {
+            Haptics.error()
+            AppLog.debug("⚠️ Batch delete failed: \(error.localizedDescription)")
+        }
+    }
+
     private func applyExternalFilterIfNeeded() {
         guard !photosFilterTag.isEmpty,
               let tag = PhotoTag(rawValue: photosFilterTag) else {
@@ -179,6 +377,141 @@ private extension PhotoView {
         photosFilterTag = ""
     }
 
+    private func routePendingLibrarySelection() {
+        guard let selection = pendingLibrarySelection else { return }
+        pendingLibrarySelection = nil
+
+        let sources = selection.sources.sorted(by: { $0.selectionIndex < $1.selectionIndex })
+        guard !sources.isEmpty else { return }
+
+        if sources.count == 1, let first = sources.first {
+            presentSingleImport(source: first)
+        } else {
+            presentMultiImport(payload: MultiPhotoImportPayload(librarySources: sources))
+        }
+
+        if let dismissedAt = pickerDismissedAt {
+            let elapsed = dismissedAt.duration(to: .now)
+            let dismissToImportMs = Int(elapsed.components.seconds * 1_000)
+                + Int(elapsed.components.attoseconds / 1_000_000_000_000_000)
+            AppLog.debug("📸 PhotoView: pickerDismissToImportVisibleMs=\(dismissToImportMs) count=\(sources.count)")
+        }
+        pickerDismissedAt = nil
+    }
+
+    private func presentSingleImport(images: [UIImage]) {
+        multiPhotoImportPayload = nil
+        showMultiImportFlow = false
+        singlePickerImage = images.first
+        singlePickerSource = nil
+        showSingleImportFlow = true
+    }
+
+    private func presentMultiImport(images: [UIImage]) {
+        presentMultiImport(payload: MultiPhotoImportPayload(images: images))
+    }
+
+    private func presentSingleImport(source: PhotoLibraryImageSource) {
+        multiPhotoImportPayload = nil
+        showMultiImportFlow = false
+        singlePickerImage = nil
+        singlePickerSource = source
+        showSingleImportFlow = true
+    }
+
+    private func presentMultiImport(payload: MultiPhotoImportPayload) {
+        singlePickerImage = nil
+        singlePickerSource = nil
+        showSingleImportFlow = false
+        multiPhotoImportPayload = payload
+        showMultiImportFlow = true
+    }
+
+    private func handlePendingPhotoCompletedEvent() {
+        guard let completed = pendingPhotoSaveStore.completedEvent else { return }
+        guard let resolved = context.model(for: completed.entryPersistentModelID) as? PhotoEntry else {
+            refreshToken = UUID()
+            AppLog.debug("⚠️ PhotoView: completed photo not resolvable in main context, fallback refresh")
+            return
+        }
+
+        if let batchID = completed.batchID {
+            photoBatchByPersistentID[singlePhotoSaveID(for: resolved)] = batchID
+        }
+
+        recentlySavedPhoto = resolved
+        recentlySavedPhotoEventID = completed.eventID
+    }
+
+    private func handlePendingPhotoFailure(_ message: String?) {
+        guard let message, !message.isEmpty else { return }
+        failureToastMessage = message
+        withAnimation(AppMotion.toastIn) {
+            showsFailureToast = true
+        }
+        pendingPhotoSaveStore.clearFailureMessage()
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(2500))
+            withAnimation(AppMotion.toastOut) {
+                showsFailureToast = false
+            }
+            try? await Task.sleep(for: .milliseconds(220))
+            if !showsFailureToast {
+                failureToastMessage = nil
+            }
+        }
+    }
+
+    #if DEBUG
+    /// Otwiera właściwy flow importu zdjęć dla UI testów.
+    private func openUITestImportHookIfNeeded() {
+        guard !didRunUITestAutoOpen else { return }
+        if uiTestShouldOpenSingleAdd {
+            didRunUITestAutoOpen = true
+            openSingleAddForUITest()
+            return
+        }
+        if let count = uiTestMultiImportCount {
+            didRunUITestAutoOpen = true
+            openMultiImportForUITest(count: count)
+        }
+    }
+
+    /// Otwiera AddPhotoView z wygenerowanym zdjęciem testowym.
+    private func openSingleAddForUITest() {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 400, height: 533))
+        let image = renderer.image { ctx in
+            UIColor(red: 0.12, green: 0.72, blue: 0.78, alpha: 1).setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 400, height: 533))
+            let label = "UI TEST SINGLE" as NSString
+            label.draw(at: CGPoint(x: 16, y: 16), withAttributes: [
+                .font: UIFont.boldSystemFont(ofSize: 28),
+                .foregroundColor: UIColor.white
+            ])
+        }
+        presentSingleImport(images: [image])
+    }
+
+    /// Otwiera MultiPhotoImportView z wygenerowanymi zdjęciami testowymi.
+    /// Aktywowane przez launch argument: -uiTestOpenMultiImport {count}
+    private func openMultiImportForUITest(count: Int) {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 400, height: 533))
+        let images = (0..<count).map { i -> UIImage in
+            renderer.image { ctx in
+                UIColor(hue: CGFloat(i) / CGFloat(max(count, 1)), saturation: 0.6, brightness: 0.85, alpha: 1).setFill()
+                ctx.fill(CGRect(x: 0, y: 0, width: 400, height: 533))
+                let label = "UI TEST \(i + 1)" as NSString
+                label.draw(at: CGPoint(x: 16, y: 16), withAttributes: [
+                    .font: UIFont.boldSystemFont(ofSize: 28),
+                    .foregroundColor: UIColor.white
+                ])
+            }
+        }
+        presentMultiImport(images: images)
+    }
+    #endif
+
     private func selectFirstTwoPhotosForUITest() {
         var descriptor = FetchDescriptor<PhotoEntry>(
             sortBy: [SortDescriptor(\.date, order: .reverse)]
@@ -191,6 +524,171 @@ private extension PhotoView {
     }
 }
 
+struct SinglePhotoSaveMergeResult {
+    let photos: [PhotoEntry]
+    let fetchOffset: Int
+    let didUpdateList: Bool
+}
+
+struct SinglePhotoSaveMergeItem {
+    let id: String
+    let date: Date
+}
+
+struct SinglePhotoSaveMergePlan {
+    let orderedIDs: [String]
+    let fetchOffset: Int
+    let didUpdateList: Bool
+}
+
+struct PhotoFeedMergeItem {
+    let id: String
+    let date: Date
+}
+
+enum PhotoFeedMergePlanner {
+    static func orderedIDs(
+        persisted: [PhotoFeedMergeItem],
+        pending: [PhotoFeedMergeItem],
+        limit: Int? = nil
+    ) -> [String] {
+        var combined = pending + persisted
+        combined.sort { lhs, rhs in
+            if lhs.date == rhs.date { return lhs.id < rhs.id }
+            return lhs.date > rhs.date
+        }
+
+        var seen: Set<String> = []
+        var ordered: [String] = []
+        for item in combined where seen.insert(item.id).inserted {
+            ordered.append(item.id)
+        }
+
+        if let limit {
+            return Array(ordered.prefix(limit))
+        }
+        return ordered
+    }
+}
+
+enum SinglePhotoSaveMergePlanner {
+
+    static func apply(
+        recentlySavedItem: SinglePhotoSaveMergeItem?,
+        matchesFilter: Bool,
+        items: [SinglePhotoSaveMergeItem],
+        hasMore: Bool,
+        pageSize: Int,
+        fetchOffset: Int
+    ) -> SinglePhotoSaveMergePlan {
+        guard let recentlySavedItem, matchesFilter else {
+            return SinglePhotoSaveMergePlan(
+                orderedIDs: items.map(\.id),
+                fetchOffset: fetchOffset,
+                didUpdateList: false
+            )
+        }
+
+        let originalItems = items
+        var updatedItems = items
+        let removedExisting = updatedItems.removeAllAndReturnCount { $0.id == recentlySavedItem.id } > 0
+        let insertIndex = updatedItems.firstIndex(where: { $0.date < recentlySavedItem.date }) ?? updatedItems.count
+
+        if !removedExisting,
+           hasMore,
+           originalItems.count >= pageSize,
+           insertIndex >= pageSize {
+            return SinglePhotoSaveMergePlan(
+                orderedIDs: originalItems.map(\.id),
+                fetchOffset: fetchOffset,
+                didUpdateList: false
+            )
+        }
+
+        updatedItems.insert(recentlySavedItem, at: insertIndex)
+
+        if !removedExisting, hasMore, updatedItems.count > pageSize {
+            updatedItems.removeLast()
+        }
+
+        var updatedOffset = fetchOffset
+        if !removedExisting, hasMore {
+            updatedOffset += 1
+        }
+
+        return SinglePhotoSaveMergePlan(
+            orderedIDs: updatedItems.map(\.id),
+            fetchOffset: updatedOffset,
+            didUpdateList: true
+        )
+    }
+}
+
+enum SinglePhotoSaveMergeEngine {
+
+    static func apply(
+        recentlySavedPhoto: PhotoEntry?,
+        filters: PhotoFilters,
+        photos: [PhotoEntry],
+        hasMore: Bool,
+        pageSize: Int,
+        fetchOffset: Int
+    ) -> SinglePhotoSaveMergeResult {
+        guard let recentlySavedPhoto else {
+            return SinglePhotoSaveMergeResult(
+                photos: photos,
+                fetchOffset: fetchOffset,
+                didUpdateList: false
+            )
+        }
+
+        let recentlySavedID = singlePhotoSaveID(for: recentlySavedPhoto)
+        let items = photos.map { photo in
+            SinglePhotoSaveMergeItem(id: singlePhotoSaveID(for: photo), date: photo.date)
+        }
+        let plan = SinglePhotoSaveMergePlanner.apply(
+            recentlySavedItem: SinglePhotoSaveMergeItem(id: recentlySavedID, date: recentlySavedPhoto.date),
+            matchesFilter: filters.matches(recentlySavedPhoto),
+            items: items,
+            hasMore: hasMore,
+            pageSize: pageSize,
+            fetchOffset: fetchOffset
+        )
+
+        guard plan.didUpdateList else {
+            return SinglePhotoSaveMergeResult(
+                photos: photos,
+                fetchOffset: plan.fetchOffset,
+                didUpdateList: false
+            )
+        }
+
+        var photosByID: [String: PhotoEntry] = [:]
+        for photo in photos {
+            let id = singlePhotoSaveID(for: photo)
+            if photosByID[id] == nil {
+                photosByID[id] = photo
+            }
+        }
+        photosByID[recentlySavedID] = recentlySavedPhoto
+        let rebuiltPhotos = plan.orderedIDs.compactMap { photosByID[$0] }
+
+        return SinglePhotoSaveMergeResult(photos: rebuiltPhotos, fetchOffset: plan.fetchOffset, didUpdateList: true)
+    }
+}
+
+private extension Array {
+    mutating func removeAllAndReturnCount(where shouldBeRemoved: (Element) throws -> Bool) rethrows -> Int {
+        let before = count
+        try removeAll(where: shouldBeRemoved)
+        return before - count
+    }
+}
+
+private func singlePhotoSaveID(for photo: PhotoEntry) -> String {
+    String(describing: photo.persistentModelID)
+}
+
 // MARK: - Widok zawartosci zdjec z Query
 private struct PhotoContentView: View {
     @Environment(\.modelContext) private var context
@@ -199,9 +697,13 @@ private struct PhotoContentView: View {
     let isSelecting: Bool
     @Binding var selectedPhotos: Set<PhotoEntry>
     let onPhotoTap: (PhotoEntry) -> Void
+    let onPhotoLongPress: (PhotoEntry) -> Void
     let onAddPhoto: () -> Void
     let refreshToken: UUID
-    
+    let recentlySavedPhoto: PhotoEntry?
+    let recentlySavedPhotoEventID: UUID
+    let pendingItems: [PendingPhotoSaveItem]
+
     @State private var photos: [PhotoEntry] = []
     @State private var isLoadingInitial: Bool = true
     @State private var isLoadingMore: Bool = false
@@ -210,6 +712,44 @@ private struct PhotoContentView: View {
     @State private var usesInMemoryTagFiltering: Bool = false
     
     private let pageSize: Int = 60
+
+    private var visiblePendingItems: [PendingPhotoSaveItem] {
+        pendingItems.filter { filters.matches(date: $0.date, tags: $0.tags) }
+    }
+
+    private var renderItems: [PhotoGridRenderItem] {
+        let persistedByID = Dictionary(
+            uniqueKeysWithValues: photos.map { photo in
+                let key = "persisted_\(singlePhotoSaveID(for: photo))"
+                return (key, PhotoGridRenderItem.persisted(photo))
+            }
+        )
+        let pendingByID = Dictionary(
+            uniqueKeysWithValues: visiblePendingItems.map { item in
+                let key = "pending_\(item.id.uuidString)"
+                return (key, PhotoGridRenderItem.pending(item))
+            }
+        )
+
+        let orderedIDs = PhotoFeedMergePlanner.orderedIDs(
+            persisted: photos.map { photo in
+                PhotoFeedMergeItem(
+                    id: "persisted_\(singlePhotoSaveID(for: photo))",
+                    date: photo.date
+                )
+            },
+            pending: visiblePendingItems.map { item in
+                PhotoFeedMergeItem(
+                    id: "pending_\(item.id.uuidString)",
+                    date: item.date
+                )
+            }
+        )
+
+        return orderedIDs.compactMap { id in
+            pendingByID[id] ?? persistedByID[id]
+        }
+    }
     
     private var filtersKey: String {
         let tags = filters.selectedTags
@@ -221,10 +761,11 @@ private struct PhotoContentView: View {
     
     var body: some View {
         PhotoGridView(
-            photos: photos,
+            renderItems: renderItems,
             isSelecting: isSelecting,
             selectedPhotos: $selectedPhotos,
             onPhotoTap: onPhotoTap,
+            onPhotoLongPress: onPhotoLongPress,
             onAddPhoto: onAddPhoto,
             isLoadingInitial: isLoadingInitial,
             isLoadingMore: isLoadingMore,
@@ -235,10 +776,14 @@ private struct PhotoContentView: View {
         .task(id: filtersKey) {
             await reload()
         }
+        .onChange(of: recentlySavedPhotoEventID) { _, _ in
+            applyRecentlySavedPhoto()
+        }
     }
     
     @MainActor
     private func reload() async {
+        PhotoThumbnailTelemetry.beginPhotosReload()
         isLoadingInitial = true
         isLoadingMore = false
         hasMore = true
@@ -320,14 +865,54 @@ private struct PhotoContentView: View {
             photo.date >= start && photo.date <= end
         }
     }
+
+    @MainActor
+    private func applyRecentlySavedPhoto() {
+        let result = SinglePhotoSaveMergeEngine.apply(
+            recentlySavedPhoto: recentlySavedPhoto,
+            filters: filters,
+            photos: photos,
+            hasMore: hasMore,
+            pageSize: pageSize,
+            fetchOffset: fetchOffset
+        )
+
+        guard result.didUpdateList else { return }
+        photos = result.photos
+        fetchOffset = result.fetchOffset
+    }
+}
+
+private enum PhotoGridRenderItem: Identifiable {
+    case persisted(PhotoEntry)
+    case pending(PendingPhotoSaveItem)
+
+    var id: String {
+        switch self {
+        case .persisted(let photo):
+            return "persisted_\(singlePhotoSaveID(for: photo))"
+        case .pending(let item):
+            return "pending_\(item.id.uuidString)"
+        }
+    }
+
+    var date: Date {
+        switch self {
+        case .persisted(let photo):
+            return photo.date
+        case .pending(let item):
+            return item.date
+        }
+    }
 }
 
 // MARK: - Photo Grid View (Reusable)
 private struct PhotoGridView: View {
-    let photos: [PhotoEntry]
+    let renderItems: [PhotoGridRenderItem]
     let isSelecting: Bool
     @Binding var selectedPhotos: Set<PhotoEntry>
     let onPhotoTap: (PhotoEntry) -> Void
+    let onPhotoLongPress: (PhotoEntry) -> Void
     let onAddPhoto: () -> Void
     let isLoadingInitial: Bool
     let isLoadingMore: Bool
@@ -337,16 +922,25 @@ private struct PhotoGridView: View {
     
     var body: some View {
         Group {
-            if photos.isEmpty, !isLoadingInitial {
-                emptyState
+            if renderItems.isEmpty {
+                if isLoadingInitial {
+                    ScrollView {
+                        PhotoGridSkeletonView()
+                            .padding(.horizontal, 12)
+                            .padding(.top, 8)
+                            .padding(.bottom, 12)
+                    }
+                } else {
+                    emptyState
+                }
             } else {
                 ScrollView {
                     photoGrid
                         .padding(.horizontal, 12)
                         .padding(.top, 8)
                         .padding(.bottom, 12)
-                    
-                    if hasMore || isLoadingMore || isLoadingInitial {
+
+                    if hasMore || isLoadingMore {
                         ProgressView()
                             .tint(.white)
                             .padding(.vertical, 18)
@@ -403,29 +997,46 @@ private struct PhotoGridView: View {
             columns: [GridItem(.adaptive(minimum: 110), spacing: 8)],
             spacing: 8
         ) {
-            ForEach(Array(photos.enumerated()), id: \.element.persistentModelID) { index, photo in
-                Button {
-                    onPhotoTap(photo)
-                } label: {
-                    PhotoGridCell(
-                        photo: photo,
-                        isSelected: selectedPhotos.contains(photo),
-                        isSelecting: isSelecting,
-                        revealIndex: index
+            ForEach(Array(renderItems.enumerated()), id: \.element.id) { index, item in
+                switch item {
+                case .persisted(let photo):
+                    Button {
+                        onPhotoTap(photo)
+                    } label: {
+                        PhotoGridCell(
+                            photo: photo,
+                            isSelected: selectedPhotos.contains(photo),
+                            isSelecting: isSelecting,
+                            revealIndex: index
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .onLongPressGesture(minimumDuration: 0.5) {
+                        onPhotoLongPress(photo)
+                    }
+                    .accessibilityIdentifier("photos.grid.item")
+                    .accessibilityLabel(AppLocalization.string("Photo"))
+                    .accessibilityValue(photoAccessibilityValue(for: photo))
+                    .accessibilityHint(
+                        isSelecting
+                        ? AppLocalization.string("Double tap to select or deselect this photo")
+                        : AppLocalization.string("Double tap to open photo details")
                     )
+                case .pending(let pending):
+                    PendingPhotoGridCell(
+                        thumbnailData: pending.thumbnailData,
+                        progress: pending.progress,
+                        status: pending.status,
+                        targetSize: CGSize(width: 110, height: 120),
+                        cornerRadius: 12,
+                        cacheID: pending.id.uuidString,
+                        accessibilityIdentifier: "photos.grid.pending.item"
+                    )
+                    .frame(width: 110, height: 120)
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("photos.grid.item")
-                .accessibilityLabel(AppLocalization.string("Photo"))
-                .accessibilityValue(photoAccessibilityValue(for: photo))
-                .accessibilityHint(
-                    isSelecting
-                    ? AppLocalization.string("Double tap to select or deselect this photo for comparison")
-                    : AppLocalization.string("Double tap to open photo details")
-                )
             }
         }
-        .padding(.bottom, isSelecting && selectedPhotos.count == 2 ? 80 : 0)
+        .padding(.bottom, isSelecting && !selectedPhotos.isEmpty ? 80 : 0)
     }
 
     private func photoAccessibilityValue(for photo: PhotoEntry) -> String {
@@ -445,31 +1056,48 @@ private extension PhotoView {
     var toolbarContent: some ToolbarContent {
 
         ToolbarItem(placement: .topBarLeading) {
-            Button {
-                if premiumStore.isPremium || uiTestModeEnabled {
+            if isSelecting {
+                Button {
                     Haptics.selection()
-                    isSelecting.toggle()
-                    selectedPhotos.removeAll()
-                    if isSelecting && uiTestModeEnabled {
+                    withAnimation(AppMotion.animation(AppMotion.sectionExit, enabled: shouldAnimate)) {
+                        isSelecting = false
+                        selectedPhotos.removeAll()
+                    }
+                } label: {
+                    Text(AppLocalization.string("Done"))
+                }
+                .foregroundStyle(Color.appAccent)
+                .accessibilityIdentifier("photos.selection.done")
+            } else {
+                Button {
+                    Haptics.selection()
+                    withAnimation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate)) {
+                        isSelecting = true
+                        selectedPhotos.removeAll()
+                    }
+                    if uiTestModeEnabled {
                         selectFirstTwoPhotosForUITest()
                     }
-                } else {
-                    premiumStore.presentPaywall(reason: .feature("Photo comparison"))
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle")
+                        Text(AppLocalization.string("Select"))
+                    }
                 }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: isSelecting ? "xmark" : "checkmark.circle")
-                    Text(AppLocalization.string("Compare"))
-                }
+                .foregroundStyle(Color.appAccent)
+                .accessibilityIdentifier("photos.select.mode.toggle")
             }
-            .foregroundStyle(Color.appAccent)
-            .accessibilityIdentifier("photos.compare.mode.toggle")
-            .accessibilityLabel(isSelecting
-                ? AppLocalization.string("accessibility.compare.exit")
-                : AppLocalization.string("accessibility.compare.enter"))
-            .accessibilityHint(AppLocalization.string("accessibility.compare.select.two"))
         }
-        
+
+        if isSelecting {
+            ToolbarItem(placement: .principal) {
+                Text(AppLocalization.plural("photos.selected.count", selectedPhotos.count))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .accessibilityLabel(AppLocalization.plural("photos.selected.count", selectedPhotos.count))
+            }
+        }
+
         ToolbarItem(placement: .topBarTrailing) {
             HStack(spacing: 16) {
                 // Przycisk filtra z odznaka
@@ -481,7 +1109,7 @@ private extension PhotoView {
                         Image(systemName: filters.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                             .symbolRenderingMode(.hierarchical)
                             .foregroundStyle(filters.isActive ? Color.appAccent : .primary)
-                        
+
                         if filters.isActive {
                             Circle()
                                 .fill(Color.red)
@@ -491,15 +1119,17 @@ private extension PhotoView {
                     }
                 }
                 .accessibilityLabel(AppLocalization.string("Open photo filters"))
-                
-                Button {
-                    Haptics.light()
-                    showAddPhoto = true
-                } label: {
-                    Image(systemName: "plus")
+
+                if !isSelecting {
+                    Button {
+                        Haptics.light()
+                        showSourcePicker = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityIdentifier("photos.add.button")
+                    .accessibilityLabel(AppLocalization.string("Add photo"))
                 }
-                .accessibilityIdentifier("photos.add.button")
-                .accessibilityLabel(AppLocalization.string("Add photo"))
             }
         }
     }

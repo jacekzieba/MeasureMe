@@ -21,43 +21,57 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
     @EnvironmentObject private var premiumStore: PremiumStore
-    @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
-    @AppStorage("showLastPhotosOnHome") private var showLastPhotosOnHome: Bool = true
-    @AppStorage("showMeasurementsOnHome") private var showMeasurementsOnHome: Bool = true
-    @AppStorage("showHealthMetricsOnHome") private var showHealthMetricsOnHome: Bool = true
-    @AppStorage("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
-    @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
-    @AppStorage("settings_open_reminders") private var settingsOpenReminders: Bool = false
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppStorage("hapticsEnabled") private var hapticsEnabled: Bool = true
-    @AppStorage("userName") private var userName: String = ""
-    @AppStorage("appLanguage") private var appLanguage: String = "system"
+    @AppSetting(\.health.isSyncEnabled) private var isSyncEnabled: Bool = false
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
+    @AppSetting(\.home.showLastPhotosOnHome) private var showLastPhotosOnHome: Bool = true
+    @AppSetting(\.home.showMeasurementsOnHome) private var showMeasurementsOnHome: Bool = true
+    @AppSetting(\.home.showHealthMetricsOnHome) private var showHealthMetricsOnHome: Bool = true
+    @AppSetting(\.home.showStreakOnHome) private var showStreakOnHome: Bool = true
+    @AppSetting(\.onboarding.onboardingChecklistShow) private var showOnboardingChecklistOnHome: Bool = true
+    @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
+    @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @AppSetting(\.experience.hapticsEnabled) private var hapticsEnabled: Bool = true
+    @AppSetting(\.profile.userName) private var userName: String = ""
+    @AppSetting(\.experience.appLanguage) private var appLanguage: String = "system"
     
     // Core Metrics visibility
-    @AppStorage("showWHtROnHome") private var showWHtROnHome: Bool = true
-    @AppStorage("showRFMOnHome") private var showRFMOnHome: Bool = true
-    @AppStorage("showBMIOnHome") private var showBMIOnHome: Bool = true
+    @AppSetting(\.indicators.showWHtROnHome) private var showWHtROnHome: Bool = true
+    @AppSetting(\.indicators.showRFMOnHome) private var showRFMOnHome: Bool = true
+    @AppSetting(\.indicators.showBMIOnHome) private var showBMIOnHome: Bool = true
     
     // Body Composition visibility
-    @AppStorage("showBodyFatOnHome") private var showBodyFatOnHome: Bool = true
-    @AppStorage("showLeanMassOnHome") private var showLeanMassOnHome: Bool = true
+    @AppSetting(\.indicators.showBodyFatOnHome) private var showBodyFatOnHome: Bool = true
+    @AppSetting(\.indicators.showLeanMassOnHome) private var showLeanMassOnHome: Bool = true
     
     // Risk Indicators visibility
-    @AppStorage("showABSIOnHome") private var showABSIOnHome: Bool = true
-    @AppStorage("showConicityOnHome") private var showConicityOnHome: Bool = true
+    @AppSetting(\.indicators.showWHROnHome) private var showWHROnHome: Bool = true
+    @AppSetting(\.indicators.showWaistRiskOnHome) private var showWaistRiskOnHome: Bool = true
+    @AppSetting(\.indicators.showABSIOnHome) private var showABSIOnHome: Bool = true
+    @AppSetting(\.indicators.showBodyShapeScoreOnHome) private var showBodyShapeScoreOnHome: Bool = true
+    @AppSetting(\.indicators.showCentralFatRiskOnHome) private var showCentralFatRiskOnHome: Bool = true
+
+    // Physique indicators visibility
+    @AppSetting(\.indicators.showPhysiqueSWR) private var showPhysiqueSWR: Bool = true
+    @AppSetting(\.indicators.showPhysiqueCWR) private var showPhysiqueCWR: Bool = true
+    @AppSetting(\.indicators.showPhysiqueSHR) private var showPhysiqueSHR: Bool = true
+    @AppSetting(\.indicators.showPhysiqueHWR) private var showPhysiqueHWR: Bool = true
+    @AppSetting(\.indicators.showPhysiqueBWR) private var showPhysiqueBWR: Bool = true
+    @AppSetting(\.indicators.showPhysiqueWHtR) private var showPhysiqueWHtR: Bool = true
+    @AppSetting(\.indicators.showPhysiqueBodyFat) private var showPhysiqueBodyFat: Bool = true
+    @AppSetting(\.indicators.showPhysiqueRFM) private var showPhysiqueRFM: Bool = true
     
-    @AppStorage("userGender") private var userGender: String = "notSpecified"
-    @AppStorage("manualHeight") private var manualHeight: Double = 0.0
-    @AppStorage("userAge") private var userAge: Int = 0
-    @AppStorage("healthkit_last_import") private var lastHealthImportTimestamp: Double = 0.0
-    @AppStorage("apple_intelligence_enabled") private var appleIntelligenceEnabled: Bool = true
+    @AppSetting(\.profile.userGender) private var userGender: String = "notSpecified"
+    @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
+    @AppSetting(\.profile.userAge) private var userAge: Int = 0
+    @AppSetting(\.health.healthkitLastImport) private var lastHealthImportTimestamp: Double = 0.0
+    @AppSetting(\.analytics.appleIntelligenceEnabled) private var appleIntelligenceEnabled: Bool = true
     
-    @AppStorage("healthkit_sync_weight") private var hkWeight: Bool = true
-    @AppStorage("healthkit_sync_bodyFat") private var hkBodyFat: Bool = true
-    @AppStorage("healthkit_sync_height") private var hkHeight: Bool = true
-    @AppStorage("healthkit_sync_leanBodyMass") private var hkLeanMass: Bool = true
-    @AppStorage("healthkit_sync_waist") private var hkWaist: Bool = true
+    @AppSetting(\.health.healthkitSyncWeight) private var hkWeight: Bool = true
+    @AppSetting(\.health.healthkitSyncBodyFat) private var hkBodyFat: Bool = true
+    @AppSetting(\.health.healthkitSyncHeight) private var hkHeight: Bool = true
+    @AppSetting(\.health.healthkitSyncLeanBodyMass) private var hkLeanMass: Bool = true
+    @AppSetting(\.health.healthkitSyncWaist) private var hkWaist: Bool = true
 
     @State private var scrollOffset: CGFloat = 0
     @State private var shareItems: [Any] = []
@@ -68,6 +82,15 @@ struct SettingsView: View {
     @State private var showDeleteAllDataConfirm = false
     @State private var showDeleteAllDataResult = false
     @State private var deleteAllDataResultMessage = ""
+    @State private var showImportPicker = false
+    @State private var showImportStrategyAlert = false
+    @State private var pendingImportURLs: [URL] = []
+    @State private var isImporting = false
+    @State private var showImportResult = false
+    @State private var importResultMessage = ""
+    @State private var showSeedDummyDataConfirm = false
+    @State private var showSeedDummyDataResult = false
+    @State private var seedDummyDataResultMessage = ""
     @State private var navigateToTrackedMeasurements: Bool = false
     @State private var navigateToReminders: Bool = false
     @State private var settingsSearchQuery: String = ""
@@ -78,49 +101,12 @@ struct SettingsView: View {
         return date.formatted(date: .abbreviated, time: .shortened)
     }
 
-    private enum SettingsSearchRoute: String, Hashable {
-        case profile
-        case metrics
-        case healthIndicators
-        case health
-        case notifications
-        case home
-        case aiInsights
-        case units
-        case experience
-        case language
-        case data
-        case faq
-    }
-
-    private struct SettingsSearchItem: Identifiable {
-        let route: SettingsSearchRoute
-        let title: String
-        let subtitle: String
-        let keywords: [String]
-
-        var id: String { route.rawValue + "_" + title }
-    }
-
     private var isSearchingSettings: Bool {
         !settingsSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var settingsSearchItems: [SettingsSearchItem] {
-        [
-            SettingsSearchItem(route: .profile, title: AppLocalization.string("Profile"), subtitle: AppLocalization.string("Name, gender, age, height"), keywords: ["profile", "name", "gender", "age", "height", "profil", "imię", "płeć", "wiek", "wzrost"]),
-            SettingsSearchItem(route: .metrics, title: AppLocalization.string("Metrics"), subtitle: AppLocalization.string("Tracked measurements"), keywords: ["metrics", "tracked", "measurements", "metryki", "śledzone", "pomiary"]),
-            SettingsSearchItem(route: .healthIndicators, title: AppLocalization.string("Health indicators"), subtitle: AppLocalization.string("Choose indicators to show"), keywords: ["health indicators", "indicators", "wskaźniki", "zdrowia"]),
-            SettingsSearchItem(route: .health, title: AppLocalization.string("Health"), subtitle: AppLocalization.string("Sync and synced data"), keywords: ["health", "sync", "synced", "zdrowie", "synchronizacja", "synchronizowane"]),
-            SettingsSearchItem(route: .notifications, title: AppLocalization.string("Notifications"), subtitle: AppLocalization.string("Manage reminders"), keywords: ["notifications", "reminders", "powiadomienia", "przypomnienia"]),
-            SettingsSearchItem(route: .home, title: AppLocalization.string("Home"), subtitle: AppLocalization.string("Home sections visibility"), keywords: ["home", "strona główna", "widoczność"]),
-            SettingsSearchItem(route: .aiInsights, title: AppLocalization.string("AI Insights"), subtitle: AppLocalization.string("Enable AI Insights"), keywords: ["ai", "insights", "analizy ai", "apple intelligence"]),
-            SettingsSearchItem(route: .units, title: AppLocalization.string("Units"), subtitle: AppLocalization.string("Metric or imperial"), keywords: ["units", "metric", "imperial", "jednostki", "metryczny", "imperialne"]),
-            SettingsSearchItem(route: .experience, title: AppLocalization.string("Animations and haptics"), subtitle: AppLocalization.string("Animations and haptics"), keywords: ["animations", "haptics", "animacje", "haptyka"]),
-            SettingsSearchItem(route: .language, title: AppLocalization.string("Language"), subtitle: AppLocalization.string("App language"), keywords: ["language", "app language", "język", "polski", "english"]),
-            SettingsSearchItem(route: .data, title: AppLocalization.string("Data"), subtitle: AppLocalization.string("Export and delete"), keywords: ["data", "export", "delete", "dane", "eksport", "usuń"]),
-            SettingsSearchItem(route: .faq, title: AppLocalization.string("FAQ"), subtitle: AppLocalization.string("Read frequently asked questions"), keywords: ["faq", "help", "pomoc", "pytania"])
-        ]
+        SettingsSearchCatalog.items
     }
 
     private var filteredSettingsSearchItems: [SettingsSearchItem] {
@@ -142,54 +128,7 @@ struct SettingsView: View {
         }
     }
 
-    var body: some View {
-        NavigationStack {
-            ZStack(alignment: .top) {
-                AppScreenBackground(
-                    topHeight: 380,
-                    scrollOffset: scrollOffset,
-                    tint: Color.cyan.opacity(0.22)
-                )
-                .ignoresSafeArea(edges: .top)
-                
-                // Zawartość
-                List {
-                ScreenTitleHeader(title: AppLocalization.string("Settings"), topPadding: 0, bottomPadding: 4)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-
-                if isSearchingSettings {
-                    Section {
-                        if filteredSettingsSearchItems.isEmpty {
-                            Text(AppLocalization.string("No matching settings"))
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .frame(minHeight: 44)
-                        } else {
-                            ForEach(filteredSettingsSearchItems) { item in
-                                NavigationLink {
-                                    settingsSearchDestination(for: item.route)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(item.title)
-                                            .font(AppTypography.bodyEmphasis)
-                                            .foregroundStyle(.white)
-                                        Text(item.subtitle)
-                                            .font(AppTypography.caption)
-                                            .foregroundStyle(.white.opacity(0.72))
-                                    }
-                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                                }
-                                .appHitTarget()
-                            }
-                        }
-                    }
-                    .listRowSeparator(.hidden)
-                    .listSectionSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(Self.settingsRowInsets)
-                } else {
+    @ViewBuilder private var settingsSections: some View {
 
                 if !premiumStore.isPremium {
                     Section {
@@ -227,46 +166,14 @@ struct SettingsView: View {
                     .listRowInsets(Self.settingsRowInsets)
                 }
 
-                Section {
-                    SettingsCard(tint: Color.cyan.opacity(0.12)) {
-                        SettingsCardHeader(title: AppLocalization.string("AI Insights"), systemImage: "sparkles")
-                        if premiumStore.isPremium {
-                            if AppleIntelligenceSupport.isAvailable() {
-                                Toggle(isOn: $appleIntelligenceEnabled) {
-                                    Text(AppLocalization.string("Enable AI Insights"))
-                                }
-                                .tint(Color.appAccent)
-                                .onChange(of: appleIntelligenceEnabled) { _, _ in Haptics.selection() }
-                            } else {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(AppLocalization.string("AI Insights aren’t available right now."))
-                                        .font(AppTypography.caption)
-                                        .foregroundStyle(.secondary)
-                                    NavigationLink {
-                                        FAQView()
-                                    } label: {
-                                        Text(AppLocalization.string("Learn more in FAQ"))
-                                            .font(AppTypography.captionEmphasis)
-                                            .foregroundStyle(Color.appAccent)
-                                    }
-                                }
-                            }
-                        } else {
-                            HStack {
-                                Text(AppLocalization.string("Premium Edition required"))
-                                    .font(AppTypography.caption)
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                                Button(AppLocalization.string("Unlock")) {
-                                    premiumStore.presentPaywall(reason: .feature("AI Insights"))
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(Color.appAccent)
-                                .frame(minHeight: 44, alignment: .trailing)
-                            }
-                        }
+                SettingsAISection(
+                    isPremium: premiumStore.isPremium,
+                    isAppleIntelligenceAvailable: AppleIntelligenceSupport.isAvailable(),
+                    appleIntelligenceEnabled: $appleIntelligenceEnabled,
+                    onUnlock: {
+                        premiumStore.presentPaywall(reason: .feature("AI Insights"))
                     }
-                }
+                )
                 .listRowSeparator(.hidden)
                 .listSectionSeparator(.hidden)
                 .listRowBackground(Color.clear)
@@ -313,19 +220,30 @@ struct SettingsView: View {
 
                 Section {
                     SettingsCard(tint: Color.appAccent.opacity(0.10)) {
-                        SettingsCardHeader(title: AppLocalization.string("Health indicators"), systemImage: "heart.text.square.fill")
+                        SettingsCardHeader(title: AppLocalization.string("Indicators"), systemImage: "slider.horizontal.3")
                         NavigationLink {
-                            HealthIndicatorsSettingsDetailView(
+                            IndicatorsSettingsDetailView(
                                 showWHtROnHome: $showWHtROnHome,
                                 showRFMOnHome: $showRFMOnHome,
                                 showBMIOnHome: $showBMIOnHome,
+                                showWHROnHome: $showWHROnHome,
+                                showWaistRiskOnHome: $showWaistRiskOnHome,
                                 showBodyFatOnHome: $showBodyFatOnHome,
                                 showLeanMassOnHome: $showLeanMassOnHome,
                                 showABSIOnHome: $showABSIOnHome,
-                                showConicityOnHome: $showConicityOnHome
+                                showBodyShapeScoreOnHome: $showBodyShapeScoreOnHome,
+                                showCentralFatRiskOnHome: $showCentralFatRiskOnHome,
+                                showPhysiqueSWR: $showPhysiqueSWR,
+                                showPhysiqueCWR: $showPhysiqueCWR,
+                                showPhysiqueSHR: $showPhysiqueSHR,
+                                showPhysiqueHWR: $showPhysiqueHWR,
+                                showPhysiqueBWR: $showPhysiqueBWR,
+                                showPhysiqueWHtR: $showPhysiqueWHtR,
+                                showPhysiqueBodyFat: $showPhysiqueBodyFat,
+                                showPhysiqueRFM: $showPhysiqueRFM
                             )
                         } label: {
-                            Text(AppLocalization.string("Choose indicators to show"))
+                            Text(AppLocalization.string("Choose health and physique indicators"))
                                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                         }
                         .buttonStyle(.plain)
@@ -372,7 +290,8 @@ struct SettingsView: View {
                                 showMeasurementsOnHome: $showMeasurementsOnHome,
                                 showLastPhotosOnHome: $showLastPhotosOnHome,
                                 showHealthMetricsOnHome: $showHealthMetricsOnHome,
-                                showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome
+                                showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome,
+                                showStreakOnHome: $showStreakOnHome
                             )
                         } label: {
                             Text(AppLocalization.string("Open Home settings"))
@@ -392,7 +311,7 @@ struct SettingsView: View {
 
                 Section {
                     SettingsCard(tint: Color.white.opacity(0.08)) {
-                        SettingsCardHeader(title: AppLocalization.string("Animations and haptics"), systemImage: "sparkles")
+                        SettingsCardHeader(title: AppLocalization.string("Animations and haptics"), systemImage: "apple.haptics.and.music.note")
                         NavigationLink {
                             ExperienceSettingsDetailView(
                                 animationsEnabled: $animationsEnabled,
@@ -429,31 +348,34 @@ struct SettingsView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(Self.settingsRowInsets)
 
-                Section {
-                    SettingsCard(tint: Color.appAccent.opacity(0.10)) {
-                        SettingsCardHeader(title: AppLocalization.string("Data"), systemImage: "square.and.arrow.up")
-                        NavigationLink {
-                            DataSettingsDetailView(
-                                onExport: {
-                                    Haptics.light()
-                                    if premiumStore.isPremium {
-                                        exportMetricsCSV()
-                                    } else {
-                                        premiumStore.presentPaywall(reason: .feature("Data export"))
-                                    }
-                                },
-                                onDeleteAll: {
-                                    Haptics.light()
-                                    showDeleteAllDataConfirm = true
-                                }
-                            )
-                        } label: {
-                            Text(AppLocalization.string("Open data settings"))
-                                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                        }
-                        .buttonStyle(.plain)
+                SettingsDataSection(
+                    onExport: {
+                        Haptics.light()
+                        SettingsDataActions.runPremiumAction(
+                            isPremium: premiumStore.isPremium,
+                            feature: "Data export",
+                            onAllowed: { exportMetricsCSV() },
+                            onLocked: { premiumStore.presentPaywall(reason: .feature($0)) }
+                        )
+                    },
+                    onImport: {
+                        Haptics.light()
+                        SettingsDataActions.runPremiumAction(
+                            isPremium: premiumStore.isPremium,
+                            feature: "Data import",
+                            onAllowed: { showImportPicker = true },
+                            onLocked: { premiumStore.presentPaywall(reason: .feature($0)) }
+                        )
+                    },
+                    onSeedDummyData: {
+                        Haptics.light()
+                        showSeedDummyDataConfirm = true
+                    },
+                    onDeleteAll: {
+                        Haptics.light()
+                        showDeleteAllDataConfirm = true
                     }
-                }
+                )
                 .listRowSeparator(.hidden)
                 .listSectionSeparator(.hidden)
                 .listRowBackground(Color.clear)
@@ -477,7 +399,7 @@ struct SettingsView: View {
 
                 Section {
                     SettingsCard(tint: Color.white.opacity(0.07)) {
-                        SettingsCardHeader(title: AppLocalization.string("App"), systemImage: "info.circle")
+                        SettingsCardHeader(title: AppLocalization.string("App"), systemImage: "iphone.gen3.sizes")
 
                         if premiumStore.isPremium {
                             NavigationLink {
@@ -543,52 +465,85 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-
-                        SettingsRowDivider()
-
-                        Button {
-                            openURL(LegalLinks.about)
-                        } label: {
-                            appSectionRowLabel(
-                                title: AppLocalization.string("About"),
-                                trailingSymbol: "arrow.up.right.square"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-
-                        SettingsRowDivider()
-
-                        Button {
-                            openURL(LegalLinks.featureRequest)
-                        } label: {
-                            appSectionRowLabel(
-                                title: AppLocalization.string("Feature request"),
-                                trailingSymbol: "arrow.up.right.square"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-
-                        SettingsRowDivider()
-
-                        Button {
-                            Haptics.light()
-                            exportDiagnosticsJSON()
-                        } label: {
-                            appSectionRowLabel(
-                                title: AppLocalization.string("Report a bug"),
-                                trailingSymbol: "ladybug"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     }
                 }
                 .listRowSeparator(.hidden)
                 .listSectionSeparator(.hidden)
                 .listRowBackground(Color.clear)
                 .listRowInsets(Self.settingsRowInsets)
+
+                Section {
+                    SettingsCard(tint: Color.white.opacity(0.07)) {
+                        SettingsCardHeader(title: AppLocalization.string("About"), systemImage: "info.circle")
+                        NavigationLink {
+                            AboutSettingsDetailView(
+                                onReportBug: {
+                                    Haptics.light()
+                                    exportDiagnosticsJSON()
+                                }
+                            )
+                        } label: {
+                            Text(AppLocalization.string("About MeasureMe"))
+                                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .listRowSeparator(.hidden)
+                .listSectionSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(Self.settingsRowInsets)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack(alignment: .top) {
+                AppScreenBackground(
+                    topHeight: 380,
+                    scrollOffset: scrollOffset,
+                    tint: Color.cyan.opacity(0.22)
+                )
+                .ignoresSafeArea(edges: .top)
+                
+                // Zawartość
+                List {
+                ScreenTitleHeader(title: AppLocalization.string("Settings"), topPadding: 0, bottomPadding: 4)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+
+                if isSearchingSettings {
+                    Section {
+                        if filteredSettingsSearchItems.isEmpty {
+                            Text(AppLocalization.string("No matching settings"))
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .frame(minHeight: 44)
+                        } else {
+                            ForEach(filteredSettingsSearchItems) { item in
+                                NavigationLink {
+                                    settingsSearchDestination(for: item.route)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(item.title)
+                                            .font(AppTypography.bodyEmphasis)
+                                            .foregroundStyle(.white)
+                                        Text(item.subtitle)
+                                            .font(AppTypography.caption)
+                                            .foregroundStyle(.white.opacity(0.72))
+                                    }
+                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                                }
+                                .appHitTarget()
+                            }
+                        }
+                    }
+                    .listRowSeparator(.hidden)
+                    .listSectionSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(Self.settingsRowInsets)
+                } else {
+                    settingsSections
                 }
             }
             .tint(Color.appAccent)
@@ -607,13 +562,13 @@ struct SettingsView: View {
             }
             .scrollContentBackground(.hidden) // Ukryj domyślne tło List
             .onAppear {
-                handlePendingDeepLinks()
+                schedulePendingDeepLinksHandling()
             }
             .onChange(of: settingsOpenTrackedMeasurements) { _, _ in
-                handlePendingDeepLinks()
+                schedulePendingDeepLinksHandling()
             }
             .onChange(of: settingsOpenReminders) { _, _ in
-                handlePendingDeepLinks()
+                schedulePendingDeepLinksHandling()
             }
             .listSectionSpacing(24)
             .listRowSeparator(.hidden)
@@ -644,6 +599,55 @@ struct SettingsView: View {
                 Button(AppLocalization.string("OK"), role: .cancel) { }
             } message: {
                 Text(deleteAllDataResultMessage)
+            }
+            .alert(AppLocalization.string("Seed dummy data"), isPresented: $showSeedDummyDataConfirm) {
+                Button(AppLocalization.string("Cancel"), role: .cancel) { }
+                Button(AppLocalization.string("Seed dummy data")) {
+                    seedDummyData()
+                }
+            } message: {
+                Text(AppLocalization.string("This will add realistic sample measurements for recent weeks. Existing data will remain unchanged."))
+            }
+            .alert(AppLocalization.string("Seed dummy data"), isPresented: $showSeedDummyDataResult) {
+                Button(AppLocalization.string("OK"), role: .cancel) { }
+            } message: {
+                Text(seedDummyDataResultMessage)
+            }
+            .fileImporter(
+                isPresented: $showImportPicker,
+                allowedContentTypes: [.commaSeparatedText],
+                allowsMultipleSelection: true
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    pendingImportURLs = urls
+                    showImportStrategyAlert = true
+                case .failure(let error):
+                    importResultMessage = AppLocalization.string("Could not open file: ") + error.localizedDescription
+                    showImportResult = true
+                }
+            }
+            .confirmationDialog(
+                AppLocalization.string("Import data"),
+                isPresented: $showImportStrategyAlert,
+                titleVisibility: .visible
+            ) {
+                Button(AppLocalization.string("Merge (keep existing data)")) {
+                    performImport(urls: pendingImportURLs, strategy: .merge)
+                }
+                Button(AppLocalization.string("Replace (delete existing data)"), role: .destructive) {
+                    performImport(urls: pendingImportURLs, strategy: .replace)
+                }
+                Button(AppLocalization.string("Cancel"), role: .cancel) {
+                    pendingImportURLs = []
+                }
+            } message: {
+                Text(AppLocalization.string("How should MeasureMe handle existing data?"))
+            }
+            .alert(AppLocalization.string("Import complete"), isPresented: $showImportResult) {
+                Button(AppLocalization.string("OK"), role: .cancel) { }
+            } message: {
+                Text(importResultMessage)
             }
             if isExporting {
                 exportOverlay
@@ -691,105 +695,32 @@ struct SettingsView: View {
         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
     }
 
-    private struct MetricSampleSnapshot: Sendable {
-        let kindRaw: String
-        let value: Double
-        let date: Date
-    }
-
-    private struct MetricCSVRowSnapshot: Sendable {
-        let metricTitle: String
-        let displayValue: Double
-        let unit: String
-        let date: Date
-    }
-
-    private struct DeviceSnapshot: Sendable {
-        let systemName: String
-        let systemVersion: String
-        let model: String
-    }
-
     private func exportMetricsCSV() {
-        let snapshot = fetchAllMetricSamplesSorted()
-        let currentUnitsSystem = unitsSystem
-        let csvRows: [MetricCSVRowSnapshot] = snapshot.compactMap { sample in
-            guard let kind = MetricKind(rawValue: sample.kindRaw) else { return nil }
-            return MetricCSVRowSnapshot(
-                metricTitle: kind.title,
-                displayValue: kind.valueForDisplay(fromMetric: sample.value, unitsSystem: currentUnitsSystem),
-                unit: kind.unitSymbol(unitsSystem: currentUnitsSystem),
-                date: sample.date
-            )
-        }
         exportMessage = AppLocalization.string("Preparing data export...")
         isExporting = true
         Task {
-            let csv = await Task.detached(priority: .userInitiated) {
-                SettingsView.buildMetricsCSV(from: csvRows)
-            }.value
-            let fileName = "measureme-metrics-\(timestampString()).csv"
-            let url = writeTempFile(named: fileName, contents: csv)
-            await MainActor.run {
-                isExporting = false
-                guard let url else { return }
-                shareItems = [url]
-                shareSubject = AppLocalization.string("MeasureMe data export")
-                isPresentingShareSheet = true
-            }
+            let out = await SettingsExporter.exportMetrics(context: modelContext, unitsSystem: unitsSystem)
+            shareItems = out.items
+            shareSubject = out.subject
+            isExporting = false
+            isPresentingShareSheet = !out.items.isEmpty
         }
     }
 
     private func exportDiagnosticsJSON() {
-        let sampleSnapshot = fetchAllMetricSamplesSorted()
-        let photoCount = fetchPhotosCount()
-        let syncEnabled = isSyncEnabled
-        let lastImport = lastHealthImportTimestamp
-        let deviceSnapshot = DeviceSnapshot(
-            systemName: UIDevice.current.systemName,
-            systemVersion: UIDevice.current.systemVersion,
-            model: UIDevice.current.model
-        )
         exportMessage = AppLocalization.string("Generating diagnostics...")
         isExporting = true
         Task {
-            let data = await Task.detached(priority: .userInitiated) {
-                SettingsView.buildDiagnosticsJSON(
-                    samples: sampleSnapshot,
-                    photosCount: photoCount,
-                    isSyncEnabled: syncEnabled,
-                    lastHealthImportTimestamp: lastImport,
-                    device: deviceSnapshot
-                )
-            }.value
-            let fileName = "measureme-diagnostics-\(timestampString()).json"
-            let url = data.flatMap { writeTempFile(named: fileName, data: $0) }
-            await MainActor.run {
-                isExporting = false
-                guard let url else { return }
-                shareItems = [
-                    url,
-                    AppLocalization.string("Send diagnostics to ziebajacek@pm.me")
-                ]
-                shareSubject = AppLocalization.string("MeasureMe diagnostics")
-                isPresentingShareSheet = true
-            }
+            let out = await SettingsExporter.exportDiagnostics(
+                context: modelContext,
+                isSyncEnabled: isSyncEnabled,
+                lastHealthImportTimestamp: lastHealthImportTimestamp
+            )
+            shareItems = out.items
+            shareSubject = out.subject
+            isExporting = false
+            isPresentingShareSheet = !out.items.isEmpty
         }
-    }
-
-    private func fetchAllMetricSamplesSorted() -> [MetricSampleSnapshot] {
-        let descriptor = FetchDescriptor<MetricSample>(
-            sortBy: [SortDescriptor(\.date, order: .forward)]
-        )
-        let samples = (try? modelContext.fetch(descriptor)) ?? []
-        return samples.map {
-            MetricSampleSnapshot(kindRaw: $0.kindRaw, value: $0.value, date: $0.date)
-        }
-    }
-
-    private func fetchPhotosCount() -> Int {
-        let descriptor = FetchDescriptor<PhotoEntry>()
-        return (try? modelContext.fetchCount(descriptor)) ?? 0
     }
 
     private func handlePendingDeepLinks() {
@@ -804,9 +735,21 @@ struct SettingsView: View {
         }
     }
 
+    private func schedulePendingDeepLinksHandling() {
+        DispatchQueue.main.async {
+            handlePendingDeepLinks()
+        }
+    }
+
     private func deleteAllUserData() {
         Task { @MainActor in
             await performDeleteAllUserData()
+        }
+    }
+
+    private func seedDummyData() {
+        Task { @MainActor in
+            await performSeedDummyData()
         }
     }
 
@@ -840,6 +783,108 @@ struct SettingsView: View {
         }
     }
 
+    @MainActor
+    private func performSeedDummyData() async {
+        do {
+            let existing = (try? modelContext.fetch(FetchDescriptor<MetricSample>())) ?? []
+            var existingKeys = Set<String>()
+            for sample in existing {
+                existingKeys.insert(metricSampleSeedKey(kindRaw: sample.kindRaw, date: sample.date))
+            }
+
+            let calendar = Calendar.current
+            let startOfToday = calendar.startOfDay(for: AppClock.now)
+            let dayOffsets = stride(from: 56, through: 0, by: -4).map { $0 }
+            var inserted = 0
+
+            for (step, offset) in dayOffsets.enumerated() {
+                guard let day = calendar.date(byAdding: .day, value: -offset, to: startOfToday),
+                      let timestamp = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day) else {
+                    continue
+                }
+
+                for kind in MetricKind.allCases {
+                    guard let value = seededMetricValue(for: kind, step: step) else { continue }
+                    let key = metricSampleSeedKey(kindRaw: kind.rawValue, date: timestamp)
+                    guard !existingKeys.contains(key) else { continue }
+                    modelContext.insert(MetricSample(kind: kind, value: value, date: timestamp))
+                    existingKeys.insert(key)
+                    inserted += 1
+                }
+            }
+
+            try modelContext.save()
+
+            if userGender == "notSpecified" {
+                userGender = "male"
+            }
+            if userAge <= 0 {
+                userAge = 29
+            }
+            if manualHeight <= 0 {
+                manualHeight = 180
+            }
+
+            seedDummyDataResultMessage = String(
+                format: AppLocalization.string("Dummy data added: %d measurements."),
+                inserted
+            )
+            showSeedDummyDataResult = true
+            Haptics.success()
+        } catch {
+            AppLog.debug("⚠️ Failed to seed dummy data: \(error)")
+            seedDummyDataResultMessage = AppLocalization.string("Could not seed dummy data. Please try again.")
+            showSeedDummyDataResult = true
+            Haptics.error()
+        }
+    }
+
+    private func seededMetricValue(for kind: MetricKind, step: Int) -> Double? {
+        let s = Double(step)
+        switch kind {
+        case .weight:
+            return 92.0 - (0.35 * s)
+        case .bodyFat:
+            return 27.0 - (0.28 * s)
+        case .height:
+            return 180.0
+        case .leanBodyMass:
+            return 66.0 + (0.08 * s)
+        case .waist:
+            return 101.0 - (0.45 * s)
+        case .neck:
+            return 40.0 - (0.03 * s)
+        case .shoulders:
+            return 118.0 + (0.12 * s)
+        case .bust:
+            return 96.0 + (0.05 * s)
+        case .chest:
+            return 103.0 + (0.11 * s)
+        case .leftBicep:
+            return 33.0 + (0.10 * s)
+        case .rightBicep:
+            return 33.2 + (0.10 * s)
+        case .leftForearm:
+            return 28.0 + (0.05 * s)
+        case .rightForearm:
+            return 28.1 + (0.05 * s)
+        case .hips:
+            return 106.0 - (0.20 * s)
+        case .leftThigh:
+            return 60.0 - (0.07 * s)
+        case .rightThigh:
+            return 60.3 - (0.07 * s)
+        case .leftCalf:
+            return 38.0 + (0.03 * s)
+        case .rightCalf:
+            return 38.2 + (0.03 * s)
+        }
+    }
+
+    private func metricSampleSeedKey(kindRaw: String, date: Date) -> String {
+        "\(kindRaw)_\(Int(date.timeIntervalSince1970))"
+    }
+
     private func deleteAllEntities<T: PersistentModel>(of type: T.Type) throws {
         let descriptor = FetchDescriptor<T>()
         let objects = try modelContext.fetch(descriptor)
@@ -849,28 +894,11 @@ struct SettingsView: View {
     }
 
     private func clearHealthKitSyncMetadata() {
-        let defaults = UserDefaults.standard
-        defaults.set(false, forKey: "isSyncEnabled")
-        defaults.removeObject(forKey: "healthkit_last_import")
-        defaults.removeObject(forKey: "healthkit_initial_historical_import_v1")
-
-        for key in defaults.dictionaryRepresentation().keys {
-            if key.hasPrefix("healthkit_anchor_") || key.hasPrefix("healthkit_last_processed_") {
-                defaults.removeObject(forKey: key)
-            }
-        }
+        AppSettingsStore.shared.clearHealthKitSyncMetadata()
     }
 
     private func clearUserDataDefaults() {
-        let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: "userName")
-        defaults.removeObject(forKey: "userAge")
-        defaults.removeObject(forKey: "userGender")
-        defaults.removeObject(forKey: "manualHeight")
-        defaults.removeObject(forKey: "measurement_reminders")
-        defaults.removeObject(forKey: "measurement_last_log_date")
-        defaults.removeObject(forKey: "photo_last_log_date")
-        defaults.removeObject(forKey: "diagnostics_logging_enabled")
+        AppSettingsStore.shared.clearUserDataDefaults()
     }
 
     @ViewBuilder
@@ -886,15 +914,37 @@ struct SettingsView: View {
             )
         case .metrics:
             TrackedMeasurementsView()
-        case .healthIndicators:
-            HealthIndicatorsSettingsDetailView(
+        case .indicators:
+            IndicatorsSettingsDetailView(
                 showWHtROnHome: $showWHtROnHome,
                 showRFMOnHome: $showRFMOnHome,
                 showBMIOnHome: $showBMIOnHome,
+                showWHROnHome: $showWHROnHome,
+                showWaistRiskOnHome: $showWaistRiskOnHome,
                 showBodyFatOnHome: $showBodyFatOnHome,
                 showLeanMassOnHome: $showLeanMassOnHome,
                 showABSIOnHome: $showABSIOnHome,
-                showConicityOnHome: $showConicityOnHome
+                showBodyShapeScoreOnHome: $showBodyShapeScoreOnHome,
+                showCentralFatRiskOnHome: $showCentralFatRiskOnHome,
+                showPhysiqueSWR: $showPhysiqueSWR,
+                showPhysiqueCWR: $showPhysiqueCWR,
+                showPhysiqueSHR: $showPhysiqueSHR,
+                showPhysiqueHWR: $showPhysiqueHWR,
+                showPhysiqueBWR: $showPhysiqueBWR,
+                showPhysiqueWHtR: $showPhysiqueWHtR,
+                showPhysiqueBodyFat: $showPhysiqueBodyFat,
+                showPhysiqueRFM: $showPhysiqueRFM
+            )
+        case .physiqueIndicators:
+            PhysiqueIndicatorsSettingsDetailView(
+                showPhysiqueSWR: $showPhysiqueSWR,
+                showPhysiqueCWR: $showPhysiqueCWR,
+                showPhysiqueSHR: $showPhysiqueSHR,
+                showPhysiqueHWR: $showPhysiqueHWR,
+                showPhysiqueBWR: $showPhysiqueBWR,
+                showPhysiqueWHtR: $showPhysiqueWHtR,
+                showPhysiqueBodyFat: $showPhysiqueBodyFat,
+                showPhysiqueRFM: $showPhysiqueRFM
             )
         case .health:
             HealthSettingsDetailView(
@@ -913,7 +963,8 @@ struct SettingsView: View {
                 showMeasurementsOnHome: $showMeasurementsOnHome,
                 showLastPhotosOnHome: $showLastPhotosOnHome,
                 showHealthMetricsOnHome: $showHealthMetricsOnHome,
-                showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome
+                showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome,
+                showStreakOnHome: $showStreakOnHome
             )
         case .aiInsights:
             AIInsightsSettingsDetailView(appleIntelligenceEnabled: $appleIntelligenceEnabled)
@@ -936,6 +987,18 @@ struct SettingsView: View {
                         premiumStore.presentPaywall(reason: .feature("Data export"))
                     }
                 },
+                onImport: {
+                    Haptics.light()
+                    if premiumStore.isPremium {
+                        showImportPicker = true
+                    } else {
+                        premiumStore.presentPaywall(reason: .feature("Data import"))
+                    }
+                },
+                onSeedDummyData: {
+                    Haptics.light()
+                    showSeedDummyDataConfirm = true
+                },
                 onDeleteAll: {
                     Haptics.light()
                     showDeleteAllDataConfirm = true
@@ -943,100 +1006,13 @@ struct SettingsView: View {
             )
         case .faq:
             FAQView()
-        }
-    }
-
-    private nonisolated static func buildMetricsCSV(from rows: [MetricCSVRowSnapshot]) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        var lines: [String] = ["metric,value,unit,timestamp"]
-        for row in rows {
-            let valueString = String(format: "%.2f", row.displayValue)
-            let dateString = formatter.string(from: row.date)
-            lines.append("\(csvField(row.metricTitle)),\(valueString),\(csvField(row.unit)),\(dateString)")
-        }
-        return lines.joined(separator: "\n")
-    }
-
-    /// Escapuje pole CSV zgodnie z RFC 4180 — otacza cudzysłowami jeśli zawiera przecinek, cudzysłów lub nową linię.
-    private nonisolated static func csvField(_ value: String) -> String {
-        let needsQuoting = value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")
-        guard needsQuoting else { return value }
-        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
-        return "\"\(escaped)\""
-    }
-
-    private nonisolated static func buildDiagnosticsJSON(
-        samples: [MetricSampleSnapshot],
-        photosCount: Int,
-        isSyncEnabled: Bool,
-        lastHealthImportTimestamp: Double,
-        device: DeviceSnapshot
-    ) -> Data? {
-        let bundle = Bundle.main
-        let appVersion = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
-        let buildNumber = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
-        let now = Date()
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        let metricCounts = Dictionary(grouping: samples) { $0.kindRaw }
-            .mapValues { $0.count }
-
-        let healthKitStatus = healthKitStatusText()
-        let lastSync = lastHealthImportTimestamp > 0 ? iso.string(from: Date(timeIntervalSince1970: lastHealthImportTimestamp)) : nil
-
-        let payload: [String: Any] = [
-            "timestamp": iso.string(from: now),
-            "appVersion": appVersion,
-            "buildNumber": buildNumber,
-            "system": "\(device.systemName) \(device.systemVersion)",
-            "deviceModel": device.model,
-            "metricsCount": samples.count,
-            "metricsByKind": metricCounts,
-            "photosCount": photosCount,
-            "healthKit": [
-                "available": HKHealthStore.isHealthDataAvailable(),
-                "syncEnabled": isSyncEnabled,
-                "authorizationStatus": healthKitStatus,
-                "lastSync": lastSync as Any
-            ]
-        ]
-
-        return try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys])
-    }
-
-    private nonisolated static func healthKitStatusText() -> String {
-        guard HKHealthStore.isHealthDataAvailable() else { return "unavailable" }
-        guard let type = HKObjectType.quantityType(forIdentifier: .bodyMass) else { return "unknown" }
-        let status = HKHealthStore().authorizationStatus(for: type)
-        switch status {
-        case .notDetermined: return "notDetermined"
-        case .sharingDenied: return "denied"
-        case .sharingAuthorized: return "authorized"
-        @unknown default: return "unknown"
-        }
-    }
-
-    private func timestampString() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMdd-HHmmss"
-        return formatter.string(from: Date())
-    }
-
-    private func writeTempFile(named name: String, contents: String) -> URL? {
-        guard let data = contents.data(using: .utf8) else { return nil }
-        return writeTempFile(named: name, data: data)
-    }
-
-    private func writeTempFile(named name: String, data: Data) -> URL? {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
-        do {
-            try data.write(to: url, options: .atomic)
-            return url
-        } catch {
-            AppLog.debug("⚠️ Failed to write export file: \(error.localizedDescription)")
-            return nil
+        case .about:
+            AboutSettingsDetailView(
+                onReportBug: {
+                    Haptics.light()
+                    exportDiagnosticsJSON()
+                }
+            )
         }
     }
 
@@ -1062,73 +1038,24 @@ struct SettingsView: View {
             )
         }
     }
-}
 
-// MARK: - Sections
+    // MARK: - Import logic
 
-private struct PremiumBenefitsInfoView: View {
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.appAccent.opacity(0.2))
-
-            List {
-                Section {
-                    SettingsCard(tint: Color.appAccent.opacity(0.12)) {
-                        SettingsCardHeader(title: AppLocalization.string("settings.app.subscription.active"), systemImage: "checkmark.seal.fill")
-
-                        Text(AppLocalization.string("settings.app.subscription.active.detail"))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.76))
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        SettingsRowDivider()
-
-                        benefitRow(icon: "sparkles", textKey: "premium.carousel.unlock.item.ai")
-                        SettingsRowDivider()
-                        benefitRow(icon: "photo.on.rectangle.angled", textKey: "premium.carousel.unlock.item.compare")
-                        SettingsRowDivider()
-                        benefitRow(icon: "heart.text.square.fill", textKey: "premium.carousel.unlock.item.health")
-                        SettingsRowDivider()
-                        benefitRow(icon: "doc.text.fill", textKey: "premium.carousel.unlock.item.export")
-                        SettingsRowDivider()
-                        benefitRow(icon: "flag.fill", textKey: "premium.carousel.unlock.item.support")
-                    }
-                }
-                .listRowSeparator(.hidden)
-                .listSectionSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                .listRowBackground(Color.clear)
+    private func performImport(urls: [URL], strategy: SettingsImporter.Strategy) {
+        guard !urls.isEmpty else { return }
+        isImporting = true
+        Task {
+            do {
+                let msg = try await SettingsImporter.importData(urls: urls, strategy: strategy, context: modelContext)
+                importResultMessage = msg
+                Haptics.success()
+            } catch {
+                importResultMessage = error.localizedDescription
+                Haptics.error()
             }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .padding(.top, 8)
+            isImporting = false
+            pendingImportURLs = []
+            showImportResult = true
         }
-        .navigationTitle(AppLocalization.string("Premium Edition"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-    }
-
-    private func benefitRow(icon: String, textKey: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(AppTypography.iconMedium)
-                .foregroundStyle(Color.appAccent)
-                .frame(width: 22, alignment: .leading)
-
-            Text(AppLocalization.string(textKey))
-                .font(AppTypography.body)
-                .foregroundStyle(.white)
-        }
-        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-    }
-}
-
-private extension View {
-    @ViewBuilder
-    func applyNoScrollContentInsetsIfAvailable() -> some View {
-        self
     }
 }

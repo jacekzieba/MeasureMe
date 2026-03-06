@@ -3,6 +3,7 @@ import StoreKit
 import UIKit
 import Combine
 import UserNotifications
+import Foundation
 
 protocol PremiumBillingClient {
     func products(for identifiers: [String]) async throws -> [Product]
@@ -20,6 +21,14 @@ protocol PremiumNotificationManaging: AnyObject {
 }
 
 extension NotificationManager: PremiumNotificationManaging {}
+
+private enum PremiumStoreTimeoutError: LocalizedError {
+    case operationTimedOut
+
+    var errorDescription: String? {
+        "The operation timed out."
+    }
+}
 
 struct StoreKitBillingClient: PremiumBillingClient {
     func products(for identifiers: [String]) async throws -> [Product] {
@@ -79,6 +88,7 @@ final class PremiumStore: ObservableObject {
     @Published var isPremium: Bool = false
     @Published var showTrialThankYouAlert: Bool = false
     @Published var showTrialReminderOptInPrompt: Bool = false
+    @Published var showTrialNotificationPermissionPrompt: Bool = false
     @Published var isLoading: Bool = false
     @Published var isPaywallPresented: Bool = false
     @Published var paywallReason: PaywallReason = .settings
@@ -88,49 +98,63 @@ final class PremiumStore: ObservableObject {
         PremiumConstants.yearlyProductID
     ]
 
-    private let firstLaunchKey = "premium_first_launch_date"
-    private let lastNagKey = "premium_last_nag_date"
-    private let entitlementKey = "premium_entitlement"
     private let billingClient: PremiumBillingClient
     private let notificationManager: PremiumNotificationManaging
+    private let settings: AppSettingsStore
     #if DEBUG
     private let forcePremiumForUITests: Bool
+    private let forceNonPremiumForUITests: Bool
     #endif
+    private var hasStarted = false
     private var updateListenerTask: Task<Void, Never>?
+    private var foregroundObserver: NSObjectProtocol?
 
     init(
         billingClient: PremiumBillingClient? = nil,
         notificationManager: PremiumNotificationManaging? = nil,
+        settings: AppSettingsStore,
         startListener: Bool = true
     ) {
         self.billingClient = billingClient ?? StoreKitBillingClient()
         self.notificationManager = notificationManager ?? NotificationManager.shared
+        self.settings = settings
         #if DEBUG
         self.forcePremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForcePremium")
+        self.forceNonPremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForceNonPremium")
         #endif
-        let defaults = UserDefaults.standard
-        if defaults.double(forKey: firstLaunchKey) == 0 {
-            defaults.set(AppClock.now.timeIntervalSince1970, forKey: firstLaunchKey)
+        if settings.snapshot.premium.premiumFirstLaunchDate == 0 {
+            settings.set(\.premium.premiumFirstLaunchDate, AppClock.now.timeIntervalSince1970)
         }
         #if DEBUG
         if forcePremiumForUITests {
             isPremium = true
-            defaults.set(true, forKey: entitlementKey)
+            settings.set(\.premium.premiumEntitlement, true)
         }
         #endif
 
-        let networkDisabledForAudit = AuditConfig.current.disablePaywallNetwork || AuditConfig.current.isEnabled
-        if startListener && !networkDisabledForAudit {
-            updateListenerTask = Task {
-                await loadProducts()
-                await refreshEntitlements()
-                await listenForUpdates()
-            }
+        if startListener {
+            startIfNeeded()
         }
+    }
+
+    convenience init(
+        billingClient: PremiumBillingClient? = nil,
+        notificationManager: PremiumNotificationManaging? = nil,
+        startListener: Bool = true
+    ) {
+        self.init(
+            billingClient: billingClient,
+            notificationManager: notificationManager,
+            settings: .shared,
+            startListener: startListener
+        )
     }
 
     deinit {
         updateListenerTask?.cancel()
+        if let foregroundObserver {
+            NotificationCenter.default.removeObserver(foregroundObserver)
+        }
     }
 
     func presentPaywall(reason: PaywallReason) {
@@ -147,25 +171,48 @@ final class PremiumStore: ObservableObject {
         actionMessageIsError = false
     }
 
+    func syncEntitlements() async {
+        await refreshEntitlements()
+    }
+
+    func startIfNeeded() {
+        guard !hasStarted else { return }
+        hasStarted = true
+
+        foregroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                await self?.syncEntitlements()
+            }
+        }
+        updateListenerTask = Task {
+            await loadProducts()
+            await refreshEntitlements()
+            await listenForUpdates()
+        }
+    }
+
     func checkSevenDayPromptIfNeeded() {
         if AuditConfig.current.isEnabled {
             return
         }
         guard !isPremium else { return }
-        let defaults = UserDefaults.standard
-        let firstLaunch = defaults.double(forKey: firstLaunchKey)
+        let firstLaunch = settings.snapshot.premium.premiumFirstLaunchDate
         guard firstLaunch > 0 else { return }
 
         let now = AppClock.now
         let daysSinceLaunch = now.timeIntervalSince1970 - firstLaunch
         guard daysSinceLaunch >= 7 * 24 * 3600 else { return }
 
-        let lastNag = defaults.double(forKey: lastNagKey)
+        let lastNag = settings.snapshot.premium.premiumLastNagDate
         if lastNag > 0, now.timeIntervalSince1970 - lastNag < 24 * 3600 {
             return
         }
 
-        defaults.set(now.timeIntervalSince1970, forKey: lastNagKey)
+        settings.set(\.premium.premiumLastNagDate, now.timeIntervalSince1970)
         presentPaywall(reason: .sevenDayPrompt)
     }
 
@@ -173,14 +220,14 @@ final class PremiumStore: ObservableObject {
         if AuditConfig.current.disablePaywallNetwork || AuditConfig.current.isEnabled {
             isLoading = false
             products = []
-            productsLoadError = nil
+            productsLoadError = AppLocalization.string("premium.subscription.disabled")
             return
         }
 
         isLoading = true
         productsLoadError = nil
         do {
-            let fetched = try await billingClient.products(for: productIDs)
+            let fetched = try await productsWithTimeout()
             products = fetched.sorted { $0.price < $1.price }
             if products.isEmpty {
                 productsLoadError = AppLocalization.string("No products returned by StoreKit.")
@@ -190,6 +237,22 @@ final class PremiumStore: ObservableObject {
             productsLoadError = error.localizedDescription
         }
         isLoading = false
+    }
+
+    private func productsWithTimeout(seconds: Double = 8) async throws -> [Product] {
+        try await withThrowingTaskGroup(of: [Product].self) { group in
+            group.addTask {
+                try await self.billingClient.products(for: self.productIDs)
+            }
+            group.addTask {
+                let nanos = UInt64(max(seconds, 1) * 1_000_000_000)
+                try await Task.sleep(nanoseconds: nanos)
+                throw PremiumStoreTimeoutError.operationTimedOut
+            }
+            let result = try await group.next() ?? []
+            group.cancelAll()
+            return result
+        }
     }
 
     func purchase(_ product: Product) async {
@@ -202,32 +265,33 @@ final class PremiumStore: ObservableObject {
         }
     }
 
-    private func handleTrialActivated() async {
-        let status = await notificationManager.authorizationStatus()
-        let isAuthorized = status == .authorized || status == .provisional || status == .ephemeral
-
-        if notificationManager.notificationsEnabled && isAuthorized {
-            showTrialThankYouAlert = true
-            notificationManager.scheduleTrialEndingReminder(daysFromNow: 12)
-            actionMessage = AppLocalization.string("premium.purchase.trial.success")
-            actionMessageIsError = false
-            return
-        }
-
+    func handleTrialActivated() async {
+        showTrialNotificationPermissionPrompt = false
         showTrialReminderOptInPrompt = true
     }
 
     func confirmTrialReminderOptIn() async {
-        let previousNotificationsPreference = notificationManager.notificationsEnabled
         let status = await notificationManager.authorizationStatus()
         let isAuthorized = status == .authorized || status == .provisional || status == .ephemeral
 
-        let granted: Bool
         if isAuthorized {
-            granted = true
+            notificationManager.notificationsEnabled = true
+            notificationManager.scheduleTrialEndingReminder(daysFromNow: 12)
+            actionMessage = AppLocalization.string("premium.purchase.trial.success")
+            showTrialReminderOptInPrompt = false
+            showTrialNotificationPermissionPrompt = false
+            showTrialThankYouAlert = true
+            actionMessageIsError = false
         } else {
-            granted = await notificationManager.requestAuthorization()
+            showTrialReminderOptInPrompt = false
+            showTrialNotificationPermissionPrompt = true
+            showTrialThankYouAlert = false
         }
+    }
+
+    func confirmTrialNotificationPermissionOptIn() async {
+        let previousNotificationsPreference = notificationManager.notificationsEnabled
+        let granted = await notificationManager.requestAuthorization()
 
         if granted {
             notificationManager.notificationsEnabled = true
@@ -239,12 +303,22 @@ final class PremiumStore: ObservableObject {
         }
 
         showTrialReminderOptInPrompt = false
+        showTrialNotificationPermissionPrompt = false
         showTrialThankYouAlert = true
         actionMessageIsError = false
     }
 
     func dismissTrialReminderOptIn() {
         showTrialReminderOptInPrompt = false
+        showTrialNotificationPermissionPrompt = false
+        showTrialThankYouAlert = true
+        actionMessage = AppLocalization.string("premium.purchase.trial.success")
+        actionMessageIsError = false
+    }
+
+    func dismissTrialNotificationPermissionOptIn() {
+        showTrialReminderOptInPrompt = false
+        showTrialNotificationPermissionPrompt = false
         showTrialThankYouAlert = true
         actionMessage = AppLocalization.string("premium.purchase.trial.enable.notifications")
         actionMessageIsError = false
@@ -298,20 +372,22 @@ final class PremiumStore: ObservableObject {
     }
 
     private func refreshEntitlements() async {
-        if AuditConfig.current.disablePaywallNetwork || AuditConfig.current.isEnabled {
-            isPremium = UserDefaults.standard.bool(forKey: entitlementKey)
-            return
-        }
-
         #if DEBUG
         if forcePremiumForUITests {
             isPremium = true
-            UserDefaults.standard.set(true, forKey: entitlementKey)
+            settings.set(\.premium.premiumEntitlement, true)
+            return
+        }
+        if forceNonPremiumForUITests {
+            isPremium = false
+            settings.set(\.premium.premiumEntitlement, false)
             return
         }
         #endif
 
         var active = false
+        var sawVerifiedEntitlement = false
+        var sawUnverifiedEntitlement = false
         let allowedProductIDs = Set(productIDs)
         let now = AppClock.now
 
@@ -320,36 +396,38 @@ final class PremiumStore: ObservableObject {
         } else {
             // Zapasowe rozwiazanie dla przypadkow brzegowych, gdy pobranie statusu jest niedostepne.
             for await result in billingClient.currentEntitlements() {
-                guard case .verified(let transaction) = result else { continue }
-                if Self.isEntitlementActive(
-                    productID: transaction.productID,
-                    revocationDate: transaction.revocationDate,
-                    expirationDate: transaction.expirationDate,
-                    isInBillingGracePeriod: false,
-                    allowedProductIDs: allowedProductIDs,
-                    now: now
-                ) {
-                    active = true
-                    break
+                switch result {
+                case .verified(let transaction):
+                    sawVerifiedEntitlement = true
+                    if Self.isEntitlementActive(
+                        productID: transaction.productID,
+                        revocationDate: transaction.revocationDate,
+                        expirationDate: transaction.expirationDate,
+                        isInBillingGracePeriod: false,
+                        allowedProductIDs: allowedProductIDs,
+                        now: now
+                    ) {
+                        active = true
+                        break
+                    }
+                case .unverified:
+                    // Nie zaniżaj stanu premium na podstawie nieweryfikowalnych danych.
+                    sawUnverifiedEntitlement = true
                 }
             }
         }
 
+        if !active && !sawVerifiedEntitlement && sawUnverifiedEntitlement {
+            return
+        }
+
         isPremium = active
-        UserDefaults.standard.set(active, forKey: entitlementKey)
+        settings.set(\.premium.premiumEntitlement, active)
     }
 
     private func hasActiveSubscriptionStatus(allowedProductIDs: Set<String>, now: Date) async -> Bool {
-        let entitlementProducts: [Product]
-        if products.isEmpty {
-            do {
-                entitlementProducts = try await billingClient.products(for: productIDs)
-            } catch {
-                return false
-            }
-        } else {
-            entitlementProducts = products
-        }
+        guard !products.isEmpty else { return false }
+        let entitlementProducts = products
 
         for product in entitlementProducts where allowedProductIDs.contains(product.id) {
             guard let subscription = product.subscription else { continue }
@@ -393,6 +471,9 @@ final class PremiumStore: ObservableObject {
             do {
                 let transaction = try verification.payloadValue
                 let startedIntroTrial = transaction.offer?.type == .introductory
+                // Natychmiast odblokuj premium po zweryfikowanym zakupie.
+                isPremium = true
+                settings.set(\.premium.premiumEntitlement, true)
                 await transaction.finish()
                 await refreshEntitlements()
                 if startedIntroTrial {

@@ -9,10 +9,10 @@ struct MeasurementsTabView: View {
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var router: AppRouter
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
-    @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
-    @AppStorage("quickAddHintDismissed") private var quickAddHintDismissed: Bool = false
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
+    @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
+    @AppSetting(\.experience.quickAddHintDismissed) private var quickAddHintDismissed: Bool = false
     @State private var scrollOffset: CGFloat = 0
     @State private var refreshToken = UUID()
     @Query(sort: [SortDescriptor(\MetricSample.date, order: .reverse)])
@@ -22,13 +22,27 @@ struct MeasurementsTabView: View {
 
     @State private var selectedTab: MeasurementsTab = .metrics
 
+    private let healthAccent = HealthIndicatorPalette.accent
+
     enum MeasurementsTab: String, CaseIterable, Identifiable {
         case metrics = "Metrics"
         case health = "Health indicators"
+        case physique = "Physique indicators"
         var id: String { rawValue }
 
         var title: String {
             AppLocalization.string(rawValue)
+        }
+
+        var accessibilityID: String {
+            switch self {
+            case .metrics:
+                return "measurements.tab.metrics"
+            case .health:
+                return "measurements.tab.health"
+            case .physique:
+                return "measurements.tab.physique"
+            }
         }
     }
 
@@ -56,13 +70,51 @@ struct MeasurementsTabView: View {
         latestByKind[.leanBodyMass]?.value
     }
 
+    private var latestShoulders: Double? {
+        latestByKind[.shoulders]?.value
+    }
+
+    private var latestChest: Double? {
+        latestByKind[.chest]?.value
+    }
+
+    private var latestBust: Double? {
+        latestByKind[.bust]?.value
+    }
+
+    private var latestHips: Double? {
+        latestByKind[.hips]?.value
+    }
+
+    private var sectionTint: Color {
+        switch selectedTab {
+        case .metrics:
+            return Color.cyan.opacity(0.22)
+        case .health:
+            return healthAccent.opacity(0.28)
+        case .physique:
+            return Color(hex: "#14B8A6").opacity(0.24)
+        }
+    }
+
+    private func tabAccent(for tab: MeasurementsTab) -> Color {
+        switch tab {
+        case .metrics:
+            return Color(hex: "#FCA311")
+        case .health:
+            return healthAccent
+        case .physique:
+            return Color(hex: "#14B8A6")
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
                 AppScreenBackground(
                     topHeight: 380,
                     scrollOffset: scrollOffset,
-                    tint: Color.cyan.opacity(0.22)
+                    tint: sectionTint
                 )
 
                 ScrollView {
@@ -78,32 +130,27 @@ struct MeasurementsTabView: View {
 
                         ScreenTitleHeader(title: AppLocalization.string("Measurements"), topPadding: 6, bottomPadding: 4)
 
-                        HStack {
-                            Spacer()
-                            Picker(AppLocalization.string("Section"), selection: $selectedTab) {
-                                ForEach(MeasurementsTab.allCases) { tab in
-                                    Text(tab.title).tag(tab)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-                            .glassSegmentedControl(tint: Color(hex: "#FCA311"))
-                            .tint(Color(hex: "#FCA311"))
-                            .frame(maxWidth: 320)
-                            .accessibilityLabel(AppLocalization.string("accessibility.measurements.section"))
-                            .accessibilityHint(AppLocalization.string("accessibility.measurements.switch"))
-                            .accessibilityIdentifier("measurements.tab.segmented")
-                            Spacer()
-                        }
+                        MeasurementsCategoryTabs(
+                            selectedTab: $selectedTab,
+                            tabs: MeasurementsTab.allCases,
+                            activeTint: tabAccent(for: selectedTab),
+                            animateSelection: shouldAnimate
+                        )
+                        .frame(maxWidth: .infinity)
+                        .accessibilityLabel(AppLocalization.string("accessibility.measurements.section"))
+                        .accessibilityHint(AppLocalization.string("accessibility.measurements.switch"))
                         .padding(.horizontal, AppSpacing.md)
                         .onChange(of: selectedTab) { _, newValue in
-                            guard newValue == .health else { return }
+                            guard newValue == .health || newValue == .physique else { return }
                             if !premiumStore.isPremium {
-                                premiumStore.presentPaywall(reason: .feature("Health indicators"))
+                                let feature = newValue == .health ? "Health indicators" : "Physique indicators"
+                                premiumStore.presentPaywall(reason: .feature(feature))
                                 DispatchQueue.main.async {
                                     selectedTab = .metrics
                                 }
                             }
                         }
+                        .animation(shouldAnimate ? .easeInOut(duration: 0.24) : nil, value: selectedTab)
 
                         if selectedTab == .metrics {
                             if samples.isEmpty {
@@ -169,12 +216,13 @@ struct MeasurementsTabView: View {
 
                             trackedMetricsFooter
                                 .padding(.horizontal, AppSpacing.md)
-                        } else {
+                        } else if selectedTab == .health {
                             if premiumStore.isPremium {
                                 HealthMetricsSection(
                                     latestWaist: latestWaist,
                                     latestHeight: latestHeight,
                                     latestWeight: latestWeight,
+                                    latestHips: latestHips,
                                     latestBodyFat: latestBodyFat,
                                     latestLeanMass: latestLeanMass,
                                     displayMode: .indicatorsOnly,
@@ -188,6 +236,29 @@ struct MeasurementsTabView: View {
                                     message: AppLocalization.string("Upgrade to Premium Edition to unlock Health Indicators.")
                                 ) {
                                     premiumStore.presentPaywall(reason: .feature("Health indicators"))
+                                }
+                                .padding(.horizontal, AppSpacing.md)
+                            }
+                        } else {
+                            if premiumStore.isPremium {
+                                PhysiqueIndicatorsSection(
+                                    latestWaist: latestWaist,
+                                    latestHeight: latestHeight,
+                                    latestWeight: latestWeight,
+                                    latestBodyFat: latestBodyFat,
+                                    latestShoulders: latestShoulders,
+                                    latestChest: latestChest,
+                                    latestBust: latestBust,
+                                    latestHips: latestHips
+                                )
+                                .padding(.horizontal, AppSpacing.md)
+                                .accessibilityIdentifier("measurements.physique.container")
+                            } else {
+                                PremiumLockedCard(
+                                    title: AppLocalization.string("Physique indicators"),
+                                    message: AppLocalization.string("Upgrade to Premium Edition to unlock Physique indicators.")
+                                ) {
+                                    premiumStore.presentPaywall(reason: .feature("Physique indicators"))
                                 }
                                 .padding(.horizontal, AppSpacing.md)
                             }
@@ -284,6 +355,74 @@ struct MeasurementsTabView: View {
     }
 }
 
+private struct MeasurementsCategoryTabs: View {
+    @Namespace private var selectedPillNamespace
+    @Binding var selectedTab: MeasurementsTabView.MeasurementsTab
+    let tabs: [MeasurementsTabView.MeasurementsTab]
+    let activeTint: Color
+    let animateSelection: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(tabs) { tab in
+                Button {
+                    if animateSelection {
+                        withAnimation(AppMotion.standard) {
+                            selectedTab = tab
+                        }
+                    } else {
+                        selectedTab = tab
+                    }
+                } label: {
+                    ZStack {
+                        if selectedTab == tab {
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(activeTint)
+                                .matchedGeometryEffect(id: "measurements-selected-pill", in: selectedPillNamespace)
+                        } else {
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Color.clear)
+                        }
+
+                        Text(tab.title)
+                            .font(AppTypography.captionEmphasis)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.74)
+                            .foregroundStyle(selectedTab == tab ? .black : .white.opacity(0.92))
+                            .padding(.horizontal, 8)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(Color.white.opacity(selectedTab == tab ? 0.10 : 0.16), lineWidth: selectedTab == tab ? 0.5 : 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier(tab.accessibilityID)
+            }
+        }
+        .padding(6)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .inset(by: 0.5)
+                        .stroke(Color.black.opacity(0.22), lineWidth: 0.6)
+                )
+        )
+        .frame(minHeight: 64)
+        .animation(animateSelection ? AppMotion.standard : nil, value: selectedTab)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("measurements.tab.segmented")
+    }
+}
+
 
 struct MetricChartTile: View {
     @EnvironmentObject private var premiumStore: PremiumStore
@@ -291,7 +430,7 @@ struct MetricChartTile: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let kind: MetricKind
     let unitsSystem: String
-    @AppStorage("userName") private var userName: String = ""
+    @AppSetting(\.profile.userName) private var userName: String = ""
 
     @Query private var samples: [MetricSample]
     @Query private var goals: [MetricGoal]
@@ -374,9 +513,7 @@ struct MetricChartTile: View {
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(alignment: .top, spacing: 10) {
-                            Image(systemName: kind.systemImage)
-                                .foregroundStyle(.secondary)
-                                .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
+                            kind.iconView(size: 20, tint: Color.appAccent)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(kind.title)
@@ -419,9 +556,7 @@ struct MetricChartTile: View {
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 8) {
-                                Image(systemName: kind.systemImage)
-                                    .foregroundStyle(.secondary)
-                                    .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
+                                kind.iconView(size: 20, tint: Color.appAccent)
 
                                 Text(kind.title)
                                     .font(AppTypography.bodyEmphasis)
@@ -476,9 +611,7 @@ struct MetricChartTile: View {
                 // Header
                 HStack {
                     HStack(spacing: 8) {
-                        Image(systemName: kind.systemImage)
-                            .foregroundStyle(.secondary)
-                            .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
+                        kind.iconView(size: 20, tint: Color.appAccent)
 
                         Text(kind.title)
                             .font(AppTypography.bodyEmphasis)
@@ -585,14 +718,24 @@ struct MetricChartTile: View {
 
                         Chart {
 
-                        // 🔹 AREA – JEDEN mark, jeden gradient
+                        // 🔹 AREA – gradient zanikający od linii w dół
                         ForEach(recentSamples) { s in
                             AreaMark(
                                 x: .value("Date", s.date),
-                                y: .value("Value", displayValue(s.value))
+                                yStart: .value("Baseline", yDomain.lowerBound),
+                                yEnd: .value("Value", displayValue(s.value))
                             )
                             .interpolationMethod(.monotone)
-                            .foregroundStyle(by: .value("Area", "fill"))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [
+                                        Color(hex: "#FCA311").opacity(0.28),
+                                        Color(hex: "#FCA311").opacity(0.02)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
 
                         }
 
@@ -639,18 +782,6 @@ struct MetricChartTile: View {
                         }
                         .padding(.horizontal, 2)
                         .padding(.vertical, 2)
-                        .chartForegroundStyleScale([
-                            "fill": LinearGradient(
-                                colors: [
-                                    Color(hex: "#FCA311").opacity(0.1),
-                                    Color(hex: "#FCA311").opacity(0.1),
-                                    Color(hex: "#FCA311").opacity(0.1)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        ])
-                        .chartLegend(.hidden)
                         .chartYScale(domain: yDomain)
                         .chartXAxis {
                             AxisMarks(values: .automatic(desiredCount: 3)) { _ in
@@ -743,8 +874,8 @@ struct MetricChartTile: View {
             latestValueText: valueString(metricValue: latest.value),
             timeframeLabel: AppLocalization.string("Last 30 days"),
             sampleCount: recentSamples.count,
-            delta7DaysText: deltaText(days: 7, in: recentSamples),
-            delta30DaysText: deltaText(days: 30, in: recentSamples),
+            delta7DaysText: recentSamples.deltaText(days: 7, kind: kind, unitsSystem: unitsSystem),
+            delta30DaysText: recentSamples.deltaText(days: 30, kind: kind, unitsSystem: unitsSystem),
             goalStatusText: goalStatusText,
             goalDirectionText: currentGoal?.direction.rawValue,
             defaultFavorableDirectionText: kind.defaultFavorableDirectionWhenNoGoal.rawValue
@@ -771,17 +902,6 @@ struct MetricChartTile: View {
             return AppLocalization.string("accessibility.metric.summary.value", kind.title, value)
         }
         return AppLocalization.string("accessibility.metric.summary.nodata", kind.title)
-    }
-
-    private func deltaText(days: Int, in source: [MetricSample]) -> String? {
-        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: AppClock.now) else { return nil }
-        let window = source.filter { $0.date >= start }
-        guard let first = window.first, let last = window.last, first.persistentModelID != last.persistentModelID else {
-            return nil
-        }
-        let delta = displayValue(last.value) - displayValue(first.value)
-        let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-        return String(format: "%+.1f %@", delta, unit)
     }
 
     @MainActor

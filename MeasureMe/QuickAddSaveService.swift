@@ -11,10 +11,19 @@ protocol HealthKitSyncing: Sendable {
 final class QuickAddSaveService {
     private let context: ModelContext
     private let healthKit: HealthKitSyncing?
+    private let streak: StreakTracking
+    private let widgetWriter: WidgetDataWriting
 
-    init(context: ModelContext, healthKit: HealthKitSyncing? = nil) {
+    init(
+        context: ModelContext,
+        healthKit: HealthKitSyncing? = nil,
+        streak: StreakTracking? = nil,
+        widgetWriter: WidgetDataWriting? = nil
+    ) {
         self.context = context
         self.healthKit = healthKit
+        self.streak = streak ?? StreakManager.shared
+        self.widgetWriter = widgetWriter ?? LiveWidgetDataWriter()
     }
 
     struct Entry {
@@ -23,11 +32,18 @@ final class QuickAddSaveService {
     }
 
     /// Dodaje probki do kontekstu i zapisuje.
-    func save(entries: [Entry], date: Date) throws {
+    func save(entries: [Entry], date: Date, unitsSystem: String) throws {
+        let previousMetricCount = AnalyticsFirstEventTracker.metricCount(in: context)
+
         for entry in entries {
             context.insert(MetricSample(kind: entry.kind, value: entry.metricValue, date: date))
         }
         try context.save()
+        if !entries.isEmpty {
+            AnalyticsFirstEventTracker.trackFirstMetricIfNeeded(previousMetricCount: previousMetricCount)
+            streak.recordMetricSaved(date: date)
+            widgetWriter.writeAndReload(kinds: entries.map(\.kind), context: context, unitsSystem: unitsSystem)
+        }
     }
 
     /// Synchronizacja HealthKit w trybie najlepszej starannosci — failures are logged but never thrown.

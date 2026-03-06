@@ -81,20 +81,11 @@ final class NotificationManager: ObservableObject {
     static let notificationsDidChange = Notification.Name("measurement_notifications_did_change")
     
     private let center: NotificationCenterClient
-    private let remindersKey = "measurement_reminders"
-    private let notificationsEnabledKey = "measurement_notifications_enabled"
-    private let smartEnabledKey = "measurement_smart_enabled"
-    private let smartDaysKey = "measurement_smart_days"
-    private let smartTimeKey = "measurement_smart_time"
-    private let lastLogDateKey = "measurement_last_log_date"
+    private let settings: AppSettingsStore
     private let smartNotificationId = "measurement_smart_reminder"
     private let reminderPrefix = "measurement_reminder_"
-    private let lastPhotoDateKey = "photo_last_log_date"
     private let photoReminderId = "photo_smart_reminder"
-    private let photoRemindersEnabledKey = "measurement_photo_reminders_enabled"
-    private let goalAchievedEnabledKey = "measurement_goal_achieved_enabled"
-    private let importNotificationsEnabledKey = "measurement_import_notifications_enabled"
-    private let goalAchievementPrefix = "goal_achieved_"
+    private let goalAchievementPrefix = AppSettingsKeys.Notifications.goalAchievementPrefix
     private let importSummaryNotificationId = "measurement_import_summary"
     private let importNotificationBufferSeconds: TimeInterval = 15
     private let trialEndingReminderId = "premium_trial_ending_reminder"
@@ -103,18 +94,23 @@ final class NotificationManager: ObservableObject {
     private var pendingImportTask: Task<Void, Never>?
     @Published private(set) var lastSchedulingError: String?
     
-    init(center: NotificationCenterClient? = nil) {
+    init(center: NotificationCenterClient? = nil, settings: AppSettingsStore) {
+        self.settings = settings
         if let center {
             self.center = center
         } else {
             self.center = RealNotificationCenterClient()
         }
     }
+
+    convenience init(center: NotificationCenterClient? = nil) {
+        self.init(center: center, settings: .shared)
+    }
     
     var notificationsEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: notificationsEnabledKey) }
+        get { settings.snapshot.notifications.notificationsEnabled }
         set {
-            UserDefaults.standard.set(newValue, forKey: notificationsEnabledKey)
+            settings.set(\.notifications.notificationsEnabled, newValue)
             if !newValue {
                 cancelImportNotifications()
             }
@@ -123,56 +119,56 @@ final class NotificationManager: ObservableObject {
     }
     
     var smartEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: smartEnabledKey) }
+        get { settings.snapshot.notifications.smartEnabled }
         set {
-            UserDefaults.standard.set(newValue, forKey: smartEnabledKey)
+            settings.set(\.notifications.smartEnabled, newValue)
             notifyStateChanged()
         }
     }
     
     var smartDays: Int {
-        get { max(UserDefaults.standard.integer(forKey: smartDaysKey), 0) }
-        set { UserDefaults.standard.set(newValue, forKey: smartDaysKey) }
+        get { max(settings.snapshot.notifications.smartDays, 0) }
+        set { settings.set(\.notifications.smartDays, newValue) }
     }
     
     var smartTime: Date {
         get {
-            let time = UserDefaults.standard.double(forKey: smartTimeKey)
+            let time = settings.snapshot.notifications.smartTime
             return time > 0 ? Date(timeIntervalSince1970: time) : defaultSmartTime()
         }
         set {
-            UserDefaults.standard.set(newValue.timeIntervalSince1970, forKey: smartTimeKey)
+            settings.set(\.notifications.smartTime, newValue.timeIntervalSince1970)
         }
     }
     
     var lastLogDate: Date? {
         get {
-            let time = UserDefaults.standard.double(forKey: lastLogDateKey)
+            let time = settings.snapshot.notifications.lastLogDate
             return time > 0 ? Date(timeIntervalSince1970: time) : nil
         }
         set {
             if let newValue {
-                UserDefaults.standard.set(newValue.timeIntervalSince1970, forKey: lastLogDateKey)
+                settings.set(\.notifications.lastLogDate, newValue.timeIntervalSince1970)
             } else {
-                UserDefaults.standard.removeObject(forKey: lastLogDateKey)
+                settings.set(\.notifications.lastLogDate, 0)
             }
         }
     }
 
     var photoRemindersEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: photoRemindersEnabledKey) as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: photoRemindersEnabledKey) }
+        get { settings.snapshot.notifications.photoRemindersEnabled }
+        set { settings.set(\.notifications.photoRemindersEnabled, newValue) }
     }
 
     var goalAchievedEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: goalAchievedEnabledKey) as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: goalAchievedEnabledKey) }
+        get { settings.snapshot.notifications.goalAchievedEnabled }
+        set { settings.set(\.notifications.goalAchievedEnabled, newValue) }
     }
 
     var importNotificationsEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: importNotificationsEnabledKey) as? Bool ?? true }
+        get { settings.snapshot.notifications.importNotificationsEnabled }
         set {
-            UserDefaults.standard.set(newValue, forKey: importNotificationsEnabledKey)
+            settings.set(\.notifications.importNotificationsEnabled, newValue)
             if !newValue {
                 cancelImportNotifications()
             }
@@ -180,7 +176,7 @@ final class NotificationManager: ObservableObject {
     }
 
     private var lastPhotoDate: Date? {
-        let time = UserDefaults.standard.double(forKey: lastPhotoDateKey)
+        let time = settings.snapshot.notifications.lastPhotoDate
         return time > 0 ? Date(timeIntervalSince1970: time) : nil
     }
     
@@ -198,7 +194,7 @@ final class NotificationManager: ObservableObject {
     }
     
     func loadReminders() -> [MeasurementReminder] {
-        guard let data = UserDefaults.standard.data(forKey: remindersKey) else {
+        guard let data = settings.snapshot.notifications.measurementRemindersData else {
             return []
         }
         do {
@@ -213,7 +209,7 @@ final class NotificationManager: ObservableObject {
     func saveReminders(_ reminders: [MeasurementReminder]) {
         do {
             let data = try JSONEncoder().encode(reminders)
-            UserDefaults.standard.set(data, forKey: remindersKey)
+            settings.set(\.notifications.measurementRemindersData, data)
             notifyStateChanged()
         } catch {
             recordSchedulingError(error)
@@ -233,7 +229,7 @@ final class NotificationManager: ObservableObject {
         guard notificationsEnabled else { return }
         
         let content = UNMutableNotificationContent()
-        let name = UserDefaults.standard.string(forKey: "userName")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let name = settings.snapshot.profile.userName.trimmingCharacters(in: .whitespacesAndNewlines)
         let prefix = name.isEmpty ? "" : "\(name), "
         content.title = AppLocalization.string("notification.log.title", prefix)
         content.body = AppLocalization.string("notification.log.body")
@@ -300,7 +296,7 @@ final class NotificationManager: ObservableObject {
         }
         
         let days = max(smartDays, 1)
-        let now = Date()
+        let now = AppClock.now
         if let last = lastLogDate {
             let since = now.timeIntervalSince(last)
             if since < TimeInterval(days) * 86400 {
@@ -315,7 +311,7 @@ final class NotificationManager: ObservableObject {
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         
         let content = UNMutableNotificationContent()
-        let name = UserDefaults.standard.string(forKey: "userName")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let name = settings.snapshot.profile.userName.trimmingCharacters(in: .whitespacesAndNewlines)
         let prefix = name.isEmpty ? "" : "\(name), "
         content.title = AppLocalization.string("notification.smart.title", prefix)
         let daysSince = lastLogDate.map { max(1, Int(ceil(now.timeIntervalSince($0) / 86400.0))) } ?? days
@@ -347,7 +343,7 @@ final class NotificationManager: ObservableObject {
     }
 
     func recordPhotoAdded(date: Date = .now) {
-        UserDefaults.standard.set(date.timeIntervalSince1970, forKey: lastPhotoDateKey)
+        settings.set(\.notifications.lastPhotoDate, date.timeIntervalSince1970)
         cancelPhotoReminder()
     }
 
@@ -365,7 +361,7 @@ final class NotificationManager: ObservableObject {
             return
         }
 
-        let now = Date()
+        let now = AppClock.now
         let since = now.timeIntervalSince(last)
         guard since >= TimeInterval(days) * 86400 else {
             cancelPhotoReminder()
@@ -373,7 +369,7 @@ final class NotificationManager: ObservableObject {
         }
 
         let content = UNMutableNotificationContent()
-        let name = UserDefaults.standard.string(forKey: "userName")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let name = settings.snapshot.profile.userName.trimmingCharacters(in: .whitespacesAndNewlines)
         let prefix = name.isEmpty ? "" : "\(name), "
         content.title = AppLocalization.string("notification.photo.title", prefix)
         let daysSince = max(1, Int(ceil(since / 86400.0)))
@@ -524,11 +520,12 @@ final class NotificationManager: ObservableObject {
             guard goalAchievedEnabled else { return }
 
             let key = "\(goalAchievementPrefix)\(kind.rawValue)_\(goalCreatedDate.timeIntervalSince1970)"
-            if UserDefaults.standard.bool(forKey: key) {
+            let goalID = "\(kind.rawValue)_\(goalCreatedDate.timeIntervalSince1970)"
+            if settings.goalAchievedFlag(for: goalID) {
                 return
             }
 
-            let name = UserDefaults.standard.string(forKey: "userName")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let name = settings.snapshot.profile.userName.trimmingCharacters(in: .whitespacesAndNewlines)
             let suffix = name.isEmpty ? "" : ", \(name)"
             let content = UNMutableNotificationContent()
             content.title = AppLocalization.string("notification.goal.title", suffix)
@@ -549,7 +546,7 @@ final class NotificationManager: ObservableObject {
                 recordSchedulingError(error)
                 return
             }
-            UserDefaults.standard.set(true, forKey: key)
+            settings.setGoalAchievedFlag(true, for: goalID)
         }
     }
 
@@ -575,19 +572,7 @@ final class NotificationManager: ObservableObject {
             center.removePendingNotificationRequests(withIdentifiers: appOwnedPendingIdentifiers)
         }
 
-        let defaults = UserDefaults.standard
-        [
-            remindersKey,
-            notificationsEnabledKey,
-            smartEnabledKey,
-            smartDaysKey,
-            smartTimeKey,
-            lastLogDateKey,
-            lastPhotoDateKey,
-            photoRemindersEnabledKey,
-            goalAchievedEnabledKey,
-            importNotificationsEnabledKey
-        ].forEach { defaults.removeObject(forKey: $0) }
+        settings.resetNotificationSettingsToDefaults()
 
         clearLastSchedulingError()
         notifyStateChanged()
@@ -610,10 +595,10 @@ final class NotificationManager: ObservableObject {
     
     private func defaultSmartTime() -> Date {
         let cal = Calendar.current
-        var comps = cal.dateComponents([.year, .month, .day], from: Date())
+        var comps = cal.dateComponents([.year, .month, .day], from: AppClock.now)
         comps.hour = 7
         comps.minute = 0
-        return cal.date(from: comps) ?? Date()
+        return cal.date(from: comps) ?? AppClock.now
     }
 
     private func recordSchedulingError(_ error: Error) {
@@ -631,4 +616,3 @@ final class NotificationManager: ObservableObject {
         NotificationCenter.default.post(name: Self.notificationsDidChange, object: nil)
     }
 }
-

@@ -10,3 +10,7 @@ enum LegalLinks {
     static let about = URL(string: "https://jacekzieba.pl/measureme")!
     static let featureRequest = URL(string: "https://measureme.userjot.com/")!
 }
+
+// MARK: - Section card layout
+let settingsComponentsCardCornerRadius: CGFloat = 16
+let settingsComponentsRowInsets = EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)

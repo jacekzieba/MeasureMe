@@ -1,15 +1,19 @@
 import SwiftUI
+import SwiftData
 
 
 struct PhotoGridCell: View {
+    private static var revealedPhotoIDs: Set<String> = []
 
     let photo: PhotoEntry
     let isSelected: Bool
     let isSelecting: Bool
     var revealIndex: Int = 0
     @State private var isVisible = false
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.modelContext) private var modelContext
+    private var photoID: String { String(describing: photo.persistentModelID) }
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -28,17 +32,40 @@ struct PhotoGridCell: View {
         .offset(y: isVisible ? 0 : 8)
         .scaleEffect(isVisible ? 1 : 0.985)
         .onAppear {
+            let hasStoredThumbnail = photo.thumbnailData != nil
+            PhotoThumbnailTelemetry.recordPhotosTileAppearance(
+                photoID: photoID,
+                hasStoredThumbnail: hasStoredThumbnail
+            )
+            if !hasStoredThumbnail {
+                Task(priority: .utility) {
+                    await PhotoThumbnailBackfillService.shared.enqueueIfNeeded(
+                        photoID: photo.persistentModelID,
+                        originalImageData: photo.imageData,
+                        existingThumbnailData: photo.thumbnailData,
+                        modelContainer: modelContext.container,
+                        source: "photos_grid"
+                    )
+                }
+            }
+
             guard shouldAnimateReveal else {
                 isVisible = true
+                Self.revealedPhotoIDs.insert(photoID)
                 return
             }
             guard !isVisible else { return }
+            if Self.revealedPhotoIDs.contains(photoID) {
+                isVisible = true
+                return
+            }
             let bucket = revealIndex % 12
             let delay = Double(bucket) * 0.012
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                withAnimation(AppMotion.reveal) {
+                withAnimation(AppMotion.sectionEnter) {
                     isVisible = true
                 }
+                Self.revealedPhotoIDs.insert(photoID)
             }
         }
     }
@@ -77,7 +104,7 @@ private extension PhotoGridCell {
 
     var photoImage: some View {
         DownsampledImageView(
-            imageData: photo.imageData,
+            imageData: photo.thumbnailOrImageData,
             targetSize: CGSize(width: 110, height: 120),
             contentMode: .fill,
             cornerRadius: 12,

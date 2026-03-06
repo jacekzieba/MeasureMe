@@ -1,0 +1,270 @@
+import Foundation
+
+struct AppSettingsSnapshot: Sendable {
+    struct Profile: Sendable {
+        var userName: String
+        var userAge: Int
+        var userGender: String
+        var manualHeight: Double
+        var unitsSystem: String
+    }
+
+    struct Home: Sendable {
+        var showLastPhotosOnHome: Bool
+        var showMeasurementsOnHome: Bool
+        var showHealthMetricsOnHome: Bool
+        var showStreakOnHome: Bool
+        var homeTabScrollOffset: Double
+        var homePhotoMetricSyncLastDate: Double
+        var homePhotoMetricSyncLastID: String
+        var settingsOpenTrackedMeasurements: Bool
+        var settingsOpenReminders: Bool
+    }
+
+    struct Onboarding: Sendable {
+        var hasCompletedOnboarding: Bool
+        var onboardingSkippedHealthKit: Bool
+        var onboardingSkippedReminders: Bool
+        var onboardingChecklistShow: Bool
+        var onboardingChecklistCollapsed: Bool
+        var onboardingChecklistHideCompleted: Bool
+        var onboardingChecklistMetricsCompleted: Bool
+        var onboardingChecklistPremiumExplored: Bool
+        var onboardingPrimaryGoal: String
+    }
+
+    struct Health: Sendable {
+        var isSyncEnabled: Bool
+        var healthkitLastImport: Double
+        var healthkitSyncWeight: Bool
+        var healthkitSyncBodyFat: Bool
+        var healthkitSyncHeight: Bool
+        var healthkitSyncLeanBodyMass: Bool
+        var healthkitSyncWaist: Bool
+        var healthkitInitialHistoricalImport: Bool
+        var healthIndicatorsV2Migrated: Bool
+    }
+
+    struct Indicators: Sendable {
+        var showWHtROnHome: Bool
+        var showRFMOnHome: Bool
+        var showBMIOnHome: Bool
+        var showBodyFatOnHome: Bool
+        var showLeanMassOnHome: Bool
+        var showWHROnHome: Bool
+        var showWaistRiskOnHome: Bool
+        var showABSIOnHome: Bool
+        var showBodyShapeScoreOnHome: Bool
+        var showCentralFatRiskOnHome: Bool
+        var showConicityOnHome: Bool
+        var showPhysiqueSWR: Bool
+        var showPhysiqueCWR: Bool
+        var showPhysiqueSHR: Bool
+        var showPhysiqueHWR: Bool
+        var showPhysiqueBWR: Bool
+        var showPhysiqueWHtR: Bool
+        var showPhysiqueBodyFat: Bool
+        var showPhysiqueRFM: Bool
+    }
+
+    struct Experience: Sendable {
+        var animationsEnabled: Bool
+        var hapticsEnabled: Bool
+        var appLanguage: String
+        var quickAddHintDismissed: Bool
+        var photosFilterTag: String
+        var saveUnchangedQuickAdd: Bool
+    }
+
+    struct Premium: Sendable {
+        var premiumEntitlement: Bool
+        var premiumFirstLaunchDate: Double
+        var premiumLastNagDate: Double
+    }
+
+    struct Diagnostics: Sendable {
+        var diagnosticsLoggingEnabled: Bool
+        var crashReporterHasUnreported: Bool
+        var databaseEncryptionProtectionVersion: String?
+    }
+
+    struct Notifications: Sendable {
+        var measurementRemindersData: Data?
+        var notificationsEnabled: Bool
+        var smartEnabled: Bool
+        var smartDays: Int
+        var smartTime: Double
+        var lastLogDate: Double
+        var lastPhotoDate: Double
+        var photoRemindersEnabled: Bool
+        var goalAchievedEnabled: Bool
+        var importNotificationsEnabled: Bool
+    }
+
+    struct Analytics: Sendable {
+        var analyticsEnabled: Bool
+        var firstMetricAddedTracked: Bool
+        var firstPhotoAddedTracked: Bool
+        var appleIntelligenceEnabled: Bool
+    }
+
+    struct InternalState: Sendable {
+        var settingsSchemaVersion: Int
+    }
+
+    var profile: Profile
+    var home: Home
+    var onboarding: Onboarding
+    var health: Health
+    var indicators: Indicators
+    var experience: Experience
+    var premium: Premium
+    var diagnostics: Diagnostics
+    var notifications: Notifications
+    var analytics: Analytics
+    var internalState: InternalState
+
+    static let registeredDefaults: [String: Any] = [
+        AppSettingsKeys.Onboarding.hasCompletedOnboarding: false,
+        AppSettingsKeys.Profile.userName: "",
+        AppSettingsKeys.Profile.userAge: 0,
+        "metric_weight_enabled": true,
+        "metric_waist_enabled": true,
+        "metric_bodyFat_enabled": true,
+        "metric_nonFatMass_enabled": true,
+        AppSettingsKeys.Profile.unitsSystem: "metric",
+        AppSettingsKeys.Experience.animationsEnabled: true,
+        AppSettingsKeys.Experience.hapticsEnabled: true,
+        AppSettingsKeys.Experience.saveUnchangedQuickAdd: false,
+        AppSettingsKeys.Notifications.photoRemindersEnabled: true,
+        AppSettingsKeys.Notifications.goalAchievedEnabled: true,
+        AppSettingsKeys.Notifications.importNotificationsEnabled: true,
+        AppSettingsKeys.Onboarding.onboardingSkippedHealthKit: false,
+        AppSettingsKeys.Onboarding.onboardingSkippedReminders: false,
+        AppSettingsKeys.Onboarding.onboardingChecklistShow: true,
+        AppSettingsKeys.Onboarding.onboardingChecklistCollapsed: false,
+        AppSettingsKeys.Onboarding.onboardingChecklistHideCompleted: false,
+        AppSettingsKeys.Onboarding.onboardingChecklistMetricsCompleted: false,
+        AppSettingsKeys.Onboarding.onboardingChecklistPremiumExplored: false,
+        AppSettingsKeys.Home.settingsOpenTrackedMeasurements: false,
+        AppSettingsKeys.Home.settingsOpenReminders: false,
+        AppSettingsKeys.Experience.appLanguage: "system",
+        AppSettingsKeys.Analytics.analyticsEnabled: true,
+        AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled: true,
+        AppSettingsKeys.Health.healthkitSyncWeight: true,
+        AppSettingsKeys.Health.healthkitSyncBodyFat: true,
+        AppSettingsKeys.Health.healthkitSyncHeight: true,
+        AppSettingsKeys.Health.healthkitSyncLeanBodyMass: true,
+        AppSettingsKeys.Health.healthkitSyncWaist: true,
+        AppSettingsKeys.Home.showStreakOnHome: true,
+        AppSettingsKeys.Notifications.smartEnabled: false,
+        AppSettingsKeys.Health.healthIndicatorsV2Migrated: false,
+        AppSettingsKeys.Indicators.showConicityOnHome: true,
+        AppSettingsKeys.Analytics.appleIntelligenceEnabled: true
+    ]
+
+    static func load(from defaults: UserDefaults) -> AppSettingsSnapshot {
+        AppSettingsSnapshot(
+            profile: .init(
+                userName: defaults.string(forKey: AppSettingsKeys.Profile.userName) ?? "",
+                userAge: defaults.integer(forKey: AppSettingsKeys.Profile.userAge),
+                userGender: defaults.string(forKey: AppSettingsKeys.Profile.userGender) ?? "notSpecified",
+                manualHeight: defaults.double(forKey: AppSettingsKeys.Profile.manualHeight),
+                unitsSystem: defaults.string(forKey: AppSettingsKeys.Profile.unitsSystem) ?? "metric"
+            ),
+            home: .init(
+                showLastPhotosOnHome: defaults.object(forKey: AppSettingsKeys.Home.showLastPhotosOnHome) as? Bool ?? true,
+                showMeasurementsOnHome: defaults.object(forKey: AppSettingsKeys.Home.showMeasurementsOnHome) as? Bool ?? true,
+                showHealthMetricsOnHome: defaults.object(forKey: AppSettingsKeys.Home.showHealthMetricsOnHome) as? Bool ?? true,
+                showStreakOnHome: defaults.object(forKey: AppSettingsKeys.Home.showStreakOnHome) as? Bool ?? true,
+                homeTabScrollOffset: defaults.double(forKey: AppSettingsKeys.Home.homeTabScrollOffset),
+                homePhotoMetricSyncLastDate: defaults.double(forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastDate),
+                homePhotoMetricSyncLastID: defaults.string(forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastID) ?? "",
+                settingsOpenTrackedMeasurements: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements),
+                settingsOpenReminders: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenReminders)
+            ),
+            onboarding: .init(
+                hasCompletedOnboarding: defaults.bool(forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding),
+                onboardingSkippedHealthKit: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingSkippedHealthKit),
+                onboardingSkippedReminders: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingSkippedReminders),
+                onboardingChecklistShow: defaults.object(forKey: AppSettingsKeys.Onboarding.onboardingChecklistShow) as? Bool ?? true,
+                onboardingChecklistCollapsed: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistCollapsed),
+                onboardingChecklistHideCompleted: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistHideCompleted),
+                onboardingChecklistMetricsCompleted: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistMetricsCompleted),
+                onboardingChecklistPremiumExplored: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistPremiumExplored),
+                onboardingPrimaryGoal: defaults.string(forKey: AppSettingsKeys.Onboarding.onboardingPrimaryGoal) ?? ""
+            ),
+            health: .init(
+                isSyncEnabled: defaults.bool(forKey: AppSettingsKeys.Health.isSyncEnabled),
+                healthkitLastImport: defaults.double(forKey: AppSettingsKeys.Health.healthkitLastImport),
+                healthkitSyncWeight: defaults.object(forKey: AppSettingsKeys.Health.healthkitSyncWeight) as? Bool ?? true,
+                healthkitSyncBodyFat: defaults.object(forKey: AppSettingsKeys.Health.healthkitSyncBodyFat) as? Bool ?? true,
+                healthkitSyncHeight: defaults.object(forKey: AppSettingsKeys.Health.healthkitSyncHeight) as? Bool ?? true,
+                healthkitSyncLeanBodyMass: defaults.object(forKey: AppSettingsKeys.Health.healthkitSyncLeanBodyMass) as? Bool ?? true,
+                healthkitSyncWaist: defaults.object(forKey: AppSettingsKeys.Health.healthkitSyncWaist) as? Bool ?? true,
+                healthkitInitialHistoricalImport: defaults.bool(forKey: AppSettingsKeys.Health.healthkitInitialHistoricalImport),
+                healthIndicatorsV2Migrated: defaults.bool(forKey: AppSettingsKeys.Health.healthIndicatorsV2Migrated)
+            ),
+            indicators: .init(
+                showWHtROnHome: defaults.object(forKey: AppSettingsKeys.Indicators.showWHtROnHome) as? Bool ?? true,
+                showRFMOnHome: defaults.object(forKey: AppSettingsKeys.Indicators.showRFMOnHome) as? Bool ?? true,
+                showBMIOnHome: defaults.object(forKey: AppSettingsKeys.Indicators.showBMIOnHome) as? Bool ?? true,
+                showBodyFatOnHome: defaults.object(forKey: AppSettingsKeys.Indicators.showBodyFatOnHome) as? Bool ?? true,
+                showLeanMassOnHome: defaults.object(forKey: AppSettingsKeys.Indicators.showLeanMassOnHome) as? Bool ?? true,
+                showWHROnHome: defaults.object(forKey: AppSettingsKeys.Indicators.showWHROnHome) as? Bool ?? true,
+                showWaistRiskOnHome: defaults.object(forKey: AppSettingsKeys.Indicators.showWaistRiskOnHome) as? Bool ?? true,
+                showABSIOnHome: defaults.object(forKey: AppSettingsKeys.Indicators.showABSIOnHome) as? Bool ?? true,
+                showBodyShapeScoreOnHome: defaults.object(forKey: AppSettingsKeys.Indicators.showBodyShapeScoreOnHome) as? Bool ?? true,
+                showCentralFatRiskOnHome: defaults.object(forKey: AppSettingsKeys.Indicators.showCentralFatRiskOnHome) as? Bool ?? true,
+                showConicityOnHome: defaults.object(forKey: AppSettingsKeys.Indicators.showConicityOnHome) as? Bool ?? true,
+                showPhysiqueSWR: defaults.object(forKey: AppSettingsKeys.Indicators.showPhysiqueSWR) as? Bool ?? true,
+                showPhysiqueCWR: defaults.object(forKey: AppSettingsKeys.Indicators.showPhysiqueCWR) as? Bool ?? true,
+                showPhysiqueSHR: defaults.object(forKey: AppSettingsKeys.Indicators.showPhysiqueSHR) as? Bool ?? true,
+                showPhysiqueHWR: defaults.object(forKey: AppSettingsKeys.Indicators.showPhysiqueHWR) as? Bool ?? true,
+                showPhysiqueBWR: defaults.object(forKey: AppSettingsKeys.Indicators.showPhysiqueBWR) as? Bool ?? true,
+                showPhysiqueWHtR: defaults.object(forKey: AppSettingsKeys.Indicators.showPhysiqueWHtR) as? Bool ?? true,
+                showPhysiqueBodyFat: defaults.object(forKey: AppSettingsKeys.Indicators.showPhysiqueBodyFat) as? Bool ?? true,
+                showPhysiqueRFM: defaults.object(forKey: AppSettingsKeys.Indicators.showPhysiqueRFM) as? Bool ?? true
+            ),
+            experience: .init(
+                animationsEnabled: defaults.object(forKey: AppSettingsKeys.Experience.animationsEnabled) as? Bool ?? true,
+                hapticsEnabled: defaults.object(forKey: AppSettingsKeys.Experience.hapticsEnabled) as? Bool ?? true,
+                appLanguage: defaults.string(forKey: AppSettingsKeys.Experience.appLanguage) ?? "system",
+                quickAddHintDismissed: defaults.bool(forKey: AppSettingsKeys.Experience.quickAddHintDismissed),
+                photosFilterTag: defaults.string(forKey: AppSettingsKeys.Experience.photosFilterTag) ?? "",
+                saveUnchangedQuickAdd: defaults.bool(forKey: AppSettingsKeys.Experience.saveUnchangedQuickAdd)
+            ),
+            premium: .init(
+                premiumEntitlement: defaults.bool(forKey: AppSettingsKeys.Premium.entitlement),
+                premiumFirstLaunchDate: defaults.double(forKey: AppSettingsKeys.Premium.firstLaunchDate),
+                premiumLastNagDate: defaults.double(forKey: AppSettingsKeys.Premium.lastNagDate)
+            ),
+            diagnostics: .init(
+                diagnosticsLoggingEnabled: defaults.object(forKey: AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled) as? Bool ?? true,
+                crashReporterHasUnreported: defaults.bool(forKey: AppSettingsKeys.Diagnostics.crashReporterHasUnreported),
+                databaseEncryptionProtectionVersion: defaults.string(forKey: AppSettingsKeys.Diagnostics.databaseEncryptionProtectionVersion)
+            ),
+            notifications: .init(
+                measurementRemindersData: defaults.data(forKey: AppSettingsKeys.Notifications.reminders),
+                notificationsEnabled: defaults.bool(forKey: AppSettingsKeys.Notifications.notificationsEnabled),
+                smartEnabled: defaults.bool(forKey: AppSettingsKeys.Notifications.smartEnabled),
+                smartDays: max(defaults.integer(forKey: AppSettingsKeys.Notifications.smartDays), 0),
+                smartTime: defaults.double(forKey: AppSettingsKeys.Notifications.smartTime),
+                lastLogDate: defaults.double(forKey: AppSettingsKeys.Notifications.lastLogDate),
+                lastPhotoDate: defaults.double(forKey: AppSettingsKeys.Notifications.lastPhotoDate),
+                photoRemindersEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.photoRemindersEnabled) as? Bool ?? true,
+                goalAchievedEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.goalAchievedEnabled) as? Bool ?? true,
+                importNotificationsEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.importNotificationsEnabled) as? Bool ?? true
+            ),
+            analytics: .init(
+                analyticsEnabled: defaults.object(forKey: AppSettingsKeys.Analytics.analyticsEnabled) as? Bool ?? true,
+                firstMetricAddedTracked: defaults.bool(forKey: AppSettingsKeys.Analytics.firstMetricAddedTracked),
+                firstPhotoAddedTracked: defaults.bool(forKey: AppSettingsKeys.Analytics.firstPhotoAddedTracked),
+                appleIntelligenceEnabled: defaults.object(forKey: AppSettingsKeys.Analytics.appleIntelligenceEnabled) as? Bool ?? true
+            ),
+            internalState: .init(
+                settingsSchemaVersion: defaults.integer(forKey: AppSettingsKeys.settingsSchemaVersion)
+            )
+        )
+    }
+}

@@ -36,7 +36,7 @@ struct OnboardingFeatureCard: View {
 
 struct OnboardingHeroView: View {
     let animate: Bool
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {

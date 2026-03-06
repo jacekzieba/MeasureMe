@@ -16,6 +16,7 @@ struct PhotoDetailView: View {
     @State private var saveAlertTitle = AppLocalization.string("Photo Saved")
     @State private var saveAlertMessage = ""
     @State private var isSavingToPhotos = false
+    @State private var showDeleteConfirmation = false
     
     // Edit mode state
     @State private var editedDate: Date
@@ -141,7 +142,7 @@ private extension PhotoDetailView {
     
     var deleteButton: some View {
         Button(role: .destructive) {
-            deletePhoto()
+            showDeleteConfirmation = true
         } label: {
             Label(AppLocalization.string("Delete Photo"), systemImage: "trash")
                 .font(AppTypography.bodyEmphasis)
@@ -152,6 +153,17 @@ private extension PhotoDetailView {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .padding(.top, 20)
+        .alert(
+            AppLocalization.string("Delete Photo"),
+            isPresented: $showDeleteConfirmation
+        ) {
+            Button(AppLocalization.string("Cancel"), role: .cancel) { }
+            Button(AppLocalization.string("Delete"), role: .destructive) {
+                deletePhoto()
+            }
+        } message: {
+            Text(AppLocalization.string("photos.delete.single.confirmation"))
+        }
     }
 }
 
@@ -187,10 +199,8 @@ private extension PhotoDetailView {
     }
     
     func deletePhoto() {
-        context.delete(photo)
         do {
-            try context.save()
-            context.processPendingChanges()
+            try PhotoDeletionService.deletePhotos(Set([photo]), context: context)
             onDeleted?()
             dismiss()
         } catch {

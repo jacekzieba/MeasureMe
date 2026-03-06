@@ -13,27 +13,32 @@ struct HomeView: View {
 
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
+    @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var modelContext
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppStorage("userName") private var userName: String = ""
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
-    @AppStorage("isSyncEnabled") private var isSyncEnabled: Bool = false
-    @AppStorage("showLastPhotosOnHome") private var showLastPhotosOnHome: Bool = true
-    @AppStorage("showMeasurementsOnHome") private var showMeasurementsOnHome: Bool = true
-    @AppStorage("showHealthMetricsOnHome") private var showHealthMetricsOnHome: Bool = true
-    @AppStorage("home_tab_scroll_offset") private var homeTabScrollOffset: Double = 0.0
-    @AppStorage("onboarding_skipped_healthkit") private var onboardingSkippedHealthKit: Bool = false
-    @AppStorage("onboarding_skipped_reminders") private var onboardingSkippedReminders: Bool = false
-    @AppStorage("onboarding_checklist_show") private var showOnboardingChecklistOnHome: Bool = true
-    @AppStorage("onboarding_checklist_metrics_completed") private var onboardingChecklistMetricsCompleted: Bool = false
-    @AppStorage("onboarding_checklist_premium_explored") private var onboardingChecklistPremiumExplored: Bool = false
-    @AppStorage("onboarding_checklist_collapsed") private var onboardingChecklistCollapsed: Bool = false
-    @AppStorage("settings_open_tracked_measurements") private var settingsOpenTrackedMeasurements: Bool = false
-    @AppStorage("settings_open_reminders") private var settingsOpenReminders: Bool = false
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @AppSetting(\.profile.userName) private var userName: String = ""
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
+    @AppSetting(\.health.isSyncEnabled) var isSyncEnabled: Bool = false
+    @AppSetting(\.home.showLastPhotosOnHome) private var showLastPhotosOnHome: Bool = true
+    @AppSetting(\.home.showMeasurementsOnHome) private var showMeasurementsOnHome: Bool = true
+    @AppSetting(\.home.showHealthMetricsOnHome) private var showHealthMetricsOnHome: Bool = true
+    @AppSetting(\.home.showStreakOnHome) private var showStreakOnHome: Bool = true
+    @AppSetting(\.home.homeTabScrollOffset) private var homeTabScrollOffset: Double = 0.0
+    @AppSetting(\.onboarding.onboardingSkippedHealthKit) private var onboardingSkippedHealthKit: Bool = false
+    @AppSetting(\.onboarding.onboardingSkippedReminders) private var onboardingSkippedReminders: Bool = false
+    @AppSetting(\.onboarding.onboardingChecklistShow) private var showOnboardingChecklistOnHome: Bool = true
+    @AppSetting(\.onboarding.onboardingChecklistMetricsCompleted) private var onboardingChecklistMetricsCompleted: Bool = false
+    @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
+    @AppSetting(\.onboarding.onboardingChecklistCollapsed) private var onboardingChecklistCollapsed: Bool = false
+    @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
+    @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
+    @AppSetting(\.home.homePhotoMetricSyncLastDate) private var photoMetricSyncLastDate: Double = 0
+    @AppSetting(\.home.homePhotoMetricSyncLastID) private var photoMetricSyncLastID: String = ""
     
     @EnvironmentObject private var router: AppRouter
-    
+    @ObservedObject private var streakManager: StreakManager
+
     @Query private var recentSamples: [MetricSample]
     
     @Query private var goals: [MetricGoal]
@@ -50,10 +55,18 @@ struct HomeView: View {
     @State private var reminderChecklistCompleted: Bool = false
     @State private var showMoreChecklistItems: Bool = false
     @State private var didCheckSevenDayPaywallPrompt: Bool = false
+    @State private var didRunStartupPhases = false
+    @State private var didEmitHomeInitialRender = false
+    @State private var isPhotoMetricSyncInFlight = false
+    @State private var isLastPhotosSectionMounted = false
+    @State private var isHealthSectionMounted = false
+    @State private var deferredPhaseBTask: Task<Void, Never>?
+    @State private var deferredPhaseCTask: Task<Void, Never>?
+    @State private var deferredSectionMountTask: Task<Void, Never>?
     
     // Dane HealthKit
-    @State private var latestBodyFat: Double?
-    @State private var latestLeanMass: Double?
+    @State var latestBodyFat: Double?
+    @State var latestLeanMass: Double?
     @State private var hasAnyMeasurements = false
 
     // Zbuforowane dane pochodne - odswiezane przez onChange zamiast przeliczania przy kazdym renderze
@@ -64,13 +77,38 @@ struct HomeView: View {
     private let maxVisibleMetrics = 3
     private let maxVisiblePhotos = 6
     private let autoCheckPaywallPrompt: Bool
+    let effects: HomeEffects
+    private var shouldAnimate: Bool {
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+    }
 
-    init(autoCheckPaywallPrompt: Bool = true) {
+    // Designated initializer that accepts an explicit streakManager to avoid touching MainActor in default params (Swift 6 safe)
+    init(
+        autoCheckPaywallPrompt: Bool = true,
+        streakManager: StreakManager,
+        effects: HomeEffects = .live
+    ) {
         self.autoCheckPaywallPrompt = autoCheckPaywallPrompt
+        self.effects = effects
+        _streakManager = ObservedObject(wrappedValue: streakManager)
         let recentWindowStart = Calendar.current.date(byAdding: .day, value: -120, to: AppClock.now) ?? .distantPast
         _recentSamples = Query(
             filter: #Predicate<MetricSample> { $0.date >= recentWindowStart },
             sort: [SortDescriptor(\.date, order: .reverse)]
+        )
+    }
+
+    // Convenience initializer that safely captures the MainActor-isolated singleton
+    init(
+        autoCheckPaywallPrompt: Bool = true,
+        effects: HomeEffects = .live
+    ) {
+        // Access StreakManager.shared on the main actor to satisfy isolation rules
+        let manager: StreakManager = StreakManager.shared
+        self.init(
+            autoCheckPaywallPrompt: autoCheckPaywallPrompt,
+            streakManager: manager,
+            effects: effects
         )
     }
 
@@ -81,6 +119,29 @@ struct HomeView: View {
         let icon: String
         let isCompleted: Bool
         let isLoading: Bool
+    }
+
+    private enum HomePhotoTile: Identifiable {
+        case persisted(PhotoEntry)
+        case pending(PendingPhotoSaveItem)
+
+        var id: String {
+            switch self {
+            case .persisted(let photo):
+                return "persisted_\(String(describing: photo.persistentModelID))"
+            case .pending(let item):
+                return "pending_\(item.id.uuidString)"
+            }
+        }
+
+        var date: Date {
+            switch self {
+            case .persisted(let photo):
+                return photo.date
+            case .pending(let item):
+                return item.date
+            }
+        }
     }
     
     private var lastPhotosGridSide: CGFloat {
@@ -99,9 +160,19 @@ struct HomeView: View {
     }
     
     
-    /// Widoczne zdjęcia (maksymalnie 6)
-    private var visiblePhotos: [PhotoEntry] {
-        Array(allPhotos.prefix(maxVisiblePhotos))
+    /// Widoczne kafelki zdjęć (persisted + pending, maksymalnie 6)
+    private var visiblePhotoTiles: [HomePhotoTile] {
+        let persistedCandidateLimit = maxVisiblePhotos * 3
+        let persistedTiles = allPhotos.prefix(persistedCandidateLimit).map { HomePhotoTile.persisted($0) }
+        let pendingTiles = pendingPhotoSaveStore.pendingItems.map { HomePhotoTile.pending($0) }
+        return (persistedTiles + pendingTiles)
+            .sorted { lhs, rhs in lhs.date > rhs.date }
+            .prefix(maxVisiblePhotos)
+            .map { $0 }
+    }
+
+    private var hasAnyPhotoContent: Bool {
+        !allPhotos.isEmpty || !pendingPhotoSaveStore.pendingItems.isEmpty
     }
     
     /// Słownik próbek dla każdego rodzaju metryki
@@ -122,59 +193,119 @@ struct HomeView: View {
         cachedLatestByKind[.weight]?.value
     }
 
-    // MARK: - Cache Rebuild Helpers
-
-    private var recentSamplesSignature: Int {
-        var hasher = Hasher()
-        for sample in recentSamples {
-            hasher.combine(sample.persistentModelID)
-            hasher.combine(sample.value.bitPattern)
-            hasher.combine(sample.date.timeIntervalSinceReferenceDate)
-        }
-        return hasher.finalize()
+    private var weightDelta7dText: String? {
+        metricDeltaTextFromCache(kind: .weight, days: 7)
     }
 
-    /// Przebudowuje samplesByKind na podstawie ostatniego okna @Query.
-    private func rebuildSamplesCache() {
+    private var waistDelta7dText: String? {
+        metricDeltaTextFromCache(kind: .waist, days: 7)
+    }
+
+    // MARK: - Cache Rebuild Helpers
+
+    private var recentSamplesSignature: String {
+        guard let newest = recentSamples.first else { return "0" }
+        let oldest = recentSamples.last ?? newest
+        return [
+            String(recentSamples.count),
+            String(describing: newest.persistentModelID),
+            String(newest.date.timeIntervalSinceReferenceDate),
+            String(describing: oldest.persistentModelID),
+            String(oldest.date.timeIntervalSinceReferenceDate)
+        ].joined(separator: "|")
+    }
+
+    private func refreshMeasurementCaches(allowFallbackFetch: Bool = true) {
         var grouped: [MetricKind: [MetricSample]] = [:]
+        var latest: [MetricKind: MetricSample] = [:]
+        let kindsToKeep = Set(metricsStore.activeKinds).union([.waist, .height, .weight, .bodyFat, .leanBodyMass, .hips])
+
         for sample in recentSamples {
             guard let kind = MetricKind(rawValue: sample.kindRaw) else {
                 AppLog.debug("⚠️ Ignoring MetricSample with invalid kindRaw: \(sample.kindRaw)")
                 continue
             }
             grouped[kind, default: []].append(sample)
-        }
-        cachedSamplesByKind = grouped
-    }
-
-    private func refreshLatestSamplesCache() {
-        var latest: [MetricKind: MetricSample] = [:]
-        let kindsToFetch = Set(metricsStore.activeKinds).union([.waist, .height, .weight, .bodyFat, .leanBodyMass])
-        for kind in kindsToFetch {
-            let kindValue = kind.rawValue
-            var descriptor = FetchDescriptor<MetricSample>(
-                predicate: #Predicate { $0.kindRaw == kindValue },
-                sortBy: [SortDescriptor(\.date, order: .reverse)]
-            )
-            descriptor.fetchLimit = 1
-            if let sample = try? modelContext.fetch(descriptor).first {
+            if kindsToKeep.contains(kind), latest[kind] == nil {
                 latest[kind] = sample
             }
         }
+
+        cachedSamplesByKind = grouped
         cachedLatestByKind = latest
-    }
 
-    private func refreshHasAnyMeasurements() {
-        let descriptor = FetchDescriptor<MetricSample>()
-        let count = (try? modelContext.fetchCount(descriptor)) ?? 0
-        hasAnyMeasurements = count > 0
-    }
+        if !recentSamples.isEmpty {
+            hasAnyMeasurements = true
+        } else if allowFallbackFetch {
+            var descriptor = FetchDescriptor<MetricSample>(
+                sortBy: [SortDescriptor(\.date, order: .reverse)]
+            )
+            descriptor.fetchLimit = 1
+            hasAnyMeasurements = ((try? modelContext.fetch(descriptor).isEmpty) == false)
+        } else {
+            hasAnyMeasurements = false
+        }
 
-    private func refreshMeasurementCaches() {
-        rebuildSamplesCache()
-        refreshLatestSamplesCache()
-        refreshHasAnyMeasurements()
         autoHideChecklistIfCompleted()
+    }
+
+    private func metricDeltaTextFromCache(kind: MetricKind, days: Int) -> String? {
+        (cachedSamplesByKind[kind] ?? []).deltaText(days: days, kind: kind, unitsSystem: unitsSystem)
+    }
+
+    private enum PhotoSyncMode {
+        case full
+        case incremental
+    }
+
+    private var hasPhotoSyncCursor: Bool {
+        photoMetricSyncLastDate > 0
+    }
+
+    private func syncMode(force: Bool) -> PhotoSyncMode {
+        if force || !hasPhotoSyncCursor {
+            return .full
+        }
+        return .incremental
+    }
+
+    private func photoCursorID(for photo: PhotoEntry) -> String {
+        String(describing: photo.persistentModelID)
+    }
+
+    private func isPhotoAfterSyncCursor(_ photo: PhotoEntry) -> Bool {
+        HomeView.isAfterPhotoSyncCursor(
+            photoDate: photo.date,
+            photoID: photoCursorID(for: photo),
+            cursorDate: photoMetricSyncLastDate,
+            cursorID: photoMetricSyncLastID
+        )
+    }
+
+    private func updatePhotoSyncCursor(using photos: [PhotoEntry]) {
+        let candidates = photos.map { (date: $0.date, id: photoCursorID(for: $0)) }
+        guard let cursor = HomeView.newestPhotoSyncCursor(candidates: candidates) else { return }
+        photoMetricSyncLastDate = cursor.date
+        photoMetricSyncLastID = cursor.id
+    }
+
+    private func fetchSyncCandidatePhotos(mode: PhotoSyncMode) throws -> [PhotoEntry] {
+        let descriptor: FetchDescriptor<PhotoEntry>
+        switch mode {
+        case .full:
+            descriptor = FetchDescriptor<PhotoEntry>(
+                sortBy: [SortDescriptor(\.date, order: .forward)]
+            )
+        case .incremental:
+            let cursorDate = Date(timeIntervalSince1970: photoMetricSyncLastDate)
+            descriptor = FetchDescriptor<PhotoEntry>(
+                predicate: #Predicate<PhotoEntry> { photo in
+                    photo.date >= cursorDate
+                },
+                sortBy: [SortDescriptor(\.date, order: .forward)]
+            )
+        }
+        return try modelContext.fetch(descriptor)
     }
     
     /// Synchronizuje probki Measurement ze snapshotami metryk zapisanymi przy zdjeciach.
@@ -183,14 +314,72 @@ struct HomeView: View {
     ///   - Jesli probka dla (kind,date) istnieje, aktualizuje jej wartosc do wartosci snapshotu.
     ///   - If none exists, insert a new MetricSample.
     ///   - Nigdy nie usuwa MetricSample po usunieciu zdjecia; funkcja wykonuje tylko upsert.
-    private func syncMeasurementsFromPhotosIfNeeded() {
+    private func syncMeasurementsFromPhotosIfNeeded(force: Bool = false) {
+        guard !isPhotoMetricSyncInFlight else { return }
+        let mode = syncMode(force: force)
+        let isIncrementalMode = mode == .incremental
+        isPhotoMetricSyncInFlight = true
+        defer {
+            if isIncrementalMode {
+                StartupInstrumentation.event("HomePhotoSyncIncrementalEnd")
+            }
+            isPhotoMetricSyncInFlight = false
+        }
+
+        switch mode {
+        case .full:
+            StartupInstrumentation.event("HomePhotoSyncModeFull")
+        case .incremental:
+            StartupInstrumentation.event("HomePhotoSyncModeIncremental")
+            StartupInstrumentation.event("HomePhotoSyncIncrementalStart")
+        }
+
+        let candidatePhotos: [PhotoEntry]
+        do {
+            candidatePhotos = try fetchSyncCandidatePhotos(mode: mode)
+        } catch {
+            AppLog.debug("⚠️ Failed to fetch sync candidate photos: \(error)")
+            return
+        }
+        guard !candidatePhotos.isEmpty else { return }
+
+        let photosWithMetrics: [PhotoEntry]
+        switch mode {
+        case .full:
+            photosWithMetrics = candidatePhotos.filter { !$0.linkedMetrics.isEmpty }
+        case .incremental:
+            photosWithMetrics = candidatePhotos.filter { photo in
+                !photo.linkedMetrics.isEmpty && isPhotoAfterSyncCursor(photo)
+            }
+        }
+        guard !photosWithMetrics.isEmpty else {
+            updatePhotoSyncCursor(using: candidatePhotos)
+            return
+        }
+
+        let syncedKindsRaw = Set(
+            photosWithMetrics
+                .flatMap(\.linkedMetrics)
+                .compactMap { $0.kind?.rawValue }
+        )
+
         // Buduje cache istniejacych probek po (kindRaw, dayStart)
         var existingByKey: [String: MetricSample] = [:]
         do {
-            // Pobiera szerokie okno, aby ograniczil nadmiar zapytan; dostosuj w razie potrzeby
-            let descriptor = FetchDescriptor<MetricSample>(
-                sortBy: [SortDescriptor(\.date, order: .reverse)]
-            )
+            let descriptor: FetchDescriptor<MetricSample>
+            if syncedKindsRaw.isEmpty {
+                descriptor = FetchDescriptor<MetricSample>(
+                    sortBy: [SortDescriptor(\.date, order: .reverse)]
+                )
+            } else {
+                let kinds = Array(syncedKindsRaw)
+                descriptor = FetchDescriptor<MetricSample>(
+                    predicate: #Predicate<MetricSample> { sample in
+                        kinds.contains(sample.kindRaw)
+                    },
+                    sortBy: [SortDescriptor(\.date, order: .reverse)]
+                )
+            }
             let existing = try modelContext.fetch(descriptor)
             let cal = Calendar.current
             for s in existing {
@@ -203,9 +392,10 @@ struct HomeView: View {
         }
 
         // Iteruje po zdjeciach i wykonuje upsert probek dla kazdego snapshotu
-        for photo in allPhotos {
+        let calendar = Calendar.current
+        for photo in photosWithMetrics {
             let photoDate = photo.date
-            let dayStart = Calendar.current.startOfDay(for: photoDate)
+            let dayStart = calendar.startOfDay(for: photoDate)
             for snapshot in photo.linkedMetrics {
                 guard let kind = snapshot.kind else { continue }
                 let kindRaw = kind.rawValue
@@ -223,6 +413,75 @@ struct HomeView: View {
         }
 
         // Celowo bez usuwania (usuniecie zdjecia nie powinno kasowac probek)
+        updatePhotoSyncCursor(using: candidatePhotos)
+    }
+
+    private func emitHomeInitialRenderIfNeeded() {
+        guard !didEmitHomeInitialRender else { return }
+        didEmitHomeInitialRender = true
+        StartupInstrumentation.event("HomeInitialRender")
+    }
+
+    private func runStartupPhasesIfNeeded() {
+        guard !didRunStartupPhases else { return }
+        didRunStartupPhases = true
+        runCriticalStartupPhaseA()
+        scheduleDeferredStartupPhaseB()
+        scheduleDeferredStartupPhaseC()
+        scheduleDeferredSectionMounts()
+    }
+
+    private func runCriticalStartupPhaseA() {
+        hasAnyMeasurements = !recentSamples.isEmpty
+        isLastPhotosSectionMounted = false
+        isHealthSectionMounted = false
+    }
+
+    private func scheduleDeferredStartupPhaseB() {
+        deferredPhaseBTask?.cancel()
+        deferredPhaseBTask = Task(priority: .utility) { @MainActor in
+            try? await Task.sleep(for: .milliseconds(900))
+            guard !Task.isCancelled else { return }
+            refreshMeasurementCaches()
+            rebuildGoalsCache()
+            refreshChecklistState()
+            fetchHealthKitData()
+            streakManager.recordAppOpen(context: modelContext)
+        }
+    }
+
+    private func scheduleDeferredStartupPhaseC(
+        delayMilliseconds: Int = 1500,
+        forceSync: Bool = false
+    ) {
+        deferredPhaseCTask?.cancel()
+        deferredPhaseCTask = Task(priority: .background) { @MainActor in
+            try? await Task.sleep(for: .milliseconds(delayMilliseconds))
+            guard !Task.isCancelled else { return }
+
+            let deferredSyncState = StartupInstrumentation.begin("HomeDeferredSync")
+            StartupInstrumentation.event("HomeDeferredSyncStart")
+            syncMeasurementsFromPhotosIfNeeded(force: forceSync)
+            StartupInstrumentation.event("HomeDeferredSyncEnd")
+            StartupInstrumentation.end("HomeDeferredSync", state: deferredSyncState)
+        }
+    }
+
+    private func scheduleDeferredSectionMounts() {
+        deferredSectionMountTask?.cancel()
+        deferredSectionMountTask = Task(priority: .utility) { @MainActor in
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled else { return }
+            StartupInstrumentation.event("HomeLastPhotosMountStart")
+            isLastPhotosSectionMounted = true
+            StartupInstrumentation.event("HomeLastPhotosMountEnd")
+
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            StartupInstrumentation.event("HomeHealthMountStart")
+            isHealthSectionMounted = true
+            StartupInstrumentation.event("HomeHealthMountEnd")
+        }
     }
 
     /// Przebudowuje goalsByKind na podstawie tablicy celow @Query.
@@ -270,31 +529,42 @@ struct HomeView: View {
                     
                     // SEKCJA: LAST PHOTOS
                     if showLastPhotosOnHome {
-                        if allPhotos.isEmpty {
-                            lastPhotosEmptyState
+                        if isLastPhotosSectionMounted {
+                            if !hasAnyPhotoContent {
+                                lastPhotosEmptyState
+                            } else {
+                                lastPhotosSection
+                            }
                         } else {
-                            lastPhotosSection
+                            lastPhotosPlaceholder
                         }
                     }
                     
                     // SEKCJA: HEALTH
                     if showHealthMetricsOnHome, premiumStore.isPremium {
-                        AppGlassCard(
-                            depth: .base,
-                            cornerRadius: 24,
-                            tint: Color.cyan.opacity(0.16),
-                            contentPadding: 12
-                        ) {
-                            HealthMetricsSection(
-                                latestWaist: latestWaist,
-                                latestHeight: latestHeight,
-                                latestWeight: latestWeight,
-                                latestBodyFat: latestBodyFat,
-                                latestLeanMass: latestLeanMass,
-                                displayMode: .summaryOnly,
-                                title: "Health"
-                            )
-                            .fixedSize(horizontal: false, vertical: true)
+                        if isHealthSectionMounted {
+                            AppGlassCard(
+                                depth: .base,
+                                cornerRadius: 24,
+                                tint: Color.cyan.opacity(0.16),
+                                contentPadding: 12
+                            ) {
+                                HealthMetricsSection(
+                                    latestWaist: latestWaist,
+                                    latestHeight: latestHeight,
+                                    latestWeight: latestWeight,
+                                    latestHips: cachedLatestByKind[.hips]?.value,
+                                    latestBodyFat: latestBodyFat,
+                                    latestLeanMass: latestLeanMass,
+                                    weightDelta7dText: weightDelta7dText,
+                                    waistDelta7dText: waistDelta7dText,
+                                    displayMode: .summaryOnly,
+                                    title: "Health"
+                                )
+                                .fixedSize(horizontal: false, vertical: true)
+                            }
+                        } else {
+                            healthSectionPlaceholder
                         }
                     }
                 }
@@ -325,15 +595,14 @@ struct HomeView: View {
             PhotoDetailView(photo: photo)
         }
         .onAppear {
-            if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
-                didCheckSevenDayPaywallPrompt = true
-                premiumStore.checkSevenDayPromptIfNeeded()
+            DispatchQueue.main.async {
+                if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
+                    didCheckSevenDayPaywallPrompt = true
+                    premiumStore.checkSevenDayPromptIfNeeded()
+                }
+                emitHomeInitialRenderIfNeeded()
+                runStartupPhasesIfNeeded()
             }
-            refreshMeasurementCaches()
-            rebuildGoalsCache()
-            fetchHealthKitData()
-            refreshChecklistState()
-            syncMeasurementsFromPhotosIfNeeded()
         }
         .onChange(of: recentSamplesSignature) { _, _ in
             refreshMeasurementCaches()
@@ -346,10 +615,13 @@ struct HomeView: View {
         }
         .onChange(of: isSyncEnabled) { _, _ in
             refreshChecklistState()
+            fetchHealthKitData()
         }
         .onChange(of: allPhotos.count) { _, _ in
             refreshChecklistState()
-            syncMeasurementsFromPhotosIfNeeded()
+            if didRunStartupPhases {
+                scheduleDeferredStartupPhaseC(delayMilliseconds: 900)
+            }
         }
         .onChange(of: onboardingChecklistMetricsCompleted) { _, _ in
             refreshChecklistState()
@@ -364,7 +636,7 @@ struct HomeView: View {
             refreshChecklistState()
         }
         .refreshable {
-            syncMeasurementsFromPhotosIfNeeded()
+            syncMeasurementsFromPhotosIfNeeded(force: true)
             refreshMeasurementCaches()
             rebuildGoalsCache()
             fetchHealthKitData()
@@ -372,33 +644,6 @@ struct HomeView: View {
         }
     }
     
-    // MARK: - HealthKit Data Fetching
-    
-    private func fetchHealthKitData() {
-        guard isSyncEnabled else {
-            latestBodyFat = nil
-            latestLeanMass = nil
-            return
-        }
-
-        Task {
-            do {
-                let composition = try await HealthKitManager.shared.fetchLatestBodyCompositionCached()
-                await MainActor.run {
-                    // Zachowuj prawdziwe wartosci: bez sztucznych placeholderow, gdy brakuje danych Health.
-                    latestBodyFat = composition.bodyFat
-                    latestLeanMass = composition.leanMass
-                }
-            } catch {
-                AppLog.debug("⚠️ Error fetching HealthKit data: \(error.localizedDescription)")
-                await MainActor.run {
-                    latestBodyFat = nil
-                    latestLeanMass = nil
-                }
-            }
-        }
-    }
-
     private var greetingCard: some View {
         return AppGlassCard(
             depth: .floating,
@@ -418,6 +663,14 @@ struct HomeView: View {
                         .font(AppTypography.captionEmphasis)
                         .foregroundStyle(.white.opacity(0.75))
                     Spacer()
+                    if showStreakOnHome && streakManager.currentStreak > 0 {
+                        StreakBadge(
+                            count: streakManager.currentStreak,
+                            shouldAnimate: streakManager.shouldPlayAnimation,
+                            onAnimationComplete: { streakManager.markAnimationPlayed() }
+                        )
+                        .transition(.scale.combined(with: .opacity))
+                    }
                 }
 
                 Text(greetingTitle)
@@ -455,7 +708,7 @@ struct HomeView: View {
                 title: AppLocalization.string("First Photo"),
                 detail: AppLocalization.string("Photos make progress easier to notice."),
                 icon: "camera.fill",
-                isCompleted: !allPhotos.isEmpty,
+                isCompleted: hasAnyPhotoContent,
                 isLoading: false
             )
         ]
@@ -741,17 +994,17 @@ struct HomeView: View {
     }
 
     private func refreshChecklistState() {
-        let reminders = NotificationManager.shared.loadReminders()
-        let hasAnyReminder = NotificationManager.shared.smartEnabled || !reminders.isEmpty
-        reminderChecklistCompleted = NotificationManager.shared.notificationsEnabled && hasAnyReminder
+        reminderChecklistCompleted = effects.reminderChecklistCompleted()
         autoHideChecklistIfCompleted()
     }
 
     private func autoHideChecklistIfCompleted() {
-        guard allChecklistItemsCompleted, showOnboardingChecklistOnHome else { return }
+        guard HomeChecklistLogic.shouldAutoHideChecklist(
+            allChecklistItemsCompleted: allChecklistItemsCompleted,
+            showOnboardingChecklistOnHome: showOnboardingChecklistOnHome
+        ) else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
-            withAnimation(AppMotion.animation(AppMotion.reveal, enabled: shouldAnimate)) {
+            withAnimation(AppMotion.animation(AppMotion.sectionExit, enabled: shouldAnimate)) {
                 showOnboardingChecklistOnHome = false
             }
         }
@@ -794,7 +1047,7 @@ struct HomeView: View {
         Task { @MainActor in
             defer { isChecklistConnectingHealth = false }
             do {
-                try await HealthKitManager.shared.requestAuthorization()
+                try await effects.requestHealthKitAuthorization()
                 isSyncEnabled = true
                 onboardingSkippedHealthKit = true
                 checklistStatusText = AppLocalization.string("Connected to Apple Health.")
@@ -893,6 +1146,44 @@ struct HomeView: View {
     }
     
     // MARK: - Last Photos Section
+
+    private var lastPhotosPlaceholder: some View {
+        AppGlassCard(
+            depth: .elevated,
+            cornerRadius: 24,
+            tint: Color.cyan.opacity(0.14),
+            contentPadding: 16
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(AppLocalization.string("Last Photos"))
+                    .font(AppTypography.sectionTitle)
+                    .foregroundStyle(.white)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white.opacity(0.08))
+                    .frame(height: 160)
+            }
+            .redacted(reason: .placeholder)
+        }
+    }
+
+    private var healthSectionPlaceholder: some View {
+        AppGlassCard(
+            depth: .base,
+            cornerRadius: 24,
+            tint: Color.cyan.opacity(0.16),
+            contentPadding: 12
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(AppLocalization.string("Health"))
+                    .font(AppTypography.sectionTitle)
+                    .foregroundStyle(.white)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white.opacity(0.08))
+                    .frame(height: 92)
+            }
+            .redacted(reason: .placeholder)
+        }
+    }
     
     private var lastPhotosSection: some View {
         AppGlassCard(
@@ -910,7 +1201,7 @@ struct HomeView: View {
                     
                     Spacer()
                     
-                    if allPhotos.count > maxVisiblePhotos {
+                    if (allPhotos.count + pendingPhotoSaveStore.pendingItems.count) > maxVisiblePhotos {
                         Button {
                             router.selectedTab = .photos
                         } label: {
@@ -932,23 +1223,38 @@ struct HomeView: View {
                     columns: Array(repeating: GridItem(.fixed(lastPhotosGridSide), spacing: 8), count: 3),
                     spacing: 8
                 ) {
-                    ForEach(visiblePhotos) { photo in
-                        Button {
-                            selectedPhotoForFullScreen = photo
-                        } label: {
-                            PhotoGridThumb(
-                                imageData: photo.imageData,
-                                size: lastPhotosGridSide,
-                                cacheID: String(describing: photo.id)
+                    ForEach(visiblePhotoTiles) { tile in
+                        switch tile {
+                        case .persisted(let photo):
+                            Button {
+                                selectedPhotoForFullScreen = photo
+                            } label: {
+                                PhotoGridThumb(
+                                    photo: photo,
+                                    size: lastPhotosGridSide,
+                                    cacheID: String(describing: photo.id)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(AppLocalization.string("accessibility.open.photo.details"))
+                            .accessibilityValue(photo.date.formatted(date: .abbreviated, time: .omitted))
+                        case .pending(let pending):
+                            PendingPhotoGridCell(
+                                thumbnailData: pending.thumbnailData,
+                                progress: pending.progress,
+                                status: pending.status,
+                                targetSize: CGSize(width: lastPhotosGridSide, height: lastPhotosGridSide),
+                                cornerRadius: 12,
+                                cacheID: pending.id.uuidString,
+                                showsStatusLabel: false,
+                                accessibilityIdentifier: "home.lastPhotos.pending.item"
                             )
+                            .frame(width: lastPhotosGridSide, height: lastPhotosGridSide)
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(AppLocalization.string("accessibility.open.photo.details"))
-                        .accessibilityValue(photo.date.formatted(date: .abbreviated, time: .omitted))
                     }
                 }
                 .frame(height: {
-                    let rows = max(1, Int(ceil(Double(visiblePhotos.count) / 3.0)))
+                    let rows = max(1, Int(ceil(Double(visiblePhotoTiles.count) / 3.0)))
                     let spacing: CGFloat = 8
                     return CGFloat(rows) * lastPhotosGridSide + CGFloat(max(rows - 1, 0)) * spacing
                 }())
@@ -1003,202 +1309,3 @@ struct HomeView: View {
     }
 }
 
-private struct PhotoGridThumb: View {
-    let imageData: Data
-    let size: CGFloat
-    let cacheID: String
-    
-    var body: some View {
-        DownsampledImageView(
-            imageData: imageData,
-            targetSize: CGSize(width: size, height: size),
-            contentMode: .fill,
-            cornerRadius: 12,
-            showsProgress: false,
-            cacheID: cacheID
-        )
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-}
-
-// MARK: - Home Key Metric Row
-
-struct HomeKeyMetricRow: View {
-    let kind: MetricKind
-    let latest: MetricSample?
-    let goal: MetricGoal?
-    let samples: [MetricSample]
-    let unitsSystem: String
-
-    private let cornerRadius: CGFloat = 16
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 6) {
-                    Image(systemName: kind.systemImage)
-                        .font(AppTypography.metricTitle)
-                        .foregroundStyle(Color(hex: "#FCA311"))
-                        .scaleEffect(x: kind.shouldMirrorSymbol ? -1 : 1, y: 1)
-                        .frame(width: 16, height: 16)
-
-                    ViewThatFits(in: .vertical) {
-                        Text(kind.title)
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                        Text(kind.title)
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                if let latest {
-                    Text(valueString(metricValue: latest.value))
-                        .font(AppTypography.metricValue)
-                        .foregroundStyle(.white)
-
-                    if let goal = goal {
-                        HomeGoalProgressBar(
-                            goal: goal,
-                            latest: latest,
-                            baselineValue: baselineValue(for: goal),
-                            format: { valueString(metricValue: $0) }
-                        )
-                    } else {
-                        Text(AppLocalization.string("Set a goal to see progress."))
-                            .font(AppTypography.micro)
-                            .foregroundStyle(.white.opacity(0.6))
-                    }
-                } else {
-                    Text(AppLocalization.string("—"))
-                        .font(AppTypography.metricValue)
-                        .foregroundStyle(.white.opacity(0.6))
-                    Text(AppLocalization.string("No data yet"))
-                        .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.5))
-                }
-            }
-            .frame(maxHeight: .infinity, alignment: .top)
-
-            Spacer(minLength: 8)
-
-            if !samples.isEmpty {
-                MiniSparklineChart(samples: samples, kind: kind, goal: goal)
-                    .frame(width: 90, height: 44)
-            } else {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
-                    .frame(width: 90, height: 44)
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            AppGlassBackground(
-                depth: .base,
-                cornerRadius: cornerRadius,
-                tint: Color.appAccent.opacity(0.10)
-            )
-        )
-    }
-
-    private func valueString(metricValue: Double) -> String {
-        let shown = kind.valueForDisplay(fromMetric: metricValue, unitsSystem: unitsSystem)
-        let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-        return String(format: "%.1f %@", shown, unit)
-    }
-
-    private func baselineValue(for goal: MetricGoal) -> Double {
-        guard !samples.isEmpty else { return latest?.value ?? goal.targetValue }
-        let sorted = samples.sorted { $0.date < $1.date }
-        if let baseline = sorted.last(where: { $0.date <= goal.createdDate }) {
-            return baseline.value
-        }
-        return sorted.first?.value ?? (latest?.value ?? goal.targetValue)
-    }
-}
-
-private struct HomeGoalProgressBar: View {
-    let goal: MetricGoal
-    let latest: MetricSample
-    let baselineValue: Double
-    let format: (Double) -> String
-
-    var body: some View {
-        let currentVal = latest.value
-        let goalVal = goal.targetValue
-        let isAchieved = goal.isAchieved(currentValue: currentVal)
-        let progress: Double
-        switch goal.direction {
-        case .increase:
-            let denominator = goalVal - baselineValue
-            let raw = denominator == 0 ? (isAchieved ? 1.0 : 0.0) : (currentVal - baselineValue) / denominator
-            progress = min(max(raw, 0.0), 1.0)
-        case .decrease:
-            let denominator = baselineValue - goalVal
-            let raw = denominator == 0 ? (isAchieved ? 1.0 : 0.0) : (baselineValue - currentVal) / denominator
-            progress = min(max(raw, 0.0), 1.0)
-        }
-
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(AppLocalization.string("Progress"))
-                    .font(AppTypography.micro)
-                    .foregroundStyle(.white.opacity(0.6))
-                Spacer()
-                Text("\(Int(progress * 100))%")
-                    .font(AppTypography.microEmphasis.monospacedDigit())
-                    .foregroundStyle(isAchieved ? Color(hex: "#22C55E") : Color(hex: "#FCA311"))
-            }
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.white.opacity(0.12))
-                    Capsule()
-                        .fill(isAchieved ? Color(hex: "#22C55E") : Color(hex: "#FCA311"))
-                        .frame(width: geo.size.width * max(0, min(1, progress)))
-                }
-            }
-            .frame(height: 6)
-
-            HStack {
-                Text(AppLocalization.string("progress.now", format(currentVal)))
-                    .font(AppTypography.micro)
-                    .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.7))
-                Spacer()
-                Text(AppLocalization.string("progress.goal", format(goalVal)))
-                    .font(AppTypography.micro)
-                    .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-        }
-    }
-}
-// MARK: - Button Style
-
-private struct PressableTileStyle: ButtonStyle {
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func makeBody(configuration: Configuration) -> some View {
-        let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
-        configuration.label
-            .scaleEffect(configuration.isPressed && shouldAnimate ? 0.98 : 1)
-            .opacity(configuration.isPressed && shouldAnimate ? 0.9 : 1)
-    }
-}
-
-private struct HomeScrollOffsetKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}

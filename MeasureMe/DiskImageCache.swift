@@ -67,6 +67,13 @@ actor DiskImageCache {
         try? fileManager.removeItem(at: url)
     }
 
+    /// Usuwa z cache dyskowego dane dla wszystkich podanych kluczy.
+    func removeImages(forKeys keys: [String]) {
+        for key in keys {
+            removeImage(forKey: key)
+        }
+    }
+
     func removeAll() throws {
         memoryDataCache.removeAllObjects()
         let items: [URL]

@@ -51,9 +51,10 @@ private final class MockNotificationCenterClient: NotificationCenterClient {
 @MainActor
 final class NotificationManagerTests: XCTestCase {
     private static var retainedManagers: [NotificationManager] = []
+    private var defaults: UserDefaults!
+    private var settings: AppSettingsStore!
 
     private func resetNotificationDefaults() {
-        let defaults = UserDefaults.standard
         [
             "measurement_reminders",
             "measurement_notifications_enabled",
@@ -70,18 +71,35 @@ final class NotificationManagerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        let suiteName = "NotificationManagerTests.\(name)"
+        defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        settings = AppSettingsStore(defaults: defaults)
         resetNotificationDefaults()
     }
 
     override func tearDown() {
         resetNotificationDefaults()
+        defaults.removePersistentDomain(forName: "NotificationManagerTests.\(name)")
+        settings = nil
         super.tearDown()
     }
 
     private func makeManager(center: NotificationCenterClient) -> NotificationManager {
-        let manager = NotificationManager(center: center)
+        let manager = NotificationManager(center: center, settings: settings)
         Self.retainedManagers.append(manager)
         return manager
+    }
+
+    private func waitUntil(
+        timeoutNanoseconds: UInt64 = 1_000_000_000,
+        pollNanoseconds: UInt64 = 10_000_000,
+        _ condition: @autoclosure () -> Bool
+    ) async {
+        let deadline = DispatchTime.now().uptimeNanoseconds + timeoutNanoseconds
+        while !condition() && DispatchTime.now().uptimeNanoseconds < deadline {
+            try? await Task.sleep(nanoseconds: pollNanoseconds)
+        }
     }
 
     /// Co sprawdza: Sprawdza scenariusz: ScheduleReminderReportsAddError.
@@ -92,9 +110,11 @@ final class NotificationManagerTests: XCTestCase {
         center.completionAddError = NSError(domain: "test", code: 1)
         let manager = makeManager(center: center)
         manager.notificationsEnabled = true
+        await waitUntil(manager.notificationsEnabled)
 
         manager.scheduleReminder(MeasurementReminder(date: .now.addingTimeInterval(3600), repeatRule: .once))
-        await Task.yield()
+        await waitUntil(center.addedIdentifiers.count == 1)
+        await waitUntil(manager.lastSchedulingError != nil)
 
         XCTAssertNotNil(manager.lastSchedulingError)
         XCTAssertEqual(center.addedIdentifiers.count, 1)
@@ -107,31 +127,34 @@ final class NotificationManagerTests: XCTestCase {
         let center = MockNotificationCenterClient()
         let manager = makeManager(center: center)
         manager.notificationsEnabled = true
+        await waitUntil(manager.notificationsEnabled)
 
         center.completionAddError = NSError(domain: "test", code: 2)
         manager.scheduleReminder(MeasurementReminder(date: .now.addingTimeInterval(3600), repeatRule: .once))
-        await Task.yield()
+        await waitUntil(manager.lastSchedulingError != nil)
         XCTAssertNotNil(manager.lastSchedulingError)
 
         center.completionAddError = nil
         manager.scheduleReminder(MeasurementReminder(date: .now.addingTimeInterval(7200), repeatRule: .once))
-        await Task.yield()
+        await waitUntil(manager.lastSchedulingError == nil)
         XCTAssertNil(manager.lastSchedulingError)
     }
 
     /// Co sprawdza: Sprawdza scenariusz: CancelAllRemindersRemovesAllSavedIdentifiers.
     /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
     /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
-    func testCancelAllRemindersRemovesAllSavedIdentifiers() {
+    func testCancelAllRemindersRemovesAllSavedIdentifiers() async {
         let center = MockNotificationCenterClient()
         let manager = makeManager(center: center)
         manager.notificationsEnabled = true
+        await waitUntil(manager.notificationsEnabled)
 
         let reminders = [
             MeasurementReminder(id: "r1", date: .now.addingTimeInterval(3600), repeatRule: .once),
             MeasurementReminder(id: "r2", date: .now.addingTimeInterval(7200), repeatRule: .daily)
         ]
         manager.saveReminders(reminders)
+        await waitUntil(manager.loadReminders().count == reminders.count)
         manager.cancelAllReminders()
 
         XCTAssertTrue(center.removedIdentifiers.contains("measurement_reminder_r1"))
@@ -161,9 +184,10 @@ final class NotificationManagerTests: XCTestCase {
         XCTAssertTrue(center.removedIdentifiers.contains("measurement_smart_reminder"))
         XCTAssertTrue(center.removedIdentifiers.contains("goal_achieved_weight_123_notification"))
         XCTAssertFalse(center.removedIdentifiers.contains("some_other_app_notification"))
-        XCTAssertFalse(UserDefaults.standard.bool(forKey: "measurement_notifications_enabled"))
-        XCTAssertFalse(UserDefaults.standard.bool(forKey: "measurement_smart_enabled"))
-        XCTAssertEqual(UserDefaults.standard.integer(forKey: "measurement_smart_days"), 0)
-        XCTAssertNil(UserDefaults.standard.data(forKey: "measurement_reminders"))
+        await waitUntil(!settings.snapshot.notifications.notificationsEnabled)
+        XCTAssertFalse(settings.snapshot.notifications.notificationsEnabled)
+        XCTAssertFalse(settings.snapshot.notifications.smartEnabled)
+        XCTAssertEqual(settings.snapshot.notifications.smartDays, 0)
+        XCTAssertNil(settings.snapshot.notifications.measurementRemindersData)
     }
 }

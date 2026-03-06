@@ -100,8 +100,8 @@ extension MetricDetailView {
             latestValueText: valueString(latest.value),
             timeframeLabel: timeframeLabel,
             sampleCount: chartSamples.count,
-            delta7DaysText: deltaText(days: 7, in: chartSamples),
-            delta30DaysText: deltaText(days: 30, in: chartSamples),
+            delta7DaysText: chartSamples.deltaText(days: 7, kind: kind, unitsSystem: unitsSystem),
+            delta30DaysText: chartSamples.deltaText(days: 30, kind: kind, unitsSystem: unitsSystem),
             goalStatusText: goalStatusText,
             goalDirectionText: currentGoal?.direction.rawValue,
             defaultFavorableDirectionText: kind.defaultFavorableDirectionWhenNoGoal.rawValue
@@ -115,7 +115,7 @@ extension MetricDetailView {
         }
         let remaining = displayValue(abs(goal.remainingToGoal(currentValue: latest.value)))
         let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-        return String(format: "%.1f %@ away from goal", remaining, unit)
+        return AppLocalization.string("goal.away", remaining, unit)
     }
 
     var goalForecastText: String? {
@@ -159,6 +159,10 @@ extension MetricDetailView {
     }
 
     func baselineValue(for goal: MetricGoal) -> Double {
+        // Priorytet: użytkownik podał jawny punkt startowy
+        if let sv = goal.startValue { return sv }
+
+        // Stare zachowanie: ostatnia próbka ≤ daty utworzenia celu
         let sorted = sortedSamplesAscending
         guard !sorted.isEmpty else { return latestSampleValue ?? goal.targetValue }
         if let baseline = sorted.last(where: { $0.date <= goal.createdDate }) {
@@ -179,17 +183,6 @@ extension MetricDetailView {
         case .year: return AppLocalization.string("Last year")
         case .all: return AppLocalization.string("All time")
         }
-    }
-
-    func deltaText(days: Int, in source: [MetricSample]) -> String? {
-        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: Date()) else { return nil }
-        let window = source.filter { $0.date >= start }
-        guard let first = window.first, let last = window.last, first.persistentModelID != last.persistentModelID else {
-            return nil
-        }
-        let delta = displayValue(last.value) - displayValue(first.value)
-        let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-        return String(format: "%+.1f %@", delta, unit)
     }
 
     @MainActor
@@ -218,8 +211,10 @@ extension MetricDetailView {
     
     /// Dodaje nową próbkę do bazy danych
     func add(date: Date, value: Double) {
+        let previousMetricCount = AnalyticsFirstEventTracker.metricCount(in: context)
         let sample = MetricSample(kind: kind, value: value, date: date)
         context.insert(sample)
+        AnalyticsFirstEventTracker.trackFirstMetricIfNeeded(previousMetricCount: previousMetricCount)
         NotificationManager.shared.recordMeasurement(date: date)
         if let goal = currentGoal, goal.isAchieved(currentValue: value) {
             NotificationManager.shared.sendGoalAchievedNotification(
@@ -240,25 +235,48 @@ extension MetricDetailView {
     /// Usuwa próbkę z bazy danych
     func delete(sample: MetricSample) {
         context.delete(sample)
+        WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
     }
     
-    /// Ustawia lub aktualizuje cel dla metryki
-    func setGoal(targetValue: Double, direction: MetricGoal.Direction) {
+    /// Ustawia lub aktualizuje cel dla metryki.
+    /// - Parameters:
+    ///   - targetValue: Wartość docelowa w jednostkach bazowych
+    ///   - direction: Kierunek celu (increase/decrease)
+    ///   - startValue: Opcjonalna wartość startowa w jednostkach bazowych — punkt zerowy postępu.
+    ///                 Gdy nil, baseline obliczany jest dynamicznie z historii próbek (stare zachowanie).
+    ///   - startDate:  Opcjonalna data startowa — zapisywana razem z startValue jako MetricSample.
+    func setGoal(targetValue: Double, direction: MetricGoal.Direction,
+                 startValue: Double? = nil, startDate: Date? = nil) {
         if let existing = currentGoal {
             // Aktualizuj istniejący cel
             existing.targetValue = targetValue
             existing.direction = direction
+            existing.startValue = startValue
+            existing.startDate = startDate
+            existing.createdDate = .now
         } else {
             // Utwórz nowy cel
-            let goal = MetricGoal(kind: kind, targetValue: targetValue, direction: direction)
+            let goal = MetricGoal(kind: kind, targetValue: targetValue, direction: direction,
+                                  startValue: startValue, startDate: startDate)
             context.insert(goal)
         }
+        // Zapisz wartość startową jako MetricSample (jeśli podana i nie istnieje już bliźniacza próbka)
+        if let sv = startValue, let sd = startDate {
+            let alreadyExists = samples.contains {
+                abs($0.date.timeIntervalSince(sd)) < 60 && abs($0.value - sv) < 0.001
+            }
+            if !alreadyExists {
+                context.insert(MetricSample(kind: kind, value: sv, date: sd))
+            }
+        }
+        WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
     }
     
     /// Usuwa cel z bazy danych
     func deleteGoal() {
         if let goal = currentGoal {
             context.delete(goal)
+            WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
         }
     }
 }
@@ -275,6 +293,7 @@ struct MetricChartAXDescriptor: AXChartDescriptorRepresentable {
 struct MetricPhotosRow: View {
     let photos: [PhotoEntry]
     @State private var availableWidth: CGFloat = 0
+    @Environment(\.modelContext) private var modelContext
 
     private let spacing: CGFloat = 8
 
@@ -292,7 +311,7 @@ struct MetricPhotosRow: View {
         ) {
             ForEach(photos) { photo in
                 DownsampledImageView(
-                    imageData: photo.imageData,
+                    imageData: photo.thumbnailOrImageData,
                     targetSize: CGSize(width: side, height: side),
                     contentMode: .fill,
                     cornerRadius: 12,
@@ -301,6 +320,18 @@ struct MetricPhotosRow: View {
                 )
                 .frame(width: side, height: side)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .onAppear {
+                    guard photo.thumbnailData == nil else { return }
+                    Task(priority: .utility) {
+                        await PhotoThumbnailBackfillService.shared.enqueueIfNeeded(
+                            photoID: photo.persistentModelID,
+                            originalImageData: photo.imageData,
+                            existingThumbnailData: photo.thumbnailData,
+                            modelContainer: modelContext.container,
+                            source: "metric_detail"
+                        )
+                    }
+                }
             }
         }
         .frame(height: {
@@ -329,17 +360,32 @@ struct GoalProgressView: View {
     var body: some View {
         let currentVal = latest.value
         let goalVal = goal.targetValue
-        let isAchieved = goal.isAchieved(currentValue: currentVal)
         let progress: Double
+        let isAchieved: Bool
         switch goal.direction {
         case .increase:
             let denominator = goalVal - baselineValue
-            let raw = denominator == 0 ? (isAchieved ? 1.0 : 0.0) : (currentVal - baselineValue) / denominator
-            progress = min(max(raw, 0.0), 1.0)
+            if denominator <= 0 {
+                // Cel poniżej lub równy baseline — kierunek bez sensu geometrycznego.
+                // Progress = 0, cel nieaktywny dopóki baseline nie zostanie skorygowany.
+                progress = 0.0
+                isAchieved = false
+            } else {
+                let raw = (currentVal - baselineValue) / denominator
+                progress = min(max(raw, 0.0), 1.0)
+                isAchieved = progress >= 1.0
+            }
         case .decrease:
             let denominator = baselineValue - goalVal
-            let raw = denominator == 0 ? (isAchieved ? 1.0 : 0.0) : (baselineValue - currentVal) / denominator
-            progress = min(max(raw, 0.0), 1.0)
+            if denominator <= 0 {
+                // Cel powyżej lub równy baseline — analogiczny błąd geometryczny.
+                progress = 0.0
+                isAchieved = false
+            } else {
+                let raw = (baselineValue - currentVal) / denominator
+                progress = min(max(raw, 0.0), 1.0)
+                isAchieved = progress >= 1.0
+            }
         }
         return ProgressViewCard(
             isAchieved: isAchieved,
@@ -448,19 +494,20 @@ struct AddMetricSampleView: View {
     var onAdd: (Date, Double) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
     @FocusState private var isValueFocused: Bool
 
     @State private var date: Date = .now
     @State private var displayValue: Double
 
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
     init(kind: MetricKind, defaultMetricValue: Double? = nil, onAdd: @escaping (Date, Double) -> Void) {
         self.kind = kind
         self.onAdd = onAdd
 
         // Konwertuj domyślną wartość na jednostki wyświetlania
-        let units = UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
+        let units = AppSettingsStore.shared.snapshot.profile.unitsSystem
         if let metric = defaultMetricValue {
             _displayValue = State(initialValue: kind.valueForDisplay(fromMetric: metric, unitsSystem: units))
         } else {
@@ -549,6 +596,7 @@ struct AddMetricSampleView: View {
                         // Konwersja z jednostek wyświetlanych na bazowe (metryczne)
                         let metric = kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
                         onAdd(date, metric)
+                        WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
                         dismiss()
                     }
                     .disabled(!valueValidation.isValid)
@@ -573,8 +621,9 @@ struct EditMetricSampleView: View {
     let sample: MetricSample
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
     @FocusState private var isValueFocused: Bool
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
     @State private var date: Date
     @State private var displayValue: Double
@@ -588,7 +637,7 @@ struct EditMetricSampleView: View {
         _displayValue = State(
             initialValue: kind.valueForDisplay(
                 fromMetric: sample.value,
-                unitsSystem: UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
+                unitsSystem: AppSettingsStore.shared.snapshot.profile.unitsSystem
             )
         )
     }
@@ -674,6 +723,7 @@ struct EditMetricSampleView: View {
                         let metric = kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
                         sample.value = metric
                         sample.date = date
+                        WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
                         dismiss()
                     }
                     .disabled(!valueValidation.isValid)
@@ -701,32 +751,66 @@ struct EditMetricSampleView: View {
 struct SetGoalView: View {
     let kind: MetricKind
     let currentGoal: MetricGoal?
-    var onSet: (Double, MetricGoal.Direction) -> Void
+    /// Ostatnia znana wartość metryki (jednostki bazowe) — używana jako domyślny punkt startowy.
+    /// Gdy nil (brak historii), użytkownik musi wpisać wartość startową ręcznie.
+    let latestMetricValue: Double?
+    var onSet: (Double, MetricGoal.Direction, Double?, Date?) -> Void
     var onDelete: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("unitsSystem") private var unitsSystem: String = "metric"
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
     @FocusState private var isValueFocused: Bool
+    @FocusState private var isStartValueFocused: Bool
 
     @State private var displayValue: Double
     @State private var direction: MetricGoal.Direction
     @State private var showDeleteConfirmation = false
+    @State private var startDisplayValue: Double
+    @State private var startDate: Date
+    @State private var useCustomStart: Bool
 
-    init(kind: MetricKind, currentGoal: MetricGoal?, onSet: @escaping (Double, MetricGoal.Direction) -> Void, onDelete: (() -> Void)? = nil) {
+    init(kind: MetricKind, currentGoal: MetricGoal?, latestMetricValue: Double?,
+         onSet: @escaping (Double, MetricGoal.Direction, Double?, Date?) -> Void,
+         onDelete: (() -> Void)? = nil) {
         self.kind = kind
         self.currentGoal = currentGoal
+        self.latestMetricValue = latestMetricValue
         self.onSet = onSet
         self.onDelete = onDelete
 
         // Załaduj istniejący cel lub zacznij od zera
-        let units = UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
+        let units = AppSettingsStore.shared.snapshot.profile.unitsSystem
         if let goal = currentGoal {
             _displayValue = State(initialValue: kind.valueForDisplay(fromMetric: goal.targetValue, unitsSystem: units))
             _direction = State(initialValue: goal.direction)
+            // Punkt startowy: istniejący cel może mieć startValue
+            if let sv = goal.startValue {
+                _startDisplayValue = State(initialValue: kind.valueForDisplay(fromMetric: sv, unitsSystem: units))
+                _startDate = State(initialValue: goal.startDate ?? .now)
+                _useCustomStart = State(initialValue: true)
+            } else if let latest = latestMetricValue {
+                _startDisplayValue = State(initialValue: kind.valueForDisplay(fromMetric: latest, unitsSystem: units))
+                _startDate = State(initialValue: .now)
+                _useCustomStart = State(initialValue: false)
+            } else {
+                _startDisplayValue = State(initialValue: 0)
+                _startDate = State(initialValue: .now)
+                _useCustomStart = State(initialValue: false)
+            }
         } else {
             _displayValue = State(initialValue: 0)
             // Domyślny kierunek zależny od typu metryki
             _direction = State(initialValue: SetGoalView.defaultDirection(for: kind))
+            // Punkt startowy: domyślnie wyłączony (user włącza jeśli chce)
+            if let latest = latestMetricValue {
+                _startDisplayValue = State(initialValue: kind.valueForDisplay(fromMetric: latest, unitsSystem: units))
+                _startDate = State(initialValue: .now)
+                _useCustomStart = State(initialValue: false)
+            } else {
+                _startDisplayValue = State(initialValue: 0)
+                _startDate = State(initialValue: .now)
+                _useCustomStart = State(initialValue: false)
+            }
         }
     }
 
@@ -736,6 +820,24 @@ struct SetGoalView: View {
             kind: kind,
             unitsSystem: unitsSystem
         )
+    }
+
+    private var startValueValidation: MetricInputValidator.ValidationResult {
+        guard useCustomStart else { return .valid }
+        return MetricInputValidator.validateMetricDisplayValue(
+            startDisplayValue,
+            kind: kind,
+            unitsSystem: unitsSystem
+        )
+    }
+
+    private var isFormValid: Bool {
+        valueValidation.isValid && startValueValidation.isValid
+    }
+
+    /// Czy metryka nie ma żadnej historii pomiarów (i nie ma istniejącego celu ze startValue)
+    private var hasNoHistory: Bool {
+        latestMetricValue == nil && (currentGoal?.startValue == nil)
     }
 
     /// Określa domyślny kierunek celu dla danej metryki
@@ -780,7 +882,7 @@ struct SetGoalView: View {
                             }
                         }
 
-                        // MARK: - Hero value card
+                        // MARK: - Hero value card (cel docelowy)
                         AppGlassCard(
                             depth: .floating,
                             tint: Color.cyan.opacity(0.12),
@@ -820,6 +922,72 @@ struct SetGoalView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
 
+                        // MARK: - Start point card
+                        AppGlassCard(
+                            depth: .floating,
+                            tint: Color.cyan.opacity(0.12),
+                            contentPadding: 20
+                        ) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Text(AppLocalization.string("goal.start.section.title"))
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    // Toggle widoczny tylko gdy jest historia (gdy brak historii — sekcja jest wymuszona)
+                                    if !hasNoHistory {
+                                        Toggle("", isOn: $useCustomStart)
+                                            .labelsHidden()
+                                            .tint(Color.appAccent)
+                                    }
+                                }
+
+                                if useCustomStart {
+                                    // Wartość startowa (pełna szerokość)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(AppLocalization.string("goal.start.value.label"))
+                                            .font(AppTypography.micro)
+                                            .foregroundStyle(.secondary)
+                                        HStack(spacing: 4) {
+                                            TextField("0", value: $startDisplayValue, format: .number)
+                                                .keyboardType(.decimalPad)
+                                                .multilineTextAlignment(.trailing)
+                                                .font(.system(.body, design: .rounded).weight(.semibold).monospacedDigit())
+                                                .focused($isStartValueFocused)
+                                            Text(kind.unitSymbol(unitsSystem: unitsSystem))
+                                                .font(.system(.body, design: .rounded))
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .appInputContainer(focused: isStartValueFocused)
+                                    }
+
+                                    // Data startowa (pełna szerokość)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(AppLocalization.string("goal.start.date.label"))
+                                            .font(AppTypography.micro)
+                                            .foregroundStyle(.secondary)
+                                        DatePicker(
+                                            "",
+                                            selection: $startDate,
+                                            in: ...Date.now,
+                                            displayedComponents: .date
+                                        )
+                                        .labelsHidden()
+                                        .datePickerStyle(.compact)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+
+                                    // Komunikat walidacji wartości startowej
+                                    if !startValueValidation.isValid, let msg = startValueValidation.message {
+                                        Text(msg)
+                                            .font(AppTypography.micro)
+                                            .foregroundStyle(Color.red.opacity(0.9))
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                }
+                            }
+                        }
+
                         // MARK: - Help text card
                         AppGlassCard(depth: .base) {
                             Text(AppLocalization.string("metric.goal.set.help", kind.title.lowercased()))
@@ -838,7 +1006,7 @@ struct SetGoalView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                             }
-                            .buttonStyle(LiquidCapsuleButtonStyle(tint: .red.opacity(0.5)))
+                            .buttonStyle(AppDestructiveButtonStyle())
                             .padding(.top, 8)
                         }
                     }
@@ -856,11 +1024,15 @@ struct SetGoalView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(currentGoal == nil ? AppLocalization.string("Set") : AppLocalization.string("Update")) {
                         Haptics.light()
-                        let metric = kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
-                        onSet(metric, direction)
+                        let metricTarget = kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
+                        let metricStart: Double? = useCustomStart
+                            ? kind.valueToMetric(fromDisplay: startDisplayValue, unitsSystem: unitsSystem)
+                            : nil
+                        let startDateValue: Date? = useCustomStart ? startDate : nil
+                        onSet(metricTarget, direction, metricStart, startDateValue)
                         dismiss()
                     }
-                    .disabled(!valueValidation.isValid)
+                    .disabled(!isFormValid)
                 }
             }
             .alert(AppLocalization.string("Delete Goal"), isPresented: $showDeleteConfirmation) {

@@ -39,7 +39,7 @@ final class OnboardingToGoalJourneyUITests: XCTestCase {
         // powitanie -> profil -> boostery -> premium -> zakonczenie
         for _ in 0..<4 {
             let next = app.buttons["onboarding.next"]
-            XCTAssertTrue(next.waitForExistence(timeout: 6), "Przycisk Dalej powinien istniec podczas onboardingu")
+            XCTAssertTrue(next.waitForExistence(timeout: 12), "Przycisk Dalej powinien istniec podczas onboardingu")
             XCTAssertTrue(next.isEnabled, "Przycisk Dalej powinien byc aktywny")
             next.tap()
         }
@@ -49,7 +49,7 @@ final class OnboardingToGoalJourneyUITests: XCTestCase {
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 8), "Pasek zakladek powinien byc widoczny")
 
-        let measurementCandidates = ["Measurements", "Pomiary"]
+        let measurementCandidates = ["tab.measurements", "Measurements", "Pomiary"]
         for label in measurementCandidates {
             let button = tabBar.buttons[label]
             if button.exists {

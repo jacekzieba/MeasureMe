@@ -109,4 +109,41 @@ extension PhotoTag {
         case .rightCalf: self = .rightCalf
         }
     }
+
+    var metricKind: MetricKind? {
+        switch self {
+        case .wholeBody:
+            return nil
+        case .height:
+            return .height
+        case .waist:
+            return .waist
+        case .neck:
+            return .neck
+        case .shoulders:
+            return .shoulders
+        case .bust:
+            return .bust
+        case .chest:
+            return .chest
+        case .leftBicep:
+            return .leftBicep
+        case .rightBicep:
+            return .rightBicep
+        case .leftForearm:
+            return .leftForearm
+        case .rightForearm:
+            return .rightForearm
+        case .hips:
+            return .hips
+        case .leftThigh:
+            return .leftThigh
+        case .rightThigh:
+            return .rightThigh
+        case .leftCalf:
+            return .leftCalf
+        case .rightCalf:
+            return .rightCalf
+        }
+    }
 }

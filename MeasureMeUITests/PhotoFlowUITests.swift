@@ -15,7 +15,7 @@ final class PhotoFlowUITests: XCTestCase {
     func testPhotoCompareExportLoopDoesNotCrash() {
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 8))
-        tapTab(named: "Photos")
+        tapTab(named: "tab.photos")
 
         for _ in 0..<3 {
             openCompareWithHook()
@@ -33,22 +33,31 @@ final class PhotoFlowUITests: XCTestCase {
     }
 
     private func openCompareWithHook() {
-        let compareMode = app.buttons["photos.compare.mode.toggle"]
-        XCTAssertTrue(compareMode.waitForExistence(timeout: 5), "Expected compare mode toggle.")
-        compareMode.tap()
-
-        let openCompare = app.buttons["photos.compare.open"]
-        if !openCompare.waitForExistence(timeout: 2) {
-            compareMode.tap()
+        // Wejdź w tryb selekcji. Jeśli jesteśmy już w selekcji po poprzedniej iteracji,
+        // przycisk toggle może być zastąpiony przez "Done".
+        let selectMode = app.descendants(matching: .any)["photos.select.mode.toggle"].firstMatch
+        if selectMode.waitForExistence(timeout: 5) {
+            selectMode.tap()
+        } else {
+            let selectionDone = app.descendants(matching: .any)["photos.selection.done"].firstMatch
+            XCTAssertTrue(selectionDone.waitForExistence(timeout: 2), "Expected select mode toggle or selection done state.")
         }
+
+        // Hook UI test: zaznacza pierwsze 2 zdjęcia z bazy
+        let selectTwoHook = app.descendants(matching: .any)["photos.compare.selectTwoHook"].firstMatch
+        XCTAssertTrue(selectTwoHook.waitForExistence(timeout: 3), "Expected UI test select-two hook.")
+        selectTwoHook.tap()
+
+        // Teraz 2 zdjęcia zaznaczone → przycisk Compare widoczny
+        let openCompare = app.descendants(matching: .any)["photos.compare.open"].firstMatch
         XCTAssertTrue(openCompare.waitForExistence(timeout: 5), "Expected compare action button.")
         openCompare.tap()
 
-        XCTAssertTrue(app.buttons["photos.compare.done"].waitForExistence(timeout: 5), "Expected compare sheet.")
+        XCTAssertTrue(app.descendants(matching: .any)["photos.compare.done"].firstMatch.waitForExistence(timeout: 5), "Expected compare sheet.")
     }
 
     private func tapExportAndHandleSystemPromptIfNeeded() {
-        let exportButton = app.buttons["photos.compare.export"]
+        let exportButton = app.descendants(matching: .any)["photos.compare.export"].firstMatch
         XCTAssertTrue(exportButton.waitForExistence(timeout: 5), "Expected export button.")
         exportButton.tap()
 
@@ -67,7 +76,7 @@ final class PhotoFlowUITests: XCTestCase {
     }
 
     private func closeCompareSheet() {
-        let doneButton = app.buttons["photos.compare.done"]
+        let doneButton = app.descendants(matching: .any)["photos.compare.done"].firstMatch
         XCTAssertTrue(doneButton.waitForExistence(timeout: 5), "Expected Done button.")
         doneButton.tap()
     }

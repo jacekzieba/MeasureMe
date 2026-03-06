@@ -4,13 +4,15 @@ import SwiftData
 struct TabBarContainer: View {
     let autoCheckPaywallPrompt: Bool
     @StateObject private var router = AppRouter()
-    @AppStorage("home_tab_scroll_offset") private var homeTabScrollOffset: Double = 0.0
+    @AppSetting(\.home.homeTabScrollOffset) private var homeTabScrollOffset: Double = 0.0
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var premiumStore: PremiumStore
     @State private var didApplyAuditRoute = false
+    @State private var mountedTabs: Set<AppTab> = [.home]
 
     var body: some View {
-        let tabBarShouldBeVisible = router.selectedTab != .home || homeTabScrollOffset < -14
+        let isUITest = CommandLine.arguments.contains("-uiTestMode") || CommandLine.arguments.contains("-uiTestOnboardingMode")
+        let tabBarShouldBeVisible = isUITest || router.selectedTab != .home || homeTabScrollOffset < -14
 
         ZStack {
             Color.black
@@ -26,13 +28,17 @@ struct TabBarContainer: View {
                     } label: {
                         Label(AppLocalization.string("Home"), systemImage: "house.fill")
                     }
+                    .accessibilityIdentifier("tab.home")
 
                     // MEASUREMENTS
                     Tab(value: AppTab.measurements) {
-                        MeasurementsTabView()
+                        LazyMountedTab(isMounted: mountedTabs.contains(.measurements)) {
+                            MeasurementsTabView()
+                        }
                     } label: {
                         Label(AppLocalization.string("Measurements"), systemImage: "ruler")
                     }
+                    .accessibilityIdentifier("tab.measurements")
 
                     // COMPOSE
                     Tab(value: AppTab.compose, role: .search) {
@@ -40,30 +46,34 @@ struct TabBarContainer: View {
                     } label: {
                         Label(AppLocalization.string("Add"), systemImage: "plus")
                     }
+                    .accessibilityIdentifier("tab.add")
 
                     // PHOTOS
                     Tab(value: AppTab.photos) {
-                        PhotoView()
+                        LazyMountedTab(isMounted: mountedTabs.contains(.photos)) {
+                            PhotoView()
+                        }
                     } label: {
                         Label(AppLocalization.string("Photos"), systemImage: "photo")
                     }
+                    .accessibilityIdentifier("tab.photos")
 
                     // SETTINGS
                     Tab(value: AppTab.settings) {
-                        SettingsView()
+                        LazyMountedTab(isMounted: mountedTabs.contains(.settings)) {
+                            SettingsView()
+                        }
                     } label: {
                         Label(AppLocalization.string("Settings"), systemImage: "gearshape")
                     }
+                    .accessibilityIdentifier("tab.settings")
                 }
                 .tint(Color(hex: "#FCA311"))
                 .toolbarBackground(tabBarShouldBeVisible ? .visible : .hidden, for: .tabBar)
                 .toolbarBackground(.ultraThinMaterial, for: .tabBar)
                 .applyTabBarMinimizeBehaviorIfAvailable()
                 .onChange(of: router.selectedTab) { oldTab, newTab in
-                    if newTab == .compose {
-                        router.presentedSheet = .composer(mode: .newPost)
-                        router.selectedTab = oldTab
-                    }
+                    handleSelectedTabChange(oldTab: oldTab, newTab: newTab)
                 }
             } else {
                 TabView(selection: $router.selectedTab) {
@@ -74,40 +84,48 @@ struct TabBarContainer: View {
                         Label(AppLocalization.string("Home"), systemImage: "house.fill")
                     }
                     .tag(AppTab.home)
+                    .accessibilityIdentifier("tab.home")
 
-                    MeasurementsTabView()
+                    LazyMountedTab(isMounted: mountedTabs.contains(.measurements)) {
+                        MeasurementsTabView()
+                    }
                         .tabItem {
                             Label(AppLocalization.string("Measurements"), systemImage: "ruler")
                         }
                         .tag(AppTab.measurements)
+                        .accessibilityIdentifier("tab.measurements")
 
                     Color.clear
                         .tabItem {
                             Label(AppLocalization.string("Add"), systemImage: "plus")
                         }
                         .tag(AppTab.compose)
+                        .accessibilityIdentifier("tab.add")
 
-                    PhotoView()
+                    LazyMountedTab(isMounted: mountedTabs.contains(.photos)) {
+                        PhotoView()
+                    }
                         .tabItem {
                             Label(AppLocalization.string("Photos"), systemImage: "photo")
                         }
                         .tag(AppTab.photos)
+                        .accessibilityIdentifier("tab.photos")
 
-                    SettingsView()
+                    LazyMountedTab(isMounted: mountedTabs.contains(.settings)) {
+                        SettingsView()
+                    }
                         .tabItem {
                             Label(AppLocalization.string("Settings"), systemImage: "gearshape")
                         }
                         .tag(AppTab.settings)
+                        .accessibilityIdentifier("tab.settings")
                 }
                 .tint(Color(hex: "#FCA311"))
                 .toolbarBackground(tabBarShouldBeVisible ? .visible : .hidden, for: .tabBar)
                 .toolbarBackground(.ultraThinMaterial, for: .tabBar)
                 .applyTabBarMinimizeBehaviorIfAvailable()
                 .onChange(of: router.selectedTab) { oldTab, newTab in
-                    if newTab == .compose {
-                        router.presentedSheet = .composer(mode: .newPost)
-                        router.selectedTab = oldTab
-                    }
+                    handleSelectedTabChange(oldTab: oldTab, newTab: newTab)
                 }
             }
         }
@@ -127,7 +145,10 @@ struct TabBarContainer: View {
         }
         .environmentObject(router)
         .onAppear {
-            applyAuditRouteIfNeeded()
+            DispatchQueue.main.async {
+                applyAuditRouteIfNeeded()
+                mountTabIfNeeded(router.selectedTab)
+            }
         }
         .preferredColorScheme(.dark)
     }
@@ -152,6 +173,25 @@ struct TabBarContainer: View {
             premiumStore.presentPaywall(reason: .settings)
         }
     }
+
+    private func handleSelectedTabChange(oldTab: AppTab, newTab: AppTab) {
+        if newTab == .compose {
+            router.presentedSheet = .composer(mode: .newPost)
+            router.selectedTab = oldTab
+            return
+        }
+
+        mountTabIfNeeded(newTab)
+
+        if let signal = newTab.analyticsSelectionSignal {
+            Analytics.shared.track(signal)
+        }
+    }
+
+    private func mountTabIfNeeded(_ tab: AppTab) {
+        guard tab != .compose else { return }
+        mountedTabs.insert(tab)
+    }
 }
 
 private extension View {
@@ -161,6 +201,19 @@ private extension View {
             self.tabBarMinimizeBehavior(.onScrollDown)
         } else {
             self
+        }
+    }
+}
+
+private struct LazyMountedTab<Content: View>: View {
+    let isMounted: Bool
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        if isMounted {
+            content()
+        } else {
+            Color.clear
         }
     }
 }

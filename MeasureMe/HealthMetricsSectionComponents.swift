@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HealthMetricsSectionCard<Content: View>: View {
+    private let healthAccent = HealthIndicatorPalette.accent
     let title: String
     let icon: String
     @ViewBuilder let content: Content
@@ -11,7 +12,7 @@ struct HealthMetricsSectionCard<Content: View>: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.title3)
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(healthAccent)
                 
                 Text(title)
                     .font(AppTypography.bodyEmphasis)
@@ -25,11 +26,11 @@ struct HealthMetricsSectionCard<Content: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(hex: "#1C1C1E"))
+                .fill(HealthIndicatorPalette.cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .stroke(healthAccent.opacity(0.34), lineWidth: 1)
         )
     }
 }
@@ -37,6 +38,7 @@ struct HealthMetricsSectionCard<Content: View>: View {
 // MARK: - Health Metric Row
 
 struct HealthMetricRow<Destination: View>: View {
+    private let rowFill = HealthIndicatorPalette.rowBackground
     let title: String
     let value: String
     let category: String
@@ -62,7 +64,7 @@ struct HealthMetricRow<Destination: View>: View {
                     
                     Text(category)
                         .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.9))
+                        .foregroundStyle(Color.bestAccessibleTextColor(onHex: categoryColor))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(Color(hex: categoryColor), in: RoundedRectangle(cornerRadius: 4))
@@ -86,7 +88,7 @@ struct HealthMetricRow<Destination: View>: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.white.opacity(0.05))
+                    .fill(rowFill.opacity(0.88))
             )
         }
         .contentShape(Rectangle())
@@ -116,8 +118,8 @@ struct HealthMetricRow<Destination: View>: View {
         }
     }
     .onAppear {
-        UserDefaults.standard.set(30, forKey: "userAge")
-        UserDefaults.standard.set("male", forKey: "userGender")
+        AppSettingsStore.shared.set(\.profile.userAge, 30)
+        AppSettingsStore.shared.set(\.profile.userGender, "male")
     }
 }
 
@@ -162,12 +164,15 @@ struct HealthMetricRow<Destination: View>: View {
         }
     }
     .onAppear {
-        UserDefaults.standard.set(false, forKey: "showBMIOnHome")
-        UserDefaults.standard.set(false, forKey: "showWHtROnHome")
-        UserDefaults.standard.set(false, forKey: "showRFMOnHome")
-        UserDefaults.standard.set(false, forKey: "showBodyFatOnHome")
-        UserDefaults.standard.set(false, forKey: "showLeanMassOnHome")
-        UserDefaults.standard.set(false, forKey: "showABSIOnHome")
-        UserDefaults.standard.set(false, forKey: "showConicityOnHome")
+        AppSettingsStore.shared.set(\.indicators.showBMIOnHome, false)
+        AppSettingsStore.shared.set(\.indicators.showWHtROnHome, false)
+        AppSettingsStore.shared.set(\.indicators.showRFMOnHome, false)
+        AppSettingsStore.shared.set(\.indicators.showBodyFatOnHome, false)
+        AppSettingsStore.shared.set(\.indicators.showLeanMassOnHome, false)
+        AppSettingsStore.shared.set(\.indicators.showABSIOnHome, false)
+        AppSettingsStore.shared.set(\.indicators.showBodyShapeScoreOnHome, false)
+        AppSettingsStore.shared.set(\.indicators.showCentralFatRiskOnHome, false)
+        AppSettingsStore.shared.set(\.indicators.showWHROnHome, false)
+        AppSettingsStore.shared.set(\.indicators.showWaistRiskOnHome, false)
     }
 }

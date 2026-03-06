@@ -45,8 +45,8 @@ enum DatabaseEncryption {
         }
     }
 
-    static func applyRecommendedProtectionIfNeeded() {
-        let defaults = UserDefaults.standard
+    static func applyRecommendedProtectionIfNeeded(settings: AppSettingsStore) {
+        let defaults = settings
         let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
         let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
         let versionFingerprint = "\(shortVersion)-\(buildVersion)"
@@ -57,6 +57,10 @@ enum DatabaseEncryption {
 
         applyRecommendedProtection()
         defaults.set(versionFingerprint, forKey: protectionVersionKey)
+    }
+
+    static func applyRecommendedProtectionIfNeeded() {
+        applyRecommendedProtectionIfNeeded(settings: .shared)
     }
 
     private static func isLikelyDatabaseStore(_ url: URL) -> Bool {

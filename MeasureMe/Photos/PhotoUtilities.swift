@@ -5,11 +5,15 @@ import UniformTypeIdentifiers
 
 /// Utilities dla obsługi zdjęć
 enum PhotoUtilities {
-    struct EncodedPhoto {
+    struct EncodedPhoto: Sendable {
         let data: Data
         let format: String
         let quality: CGFloat
     }
+
+    nonisolated static let gridThumbnailSize = CGSize(width: 220, height: 240)
+    nonisolated static let gridThumbnailTargetBytes = 40_000
+    nonisolated static let gridThumbnailMaxBytes = 60_000
     
     // MARK: - Image Compression
     
@@ -18,7 +22,7 @@ enum PhotoUtilities {
     ///   - image: Obraz do skompresowania
     ///   - maxSize: Maksymalny rozmiar w bajtach
     /// - Returns: Skompresowane dane obrazu lub nil
-    static func compress(_ image: UIImage, toMaxSize maxSize: Int = 2_000_000) -> Data? {
+    nonisolated static func compress(_ image: UIImage, toMaxSize maxSize: Int = 2_000_000) -> Data? {
         encodeForStorage(image, maxSize: maxSize)?.data
     }
     
@@ -27,7 +31,7 @@ enum PhotoUtilities {
     ///   - image: Obraz do skompresowania
     ///   - quality: Jakość JPEG (0.0 - 1.0)
     /// - Returns: Skompresowane dane obrazu
-    static func compress(_ image: UIImage, quality: CGFloat = 0.8) -> Data? {
+    nonisolated static func compress(_ image: UIImage, quality: CGFloat = 0.8) -> Data? {
         if supportsHEICEncoding(), let data = encode(image: image, typeIdentifier: UTType.heic.identifier, quality: quality) {
             return data
         }
@@ -41,7 +45,7 @@ enum PhotoUtilities {
     ///   - image: Obraz do przeskalowania
     ///   - maxDimension: Maksymalny wymiar (szerokość lub wysokość)
     /// - Returns: Przeskalowany obraz
-    static func resize(_ image: UIImage, maxDimension: CGFloat = 1920) -> UIImage {
+    nonisolated static func resize(_ image: UIImage, maxDimension: CGFloat = 1920) -> UIImage {
         let size = image.size
         let aspectRatio = size.width / size.height
         
@@ -63,7 +67,7 @@ enum PhotoUtilities {
         }
     }
 
-    static func prepareImportedImage(_ image: UIImage, maxDimension: CGFloat = 2048) -> UIImage {
+    nonisolated static func prepareImportedImage(_ image: UIImage, maxDimension: CGFloat = 2048) -> UIImage {
         fixOrientation(resize(image, maxDimension: maxDimension))
     }
     
@@ -72,7 +76,7 @@ enum PhotoUtilities {
     /// Naprawia orientację obrazu (usuwa flagi EXIF)
     /// - Parameter image: Obraz do naprawy
     /// - Returns: Obraz z poprawioną orientacją
-    static func fixOrientation(_ image: UIImage) -> UIImage {
+    nonisolated static func fixOrientation(_ image: UIImage) -> UIImage {
         if image.imageOrientation == .up {
             return image
         }
@@ -87,7 +91,7 @@ enum PhotoUtilities {
         }
     }
 
-    static func downsampledImage(from url: URL, maxDimension: CGFloat = 2048) -> UIImage? {
+    nonisolated static func downsampledImage(from url: URL, maxDimension: CGFloat = 2048) -> UIImage? {
         let sourceOptions: [CFString: Any] = [
             kCGImageSourceShouldCache: false,
             kCGImageSourceShouldCacheImmediately: false
@@ -108,7 +112,7 @@ enum PhotoUtilities {
         return UIImage(cgImage: cgImage)
     }
 
-    static func encodeForStorage(
+    nonisolated static func encodeForStorage(
         _ image: UIImage,
         maxSize: Int = 2_000_000,
         alreadyPrepared: Bool = false
@@ -138,11 +142,73 @@ enum PhotoUtilities {
     ///   - image: Obraz źródłowy
     ///   - size: Rozmiar miniatury
     /// - Returns: Miniatura obrazu
-    static func thumbnail(from image: UIImage, size: CGSize = CGSize(width: 200, height: 200)) -> UIImage {
+    nonisolated static func thumbnail(from image: UIImage, size: CGSize = CGSize(width: 200, height: 200)) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: size))
         }
+    }
+
+    nonisolated static func makeGridThumbnailData(
+        from image: UIImage,
+        size: CGSize = gridThumbnailSize,
+        targetBytes: Int = gridThumbnailTargetBytes,
+        maxBytes: Int = gridThumbnailMaxBytes
+    ) -> Data? {
+        let thumbnailImage = thumbnail(from: image, size: size)
+        if let optimistic = thumbnailImage.jpegData(compressionQuality: 0.82),
+           optimistic.count <= targetBytes {
+            return optimistic
+        }
+
+        let minQuality: CGFloat = 0.35
+        let maxQuality: CGFloat = 0.92
+        var lower = minQuality
+        var upper = maxQuality
+        var bestData: Data?
+
+        for _ in 0..<6 {
+            let quality = (lower + upper) / 2
+            guard let data = thumbnailImage.jpegData(compressionQuality: quality) else {
+                break
+            }
+            if data.count <= targetBytes {
+                bestData = data
+                lower = quality
+            } else {
+                upper = quality
+            }
+        }
+
+        if let bestData {
+            return bestData
+        }
+
+        var quality = minQuality
+        while quality >= 0.1 {
+            if let data = thumbnailImage.jpegData(compressionQuality: quality),
+               data.count <= maxBytes {
+                return data
+            }
+            quality -= 0.08
+        }
+
+        return thumbnailImage.jpegData(compressionQuality: 0.1)
+    }
+
+    nonisolated static func makeGridThumbnailData(
+        from imageData: Data,
+        size: CGSize = gridThumbnailSize,
+        targetBytes: Int = gridThumbnailTargetBytes,
+        maxBytes: Int = gridThumbnailMaxBytes
+    ) -> Data? {
+        guard let image = UIImage(data: imageData) else { return nil }
+        return makeGridThumbnailData(
+            from: image,
+            size: size,
+            targetBytes: targetBytes,
+            maxBytes: maxBytes
+        )
     }
     
     // MARK: - Format Detection
@@ -150,7 +216,7 @@ enum PhotoUtilities {
     /// Określa format obrazu na podstawie danych
     /// - Parameter data: Dane obrazu
     /// - Returns: Format obrazu jako string (np. "JPEG", "PNG")
-    static func imageFormat(from data: Data) -> String? {
+    nonisolated static func imageFormat(from data: Data) -> String? {
         guard let firstByte = data.first else { return nil }
         
         switch firstByte {
@@ -172,24 +238,24 @@ enum PhotoUtilities {
     /// Formatuje rozmiar danych do czytelnego stringu
     /// - Parameter bytes: Liczba bajtów
     /// - Returns: Sformatowany string (np. "1.5 MB")
-    static func formatFileSize(_ bytes: Int) -> String {
+    nonisolated static func formatFileSize(_ bytes: Int) -> String {
         let formatter = ByteCountFormatter()
         formatter.allowedUnits = [.useKB, .useMB]
         formatter.countStyle = .file
         return formatter.string(fromByteCount: Int64(bytes))
     }
 
-    static func isPreparedForImport(_ image: UIImage, maxDimension: CGFloat = 2048) -> Bool {
+    nonisolated static func isPreparedForImport(_ image: UIImage, maxDimension: CGFloat = 2048) -> Bool {
         let maxImageDimension = max(image.size.width, image.size.height)
         return image.imageOrientation == .up && maxImageDimension <= maxDimension
     }
 
-    private static func supportsHEICEncoding() -> Bool {
+    private nonisolated static func supportsHEICEncoding() -> Bool {
         let supported = CGImageDestinationCopyTypeIdentifiers() as? [String] ?? []
         return supported.contains(UTType.heic.identifier)
     }
 
-    private static func encodeBestFit(
+    private nonisolated static func encodeBestFit(
         image: UIImage,
         typeIdentifier: String,
         formatLabel: String,
@@ -197,7 +263,16 @@ enum PhotoUtilities {
     ) -> EncodedPhoto? {
         let minQuality: CGFloat = 0.45
         let maxQuality: CGFloat = 0.92
-        let iterations = 7
+        // 4 iteracje binary search = precyzja ~0.03 jakości (nieodróżnialna wizualnie).
+        // Każda iteracja to pełny encode ~30-80ms — mniej iteracji = szybciej.
+        let iterations = 4
+
+        // Optymistyczny start: spróbuj najpierw maxQuality — jeśli mieści się w limicie,
+        // nie potrzeba binary search wcale.
+        if let data = encode(image: image, typeIdentifier: typeIdentifier, quality: maxQuality),
+           data.count <= maxSize {
+            return EncodedPhoto(data: data, format: formatLabel, quality: maxQuality)
+        }
 
         var lower = minQuality
         var upper = maxQuality
@@ -229,7 +304,7 @@ enum PhotoUtilities {
         return EncodedPhoto(data: fallback, format: formatLabel, quality: minQuality)
     }
 
-    private static func encode(image: UIImage, typeIdentifier: String, quality: CGFloat) -> Data? {
+    private nonisolated static func encode(image: UIImage, typeIdentifier: String, quality: CGFloat) -> Data? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -291,12 +366,12 @@ extension UIImage {
 extension PhotoUtilities {
     
     /// Tworzy testowy obraz dla preview
-    static func previewImage(systemName: String = "photo.fill") -> UIImage {
+    nonisolated static func previewImage(systemName: String = "photo.fill") -> UIImage {
         UIImage(systemName: systemName) ?? UIImage()
     }
     
     /// Tworzy testowe dane obrazu dla preview
-    static func previewImageData(systemName: String = "photo.fill") -> Data {
+    nonisolated static func previewImageData(systemName: String = "photo.fill") -> Data {
         previewImage(systemName: systemName).pngData() ?? Data()
     }
 }

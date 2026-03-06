@@ -25,8 +25,7 @@ enum AppCTAButtonSize {
 struct AppCTAButtonStyle: ButtonStyle {
     var size: AppCTAButtonSize = .regular
     var cornerRadius: CGFloat = AppRadius.md
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
 
     private struct CTAButtonVisuals: ViewModifier {
         var size: AppCTAButtonSize
@@ -71,8 +70,7 @@ struct AppCTAButtonStyle: ButtonStyle {
 
 struct AppSecondaryButtonStyle: ButtonStyle {
     var cornerRadius: CGFloat = AppRadius.md
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
 
     private struct SecondaryButtonVisuals: ViewModifier {
         var cornerRadius: CGFloat
@@ -112,6 +110,48 @@ struct AppSecondaryButtonStyle: ButtonStyle {
     }
 }
 
+struct AppDestructiveButtonStyle: ButtonStyle {
+    var size: AppCTAButtonSize = .regular
+    var cornerRadius: CGFloat = AppRadius.md
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+
+    func makeBody(configuration: Configuration) -> some View {
+        _AnimatedButtonContent(
+            isPressed: configuration.isPressed,
+            animationsEnabled: animationsEnabled,
+            label: {
+                configuration.label
+                    .font(size.font)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, size.verticalPadding)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(Color.red)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                            )
+                    )
+            },
+            shadow: { shouldAnimate in
+                AnyView(
+                    EmptyView()
+                        .scaleEffect(configuration.isPressed && shouldAnimate ? 0.98 : 1)
+                        .shadow(
+                            color: Color.red.opacity(configuration.isPressed ? 0.14 : 0.24),
+                            radius: configuration.isPressed ? 4 : 9,
+                            x: 0,
+                            y: configuration.isPressed ? 1 : 3
+                        )
+                )
+            }
+        )
+    }
+}
+
 struct AppInputContainerStyle: ViewModifier {
     var focused: Bool
 
@@ -143,6 +183,23 @@ struct AppMetricCardStyle: ViewModifier {
                     tint: Color.clear
                 )
             )
+    }
+}
+
+private struct _AnimatedButtonContent<Label: View>: View {
+    let isPressed: Bool
+    let animationsEnabled: Bool
+    let label: () -> Label
+    let shadow: (_ shouldAnimate: Bool) -> AnyView
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+        label()
+            .overlay(
+                shadow(shouldAnimate)
+            )
+            .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimate), value: isPressed)
     }
 }
 

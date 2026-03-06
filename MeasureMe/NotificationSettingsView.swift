@@ -359,7 +359,7 @@ private final class ReminderStore: ObservableObject {
     }
     
     private func persist() {
-        let now = Date()
+        let now = AppClock.now
         reminders = reminders.filter { $0.repeatRule != .once || $0.date > now }
         NotificationManager.shared.saveReminders(reminders)
         NotificationManager.shared.scheduleAllReminders(reminders)

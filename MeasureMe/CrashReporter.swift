@@ -10,14 +10,14 @@ import UIKit
 /// - Zapis raportów do pliku .crash w Application Support/CrashReports/
 /// - Sprawdzanie niezgłoszonych raportów przy starcie app
 final class CrashReporter {
-    static let shared = CrashReporter()
+    static let shared = CrashReporter(settings: .shared)
 
     // MARK: - Configuration
 
     private let maxLogEntries = 200
     private let reportsDirectoryName = "CrashReports"
     private let latestLogFileName = "latest_log.txt"
-    private let unreportedKey = "crashreporter_has_unreported"
+    private let settings: AppSettingsStore
 
     // MARK: - State
 
@@ -26,7 +26,9 @@ final class CrashReporter {
     private var currentScreen: String = "Unknown"
     private var isInstalled = false
 
-    private init() {}
+    private init(settings: AppSettingsStore) {
+        self.settings = settings
+    }
 
     // MARK: - Setup
 
@@ -47,7 +49,7 @@ final class CrashReporter {
     func appendLog(_ message: String) {
         lock.lock()
         defer { lock.unlock() }
-        logBuffer.append((timestamp: Date(), message: message))
+        logBuffer.append((timestamp: AppClock.now, message: message))
         if logBuffer.count > maxLogEntries {
             logBuffer.removeFirst(logBuffer.count - maxLogEntries)
         }
@@ -101,13 +103,13 @@ final class CrashReporter {
 
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
-        let filename = "crash_\(formatter.string(from: Date())).crash"
+        let filename = "crash_\(formatter.string(from: AppClock.now)).crash"
 
         do {
             let dir = try reportsDirectory()
             let url = dir.appendingPathComponent(filename)
             try data.write(to: url, options: .atomic)
-            UserDefaults.standard.set(true, forKey: unreportedKey)
+            settings.set(\.diagnostics.crashReporterHasUnreported, true)
         } catch {
             // Nie możemy logować — app crashuje
         }
@@ -124,8 +126,8 @@ final class CrashReporter {
         let memoryInfo = ProcessInfo.processInfo.physicalMemory
         let memoryGB = String(format: "%.1f", Double(memoryInfo) / 1_073_741_824)
 
-        let unitsSystem = UserDefaults.standard.string(forKey: "unitsSystem") ?? "metric"
-        let language = UserDefaults.standard.string(forKey: "appLanguage") ?? "system"
+        let unitsSystem = settings.snapshot.profile.unitsSystem
+        let language = settings.snapshot.experience.appLanguage
 
         return """
         ============================
@@ -134,7 +136,7 @@ final class CrashReporter {
 
         [App Info]
         Version: \(appVersion) (\(buildNumber))
-        Date: \(Date().formatted(.iso8601))
+        Date: \(AppClock.now.formatted(.iso8601))
 
         [Device Info]
         Model: \(device.model)
@@ -169,12 +171,12 @@ final class CrashReporter {
 
     /// Czy jest niezgłoszony crash report?
     var hasUnreportedCrash: Bool {
-        UserDefaults.standard.bool(forKey: unreportedKey)
+        settings.snapshot.diagnostics.crashReporterHasUnreported
     }
 
     /// Oznacz crash jako zgłoszony
     func markCrashReported() {
-        UserDefaults.standard.set(false, forKey: unreportedKey)
+        settings.set(\.diagnostics.crashReporterHasUnreported, false)
     }
 
     /// Zwróć listę wszystkich raportów (najnowsze pierwsze)

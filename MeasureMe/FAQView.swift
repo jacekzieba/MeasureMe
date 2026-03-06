@@ -59,6 +59,10 @@ struct FAQView: View {
                                 answer: "Health indicators are informational and based on simple algorithms from reputable health and medical institutions. They are not a diagnosis and should be reviewed with a medical professional."
                             ),
                             faqItem(
+                                question: "Are physique indicators medical?",
+                                answer: "No. Physique indicators are visual and proportion-focused heuristics designed for appearance tracking, not medical diagnosis."
+                            ),
+                            faqItem(
                                 question: "What is the privacy policy?",
                                 answer: "Your data stays on device. If you choose to export or share, you control where it goes."
                             ),
@@ -140,7 +144,7 @@ struct FAQView: View {
                         items: [
                             faqItem(
                                 question: "What is Premium Edition?",
-                                answer: "Premium unlocks AI Insights, Health Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled."
+                                answer: "Premium unlocks AI Insights, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled."
                             ),
                             faqItem(
                                 question: "Is there a free trial?",

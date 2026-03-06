@@ -16,7 +16,7 @@ struct AuditConfig: Equatable {
     let fixedDate: Date?
     let route: AuditRoute?
 
-    static let current: AuditConfig = from(
+    nonisolated static let current: AuditConfig = from(
         args: ProcessInfo.processInfo.arguments,
         environment: ProcessInfo.processInfo.environment
     )
@@ -60,9 +60,9 @@ struct AuditConfig: Equatable {
 }
 
 enum AppClock {
-    static var overrideNowForTesting: Date?
+    nonisolated(unsafe) static var overrideNowForTesting: Date?
 
-    static var now: Date {
+    nonisolated static var now: Date {
         overrideNowForTesting ?? AuditConfig.current.fixedDate ?? Date()
     }
 }

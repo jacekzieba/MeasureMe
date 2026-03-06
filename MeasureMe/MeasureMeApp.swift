@@ -4,8 +4,14 @@ import UIKit
 
 @main
 struct MeasureMeApp: App {
-    @AppStorage("appLanguage") private var appLanguage: String = "system"
+    @AppSetting(\.experience.appLanguage) private var appLanguage: String = "system"
+    @StateObject private var settingsStore = AppSettingsStore.shared
     @State private var startupState: StartupState = .loading
+    @State private var startupLoadingState = StartupLoadingState(
+        phase: .initializingStorage,
+        progress: 0.08,
+        statusKey: StartupLoadingPhase.initializingStorage.statusKey
+    )
     @State private var startupAttemptID: Int = 0
     @State private var showCrashAlert = false
 
@@ -13,6 +19,29 @@ struct MeasureMeApp: App {
         case loading
         case ready(ModelContainer)
         case failed(message: String)
+    }
+
+    private enum StartupLoadingPhase {
+        case initializingStorage
+        case preparingData
+        case finalizing
+
+        var statusKey: String {
+            switch self {
+            case .initializingStorage:
+                return "startup.loading.status.initializingStorage"
+            case .preparingData:
+                return "startup.loading.status.preparingData"
+            case .finalizing:
+                return "startup.loading.status.finalizing"
+            }
+        }
+    }
+
+    private struct StartupLoadingState {
+        var phase: StartupLoadingPhase
+        var progress: Double
+        var statusKey: String
     }
 
     private enum StartupStorageError: LocalizedError {
@@ -29,38 +58,9 @@ struct MeasureMeApp: App {
     init() {
         // Zainstaluj crash reporter jako pierwszy krok
         CrashReporter.shared.install()
+        Analytics.shared.setup()
+        Analytics.shared.track(.appLaunched)
 
-        UserDefaults.standard.register(defaults: [
-            "hasCompletedOnboarding": false,
-            "userName": "",
-            "userAge": 0,
-            "metric_weight_enabled": true,
-            "metric_waist_enabled": true,
-            "metric_bodyFat_enabled": true,
-            "metric_nonFatMass_enabled": true,
-            "unitsSystem": "metric",
-            "animationsEnabled": true,
-            "hapticsEnabled": true,
-            "save_unchanged_quick_add": false,
-            "measurement_photo_reminders_enabled": true,
-            "measurement_goal_achieved_enabled": true,
-            "onboarding_skipped_healthkit": false,
-            "onboarding_skipped_reminders": false,
-            "onboarding_checklist_show": true,
-            "onboarding_checklist_collapsed": false,
-            "onboarding_checklist_hide_completed": false,
-            "onboarding_checklist_metrics_completed": false,
-            "onboarding_checklist_premium_explored": false,
-            "settings_open_tracked_measurements": false,
-            "settings_open_reminders": false,
-            "appLanguage": "system",
-            "diagnostics_logging_enabled": true,
-            "healthkit_sync_weight": true,
-            "healthkit_sync_bodyFat": true,
-            "healthkit_sync_height": true,
-            "healthkit_sync_leanBodyMass": true,
-            "healthkit_sync_waist": true
-        ])
         configureUITestDefaultsIfNeeded()
 
         let segmentedFont = UIFont.systemFont(ofSize: 13, weight: .semibold).withMonospacedDigits()
@@ -108,14 +108,15 @@ struct MeasureMeApp: App {
             Group {
                 switch startupState {
                 case .loading:
-                    ProgressView()
-                        .controlSize(.large)
-                        .tint(Color.appAccent)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black.ignoresSafeArea())
+                    StartupLoadingView(
+                        statusKey: startupLoadingState.statusKey,
+                        progress: startupLoadingState.progress
+                    )
+                    .transition(.opacity)
                 case .ready(let container):
                     RootView()
                         .modelContainer(container)
+                        .transition(.opacity)
                 case .failed(let message):
                     StartupErrorView(
                         message: message,
@@ -126,6 +127,7 @@ struct MeasureMeApp: App {
                 }
             }
             .environment(\.locale, appLocale)
+            .environmentObject(settingsStore)
             .task(id: startupAttemptID) {
                 await bootstrapApp()
             }
@@ -135,6 +137,7 @@ struct MeasureMeApp: App {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+                WidgetDataWriter.flushPendingWrites()
                 CrashReporter.shared.persistLogBuffer()
             }
             .alert(AppLocalization.string("Crash Detected"), isPresented: $showCrashAlert) {
@@ -165,20 +168,52 @@ struct MeasureMeApp: App {
     @MainActor
     private func bootstrapApp() async {
         let bootstrapState = StartupInstrumentation.begin("AppBootstrap")
+        resetStartupLoadingState()
         startupState = .loading
 
         do {
+            updateStartupLoading(
+                phase: .initializingStorage,
+                targetProgress: 0.18,
+                duration: 0.16
+            )
             let containerSetupState = StartupInstrumentation.begin("CreatePersistentModelContainer")
             let container = try createPersistentModelContainer()
             StartupInstrumentation.end("CreatePersistentModelContainer", state: containerSetupState)
+            updateStartupLoading(
+                phase: .initializingStorage,
+                targetProgress: 0.44,
+                duration: 0.24
+            )
 
+            updateStartupLoading(
+                phase: .preparingData,
+                targetProgress: 0.58,
+                duration: 0.22
+            )
             let uiTestSetupState = StartupInstrumentation.begin("PrepareUITestData")
             try cleanUITestDataIfNeeded(container: container)
             try seedUITestDataIfNeeded(container: container)
             StartupInstrumentation.end("PrepareUITestData", state: uiTestSetupState)
+            updateStartupLoading(
+                phase: .preparingData,
+                targetProgress: 0.78,
+                duration: 0.24
+            )
 
-            startupState = .ready(container)
+            updateStartupLoading(
+                phase: .finalizing,
+                targetProgress: 0.90,
+                duration: 0.16
+            )
+            withAnimation(.easeOut(duration: 0.14)) {
+                startupLoadingState.progress = 1.0
+            }
+            withAnimation(.easeInOut(duration: 0.22)) {
+                startupState = .ready(container)
+            }
             StartupInstrumentation.event("FirstFrameReady")
+            Analytics.shared.track(.appFirstFrameReady)
             runDeferredStartupWork(container: container)
             StartupInstrumentation.end("AppBootstrap", state: bootstrapState)
         } catch {
@@ -189,6 +224,31 @@ struct MeasureMeApp: App {
             AppLog.debug("❌ App startup failed: \(error)")
             startupState = .failed(message: message)
             StartupInstrumentation.end("AppBootstrap", state: bootstrapState)
+        }
+    }
+
+    @MainActor
+    private func resetStartupLoadingState() {
+        startupLoadingState = StartupLoadingState(
+            phase: .initializingStorage,
+            progress: 0.08,
+            statusKey: StartupLoadingPhase.initializingStorage.statusKey
+        )
+    }
+
+    @MainActor
+    private func updateStartupLoading(
+        phase: StartupLoadingPhase,
+        targetProgress: Double,
+        duration: Double
+    ) {
+        startupLoadingState.phase = phase
+        startupLoadingState.statusKey = phase.statusKey
+        let clampedTarget = min(max(targetProgress, 0.0), 1.0)
+        let monotonicProgress = max(startupLoadingState.progress, clampedTarget)
+
+        withAnimation(.easeOut(duration: duration)) {
+            startupLoadingState.progress = monotonicProgress
         }
     }
 
@@ -207,6 +267,13 @@ struct MeasureMeApp: App {
             _ = HealthKitManager.shared.reconcileStoredSyncState()
             HealthKitManager.shared.startObservingHealthKitUpdates()
             StartupInstrumentation.end("DeferredHealthKitSetup", state: healthSetupState)
+        }
+
+        Task(priority: .background) {
+            try? await Task.sleep(for: .milliseconds(600))
+            let context = ModelContext(container)
+            let units = settingsStore.snapshot.profile.unitsSystem
+            WidgetDataWriter.writeAllAndReload(context: context, unitsSystem: units)
         }
     }
 
@@ -229,40 +296,65 @@ struct MeasureMeApp: App {
     private func configureUITestDefaultsIfNeeded() {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        let defaults = UserDefaults.standard
-        let metricKeys = [
-            "metric_weight_enabled", "metric_bodyFat_enabled", "metric_height_enabled",
-            "metric_nonFatMass_enabled", "metric_waist_enabled", "metric_neck_enabled",
-            "metric_shoulders_enabled", "metric_bust_enabled", "metric_chest_enabled",
-            "metric_leftBicep_enabled", "metric_rightBicep_enabled",
-            "metric_leftForearm_enabled", "metric_rightForearm_enabled",
-            "metric_hips_enabled", "metric_leftThigh_enabled", "metric_rightThigh_enabled",
-            "metric_leftCalf_enabled", "metric_rightCalf_enabled"
-        ]
+        let defaults = AppSettingsStore.shared
+        let metricKeys = AppSettingsKeys.Metrics.allEnabledKeys
         let enabledByDefault: Set<String> = [
-            "metric_weight_enabled", "metric_bodyFat_enabled",
-            "metric_nonFatMass_enabled", "metric_waist_enabled"
+            AppSettingsKeys.Metrics.weightEnabled,
+            AppSettingsKeys.Metrics.bodyFatEnabled,
+            AppSettingsKeys.Metrics.leanBodyMassEnabled,
+            AppSettingsKeys.Metrics.waistEnabled
+        ]
+        let indicatorKeysEnabledByDefault: [WritableKeyPath<AppSettingsSnapshot, Bool>] = [
+            \.indicators.showWHtROnHome,
+            \.indicators.showRFMOnHome,
+            \.indicators.showBMIOnHome,
+            \.indicators.showBodyFatOnHome,
+            \.indicators.showLeanMassOnHome,
+            \.indicators.showWHROnHome,
+            \.indicators.showWaistRiskOnHome,
+            \.indicators.showABSIOnHome,
+            \.indicators.showBodyShapeScoreOnHome,
+            \.indicators.showCentralFatRiskOnHome,
+            \.indicators.showPhysiqueSWR,
+            \.indicators.showPhysiqueCWR,
+            \.indicators.showPhysiqueSHR,
+            \.indicators.showPhysiqueHWR,
+            \.indicators.showPhysiqueBWR,
+            \.indicators.showPhysiqueWHtR,
+            \.indicators.showPhysiqueBodyFat,
+            \.indicators.showPhysiqueRFM
         ]
 
         if args.contains("-uiTestOnboardingMode") {
-            defaults.set(false, forKey: "hasCompletedOnboarding")
-            defaults.set("en", forKey: "appLanguage")
-            defaults.set(false, forKey: "premium_entitlement")
-            defaults.set(true, forKey: "apple_intelligence_enabled")
-            defaults.set(true, forKey: "onboarding_checklist_show")
-            defaults.set(0.0, forKey: "home_tab_scroll_offset")
+            defaults.set(\.onboarding.hasCompletedOnboarding, false)
+            defaults.set(\.experience.appLanguage, "en")
+            defaults.set(\.premium.premiumEntitlement, false)
+            defaults.set(\.analytics.appleIntelligenceEnabled, true)
+            defaults.set(\.onboarding.onboardingChecklistShow, true)
+            defaults.set(\.home.homeTabScrollOffset, 0.0)
             for key in metricKeys {
                 defaults.set(enabledByDefault.contains(key), forKey: key)
+            }
+            for keyPath in indicatorKeysEnabledByDefault {
+                defaults.set(keyPath, true)
             }
         }
 
         guard args.contains("-uiTestMode") else { return }
-        defaults.set(true, forKey: "hasCompletedOnboarding")
-        defaults.set("en", forKey: "appLanguage")
-        defaults.set(true, forKey: "premium_entitlement")
-        defaults.set(true, forKey: "apple_intelligence_enabled")
-        defaults.set(false, forKey: "onboarding_checklist_show")
-        defaults.set(-20.0, forKey: "home_tab_scroll_offset")
+        // Swizzle UIScrollView so every future instance has delaysContentTouches = false.
+        // This lets XCTest synthesised taps reach SwiftUI's .buttonStyle(.plain) buttons
+        // without the 150 ms hold that UIScrollView normally uses to distinguish tap vs scroll.
+        UIScrollView.swizzleDelaysContentTouchesForUITesting()
+        UIScrollView.appearance().delaysContentTouches = false
+        defaults.set(\.onboarding.hasCompletedOnboarding, true)
+        defaults.set(\.experience.appLanguage, "en")
+        defaults.set(\.premium.premiumEntitlement, true)
+        defaults.set(\.analytics.appleIntelligenceEnabled, true)
+        defaults.set(\.onboarding.onboardingChecklistShow, false)
+        defaults.set(\.home.homeTabScrollOffset, -20.0)
+        defaults.set(\.home.showLastPhotosOnHome, true)
+        defaults.set(\.home.showMeasurementsOnHome, true)
+        defaults.set(\.home.showHealthMetricsOnHome, true)
 
         if args.contains("-uiTestNoActiveMetrics") {
             for key in metricKeys { defaults.set(false, forKey: key) }
@@ -270,6 +362,22 @@ struct MeasureMeApp: App {
             for key in metricKeys {
                 defaults.set(enabledByDefault.contains(key), forKey: key)
             }
+        }
+        for keyPath in indicatorKeysEnabledByDefault {
+            defaults.set(keyPath, true)
+        }
+        if args.contains("-uiTestForceNonPremium") {
+            defaults.set(\.premium.premiumEntitlement, false)
+        }
+        if args.contains("-uiTestPhysiqueSWROff") {
+            defaults.set(\.indicators.showPhysiqueSWR, false)
+        }
+        if args.contains("-uiTestGenderNotSpecified") {
+            defaults.set(\.profile.userGender, "notSpecified")
+        } else if args.contains("-uiTestGenderMale") {
+            defaults.set(\.profile.userGender, "male")
+        } else if args.contains("-uiTestGenderFemale") {
+            defaults.set(\.profile.userGender, "female")
         }
         #endif
     }
@@ -375,3 +483,29 @@ struct MeasureMeApp: App {
         return image.jpegData(compressionQuality: 0.84)
     }
 }
+
+// MARK: - UI-Test: UIScrollView touch-delay swizzle
+
+#if DEBUG
+private extension UIScrollView {
+    /// Swizzles `setDelaysContentTouches:` so every UIScrollView instance (including
+    /// SwiftUI's internal one) always uses `delaysContentTouches = false` in UI-test
+    /// builds.  Must be called once, before any scroll views are created.
+    static func swizzleDelaysContentTouchesForUITesting() {
+        let originalSel = #selector(setter: UIScrollView.delaysContentTouches)
+        let swizzledSel = #selector(UIScrollView.uitest_setDelaysContentTouches(_:))
+        guard
+            let original = class_getInstanceMethod(UIScrollView.self, originalSel),
+            let swizzled = class_getInstanceMethod(UIScrollView.self, swizzledSel)
+        else { return }
+        method_exchangeImplementations(original, swizzled)
+    }
+
+    /// After swizzling this IS the original `setDelaysContentTouches:` implementation;
+    /// calling `self.uitest_setDelaysContentTouches(false)` inside our replacement
+    /// therefore invokes the original with `false`, not our code again.
+    @objc func uitest_setDelaysContentTouches(_ newValue: Bool) {
+        uitest_setDelaysContentTouches(false)
+    }
+}
+#endif

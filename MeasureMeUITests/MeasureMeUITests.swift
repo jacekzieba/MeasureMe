@@ -32,8 +32,8 @@ final class MeasureMeUITests: XCTestCase {
         ]
         app.launch()
 
-        XCTAssertTrue(app.tabBars.buttons["Settings"].waitForExistence(timeout: 5))
-        app.tabBars.buttons["Settings"].tap()
+        XCTAssertTrue(app.tabBars.buttons["tab.settings"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["tab.settings"].tap()
 
         let toggle = app.switches["settings.health.sync.toggle"]
         if !toggle.exists {
@@ -63,8 +63,8 @@ final class MeasureMeUITests: XCTestCase {
         ]
         app.launch()
 
-        XCTAssertTrue(app.tabBars.buttons["Measurements"].waitForExistence(timeout: 5))
-        app.tabBars.buttons["Measurements"].tap()
+        XCTAssertTrue(app.tabBars.buttons["tab.measurements"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["tab.measurements"].tap()
 
         let insightText = app.staticTexts["insight.card.text.compact"].firstMatch
         XCTAssertTrue(insightText.waitForExistence(timeout: 8))

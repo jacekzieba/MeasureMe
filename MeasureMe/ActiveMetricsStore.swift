@@ -22,8 +22,8 @@ import Combine
 final class ActiveMetricsStore: ObservableObject {
     // MARK: - Properties
     
-    private let defaults: UserDefaults
-    private var defaultsObserver: NSObjectProtocol?
+    private let defaults: AppSettingsStore
+    private var defaultsObserver: AnyCancellable?
     private let activeOrderKey = "metrics_active_order"
     private let keyMetricsKey = "home_key_metrics"
     private let maxKeyMetrics = 3
@@ -37,17 +37,14 @@ final class ActiveMetricsStore: ObservableObject {
 
     // MARK: - Initialization
 
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
+    convenience init() {
+        self.init(settings: .shared)
+    }
 
-        // Nasłuchuj zmian w UserDefaults (także z innych miejsc w aplikacji)
-        defaultsObserver = NotificationCenter.default.addObserver(
-            forName: UserDefaults.didChangeNotification,
-            object: defaults,
-            queue: .main
-        ) { [weak self] _ in
-            // Odrocz publikację do następnego cyklu run loop
-            // Unikamy "Publishing changes from within view updates" warning
+    init(settings: AppSettingsStore) {
+        self.defaults = settings
+
+        defaultsObserver = settings.objectWillChange.sink { [weak self] _ in
             guard let self else { return }
             Task { @MainActor [weak self] in
                 self?.debouncedPublish()
@@ -57,9 +54,7 @@ final class ActiveMetricsStore: ObservableObject {
 
     deinit {
         pendingPublish?.cancel()
-        if let token = defaultsObserver {
-            NotificationCenter.default.removeObserver(token)
-        }
+        defaultsObserver?.cancel()
     }
     
     // MARK: - Debounced Publishing

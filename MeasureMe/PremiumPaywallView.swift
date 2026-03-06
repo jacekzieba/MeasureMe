@@ -10,8 +10,8 @@ struct PremiumPaywallView: View {
     @State private var selectedProductID: String?
     @State private var selectedSlide: Int = 0
     @State private var isCTAPulsing: Bool = false
-    @AppStorage("animationsEnabled") private var animationsEnabled: Bool = true
-    @AppStorage("userName") private var userName: String = ""
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @AppSetting(\.profile.userName) private var userName: String = ""
 
     private enum SlideKind {
         case analyst
@@ -189,13 +189,18 @@ struct PremiumPaywallView: View {
             }
         }
         .onAppear {
-            premium.clearActionMessage()
-            Task { await premium.loadProducts() }
-            if selectedProductID == nil {
-                selectedProductID = PremiumConstants.yearlyProductID
-            }
-            if shouldAnimateCTA {
-                isCTAPulsing = true
+            DispatchQueue.main.async {
+                premium.clearActionMessage()
+                Task {
+                    await premium.loadProducts()
+                    await premium.syncEntitlements()
+                }
+                if selectedProductID == nil {
+                    selectedProductID = PremiumConstants.yearlyProductID
+                }
+                if shouldAnimateCTA {
+                    isCTAPulsing = true
+                }
             }
         }
         .onChange(of: premium.products.map(\.id)) { _, ids in
@@ -794,15 +799,27 @@ struct PremiumPaywallView: View {
         VStack(spacing: 12) {
             if availableProducts.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 8) {
-                        ProgressView()
-                            .tint(Color.appAccent)
-                        Text(AppLocalization.string("premium.subscription.loading"))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.75))
-                    }
-                    if let error = premium.productsLoadError {
+                    if premium.isLoading {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                                .tint(Color.appAccent)
+                            Text(AppLocalization.string("premium.subscription.loading"))
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.white.opacity(0.75))
+                        }
+                    } else if let error = premium.productsLoadError {
                         Text(AppLocalization.string("premium.subscription.error", error))
+                            .font(AppTypography.micro)
+                            .foregroundStyle(Color.orange.opacity(0.9))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button(AppLocalization.string("premium.subscription.retry")) {
+                            Task { await premium.loadProducts() }
+                        }
+                        .buttonStyle(.plain)
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(Color.appAccent)
+                    } else {
+                        Text(AppLocalization.string("No products returned by StoreKit."))
                             .font(AppTypography.micro)
                             .foregroundStyle(Color.orange.opacity(0.9))
                             .fixedSize(horizontal: false, vertical: true)
@@ -820,6 +837,16 @@ struct PremiumPaywallView: View {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(Color.white.opacity(0.06))
                 )
+                #if DEBUG
+                if availableProducts.isEmpty {
+                    let debugMessage = "DEBUG paywall: isLoading=\(premium.isLoading) audit=\(AuditConfig.current.isEnabled) disablePaywall=\(AuditConfig.current.disablePaywallNetwork)"
+                    Text(verbatim: debugMessage)
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.45))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 4)
+                }
+                #endif
             } else {
                 ForEach(availableProducts, id: \.id) { product in
                     planRow(product: product)

@@ -9,7 +9,9 @@
 /* Begin PBXBuildFile section */
 		A31FCE332F295FBB00E3253D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A31FCE322F295FBB00E3253D /* Assets.xcassets */; };
 		A345A4F92F475DFF0068BE76 /* Premium.storekit in Resources */ = {isa = PBXBuildFile; fileRef = A345A4F82F475DFF0068BE76 /* Premium.storekit */; };
+		A38326A02F4F7EEA00545E2C /* TelemetryDeck in Frameworks */ = {isa = PBXBuildFile; productRef = A383269F2F4F7EEA00545E2C /* TelemetryDeck */; };
 		A3B1D6022F45CB4A00DA3275 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = A3B1D6012F45CB4A00DA3275 /* SnapshotTesting */; };
+		C10000012F28000100000004 /* MeasureMeWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C10000012F28000100000001 /* MeasureMeWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -27,7 +29,28 @@
 			remoteGlobalIDString = A3BAF7BB2F27B74C00269A9A;
 			remoteInfo = MeasureMe;
 		};
+		C10000012F28000100000030 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A3BAF7B42F27B74C00269A9A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C10000012F28000100000020;
+			remoteInfo = MeasureMeWidget;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C10000012F28000100000003 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				C10000012F28000100000004 /* MeasureMeWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		A31FCE322F295FBB00E3253D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -35,6 +58,7 @@
 		A3BAF7BC2F27B74C00269A9A /* MeasureMe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MeasureMe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000012F28000100000001 /* MeasureMeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeasureMeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000012F28000100000002 /* MeasureMeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeasureMeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C10000012F28000100000001 /* MeasureMeWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MeasureMeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -53,6 +77,11 @@
 			path = MeasureMeUITests;
 			sourceTree = "<group>";
 		};
+		C10000012F28000100000002 /* MeasureMeWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MeasureMeWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,6 +89,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A38326A02F4F7EEA00545E2C /* TelemetryDeck in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,6 +102,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B10000012F28000100000014 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C10000012F28000100000011 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -95,6 +132,7 @@
 				A3BAF7BE2F27B74C00269A9A /* MeasureMe */,
 				B10000012F28000100000003 /* MeasureMeTests */,
 				B10000012F28000100000004 /* MeasureMeUITests */,
+				C10000012F28000100000002 /* MeasureMeWidget */,
 				A3B1D6002F45CB3D00DA3275 /* Frameworks */,
 				A3BAF7BD2F27B74C00269A9A /* Products */,
 				A345A4F82F475DFF0068BE76 /* Premium.storekit */,
@@ -107,6 +145,7 @@
 				A3BAF7BC2F27B74C00269A9A /* MeasureMe.app */,
 				B10000012F28000100000001 /* MeasureMeTests.xctest */,
 				B10000012F28000100000002 /* MeasureMeUITests.xctest */,
+				C10000012F28000100000001 /* MeasureMeWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -121,16 +160,19 @@
 				A3BAF7B82F27B74C00269A9A /* Sources */,
 				A3BAF7B92F27B74C00269A9A /* Frameworks */,
 				A3BAF7BA2F27B74C00269A9A /* Resources */,
+				C10000012F28000100000003 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				C10000012F28000100000040 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				A3BAF7BE2F27B74C00269A9A /* MeasureMe */,
 			);
 			name = MeasureMe;
 			packageProductDependencies = (
+				A383269F2F4F7EEA00545E2C /* TelemetryDeck */,
 			);
 			productName = MeasureMe;
 			productReference = A3BAF7BC2F27B74C00269A9A /* MeasureMe.app */;
@@ -183,6 +225,28 @@
 			productReference = B10000012F28000100000002 /* MeasureMeUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		C10000012F28000100000020 /* MeasureMeWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C10000012F28000100000050 /* Build configuration list for PBXNativeTarget "MeasureMeWidget" */;
+			buildPhases = (
+				C10000012F28000100000010 /* Sources */,
+				C10000012F28000100000011 /* Frameworks */,
+				C10000012F28000100000012 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C10000012F28000100000002 /* MeasureMeWidget */,
+			);
+			name = MeasureMeWidget;
+			packageProductDependencies = (
+			);
+			productName = MeasureMeWidget;
+			productReference = C10000012F28000100000001 /* MeasureMeWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -191,7 +255,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2620;
-				LastUpgradeCheck = 2620;
+				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					A3BAF7BB2F27B74C00269A9A = {
 						CreatedOnToolsVersion = 26.2;
@@ -203,6 +267,9 @@
 					B10000012F28000100000021 = {
 						CreatedOnToolsVersion = 26.2;
 						TestTargetID = A3BAF7BB2F27B74C00269A9A;
+					};
+					C10000012F28000100000020 = {
+						CreatedOnToolsVersion = 26.2;
 					};
 				};
 			};
@@ -218,6 +285,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				A3B1D5F72F45C90800DA3275 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+				A383269E2F4F7EEA00545E2C /* XCRemoteSwiftPackageReference "SwiftSDK" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A3BAF7BD2F27B74C00269A9A /* Products */;
@@ -227,6 +295,7 @@
 				A3BAF7BB2F27B74C00269A9A /* MeasureMe */,
 				B10000012F28000100000020 /* MeasureMeTests */,
 				B10000012F28000100000021 /* MeasureMeUITests */,
+				C10000012F28000100000020 /* MeasureMeWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -249,6 +318,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B10000012F28000100000015 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C10000012F28000100000012 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -279,6 +355,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C10000012F28000100000010 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -292,6 +375,11 @@
 			target = A3BAF7BB2F27B74C00269A9A /* MeasureMe */;
 			targetProxy = B10000012F28000100000031 /* PBXContainerItemProxy */;
 		};
+		C10000012F28000100000040 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C10000012F28000100000020 /* MeasureMeWidget */;
+			targetProxy = C10000012F28000100000030 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -300,6 +388,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -330,6 +419,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = K447N5AR8W;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -353,6 +443,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -363,6 +454,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -393,6 +485,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = K447N5AR8W;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -409,6 +502,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -422,7 +516,6 @@
 				CODE_SIGN_ENTITLEMENTS = MeasureMe/MeasureMe.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 11;
-				DEVELOPMENT_TEAM = K447N5AR8W;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					.gitattributes,
@@ -472,7 +565,6 @@
 				CODE_SIGN_ENTITLEMENTS = MeasureMe/MeasureMe.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 11;
-				DEVELOPMENT_TEAM = K447N5AR8W;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					.gitattributes,
@@ -520,7 +612,6 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = K447N5AR8W;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -545,7 +636,6 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = K447N5AR8W;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -569,7 +659,6 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = K447N5AR8W;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measuremeUITests;
@@ -588,7 +677,6 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = K447N5AR8W;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measuremeUITests;
@@ -599,6 +687,70 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = MeasureMe;
+			};
+			name = Release;
+		};
+		C10000012F28000100000060 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MeasureMeWidget/MeasureMeWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 11;
+				EXCLUDED_SOURCE_FILE_NAMES = (
+					Info.plist,
+					"*.entitlements",
+				);
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/MeasureMeWidgetInfo.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme.MeasureMeWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		C10000012F28000100000061 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MeasureMeWidget/MeasureMeWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 11;
+				EXCLUDED_SOURCE_FILE_NAMES = (
+					Info.plist,
+					"*.entitlements",
+				);
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/MeasureMeWidgetInfo.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme.MeasureMeWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -641,9 +793,26 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		C10000012F28000100000050 /* Build configuration list for PBXNativeTarget "MeasureMeWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C10000012F28000100000060 /* Debug */,
+				C10000012F28000100000061 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		A383269E2F4F7EEA00545E2C /* XCRemoteSwiftPackageReference "SwiftSDK" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TelemetryDeck/SwiftSDK";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.11.0;
+			};
+		};
 		A3B1D5F72F45C90800DA3275 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing";
@@ -655,6 +824,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		A383269F2F4F7EEA00545E2C /* TelemetryDeck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A383269E2F4F7EEA00545E2C /* XCRemoteSwiftPackageReference "SwiftSDK" */;
+			productName = TelemetryDeck;
+		};
 		A3B1D6012F45CB4A00DA3275 /* SnapshotTesting */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = A3B1D5F72F45C90800DA3275 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
