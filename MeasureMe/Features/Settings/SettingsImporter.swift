@@ -321,10 +321,12 @@ enum SettingsImporter {
     }
 
     private nonisolated static func loadCSVContent(url: URL) throws -> String {
-        guard url.startAccessingSecurityScopedResource() else {
-            throw ImportError.fileReadFailed
+        let hasSecurityScopedAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if hasSecurityScopedAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
         }
-        defer { url.stopAccessingSecurityScopedResource() }
 
         do {
             return try String(contentsOf: url, encoding: .utf8)

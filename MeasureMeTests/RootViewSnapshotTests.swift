@@ -16,6 +16,10 @@ final class RootViewSnapshotTests: XCTestCase {
   /// Dlaczego: Zapobiega regresjom UI/UX, ktore latwo przeoczyc recznie.
   /// Kryteria: Test konczy sie bez bledu i bez efektow ubocznych niezgodnych z oczekiwaniem.
   func testRootView_snapshot() throws {
+    #if !targetEnvironment(simulator)
+    throw XCTSkip("Snapshot tests require simulator host filesystem access to __Snapshots__ references.")
+    #else
+
     let defaults = UserDefaults.standard
     let baselineLanguage = defaults.object(forKey: "appLanguage")
     let baselineOnboarding = defaults.object(forKey: "hasCompletedOnboarding")
@@ -70,5 +74,6 @@ final class RootViewSnapshotTests: XCTestCase {
 
     // Porównanie ze snapshotem w __Snapshots__
     assertSnapshot(of: vc, as: .image)
+    #endif
   }
 }
