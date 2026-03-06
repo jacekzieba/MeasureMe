@@ -346,6 +346,8 @@ struct MeasureMeApp: App {
         // without the 150 ms hold that UIScrollView normally uses to distinguish tap vs scroll.
         UIScrollView.swizzleDelaysContentTouchesForUITesting()
         UIScrollView.appearance().delaysContentTouches = false
+        defaults.removeObject(forKey: AppSettingsKeys.Home.homeLayoutData)
+        defaults.set(\.homeLayout.layoutSchemaVersion, HomeLayoutSnapshot.currentSchemaVersion)
         defaults.set(\.onboarding.hasCompletedOnboarding, true)
         defaults.set(\.experience.appLanguage, "en")
         defaults.set(\.premium.premiumEntitlement, true)

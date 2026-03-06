@@ -104,9 +104,14 @@
 "home.greeting.evening" = "Dobry wieczór";
 "home.greeting.evening.named" = "Dobry wieczór, %@";
 "home.encouragement" = "Budujesz dziś stabilny rytm.";
+"home.thisweek.empty" = "Brak check-inów";
+"home.thisweek.single" = "Aktywne dni: 1";
+"home.thisweek.multiple" = "Aktywne dni: %d";
+"home.thisweek.detail.empty" = "Dodaj jeden pomiar, aby aktywować ten tydzień.";
+"home.thisweek.detail.logged" = "Ostatni check-in: %@.";
 "home.goalstatus.ontrack" = "Jesteś na dobrej, zrównoważonej ścieżce.";
-"home.goalstatus.slightlyoff" = "Małe kroki też się liczą — działaj dalej.";
-"home.goalstatus.needsattention" = "Dasz radę — jeden check‑in na raz.";
+"home.goalstatus.slightlyoff" = "Małe kroki też się liczą. Działaj dalej.";
+"home.goalstatus.needsattention" = "Dasz radę. Jeden check‑in na raz.";
 "home.goalstatus.nogoals" = "Ustaw cel, gdy będziesz gotowy.";
 "home.metric.accessibility.value" = "%@, %@";
 "home.metric.accessibility.nodata" = "%@, brak danych";

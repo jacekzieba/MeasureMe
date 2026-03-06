@@ -283,16 +283,10 @@ struct SettingsView: View {
                 .listRowInsets(Self.settingsRowInsets)
 
                 Section {
-                    SettingsCard(tint: Color.appAccent.opacity(0.10)) {
-                        SettingsCardHeader(title: AppLocalization.string("Home"), systemImage: "house.fill")
+                        SettingsCard(tint: Color.appAccent.opacity(0.10)) {
+                            SettingsCardHeader(title: AppLocalization.string("Home"), systemImage: "house.fill")
                         NavigationLink {
-                            HomeSettingsDetailView(
-                                showMeasurementsOnHome: $showMeasurementsOnHome,
-                                showLastPhotosOnHome: $showLastPhotosOnHome,
-                                showHealthMetricsOnHome: $showHealthMetricsOnHome,
-                                showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome,
-                                showStreakOnHome: $showStreakOnHome
-                            )
+                            HomeSettingsDetailView()
                         } label: {
                             Text(AppLocalization.string("Open Home settings"))
                                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
@@ -959,13 +953,7 @@ struct SettingsView: View {
         case .notifications:
             NotificationSettingsView()
         case .home:
-            HomeSettingsDetailView(
-                showMeasurementsOnHome: $showMeasurementsOnHome,
-                showLastPhotosOnHome: $showLastPhotosOnHome,
-                showHealthMetricsOnHome: $showHealthMetricsOnHome,
-                showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome,
-                showStreakOnHome: $showStreakOnHome
-            )
+            HomeSettingsDetailView()
         case .aiInsights:
             AIInsightsSettingsDetailView(appleIntelligenceEnabled: $appleIntelligenceEnabled)
         case .units:

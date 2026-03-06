@@ -83,9 +83,14 @@
 "home.greeting.evening" = "Good Evening";
 "home.greeting.evening.named" = "Good Evening, %@";
 "home.encouragement" = "You’re building steady momentum today.";
+"home.thisweek.empty" = "No check-ins yet";
+"home.thisweek.single" = "1 check-in";
+"home.thisweek.multiple" = "%d check-ins";
+"home.thisweek.detail.empty" = "Log one measurement to activate this week.";
+"home.thisweek.detail.logged" = "Last check-in on %@.";
 "home.goalstatus.ontrack" = "You’re on a steady, sustainable path.";
-"home.goalstatus.slightlyoff" = "Small steps still count—keep going.";
-"home.goalstatus.needsattention" = "You’ve got this—one check‑in at a time.";
+"home.goalstatus.slightlyoff" = "Small steps still count. Keep going.";
+"home.goalstatus.needsattention" = "You’ve got this. One check‑in at a time.";
 "home.goalstatus.nogoals" = "Set a goal whenever you’re ready.";
 "home.metric.accessibility.value" = "%@, %@";
 "home.metric.accessibility.nodata" = "%@, no data yet";

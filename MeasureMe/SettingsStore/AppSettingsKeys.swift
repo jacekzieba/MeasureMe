@@ -17,6 +17,8 @@ enum AppSettingsKeys {
         static let showMeasurementsOnHome = "showMeasurementsOnHome"
         static let showHealthMetricsOnHome = "showHealthMetricsOnHome"
         static let showStreakOnHome = "showStreakOnHome"
+        static let homeLayoutSchemaVersion = "home_layout_schema_version"
+        static let homeLayoutData = "home_layout_data"
         static let homeTabScrollOffset = "home_tab_scroll_offset"
         static let homePhotoMetricSyncLastDate = "home_photo_metric_sync_last_date"
         static let homePhotoMetricSyncLastID = "home_photo_metric_sync_last_id"

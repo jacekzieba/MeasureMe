@@ -130,6 +130,40 @@ final class AppSettingsStore: ObservableObject {
         set(integer(forKey: key) + 1, forKey: key)
     }
 
+    func homeLayoutSnapshot() -> HomeLayoutSnapshot {
+        guard let data = snapshot.homeLayout.layoutData,
+              let decoded = try? JSONDecoder().decode(HomeLayoutSnapshot.self, from: data) else {
+            return HomeLayoutSnapshot.defaultV1(using: snapshot)
+        }
+        return HomeLayoutNormalizer.normalize(decoded, using: snapshot)
+    }
+
+    func setHomeLayoutSnapshot(_ layout: HomeLayoutSnapshot, syncLegacyHomeFlags: Bool = true) {
+        let normalized = HomeLayoutNormalizer.normalize(layout, using: snapshot)
+        guard let data = try? JSONEncoder().encode(normalized) else { return }
+
+        set(\.homeLayout.layoutSchemaVersion, normalized.schemaVersion)
+        set(\.homeLayout.layoutData, data)
+
+        guard syncLegacyHomeFlags else { return }
+        set(\.home.showMeasurementsOnHome, normalized.item(for: .keyMetrics)?.isVisible ?? true)
+        set(\.home.showLastPhotosOnHome, normalized.item(for: .recentPhotos)?.isVisible ?? true)
+        set(\.home.showHealthMetricsOnHome, normalized.item(for: .healthSummary)?.isVisible ?? true)
+        set(\.onboarding.onboardingChecklistShow, normalized.item(for: .setupChecklist)?.isVisible ?? true)
+    }
+
+    func setHomeModuleVisibility(_ isVisible: Bool, for kind: HomeModuleKind) {
+        var layout = homeLayoutSnapshot()
+        layout.setVisibility(isVisible, for: kind)
+        setHomeLayoutSnapshot(layout)
+    }
+
+    func resetHomeLayout() {
+        let current = homeLayoutSnapshot()
+        let reset = current.resettingToDefaultGeometry(using: snapshot)
+        setHomeLayoutSnapshot(reset)
+    }
+
     func resetNotificationSettingsToDefaults() {
         performDefaultsWrite(scheduleSnapshotRefreshAfterWrite: true) {
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.reminders)
@@ -267,6 +301,10 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(home.homePhotoMetricSyncLastID, forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastID)
             defaults.set(home.settingsOpenTrackedMeasurements, forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements)
             defaults.set(home.settingsOpenReminders, forKey: AppSettingsKeys.Home.settingsOpenReminders)
+
+            let homeLayout = snapshot.homeLayout
+            defaults.set(homeLayout.layoutSchemaVersion, forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion)
+            defaults.set(homeLayout.layoutData, forKey: AppSettingsKeys.Home.homeLayoutData)
 
             let onboarding = snapshot.onboarding
             defaults.set(onboarding.hasCompletedOnboarding, forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding)

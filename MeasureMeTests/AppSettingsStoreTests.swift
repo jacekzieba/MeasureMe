@@ -90,6 +90,37 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertTrue(store.goalAchievedFlag(for: "goal-1"))
     }
 
+    func testHomeLayoutIsMigratedFromLegacyFlags() throws {
+        let defaults = makeDefaults()
+        defaults.set(false, forKey: AppSettingsKeys.Home.showMeasurementsOnHome)
+        defaults.set(true, forKey: AppSettingsKeys.Home.showLastPhotosOnHome)
+        defaults.set(false, forKey: AppSettingsKeys.Home.showHealthMetricsOnHome)
+        defaults.set(false, forKey: AppSettingsKeys.Onboarding.onboardingChecklistShow)
+
+        let store = AppSettingsStore(defaults: defaults)
+        let layout = store.homeLayoutSnapshot()
+
+        XCTAssertEqual(layout.schemaVersion, HomeLayoutSnapshot.currentSchemaVersion)
+        XCTAssertEqual(layout.item(for: .keyMetrics)?.isVisible, false)
+        XCTAssertEqual(layout.item(for: .recentPhotos)?.isVisible, true)
+        XCTAssertEqual(layout.item(for: .healthSummary)?.isVisible, false)
+        XCTAssertEqual(layout.item(for: .setupChecklist)?.isVisible, false)
+        XCTAssertNotNil(store.data(forKey: AppSettingsKeys.Home.homeLayoutData))
+    }
+
+    func testSetHomeModuleVisibilitySynchronizesLegacyFlags() {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+
+        store.setHomeModuleVisibility(false, for: .recentPhotos)
+        store.setHomeModuleVisibility(false, for: .setupChecklist)
+
+        XCTAssertFalse(store.snapshot.home.showLastPhotosOnHome)
+        XCTAssertFalse(store.snapshot.onboarding.onboardingChecklistShow)
+        XCTAssertEqual(store.homeLayoutSnapshot().item(for: .recentPhotos)?.isVisible, false)
+        XCTAssertEqual(store.homeLayoutSnapshot().item(for: .setupChecklist)?.isVisible, false)
+    }
+
     func testFallbackBoolSemanticsForFeatureFlags() async {
         let defaults = makeDefaults()
         let store = AppSettingsStore(defaults: defaults)

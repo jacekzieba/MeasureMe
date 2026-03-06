@@ -21,6 +21,11 @@ struct AppSettingsSnapshot: Sendable {
         var settingsOpenReminders: Bool
     }
 
+    struct HomeLayout: Sendable {
+        var layoutSchemaVersion: Int
+        var layoutData: Data?
+    }
+
     struct Onboarding: Sendable {
         var hasCompletedOnboarding: Bool
         var onboardingSkippedHealthKit: Bool
@@ -114,6 +119,7 @@ struct AppSettingsSnapshot: Sendable {
 
     var profile: Profile
     var home: Home
+    var homeLayout: HomeLayout
     var onboarding: Onboarding
     var health: Health
     var indicators: Indicators
@@ -148,6 +154,7 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.Onboarding.onboardingChecklistPremiumExplored: false,
         AppSettingsKeys.Home.settingsOpenTrackedMeasurements: false,
         AppSettingsKeys.Home.settingsOpenReminders: false,
+        AppSettingsKeys.Home.homeLayoutSchemaVersion: HomeLayoutSnapshot.currentSchemaVersion,
         AppSettingsKeys.Experience.appLanguage: "system",
         AppSettingsKeys.Analytics.analyticsEnabled: true,
         AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled: true,
@@ -182,6 +189,10 @@ struct AppSettingsSnapshot: Sendable {
                 homePhotoMetricSyncLastID: defaults.string(forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastID) ?? "",
                 settingsOpenTrackedMeasurements: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements),
                 settingsOpenReminders: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenReminders)
+            ),
+            homeLayout: .init(
+                layoutSchemaVersion: max(defaults.integer(forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion), HomeLayoutSnapshot.currentSchemaVersion),
+                layoutData: defaults.data(forKey: AppSettingsKeys.Home.homeLayoutData)
             ),
             onboarding: .init(
                 hasCompletedOnboarding: defaults.bool(forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding),

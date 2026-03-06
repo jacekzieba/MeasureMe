@@ -1,6 +1,10 @@
 import SwiftUI
 import SwiftData
 
+extension Notification.Name {
+    static let homeOpenPhotoComposer = Notification.Name("homeOpenPhotoComposer")
+}
+
 /// Główny widok Photos w Tab Bar
 /// Pokazuje zdjęcia w formie siatki (grid) z trybem selekcji i porównywania
 /// Alternatywny widok listy znajduje się w PhotosListView (PhotosView.swift)
@@ -162,6 +166,9 @@ struct PhotoView: View {
             }
             .onChange(of: pendingPhotoSaveStore.lastFailureMessage) { _, newValue in
                 handlePendingPhotoFailure(newValue)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .homeOpenPhotoComposer)) { _ in
+                showSourcePicker = true
             }
             // Deep link / empty state — otwiera AddPhotoView bez zdjęcia
             .sheet(isPresented: $showAddPhoto) {
