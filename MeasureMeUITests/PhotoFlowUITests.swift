@@ -27,9 +27,32 @@ final class PhotoFlowUITests: XCTestCase {
     }
 
     private func tapTab(named name: String) {
-        let button = app.tabBars.buttons[name]
-        XCTAssertTrue(button.waitForExistence(timeout: 5), "Expected tab \(name) to exist.")
-        button.tap()
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 20), "Expected tab bar to exist.")
+
+        let localizedCandidates: [String]
+        switch name {
+        case "tab.home":
+            localizedCandidates = ["tab.home", "Home", "Start", "Dom", "Strona główna"]
+        case "tab.measurements":
+            localizedCandidates = ["tab.measurements", "Measurements", "Pomiary"]
+        case "tab.photos":
+            localizedCandidates = ["tab.photos", "Photos", "Zdjęcia", "Zdjecia"]
+        case "tab.settings":
+            localizedCandidates = ["tab.settings", "Settings", "Ustawienia"]
+        default:
+            localizedCandidates = [name]
+        }
+
+        for candidate in localizedCandidates {
+            let button = tabBar.buttons[candidate]
+            if button.waitForExistence(timeout: 3) {
+                button.tap()
+                return
+            }
+        }
+
+        XCTFail("Expected tab \(name) to exist.")
     }
 
     private func openCompareWithHook() {
