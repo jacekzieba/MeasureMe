@@ -27,40 +27,44 @@ struct AppCTAButtonStyle: ButtonStyle {
     var cornerRadius: CGFloat = AppRadius.md
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
 
-    func makeBody(configuration: Configuration) -> some View {
-        _AnimatedButtonContent(
-            isPressed: configuration.isPressed,
-            animationsEnabled: animationsEnabled,
-            label: {
-                configuration.label
-                    .font(size.font)
-                    .foregroundStyle(Color.black)
-                    .padding(.horizontal, AppSpacing.md)
-                    .padding(.vertical, size.verticalPadding)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 44)
-                    .background(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(Color.appAccent)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
-                            )
-                    )
-            },
-            shadow: { shouldAnimate in
-                AnyView(
-                    EmptyView()
-                        .scaleEffect(configuration.isPressed && shouldAnimate ? 0.98 : 1)
-                        .shadow(
-                            color: Color.appAccent.opacity(configuration.isPressed ? 0.14 : 0.24),
-                            radius: configuration.isPressed ? 4 : 9,
-                            x: 0,
-                            y: configuration.isPressed ? 1 : 3
+    private struct CTAButtonVisuals: ViewModifier {
+        var size: AppCTAButtonSize
+        var cornerRadius: CGFloat
+        var animationsEnabled: Bool
+        var isPressed: Bool
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        func body(content: Content) -> some View {
+            let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+            content
+                .font(size.font)
+                .foregroundStyle(Color.black)
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.vertical, size.verticalPadding)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(Color.appAccent)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .stroke(Color.white.opacity(0.22), lineWidth: 1)
                         )
                 )
-            }
-        )
+                .scaleEffect(isPressed && shouldAnimate ? 0.98 : 1)
+                .shadow(
+                    color: Color.appAccent.opacity(isPressed ? 0.14 : 0.24),
+                    radius: isPressed ? 4 : 9,
+                    x: 0,
+                    y: isPressed ? 1 : 3
+                )
+                .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimate), value: isPressed)
+        }
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .modifier(CTAButtonVisuals(size: size, cornerRadius: cornerRadius, animationsEnabled: animationsEnabled, isPressed: configuration.isPressed))
     }
 }
 
@@ -68,38 +72,41 @@ struct AppSecondaryButtonStyle: ButtonStyle {
     var cornerRadius: CGFloat = AppRadius.md
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
 
-    func makeBody(configuration: Configuration) -> some View {
-        _AnimatedButtonContent(
-            isPressed: configuration.isPressed,
-            animationsEnabled: animationsEnabled,
-            label: {
-                configuration.label
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundStyle(Color.appWhite)
-                    .padding(.horizontal, AppSpacing.md)
-                    .padding(.vertical, AppSpacing.sm)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 44)
-                    .background(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                    .fill(Color.appAccent.opacity(configuration.isPressed ? 0.18 : 0.12))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
-                            )
-                    )
-            },
-            shadow: { shouldAnimate in
-                AnyView(
-                    EmptyView()
-                        .scaleEffect(configuration.isPressed && shouldAnimate ? 0.98 : 1)
+    private struct SecondaryButtonVisuals: ViewModifier {
+        var cornerRadius: CGFloat
+        var animationsEnabled: Bool
+        var isPressed: Bool
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        func body(content: Content) -> some View {
+            let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+            content
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .foregroundStyle(Color.appWhite)
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.vertical, AppSpacing.sm)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .fill(Color.appAccent.opacity(isPressed ? 0.18 : 0.12))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                        )
                 )
-            }
-        )
+                .scaleEffect(isPressed && shouldAnimate ? 0.98 : 1)
+                .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimate), value: isPressed)
+        }
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .modifier(SecondaryButtonVisuals(cornerRadius: cornerRadius, animationsEnabled: animationsEnabled, isPressed: configuration.isPressed))
     }
 }
 
