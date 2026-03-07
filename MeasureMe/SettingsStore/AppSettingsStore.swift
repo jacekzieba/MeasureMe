@@ -164,6 +164,14 @@ final class AppSettingsStore: ObservableObject {
         setHomeLayoutSnapshot(reset)
     }
 
+    func homePinnedAction(default defaultAction: HomePinnedAction = .addMeasurement) -> HomePinnedAction {
+        HomePinnedAction(rawValue: snapshot.home.homePinnedActionRaw) ?? defaultAction
+    }
+
+    func setHomePinnedAction(_ action: HomePinnedAction) {
+        set(\.home.homePinnedActionRaw, action.rawValue)
+    }
+
     func resetNotificationSettingsToDefaults() {
         performDefaultsWrite(scheduleSnapshotRefreshAfterWrite: true) {
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.reminders)
@@ -296,11 +304,13 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(home.showMeasurementsOnHome, forKey: AppSettingsKeys.Home.showMeasurementsOnHome)
             defaults.set(home.showHealthMetricsOnHome, forKey: AppSettingsKeys.Home.showHealthMetricsOnHome)
             defaults.set(home.showStreakOnHome, forKey: AppSettingsKeys.Home.showStreakOnHome)
+            defaults.set(home.homePinnedActionRaw, forKey: AppSettingsKeys.Home.homePinnedAction)
             defaults.set(home.homeTabScrollOffset, forKey: AppSettingsKeys.Home.homeTabScrollOffset)
             defaults.set(home.homePhotoMetricSyncLastDate, forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastDate)
             defaults.set(home.homePhotoMetricSyncLastID, forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastID)
             defaults.set(home.settingsOpenTrackedMeasurements, forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements)
             defaults.set(home.settingsOpenReminders, forKey: AppSettingsKeys.Home.settingsOpenReminders)
+            defaults.set(home.settingsOpenHomeSettings, forKey: AppSettingsKeys.Home.settingsOpenHomeSettings)
 
             let homeLayout = snapshot.homeLayout
             defaults.set(homeLayout.layoutSchemaVersion, forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion)

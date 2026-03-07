@@ -1,4 +1,5 @@
 import Foundation
+import StoreKit
 import SwiftData
 
 enum Analytics {
@@ -36,6 +37,33 @@ final class DynamicAnalyticsClient: AnalyticsClient {
         }
         primary.setup()
         primary.track(signal)
+    }
+
+    func track(signalName: String, parameters: [String : String]) {
+        guard isEnabled else {
+            fallback.track(signalName: signalName, parameters: parameters)
+            return
+        }
+        primary.setup()
+        primary.track(signalName: signalName, parameters: parameters)
+    }
+
+    func trackPaywallShown(reason: String, parameters: [String: String]) {
+        guard isEnabled else {
+            fallback.trackPaywallShown(reason: reason, parameters: parameters)
+            return
+        }
+        primary.setup()
+        primary.trackPaywallShown(reason: reason, parameters: parameters)
+    }
+
+    func trackPurchaseCompleted(_ transaction: StoreKit.Transaction, parameters: [String : String]) {
+        guard isEnabled else {
+            fallback.trackPurchaseCompleted(transaction, parameters: parameters)
+            return
+        }
+        primary.setup()
+        primary.trackPurchaseCompleted(transaction, parameters: parameters)
     }
 }
 

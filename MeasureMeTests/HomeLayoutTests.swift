@@ -20,6 +20,13 @@ final class HomeLayoutTests: XCTestCase {
         XCTAssertEqual(decoded, layout)
     }
 
+    func testPinnedActionRoundTripSerialization() throws {
+        let encoded = try JSONEncoder().encode(HomePinnedAction.comparePhotos)
+        let decoded = try JSONDecoder().decode(HomePinnedAction.self, from: encoded)
+
+        XCTAssertEqual(decoded, .comparePhotos)
+    }
+
     func testNormalizerAddsMissingModulesAndRemovesDuplicates() {
         let snapshot = makeSnapshot()
         let layout = HomeLayoutSnapshot(
@@ -33,23 +40,23 @@ final class HomeLayoutTests: XCTestCase {
 
         let normalized = HomeLayoutNormalizer.normalize(layout, using: snapshot)
 
-        XCTAssertEqual(normalized.items.count, HomeModuleKind.allCases.count)
+        XCTAssertEqual(normalized.items.count, HomeModuleKind.activeCases.count)
         XCTAssertEqual(normalized.item(for: .summaryHero)?.isVisible, true)
-        XCTAssertNotNil(normalized.item(for: .quickActions))
+        XCTAssertNil(normalized.item(for: .quickActions))
         XCTAssertNotNil(normalized.item(for: .healthSummary))
     }
 
     func testCompactorProducesTopDownLayoutWithoutGaps() {
         let items = [
             HomeModuleLayoutItem(kind: .summaryHero, isVisible: true, size: .large, row: 0, column: 0),
-            HomeModuleLayoutItem(kind: .quickActions, isVisible: true, size: .wide, row: 5, column: 0),
+            HomeModuleLayoutItem(kind: .setupChecklist, isVisible: true, size: .wide, row: 5, column: 0),
             HomeModuleLayoutItem(kind: .recentPhotos, isVisible: false, size: .large, row: 8, column: 0),
             HomeModuleLayoutItem(kind: .keyMetrics, isVisible: true, size: .large, row: 12, column: 0)
         ]
 
         let compacted = HomeLayoutCompactor.compact(items, columns: 2)
 
-        XCTAssertEqual(compacted.map(\.kind), [.summaryHero, .quickActions, .keyMetrics])
+        XCTAssertEqual(compacted.map(\.kind), [.summaryHero, .setupChecklist, .keyMetrics])
         XCTAssertEqual(compacted[0].row, 0)
         XCTAssertEqual(compacted[1].row, 2)
         XCTAssertEqual(compacted[2].row, 3)
@@ -66,6 +73,6 @@ final class HomeLayoutTests: XCTestCase {
         XCTAssertEqual(reset.item(for: .keyMetrics)?.isVisible, false)
         XCTAssertEqual(reset.item(for: .setupChecklist)?.isVisible, false)
         XCTAssertEqual(reset.item(for: .summaryHero)?.row, 0)
-        XCTAssertEqual(reset.item(for: .quickActions)?.column, 2)
+        XCTAssertEqual(reset.item(for: .setupChecklist)?.column, 2)
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import StoreKit
 import TelemetryDeck
 
 final class TelemetryDeckAnalyticsClient: AnalyticsClient {
@@ -31,5 +32,17 @@ final class TelemetryDeckAnalyticsClient: AnalyticsClient {
 
     func track(_ signal: AnalyticsSignal) {
         TelemetryDeck.signal(signal.rawValue)
+    }
+
+    func track(signalName: String, parameters: [String : String]) {
+        TelemetryDeck.signal(signalName, parameters: parameters)
+    }
+
+    func trackPaywallShown(reason: String, parameters: [String: String]) {
+        TelemetryDeck.paywallShown(reason: reason, parameters: parameters)
+    }
+
+    func trackPurchaseCompleted(_ transaction: StoreKit.Transaction, parameters: [String: String]) {
+        TelemetryDeck.purchaseCompleted(transaction: transaction, parameters: parameters)
     }
 }

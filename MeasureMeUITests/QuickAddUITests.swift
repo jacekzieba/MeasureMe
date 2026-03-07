@@ -26,11 +26,11 @@ final class QuickAddUITests: XCTestCase {
         app.launch()
     }
 
-    /// Otworz arkusz QuickAdd z Home i poczekaj, az bedzie gotowy.
+    /// Otworz arkusz QuickAdd z glownego entry pointu w tab barze i poczekaj, az bedzie gotowy.
     private func openQuickAdd() {
-        let addButton = app.buttons["home.quickadd.button"]
+        let addButton = app.tabBars.buttons["tab.add"].firstMatch
         XCTAssertTrue(addButton.waitForExistence(timeout: 5),
-                      "Przycisk dodania pomiaru powinien istniec na Home")
+                      "Przycisk dodania pomiaru powinien istniec w tab barze")
         addButton.tap()
 
         // Poczekaj na przycisk zapisu - to potwierdza zaladowanie arkusza z aktywnymi metrykami.
@@ -77,11 +77,11 @@ final class QuickAddUITests: XCTestCase {
     @MainActor
     /// Co sprawdza: Sprawdza scenariusz: QuickAddShowsEmptyStateWhenNoActiveMetrics.
     /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
-    /// Kryteria: Asercje na elementach UI przechodza (m.in. `home.quickadd.button`, `quickadd.save`).
+    /// Kryteria: Asercje na elementach UI przechodza (m.in. `tab.add`, `quickadd.save`).
     func testQuickAddShowsEmptyStateWhenNoActiveMetrics() {
         launchWithNoMetrics()
 
-        let addButton = app.buttons["home.quickadd.button"]
+        let addButton = app.tabBars.buttons["tab.add"].firstMatch
         XCTAssertTrue(addButton.waitForExistence(timeout: 5),
                       "Przycisk dodania pomiaru powinien istniec")
         addButton.tap()
@@ -114,13 +114,13 @@ final class QuickAddUITests: XCTestCase {
     @MainActor
     /// Co sprawdza: Sprawdza scenariusz: QuickAddWithSeededDataShowsSaveButton.
     /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
-    /// Kryteria: Asercje na elementach UI przechodza (m.in. `home.quickadd.button`, `quickadd.save`).
+    /// Kryteria: Asercje na elementach UI przechodza (m.in. `tab.add`, `quickadd.save`).
     func testQuickAddWithSeededDataShowsSaveButton() {
         // Zasiane dane wagi -> istnieje `latest` -> miarka widoczna, normalny przeplyw
         app.launchArguments = ["-uiTestMode", "-uiTestSeedMeasurements"]
         app.launch()
 
-        let addButton = app.buttons["home.quickadd.button"]
+        let addButton = app.tabBars.buttons["tab.add"].firstMatch
         if addButton.waitForExistence(timeout: 5) {
             addButton.tap()
 

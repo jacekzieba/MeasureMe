@@ -14,11 +14,13 @@ struct AppSettingsSnapshot: Sendable {
         var showMeasurementsOnHome: Bool
         var showHealthMetricsOnHome: Bool
         var showStreakOnHome: Bool
+        var homePinnedActionRaw: String
         var homeTabScrollOffset: Double
         var homePhotoMetricSyncLastDate: Double
         var homePhotoMetricSyncLastID: String
         var settingsOpenTrackedMeasurements: Bool
         var settingsOpenReminders: Bool
+        var settingsOpenHomeSettings: Bool
     }
 
     struct HomeLayout: Sendable {
@@ -184,11 +186,13 @@ struct AppSettingsSnapshot: Sendable {
                 showMeasurementsOnHome: defaults.object(forKey: AppSettingsKeys.Home.showMeasurementsOnHome) as? Bool ?? true,
                 showHealthMetricsOnHome: defaults.object(forKey: AppSettingsKeys.Home.showHealthMetricsOnHome) as? Bool ?? true,
                 showStreakOnHome: defaults.object(forKey: AppSettingsKeys.Home.showStreakOnHome) as? Bool ?? true,
+                homePinnedActionRaw: defaults.string(forKey: AppSettingsKeys.Home.homePinnedAction) ?? "",
                 homeTabScrollOffset: defaults.double(forKey: AppSettingsKeys.Home.homeTabScrollOffset),
                 homePhotoMetricSyncLastDate: defaults.double(forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastDate),
                 homePhotoMetricSyncLastID: defaults.string(forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastID) ?? "",
                 settingsOpenTrackedMeasurements: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements),
-                settingsOpenReminders: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenReminders)
+                settingsOpenReminders: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenReminders),
+                settingsOpenHomeSettings: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenHomeSettings)
             ),
             homeLayout: .init(
                 layoutSchemaVersion: max(defaults.integer(forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion), HomeLayoutSnapshot.currentSchemaVersion),

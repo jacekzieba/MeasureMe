@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppSettingsMigration {
-    private static let currentSchemaVersion = 2
+    private static let currentSchemaVersion = 3
 
     static func applyIfNeeded(defaults: UserDefaults) {
         let schemaVersion = defaults.integer(forKey: AppSettingsKeys.settingsSchemaVersion)
@@ -9,6 +9,7 @@ enum AppSettingsMigration {
 
         migrateUnitsSystemIfNeeded(defaults: defaults)
         migrateHomeLayoutIfNeeded(defaults: defaults)
+        migrateHomePinnedActionIfNeeded(defaults: defaults)
         defaults.set(currentSchemaVersion, forKey: AppSettingsKeys.settingsSchemaVersion)
     }
 
@@ -35,5 +36,14 @@ enum AppSettingsMigration {
 
         defaults.set(HomeLayoutSnapshot.currentSchemaVersion, forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion)
         defaults.set(encoded, forKey: AppSettingsKeys.Home.homeLayoutData)
+    }
+
+    private static func migrateHomePinnedActionIfNeeded(defaults: UserDefaults) {
+        guard defaults.object(forKey: AppSettingsKeys.Home.homePinnedAction) == nil else { return }
+        let shouldFinishSetup = defaults.object(forKey: AppSettingsKeys.Onboarding.onboardingChecklistShow) as? Bool ?? true
+        defaults.set(
+            shouldFinishSetup ? HomePinnedAction.finishSetup.rawValue : HomePinnedAction.addMeasurement.rawValue,
+            forKey: AppSettingsKeys.Home.homePinnedAction
+        )
     }
 }

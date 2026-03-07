@@ -121,6 +121,26 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.homeLayoutSnapshot().item(for: .setupChecklist)?.isVisible, false)
     }
 
+    func testPinnedHomeActionPersistsAndReloads() {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+
+        store.setHomePinnedAction(.comparePhotos)
+
+        XCTAssertEqual(store.homePinnedAction(), .comparePhotos)
+        XCTAssertEqual(defaults.string(forKey: AppSettingsKeys.Home.homePinnedAction), HomePinnedAction.comparePhotos.rawValue)
+    }
+
+    func testHomePinnedActionMigratesToFinishSetupWhenChecklistIsVisible() {
+        let defaults = makeDefaults()
+        defaults.removeObject(forKey: AppSettingsKeys.Home.homePinnedAction)
+        defaults.set(true, forKey: AppSettingsKeys.Onboarding.onboardingChecklistShow)
+
+        let store = AppSettingsStore(defaults: defaults)
+
+        XCTAssertEqual(store.homePinnedAction(default: .addMeasurement), .finishSetup)
+    }
+
     func testFallbackBoolSemanticsForFeatureFlags() async {
         let defaults = makeDefaults()
         let store = AppSettingsStore(defaults: defaults)

@@ -73,6 +73,32 @@ private final class MockPremiumNotificationManager: PremiumNotificationManaging 
     }
 }
 
+private final class MockPremiumAnalyticsClient: AnalyticsClient {
+    var isEnabled: Bool = true
+    private(set) var trackedSignals: [AnalyticsSignal] = []
+    private(set) var trackedCustomSignals: [(name: String, parameters: [String: String])] = []
+    private(set) var paywallEvents: [(reason: String, parameters: [String: String])] = []
+    private(set) var purchaseEventParameters: [[String: String]] = []
+
+    func setup() {}
+
+    func track(_ signal: AnalyticsSignal) {
+        trackedSignals.append(signal)
+    }
+
+    func track(signalName: String, parameters: [String : String]) {
+        trackedCustomSignals.append((signalName, parameters))
+    }
+
+    func trackPaywallShown(reason: String, parameters: [String : String]) {
+        paywallEvents.append((reason, parameters))
+    }
+
+    func trackPurchaseCompleted(_ transaction: Transaction, parameters: [String : String]) {
+        purchaseEventParameters.append(parameters)
+    }
+}
+
 @MainActor
 final class PremiumStoreTests: XCTestCase {
     /// Co sprawdza: Sprawdza, ze IsEntitlementActive zwraca false w oczekiwanym scenariuszu.
@@ -150,9 +176,11 @@ final class PremiumStoreTests: XCTestCase {
         let billing = MockPremiumBillingClient()
         billing.productsError = NSError(domain: "test", code: 1)
         let notifications = MockPremiumNotificationManager()
+        let analytics = MockPremiumAnalyticsClient()
         let store = PremiumStore(
             billingClient: billing,
             notificationManager: notifications,
+            analytics: analytics,
             startListener: false
         )
 
@@ -169,9 +197,11 @@ final class PremiumStoreTests: XCTestCase {
         let billing = MockPremiumBillingClient()
         billing.syncError = NSError(domain: "test", code: 2)
         let notifications = MockPremiumNotificationManager()
+        let analytics = MockPremiumAnalyticsClient()
         let store = PremiumStore(
             billingClient: billing,
             notificationManager: notifications,
+            analytics: analytics,
             startListener: false
         )
 
@@ -185,9 +215,11 @@ final class PremiumStoreTests: XCTestCase {
     func testHandleTrialActivated_ShowsReminderIntentPrompt() async {
         let billing = MockPremiumBillingClient()
         let notifications = MockPremiumNotificationManager()
+        let analytics = MockPremiumAnalyticsClient()
         let store = PremiumStore(
             billingClient: billing,
             notificationManager: notifications,
+            analytics: analytics,
             startListener: false
         )
 
@@ -203,9 +235,11 @@ final class PremiumStoreTests: XCTestCase {
     func testTrialReminderIntentNo_ShowsThankYouWithoutAuthorizationRequest() async {
         let billing = MockPremiumBillingClient()
         let notifications = MockPremiumNotificationManager()
+        let analytics = MockPremiumAnalyticsClient()
         let store = PremiumStore(
             billingClient: billing,
             notificationManager: notifications,
+            analytics: analytics,
             startListener: false
         )
 
@@ -226,10 +260,12 @@ final class PremiumStoreTests: XCTestCase {
         let notifications = MockPremiumNotificationManager()
         notifications.authorizationStatusValue = .authorized
         notifications.notificationsEnabled = false
+        let analytics = MockPremiumAnalyticsClient()
 
         let store = PremiumStore(
             billingClient: billing,
             notificationManager: notifications,
+            analytics: analytics,
             startListener: false
         )
 
@@ -250,10 +286,12 @@ final class PremiumStoreTests: XCTestCase {
         let notifications = MockPremiumNotificationManager()
         notifications.authorizationStatusValue = .notDetermined
         notifications.notificationsEnabled = true
+        let analytics = MockPremiumAnalyticsClient()
 
         let store = PremiumStore(
             billingClient: billing,
             notificationManager: notifications,
+            analytics: analytics,
             startListener: false
         )
 
@@ -274,10 +312,12 @@ final class PremiumStoreTests: XCTestCase {
         notifications.authorizationStatusValue = .notDetermined
         notifications.requestAuthorizationResult = true
         notifications.notificationsEnabled = false
+        let analytics = MockPremiumAnalyticsClient()
 
         let store = PremiumStore(
             billingClient: billing,
             notificationManager: notifications,
+            analytics: analytics,
             startListener: false
         )
 
@@ -300,10 +340,12 @@ final class PremiumStoreTests: XCTestCase {
         notifications.authorizationStatusValue = .notDetermined
         notifications.requestAuthorizationResult = false
         notifications.notificationsEnabled = true
+        let analytics = MockPremiumAnalyticsClient()
 
         let store = PremiumStore(
             billingClient: billing,
             notificationManager: notifications,
+            analytics: analytics,
             startListener: false
         )
 
@@ -322,9 +364,11 @@ final class PremiumStoreTests: XCTestCase {
     func testStartIfNeeded_DoesNotStartInInitWhenDisabledAndIsIdempotent() async throws {
         let billing = MockPremiumBillingClient()
         let notifications = MockPremiumNotificationManager()
+        let analytics = MockPremiumAnalyticsClient()
         let store = PremiumStore(
             billingClient: billing,
             notificationManager: notifications,
+            analytics: analytics,
             startListener: false
         )
 
@@ -350,6 +394,81 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertEqual(billing.productsCallCount, productsAfterFirstStart)
         XCTAssertEqual(billing.currentEntitlementsCallCount, entitlementsAfterFirstStart)
         XCTAssertEqual(billing.transactionUpdatesCallCount, updatesAfterFirstStart)
+    }
+
+    func testPresentPaywallTracksTelemetryDeckRevenueContext() {
+        let billing = MockPremiumBillingClient()
+        let notifications = MockPremiumNotificationManager()
+        let analytics = MockPremiumAnalyticsClient()
+        let store = PremiumStore(
+            billingClient: billing,
+            notificationManager: notifications,
+            analytics: analytics,
+            startListener: false
+        )
+
+        store.presentPaywall(reason: .feature("photo_compare"))
+
+        XCTAssertEqual(analytics.paywallEvents.count, 1)
+        XCTAssertEqual(analytics.paywallEvents.first?.reason, "feature_locked")
+        XCTAssertEqual(analytics.paywallEvents.first?.parameters["measureme.feature_name"], "photo_compare")
+    }
+
+    func testMarkPurchaseTrackedIfNeededDeduplicatesTransactionID() {
+        let billing = MockPremiumBillingClient()
+        let notifications = MockPremiumNotificationManager()
+        let analytics = MockPremiumAnalyticsClient()
+        let store = PremiumStore(
+            billingClient: billing,
+            notificationManager: notifications,
+            analytics: analytics,
+            startListener: false
+        )
+
+        XCTAssertTrue(store.markPurchaseTrackedIfNeeded(transactionID: 42))
+        XCTAssertFalse(store.markPurchaseTrackedIfNeeded(transactionID: 42))
+        XCTAssertTrue(store.markPurchaseTrackedIfNeeded(transactionID: 43))
+    }
+
+    func testPendingPurchaseTracksPendingSignalWithDashboardContext() async {
+        let billing = MockPremiumBillingClient()
+        let notifications = MockPremiumNotificationManager()
+        let analytics = MockPremiumAnalyticsClient()
+        let store = PremiumStore(
+            billingClient: billing,
+            notificationManager: notifications,
+            analytics: analytics,
+            startListener: false
+        )
+
+        store.presentPaywall(reason: .feature("photo_compare"))
+        await store.handlePurchaseResultForTests(.pending)
+
+        XCTAssertEqual(analytics.trackedCustomSignals.count, 1)
+        XCTAssertEqual(analytics.trackedCustomSignals.first?.name, "com.jacekzieba.measureme.purchase.pending")
+        XCTAssertEqual(analytics.trackedCustomSignals.first?.parameters["measureme.paywall_reason"], "feature_locked")
+        XCTAssertEqual(analytics.trackedCustomSignals.first?.parameters["measureme.feature_name"], "photo_compare")
+        XCTAssertEqual(analytics.trackedCustomSignals.first?.parameters["measureme.purchase_source"], "direct_purchase")
+    }
+
+    func testCancelledPurchaseTracksCancelledSignalWithDashboardContext() async {
+        let billing = MockPremiumBillingClient()
+        let notifications = MockPremiumNotificationManager()
+        let analytics = MockPremiumAnalyticsClient()
+        let store = PremiumStore(
+            billingClient: billing,
+            notificationManager: notifications,
+            analytics: analytics,
+            startListener: false
+        )
+
+        store.presentPaywall(reason: .settings)
+        await store.handlePurchaseResultForTests(.userCancelled)
+
+        XCTAssertEqual(analytics.trackedCustomSignals.count, 1)
+        XCTAssertEqual(analytics.trackedCustomSignals.first?.name, "com.jacekzieba.measureme.purchase.cancelled")
+        XCTAssertEqual(analytics.trackedCustomSignals.first?.parameters["measureme.paywall_reason"], "settings")
+        XCTAssertEqual(analytics.trackedCustomSignals.first?.parameters["measureme.purchase_source"], "direct_purchase")
     }
 }
 

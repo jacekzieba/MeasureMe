@@ -8,6 +8,7 @@ struct DownsampledImageView: View {
     var cornerRadius: CGFloat = 0
     var showsProgress: Bool = true
     var cacheID: String? = nil
+    var renderScaleOverride: CGFloat? = nil
 
     @Environment(\.displayScale) private var displayScale
     @State private var image: UIImage?
@@ -30,9 +31,14 @@ struct DownsampledImageView: View {
 
     private var cacheKey: String {
         let base = cacheID ?? UIImage.cacheKey(from: imageData)
-        let width = Int(max(targetSize.width * displayScale, 1))
-        let height = Int(max(targetSize.height * displayScale, 1))
+        let scale = resolvedScale
+        let width = Int(max(targetSize.width * scale, 1))
+        let height = Int(max(targetSize.height * scale, 1))
         return "\(base)_downsample_\(width)x\(height)"
+    }
+
+    private var resolvedScale: CGFloat {
+        max(renderScaleOverride ?? displayScale, 1)
     }
 
     @MainActor
@@ -42,12 +48,12 @@ struct DownsampledImageView: View {
             imageData: imageData,
             cacheKey: cacheKey,
             targetSize: targetSize,
-            scale: displayScale
+            scale: resolvedScale
         )
         let renderElapsed = renderStart.duration(to: ContinuousClock().now)
         let renderMs = Int(renderElapsed.components.seconds * 1_000)
             + Int(renderElapsed.components.attoseconds / 1_000_000_000_000_000)
-        let targetPixels = Int(targetSize.width * displayScale) * Int(targetSize.height * displayScale)
+        let targetPixels = Int(targetSize.width * resolvedScale) * Int(targetSize.height * resolvedScale)
         AppLog.debug("🖼️ DownsampledImageView: render=\(renderMs)ms source=\(PhotoUtilities.formatFileSize(imageData.count)) targetPixels=\(targetPixels)")
     }
 

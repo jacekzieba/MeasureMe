@@ -357,6 +357,8 @@ struct MeasureMeApp: App {
         defaults.set(\.home.showLastPhotosOnHome, true)
         defaults.set(\.home.showMeasurementsOnHome, true)
         defaults.set(\.home.showHealthMetricsOnHome, true)
+        defaults.set(\.home.homePinnedActionRaw, "")
+        defaults.set(\.profile.manualHeight, 180.0)
 
         if args.contains("-uiTestNoActiveMetrics") {
             for key in metricKeys { defaults.set(false, forKey: key) }
@@ -370,6 +372,15 @@ struct MeasureMeApp: App {
         }
         if args.contains("-uiTestForceNonPremium") {
             defaults.set(\.premium.premiumEntitlement, false)
+        }
+        if args.contains("-uiTestShowChecklist") {
+            defaults.set(\.onboarding.onboardingChecklistShow, true)
+        }
+        if args.contains("-uiTestChecklistNeedsReminders") {
+            defaults.set(\.onboarding.onboardingSkippedReminders, true)
+        }
+        if let pinnedAction = requestedHomePinnedAction(from: args) {
+            defaults.set(\.home.homePinnedActionRaw, pinnedAction.rawValue)
         }
         if args.contains("-uiTestPhysiqueSWROff") {
             defaults.set(\.indicators.showPhysiqueSWR, false)
@@ -443,6 +454,13 @@ struct MeasureMeApp: App {
             return 12
         }
         return parsed
+    }
+
+    private func requestedHomePinnedAction(from args: [String]) -> HomePinnedAction? {
+        guard let flagIndex = args.firstIndex(of: "-uiTestHomePinnedAction") else { return nil }
+        let nextIndex = args.index(after: flagIndex)
+        guard nextIndex < args.endIndex else { return nil }
+        return HomePinnedAction(rawValue: args[nextIndex])
     }
 
     private func seedUITestPhotos(count: Int, into context: ModelContext) {

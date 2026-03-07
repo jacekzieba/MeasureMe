@@ -1,6 +1,6 @@
-/// Cel testow: Weryfikuje kluczowe interakcje na Home (layout, przewijanie, widocznosc tresci).
-/// Dlaczego to wazne: Home to centralny ekran nawigacji i podgladu metryk.
-/// Kryteria zaliczenia: Krytyczne elementy sa widoczne i nie dochodzi do regresji ukladu.
+/// Cel testow: Weryfikuje kluczowe interakcje Home po przebudowie do widget board.
+/// Dlaczego to wazne: Home jest teraz ekranem decyzji, nie tylko lista sekcji.
+/// Kryteria zaliczenia: Layout jest stabilny, CTA dzialaja, a premium/non-premium flow nie regresuje.
 
 import XCTest
 
@@ -12,41 +12,31 @@ final class HomeViewUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments += [
-            "-uiTestMode",
-            "-uiTestSeedMeasurements",
-            "-uiTestSeedPhotos", "3",
-            "-uiTestForcePremium",              // force premium entitlement in UI
-            "-uiTestBypassHealthSummaryGuards",// bypass availability/data guards for summary
-            "-uiTestLongHealthInsight"         // use long test health insight text
-        ]
-        app.launch()
     }
 
-    /// Co sprawdza: Sprawdza scenariusz: HealthAISummaryExpandsDynamically.
-    /// Dlaczego: Zapewnia poprawna obsluge uprawnien i integracji z systemem.
-    /// Kryteria: Asercje na elementach UI przechodza (m.in. `home.health.ai.text`).
     func testHealthModuleIsReachableOnHome() {
+        launchApp(isPremium: false)
+
         let healthTitle = app.staticTexts["Health"].firstMatch
-        scrollToReveal(healthTitle, in: app, maxSwipes: 6)
+        scrollToReveal(healthTitle, maxSwipes: 6)
+
         XCTAssertTrue(healthTitle.waitForExistence(timeout: 5), "Health section should be reachable on Home")
         XCTAssertGreaterThan(healthTitle.frame.height, 10, "Health title should have a visible frame")
+        XCTAssertTrue(app.buttons["home.health.premium.button"].waitForExistence(timeout: 5), "Health preview should upsell the full module without premium")
+        XCTAssertEqual(app.staticTexts["home.health.preview.label"].firstMatch.label, "BMI (Body Mass Index)", "Non-premium Health preview should prefer expanded BMI copy on Home")
+        XCTAssertEqual(app.staticTexts["home.health.preview.badge"].firstMatch.label, "Normal weight", "Non-premium BMI preview should expose the BMI range classification on Home")
     }
 
     func testHomeDashboardModulesDoNotOverlap() {
-        let keyMetricsTitle = app.staticTexts["Key metrics"].firstMatch
-        let recentPhotosTitle = app.staticTexts["Recent photos"].firstMatch
-        let healthTitle = app.staticTexts["Health"].firstMatch
+        launchApp()
+
         let keyMetrics = app.otherElements["home.module.keyMetrics"].firstMatch
         let recentPhotos = app.otherElements["home.module.recentPhotos"].firstMatch
         let healthSummary = app.otherElements["home.module.healthSummary"].firstMatch
 
-        XCTAssertTrue(keyMetricsTitle.waitForExistence(timeout: 5), "Key metrics module should exist")
-        XCTAssertTrue(recentPhotosTitle.waitForExistence(timeout: 5), "Recent photos module should exist")
-        scrollToReveal(healthTitle, in: app, maxSwipes: 6)
-        XCTAssertTrue(healthTitle.waitForExistence(timeout: 5), "Health module should exist")
         XCTAssertTrue(keyMetrics.waitForExistence(timeout: 5), "Key metrics card frame hook should exist")
         XCTAssertTrue(recentPhotos.waitForExistence(timeout: 5), "Recent photos card frame hook should exist")
+        scrollToReveal(healthSummary, maxSwipes: 6)
         XCTAssertTrue(healthSummary.waitForExistence(timeout: 5), "Health card frame hook should exist")
 
         XCTAssertTrue(framesDoNotOverlap(keyMetrics, recentPhotos), "Key metrics and Recent photos must not overlap")
@@ -56,11 +46,296 @@ final class HomeViewUITests: XCTestCase {
     }
 
     func testRecentPhotosShowsThreeTiles() {
+        launchApp()
+
         let recentPhotos = app.staticTexts["Recent photos"].firstMatch
         XCTAssertTrue(recentPhotos.waitForExistence(timeout: 5), "Recent photos module should exist")
+
         let tileCount = app.staticTexts["home.recentPhotos.tileCount"].firstMatch
         XCTAssertTrue(tileCount.waitForExistence(timeout: 5), "Recent photos tile count hook should exist")
         XCTAssertEqual(tileCount.label, "3", "Recent photos should expose three visible tiles on Home")
+    }
+
+    func testFinishSetupShowsThreeTasksAndShowMore() {
+        launchApp(extraArguments: [
+            "-uiTestShowChecklist",
+            "-uiTestChecklistNeedsReminders"
+        ], isPremium: false, seedMeasurements: false, seedPhotos: 0)
+
+        XCTAssertTrue(app.staticTexts["home.module.setupChecklist.visible"].waitForExistence(timeout: 5), "Checklist should be visible on Home")
+
+        let visibleCount = app.staticTexts["home.checklist.visibleCount"].firstMatch
+        let visibleIDs = app.staticTexts["home.checklist.visibleIDs"].firstMatch
+        let remainingCount = app.staticTexts["home.checklist.remainingCount"].firstMatch
+        XCTAssertTrue(visibleCount.waitForExistence(timeout: 5), "Checklist should expose visible item count")
+        XCTAssertTrue(visibleIDs.waitForExistence(timeout: 5), "Checklist should expose visible item ids")
+        XCTAssertTrue(remainingCount.waitForExistence(timeout: 5), "Checklist should expose remaining item count")
+        XCTAssertEqual(visibleCount.label, "3", "Collapsed checklist should show exactly three items")
+        XCTAssertTrue(visibleIDs.label.contains("first_measurement"), "Checklist should include first measurement item")
+        XCTAssertTrue(visibleIDs.label.contains("first_photo"), "Checklist should include first photo item")
+        XCTAssertTrue(visibleIDs.label.contains("healthkit"), "Checklist should include health item")
+        XCTAssertEqual(remainingCount.label, "3", "Checklist should expose three hidden items before expansion")
+        XCTAssertFalse(app.buttons["home.checklist.item.premium"].exists, "Collapsed checklist should hide later tasks")
+
+        app.terminate()
+        launchApp(extraArguments: [
+            "-uiTestShowChecklist",
+            "-uiTestChecklistNeedsReminders",
+            "-uiTestExpandChecklist"
+        ], isPremium: false, seedMeasurements: false, seedPhotos: 0)
+
+        let expandedVisibleCount = app.staticTexts["home.checklist.visibleCount"].firstMatch
+        let expandedVisibleIDs = app.staticTexts["home.checklist.visibleIDs"].firstMatch
+        XCTAssertTrue(expandedVisibleCount.waitForExistence(timeout: 5), "Expanded checklist should expose visible item count")
+        XCTAssertTrue(expandedVisibleIDs.waitForExistence(timeout: 5), "Expanded checklist should expose visible item ids")
+        XCTAssertTrue(expandedVisibleIDs.label.contains("premium"), "Expanded checklist should reveal remaining tasks")
+        XCTAssertEqual(expandedVisibleCount.label, "6", "Expanded checklist should show the full set of checklist items")
+    }
+
+    func testNextFocusShowsMetricInsightWhenProgressExists() {
+        launchApp()
+
+        let nextFocusMode = app.staticTexts["home.nextFocus.mode"].firstMatch
+        let nextFocusButton = app.buttons["home.nextFocus.button"].firstMatch
+        XCTAssertTrue(nextFocusMode.waitForExistence(timeout: 5), "Next focus mode hook should exist")
+        XCTAssertTrue(nextFocusButton.waitForExistence(timeout: 5), "Next focus button should exist")
+        XCTAssertEqual(nextFocusMode.label, "metric", "Seeded measurements should produce a metric insight")
+        nextFocusButton.tap()
+
+        let measurementsTab = app.tabBars.buttons["tab.measurements"].firstMatch
+        XCTAssertTrue(measurementsTab.waitForExistence(timeout: 5), "Measurements tab should exist")
+        XCTAssertTrue(measurementsTab.isSelected, "Metric insight should open Measurements")
+    }
+
+    func testNextFocusLongInsightFitsAtAccessibilityXL() {
+        launchApp(extraArguments: [
+            "-uiTestLongNextFocusInsight",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL",
+            "-AppleLanguages", "(pl)",
+            "-AppleLocale", "pl_PL"
+        ])
+
+        let nextFocusButton = app.buttons["home.nextFocus.button"].firstMatch
+        let primaryValue = app.staticTexts["home.nextFocus.primaryValue"].firstMatch
+        let summary = app.staticTexts["home.nextFocus.summary"].firstMatch
+        let supportingLabel = app.staticTexts["home.nextFocus.supportingLabel"].firstMatch
+
+        XCTAssertTrue(nextFocusButton.waitForExistence(timeout: 5), "Next focus button should exist")
+        XCTAssertTrue(primaryValue.waitForExistence(timeout: 5), "Primary stat should exist")
+        XCTAssertTrue(summary.waitForExistence(timeout: 5), "Summary should exist")
+        XCTAssertTrue(supportingLabel.waitForExistence(timeout: 5), "Supporting label should exist")
+
+        let buttonFrame = nextFocusButton.frame
+        let primaryValueFrame = primaryValue.frame
+        let summaryFrame = summary.frame
+        let supportingLabelFrame = supportingLabel.frame
+
+        XCTAssertFalse(buttonFrame.isEmpty, "Next focus button should have a visible frame")
+        XCTAssertFalse(primaryValueFrame.isEmpty, "Primary stat should have a visible frame")
+        XCTAssertFalse(summaryFrame.isEmpty, "Summary should have a visible frame")
+        XCTAssertFalse(supportingLabelFrame.isEmpty, "Supporting label should have a visible frame")
+        XCTAssertGreaterThan(primaryValueFrame.width, 40, "Primary stat should remain readable")
+        XCTAssertLessThan(primaryValueFrame.height, 42, "Primary stat should stay compact and one-line")
+        XCTAssertGreaterThan(summaryFrame.height, 16, "Summary should remain visible at larger text sizes")
+        XCTAssertLessThan(summaryFrame.height, 90, "Summary should stay within a compact two-line block")
+        XCTAssertGreaterThanOrEqual(primaryValueFrame.minY, buttonFrame.minY, "Primary stat should stay inside the card")
+        XCTAssertLessThanOrEqual(summaryFrame.maxY, buttonFrame.maxY, "Summary should stay inside the card")
+        XCTAssertLessThan(primaryValueFrame.maxY, summaryFrame.minY, "Primary stat and summary should not overlap")
+        XCTAssertLessThan(buttonFrame.height, 150, "Stat-first layout should keep the card shorter than the previous version")
+    }
+
+    func testNextFocusFallbackSetGoalSwitchesToMeasurementsTab() {
+        launchApp(isPremium: false, seedMeasurements: false)
+
+        let nextFocusMode = app.staticTexts["home.nextFocus.mode"].firstMatch
+        let nextFocusButton = app.buttons["home.nextFocus.button"].firstMatch
+        XCTAssertTrue(nextFocusMode.waitForExistence(timeout: 5), "Next focus mode hook should exist")
+        XCTAssertTrue(nextFocusButton.waitForExistence(timeout: 5), "Next focus button should exist")
+        XCTAssertEqual(nextFocusMode.label, "setGoal", "No positive measurement insight should fall back to Set goal")
+        nextFocusButton.tap()
+
+        let measurementsTab = app.tabBars.buttons["tab.measurements"].firstMatch
+        XCTAssertTrue(measurementsTab.waitForExistence(timeout: 5), "Measurements tab should exist")
+        XCTAssertTrue(measurementsTab.isSelected, "Set goal fallback should switch to Measurements")
+    }
+
+    func testNoGoalsStatusChipOpensMeasurements() {
+        launchApp(isPremium: false, seedMeasurements: false)
+
+        let goalStatusButton = app.buttons["home.goalStatus.button"].firstMatch
+        XCTAssertTrue(goalStatusButton.waitForExistence(timeout: 5), "No-goals status chip should become tappable")
+        goalStatusButton.tap()
+
+        let measurementsTab = app.tabBars.buttons["tab.measurements"].firstMatch
+        XCTAssertTrue(measurementsTab.waitForExistence(timeout: 5), "Measurements tab should exist")
+        XCTAssertTrue(measurementsTab.isSelected, "Tapping the no-goals chip should open Measurements")
+    }
+
+    func testTrialReminderPromptShowsDeclineAndConfirm() {
+        launchApp(extraArguments: ["-uiTestShowTrialReminderPrompt"])
+
+        XCTAssertTrue(app.buttons["premium.trial.reminder.prompt.decline"].waitForExistence(timeout: 8), "Trial reminder prompt should show No")
+        XCTAssertTrue(app.buttons["premium.trial.reminder.prompt.confirm"].waitForExistence(timeout: 8), "Trial reminder prompt should show confirm action")
+    }
+
+    func testRecentPhotosCompareOpensPaywallForNonPremiumUsers() {
+        launchApp(isPremium: false)
+
+        let compareButton = app.buttons["home.recentPhotos.compare.button"].firstMatch
+        XCTAssertTrue(compareButton.waitForExistence(timeout: 5), "Recent photos compare card should exist")
+        compareButton.tap()
+
+        XCTAssertTrue(app.buttons["Close Premium screen"].waitForExistence(timeout: 5), "Non-premium compare tap should open the paywall")
+    }
+
+    func testRecentPhotosCompareOpensChooserAndCompareForPremiumUsers() {
+        launchApp(seedPhotos: 24)
+
+        let compareButton = app.buttons["home.recentPhotos.compare.button"].firstMatch
+        XCTAssertTrue(compareButton.waitForExistence(timeout: 5), "Recent photos compare card should exist")
+        compareButton.tap()
+
+        let filteredCount = app.staticTexts["home.compare.filteredCount"].firstMatch
+        XCTAssertTrue(filteredCount.waitForExistence(timeout: 5), "Chooser should expose filtered photo count")
+        XCTAssertEqual(filteredCount.label, "24", "Chooser should start with the full photo library")
+        XCTAssertTrue(app.buttons["home.compare.filter.all"].waitForExistence(timeout: 5), "Chooser should expose the time filter")
+        XCTAssertTrue(app.buttons["home.compare.selectTwoHook"].waitForExistence(timeout: 5), "UI test hook should exist in chooser")
+        app.buttons["home.compare.selectTwoHook"].tap()
+
+        XCTAssertTrue(app.buttons["photos.compare.done"].waitForExistence(timeout: 5), "Choosing two photos should open compare view")
+    }
+
+    func testSecondaryMetricExpandsInlineWithoutOverlappingRecentPhotos() {
+        launchApp()
+
+        let secondaryMetricToggle = firstExistingElement(
+            identifiers: [
+                "home.keyMetrics.secondary.bodyFat.toggle",
+                "home.keyMetrics.secondary.leanBodyMass.toggle",
+                "home.keyMetrics.secondary.waist.toggle"
+            ],
+            query: app.buttons
+        )
+        XCTAssertTrue(secondaryMetricToggle.waitForExistence(timeout: 5), "A secondary key metric row should exist")
+        secondaryMetricToggle.tap()
+
+        let expandedPanel = firstExistingElement(
+            identifiers: [
+                "home.keyMetrics.secondary.bodyFat.expanded",
+                "home.keyMetrics.secondary.leanBodyMass.expanded",
+                "home.keyMetrics.secondary.waist.expanded"
+            ],
+            query: app.otherElements
+        )
+        XCTAssertTrue(expandedPanel.waitForExistence(timeout: 5), "Secondary metric should expand inline")
+
+        let keyMetrics = app.otherElements["home.module.keyMetrics"].firstMatch
+        let recentPhotos = app.otherElements["home.module.recentPhotos"].firstMatch
+        XCTAssertTrue(keyMetrics.waitForExistence(timeout: 5), "Key metrics module should exist")
+        XCTAssertTrue(recentPhotos.waitForExistence(timeout: 5), "Recent photos module should exist")
+
+        XCTAssertTrue(framesDoNotOverlap(keyMetrics, recentPhotos), "Expanded key metrics should not overlap Recent photos")
+        XCTAssertLessThanOrEqual(keyMetrics.frame.maxY, recentPhotos.frame.minY, "Recent photos should still start after Key metrics")
+    }
+
+    func testSecondaryMetricsCanStayExpandedTogether() {
+        launchApp()
+
+        let expandedCount = app.staticTexts["home.keyMetrics.secondary.expandedCount"].firstMatch
+        let expandedIDs = app.staticTexts["home.keyMetrics.secondary.expandedIDs"].firstMatch
+        XCTAssertTrue(expandedCount.waitForExistence(timeout: 5), "Expanded secondary metric count hook should exist")
+        XCTAssertTrue(expandedIDs.waitForExistence(timeout: 5), "Expanded secondary metric id hook should exist")
+
+        let candidates = [
+            "home.keyMetrics.secondary.bodyFat.toggle",
+            "home.keyMetrics.secondary.leanBodyMass.toggle",
+            "home.keyMetrics.secondary.waist.toggle"
+        ]
+
+        let firstToggleID = firstExistingIdentifier(
+            identifiers: candidates,
+            query: app.buttons
+        )
+        let firstToggle = app.buttons[firstToggleID].firstMatch
+
+        XCTAssertTrue(firstToggle.waitForExistence(timeout: 5), "First secondary metric toggle should exist")
+        firstToggle.tap()
+        XCTAssertEqual(expandedCount.label, "1", "Opening one secondary metric should keep it expanded")
+
+        let firstExpanded = app.otherElements[firstToggleID.replacingOccurrences(of: ".toggle", with: ".expanded")].firstMatch
+        XCTAssertTrue(firstExpanded.waitForExistence(timeout: 5), "First secondary metric should expand")
+
+        let remainingCandidates = candidates.filter { $0 != firstToggleID }
+        let secondToggleID = firstExistingIdentifier(
+            identifiers: remainingCandidates,
+            query: app.buttons
+        )
+        let secondToggle = app.buttons[secondToggleID].firstMatch
+
+        XCTAssertTrue(secondToggle.waitForExistence(timeout: 5), "Second secondary metric toggle should exist")
+        secondToggle.tap()
+
+        let secondExpanded = app.otherElements[secondToggleID.replacingOccurrences(of: ".toggle", with: ".expanded")].firstMatch
+        XCTAssertTrue(secondExpanded.waitForExistence(timeout: 5), "Second secondary metric should expand")
+        XCTAssertEqual(expandedCount.label, "2", "Two secondary metrics should be able to stay expanded together")
+        XCTAssertTrue(firstExpanded.exists, "First expanded metric should remain expanded after opening another one")
+        XCTAssertTrue(expandedIDs.label.contains(metricKindFromToggleIdentifier(firstToggleID)), "First metric id should remain in the expanded set")
+        XCTAssertTrue(expandedIDs.label.contains(metricKindFromToggleIdentifier(secondToggleID)), "Second metric id should appear in the expanded set")
+    }
+
+    private func metricKindFromToggleIdentifier(_ identifier: String) -> String {
+        let components = identifier.components(separatedBy: ".")
+        return components.count >= 4 ? components[3] : identifier
+    }
+
+    private func firstExistingIdentifier(
+        identifiers: [String],
+        query: XCUIElementQuery
+    ) -> String {
+        for identifier in identifiers {
+            if query[identifier].firstMatch.exists {
+                return identifier
+            }
+        }
+        return identifiers[0]
+    }
+
+    private func launchApp(
+        extraArguments: [String] = [],
+        isPremium: Bool = true,
+        seedMeasurements: Bool = true,
+        seedPhotos: Int = 3
+    ) {
+        var launchArguments = [
+            "-uiTestMode",
+            "-uiTestBypassHealthSummaryGuards",
+            "-uiTestLongHealthInsight"
+        ]
+
+        if seedMeasurements {
+            launchArguments.append("-uiTestSeedMeasurements")
+        }
+        if seedPhotos > 0 {
+            launchArguments += ["-uiTestSeedPhotos", "\(seedPhotos)"]
+        }
+
+        launchArguments.append(isPremium ? "-uiTestForcePremium" : "-uiTestForceNonPremium")
+        launchArguments += extraArguments
+        app.launchArguments = launchArguments
+        app.launch()
+    }
+
+    private func firstExistingElement(
+        identifiers: [String],
+        query: XCUIElementQuery
+    ) -> XCUIElement {
+        for identifier in identifiers {
+            let element = query[identifier].firstMatch
+            if element.exists {
+                return element
+            }
+        }
+        return query[identifiers[0]].firstMatch
     }
 
     private func framesDoNotOverlap(_ first: XCUIElement, _ second: XCUIElement) -> Bool {
@@ -71,10 +346,10 @@ final class HomeViewUITests: XCTestCase {
         return firstFrame.intersection(secondFrame).isNull
     }
 
-    private func scrollToReveal(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int) {
-        guard element.exists || maxSwipes > 0 else { return }
+    private func scrollToReveal(_ element: XCUIElement, maxSwipes: Int) {
         let window = app.windows.element(boundBy: 0)
         if isPartiallyVisible(element, in: window) { return }
+
         for _ in 0..<maxSwipes {
             app.swipeUp()
             if isPartiallyVisible(element, in: window) {

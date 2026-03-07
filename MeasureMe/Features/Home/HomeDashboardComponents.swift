@@ -80,7 +80,7 @@ private struct HomeDashboardBoardLayout: Layout {
     private func dashboardMetrics(for width: CGFloat) -> DashboardMetrics {
         let totalSpacing = CGFloat(max(columns - 1, 0)) * spacing
         let cellWidth = (width - totalSpacing) / CGFloat(columns)
-        let rowHeight = min(max(cellWidth * 0.86, 128), 172)
+        let rowHeight = min(max(cellWidth * 0.78, 120), 156)
         return DashboardMetrics(cellWidth: cellWidth, rowHeight: rowHeight)
     }
 
@@ -101,10 +101,13 @@ private struct HomeDashboardBoardLayout: Layout {
             let endRow = min(item.row + item.size.rowSpan, rowHeights.count)
             guard item.row < endRow else { continue }
             let frameWidth = frameWidth(for: item.size, metrics: metrics)
-            let measuredHeight = ceil(
-                subviews[index]
-                    .sizeThatFits(ProposedViewSize(width: frameWidth, height: nil))
-                    .height
+            let measuredHeight = max(
+                ceil(
+                    subviews[index]
+                        .sizeThatFits(ProposedViewSize(width: frameWidth, height: nil))
+                        .height
+                ),
+                minimumHeight(for: item, metrics: metrics)
             )
             let currentHeight = totalHeight(
                 rows: item.row..<endRow,
@@ -132,6 +135,28 @@ private struct HomeDashboardBoardLayout: Layout {
 
         let contentHeight = frames.values.map(\.maxY).max() ?? 0
         return ResolvedLayout(frames: frames, contentHeight: contentHeight)
+    }
+
+    private func minimumHeight(for item: HomeModuleLayoutItem, metrics: DashboardMetrics) -> CGFloat {
+        let nominalHeight = totalHeight(
+            rows: 0..<item.size.rowSpan,
+            rowHeights: Array(repeating: metrics.rowHeight, count: max(item.size.rowSpan, 1))
+        )
+
+        switch item.kind {
+        case .summaryHero:
+            return max(nominalHeight, columns > 2 ? 236 : 252)
+        case .quickActions:
+            return nominalHeight
+        case .keyMetrics:
+            return max(nominalHeight, columns > 2 ? 272 : 308)
+        case .recentPhotos:
+            return max(nominalHeight, columns > 2 ? 224 : 236)
+        case .healthSummary:
+            return max(nominalHeight, columns > 2 ? 212 : 224)
+        case .setupChecklist:
+            return max(nominalHeight, columns > 2 ? 176 : 188)
+        }
     }
 
     private func frameWidth(for size: HomeModuleSize, metrics: DashboardMetrics) -> CGFloat {

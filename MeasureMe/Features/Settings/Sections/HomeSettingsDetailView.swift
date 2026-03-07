@@ -6,7 +6,7 @@ private extension HomeModuleKind {
         case .summaryHero:
             return AppLocalization.string("Summary hero")
         case .quickActions:
-            return AppLocalization.string("Quick actions")
+            return ""
         case .keyMetrics:
             return AppLocalization.string("Key metrics")
         case .recentPhotos:
@@ -23,7 +23,7 @@ private extension HomeModuleKind {
         case .summaryHero:
             return AppLocalization.string("Greeting, streak, goals, and momentum")
         case .quickActions:
-            return AppLocalization.string("Fast entry points for common actions")
+            return ""
         case .keyMetrics:
             return AppLocalization.string("Your top tracked measurements")
         case .recentPhotos:
@@ -69,6 +69,7 @@ struct HomeSettingsDetailView: View {
                 moduleVisibilitySection
                 resetSection
             }
+            .accessibilityIdentifier("settings.home.detail")
             .scrollContentBackground(.hidden)
             .listStyle(.plain)
             .listSectionSpacing(24)
@@ -76,6 +77,7 @@ struct HomeSettingsDetailView: View {
             .listSectionSeparator(.hidden)
             .padding(.top, 8)
         }
+        .accessibilityIdentifier("settings.home.detail")
         .navigationTitle(AppLocalization.string("Home"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -101,7 +103,7 @@ struct HomeSettingsDetailView: View {
             SettingsCard(tint: Color.appAccent.opacity(0.10)) {
                 SettingsCardHeader(title: AppLocalization.string("Visible modules"), systemImage: "eye")
 
-                ForEach(HomeModuleKind.allCases, id: \.self) { kind in
+                ForEach(HomeModuleKind.activeCases, id: \.self) { kind in
                     Toggle(isOn: binding(for: kind)) {
                         HStack(spacing: 12) {
                             GlassPillIcon(systemName: kind.settingsSystemImage)
@@ -116,7 +118,7 @@ struct HomeSettingsDetailView: View {
                     }
                     .tint(Color.appAccent)
 
-                    if kind != HomeModuleKind.allCases.last {
+                    if kind != HomeModuleKind.activeCases.last {
                         SettingsRowDivider()
                     }
                 }

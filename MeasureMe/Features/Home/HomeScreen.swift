@@ -1,6 +1,11 @@
 import SwiftUI
 import SwiftData
 
+private extension Notification.Name {
+    static let homeScrollToChecklist = Notification.Name("homeScrollToChecklist")
+    static let settingsOpenHomeSettingsRequested = Notification.Name("settingsOpenHomeSettingsRequested")
+}
+
 /// HomeView - Ulepszona wersja z mini wykresami i sekcją ostatnich zdjęć
 /// 
 /// Funkcje:
@@ -16,10 +21,14 @@ struct HomeView: View {
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.modelContext) private var modelContext
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
+    @AppSetting(\.profile.userAge) private var userAgeValue: Int = 0
+    @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
     @AppSetting(\.health.isSyncEnabled) var isSyncEnabled: Bool = false
     @AppSetting(\.home.showLastPhotosOnHome) private var showLastPhotosOnHome: Bool = true
@@ -35,6 +44,7 @@ struct HomeView: View {
     @AppSetting(\.onboarding.onboardingChecklistCollapsed) private var onboardingChecklistCollapsed: Bool = false
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
+    @AppSetting(\.home.settingsOpenHomeSettings) private var settingsOpenHomeSettings: Bool = false
     @AppSetting(\.home.homePhotoMetricSyncLastDate) private var photoMetricSyncLastDate: Double = 0
     @AppSetting(\.home.homePhotoMetricSyncLastID) private var photoMetricSyncLastID: String = ""
     
@@ -49,13 +59,17 @@ struct HomeView: View {
     private var allPhotos: [PhotoEntry]
     
     @State private var showQuickAddSheet = false
+    @State private var showHomeSettingsSheet = false
+    @State private var showHomeCompareChooser = false
     @State private var selectedPhotoForFullScreen: PhotoEntry?
+    @State private var selectedHomeComparePair: HomeComparePair?
     @State private var scrollOffset: CGFloat = 0
     @State private var lastPhotosGridWidth: CGFloat = 0
     @State private var checklistStatusText: String?
     @State private var isChecklistConnectingHealth: Bool = false
     @State private var reminderChecklistCompleted: Bool = false
     @State private var showMoreChecklistItems: Bool = false
+    @State private var expandedSecondaryMetrics: Set<MetricKind> = []
     @State private var didCheckSevenDayPaywallPrompt: Bool = false
     @State private var didRunStartupPhases = false
     @State private var didEmitHomeInitialRender = false
@@ -79,9 +93,22 @@ struct HomeView: View {
     private let maxVisibleMetrics = 3
     private let maxVisiblePhotos = 6
     private let autoCheckPaywallPrompt: Bool
+    private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
     let effects: HomeEffects
     private var shouldAnimate: Bool {
         AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+    }
+
+    private var prefersStackedHeroPanels: Bool {
+        dynamicTypeSize >= .xLarge || dynamicTypeSize.isAccessibilitySize
+    }
+
+    private var isFreshHomeState: Bool {
+        !hasAnyMeasurements && !hasAnyPhotoContent && homeHealthStatItems.isEmpty
+    }
+
+    private var userAge: Int? {
+        userAgeValue > 0 ? userAgeValue : nil
     }
 
     // Designated initializer that accepts an explicit streakManager to avoid touching MainActor in default params (Swift 6 safe)
@@ -121,6 +148,48 @@ struct HomeView: View {
         let icon: String
         let isCompleted: Bool
         let isLoading: Bool
+    }
+
+    private struct HomeComparePair: Identifiable {
+        let olderPhoto: PhotoEntry
+        let newerPhoto: PhotoEntry
+
+        var id: String {
+            "\(olderPhoto.persistentModelID)-\(newerPhoto.persistentModelID)"
+        }
+    }
+
+    private struct HomeHealthStatItem: Identifiable {
+        var id: String { label }
+        let label: String
+        let value: String
+        let badge: String?
+
+        init(label: String, value: String, badge: String? = nil) {
+            self.label = label
+            self.value = value
+            self.badge = badge
+        }
+    }
+
+    private struct HomeNextFocusInsight {
+        enum Action {
+            case metric(MetricKind)
+            case measurements
+        }
+
+        let headline: String?
+        let primaryValue: String?
+        let supportingLabel: String?
+        let summary: String
+        let cta: String
+        let action: Action
+        let accessibilityValue: String
+    }
+
+    private struct HomeNextFocusCandidate {
+        let insight: HomeNextFocusInsight
+        let score: Double
     }
 
     private enum HomePhotoTile: Identifiable {
@@ -164,7 +233,7 @@ struct HomeView: View {
     /// Metryki renderowane w widget boardzie.
     /// Duzy kafel na iPhone nie miesci stabilnie 3 pelnych wierszy.
     private var dashboardVisibleMetrics: [MetricKind] {
-        Array(visibleMetrics.prefix(2))
+        Array(visibleMetrics.prefix(3))
     }
     
     
@@ -181,6 +250,14 @@ struct HomeView: View {
 
     private var dashboardRecentPhotoTiles: [HomePhotoTile] {
         Array(visiblePhotoTiles.prefix(3))
+    }
+
+    private var homeCompareCandidates: [PhotoEntry] {
+        allPhotos
+    }
+
+    private var hasEnoughSavedPhotosForCompare: Bool {
+        homeCompareCandidates.count >= 2
     }
 
     private var hasAnyPhotoContent: Bool {
@@ -526,6 +603,142 @@ struct HomeView: View {
     }
 
     var body: some View {
+        ScrollViewReader { scrollProxy in
+            homeRoot(scrollProxy: scrollProxy)
+        }
+    }
+
+    @ViewBuilder
+    private func homeRoot(scrollProxy: ScrollViewProxy) -> some View {
+        let presented = sheetPresentedHomeRoot(baseHomeRoot)
+        let lifecycleObserved = lifecycleObservedHomeRoot(presented, scrollProxy: scrollProxy)
+        refreshingHomeRoot(lifecycleObserved)
+    }
+
+    private var dashboardBoard: some View {
+        HomeDashboardBoard(
+            items: renderedDashboardItems,
+            columns: dashboardColumns
+        ) { item in
+            homeModuleView(for: item)
+                .id(item.kind.rawValue)
+        }
+    }
+
+    private var quickAddSheet: some View {
+        QuickAddSheetView(
+            kinds: metricsStore.activeKinds,
+            latest: Dictionary(
+                uniqueKeysWithValues: cachedLatestByKind.map { ($0.key, ($0.value.value, $0.value.date)) }
+            ),
+            unitsSystem: unitsSystem
+        ) {
+            showQuickAddSheet = false
+        }
+    }
+
+    private var homeUITestHooks: some View {
+        VStack(spacing: 0) {
+            if shouldRenderModule(.setupChecklist) {
+                Text("1")
+                    .font(.system(size: 1))
+                    .foregroundStyle(.clear)
+                    .accessibilityIdentifier("home.module.setupChecklist.visible")
+                    .frame(width: 1, height: 1)
+                    .clipped()
+
+                Text("\(shownChecklistItems.count)")
+                    .font(.system(size: 1))
+                    .foregroundStyle(.clear)
+                    .accessibilityIdentifier("home.checklist.visibleCount")
+                    .frame(width: 1, height: 1)
+                    .clipped()
+
+                Text(shownChecklistItems.map(\.id).joined(separator: ","))
+                    .font(.system(size: 1))
+                    .foregroundStyle(.clear)
+                    .accessibilityIdentifier("home.checklist.visibleIDs")
+                    .frame(width: 1, height: 1)
+                    .clipped()
+
+                Text("\(max(activeChecklistItems.count - collapsedChecklistItems.count, 0))")
+                    .font(.system(size: 1))
+                    .foregroundStyle(.clear)
+                    .accessibilityIdentifier("home.checklist.remainingCount")
+                    .frame(width: 1, height: 1)
+                    .clipped()
+
+                if activeChecklistItems.count > collapsedChecklistItems.count {
+                    Button("expand") {
+                        showMoreChecklistItems = true
+                    }
+                    .buttonStyle(.plain)
+                    .frame(width: 44, height: 44)
+                    .opacity(0.01)
+                    .accessibilityIdentifier("home.checklist.showMore.hook")
+                }
+            }
+
+            if showHomeSettingsSheet {
+                Text("1")
+                    .font(.system(size: 1))
+                    .foregroundStyle(.clear)
+                    .accessibilityIdentifier("home.settings.sheet.present")
+                    .frame(width: 1, height: 1)
+                    .clipped()
+            }
+
+            Text(nextFocusInsight.accessibilityValue)
+                .font(.system(size: 1))
+                .foregroundStyle(.clear)
+                .accessibilityIdentifier("home.nextFocus.mode")
+                .frame(width: 1, height: 1)
+                .clipped()
+
+            Text(nextFocusInsight.cta)
+                .font(.system(size: 1))
+                .foregroundStyle(.clear)
+                .accessibilityIdentifier("home.nextFocus.cta")
+                .frame(width: 1, height: 1)
+                .clipped()
+
+            ForEach(Array(expandedSecondaryMetrics), id: \.self) { kind in
+                Color.clear
+                    .accessibilityElement()
+                    .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).expanded")
+                    .frame(width: 1, height: 1)
+                    .allowsHitTesting(false)
+            }
+
+            ForEach(Array(expandedSecondaryMetrics), id: \.self) { kind in
+                Button("collapse") {
+                    withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+                        _ = expandedSecondaryMetrics.remove(kind)
+                    }
+                }
+                .buttonStyle(.plain)
+                .frame(width: 44, height: 44)
+                .opacity(0.01)
+                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).collapseHook")
+            }
+
+            Text("\(expandedSecondaryMetrics.count)")
+                .font(.system(size: 1))
+                .foregroundStyle(.clear)
+                .accessibilityIdentifier("home.keyMetrics.secondary.expandedCount")
+                .frame(width: 1, height: 1)
+                .clipped()
+
+            Text(expandedSecondaryMetrics.map(\.rawValue).sorted().joined(separator: ","))
+                .font(.system(size: 1))
+                .foregroundStyle(.clear)
+                .accessibilityIdentifier("home.keyMetrics.secondary.expandedIDs")
+                .frame(width: 1, height: 1)
+                .clipped()
+        }
+    }
+
+    private var baseHomeRoot: some View {
         ZStack(alignment: .top) {
             AppScreenBackground(
                 topHeight: 380,
@@ -533,7 +746,6 @@ struct HomeView: View {
                 tint: Color.cyan.opacity(0.22)
             )
 
-            // Zawartość przewijalna
             ScrollView {
                 VStack(spacing: 0) {
                     GeometryReader { proxy in
@@ -545,12 +757,7 @@ struct HomeView: View {
                     }
                     .frame(height: 0)
 
-                    HomeDashboardBoard(
-                        items: renderedDashboardItems,
-                        columns: dashboardColumns
-                    ) { item in
-                        homeModuleView(for: item)
-                    }
+                    dashboardBoard
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
@@ -561,83 +768,129 @@ struct HomeView: View {
                 scrollOffset = value
                 homeTabScrollOffset = Double(value)
             }
+
+            if isUITestMode {
+                homeUITestHooks
+            }
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(scrollOffset < -16 ? .visible : .hidden, for: .navigationBar)
-        .sheet(isPresented: $showQuickAddSheet) {
-            QuickAddSheetView(
-                kinds: metricsStore.activeKinds,
-                latest: Dictionary(
-                    uniqueKeysWithValues: cachedLatestByKind.map { ($0.key, ($0.value.value, $0.value.date)) }
-                ),
-                unitsSystem: unitsSystem
-            ) {
-                showQuickAddSheet = false
+        .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: isLastPhotosSectionMounted)
+        .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: isHealthSectionMounted)
+        .animation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate), value: showMoreChecklistItems)
+        .animation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate), value: onboardingChecklistCollapsed)
+    }
+
+    private func sheetPresentedHomeRoot<Content: View>(_ content: Content) -> some View {
+        content
+            .sheet(isPresented: $showQuickAddSheet) {
+                quickAddSheet
             }
-        }
-        .sheet(item: $selectedPhotoForFullScreen) { photo in
-            PhotoDetailView(photo: photo)
-        }
-        .onAppear {
-            DispatchQueue.main.async {
+            .sheet(isPresented: $showHomeSettingsSheet) {
+                NavigationStack {
+                    HomeSettingsDetailView()
+                }
+            }
+            .sheet(item: $selectedPhotoForFullScreen) { photo in
+                PhotoDetailView(photo: photo)
+            }
+            .sheet(isPresented: $showHomeCompareChooser) {
+                HomeCompareChooserSheet(photos: homeCompareCandidates) { olderPhoto, newerPhoto in
+                    selectedHomeComparePair = HomeComparePair(olderPhoto: olderPhoto, newerPhoto: newerPhoto)
+                }
+            }
+            .sheet(item: $selectedHomeComparePair) { pair in
+                ComparePhotosView(olderPhoto: pair.olderPhoto, newerPhoto: pair.newerPhoto)
+            }
+    }
+
+    private func lifecycleObservedHomeRoot<Content: View>(
+        _ content: Content,
+        scrollProxy: ScrollViewProxy
+    ) -> some View {
+        content
+            .onAppear {
+                DispatchQueue.main.async {
                 if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
                     didCheckSevenDayPaywallPrompt = true
                     premiumStore.checkSevenDayPromptIfNeeded()
                 }
+                if ProcessInfo.processInfo.arguments.contains("-uiTestExpandChecklist") {
+                    showMoreChecklistItems = true
+                }
                 emitHomeInitialRenderIfNeeded()
                 runStartupPhasesIfNeeded()
+                }
             }
-        }
-        .onChange(of: recentSamplesSignature) { _, _ in
-            refreshMeasurementCaches()
-        }
-        .onChange(of: metricsStore.activeKinds) { _, _ in
-            refreshMeasurementCaches()
-        }
-        .onChange(of: goals.count) { _, _ in
-            rebuildGoalsCache()
-        }
-        .onChange(of: isSyncEnabled) { _, _ in
-            refreshChecklistState()
-            fetchHealthKitData()
-        }
-        .onChange(of: allPhotos.count) { _, _ in
-            refreshChecklistState()
-            if didRunStartupPhases {
-                scheduleDeferredStartupPhaseC(delayMilliseconds: 900)
+            .onDisappear {
+                expandedSecondaryMetrics.removeAll()
             }
-        }
-        .onChange(of: onboardingChecklistMetricsCompleted) { _, _ in
-            refreshChecklistState()
-        }
-        .onChange(of: onboardingChecklistPremiumExplored) { _, _ in
-            refreshChecklistState()
-        }
-        .onChange(of: onboardingSkippedHealthKit) { _, _ in
-            refreshChecklistState()
-        }
-        .onChange(of: onboardingSkippedReminders) { _, _ in
-            refreshChecklistState()
-        }
-        .refreshable {
-            syncMeasurementsFromPhotosIfNeeded(force: true)
-            refreshMeasurementCaches()
-            rebuildGoalsCache()
-            fetchHealthKitData()
-            refreshChecklistState()
-        }
+            .onReceive(NotificationCenter.default.publisher(for: .homeScrollToChecklist)) { _ in
+                withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+                    scrollProxy.scrollTo(HomeModuleKind.setupChecklist.rawValue, anchor: .top)
+                }
+            }
+    }
+
+    private func refreshingHomeRoot<Content: View>(_ content: Content) -> some View {
+        content
+            .onChange(of: recentSamplesSignature) { _, _ in
+                refreshMeasurementCaches()
+            }
+            .onChange(of: metricsStore.activeKinds) { _, _ in
+                refreshMeasurementCaches()
+            }
+            .onChange(of: goals.count) { _, _ in
+                rebuildGoalsCache()
+            }
+            .onChange(of: isSyncEnabled) { _, _ in
+                refreshChecklistState()
+                fetchHealthKitData()
+            }
+            .onChange(of: allPhotos.count) { _, _ in
+                refreshChecklistState()
+                if didRunStartupPhases {
+                    scheduleDeferredStartupPhaseC(delayMilliseconds: 900)
+                }
+            }
+            .onChange(of: onboardingChecklistMetricsCompleted) { _, _ in
+                refreshChecklistState()
+            }
+            .onChange(of: onboardingChecklistPremiumExplored) { _, _ in
+                refreshChecklistState()
+            }
+            .onChange(of: onboardingSkippedHealthKit) { _, _ in
+                refreshChecklistState()
+            }
+            .onChange(of: onboardingSkippedReminders) { _, _ in
+                refreshChecklistState()
+            }
+            .onChange(of: activeChecklistItems.count) { _, newCount in
+                if newCount <= collapsedChecklistItems.count {
+                    showMoreChecklistItems = false
+                }
+            }
+            .refreshable {
+                syncMeasurementsFromPhotosIfNeeded(force: true)
+                refreshMeasurementCaches()
+                rebuildGoalsCache()
+                fetchHealthKitData()
+                refreshChecklistState()
+            }
     }
 
     private func shouldRenderModule(_ kind: HomeModuleKind) -> Bool {
         switch kind {
-        case .summaryHero, .quickActions:
+        case .summaryHero:
             return true
+        case .quickActions:
+            return false
         case .keyMetrics:
             return showMeasurementsOnHome
         case .recentPhotos:
             return showLastPhotosOnHome
         case .healthSummary:
-            return showHealthMetricsOnHome && premiumStore.isPremium
+            return showHealthMetricsOnHome
         case .setupChecklist:
             return showOnboardingChecklistOnHome && !activeChecklistItems.isEmpty
         }
@@ -669,10 +922,10 @@ struct HomeView: View {
         HomeWidgetCard(
             tint: Color.appAccent.opacity(0.18),
             depth: .floating,
-            contentPadding: 16,
+            contentPadding: 18,
             accessibilityIdentifier: "home.module.summaryHero"
         ) {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
                     Image("BrandButton")
                         .renderingMode(.original)
@@ -696,122 +949,256 @@ struct HomeView: View {
                     }
                 }
 
-                Text(greetingTitle)
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(greetingTitle)
+                        .font(.system(size: prefersStackedHeroPanels ? 28 : 32, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(prefersStackedHeroPanels ? 3 : 2)
+                        .minimumScaleFactor(0.82)
 
-                Text(goalStatusText)
-                    .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(goalStatusColor)
+                    heroGoalStatusRow
+                }
 
-                HStack(alignment: .top, spacing: 12) {
-                    summaryHighlightCard(
-                        label: AppLocalization.string("Next focus"),
-                        value: summaryFocusTitle,
-                        detail: summaryFocusDetail,
-                        icon: "scope",
-                        emphasized: true
-                    )
+                if isFreshHomeState {
+                    freshHomePromptCard
+                        .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
+                }
 
-                    summaryHighlightCard(
-                        label: AppLocalization.string("This week"),
-                        value: summaryThisWeekTitle,
-                        detail: summaryThisWeekDetail,
-                        icon: "calendar"
-                    )
+                Group {
+                    if prefersStackedHeroPanels {
+                        VStack(spacing: 10) {
+                            nextFocusSummaryCard
+                            thisWeekSummaryCard
+                        }
+                    } else {
+                        HStack(alignment: .top, spacing: 12) {
+                            nextFocusSummaryCard
+                            thisWeekSummaryCard
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
+
+    private var heroGoalStatusRow: some View {
+        Group {
+            if goalStatus == .noGoals {
+                Button {
+                    Haptics.selection()
+                    router.selectedTab = .measurements
+                } label: {
+                    heroGoalStatusContent
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("home.goalStatus.button")
+            } else {
+                heroGoalStatusContent
             }
         }
     }
 
-    private func summaryHighlightCard(
-        label: String,
-        value: String,
-        detail: String,
-        icon: String? = nil,
-        emphasized: Bool = false
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                if let icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(emphasized ? Color.appAccent : .white.opacity(0.62))
-                }
+    private var heroGoalStatusContent: some View {
+        HStack(spacing: 8) {
+            Image(systemName: differentiateWithoutColor ? "flag.fill" : "circle.fill")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(goalStatusColor)
 
-                Text(label)
-                    .font(AppTypography.microEmphasis)
-                    .foregroundStyle(emphasized ? Color.appAccent : .white.opacity(0.62))
-            }
-
-            Text(value)
-                .font(emphasized ? .system(size: 22, weight: .bold, design: .rounded) : AppTypography.bodyEmphasis)
-                .foregroundStyle(.white)
+            Text(goalStatusText)
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(.white.opacity(0.9))
                 .lineLimit(2)
-
-            Text(detail)
-                .font(AppTypography.micro)
-                .foregroundStyle(.white.opacity(0.72))
-                .lineLimit(3)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(emphasized ? Color.appAccent.opacity(0.12) : Color.white.opacity(0.05))
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.06))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(emphasized ? Color.appAccent.opacity(0.26) : Color.white.opacity(0.08), lineWidth: 1)
+                    Capsule(style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
                 )
         )
     }
 
-    private var quickActionsModule: some View {
-        HomeWidgetCard(
-            tint: Color.cyan.opacity(0.14),
-            depth: .base,
-            contentPadding: 14,
-            accessibilityIdentifier: "home.module.quickActions"
-        ) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(AppLocalization.string("Quick actions"))
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(0.82))
+    private var nextFocusSummaryCard: some View {
+        Button {
+            handleNextFocusAction()
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .center, spacing: 8) {
+                    heroMiniLabel(
+                        title: AppLocalization.string("home.nextfocus.label"),
+                        icon: "chart.line.uptrend.xyaxis",
+                        accent: Color.appAccent
+                    )
+                    Spacer(minLength: 8)
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color.appAccent.opacity(0.84))
+                }
 
-                HStack(spacing: 10) {
-                    HomeQuickActionButton(
-                        title: AppLocalization.string("Quick Add"),
-                        systemImage: "plus.circle.fill",
-                        tint: Color.appAccent
-                    ) {
-                        Haptics.light()
-                        showQuickAddSheet = true
+                if let primaryValue = nextFocusInsight.primaryValue {
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(primaryValue)
+                                .font(.system(size: prefersStackedHeroPanels ? 22 : 24, weight: .bold, design: .rounded).monospacedDigit())
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .accessibilityIdentifier("home.nextFocus.primaryValue")
+
+                            if let supportingLabel = nextFocusInsight.supportingLabel {
+                                Text(supportingLabel)
+                                    .font(.system(size: 10, weight: .semibold, design: .default))
+                                    .foregroundStyle(Color.appAccent)
+                                    .lineLimit(1)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(
+                                        Capsule(style: .continuous)
+                                            .fill(Color.appAccent.opacity(0.12))
+                                            .overlay(
+                                                Capsule(style: .continuous)
+                                                    .stroke(Color.appAccent.opacity(0.24), lineWidth: 1)
+                                            )
+                                    )
+                                    .accessibilityIdentifier("home.nextFocus.supportingLabel")
+                            }
+                        }
+
+                        Text(nextFocusInsight.summary)
+                            .font(.system(size: prefersStackedHeroPanels ? 12 : 13, weight: .semibold, design: .default))
+                            .foregroundStyle(.white.opacity(0.86))
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityIdentifier("home.nextFocus.summary")
                     }
-                    .accessibilityIdentifier("home.quickadd.button")
+                } else {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let headline = nextFocusInsight.headline {
+                            Text(headline)
+                                .font(.system(size: 15, weight: .semibold, design: .default))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .accessibilityIdentifier("home.nextFocus.headline")
+                        }
 
-                    HomeQuickActionButton(
-                        title: AppLocalization.string("Add Photo"),
-                        systemImage: "camera.fill",
-                        tint: Color.cyan
-                    ) {
-                        Haptics.selection()
-                        NotificationCenter.default.post(name: .homeOpenPhotoComposer, object: nil)
-                        router.selectedTab = .photos
-                    }
-
-                    HomeQuickActionButton(
-                        title: AppLocalization.string("Measurements"),
-                        systemImage: "chart.line.uptrend.xyaxis",
-                        tint: Color(hex: "#14B8A6")
-                    ) {
-                        Haptics.selection()
-                        router.selectedTab = .measurements
+                        Text(nextFocusInsight.summary)
+                            .font(.system(size: 13, weight: .semibold, design: .default))
+                            .foregroundStyle(.white.opacity(0.86))
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityIdentifier("home.nextFocus.summary")
                     }
                 }
             }
+            .padding(10)
+            .frame(maxWidth: .infinity, minHeight: heroSummaryCardMinHeight, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color.appAccent.opacity(0.12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(Color.appAccent.opacity(0.24), lineWidth: 1)
+                    )
+            )
         }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("home.nextFocus.button")
+    }
+
+    private var thisWeekSummaryCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            heroMiniLabel(
+                title: AppLocalization.string("This week"),
+                icon: "calendar",
+                accent: .white.opacity(0.76)
+            )
+
+            Text(summaryThisWeekTitle)
+                .font(.system(size: prefersStackedHeroPanels ? 20 : 22, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(summaryThisWeekDetail)
+                .font(.system(size: prefersStackedHeroPanels ? 12 : 13, weight: .semibold, design: .default))
+                .foregroundStyle(.white.opacity(0.78))
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: heroSummaryCardMinHeight, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+        )
+    }
+
+    private var heroSummaryCardMinHeight: CGFloat {
+        prefersStackedHeroPanels ? 120 : 124
+    }
+
+    private var freshHomePromptCard: some View {
+        Button {
+            handleNextFocusAction()
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(AppLocalization.string("home.hero.fresh.title"))
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(.white)
+                    Text(AppLocalization.string("home.hero.fresh.detail"))
+                        .font(AppTypography.micro)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(AppLocalization.string("home.hero.fresh.cta"))
+                    .font(AppTypography.microEmphasis)
+                    .foregroundStyle(Color.appAccent)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.white.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func heroMiniLabel(title: String, icon: String, accent: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .bold))
+            Text(title)
+                .font(AppTypography.microEmphasis)
+        }
+        .foregroundStyle(accent)
+    }
+
+    private var quickActionsModule: some View {
+        EmptyView()
     }
 
     private var keyMetricsModule: some View {
@@ -822,71 +1209,62 @@ struct HomeView: View {
             accessibilityIdentifier: "home.module.keyMetrics"
         ) {
             VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Text(AppLocalization.string("Key metrics"))
-                        .font(AppTypography.sectionTitle)
-                        .foregroundStyle(.white)
-                        .accessibilityIdentifier("home.module.keyMetrics.title")
-                    Spacer()
-                    Button {
-                        router.selectedTab = .measurements
-                    } label: {
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(moduleAccentText)
-                            .frame(width: 36, height: 36)
-                            .background(Color.white.opacity(0.05))
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                }
+                moduleHeader(
+                    eyebrow: AppLocalization.string("home.module.metrics.eyebrow"),
+                    title: AppLocalization.string("Key metrics"),
+                    subtitle: keyMetricsSubtitle,
+                    accent: moduleAccentText,
+                    accessibilityIdentifier: "home.module.keyMetrics.title",
+                    action: { router.selectedTab = .measurements },
+                    actionAccessibilityLabel: AppLocalization.string("accessibility.open.measurements")
+                )
 
                 if !hasAnyMeasurements && cachedLatestByKind.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(AppLocalization.string("No measurements yet."))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                        Text(AppLocalization.string("Add your first measurement to unlock trends and goal progress."))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.72))
-                        Button {
-                            showQuickAddSheet = true
-                        } label: {
-                            Text(AppLocalization.string("Add measurement"))
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: AppRadius.md))
+                    editorialEmptyStateCard(
+                        eyebrow: AppLocalization.string("home.empty.eyebrow"),
+                        title: AppLocalization.string("home.keymetrics.empty.title"),
+                        detail: AppLocalization.string("home.keymetrics.empty.detail"),
+                        accent: Color.appAccent,
+                        ctaTitle: AppLocalization.string("Add measurement")
+                    ) {
+                        showQuickAddSheet = true
                     }
                 } else if dashboardVisibleMetrics.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(AppLocalization.string("No key metrics selected"))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                        Text(AppLocalization.string("Choose tracked metrics in Settings to populate this board."))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.72))
+                    editorialEmptyStateCard(
+                        eyebrow: AppLocalization.string("home.empty.eyebrow"),
+                        title: AppLocalization.string("home.keymetrics.empty.selection.title"),
+                        detail: AppLocalization.string("home.keymetrics.empty.selection.detail"),
+                        accent: Color.appAccent,
+                        ctaTitle: AppLocalization.string("Open Measurements")
+                    ) {
+                        router.selectedTab = .measurements
                     }
                 } else {
-                    VStack(spacing: 10) {
-                        ForEach(dashboardVisibleMetrics, id: \.self) { kind in
+                    VStack(alignment: .leading, spacing: 10) {
+                        if let leadMetric = dashboardVisibleMetrics.first {
                             NavigationLink {
-                                MetricDetailView(kind: kind)
+                                MetricDetailView(kind: leadMetric)
                             } label: {
                                 HomeKeyMetricRow(
-                                    kind: kind,
-                                    latest: cachedLatestByKind[kind],
-                                    goal: cachedGoalsByKind[kind],
-                                    samples: samplesForKind(kind),
+                                    kind: leadMetric,
+                                    latest: cachedLatestByKind[leadMetric],
+                                    goal: cachedGoalsByKind[leadMetric],
+                                    samples: samplesForKind(leadMetric),
                                     unitsSystem: unitsSystem
                                 )
                             }
                             .buttonStyle(PressableTileStyle())
-                            .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
-                            .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
+                            .accessibilityLabel(homeMetricAccessibilityLabel(kind: leadMetric))
+                            .accessibilityHint(AppLocalization.string("accessibility.opens.details", leadMetric.title))
+                        }
+
+                        ForEach(Array(dashboardVisibleMetrics.dropFirst()), id: \.self) { kind in
+                            secondaryMetricCard(for: kind)
                         }
                     }
                 }
             }
+            .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: expandedSecondaryMetrics)
         }
     }
 
@@ -911,26 +1289,16 @@ struct HomeView: View {
             contentPadding: 16,
             accessibilityIdentifier: "home.module.recentPhotos"
         ) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text(AppLocalization.string("Recent photos"))
-                        .font(AppTypography.sectionTitle)
-                        .foregroundStyle(.white)
-                        .accessibilityIdentifier("home.module.recentPhotos.title")
-                    Spacer()
-                    Button {
-                        router.selectedTab = .photos
-                    } label: {
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(Color.cyan)
-                            .frame(width: 36, height: 36)
-                            .background(Color.white.opacity(0.05))
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(AppLocalization.string("accessibility.open.photos"))
-                }
+            VStack(alignment: .leading, spacing: 14) {
+                moduleHeader(
+                    eyebrow: AppLocalization.string("home.photos.latestsession"),
+                    title: AppLocalization.string("Recent photos"),
+                    subtitle: recentPhotosSubtitle,
+                    accent: Color.cyan,
+                    accessibilityIdentifier: "home.module.recentPhotos.title",
+                    action: { router.selectedTab = .photos },
+                    actionAccessibilityLabel: AppLocalization.string("accessibility.open.photos")
+                )
 
                 Text(String(dashboardRecentPhotoTiles.count))
                     .font(.system(size: 1))
@@ -981,8 +1349,41 @@ struct HomeView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: 112, maxHeight: 112)
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        infoPill(text: recentPhotosContextPrimary, tint: Color.cyan)
+                        infoPill(text: recentPhotosContextSecondary, tint: .white.opacity(0.78))
+                        Spacer(minLength: 0)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        infoPill(text: recentPhotosContextPrimary, tint: Color.cyan)
+                        infoPill(text: recentPhotosContextSecondary, tint: .white.opacity(0.78))
+                    }
+                }
+
+                Spacer(minLength: 2)
+
+                Button {
+                    handleRecentPhotosCompareTap()
+                } label: {
+                    dashboardInsightButtonCard(
+                        eyebrow: AppLocalization.string("home.photos.latestsession"),
+                        title: recentPhotosInsightTitle,
+                        detail: recentPhotosInsightDetail,
+                        note: recentPhotosInsightNote,
+                        tint: Color.cyan.opacity(0.10),
+                        stroke: Color.cyan.opacity(0.22)
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(!hasEnoughSavedPhotosForCompare)
+                .accessibilityIdentifier("home.recentPhotos.compare.button")
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
+        .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
     }
 
     private var recentPhotosEmptyModule: some View {
@@ -992,22 +1393,26 @@ struct HomeView: View {
             contentPadding: 16,
             accessibilityIdentifier: "home.module.recentPhotos"
         ) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(AppLocalization.string("Recent photos"))
-                    .font(AppTypography.sectionTitle)
-                    .foregroundStyle(.white)
-                Text(AppLocalization.string("No photos yet. Capture progress photos to see changes beyond the scale."))
-                    .font(AppTypography.caption)
-                    .foregroundStyle(.white.opacity(0.72))
-                Button {
+            VStack(alignment: .leading, spacing: 14) {
+                moduleHeader(
+                    eyebrow: AppLocalization.string("home.photos.latestsession"),
+                    title: AppLocalization.string("Recent photos"),
+                    subtitle: AppLocalization.string("home.photos.empty.subtitle"),
+                    accent: Color.cyan
+                )
+
+                editorialEmptyStateCard(
+                    eyebrow: AppLocalization.string("home.empty.eyebrow"),
+                    title: AppLocalization.string("home.photos.empty.title"),
+                    detail: AppLocalization.string("home.photos.empty.detail"),
+                    accent: Color.cyan,
+                    ctaTitle: AppLocalization.string("Open Photos")
+                ) {
                     router.selectedTab = .photos
-                } label: {
-                    Text(AppLocalization.string("Open Photos"))
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: AppRadius.md))
             }
         }
+        .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
     }
 
     private var healthSummaryModule: some View {
@@ -1016,29 +1421,99 @@ struct HomeView: View {
                 HomeWidgetCard(
                     tint: Color.cyan.opacity(0.16),
                     depth: .base,
-                    contentPadding: 12,
+                    contentPadding: 16,
                     accessibilityIdentifier: "home.module.healthSummary"
                 ) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(AppLocalization.string("Health"))
-                            .font(AppTypography.sectionTitle)
-                            .foregroundStyle(.white)
-                            .accessibilityIdentifier("home.module.healthSummary.title")
-                        HealthMetricsSection(
-                            latestWaist: latestWaist,
-                            latestHeight: latestHeight,
-                            latestWeight: latestWeight,
-                            latestHips: cachedLatestByKind[.hips]?.value,
-                            latestBodyFat: latestBodyFat,
-                            latestLeanMass: latestLeanMass,
-                            weightDelta7dText: weightDelta7dText,
-                            waistDelta7dText: waistDelta7dText,
-                            displayMode: .summaryOnly,
-                            title: ""
-                        )
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .top, spacing: 12) {
+                            moduleHeader(
+                                eyebrow: AppLocalization.string("home.health.snapshot"),
+                                title: AppLocalization.string("Health"),
+                                subtitle: healthModuleSubtitle,
+                                accent: Color.cyan,
+                                accessibilityIdentifier: "home.module.healthSummary.title"
+                            )
+                            infoPill(text: healthModulePillText, tint: Color.cyan)
+                        }
+
+                        if homeHealthStatItems.isEmpty {
+                            editorialEmptyStateCard(
+                                eyebrow: AppLocalization.string("home.empty.eyebrow"),
+                                title: healthEmptyStateTitle,
+                                detail: healthEmptyStateDetail,
+                                accent: Color.cyan,
+                                ctaTitle: healthEmptyStateCTA
+                            ) {
+                                if !isSyncEnabled {
+                                    connectHealthKitFromChecklist()
+                                } else {
+                                    router.selectedTab = .settings
+                                }
+                            }
+                        } else if premiumStore.isPremium {
+                            dashboardInsightCard(
+                                eyebrow: AppLocalization.string("home.health.summary.card"),
+                                title: homeHealthSummaryTitle,
+                                detail: homeHealthSummaryDetail,
+                                tint: Color.cyan.opacity(0.10),
+                                stroke: Color.white.opacity(0.10)
+                            )
+
+                            LazyVGrid(
+                                columns: [
+                                    GridItem(.flexible(), spacing: 10),
+                                    GridItem(.flexible(), spacing: 10)
+                                ],
+                                spacing: 10
+                            ) {
+                                ForEach(visibleHomeHealthStatItems) { item in
+                                    compactHealthStatCard(item)
+                                }
+                            }
+                        } else {
+                            ForEach(visibleHomeHealthStatItems) { item in
+                                compactHealthStatCard(item)
+                                    .accessibilityIdentifier("home.health.preview.metric")
+                            }
+
+                            if let previewLabel = visibleHomeHealthStatItems.first?.label {
+                                Text(previewLabel)
+                                    .font(.system(size: 1))
+                                    .foregroundStyle(.clear)
+                                    .accessibilityIdentifier("home.health.preview.label")
+                                    .frame(width: 1, height: 1)
+                                    .clipped()
+                            }
+
+                            if let previewBadge = visibleHomeHealthStatItems.first?.badge {
+                                Text(previewBadge)
+                                    .font(.system(size: 1))
+                                    .foregroundStyle(.clear)
+                                    .accessibilityIdentifier("home.health.preview.badge")
+                                    .frame(width: 1, height: 1)
+                                    .clipped()
+                            }
+
+                            Button {
+                                Haptics.selection()
+                                premiumStore.presentPaywall(reason: .feature("Health Summary & Physique"))
+                            } label: {
+                                dashboardInsightButtonCard(
+                                    eyebrow: AppLocalization.string("home.health.summary.card"),
+                                    title: AppLocalization.string("home.health.premium.title"),
+                                    detail: AppLocalization.string("home.health.premium.detail"),
+                                    note: AppLocalization.string("home.photos.compare.note.premium"),
+                                    tint: Color.cyan.opacity(0.10),
+                                    stroke: Color.white.opacity(0.10)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("home.health.premium.button")
+                        }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
+                .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
             } else {
                 healthSectionPlaceholder
             }
@@ -1052,18 +1527,26 @@ struct HomeView: View {
             contentPadding: 14,
             accessibilityIdentifier: "home.module.setupChecklist"
         ) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 4) {
+                        Text(AppLocalization.string("home.module.setup.eyebrow"))
+                            .font(AppTypography.microEmphasis)
+                            .foregroundStyle(Color.appAccent)
                         Text(AppLocalization.string("Finish setup"))
-                            .font(AppTypography.bodyEmphasis)
+                            .font(AppTypography.sectionTitle)
                             .foregroundStyle(.white)
-                        Text(AppLocalization.string("Tasks left: %d", activeChecklistItems.count))
-                            .font(AppTypography.micro)
+                        Text(AppLocalization.string("home.module.setup.subtitle", activeChecklistItems.count))
+                            .font(AppTypography.caption)
                             .foregroundStyle(.white.opacity(0.68))
                     }
 
                     Spacer()
+
+                    infoPill(
+                        text: AppLocalization.string("home.module.setup.pill", activeChecklistItems.count),
+                        tint: Color.appAccent
+                    )
 
                     Menu {
                         Button(AppLocalization.string("Hide checklist")) {
@@ -1088,46 +1571,78 @@ struct HomeView: View {
                     Text(AppLocalization.string("Checklist collapsed. Open menu to expand."))
                         .font(AppTypography.caption)
                         .foregroundStyle(.white.opacity(0.72))
-                } else if let nextItem = activeChecklistItems.first {
-                    Button {
-                        performChecklistAction(nextItem.id)
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: nextItem.icon)
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(Color.appAccent)
-                                .frame(width: 28, height: 28)
-                                .background(Color.white.opacity(0.08))
-                                .clipShape(Circle())
+                } else {
+                    ForEach(shownChecklistItems) { item in
+                        Button {
+                            performChecklistAction(item.id)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: item.icon)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(Color.appAccent)
+                                    .frame(width: 28, height: 28)
+                                    .background(Color.white.opacity(0.08))
+                                    .clipShape(Circle())
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(nextItem.title)
-                                    .font(AppTypography.captionEmphasis)
-                                    .foregroundStyle(.white)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                Text(nextItem.detail)
-                                    .font(AppTypography.micro)
-                                    .foregroundStyle(.white.opacity(0.68))
-                                    .lineLimit(2)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.title)
+                                        .font(AppTypography.captionEmphasis)
+                                        .foregroundStyle(.white)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    Text(item.detail)
+                                        .font(AppTypography.micro)
+                                        .foregroundStyle(.white.opacity(0.68))
+                                        .lineLimit(2)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(.white.opacity(0.4))
                             }
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(.white.opacity(0.4))
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(Color.white.opacity(0.05))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                    )
+                            )
                         }
-                        .padding(12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(Color.white.opacity(0.05))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                                )
-                        )
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("home.checklist.item.\(item.id)")
                     }
-                    .buttonStyle(.plain)
+
+                    if !showMoreChecklistItems, activeChecklistItems.count > collapsedChecklistItems.count {
+                Button {
+                    Haptics.selection()
+                    showMoreChecklistItems = true
+                } label: {
+                            Text(AppLocalization.string("Show %d more", activeChecklistItems.count - collapsedChecklistItems.count))
+                                .font(AppTypography.captionEmphasis)
+                                .foregroundStyle(Color.appAccent)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 2)
+                        }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("home.checklist.showMore")
+            }
+
+                    Text("\(shownChecklistItems.count)")
+                        .font(.system(size: 1))
+                        .foregroundStyle(.clear)
+                        .accessibilityIdentifier("home.checklist.visibleCount")
+                        .frame(width: 1, height: 1)
+                        .clipped()
+
+                    Text(shownChecklistItems.map(\.id).joined(separator: ","))
+                        .font(.system(size: 1))
+                        .foregroundStyle(.clear)
+                        .accessibilityIdentifier("home.checklist.visibleIDs")
+                        .frame(width: 1, height: 1)
+                        .clipped()
                 }
             }
         }
@@ -1147,28 +1662,143 @@ struct HomeView: View {
         }
     }
 
-    private var summaryFocusTitle: String {
-        if let firstVisibleMetric = visibleMetrics.first {
-            return firstVisibleMetric.title
+    private var nextFocusInsightMetricKinds: [MetricKind] {
+        var ordered: [MetricKind] = []
+        for kind in dashboardVisibleMetrics + Array(cachedGoalsByKind.keys) + Array(cachedLatestByKind.keys) {
+            if !ordered.contains(kind) {
+                ordered.append(kind)
+            }
         }
-        return AppLocalization.string("Build your first trend")
+        return ordered
     }
 
-    private var summaryFocusDetail: String {
-        guard let firstVisibleMetric = visibleMetrics.first else {
-            return AppLocalization.string("Add measurements to unlock the board.")
+    private var nextFocusInsight: HomeNextFocusInsight {
+        if isUITestMode && ProcessInfo.processInfo.arguments.contains("-uiTestLongNextFocusInsight") {
+            return HomeNextFocusInsight(
+                headline: nil,
+                primaryValue: AppLocalization.string("home.nextfocus.uitest.long.primary"),
+                supportingLabel: AppLocalization.string("home.nextfocus.uitest.long.supporting"),
+                summary: AppLocalization.string("home.nextfocus.uitest.long.summary"),
+                cta: AppLocalization.string("home.nextfocus.cta.metric"),
+                action: .metric(.waist),
+                accessibilityValue: "metric"
+            )
         }
 
-        if let delta = metricDeltaTextFromCache(kind: firstVisibleMetric, days: 7) {
-            return delta
+        if let goalCandidate = nextFocusInsightMetricKinds
+            .compactMap({ goalInsightCandidate(for: $0) })
+            .max(by: { $0.score < $1.score }) {
+            return goalCandidate.insight
         }
 
-        if let latest = cachedLatestByKind[firstVisibleMetric] {
-            let shown = firstVisibleMetric.valueForDisplay(fromMetric: latest.value, unitsSystem: unitsSystem)
-            return String(format: "%.1f %@", shown, firstVisibleMetric.unitSymbol(unitsSystem: unitsSystem))
+        if let trendCandidate = nextFocusInsightMetricKinds
+            .compactMap({ positiveTrendCandidate(for: $0, days: 30) ?? positiveTrendCandidate(for: $0, days: 7) })
+            .max(by: { $0.score < $1.score }) {
+            return trendCandidate.insight
         }
 
-        return AppLocalization.string("No recent data yet")
+        return HomeNextFocusInsight(
+            headline: AppLocalization.string("Set goal"),
+            primaryValue: nil,
+            supportingLabel: nil,
+            summary: AppLocalization.string("home.nextfocus.fallback.summary"),
+            cta: AppLocalization.string("home.nextfocus.cta.goal"),
+            action: .measurements,
+            accessibilityValue: "setGoal"
+        )
+    }
+
+    private func goalInsightCandidate(for kind: MetricKind) -> HomeNextFocusCandidate? {
+        guard let goal = cachedGoalsByKind[kind],
+              let latest = cachedLatestByKind[kind],
+              !goal.isAchieved(currentValue: latest.value) else { return nil }
+
+        let baseline = goalBaselineValue(for: kind, goal: goal)
+        let fullDistance = abs(goal.targetValue - baseline)
+        guard fullDistance > 0.0001 else { return nil }
+
+        let remaining = abs(goal.remainingToGoal(currentValue: latest.value))
+        let progress = max(0, min(1, 1 - (remaining / fullDistance)))
+        guard progress >= 0.4 else { return nil }
+
+        let remainingText = formattedMetricValue(for: kind, metricValue: remaining)
+        return HomeNextFocusCandidate(
+            insight: HomeNextFocusInsight(
+                headline: nil,
+                primaryValue: remainingText,
+                supportingLabel: nil,
+                summary: AppLocalization.string("home.nextfocus.insight.goal.summary", remainingText, kind.title),
+                cta: AppLocalization.string("home.nextfocus.cta.metric"),
+                action: .metric(kind),
+                accessibilityValue: "metric"
+            ),
+            score: 2.5 + progress
+        )
+    }
+
+    private func positiveTrendCandidate(for kind: MetricKind, days: Int) -> HomeNextFocusCandidate? {
+        guard let window = trendWindowSamples(for: kind, days: days) else { return nil }
+        let outcome = kind.trendOutcome(from: window.oldest.value, to: window.newest.value, goal: cachedGoalsByKind[kind])
+        guard outcome == .positive else { return nil }
+
+        let newestValue = kind.valueForDisplay(fromMetric: window.newest.value, unitsSystem: unitsSystem)
+        let oldestValue = kind.valueForDisplay(fromMetric: window.oldest.value, unitsSystem: unitsSystem)
+        let delta = newestValue - oldestValue
+        let absoluteDelta = abs(delta)
+        guard absoluteDelta >= minimumInsightDelta(for: kind) else { return nil }
+
+        let directionKey = delta >= 0
+            ? "home.nextfocus.insight.trend.up.summary"
+            : "home.nextfocus.insight.trend.down.summary"
+        let deltaText = String(format: "%.1f %@", absoluteDelta, kind.unitSymbol(unitsSystem: unitsSystem))
+        let periodKey = days >= 30 ? "home.nextfocus.period.30d" : "home.nextfocus.period.7d"
+        let periodChipKey = days >= 30 ? "home.nextfocus.periodchip.30d" : "home.nextfocus.periodchip.7d"
+
+        return HomeNextFocusCandidate(
+            insight: HomeNextFocusInsight(
+                headline: nil,
+                primaryValue: delta >= 0 ? "+\(deltaText)" : "-\(deltaText)",
+                supportingLabel: AppLocalization.string(periodChipKey),
+                summary: AppLocalization.string(directionKey, kind.title, AppLocalization.string(periodKey)),
+                cta: AppLocalization.string("home.nextfocus.cta.metric"),
+                action: .metric(kind),
+                accessibilityValue: "metric"
+            ),
+            score: 1.0 + (days >= 30 ? 0.35 : 0.0) + min(absoluteDelta / minimumInsightDelta(for: kind), 2.0)
+        )
+    }
+
+    private func trendWindowSamples(for kind: MetricKind, days: Int) -> (oldest: MetricSample, newest: MetricSample)? {
+        guard let startDate = Calendar.current.date(byAdding: .day, value: -days, to: AppClock.now) else { return nil }
+        let window = samplesForKind(kind).filter { $0.date >= startDate }
+        guard let newest = window.max(by: { $0.date < $1.date }),
+              let oldest = window.min(by: { $0.date < $1.date }),
+              newest.persistentModelID != oldest.persistentModelID else { return nil }
+        return (oldest, newest)
+    }
+
+    private func minimumInsightDelta(for kind: MetricKind) -> Double {
+        switch kind.unitCategory {
+        case .weight:
+            return unitsSystem == "imperial" ? 1.0 : 0.5
+        case .length:
+            return unitsSystem == "imperial" ? 0.25 : 0.5
+        case .percent:
+            return 0.3
+        }
+    }
+
+    private func goalBaselineValue(for kind: MetricKind, goal: MetricGoal) -> Double {
+        if let startValue = goal.startValue {
+            return startValue
+        }
+
+        let sortedSamples = samplesForKind(kind).sorted { $0.date < $1.date }
+        let anchorDate = goal.startDate ?? goal.createdDate
+        if let baseline = sortedSamples.last(where: { $0.date <= anchorDate }) {
+            return baseline.value
+        }
+        return sortedSamples.first?.value ?? cachedLatestByKind[kind]?.value ?? goal.targetValue
     }
 
     private var summaryThisWeekTitle: String {
@@ -1187,6 +1817,177 @@ struct HomeView: View {
             return AppLocalization.string("home.thisweek.detail.empty")
         }
         return AppLocalization.string("home.thisweek.detail.logged", latestCheckInWeekday)
+    }
+
+    private var keyMetricsSubtitle: String {
+        if !hasAnyMeasurements && cachedLatestByKind.isEmpty {
+            return AppLocalization.string("home.keymetrics.empty.subtitle")
+        }
+        if dashboardVisibleMetrics.isEmpty {
+            return AppLocalization.string("home.keymetrics.empty.selection.subtitle")
+        }
+        return AppLocalization.string("home.keymetrics.ready.subtitle", dashboardVisibleMetrics.count)
+    }
+
+    private var recentPhotosInsightTitle: String {
+        if hasEnoughSavedPhotosForCompare {
+            return AppLocalization.string("home.photos.compare.title")
+        }
+        return AppLocalization.string("home.photos.first.title")
+    }
+
+    private var recentPhotosInsightDetail: String {
+        if hasEnoughSavedPhotosForCompare {
+            return premiumStore.isPremium
+                ? AppLocalization.string("home.photos.compare.detail.home")
+                : AppLocalization.string("home.photos.compare.detail.locked")
+        }
+        return AppLocalization.string("home.photos.first.detail")
+    }
+
+    private var recentPhotosInsightNote: String? {
+        guard hasEnoughSavedPhotosForCompare, !premiumStore.isPremium else { return nil }
+        return AppLocalization.string("home.photos.compare.note.premium")
+    }
+
+    private var latestSavedPhoto: PhotoEntry? {
+        homeCompareCandidates.first
+    }
+
+    private var secondLatestSavedPhoto: PhotoEntry? {
+        homeCompareCandidates.dropFirst().first
+    }
+
+    private var recentPhotosSubtitle: String {
+        guard let latestSavedPhoto else {
+            return AppLocalization.string("home.photos.empty.subtitle")
+        }
+        return AppLocalization.string("home.photos.meta.latest", relativeDescription(since: latestSavedPhoto.date))
+    }
+
+    private var recentPhotosContextPrimary: String {
+        if let latestSavedPhoto {
+            return AppLocalization.string("home.photos.context.primary", relativeDescription(since: latestSavedPhoto.date))
+        }
+        return AppLocalization.string("home.photos.context.primary.empty")
+    }
+
+    private var recentPhotosContextSecondary: String {
+        if let latestSavedPhoto, let secondLatestSavedPhoto {
+            let daysBetween = Calendar.current.dateComponents([.day], from: secondLatestSavedPhoto.date, to: latestSavedPhoto.date).day ?? 0
+            let safeDaysBetween = max(daysBetween, 0)
+            return AppLocalization.string("home.photos.context.secondary.gap", safeDaysBetween)
+        }
+        if pendingPhotoSaveStore.pendingItems.isEmpty {
+            return AppLocalization.string("home.photos.context.secondary.empty")
+        }
+        return AppLocalization.string("home.photos.context.secondary.pending")
+    }
+
+    private var homeHealthStatItems: [HomeHealthStatItem] {
+        var items: [HomeHealthStatItem] = []
+
+        if let latestWeight {
+            items.append(HomeHealthStatItem(label: MetricKind.weight.title, value: formattedMetricValue(for: .weight, metricValue: latestWeight)))
+        }
+        if let latestWaist {
+            items.append(HomeHealthStatItem(label: MetricKind.waist.title, value: formattedMetricValue(for: .waist, metricValue: latestWaist)))
+        }
+        if let latestBodyFat, latestBodyFat > 0 {
+            items.append(HomeHealthStatItem(label: MetricKind.bodyFat.title, value: String(format: "%.1f %%", latestBodyFat)))
+        }
+        if let latestLeanMass, latestLeanMass > 0 {
+            items.append(HomeHealthStatItem(label: MetricKind.leanBodyMass.title, value: formattedMetricValue(for: .leanBodyMass, metricValue: latestLeanMass)))
+        }
+
+        return Array(items.prefix(4))
+    }
+
+    private var homeHealthPreviewItem: HomeHealthStatItem? {
+        if let bmiResult = HealthMetricsCalculator.calculateBMI(
+            weightKg: latestWeight,
+            heightCm: manualHeight > 0 ? manualHeight : latestHeight,
+            age: userAge
+        ) {
+            return HomeHealthStatItem(
+                label: AppLocalization.string("BMI (Body Mass Index)"),
+                value: String(format: "%.1f", bmiResult.bmi),
+                badge: AppLocalization.string(bmiResult.category.rawValue)
+            )
+        }
+
+        return homeHealthStatItems.first(where: { $0.label != MetricKind.weight.title }) ?? homeHealthStatItems.first
+    }
+
+    private var visibleHomeHealthStatItems: [HomeHealthStatItem] {
+        premiumStore.isPremium ? homeHealthStatItems : (homeHealthPreviewItem.map { [$0] } ?? [])
+    }
+
+    private var homeHealthSummaryTitle: String {
+        if let bodyFat = latestBodyFat, bodyFat > 0 {
+            return AppLocalization.string("home.health.summary.bodyfat", String(format: "%.1f %%", bodyFat))
+        }
+        if let leanMass = latestLeanMass, leanMass > 0 {
+            return AppLocalization.string("home.health.summary.leanmass", formattedMetricValue(for: .leanBodyMass, metricValue: leanMass))
+        }
+        if let weight = latestWeight {
+            return AppLocalization.string("home.health.summary.weight", formattedMetricValue(for: .weight, metricValue: weight))
+        }
+        return AppLocalization.string("home.health.summary.default")
+    }
+
+    private var homeHealthSummaryDetail: String {
+        if let waistDelta7dText {
+            return waistDelta7dText
+        }
+        if let weightDelta7dText {
+            return weightDelta7dText
+        }
+        return AppLocalization.string("home.health.summary.detail.default")
+    }
+
+    private var healthModuleSubtitle: String {
+        if homeHealthStatItems.isEmpty {
+            return isSyncEnabled
+                ? AppLocalization.string("home.health.subtitle.waiting")
+                : AppLocalization.string("home.health.subtitle.setup")
+        }
+        if !premiumStore.isPremium {
+            return AppLocalization.string("home.health.subtitle.preview")
+        }
+        return AppLocalization.string("home.health.subtitle.ready")
+    }
+
+    private var healthModulePillText: String {
+        if homeHealthStatItems.isEmpty {
+            return AppLocalization.string("home.health.pill.setup")
+        }
+        return premiumStore.isPremium
+            ? AppLocalization.string("home.health.pill.ready")
+            : AppLocalization.string("home.health.pill.preview")
+    }
+
+    private var healthEmptyStateTitle: String {
+        isSyncEnabled
+            ? AppLocalization.string("home.health.empty.synced.title")
+            : AppLocalization.string("home.health.empty.disconnected.title")
+    }
+
+    private var healthEmptyStateDetail: String {
+        if !premiumStore.isPremium {
+            return isSyncEnabled
+                ? AppLocalization.string("home.health.empty.synced.detail.preview")
+                : AppLocalization.string("home.health.empty.disconnected.detail.preview")
+        }
+        return isSyncEnabled
+            ? AppLocalization.string("home.health.empty.synced.detail")
+            : AppLocalization.string("home.health.empty.disconnected.detail")
+    }
+
+    private var healthEmptyStateCTA: String {
+        isSyncEnabled
+            ? AppLocalization.string("Settings")
+            : AppLocalization.string("Connect Apple Health")
     }
 
     private var greetingCard: some View {
@@ -1315,23 +2116,15 @@ struct HomeView: View {
         !checklistItems.isEmpty && checklistItems.allSatisfy(\.isCompleted)
     }
 
-    private var primaryChecklistIDs: [String] {
-        ["first_measurement", "first_photo", "healthkit"]
-    }
-
-    private var primaryChecklistItems: [SetupChecklistItem] {
-        activeChecklistItems.filter { primaryChecklistIDs.contains($0.id) }
-    }
-
-    private var secondaryChecklistItems: [SetupChecklistItem] {
-        activeChecklistItems.filter { !primaryChecklistIDs.contains($0.id) }
+    private var collapsedChecklistItems: [SetupChecklistItem] {
+        Array(activeChecklistItems.prefix(3))
     }
 
     private var shownChecklistItems: [SetupChecklistItem] {
-        if showMoreChecklistItems || primaryChecklistItems.isEmpty {
-            return primaryChecklistItems + secondaryChecklistItems
+        if showMoreChecklistItems {
+            return activeChecklistItems
         }
-        return primaryChecklistItems
+        return collapsedChecklistItems
     }
 
     private var setupChecklistSection: some View {
@@ -1433,12 +2226,12 @@ struct HomeView: View {
                         )
                     }
 
-                    if !showMoreChecklistItems, !secondaryChecklistItems.isEmpty, !primaryChecklistItems.isEmpty {
+                    if !showMoreChecklistItems, activeChecklistItems.count > collapsedChecklistItems.count {
                         Button {
                             Haptics.selection()
                             showMoreChecklistItems = true
                         } label: {
-                            Text(AppLocalization.string("Show %d more", secondaryChecklistItems.count))
+                            Text(AppLocalization.string("Show %d more", activeChecklistItems.count - collapsedChecklistItems.count))
                                 .font(AppTypography.captionEmphasis)
                                 .foregroundStyle(Color.appAccent)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1543,6 +2336,383 @@ struct HomeView: View {
         case .slightlyOff: return AppLocalization.string("home.goalstatus.slightlyoff")
         case .needsAttention: return AppLocalization.string("home.goalstatus.needsattention")
         case .noGoals: return AppLocalization.string("home.goalstatus.nogoals")
+        }
+    }
+
+    private func formattedMetricValue(for kind: MetricKind, metricValue: Double) -> String {
+        let shown = kind.valueForDisplay(fromMetric: metricValue, unitsSystem: unitsSystem)
+        let unit = kind.unitSymbol(unitsSystem: unitsSystem)
+        return String(format: "%.1f %@", shown, unit)
+    }
+
+    private func relativeDescription(since date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: AppClock.now)
+    }
+
+    private func secondaryMetricCard(for kind: MetricKind) -> some View {
+        Group {
+            if expandedSecondaryMetrics.contains(kind) {
+                expandedSecondaryMetricCard(for: kind)
+                    .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).expanded")
+            } else {
+                Button {
+                    Haptics.selection()
+                    withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+                        _ = expandedSecondaryMetrics.insert(kind)
+                    }
+                } label: {
+                    compactMetricRow(for: kind)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).toggle")
+                .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
+                .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
+            }
+        }
+    }
+
+    private func compactMetricRow(for kind: MetricKind) -> some View {
+        let latestText = cachedLatestByKind[kind].map { formattedMetricValue(for: kind, metricValue: $0.value) } ?? AppLocalization.string("No data yet")
+        let detailText = metricDeltaTextFromCache(kind: kind, days: 7)
+            ?? secondaryMetricGoalSummary(for: kind)
+            ?? AppLocalization.string("Log another check-in to reveal the trend.")
+
+        return HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                kind.iconView(font: AppTypography.captionEmphasis, size: 14, tint: Color.appAccent)
+                Text(kind.title)
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(latestText)
+                    .font(AppTypography.captionEmphasis.monospacedDigit())
+                    .foregroundStyle(.white)
+                Text(detailText)
+                    .font(AppTypography.micro)
+                    .foregroundStyle(.white.opacity(0.62))
+                    .lineLimit(1)
+            }
+
+            Image(systemName: "chevron.down")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.white.opacity(0.44))
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white.opacity(0.04))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+        )
+    }
+
+    private func expandedSecondaryMetricCard(for kind: MetricKind) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Spacer()
+                Button {
+                    Haptics.selection()
+                    withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+                        _ = expandedSecondaryMetrics.remove(kind)
+                    }
+                } label: {
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.66))
+                        .frame(width: 28, height: 28)
+                        .background(Color.black.opacity(0.18))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).collapse")
+            }
+
+            if isUITestMode {
+                Button("collapse") {
+                    withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+                        _ = expandedSecondaryMetrics.remove(kind)
+                    }
+                }
+                .buttonStyle(.plain)
+                .frame(width: 1, height: 1)
+                .opacity(0.01)
+                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).collapseHook")
+            }
+
+            NavigationLink {
+                MetricDetailView(kind: kind)
+            } label: {
+                HomeKeyMetricRow(
+                    kind: kind,
+                    latest: cachedLatestByKind[kind],
+                    goal: cachedGoalsByKind[kind],
+                    samples: samplesForKind(kind),
+                    unitsSystem: unitsSystem
+                )
+            }
+            .buttonStyle(PressableTileStyle())
+            .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).openDetail")
+        }
+    }
+
+    private func moduleHeader(
+        eyebrow: String,
+        title: String,
+        subtitle: String,
+        accent: Color,
+        accessibilityIdentifier: String? = nil,
+        action: (() -> Void)? = nil,
+        actionAccessibilityLabel: String? = nil
+    ) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(eyebrow)
+                    .font(AppTypography.microEmphasis)
+                    .foregroundStyle(accent)
+
+                Text(title)
+                    .font(AppTypography.sectionTitle)
+                    .foregroundStyle(.white)
+                    .accessibilityIdentifier(accessibilityIdentifier ?? "")
+
+                Text(subtitle)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(.white.opacity(0.68))
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 8)
+
+            if let action {
+                Button(action: action) {
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(accent)
+                        .frame(width: 36, height: 36)
+                        .background(Color.white.opacity(0.05))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(actionAccessibilityLabel ?? "")
+            }
+        }
+    }
+
+    private func editorialEmptyStateCard(
+        eyebrow: String,
+        title: String,
+        detail: String,
+        accent: Color,
+        ctaTitle: String,
+        ctaAction: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(eyebrow)
+                .font(AppTypography.microEmphasis)
+                .foregroundStyle(accent)
+
+            Text(title)
+                .font(AppTypography.bodyEmphasis)
+                .foregroundStyle(.white)
+
+            Text(detail)
+                .font(AppTypography.caption)
+                .foregroundStyle(.white.opacity(0.74))
+                .lineLimit(3)
+
+            Button(action: ctaAction) {
+                Text(ctaTitle)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: AppRadius.md))
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+        )
+    }
+
+    private func infoPill(text: String, tint: Color) -> some View {
+        Text(text)
+            .font(AppTypography.microEmphasis)
+            .foregroundStyle(tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(tint.opacity(0.12))
+            .clipShape(Capsule())
+    }
+
+    private func dashboardInsightCard(
+        eyebrow: String,
+        title: String,
+        detail: String,
+        tint: Color,
+        stroke: Color
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(eyebrow)
+                .font(AppTypography.microEmphasis)
+                .foregroundStyle(.white.opacity(0.58))
+
+            Text(title)
+                .font(AppTypography.bodyEmphasis)
+                .foregroundStyle(.white)
+
+            Text(detail)
+                .font(AppTypography.micro)
+                .foregroundStyle(.white.opacity(0.68))
+                .lineLimit(2)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(tint)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(stroke, lineWidth: 1)
+                )
+        )
+    }
+
+    private func dashboardInsightButtonCard(
+        eyebrow: String,
+        title: String,
+        detail: String,
+        note: String?,
+        tint: Color,
+        stroke: Color
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(eyebrow)
+                .font(AppTypography.microEmphasis)
+                .foregroundStyle(.white.opacity(0.58))
+
+            Text(title)
+                .font(AppTypography.bodyEmphasis)
+                .foregroundStyle(.white)
+
+            Text(detail)
+                .font(AppTypography.micro)
+                .foregroundStyle(.white.opacity(0.68))
+                .lineLimit(2)
+
+            if let note {
+                Text(note)
+                    .font(AppTypography.microEmphasis)
+                    .foregroundStyle(Color.appAccent)
+                    .lineLimit(1)
+            }
+
+            HStack(spacing: 6) {
+                Text(AppLocalization.string("home.card.open"))
+                    .font(AppTypography.microEmphasis)
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 10, weight: .bold))
+            }
+            .foregroundStyle(.white.opacity(0.72))
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(tint)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(stroke, lineWidth: 1)
+                )
+        )
+    }
+
+    private func compactHealthStatCard(_ item: HomeHealthStatItem) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(item.label)
+                .font(AppTypography.microEmphasis)
+                .foregroundStyle(.white.opacity(0.58))
+                .lineLimit(1)
+
+            Text(item.value)
+                .font(AppTypography.bodyEmphasis.monospacedDigit())
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+
+            if let badge = item.badge, !badge.isEmpty {
+                Text(badge)
+                    .font(AppTypography.microEmphasis)
+                    .foregroundStyle(Color.cyan.opacity(0.95))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.cyan.opacity(0.12))
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .stroke(Color.cyan.opacity(0.24), lineWidth: 1)
+                            )
+                    )
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white.opacity(0.04))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+        )
+    }
+
+    private func secondaryMetricGoalSummary(for kind: MetricKind) -> String? {
+        guard let goal = cachedGoalsByKind[kind],
+              let latest = cachedLatestByKind[kind] else { return nil }
+
+        if goal.isAchieved(currentValue: latest.value) {
+            return AppLocalization.string("home.keymetrics.goal.achieved")
+        }
+
+        let remaining = abs(goal.remainingToGoal(currentValue: latest.value))
+        let formattedRemaining = formattedMetricValue(for: kind, metricValue: remaining)
+        return AppLocalization.string("home.keymetrics.goal.remaining", formattedRemaining)
+    }
+
+    private func handleNextFocusAction() {
+        Haptics.selection()
+        switch nextFocusInsight.action {
+        case .metric(_):
+            router.selectedTab = .measurements
+        case .measurements:
+            router.selectedTab = .measurements
+        }
+    }
+
+    private func handleRecentPhotosCompareTap() {
+        guard hasEnoughSavedPhotosForCompare else { return }
+        Haptics.selection()
+        if premiumStore.isPremium {
+            showHomeCompareChooser = true
+        } else {
+            premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
         }
     }
 
@@ -1718,12 +2888,12 @@ struct HomeView: View {
             contentPadding: 16
         ) {
             VStack(alignment: .leading, spacing: 10) {
-                Text(AppLocalization.string("Last Photos"))
+                Text(AppLocalization.string("Recent photos"))
                     .font(AppTypography.sectionTitle)
                     .foregroundStyle(.white)
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Color.white.opacity(0.08))
-                    .frame(height: 160)
+                    .frame(height: 152)
             }
             .redacted(reason: .placeholder)
         }
@@ -1742,7 +2912,7 @@ struct HomeView: View {
                     .foregroundStyle(.white)
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Color.white.opacity(0.08))
-                    .frame(height: 92)
+                    .frame(height: 108)
             }
             .redacted(reason: .placeholder)
         }

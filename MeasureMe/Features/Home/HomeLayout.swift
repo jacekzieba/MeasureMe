@@ -10,6 +10,10 @@ enum HomeModuleKind: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
+    static var activeCases: [HomeModuleKind] {
+        allCases.filter { $0 != .quickActions }
+    }
+
     var defaultSize: HomeModuleSize {
         switch self {
         case .summaryHero, .keyMetrics, .recentPhotos, .healthSummary:
@@ -29,6 +33,13 @@ enum HomeModuleKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .setupChecklist: return 5
         }
     }
+}
+
+enum HomePinnedAction: String, Codable, CaseIterable, Sendable {
+    case addMeasurement
+    case setGoal
+    case comparePhotos
+    case finishSetup
 }
 
 enum HomeModuleSize: String, Codable, Sendable {
@@ -77,7 +88,7 @@ struct HomeModuleLayoutItem: Codable, Equatable, Identifiable, Sendable {
 }
 
 struct HomeLayoutSnapshot: Codable, Equatable, Sendable {
-    static let currentSchemaVersion = 2
+    static let currentSchemaVersion = 3
 
     var schemaVersion: Int
     var items: [HomeModuleLayoutItem]
@@ -87,8 +98,7 @@ struct HomeLayoutSnapshot: Codable, Equatable, Sendable {
             schemaVersion: currentSchemaVersion,
             items: [
                 HomeModuleLayoutItem(kind: .summaryHero, isVisible: true, size: .large, row: 0, column: 0),
-                HomeModuleLayoutItem(kind: .quickActions, isVisible: true, size: .wide, row: 0, column: 2),
-                HomeModuleLayoutItem(kind: .setupChecklist, isVisible: settings.onboarding.onboardingChecklistShow, size: .wide, row: 1, column: 2),
+                HomeModuleLayoutItem(kind: .setupChecklist, isVisible: settings.onboarding.onboardingChecklistShow, size: .wide, row: 0, column: 2),
                 HomeModuleLayoutItem(kind: .keyMetrics, isVisible: settings.home.showMeasurementsOnHome, size: .large, row: 2, column: 0),
                 HomeModuleLayoutItem(kind: .recentPhotos, isVisible: settings.home.showLastPhotosOnHome, size: .large, row: 2, column: 2),
                 HomeModuleLayoutItem(kind: .healthSummary, isVisible: settings.home.showHealthMetricsOnHome, size: .large, row: 4, column: 0)
@@ -107,7 +117,7 @@ struct HomeLayoutSnapshot: Codable, Equatable, Sendable {
 
     func resettingToDefaultGeometry(using settings: AppSettingsSnapshot) -> HomeLayoutSnapshot {
         let defaultSnapshot = Self.defaultV1(using: settings)
-        let currentVisibility = Dictionary(uniqueKeysWithValues: items.map { ($0.kind, $0.isVisible) })
+        let currentVisibility = visibilityMap(from: items)
         let resetItems = defaultSnapshot.items.map { item in
             var next = item
             next.isVisible = currentVisibility[item.kind] ?? item.isVisible
@@ -115,13 +125,21 @@ struct HomeLayoutSnapshot: Codable, Equatable, Sendable {
         }
         return HomeLayoutSnapshot(schemaVersion: Self.currentSchemaVersion, items: resetItems)
     }
+
+    private func visibilityMap(from items: [HomeModuleLayoutItem]) -> [HomeModuleKind: Bool] {
+        var map: [HomeModuleKind: Bool] = [:]
+        for item in items where map[item.kind] == nil {
+            map[item.kind] = item.isVisible
+        }
+        return map
+    }
 }
 
 enum HomeLayoutNormalizer {
     static func normalize(_ snapshot: HomeLayoutSnapshot, using settings: AppSettingsSnapshot) -> HomeLayoutSnapshot {
         if snapshot.schemaVersion < HomeLayoutSnapshot.currentSchemaVersion {
             let defaultSnapshot = HomeLayoutSnapshot.defaultV1(using: settings)
-            let currentVisibility = Dictionary(uniqueKeysWithValues: snapshot.items.map { ($0.kind, $0.isVisible) })
+            let currentVisibility = visibilityMap(from: snapshot.items)
             let migratedItems = defaultSnapshot.items.map { item in
                 var next = item
                 next.isVisible = currentVisibility[item.kind] ?? item.isVisible
@@ -151,7 +169,7 @@ enum HomeLayoutNormalizer {
             uniqueItems[defaultItem.kind] = defaultItem
         }
 
-        let normalizedItems = HomeModuleKind.allCases.compactMap { kind -> HomeModuleLayoutItem? in
+        let normalizedItems = HomeModuleKind.activeCases.compactMap { kind -> HomeModuleLayoutItem? in
             guard var item = uniqueItems[kind] else { return nil }
             item.size = item.size
             return item
@@ -167,6 +185,14 @@ enum HomeLayoutNormalizer {
         if lhs.row != rhs.row { return lhs.row < rhs.row }
         if lhs.column != rhs.column { return lhs.column < rhs.column }
         return lhs.kind.sortIndex < rhs.kind.sortIndex
+    }
+
+    private static func visibilityMap(from items: [HomeModuleLayoutItem]) -> [HomeModuleKind: Bool] {
+        var map: [HomeModuleKind: Bool] = [:]
+        for item in items where map[item.kind] == nil {
+            map[item.kind] = item.isVisible
+        }
+        return map
     }
 }
 

@@ -3,6 +3,10 @@ import SwiftData
 import HealthKit
 import UIKit
 
+private extension Notification.Name {
+    static let settingsOpenHomeSettingsRequested = Notification.Name("settingsOpenHomeSettingsRequested")
+}
+
 /// **SettingsView**
 /// Widok ustawień aplikacji. Odpowiada za:
 /// - Włączanie/wyłączanie synchronizacji z HealthKit
@@ -30,6 +34,7 @@ struct SettingsView: View {
     @AppSetting(\.onboarding.onboardingChecklistShow) private var showOnboardingChecklistOnHome: Bool = true
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
+    @AppSetting(\.home.settingsOpenHomeSettings) private var settingsOpenHomeSettings: Bool = false
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.experience.hapticsEnabled) private var hapticsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
@@ -93,6 +98,7 @@ struct SettingsView: View {
     @State private var seedDummyDataResultMessage = ""
     @State private var navigateToTrackedMeasurements: Bool = false
     @State private var navigateToReminders: Bool = false
+    @State private var navigateToHomeSettings: Bool = false
     @State private var settingsSearchQuery: String = ""
     
     private var lastImportText: String? {
@@ -564,6 +570,12 @@ struct SettingsView: View {
             .onChange(of: settingsOpenReminders) { _, _ in
                 schedulePendingDeepLinksHandling()
             }
+            .onChange(of: settingsOpenHomeSettings) { _, _ in
+                schedulePendingDeepLinksHandling()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .settingsOpenHomeSettingsRequested)) { _ in
+                navigateToHomeSettings = true
+            }
             .listSectionSpacing(24)
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
@@ -653,6 +665,9 @@ struct SettingsView: View {
             .navigationDestination(isPresented: $navigateToReminders) {
                 NotificationSettingsView()
             }
+            .navigationDestination(isPresented: $navigateToHomeSettings) {
+                HomeSettingsDetailView()
+            }
         }
     }
 
@@ -726,6 +741,11 @@ struct SettingsView: View {
         if settingsOpenReminders {
             settingsOpenReminders = false
             navigateToReminders = true
+        }
+
+        if settingsOpenHomeSettings {
+            settingsOpenHomeSettings = false
+            navigateToHomeSettings = true
         }
     }
 
