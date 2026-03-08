@@ -40,6 +40,11 @@ final class MeasureMeUITests: XCTestCase {
         }
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
 
+        if !isSwitchOff(toggle) {
+            toggle.tap()
+            XCTAssertTrue(isSwitchOff(toggle))
+        }
+
         toggle.tap()
 
         let errorLabel = app.staticTexts["settings.health.sync.error"]

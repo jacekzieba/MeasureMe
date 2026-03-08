@@ -14,6 +14,7 @@ struct MeasureMeApp: App {
     )
     @State private var startupAttemptID: Int = 0
     @State private var showCrashAlert = false
+    private let isRunningXCTest = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 
     private enum StartupState {
         case loading
@@ -57,9 +58,11 @@ struct MeasureMeApp: App {
 
     init() {
         // Zainstaluj crash reporter jako pierwszy krok
-        CrashReporter.shared.install()
-        Analytics.shared.setup()
-        Analytics.shared.track(.appLaunched)
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+            CrashReporter.shared.install()
+            Analytics.shared.setup()
+            Analytics.shared.track(.appLaunched)
+        }
 
         configureUITestDefaultsIfNeeded()
 
@@ -253,6 +256,8 @@ struct MeasureMeApp: App {
     }
 
     private func runDeferredStartupWork(container: ModelContainer) {
+        guard !isRunningXCTest else { return }
+
         Task(priority: .utility) {
             let storageProtectionState = StartupInstrumentation.begin("DeferredStorageProtection")
             DatabaseEncryption.applyRecommendedProtectionIfNeeded()

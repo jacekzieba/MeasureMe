@@ -37,6 +37,8 @@
 "Could not schedule notifications. Please check notification permissions and try again." = "Nie udało się zaplanować powiadomień. Sprawdź uprawnienia i spróbuj ponownie.";
 "Include diagnostic logs in crash reports" = "Dołącz logi diagnostyczne do raportów awarii";
 "Share anonymous analytics" = "Udostępniaj anonimową analitykę";
+"Share app" = "Udostępnij aplikację";
+"share.app.message" = "Sprawdź %@ w App Store: %@";
 "Helps improve app quality and UX. No health values or personal data are sent." = "Pomaga ulepszać jakość aplikacji i UX. Nie wysyłamy wartości zdrowotnych ani danych osobowych.";
 "When enabled, recent app logs may be attached to reports you share." = "Po włączeniu do udostępnianych raportów mogą być dołączane ostatnie logi aplikacji.";
 "Could not start the app because local storage failed to initialize. Please retry. Error: %@" = "Nie udało się uruchomić aplikacji, ponieważ nie można zainicjalizować pamięci lokalnej. Spróbuj ponownie. Błąd: %@";

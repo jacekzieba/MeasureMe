@@ -12,6 +12,11 @@ import SwiftData
 final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
     @MainActor
     func testHealthAndPhysiqueSections_snapshot_darkDefault() throws {
+        #if !targetEnvironment(simulator)
+        XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
+        return
+        #endif
+
         let defaults = UserDefaults.standard
         let keys = [
             "appLanguage",

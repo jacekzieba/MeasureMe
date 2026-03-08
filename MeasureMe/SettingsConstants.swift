@@ -9,6 +9,7 @@ enum LegalLinks {
     static let accessibility = URL(string: "https://jacekzieba.pl/accessibility")!
     static let about = URL(string: "https://jacekzieba.pl/measureme")!
     static let featureRequest = URL(string: "https://measureme.userjot.com/")!
+    static let appStore = URL(string: "https://apps.apple.com/pl/app/measureme-body-tracker/id6759111562?l=pl")!
 }
 
 // MARK: - Section card layout
