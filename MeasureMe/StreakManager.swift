@@ -28,6 +28,7 @@ final class StreakManager: ObservableObject {
     // MARK: - Published State
 
     @Published private(set) var currentStreak: Int = 0
+    @Published private(set) var maxStreak: Int = 0
     @Published private(set) var shouldPlayAnimation: Bool = false
 
     // MARK: - Dependencies
@@ -41,6 +42,7 @@ final class StreakManager: ObservableObject {
     private enum Keys {
         static let activeWeeks = "streak_active_weeks"
         static let currentCount = "streak_current_count"
+        static let maxCount = "streak_max_count"
         static let animationPlayedWeek = "streak_animation_played_week"
         static let appOpenedWeeks = "streak_app_opened_weeks"
         static let vacationWeeks = "streak_vacation_weeks"
@@ -57,6 +59,7 @@ final class StreakManager: ObservableObject {
         self.clock = clock
         self.calendar = calendar
         self.currentStreak = defaults.integer(forKey: Keys.currentCount)
+        self.maxStreak = defaults.integer(forKey: Keys.maxCount)
     }
 
     convenience init(
@@ -212,6 +215,10 @@ final class StreakManager: ObservableObject {
         )
         currentStreak = computed
         defaults.set(computed, forKey: Keys.currentCount)
+        if computed > maxStreak {
+            maxStreak = computed
+            defaults.set(computed, forKey: Keys.maxCount)
+        }
     }
 
     /// Checks SwiftData for any MetricSample or PhotoEntry in the given
@@ -246,6 +253,34 @@ final class StreakManager: ObservableObject {
         if hasPhotos {
             addActiveWeek(week)
         }
+    }
+
+    // MARK: - Computed Streak Info
+
+    /// Monday of the first week in the current streak run.
+    var streakStartDate: Date? {
+        guard currentStreak > 0 else { return nil }
+        let now = clock()
+        let activeWeeks = loadWeekSet(forKey: Keys.activeWeeks)
+        let vacationWeeks = loadWeekSet(forKey: Keys.vacationWeeks)
+        let currentWeekID = now.isoWeekIdentifier(calendar: calendar)
+        var weekID = activeWeeks.contains(currentWeekID)
+            ? currentWeekID
+            : Self.previousISOWeek(currentWeekID, calendar: calendar)
+        var remaining = currentStreak - 1
+        while remaining > 0 {
+            let prev = Self.previousISOWeek(weekID, calendar: calendar)
+            if !vacationWeeks.contains(prev) { remaining -= 1 }
+            weekID = prev
+        }
+        return Self.mondayOfWeek(weekID, calendar: calendar)
+    }
+
+    /// Monday of the earliest ISO week ever recorded as active.
+    var firstActiveDate: Date? {
+        let activeWeeks = loadWeekSet(forKey: Keys.activeWeeks)
+        guard let firstWeek = activeWeeks.sorted().first else { return nil }
+        return Self.mondayOfWeek(firstWeek, calendar: calendar)
     }
 
     // MARK: - Date Parsing

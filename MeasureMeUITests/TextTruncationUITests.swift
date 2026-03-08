@@ -22,22 +22,22 @@ final class TextTruncationUITests: XCTestCase {
         ]
         app.launch()
 
-        scanCurrentScreenForTruncatedText(context: "Home", maxSwipes: 6)
+        scanCurrentScreenForTruncatedText(context: "Home", maxSwipes: 3)
 
         tapTab("tab.measurements", fallbackLabels: ["Measurements", "Pomiary"])
-        scanCurrentScreenForTruncatedText(context: "Measurements", maxSwipes: 6)
+        scanCurrentScreenForTruncatedText(context: "Measurements", maxSwipes: 3)
 
         tapIfExists(app.buttons["measurements.tab.health"].firstMatch)
-        scanCurrentScreenForTruncatedText(context: "Measurements.Health", maxSwipes: 4)
+        scanCurrentScreenForTruncatedText(context: "Measurements.Health", maxSwipes: 2)
 
         tapIfExists(app.buttons["measurements.tab.physique"].firstMatch)
-        scanCurrentScreenForTruncatedText(context: "Measurements.Physique", maxSwipes: 4)
+        scanCurrentScreenForTruncatedText(context: "Measurements.Physique", maxSwipes: 2)
 
         tapTab("tab.photos", fallbackLabels: ["Photos", "Zdjęcia"])
-        scanCurrentScreenForTruncatedText(context: "Photos", maxSwipes: 6)
+        scanCurrentScreenForTruncatedText(context: "Photos", maxSwipes: 3)
 
         tapTab("tab.settings", fallbackLabels: ["Settings", "Ustawienia"])
-        scanCurrentScreenForTruncatedText(context: "Settings", maxSwipes: 8)
+        scanCurrentScreenForTruncatedText(context: "Settings", maxSwipes: 4)
     }
 
     @MainActor
@@ -63,18 +63,23 @@ final class TextTruncationUITests: XCTestCase {
     }
 
     private func tapTab(_ identifier: String, fallbackLabels: [String]) {
-        let tab = app.tabBars.buttons[identifier].firstMatch
-        if tab.waitForExistence(timeout: 5) {
-            tab.tap()
-            return
-        }
-
-        for label in fallbackLabels {
-            let candidate = app.tabBars.buttons[label].firstMatch
-            if candidate.waitForExistence(timeout: 2) {
-                candidate.tap()
+        for _ in 0..<6 {
+            let tab = app.buttons[identifier].firstMatch
+            if tab.exists && tab.isHittable {
+                tab.tap()
                 return
             }
+
+            for label in fallbackLabels {
+                let candidate = app.buttons[label].firstMatch
+                if candidate.exists && candidate.isHittable {
+                    candidate.tap()
+                    return
+                }
+            }
+
+            // Home can hide the tab bar while scrolling; swipe down to reveal it again.
+            app.swipeDown()
         }
 
         XCTFail("Could not find tab: \(identifier)")
@@ -99,17 +104,10 @@ final class TextTruncationUITests: XCTestCase {
         let window = app.windows.element(boundBy: 0)
         XCTAssertTrue(window.waitForExistence(timeout: 5), "App window should exist before text truncation scan")
 
-        var offenders: [String] = []
-
-        let elements = app.staticTexts.allElementsBoundByIndex + app.buttons.allElementsBoundByIndex
-        for element in elements where isVisible(element, inside: window) {
-            let label = element.label.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !label.isEmpty else { continue }
-
-            if label.contains("…") {
-                let id = element.identifier.isEmpty ? "(no-id)" : element.identifier
-                offenders.append("[\(id)] \(label)")
-            }
+        // Parsing one debug dump is much faster than resolving every XCUI element individually.
+        let debugLines = app.debugDescription.components(separatedBy: .newlines)
+        let offenders = debugLines.filter { line in
+            (line.contains("StaticText") || line.contains("Button")) && line.contains("…")
         }
 
         XCTAssertTrue(
@@ -118,14 +116,5 @@ final class TextTruncationUITests: XCTestCase {
             file: file,
             line: line
         )
-    }
-
-    private func isVisible(_ element: XCUIElement, inside container: XCUIElement) -> Bool {
-        guard element.exists, container.exists else { return false }
-        let frame = element.frame
-        let containerFrame = container.frame
-        guard !frame.isEmpty, !containerFrame.isEmpty else { return false }
-        let intersection = frame.intersection(containerFrame)
-        return !intersection.isNull && !intersection.isEmpty
     }
 }

@@ -1510,3 +1510,25 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "widget.metric.description" = "Pokazuje wybraną metrykę z wykresem trendu i zmianą z 30 dni.";
 "widget.metric.no_data" = "Brak danych";
 "widget.metric.chart_label" = "30 dni";
+
+/* Streak Detail */
+"streak.detail.title" = "SERIA";
+"streak.detail.weekStreak" = "SERIA TYGODNI";
+"streak.detail.streakStarted" = "Seria od";
+"streak.detail.memberSince" = "Używasz od";
+"streak.detail.best" = "Rekord";
+"streak.detail.thisWeek" = "TEN TYDZIEŃ";
+"streak.detail.totalLogs" = "Łączna liczba wpisów";
+"streak.detail.nextMilestone.label" = "%lld tyg. do celu";
+"streak.detail.nextMilestone.sub" = "do odblokowania kolejnego kamienia milowego.";
+"streak.detail.milestone.reached" = "Wszystkie cele odblokowane! 🎉";
+"streak.detail.motivational.0.title" = "Zaczynasz";
+"streak.detail.motivational.0.body" = "Każdy tydzień się liczy. Każdy wpis daje Ci wyraźniejszy obraz swojego ciała i jego potrzeb.";
+"streak.detail.motivational.1.title" = "Budujesz impet";
+"streak.detail.motivational.1.body" = "Budujesz prawdziwy nawyk. Systematyczność teraz jest tym, co oddziela tych, którzy śledzą, od tych, którzy się zmieniają.";
+"streak.detail.motivational.2.title" = "Idzie jak z płatka";
+"streak.detail.motivational.2.body" = "Świetna konsekwencja! Każdy tydzień danych daje Ci ostrzejsze wglądy i trzyma Twoje cele w zasięgu.";
+"streak.detail.motivational.3.title" = "Wyjątkowe zaangażowanie";
+"streak.detail.motivational.3.body" = "Kwartał ciągłego śledzenia. To rzadka wytrwałość — Twoje dane opowiadają potężną historię.";
+"streak.detail.motivational.4.title" = "Nie do zatrzymania";
+"streak.detail.motivational.4.body" = "Pół roku lub więcej śledzenia — jesteś w elitarnym gronie. Kontynuuj, a dane mówią same za siebie.";

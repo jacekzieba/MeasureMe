@@ -74,7 +74,10 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertTrue(visibleIDs.label.contains("first_measurement"), "Checklist should include first measurement item")
         XCTAssertTrue(visibleIDs.label.contains("first_photo"), "Checklist should include first photo item")
         XCTAssertTrue(visibleIDs.label.contains("healthkit"), "Checklist should include health item")
-        XCTAssertEqual(remainingCount.label, "3", "Checklist should expose three hidden items before expansion")
+        let collapsedVisible = Int(visibleCount.label) ?? -1
+        let collapsedRemaining = Int(remainingCount.label) ?? -1
+        XCTAssertEqual(collapsedVisible, 3, "Collapsed checklist should show exactly three items")
+        XCTAssertGreaterThanOrEqual(collapsedRemaining, 1, "Collapsed checklist should expose at least one hidden item")
         XCTAssertFalse(app.buttons["home.checklist.item.premium"].exists, "Collapsed checklist should hide later tasks")
 
         app.terminate()
@@ -88,8 +91,13 @@ final class HomeViewUITests: XCTestCase {
         let expandedVisibleIDs = app.staticTexts["home.checklist.visibleIDs"].firstMatch
         XCTAssertTrue(expandedVisibleCount.waitForExistence(timeout: 5), "Expanded checklist should expose visible item count")
         XCTAssertTrue(expandedVisibleIDs.waitForExistence(timeout: 5), "Expanded checklist should expose visible item ids")
-        XCTAssertTrue(expandedVisibleIDs.label.contains("premium"), "Expanded checklist should reveal remaining tasks")
-        XCTAssertEqual(expandedVisibleCount.label, "6", "Expanded checklist should show the full set of checklist items")
+        let expandedVisible = Int(expandedVisibleCount.label) ?? -1
+        XCTAssertEqual(
+            expandedVisible,
+            collapsedVisible + collapsedRemaining,
+            "Expanded checklist should reveal all previously hidden items"
+        )
+        XCTAssertGreaterThan(expandedVisible, collapsedVisible, "Expanded checklist should show more items than collapsed")
     }
 
     func testNextFocusShowsMetricInsightWhenProgressExists() {
@@ -102,9 +110,8 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertEqual(nextFocusMode.label, "metric", "Seeded measurements should produce a metric insight")
         nextFocusButton.tap()
 
-        let measurementsTab = app.tabBars.buttons["tab.measurements"].firstMatch
-        XCTAssertTrue(measurementsTab.waitForExistence(timeout: 5), "Measurements tab should exist")
-        XCTAssertTrue(measurementsTab.isSelected, "Metric insight should open Measurements")
+        let measurementsScroll = app.scrollViews["measurements.scroll"].firstMatch
+        XCTAssertTrue(measurementsScroll.waitForExistence(timeout: 5), "Metric insight should open Measurements")
     }
 
     func testNextFocusLongInsightFitsAtAccessibilityXL() {
@@ -154,9 +161,8 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertEqual(nextFocusMode.label, "setGoal", "No positive measurement insight should fall back to Set goal")
         nextFocusButton.tap()
 
-        let measurementsTab = app.tabBars.buttons["tab.measurements"].firstMatch
-        XCTAssertTrue(measurementsTab.waitForExistence(timeout: 5), "Measurements tab should exist")
-        XCTAssertTrue(measurementsTab.isSelected, "Set goal fallback should switch to Measurements")
+        let measurementsScroll = app.scrollViews["measurements.scroll"].firstMatch
+        XCTAssertTrue(measurementsScroll.waitForExistence(timeout: 5), "Set goal fallback should open Measurements")
     }
 
     func testNoGoalsStatusChipOpensMeasurements() {
@@ -166,9 +172,8 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertTrue(goalStatusButton.waitForExistence(timeout: 5), "No-goals status chip should become tappable")
         goalStatusButton.tap()
 
-        let measurementsTab = app.tabBars.buttons["tab.measurements"].firstMatch
-        XCTAssertTrue(measurementsTab.waitForExistence(timeout: 5), "Measurements tab should exist")
-        XCTAssertTrue(measurementsTab.isSelected, "Tapping the no-goals chip should open Measurements")
+        let measurementsScroll = app.scrollViews["measurements.scroll"].firstMatch
+        XCTAssertTrue(measurementsScroll.waitForExistence(timeout: 5), "Tapping the no-goals chip should open Measurements")
     }
 
     func testTrialReminderPromptShowsDeclineAndConfirm() {

@@ -61,6 +61,7 @@ struct HomeView: View {
     @State private var showQuickAddSheet = false
     @State private var showHomeSettingsSheet = false
     @State private var showHomeCompareChooser = false
+    @State private var showStreakDetail = false
     @State private var selectedPhotoForFullScreen: PhotoEntry?
     @State private var selectedHomeComparePair: HomeComparePair?
     @State private var scrollOffset: CGFloat = 0
@@ -802,6 +803,9 @@ struct HomeView: View {
             .sheet(item: $selectedHomeComparePair) { pair in
                 ComparePhotosView(olderPhoto: pair.olderPhoto, newerPhoto: pair.newerPhoto)
             }
+            .sheet(isPresented: $showStreakDetail) {
+                StreakDetailView(streakManager: streakManager)
+            }
     }
 
     private func lifecycleObservedHomeRoot<Content: View>(
@@ -941,11 +945,14 @@ struct HomeView: View {
                     Spacer()
 
                     if showStreakOnHome && streakManager.currentStreak > 0 {
-                        StreakBadge(
-                            count: streakManager.currentStreak,
-                            shouldAnimate: streakManager.shouldPlayAnimation,
-                            onAnimationComplete: { streakManager.markAnimationPlayed() }
-                        )
+                        Button { showStreakDetail = true } label: {
+                            StreakBadge(
+                                count: streakManager.currentStreak,
+                                shouldAnimate: streakManager.shouldPlayAnimation,
+                                onAnimationComplete: { streakManager.markAnimationPlayed() }
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -2010,11 +2017,14 @@ struct HomeView: View {
                         .foregroundStyle(.white.opacity(0.75))
                     Spacer()
                     if showStreakOnHome && streakManager.currentStreak > 0 {
-                        StreakBadge(
-                            count: streakManager.currentStreak,
-                            shouldAnimate: streakManager.shouldPlayAnimation,
-                            onAnimationComplete: { streakManager.markAnimationPlayed() }
-                        )
+                        Button { showStreakDetail = true } label: {
+                            StreakBadge(
+                                count: streakManager.currentStreak,
+                                shouldAnimate: streakManager.shouldPlayAnimation,
+                                onAnimationComplete: { streakManager.markAnimationPlayed() }
+                            )
+                        }
+                        .buttonStyle(.plain)
                         .transition(.scale.combined(with: .opacity))
                     }
                 }

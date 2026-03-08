@@ -1135,3 +1135,25 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "widget.metric.description" = "Shows your selected metric with trend chart and 30-day change.";
 "widget.metric.no_data" = "No data yet";
 "widget.metric.chart_label" = "30d";
+
+/* Streak Detail */
+"streak.detail.title" = "STREAK";
+"streak.detail.weekStreak" = "WEEK STREAK";
+"streak.detail.streakStarted" = "Streak started";
+"streak.detail.memberSince" = "Member since";
+"streak.detail.best" = "Best";
+"streak.detail.thisWeek" = "THIS WEEK";
+"streak.detail.totalLogs" = "Total logs";
+"streak.detail.nextMilestone.label" = "%lld more weeks";
+"streak.detail.nextMilestone.sub" = "to your next milestone.";
+"streak.detail.milestone.reached" = "All milestones unlocked! 🎉";
+"streak.detail.motivational.0.title" = "Getting started";
+"streak.detail.motivational.0.body" = "Every week counts. Each log builds a clearer picture of your body and what it needs.";
+"streak.detail.motivational.1.title" = "Building momentum";
+"streak.detail.motivational.1.body" = "You're building a real habit. Consistency now is what separates those who track from those who transform.";
+"streak.detail.motivational.2.title" = "On a roll";
+"streak.detail.motivational.2.body" = "Great consistency! Each week of data gives you sharper insights and keeps your goals in focus.";
+"streak.detail.motivational.3.title" = "Exceptional commitment";
+"streak.detail.motivational.3.body" = "A quarter-year of continuous tracking. That's rare dedication — your data tells a powerful story.";
+"streak.detail.motivational.4.title" = "Unstoppable";
+"streak.detail.motivational.4.body" = "Half a year or more of tracking — you're in elite company. Keep going and the data speaks for itself.";

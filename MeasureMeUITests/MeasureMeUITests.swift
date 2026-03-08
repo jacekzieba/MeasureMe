@@ -32,8 +32,7 @@ final class MeasureMeUITests: XCTestCase {
         ]
         app.launch()
 
-        XCTAssertTrue(app.tabBars.buttons["tab.settings"].waitForExistence(timeout: 5))
-        app.tabBars.buttons["tab.settings"].tap()
+        tapTab(in: app, identifier: "tab.settings", fallbackLabels: ["Settings", "Ustawienia"])
 
         let toggle = app.switches["settings.health.sync.toggle"]
         if !toggle.exists {
@@ -63,8 +62,7 @@ final class MeasureMeUITests: XCTestCase {
         ]
         app.launch()
 
-        XCTAssertTrue(app.tabBars.buttons["tab.measurements"].waitForExistence(timeout: 5))
-        app.tabBars.buttons["tab.measurements"].tap()
+        tapTab(in: app, identifier: "tab.measurements", fallbackLabels: ["Measurements", "Pomiary"])
 
         let insightText = app.staticTexts["insight.card.text.compact"].firstMatch
         XCTAssertTrue(insightText.waitForExistence(timeout: 8))
@@ -85,5 +83,27 @@ final class MeasureMeUITests: XCTestCase {
     private func isSwitchOff(_ element: XCUIElement) -> Bool {
         guard let value = element.value as? String else { return false }
         return value == "0" || value.lowercased() == "off"
+    }
+
+    private func tapTab(in app: XCUIApplication, identifier: String, fallbackLabels: [String]) {
+        for _ in 0..<6 {
+            let tab = app.buttons[identifier].firstMatch
+            if tab.exists && tab.isHittable {
+                tab.tap()
+                return
+            }
+
+            for label in fallbackLabels {
+                let candidate = app.buttons[label].firstMatch
+                if candidate.exists && candidate.isHittable {
+                    candidate.tap()
+                    return
+                }
+            }
+
+            app.swipeDown()
+        }
+
+        XCTFail("Tab should exist: \(identifier)")
     }
 }
