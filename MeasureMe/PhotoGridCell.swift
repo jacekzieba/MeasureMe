@@ -61,7 +61,10 @@ struct PhotoGridCell: View {
             }
             let bucket = revealIndex % 12
             let delay = Double(bucket) * 0.012
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            Task { @MainActor in
+                if delay > 0 {
+                    try? await Task.sleep(for: .seconds(delay))
+                }
                 withAnimation(AppMotion.sectionEnter) {
                     isVisible = true
                 }

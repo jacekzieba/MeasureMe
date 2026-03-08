@@ -189,7 +189,7 @@ struct PremiumPaywallView: View {
             }
         }
         .onAppear {
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 premium.clearActionMessage()
                 Task {
                     await premium.loadProducts()

@@ -413,6 +413,9 @@
 "Requesting Health access..." = "Requesting Health access...";
 "Health sync enabled." = "Health sync enabled.";
 "Health access denied. You can enable it later in Settings." = "Health access denied. You can enable it later in Settings.";
+"Health access denied. Go to iOS Settings → MeasureMe → Health and allow access." = "Health access denied. Go to iOS Settings → MeasureMe → Health and allow access.";
+"Open iOS Settings now?" = "Open iOS Settings now?";
+"To enable Apple Health sync, go to iOS Settings → MeasureMe → Health." = "To enable Apple Health sync, go to iOS Settings → MeasureMe → Health.";
 "Requesting notification permission..." = "Requesting notification permission...";
 "Notifications enabled." = "Notifications enabled.";
 "Notifications denied. You can enable them later in Settings." = "Notifications denied. You can enable them later in Settings.";
@@ -426,6 +429,7 @@
 "Photos" = "Photos";
 "Measurements" = "Measurements";
 "Settings" = "Settings";
+"Open iOS Settings" = "Open iOS Settings";
 "Metrics" = "Metrics";
 "Indicators" = "Indicators";
 "Health indicators" = "Health indicators";

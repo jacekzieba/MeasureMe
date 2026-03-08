@@ -33,9 +33,34 @@ final class MultiPhotoImportUITests: XCTestCase {
     }
 
     private func tapPhotosTab() {
-        let tab = app.tabBars.buttons["tab.photos"]
-        XCTAssertTrue(tab.waitForExistence(timeout: 6), "Tab 'Photos' powinien istnieć")
-        tab.tap()
+        // Jeśli sheet testowy już się otworzył, nie potrzebujemy przełączać taba.
+        if app.buttons["multiImport.saveButton"].waitForExistence(timeout: 1.5) {
+            return
+        }
+
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 8), "Tab bar powinien istnieć")
+
+        let identifierTab = app.tabBars.buttons["tab.photos"]
+        if identifierTab.waitForExistence(timeout: 3) {
+            identifierTab.tap()
+            return
+        }
+
+        // Fallback na etykiety lokalizacyjne (iOS 26 potrafi nie wystawić identifiera taba).
+        let fallbackPhotosEN = app.tabBars.buttons["Photos"]
+        if fallbackPhotosEN.waitForExistence(timeout: 2) {
+            fallbackPhotosEN.tap()
+            return
+        }
+
+        let fallbackPhotosPL = app.tabBars.buttons["Zdjęcia"]
+        if fallbackPhotosPL.waitForExistence(timeout: 2) {
+            fallbackPhotosPL.tap()
+            return
+        }
+
+        XCTFail("Tab 'Photos' powinien istnieć (identifier: tab.photos lub fallback label)")
     }
 
     private func waitForMultiImportSheet(timeout: TimeInterval = 5) {

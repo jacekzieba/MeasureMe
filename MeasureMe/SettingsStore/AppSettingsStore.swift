@@ -13,7 +13,6 @@ final class AppSettingsStore: ObservableObject {
     private var defaultsWriteDepth = 0
     private var suppressObserverUntilNextRunLoop = false
     private var isSnapshotRefreshScheduled = false
-    private let snapshotRefreshDelay: DispatchTimeInterval = .milliseconds(10)
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -44,9 +43,7 @@ final class AppSettingsStore: ObservableObject {
         Binding(
             get: { self.snapshot[keyPath: keyPath] },
             set: { newValue in
-                DispatchQueue.main.async { [weak self] in
-                    self?.set(keyPath, newValue)
-                }
+                self.set(keyPath, newValue)
             }
         )
     }
@@ -406,7 +403,8 @@ final class AppSettingsStore: ObservableObject {
     private func scheduleSnapshotRefresh() {
         guard !isSnapshotRefreshScheduled else { return }
         isSnapshotRefreshScheduled = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + snapshotRefreshDelay) { [weak self] in
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(10))
             guard let self else { return }
             self.isSnapshotRefreshScheduled = false
             self.snapshot = AppSettingsSnapshot.load(from: self.defaults)
@@ -423,7 +421,7 @@ final class AppSettingsStore: ObservableObject {
 
         if defaultsWriteDepth == 0 {
             suppressObserverUntilNextRunLoop = true
-            DispatchQueue.main.async { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.suppressObserverUntilNextRunLoop = false
             }
         }

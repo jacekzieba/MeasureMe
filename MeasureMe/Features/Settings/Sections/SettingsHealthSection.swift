@@ -110,7 +110,7 @@ struct HealthSettingsSection: View {
     }
 
     private func scheduleSyncStateReconciliation() {
-        DispatchQueue.main.async {
+        Task { @MainActor in
             reconcileSyncStateWithSystemAuthorization()
         }
     }

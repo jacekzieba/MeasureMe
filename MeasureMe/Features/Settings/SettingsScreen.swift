@@ -750,7 +750,7 @@ struct SettingsView: View {
     }
 
     private func schedulePendingDeepLinksHandling() {
-        DispatchQueue.main.async {
+        Task { @MainActor in
             handlePendingDeepLinks()
         }
     }

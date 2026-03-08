@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 private extension Notification.Name {
     static let homeScrollToChecklist = Notification.Name("homeScrollToChecklist")
@@ -68,6 +69,8 @@ struct HomeView: View {
     @State private var lastPhotosGridWidth: CGFloat = 0
     @State private var checklistStatusText: String?
     @State private var isChecklistConnectingHealth: Bool = false
+    @State private var shouldShowHealthSettingsShortcut: Bool = false
+    @State private var shouldPromptToOpenHealthSettings: Bool = false
     @State private var reminderChecklistCompleted: Bool = false
     @State private var showMoreChecklistItems: Bool = false
     @State private var expandedSecondaryMetrics: Set<MetricKind> = []
@@ -767,7 +770,13 @@ struct HomeView: View {
             .coordinateSpace(name: "homeScroll")
             .onPreferenceChange(HomeScrollOffsetKey.self) { value in
                 scrollOffset = value
-                homeTabScrollOffset = Double(value)
+                let normalizedOffset = Double(value)
+                // Defer AppSetting write to avoid publishing during the view-update pass.
+                if abs(homeTabScrollOffset - normalizedOffset) > 0.5 {
+                    Task { @MainActor in
+                        homeTabScrollOffset = normalizedOffset
+                    }
+                }
             }
 
             if isUITestMode {
@@ -806,6 +815,17 @@ struct HomeView: View {
             .sheet(isPresented: $showStreakDetail) {
                 StreakDetailView(streakManager: streakManager)
             }
+            .alert(
+                AppLocalization.string("Open iOS Settings now?"),
+                isPresented: $shouldPromptToOpenHealthSettings
+            ) {
+                Button(AppLocalization.string("Open iOS Settings")) {
+                    openAppSettings()
+                }
+                Button(AppLocalization.string("Not now"), role: .cancel) {}
+            } message: {
+                Text(AppLocalization.string("To enable Apple Health sync, go to iOS Settings → MeasureMe → Health."))
+            }
     }
 
     private func lifecycleObservedHomeRoot<Content: View>(
@@ -814,16 +834,16 @@ struct HomeView: View {
     ) -> some View {
         content
             .onAppear {
-                DispatchQueue.main.async {
-                if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
-                    didCheckSevenDayPaywallPrompt = true
-                    premiumStore.checkSevenDayPromptIfNeeded()
-                }
-                if ProcessInfo.processInfo.arguments.contains("-uiTestExpandChecklist") {
-                    showMoreChecklistItems = true
-                }
-                emitHomeInitialRenderIfNeeded()
-                runStartupPhasesIfNeeded()
+                Task { @MainActor in
+                    if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
+                        didCheckSevenDayPaywallPrompt = true
+                        premiumStore.checkSevenDayPromptIfNeeded()
+                    }
+                    if ProcessInfo.processInfo.arguments.contains("-uiTestExpandChecklist") {
+                        showMoreChecklistItems = true
+                    }
+                    emitHomeInitialRenderIfNeeded()
+                    runStartupPhasesIfNeeded()
                 }
             }
             .onDisappear {
@@ -2256,6 +2276,17 @@ struct HomeView: View {
                         .font(AppTypography.micro)
                         .foregroundStyle(Color.appAccent)
                 }
+
+                if shouldShowHealthSettingsShortcut {
+                    Button {
+                        openAppSettings()
+                    } label: {
+                        Text(AppLocalization.string("Open iOS Settings"))
+                            .font(AppTypography.captionEmphasis)
+                            .foregroundStyle(Color.appAccent)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }
@@ -2746,7 +2777,8 @@ struct HomeView: View {
             allChecklistItemsCompleted: allChecklistItemsCompleted,
             showOnboardingChecklistOnHome: showOnboardingChecklistOnHome
         ) else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(600))
             withAnimation(AppMotion.animation(AppMotion.sectionExit, enabled: shouldAnimate)) {
                 showOnboardingChecklistOnHome = false
             }
@@ -2785,6 +2817,7 @@ struct HomeView: View {
         guard !isSyncEnabled, !isChecklistConnectingHealth else { return }
 
         checklistStatusText = AppLocalization.string("Requesting Health access...")
+        shouldShowHealthSettingsShortcut = false
         isChecklistConnectingHealth = true
 
         Task { @MainActor in
@@ -2794,17 +2827,32 @@ struct HomeView: View {
                 isSyncEnabled = true
                 onboardingSkippedHealthKit = true
                 checklistStatusText = AppLocalization.string("Connected to Apple Health.")
+                shouldShowHealthSettingsShortcut = false
                 Haptics.success()
                 refreshChecklistState()
             } catch {
                 isSyncEnabled = false
-                checklistStatusText = AppLocalization.string("Health access denied. You can enable it later in Settings.")
+                checklistStatusText = AppLocalization.string("Health access denied. Go to iOS Settings → MeasureMe → Health and allow access.")
                 if let authError = error as? HealthKitAuthorizationError {
-                    checklistStatusText = authError.errorDescription ?? checklistStatusText
+                    if authError == .denied {
+                        shouldShowHealthSettingsShortcut = true
+                        shouldPromptToOpenHealthSettings = true
+                        Haptics.error()
+                        return
+                    } else {
+                        checklistStatusText = authError.errorDescription ?? checklistStatusText
+                    }
                 }
+                shouldShowHealthSettingsShortcut = true
                 Haptics.error()
             }
         }
+    }
+
+    private func openAppSettings() {
+        guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
+        guard UIApplication.shared.canOpenURL(settingsURL) else { return }
+        UIApplication.shared.open(settingsURL)
     }
     
     // MARK: - Measurements Section
@@ -3008,12 +3056,18 @@ struct HomeView: View {
                             .onAppear {
                                 let width = geo.size.width
                                 if width.isFinite, width > 0 {
-                                    lastPhotosGridWidth = width
+                                    Task { @MainActor in
+                                        lastPhotosGridWidth = width
+                                    }
                                 }
                             }
                             .onChange(of: geo.size.width) { _, newValue in
                                 if newValue.isFinite, newValue > 0 {
-                                    lastPhotosGridWidth = newValue
+                                    if abs(lastPhotosGridWidth - newValue) > 0.5 {
+                                        Task { @MainActor in
+                                            lastPhotosGridWidth = newValue
+                                        }
+                                    }
                                 }
                             }
                     }

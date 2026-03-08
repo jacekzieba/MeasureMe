@@ -74,13 +74,12 @@ struct RootView: View {
             }
         }
         .onAppear {
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 configurePendingStoreIfNeeded()
                 scheduleDeferredStartupWorkIfNeeded()
                 if ProcessInfo.processInfo.arguments.contains("-uiTestShowTrialReminderPrompt") {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                        premiumStore.showTrialReminderOptInPrompt = true
-                    }
+                    try? await Task.sleep(for: .milliseconds(800))
+                    premiumStore.showTrialReminderOptInPrompt = true
                 }
             }
         }

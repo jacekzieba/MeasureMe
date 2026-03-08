@@ -926,6 +926,9 @@
 "Requesting Health access..." = "Prośba o dostęp do Zdrowie...";
 "Health sync enabled." = "Synchronizacja ze Zdrowie włączona.";
 "Health access denied. You can enable it later in Settings." = "Dostęp do Zdrowie odrzucony. Możesz go włączyć później w Ustawieniach.";
+"Health access denied. Go to iOS Settings → MeasureMe → Health and allow access." = "Dostęp do Zdrowie odrzucony. Wejdź w Ustawienia iOS → MeasureMe → Zdrowie i włącz dostęp.";
+"Open iOS Settings now?" = "Otworzyć teraz Ustawienia iOS?";
+"To enable Apple Health sync, go to iOS Settings → MeasureMe → Health." = "Aby włączyć synchronizację Apple Health, przejdź do Ustawienia iOS → MeasureMe → Zdrowie.";
 "Requesting notification permission..." = "Prośba o dostęp do powiadomień...";
 "Notifications enabled." = "Powiadomienia włączone.";
 "Notifications denied. You can enable them later in Settings." = "Powiadomienia odrzucone. Możesz je włączyć później w Ustawieniach.";
@@ -936,6 +939,7 @@
 "Photos" = "Zdjęcia";
 "Measurements" = "Pomiary";
 "Settings" = "Ustawienia";
+"Open iOS Settings" = "Otwórz Ustawienia iOS";
 "Metrics" = "Metryki";
 "Indicators" = "Wskaźniki";
 "Health indicators" = "Wskaźniki zdrowia";
