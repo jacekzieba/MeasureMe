@@ -228,7 +228,7 @@ struct HealthMetricsSection: View {
             await loadHealthInsightIfNeeded()
         }
         .onAppear {
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 migrateLegacyVisibilityIfNeeded()
             }
         }

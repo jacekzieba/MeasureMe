@@ -321,12 +321,12 @@ enum SettingsImporter {
     }
 
     private nonisolated static func loadCSVContent(url: URL) throws -> String {
-        let hasSecurityScopedAccess = url.startAccessingSecurityScopedResource()
-        defer {
-            if hasSecurityScopedAccess {
-                url.stopAccessingSecurityScopedResource()
-            }
-        }
+        // startAccessingSecurityScopedResource() returns false for URLs that do not
+        // carry a security scope (e.g. temporary files, bundle resources). In that
+        // case the file is still accessible — false must NOT be treated as a denial;
+        // we just skip the matching stop call.
+        let needsStop = url.startAccessingSecurityScopedResource()
+        defer { if needsStop { url.stopAccessingSecurityScopedResource() } }
 
         do {
             return try String(contentsOf: url, encoding: .utf8)

@@ -15,6 +15,14 @@ struct ComparePhotosView: View {
     @State private var showSaveAlert = false
     @State private var saveMessage = ""
     @State private var isExporting = false
+
+    private var olderCompareCacheID: String {
+        compareCacheID(for: olderPhoto)
+    }
+
+    private var newerCompareCacheID: String {
+        compareCacheID(for: newerPhoto)
+    }
     
     var body: some View {
         NavigationStack {
@@ -83,8 +91,8 @@ struct ComparePhotosView: View {
             BeforeAfterSlider(
                 beforeImage: olderPhoto.imageData,
                 afterImage: newerPhoto.imageData,
-                beforeCacheID: String(describing: olderPhoto.id),
-                afterCacheID: String(describing: newerPhoto.id),
+                beforeCacheID: olderCompareCacheID,
+                afterCacheID: newerCompareCacheID,
                 size: CGSize(
                     width: max(1, geometry.size.width - 40),
                     height: max(1, geometry.size.height * 0.6)
@@ -118,7 +126,8 @@ struct ComparePhotosView: View {
                                 targetSize: CGSize(width: cardWidth, height: cardHeight),
                                 contentMode: .fit,
                                 cornerRadius: 12,
-                                cacheID: String(describing: olderPhoto.id)
+                                cacheID: olderCompareCacheID,
+                                renderScaleOverride: compareSideBySideRenderScale
                             )
                             .frame(maxHeight: cardHeight)
                             
@@ -147,7 +156,8 @@ struct ComparePhotosView: View {
                                 targetSize: CGSize(width: cardWidth, height: cardHeight),
                                 contentMode: .fit,
                                 cornerRadius: 12,
-                                cacheID: String(describing: newerPhoto.id)
+                                cacheID: newerCompareCacheID,
+                                renderScaleOverride: compareSideBySideRenderScale
                             )
                             .frame(maxHeight: cardHeight)
                             
@@ -248,6 +258,16 @@ struct ComparePhotosView: View {
         }
         
         return changes.sorted { $0.kind.title < $1.kind.title }
+    }
+
+    private var compareSideBySideRenderScale: CGFloat {
+        max(UIScreen.main.scale * 2, 3)
+    }
+
+    private func compareCacheID(for photo: PhotoEntry) -> String {
+        let modelID = String(describing: photo.persistentModelID)
+        let sourceSignature = "\(photo.imageData.count)_\(UIImage.cacheKey(from: photo.imageData))"
+        return "\(modelID)_compare_\(sourceSignature)"
     }
     
     // MARK: - Export
@@ -558,7 +578,7 @@ private struct BeforeAfterSlider: View {
     }
 
     private var compareRenderScale: CGFloat {
-        effectiveScale * 1.5
+        max(effectiveScale * 2, 3)
     }
     
     // Cache dla obrazów - używamy ImageCache
@@ -713,6 +733,8 @@ private struct BeforeAfterSlider: View {
     private var cacheLoadKey: String {
         let widthPx = Int(max(validSize.width * compareRenderScale, 1))
         let heightPx = Int(max(validSize.height * compareRenderScale, 1))
-        return "\(widthPx)x\(heightPx)@\(compareRenderScale)"
+        let beforeBase = beforeCacheID ?? UIImage.cacheKey(from: beforeImage)
+        let afterBase = afterCacheID ?? UIImage.cacheKey(from: afterImage)
+        return "\(beforeBase)|\(afterBase)|\(widthPx)x\(heightPx)@\(compareRenderScale)"
     }
 }

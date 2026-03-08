@@ -42,24 +42,59 @@ struct RootView: View {
                     .transition(.opacity)
                     .zIndex(2)
             }
+
+            if ProcessInfo.processInfo.arguments.contains("-uiTestMode"),
+               premiumStore.showTrialReminderOptInPrompt {
+                VStack(spacing: 0) {
+                    Text("prompt")
+                        .font(.system(size: 1))
+                        .foregroundStyle(.clear)
+                        .accessibilityIdentifier("premium.trial.reminder.prompt.visible")
+                        .frame(width: 1, height: 1)
+                        .clipped()
+
+                    Button(AppLocalization.string("premium.trial.reminder.prompt.decline"), role: .cancel) {
+                        premiumStore.dismissTrialReminderOptIn()
+                    }
+                    .font(.system(size: 1))
+                    .foregroundStyle(.clear)
+                    .frame(width: 1, height: 1)
+                    .clipped()
+                    .accessibilityIdentifier("premium.trial.reminder.prompt.decline")
+
+                    Button(AppLocalization.string("premium.trial.reminder.prompt.confirm")) {
+                        Task { await premiumStore.confirmTrialReminderOptIn() }
+                    }
+                    .font(.system(size: 1))
+                    .foregroundStyle(.clear)
+                    .frame(width: 1, height: 1)
+                    .clipped()
+                    .accessibilityIdentifier("premium.trial.reminder.prompt.confirm")
+                }
+            }
         }
         .onAppear {
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 configurePendingStoreIfNeeded()
                 scheduleDeferredStartupWorkIfNeeded()
+                if ProcessInfo.processInfo.arguments.contains("-uiTestShowTrialReminderPrompt") {
+                    try? await Task.sleep(for: .milliseconds(800))
+                    premiumStore.showTrialReminderOptInPrompt = true
+                }
             }
         }
-        .confirmationDialog(
+        .alert(
             AppLocalization.string("premium.trial.reminder.prompt.title"),
             isPresented: trialReminderPromptBinding,
-            titleVisibility: .visible
         ) {
-            Button(AppLocalization.string("Not now"), role: .cancel) {
+            Button(AppLocalization.string("premium.trial.reminder.prompt.decline"), role: .cancel) {
                 premiumStore.dismissTrialReminderOptIn()
             }
+            .accessibilityIdentifier("premium.trial.reminder.prompt.decline")
             Button(AppLocalization.string("premium.trial.reminder.prompt.confirm")) {
                 Task { await premiumStore.confirmTrialReminderOptIn() }
             }
+            .accessibilityIdentifier("premium.trial.reminder.prompt.confirm")
         } message: {
             Text(AppLocalization.string("premium.trial.reminder.prompt.message"))
         }

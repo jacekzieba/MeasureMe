@@ -83,21 +83,21 @@ struct StreakBadge: View {
     }
 
     private func runAnimation() {
-        // Phase 1: Glow up
-        withAnimation(.easeInOut(duration: 0.4)) {
-            glowOpacity = 0.6
-        }
+        Task { @MainActor in
+            // Phase 1: Glow up
+            withAnimation(.easeInOut(duration: 0.4)) {
+                glowOpacity = 0.6
+            }
 
-        // Phase 2: Increment number
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            // Phase 2: Increment number
+            try? await Task.sleep(for: .milliseconds(300))
             withAnimation(AppMotion.emphasized) {
                 displayedCount = count
             }
             Haptics.success()
-        }
 
-        // Phase 3: Fade glow + complete
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            // Phase 3: Fade glow + complete
+            try? await Task.sleep(for: .milliseconds(500))
             withAnimation(.easeOut(duration: 0.5)) {
                 glowOpacity = 0
             }

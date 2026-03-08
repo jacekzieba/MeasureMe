@@ -50,7 +50,7 @@ final class AuditCaptureUITests: XCTestCase {
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 15))
         openTab(app, candidates: TabLabel.home)
-        _ = app.buttons["home.quickadd.button"].waitForExistence(timeout: 5)
+        _ = app.otherElements["home.module.summaryHero"].waitForExistence(timeout: 5)
         saveScreenshot(screen: "home_dashboard")
 
         openTab(app, candidates: TabLabel.measurements)
@@ -445,7 +445,7 @@ final class AuditCaptureUITests: XCTestCase {
     }
 
     private func openQuickAdd(_ app: XCUIApplication) -> Bool {
-        let quickAddButton = app.buttons["home.quickadd.button"].firstMatch
+        let quickAddButton = app.tabBars.buttons["tab.add"].firstMatch
         if quickAddButton.waitForExistence(timeout: 4) {
             quickAddButton.tap()
             return true

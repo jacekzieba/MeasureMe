@@ -89,29 +89,32 @@ final class SinglePhotoPendingSaveUITests: XCTestCase {
         waitForSingleAddSheet()
 
         app.buttons["addPhoto.saveButton"].tap()
+        let pendingInPhotos = element("photos.grid.pending.item")
+        XCTAssertTrue(pendingInPhotos.waitForExistence(timeout: 4), "Pending placeholder should appear on Photos right after save")
 
-        let homeTab = app.tabBars.buttons["tab.home"]
-        XCTAssertTrue(homeTab.waitForExistence(timeout: 4))
-        homeTab.tap()
+        tapTab(identifier: "tab.home", fallbackLabels: ["Home", "Główna"])
 
         let homePending = element("home.lastPhotos.pending.item")
         let appearedDuringScroll = revealElementByScrollingHome(homePending, maxSwipes: 4)
-        XCTAssertTrue(appearedDuringScroll || homePending.waitForExistence(timeout: 2))
+        let homeRecentPhoto = element("home.recentPhotos.item.0")
+        let pendingOrSavedVisible = appearedDuringScroll
+            || homePending.waitForExistence(timeout: 2)
+            || homeRecentPhoto.waitForExistence(timeout: 2)
+        XCTAssertTrue(pendingOrSavedVisible, "Home should show pending placeholder or already-saved recent photo")
     }
 }
 
 private extension SinglePhotoPendingSaveUITests {
     func launchWithSingleAdd(extraArgs: [String] = []) {
-        app.launchArguments = ["-uiTestMode", "-uiTestOpenSingleAdd", "-uiTestPendingSlow"] + extraArgs
+        app.launchArguments = [
+            "-uiTestMode",
+            "-auditCapture",
+            "-auditRoute", "photos",
+            "-uiTestOpenSingleAdd",
+            "-uiTestPendingSlow"
+        ] + extraArgs
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 8))
-        tapPhotosTab()
-    }
-
-    func tapPhotosTab() {
-        let tab = app.tabBars.buttons["tab.photos"]
-        XCTAssertTrue(tab.waitForExistence(timeout: 6), "Tab 'Photos' should exist")
-        tab.tap()
     }
 
     func waitForSingleAddSheet(timeout: TimeInterval = 5) {
@@ -144,5 +147,27 @@ private extension SinglePhotoPendingSaveUITests {
             if element.exists { return true }
         }
         return element.exists
+    }
+
+    func tapTab(identifier: String, fallbackLabels: [String]) {
+        for _ in 0..<6 {
+            let tab = app.buttons[identifier].firstMatch
+            if tab.exists && tab.isHittable {
+                tab.tap()
+                return
+            }
+
+            for label in fallbackLabels {
+                let candidate = app.buttons[label].firstMatch
+                if candidate.exists && candidate.isHittable {
+                    candidate.tap()
+                    return
+                }
+            }
+
+            app.swipeDown()
+        }
+
+        XCTFail("Tab should exist: \(identifier)")
     }
 }

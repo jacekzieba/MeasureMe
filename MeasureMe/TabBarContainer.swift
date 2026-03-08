@@ -145,7 +145,7 @@ struct TabBarContainer: View {
         }
         .environmentObject(router)
         .onAppear {
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 applyAuditRouteIfNeeded()
                 mountTabIfNeeded(router.selectedTab)
             }

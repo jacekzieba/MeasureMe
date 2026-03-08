@@ -48,13 +48,11 @@ struct AppSetting<Value>: DynamicProperty {
             }
         }
         nonmutating set {
-            DispatchQueue.main.async {
-                switch storage {
-                case .keyPath(let keyPath):
-                    settings.set(keyPath, newValue)
-                case .legacyKey(let key, _):
-                    settings.set(newValue, forKey: key)
-                }
+            switch storage {
+            case .keyPath(let keyPath):
+                settings.set(keyPath, newValue)
+            case .legacyKey(let key, _):
+                settings.set(newValue, forKey: key)
             }
         }
     }

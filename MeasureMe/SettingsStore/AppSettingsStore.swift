@@ -13,7 +13,6 @@ final class AppSettingsStore: ObservableObject {
     private var defaultsWriteDepth = 0
     private var suppressObserverUntilNextRunLoop = false
     private var isSnapshotRefreshScheduled = false
-    private let snapshotRefreshDelay: DispatchTimeInterval = .milliseconds(10)
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -44,9 +43,7 @@ final class AppSettingsStore: ObservableObject {
         Binding(
             get: { self.snapshot[keyPath: keyPath] },
             set: { newValue in
-                DispatchQueue.main.async { [weak self] in
-                    self?.set(keyPath, newValue)
-                }
+                self.set(keyPath, newValue)
             }
         )
     }
@@ -128,6 +125,48 @@ final class AppSettingsStore: ObservableObject {
     func incrementOnboardingGoalSelectionStat(for goalRawValue: String) {
         let key = AppSettingsKeys.Analytics.onboardingGoalSelectionStatPrefix + goalRawValue
         set(integer(forKey: key) + 1, forKey: key)
+    }
+
+    func homeLayoutSnapshot() -> HomeLayoutSnapshot {
+        guard let data = snapshot.homeLayout.layoutData,
+              let decoded = try? JSONDecoder().decode(HomeLayoutSnapshot.self, from: data) else {
+            return HomeLayoutSnapshot.defaultV1(using: snapshot)
+        }
+        return HomeLayoutNormalizer.normalize(decoded, using: snapshot)
+    }
+
+    func setHomeLayoutSnapshot(_ layout: HomeLayoutSnapshot, syncLegacyHomeFlags: Bool = true) {
+        let normalized = HomeLayoutNormalizer.normalize(layout, using: snapshot)
+        guard let data = try? JSONEncoder().encode(normalized) else { return }
+
+        set(\.homeLayout.layoutSchemaVersion, normalized.schemaVersion)
+        set(\.homeLayout.layoutData, data)
+
+        guard syncLegacyHomeFlags else { return }
+        set(\.home.showMeasurementsOnHome, normalized.item(for: .keyMetrics)?.isVisible ?? true)
+        set(\.home.showLastPhotosOnHome, normalized.item(for: .recentPhotos)?.isVisible ?? true)
+        set(\.home.showHealthMetricsOnHome, normalized.item(for: .healthSummary)?.isVisible ?? true)
+        set(\.onboarding.onboardingChecklistShow, normalized.item(for: .setupChecklist)?.isVisible ?? true)
+    }
+
+    func setHomeModuleVisibility(_ isVisible: Bool, for kind: HomeModuleKind) {
+        var layout = homeLayoutSnapshot()
+        layout.setVisibility(isVisible, for: kind)
+        setHomeLayoutSnapshot(layout)
+    }
+
+    func resetHomeLayout() {
+        let current = homeLayoutSnapshot()
+        let reset = current.resettingToDefaultGeometry(using: snapshot)
+        setHomeLayoutSnapshot(reset)
+    }
+
+    func homePinnedAction(default defaultAction: HomePinnedAction = .addMeasurement) -> HomePinnedAction {
+        HomePinnedAction(rawValue: snapshot.home.homePinnedActionRaw) ?? defaultAction
+    }
+
+    func setHomePinnedAction(_ action: HomePinnedAction) {
+        set(\.home.homePinnedActionRaw, action.rawValue)
     }
 
     func resetNotificationSettingsToDefaults() {
@@ -262,11 +301,17 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(home.showMeasurementsOnHome, forKey: AppSettingsKeys.Home.showMeasurementsOnHome)
             defaults.set(home.showHealthMetricsOnHome, forKey: AppSettingsKeys.Home.showHealthMetricsOnHome)
             defaults.set(home.showStreakOnHome, forKey: AppSettingsKeys.Home.showStreakOnHome)
+            defaults.set(home.homePinnedActionRaw, forKey: AppSettingsKeys.Home.homePinnedAction)
             defaults.set(home.homeTabScrollOffset, forKey: AppSettingsKeys.Home.homeTabScrollOffset)
             defaults.set(home.homePhotoMetricSyncLastDate, forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastDate)
             defaults.set(home.homePhotoMetricSyncLastID, forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastID)
             defaults.set(home.settingsOpenTrackedMeasurements, forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements)
             defaults.set(home.settingsOpenReminders, forKey: AppSettingsKeys.Home.settingsOpenReminders)
+            defaults.set(home.settingsOpenHomeSettings, forKey: AppSettingsKeys.Home.settingsOpenHomeSettings)
+
+            let homeLayout = snapshot.homeLayout
+            defaults.set(homeLayout.layoutSchemaVersion, forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion)
+            defaults.set(homeLayout.layoutData, forKey: AppSettingsKeys.Home.homeLayoutData)
 
             let onboarding = snapshot.onboarding
             defaults.set(onboarding.hasCompletedOnboarding, forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding)
@@ -358,7 +403,8 @@ final class AppSettingsStore: ObservableObject {
     private func scheduleSnapshotRefresh() {
         guard !isSnapshotRefreshScheduled else { return }
         isSnapshotRefreshScheduled = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + snapshotRefreshDelay) { [weak self] in
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(10))
             guard let self else { return }
             self.isSnapshotRefreshScheduled = false
             self.snapshot = AppSettingsSnapshot.load(from: self.defaults)
@@ -375,7 +421,7 @@ final class AppSettingsStore: ObservableObject {
 
         if defaultsWriteDepth == 0 {
             suppressObserverUntilNextRunLoop = true
-            DispatchQueue.main.async { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.suppressObserverUntilNextRunLoop = false
             }
         }

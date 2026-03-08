@@ -1,9 +1,13 @@
 import Foundation
+import StoreKit
 
 protocol AnalyticsClient {
     var isEnabled: Bool { get }
     func setup()
     func track(_ signal: AnalyticsSignal)
+    func track(signalName: String, parameters: [String: String])
+    func trackPaywallShown(reason: String, parameters: [String: String])
+    func trackPurchaseCompleted(_ transaction: StoreKit.Transaction, parameters: [String: String])
 }
 
 enum AnalyticsSignal: String, CaseIterable {
@@ -120,4 +124,7 @@ final class NoopAnalyticsClient: AnalyticsClient {
     var isEnabled: Bool { false }
     func setup() {}
     func track(_ signal: AnalyticsSignal) {}
+    func track(signalName: String, parameters: [String : String]) {}
+    func trackPaywallShown(reason: String, parameters: [String : String]) {}
+    func trackPurchaseCompleted(_ transaction: StoreKit.Transaction, parameters: [String : String]) {}
 }

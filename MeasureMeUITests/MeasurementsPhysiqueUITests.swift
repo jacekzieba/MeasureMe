@@ -21,10 +21,28 @@ final class MeasurementsPhysiqueUITests: XCTestCase {
     }
 
     private func openMeasurementsTab() {
-        let tab = app.tabBars.buttons["tab.measurements"]
-        if tab.waitForExistence(timeout: 5) {
-            tab.tap()
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 8), "Tab bar should exist")
+
+        let idTab = app.tabBars.buttons["tab.measurements"]
+        if idTab.waitForExistence(timeout: 3) {
+            idTab.tap()
+            return
         }
+
+        let fallbackEN = app.tabBars.buttons["Measurements"]
+        if fallbackEN.waitForExistence(timeout: 2) {
+            fallbackEN.tap()
+            return
+        }
+
+        let fallbackPL = app.tabBars.buttons["Pomiary"]
+        if fallbackPL.waitForExistence(timeout: 2) {
+            fallbackPL.tap()
+            return
+        }
+
+        XCTFail("Measurements tab should exist (identifier: tab.measurements or fallback label)")
     }
 
     private func scrollToVisible(_ element: XCUIElement, maxSwipes: Int = 6) {

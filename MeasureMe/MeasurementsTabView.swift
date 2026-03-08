@@ -145,7 +145,7 @@ struct MeasurementsTabView: View {
                             if !premiumStore.isPremium {
                                 let feature = newValue == .health ? "Health indicators" : "Physique indicators"
                                 premiumStore.presentPaywall(reason: .feature(feature))
-                                DispatchQueue.main.async {
+                                Task { @MainActor in
                                     selectedTab = .metrics
                                 }
                             }

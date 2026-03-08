@@ -101,6 +101,7 @@ final class PremiumStore: ObservableObject {
     private let billingClient: PremiumBillingClient
     private let notificationManager: PremiumNotificationManaging
     private let settings: AppSettingsStore
+    private let analytics: AnalyticsClient
     #if DEBUG
     private let forcePremiumForUITests: Bool
     private let forceNonPremiumForUITests: Bool
@@ -108,16 +109,19 @@ final class PremiumStore: ObservableObject {
     private var hasStarted = false
     private var updateListenerTask: Task<Void, Never>?
     private var foregroundObserver: NSObjectProtocol?
+    private var trackedPurchaseTransactionIDs: Set<UInt64> = []
 
     init(
         billingClient: PremiumBillingClient? = nil,
         notificationManager: PremiumNotificationManaging? = nil,
         settings: AppSettingsStore,
+        analytics: AnalyticsClient? = nil,
         startListener: Bool = true
     ) {
         self.billingClient = billingClient ?? StoreKitBillingClient()
         self.notificationManager = notificationManager ?? NotificationManager.shared
         self.settings = settings
+        self.analytics = analytics ?? Analytics.shared
         #if DEBUG
         self.forcePremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForcePremium")
         self.forceNonPremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForceNonPremium")
@@ -140,12 +144,14 @@ final class PremiumStore: ObservableObject {
     convenience init(
         billingClient: PremiumBillingClient? = nil,
         notificationManager: PremiumNotificationManaging? = nil,
+        analytics: AnalyticsClient? = nil,
         startListener: Bool = true
     ) {
         self.init(
             billingClient: billingClient,
             notificationManager: notificationManager,
             settings: .shared,
+            analytics: analytics,
             startListener: startListener
         )
     }
@@ -159,6 +165,10 @@ final class PremiumStore: ObservableObject {
 
     func presentPaywall(reason: PaywallReason) {
         paywallReason = reason
+        analytics.trackPaywallShown(
+            reason: reason.analyticsReason,
+            parameters: reason.analyticsParameters
+        )
         isPaywallPresented = true
     }
 
@@ -459,6 +469,10 @@ final class PremiumStore: ObservableObject {
         for await result in billingClient.transactionUpdates() {
             guard case .verified(let transaction) = result else { continue }
             if productIDs.contains(transaction.productID) {
+                trackPurchaseIfNeeded(
+                    transaction,
+                    parameters: ["measureme.purchase_source": "transaction_update"]
+                )
                 await transaction.finish()
                 await refreshEntitlements()
             }
@@ -474,6 +488,10 @@ final class PremiumStore: ObservableObject {
                 // Natychmiast odblokuj premium po zweryfikowanym zakupie.
                 isPremium = true
                 settings.set(\.premium.premiumEntitlement, true)
+                var analyticsParameters = paywallReason.analyticsParameters
+                analyticsParameters["measureme.purchase_source"] = "direct_purchase"
+                analyticsParameters["measureme.paywall_reason"] = paywallReason.analyticsReason
+                trackPurchaseIfNeeded(transaction, parameters: analyticsParameters)
                 await transaction.finish()
                 await refreshEntitlements()
                 if startedIntroTrial {
@@ -487,19 +505,85 @@ final class PremiumStore: ObservableObject {
                 actionMessageIsError = true
             }
         case .userCancelled:
+            analytics.track(
+                signalName: PremiumTelemetrySignal.purchaseCancelled,
+                parameters: purchaseContextParameters(source: "direct_purchase")
+            )
             actionMessage = AppLocalization.string("premium.purchase.cancelled")
             actionMessageIsError = false
         case .pending:
+            analytics.track(
+                signalName: PremiumTelemetrySignal.purchasePending,
+                parameters: purchaseContextParameters(source: "direct_purchase")
+            )
             actionMessage = AppLocalization.string("premium.purchase.pending")
             actionMessageIsError = false
         @unknown default:
+            analytics.track(
+                signalName: PremiumTelemetrySignal.purchasePending,
+                parameters: purchaseContextParameters(source: "direct_purchase")
+            )
             actionMessage = AppLocalization.string("premium.purchase.pending")
             actionMessageIsError = false
         }
+    }
+
+    #if DEBUG
+    func handlePurchaseResultForTests(_ result: Product.PurchaseResult) async {
+        await handlePurchaseResult(result)
+    }
+    #endif
+
+    func markPurchaseTrackedIfNeeded(transactionID: UInt64) -> Bool {
+        trackedPurchaseTransactionIDs.insert(transactionID).inserted
+    }
+
+    private func trackPurchaseIfNeeded(
+        _ transaction: StoreKit.Transaction,
+        parameters: [String: String]
+    ) {
+        guard markPurchaseTrackedIfNeeded(transactionID: transaction.id) else { return }
+        analytics.trackPurchaseCompleted(transaction, parameters: parameters)
+    }
+
+    private func purchaseContextParameters(source: String) -> [String: String] {
+        var parameters = paywallReason.analyticsParameters
+        parameters["measureme.purchase_source"] = source
+        parameters["measureme.paywall_reason"] = paywallReason.analyticsReason
+        return parameters
     }
 }
 
 enum PremiumConstants {
     static let monthlyProductID = "com.measureme.premium.monthly"
     static let yearlyProductID = "com.measureme.premium.yearly"
+}
+
+private enum PremiumTelemetrySignal {
+    static let purchaseCancelled = "com.jacekzieba.measureme.purchase.cancelled"
+    static let purchasePending = "com.jacekzieba.measureme.purchase.pending"
+}
+
+private extension PremiumStore.PaywallReason {
+    var analyticsReason: String {
+        switch self {
+        case .settings:
+            return "settings"
+        case .feature:
+            return "feature_locked"
+        case .sevenDayPrompt:
+            return "seven_day_prompt"
+        case .onboarding:
+            return "onboarding"
+        }
+    }
+
+    var analyticsParameters: [String: String] {
+        switch self {
+        case .feature(let featureName):
+            return ["measureme.feature_name": featureName]
+        case .settings, .sevenDayPrompt, .onboarding:
+            return [:]
+        }
+    }
 }

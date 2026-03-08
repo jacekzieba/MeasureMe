@@ -3,6 +3,10 @@ import SwiftData
 import HealthKit
 import UIKit
 
+private extension Notification.Name {
+    static let settingsOpenHomeSettingsRequested = Notification.Name("settingsOpenHomeSettingsRequested")
+}
+
 /// **SettingsView**
 /// Widok ustawień aplikacji. Odpowiada za:
 /// - Włączanie/wyłączanie synchronizacji z HealthKit
@@ -30,6 +34,7 @@ struct SettingsView: View {
     @AppSetting(\.onboarding.onboardingChecklistShow) private var showOnboardingChecklistOnHome: Bool = true
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
+    @AppSetting(\.home.settingsOpenHomeSettings) private var settingsOpenHomeSettings: Bool = false
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.experience.hapticsEnabled) private var hapticsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
@@ -93,6 +98,7 @@ struct SettingsView: View {
     @State private var seedDummyDataResultMessage = ""
     @State private var navigateToTrackedMeasurements: Bool = false
     @State private var navigateToReminders: Bool = false
+    @State private var navigateToHomeSettings: Bool = false
     @State private var settingsSearchQuery: String = ""
     
     private var lastImportText: String? {
@@ -283,16 +289,10 @@ struct SettingsView: View {
                 .listRowInsets(Self.settingsRowInsets)
 
                 Section {
-                    SettingsCard(tint: Color.appAccent.opacity(0.10)) {
-                        SettingsCardHeader(title: AppLocalization.string("Home"), systemImage: "house.fill")
+                        SettingsCard(tint: Color.appAccent.opacity(0.10)) {
+                            SettingsCardHeader(title: AppLocalization.string("Home"), systemImage: "house.fill")
                         NavigationLink {
-                            HomeSettingsDetailView(
-                                showMeasurementsOnHome: $showMeasurementsOnHome,
-                                showLastPhotosOnHome: $showLastPhotosOnHome,
-                                showHealthMetricsOnHome: $showHealthMetricsOnHome,
-                                showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome,
-                                showStreakOnHome: $showStreakOnHome
-                            )
+                            HomeSettingsDetailView()
                         } label: {
                             Text(AppLocalization.string("Open Home settings"))
                                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
@@ -584,6 +584,12 @@ struct SettingsView: View {
             .onChange(of: settingsOpenReminders) { _, _ in
                 schedulePendingDeepLinksHandling()
             }
+            .onChange(of: settingsOpenHomeSettings) { _, _ in
+                schedulePendingDeepLinksHandling()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .settingsOpenHomeSettingsRequested)) { _ in
+                navigateToHomeSettings = true
+            }
             .listSectionSpacing(24)
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
@@ -673,6 +679,9 @@ struct SettingsView: View {
             .navigationDestination(isPresented: $navigateToReminders) {
                 NotificationSettingsView()
             }
+            .navigationDestination(isPresented: $navigateToHomeSettings) {
+                HomeSettingsDetailView()
+            }
         }
     }
 
@@ -759,10 +768,15 @@ struct SettingsView: View {
             settingsOpenReminders = false
             navigateToReminders = true
         }
+
+        if settingsOpenHomeSettings {
+            settingsOpenHomeSettings = false
+            navigateToHomeSettings = true
+        }
     }
 
     private func schedulePendingDeepLinksHandling() {
-        DispatchQueue.main.async {
+        Task { @MainActor in
             handlePendingDeepLinks()
         }
     }
@@ -985,13 +999,7 @@ struct SettingsView: View {
         case .notifications:
             NotificationSettingsView()
         case .home:
-            HomeSettingsDetailView(
-                showMeasurementsOnHome: $showMeasurementsOnHome,
-                showLastPhotosOnHome: $showLastPhotosOnHome,
-                showHealthMetricsOnHome: $showHealthMetricsOnHome,
-                showOnboardingChecklistOnHome: $showOnboardingChecklistOnHome,
-                showStreakOnHome: $showStreakOnHome
-            )
+            HomeSettingsDetailView()
         case .aiInsights:
             AIInsightsSettingsDetailView(appleIntelligenceEnabled: $appleIntelligenceEnabled)
         case .units:
