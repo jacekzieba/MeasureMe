@@ -15,7 +15,7 @@ final class RootViewSnapshotTests: XCTestCase {
   /// Co sprawdza: Sprawdza scenariusz: RootView_snapshot.
   /// Dlaczego: Zapobiega regresjom UI/UX, ktore latwo przeoczyc recznie.
   /// Kryteria: Test konczy sie bez bledu i bez efektow ubocznych niezgodnych z oczekiwaniem.
-  func testRootView_snapshot() throws {
+  func testRootView_snapshot() async throws {
     #if !targetEnvironment(simulator)
     XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
     return
@@ -70,10 +70,21 @@ final class RootViewSnapshotTests: XCTestCase {
     // Hosting + stabilny rozmiar
     let vc = UIHostingController(rootView: view)
     vc.view.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+
+    // Okno wymagane, żeby SwiftUI poprawnie propagowało środowisko (modelContext, @StateObject)
+    // i żeby onAppear/Task miały dostęp do prawidłowego kontekstu.
+    let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+    window.rootViewController = vc
+    window.makeKeyAndVisible()
+
     vc.view.setNeedsLayout()
     vc.view.layoutIfNeeded()
 
+    // Pozwól onAppear Task uruchomić się i zakończyć zanim zrobimy snapshot.
+    try await Task.sleep(for: .milliseconds(50))
+
     // Porównanie ze snapshotem w __Snapshots__.
-    assertSnapshot(of: vc, as: .image)
+    let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
+    assertSnapshot(of: vc, as: .image, record: shouldRecord)
   }
 }

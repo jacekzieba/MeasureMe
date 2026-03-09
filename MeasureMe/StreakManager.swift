@@ -58,8 +58,8 @@ final class StreakManager: ObservableObject {
         self.defaults = defaults
         self.clock = clock
         self.calendar = calendar
-        self.currentStreak = defaults.integer(forKey: Keys.currentCount)
-        self.maxStreak = defaults.integer(forKey: Keys.maxCount)
+        _currentStreak = Published(wrappedValue: defaults.integer(forKey: Keys.currentCount))
+        _maxStreak = Published(wrappedValue: defaults.integer(forKey: Keys.maxCount))
     }
 
     convenience init(

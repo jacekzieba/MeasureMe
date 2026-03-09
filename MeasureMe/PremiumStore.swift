@@ -131,7 +131,7 @@ final class PremiumStore: ObservableObject {
         }
         #if DEBUG
         if forcePremiumForUITests {
-            isPremium = true
+            _isPremium = Published(wrappedValue: true)
             settings.set(\.premium.premiumEntitlement, true)
         }
         #endif

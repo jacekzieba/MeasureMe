@@ -44,8 +44,8 @@ final class QuickAddSaveServiceTests: XCTestCase {
         #endif
     }
 
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
 
         guard isSimulatorRuntime else {
             ctx = nil
@@ -132,7 +132,7 @@ final class QuickAddSaveServiceTests: XCTestCase {
     /// Co sprawdza: Zapis tworzy MetricSample w kontekscie SwiftData.
     /// Dlaczego: save() jest krytycznym przeplywem; musi trwale zapisywac wpisy.
     /// Kryteria: Po wywolaniu save() kontekst zawiera dokladnie 1 probke z oczekiwanym rodzajem.
-    func testSaveInsertsSampleIntoContext() throws {
+    func testSaveInsertsSampleIntoContext() async throws {
         guard let ctx else {
             XCTAssertTrue(true, "Physical-device fallback: simulator-only SwiftData setup")
             return
@@ -151,7 +151,7 @@ final class QuickAddSaveServiceTests: XCTestCase {
     /// Co sprawdza: save() wywoluje streak i widget writer po udanym zapisie.
     /// Dlaczego: Efekty uboczne (streak, widget) musza byc wywolane dokladnie raz na niepusty zapis.
     /// Kryteria: Stub streak ma 1 wpis; stub writer ma 1 wywolanie z poprawnym unitsSystem.
-    func testSaveCallsStreakAndWidget() throws {
+    func testSaveCallsStreakAndWidget() async throws {
         guard let ctx else {
             XCTAssertTrue(true, "Physical-device fallback: simulator-only SwiftData setup")
             return
@@ -170,7 +170,7 @@ final class QuickAddSaveServiceTests: XCTestCase {
     /// Co sprawdza: Pusta lista entries pomija efekty uboczne.
     /// Dlaczego: save([]) nie powinno wywolywac streak ani writera — brak realnych danych.
     /// Kryteria: Oba stuby pozostaja puste po wywolaniu z pustymi entries.
-    func testEmptyEntriesSkipsSideEffects() throws {
+    func testEmptyEntriesSkipsSideEffects() async throws {
         guard let ctx else {
             XCTAssertTrue(true, "Physical-device fallback: simulator-only SwiftData setup")
             return
@@ -188,7 +188,7 @@ final class QuickAddSaveServiceTests: XCTestCase {
     /// Co sprawdza: Wiele entries przekazuje wszystkie MetricKind do widget writera.
     /// Dlaczego: Writer musi znac wszystkie rodzaje metryk, by zaktualizowac odpowiednie widgety.
     /// Kryteria: writeCalls[0].kinds zawiera 2 elementy.
-    func testSaveWithMultipleEntriesPassesAllKindsToWidget() throws {
+    func testSaveWithMultipleEntriesPassesAllKindsToWidget() async throws {
         guard let ctx else {
             XCTAssertTrue(true, "Physical-device fallback: simulator-only SwiftData setup")
             return

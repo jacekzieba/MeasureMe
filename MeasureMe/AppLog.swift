@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppLog {
-    private static let diagnosticsLoggingEnabledKey = "diagnostics_logging_enabled"
+    private nonisolated static let diagnosticsLoggingEnabledKey = "diagnostics_logging_enabled"
 
     private nonisolated static var shouldPersistLogs: Bool {
         #if DEBUG
