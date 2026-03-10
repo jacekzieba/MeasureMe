@@ -33,4 +33,11 @@ enum AppTypography {
     static let iconMedium = Font.system(.subheadline, design: .default).weight(.semibold)
     static let iconLarge = Font.system(.title2, design: .default).weight(.semibold)
     static let iconHero = Font.system(.title, design: .default).weight(.semibold)
+
+    // Backward-compatible aliases used by in-flight UI refactors.
+    static let titleCompact = headline
+    static let badge = captionEmphasis
+    static let bodyStrong = bodyEmphasis
+    static let displaySection = sectionTitle
+    static let displayStatement = headlineEmphasis
 }

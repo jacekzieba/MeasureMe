@@ -29,7 +29,7 @@ struct ComparePhotosView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                AppColorRoles.surfaceCanvas.ignoresSafeArea()
+                Color.black.ignoresSafeArea()
 
                 GeometryReader { geometry in
                     if showSlider {
@@ -42,7 +42,7 @@ struct ComparePhotosView: View {
             .navigationTitle(AppLocalization.string("Compare"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(AppColorRoles.surfaceCanvas, for: .navigationBar)
+            .toolbarBackground(Color.black, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Done")) {
@@ -87,7 +87,7 @@ struct ComparePhotosView: View {
     private func sliderComparisonView(in geometry: GeometryProxy) -> some View {
         VStack(spacing: 20) {
             Text(AppLocalization.string("Drag to compare"))
-                .font(AppTypography.titleCompact)
+                .font(AppTypography.headline)
                 .foregroundStyle(AppColorRoles.textSecondary)
             
             BeforeAfterSlider(
@@ -136,7 +136,7 @@ struct ComparePhotosView: View {
                             .frame(maxHeight: cardHeight)
                             
                             Text(olderPhoto.date.formatted(date: .abbreviated, time: .omitted))
-                                .font(AppTypography.badge)
+                                .font(AppTypography.captionEmphasis)
                                 .foregroundStyle(AppColorRoles.textPrimary)
                         }
                     }
@@ -160,7 +160,7 @@ struct ComparePhotosView: View {
                             .frame(maxHeight: cardHeight)
                             
                             Text(newerPhoto.date.formatted(date: .abbreviated, time: .omitted))
-                                .font(AppTypography.badge)
+                                .font(AppTypography.captionEmphasis)
                                 .foregroundStyle(AppColorRoles.textPrimary)
                         }
                     }
@@ -190,7 +190,7 @@ struct ComparePhotosView: View {
                     Image(systemName: "clock")
                         .foregroundStyle(AppColorRoles.textSecondary)
                     Text(AppLocalization.plural("compare.days.apart", daysDiff))
-                        .font(AppTypography.bodyStrong)
+                        .font(AppTypography.bodyEmphasis)
                         .monospacedDigit()
                         .foregroundStyle(AppColorRoles.textPrimary)
                 }
@@ -205,7 +205,7 @@ struct ComparePhotosView: View {
                     ) {
                         VStack(alignment: .leading, spacing: 12) {
                             Text(AppLocalization.string("Changes"))
-                                .font(AppTypography.displaySection)
+                                .font(AppTypography.headlineEmphasis)
                                 .foregroundStyle(AppColorRoles.textPrimary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             
@@ -478,7 +478,7 @@ private struct MetricChangeRow: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(change.kind.title)
-                    .font(AppTypography.bodyStrong)
+                    .font(AppTypography.bodyEmphasis)
                     .foregroundStyle(AppColorRoles.textPrimary)
                 
                 HStack(spacing: 4) {
@@ -535,9 +535,9 @@ private struct MetricChangeRow: View {
         let isGoodIncrease = change.kind == .leanBodyMass
         
         if change.difference > 0 {
-            return isGoodIncrease ? AppColorRoles.chartPositive : AppColorRoles.chartNegative
+            return isGoodIncrease ? AppColorRoles.stateSuccess : AppColorRoles.stateError
         } else if change.difference < 0 {
-            return isGoodIncrease ? AppColorRoles.chartNegative : AppColorRoles.chartPositive
+            return isGoodIncrease ? AppColorRoles.stateError : AppColorRoles.stateSuccess
         } else {
             return AppColorRoles.textSecondary
         }
