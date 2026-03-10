@@ -173,7 +173,7 @@
 "home.photos.latestsession" = "Ostatnia sesja";
 "home.photos.empty.subtitle" = "Zdjęcia sprawiają, że progres jest namacalny, a nie abstrakcyjny.";
 "home.photos.empty.title" = "Dodaj zdjęcia, aby je porównać";
-"home.photos.empty.detail" = "Wystarczy jedno proste zdjęcie z dziś, żeby późniejsze porównanie miało sens.";
+"home.photos.empty.detail" = "Dodaj zdjęcie i porównaj swój obecny wygląd z wcześniejszymi zapisami.";
 "home.photos.meta.latest" = "Ostatnia sesja %@.";
 "home.photos.context.primary" = "Ostatnie %@";
 "home.photos.context.primary.empty" = "Zacznij pierwszą sesję";
@@ -192,12 +192,12 @@
 "home.nextfocus.finishSetup.detail" = "Wróć do pozostałych zadań.";
 "home.nextfocus.finishSetup.detail.done" = "Konfiguracja jest zakończona.";
 "home.health.synced" = "Synchronizacja";
-"home.health.snapshot" = "Migawka sylwetki";
+"home.health.snapshot" = "Zdrowie w skrócie";
 "home.health.latestreadings" = "Ostatnie zsynchronizowane odczyty";
 "home.health.incomplete.title" = "Dane zdrowotne są jeszcze niepełne";
 "home.health.incomplete.detail" = "Zsynchronizuj wagę, talię albo skład ciała, aby ten moduł był użyteczny.";
 "home.health.subtitle.setup" = "Połącz Apple Zdrowie, aby zamienić to w użyteczną migawkę.";
-"home.health.subtitle.waiting" = "Synchronizacja działa. Dodaj więcej danych o ciele, aby ten skrót był trafniejszy.";
+"home.health.subtitle.waiting" = "Synchronizacja działa. Dodaj więcej danych o ciele.";
 "home.health.subtitle.preview" = "Na Stronie głównej widzisz jeden zsynchronizowany sygnał. Pełne podsumowanie zdrowia i sylwetki jest w Premium.";
 "home.health.subtitle.ready" = "Szybki odczyt najważniejszych sygnałów zdrowotnych, które synchronizujesz.";
 "home.health.pill.setup" = "Konfiguracja";
