@@ -808,6 +808,7 @@ struct HomeView: View {
                 HomeCompareChooserSheet(photos: homeCompareCandidates) { olderPhoto, newerPhoto in
                     selectedHomeComparePair = HomeComparePair(olderPhoto: olderPhoto, newerPhoto: newerPhoto)
                 }
+                .presentationBackground(Color.black)
             }
             .sheet(item: $selectedHomeComparePair) { pair in
                 ComparePhotosView(olderPhoto: pair.olderPhoto, newerPhoto: pair.newerPhoto)
