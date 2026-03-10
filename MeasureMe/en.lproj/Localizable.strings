@@ -151,7 +151,7 @@
 "home.photos.first.detail" = "Add one more photo for a useful side-by-side check.";
 "home.photos.latestsession" = "Latest session";
 "home.photos.empty.subtitle" = "Photos make progress feel real, not abstract.";
-"home.photos.empty.title" = "Give Home a visual before-and-after";
+"home.photos.empty.title" = "Add photos to compare them";
 "home.photos.empty.detail" = "A simple front photo today is enough to make comparison meaningful later.";
 "home.photos.meta.latest" = "Latest session %@.";
 "home.photos.context.primary" = "Latest %@";
