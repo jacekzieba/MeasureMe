@@ -23,6 +23,7 @@ enum AppColorRoles {
     static let surfaceCanvas = Color.black
     static let surfaceGlass = surfaceSecondary
     static let surfaceElevated = surfacePrimary
+    static let surfaceInteractive = surfacePrimary
     static let borderStrong = borderSubtle
     static let accentPrimary = Color.appAccent
     static let chartPositive = stateSuccess

@@ -40,4 +40,7 @@ enum AppTypography {
     static let bodyStrong = bodyEmphasis
     static let displaySection = sectionTitle
     static let displayStatement = headlineEmphasis
+    static let eyebrow = captionEmphasis
+    static let displayHero = sectionTitle
+    static let dataDelta = metricValue
 }
