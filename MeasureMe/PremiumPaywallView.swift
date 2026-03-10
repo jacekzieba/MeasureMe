@@ -274,7 +274,7 @@ struct PremiumPaywallView: View {
     }
 
     @ViewBuilder
-    private func indicatorDot(for slideID: String) -> some View {
+    private func indicatorDot(for slideID: Int) -> some View {
         let isSelected = slideID == selectedSlide
         let fillColor = isSelected ? AppColorRoles.textPrimary : AppColorRoles.textTertiary
         let dotWidth: CGFloat = isSelected ? 18 : 7
