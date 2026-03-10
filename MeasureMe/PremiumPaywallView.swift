@@ -457,7 +457,7 @@ struct PremiumPaywallView: View {
         let pastLabel = pastDate.formatted(date: .abbreviated, time: .omitted)
         let presentLabel = AppClock.now.formatted(date: .abbreviated, time: .omitted)
 
-        VStack(spacing: 10) {
+        return VStack(spacing: 10) {
             ZStack {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color.black.opacity(0.24))
