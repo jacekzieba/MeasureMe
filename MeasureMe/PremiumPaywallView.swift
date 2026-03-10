@@ -267,12 +267,21 @@ struct PremiumPaywallView: View {
     private var pageIndicator: some View {
         HStack(spacing: 8) {
             ForEach(slides) { slide in
-                Capsule(style: .continuous)
-                    .fill(slide.id == selectedSlide ? AppColorRoles.textPrimary : AppColorRoles.textTertiary)
-                    .frame(width: slide.id == selectedSlide ? 18 : 7, height: 7)
+                indicatorDot(for: slide.id)
             }
         }
         .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimateCTA), value: selectedSlide)
+    }
+
+    @ViewBuilder
+    private func indicatorDot(for slideID: String) -> some View {
+        let isSelected = slideID == selectedSlide
+        let fillColor = isSelected ? AppColorRoles.textPrimary : AppColorRoles.textTertiary
+        let dotWidth: CGFloat = isSelected ? 18 : 7
+
+        Capsule(style: .continuous)
+            .fill(fillColor)
+            .frame(width: dotWidth, height: 7)
     }
 
     private func featureDescriptionCard(for slide: PremiumSlide) -> some View {
