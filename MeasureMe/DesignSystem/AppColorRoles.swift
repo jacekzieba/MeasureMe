@@ -13,6 +13,12 @@ enum AppColorRoles {
     static let stateWarning = Color(hex: "#FCA311")
     static let stateError = Color(hex: "#EF4444")
 
+    // Feature accents
+    static let accentData = Color.appAccent
+    static let accentPhoto = Color.cyan
+    static let accentPremium = Color.appAccent
+    static let accentHealth = Color(hex: "#22C55E")
+
     // Backward-compatible aliases used by in-flight UI refactors.
     static let surfaceCanvas = Color.black
     static let surfaceGlass = surfaceSecondary
