@@ -564,13 +564,13 @@ struct OnboardingView: View {
 
         dismissKeyboard()
         isRequestingNotifications = true
-        notificationsStatusText = AppLocalization.systemString("Requesting notification permission...")
+        notificationsStatusText = AppLocalization.string("Requesting notification permission...")
 
         Task { @MainActor in
             let granted = await effects.requestNotificationAuthorization()
             guard granted else {
                 effects.setNotificationsEnabled(false)
-                notificationsStatusText = AppLocalization.systemString("Notifications denied. You can enable them later in Settings.")
+                notificationsStatusText = AppLocalization.string("Notifications denied. You can enable them later in Settings.")
                 isRequestingNotifications = false
                 Haptics.error()
                 return
@@ -593,7 +593,7 @@ struct OnboardingView: View {
 
             effects.upsertReminder(date: targetDate, repeatRule: reminderRepeat)
             isReminderScheduled = effects.isReminderScheduled()
-            notificationsStatusText = AppLocalization.systemString("Reminder is set.")
+            notificationsStatusText = AppLocalization.string("Reminder is set.")
             isRequestingNotifications = false
             Haptics.success()
         }

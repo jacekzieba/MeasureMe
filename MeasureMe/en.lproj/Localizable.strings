@@ -430,6 +430,7 @@
 "Open iOS Settings now?" = "Open iOS Settings now?";
 "To enable Apple Health sync, go to iOS Settings → MeasureMe → Health." = "To enable Apple Health sync, go to iOS Settings → MeasureMe → Health.";
 "Requesting notification permission..." = "Requesting notification permission...";
+"Reminder is set." = "Reminder is set.";
 "Notifications enabled." = "Notifications enabled.";
 "Notifications denied. You can enable them later in Settings." = "Notifications denied. You can enable them later in Settings.";
 "Health sync enabled, but we couldn’t import data." = "Health sync enabled, but we couldn’t import data.";

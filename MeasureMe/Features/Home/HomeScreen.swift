@@ -1235,7 +1235,8 @@ struct HomeView: View {
                     Text(AppLocalization.string("home.hero.fresh.detail"))
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColorRoles.textSecondary)
-                        .lineLimit(2)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.85)
                 }
 
                 Spacer(minLength: 8)
@@ -1607,7 +1608,7 @@ struct HomeView: View {
                         Text(AppLocalization.string("Finish setup"))
                             .font(AppTypography.sectionTitle)
                             .foregroundStyle(.white)
-                        Text(AppLocalization.string("home.module.setup.subtitle", activeChecklistItems.count))
+                        Text(AppLocalization.plural("home.module.setup.subtitle", activeChecklistItems.count))
                             .font(AppTypography.caption)
                             .foregroundStyle(.white.opacity(0.68))
                     }
@@ -1663,7 +1664,8 @@ struct HomeView: View {
                                     Text(item.detail)
                                         .font(AppTypography.micro)
                                         .foregroundStyle(.white.opacity(0.68))
-                                        .lineLimit(2)
+                                        .lineLimit(3)
+                                        .minimumScaleFactor(0.85)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                 }
 
@@ -2259,7 +2261,8 @@ struct HomeView: View {
                                     Text(item.detail)
                                         .font(AppTypography.micro)
                                         .foregroundStyle(.white.opacity(0.68))
-                                        .lineLimit(2)
+                                        .lineLimit(3)
+                                        .minimumScaleFactor(0.85)
                                 }
 
                                 Spacer(minLength: 10)
