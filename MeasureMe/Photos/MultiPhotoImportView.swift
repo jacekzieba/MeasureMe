@@ -46,6 +46,13 @@ struct MultiPhotoImportView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(importTitle)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
             ToolbarItem(placement: .cancellationAction) {
                 Button(AppLocalization.string("Cancel")) {
                     dismiss()

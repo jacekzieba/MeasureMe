@@ -939,12 +939,32 @@ struct HomeView: View {
     }
 
     private var moduleAccentText: Color {
-        Color.appAccent
+        FeatureTheme.home.accent
+    }
+
+    private var homeTheme: FeatureTheme {
+        .home
+    }
+
+    private var photosTheme: FeatureTheme {
+        .photos
+    }
+
+    private var premiumTheme: FeatureTheme {
+        .premium
+    }
+
+    private var healthTheme: FeatureTheme {
+        .health
+    }
+
+    private var measurementsTheme: FeatureTheme {
+        .measurements
     }
 
     private var summaryHeroModule: some View {
         HomeWidgetCard(
-            tint: Color.appAccent.opacity(0.18),
+            tint: homeTheme.strongTint,
             depth: .floating,
             contentPadding: 18,
             accessibilityIdentifier: "home.module.summaryHero"
@@ -959,8 +979,8 @@ struct HomeView: View {
                         .accessibilityHidden(true)
 
                     Text("MeasureMe")
-                        .font(AppTypography.captionEmphasis)
-                        .foregroundStyle(.white.opacity(0.72))
+                        .font(AppTypography.eyebrow)
+                        .foregroundStyle(AppColorRoles.textSecondary)
 
                     Spacer()
 
@@ -978,8 +998,8 @@ struct HomeView: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(greetingTitle)
-                        .font(.system(size: prefersStackedHeroPanels ? 28 : 32, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .font(AppTypography.displayHero)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                         .lineLimit(prefersStackedHeroPanels ? 3 : 2)
                         .minimumScaleFactor(0.82)
 
@@ -1054,25 +1074,25 @@ struct HomeView: View {
         Button {
             handleNextFocusAction()
         } label: {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: heroSummaryCardVerticalSpacing) {
                 HStack(alignment: .center, spacing: 8) {
-                    heroMiniLabel(
-                        title: AppLocalization.string("home.nextfocus.label"),
-                        icon: "chart.line.uptrend.xyaxis",
-                        accent: Color.appAccent
-                    )
+                heroMiniLabel(
+                    title: AppLocalization.string("home.nextfocus.label"),
+                    icon: "chart.line.uptrend.xyaxis",
+                    accent: homeTheme.accent
+                )
                     Spacer(minLength: 8)
                     Image(systemName: "arrow.up.right")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color.appAccent.opacity(0.84))
+                        .font(AppTypography.iconSmall)
+                        .foregroundStyle(homeTheme.accent.opacity(0.84))
                 }
 
                 if let primaryValue = nextFocusInsight.primaryValue {
-                    VStack(alignment: .leading, spacing: 5) {
+                    VStack(alignment: .leading, spacing: heroSummaryCardContentSpacing) {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text(primaryValue)
                                 .font(.system(size: prefersStackedHeroPanels ? 22 : 24, weight: .bold, design: .rounded).monospacedDigit())
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppColorRoles.textPrimary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.82)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1080,17 +1100,17 @@ struct HomeView: View {
 
                             if let supportingLabel = nextFocusInsight.supportingLabel {
                                 Text(supportingLabel)
-                                    .font(.system(size: 10, weight: .semibold, design: .default))
-                                    .foregroundStyle(Color.appAccent)
+                                    .font(AppTypography.badge)
+                                    .foregroundStyle(homeTheme.accent)
                                     .lineLimit(1)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 3)
                                     .background(
                                         Capsule(style: .continuous)
-                                            .fill(Color.appAccent.opacity(0.12))
+                                            .fill(homeTheme.pillFill)
                                             .overlay(
                                                 Capsule(style: .continuous)
-                                                    .stroke(Color.appAccent.opacity(0.24), lineWidth: 1)
+                                                    .stroke(homeTheme.pillStroke, lineWidth: 1)
                                             )
                                     )
                                     .accessibilityIdentifier("home.nextFocus.supportingLabel")
@@ -1098,19 +1118,19 @@ struct HomeView: View {
                         }
 
                         Text(nextFocusInsight.summary)
-                            .font(.system(size: prefersStackedHeroPanels ? 12 : 13, weight: .semibold, design: .default))
-                            .foregroundStyle(.white.opacity(0.86))
-                            .lineLimit(2)
+                            .font(heroSummaryCardCaptionFont)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                            .lineLimit(heroSummaryCardSummaryLineLimit)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityIdentifier("home.nextFocus.summary")
                     }
                 } else {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: heroSummaryCardContentSpacing) {
                         if let headline = nextFocusInsight.headline {
                             Text(headline)
-                                .font(.system(size: 15, weight: .semibold, design: .default))
-                                .foregroundStyle(.white)
+                                .font(AppTypography.bodyStrong)
+                                .foregroundStyle(AppColorRoles.textPrimary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.82)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1118,23 +1138,23 @@ struct HomeView: View {
                         }
 
                         Text(nextFocusInsight.summary)
-                            .font(.system(size: 13, weight: .semibold, design: .default))
-                            .foregroundStyle(.white.opacity(0.86))
-                            .lineLimit(2)
+                            .font(heroSummaryCardCaptionFont)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                            .lineLimit(heroSummaryCardSummaryLineLimit)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityIdentifier("home.nextFocus.summary")
                     }
                 }
             }
-            .padding(10)
+            .padding(heroSummaryCardPadding)
             .frame(maxWidth: .infinity, minHeight: heroSummaryCardMinHeight, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Color.appAccent.opacity(0.12))
+                    .fill(homeTheme.pillFill)
                     .overlay(
                         RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke(Color.appAccent.opacity(0.24), lineWidth: 1)
+                            .stroke(homeTheme.border, lineWidth: 1)
                     )
             )
         }
@@ -1143,40 +1163,64 @@ struct HomeView: View {
     }
 
     private var thisWeekSummaryCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: heroSummaryCardVerticalSpacing) {
             heroMiniLabel(
                 title: AppLocalization.string("This week"),
                 icon: "calendar",
-                accent: .white.opacity(0.76)
+                accent: AppColorRoles.textSecondary
             )
 
             Text(summaryThisWeekTitle)
-                .font(.system(size: prefersStackedHeroPanels ? 20 : 22, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .font(AppTypography.displayStatement)
+                .foregroundStyle(AppColorRoles.textPrimary)
                 .lineLimit(2)
                 .minimumScaleFactor(0.82)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(summaryThisWeekDetail)
-                .font(.system(size: prefersStackedHeroPanels ? 12 : 13, weight: .semibold, design: .default))
-                .foregroundStyle(.white.opacity(0.78))
-                .lineLimit(2)
+                .font(heroSummaryCardCaptionFont)
+                .foregroundStyle(AppColorRoles.textSecondary)
+                .lineLimit(3)
+                .minimumScaleFactor(0.86)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(10)
+        .padding(heroSummaryCardPadding)
         .frame(maxWidth: .infinity, minHeight: heroSummaryCardMinHeight, alignment: .topLeading)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.white.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                )
-        )
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(AppColorRoles.surfaceInteractive)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                    )
+            )
+    }
+
+    private var heroSummaryCardPadding: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 8 : 10
+    }
+
+    private var heroSummaryCardVerticalSpacing: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 6 : 8
+    }
+
+    private var heroSummaryCardContentSpacing: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 3 : 5
+    }
+
+    private var heroSummaryCardCaptionFont: Font {
+        dynamicTypeSize.isAccessibilitySize ? AppTypography.caption : AppTypography.captionEmphasis
+    }
+
+    private var heroSummaryCardSummaryLineLimit: Int {
+        dynamicTypeSize.isAccessibilitySize ? 1 : 2
     }
 
     private var heroSummaryCardMinHeight: CGFloat {
-        prefersStackedHeroPanels ? 120 : 124
+        if dynamicTypeSize.isAccessibilitySize {
+            return 108
+        }
+        return prefersStackedHeroPanels ? 120 : 124
     }
 
     private var freshHomePromptCard: some View {
@@ -1186,11 +1230,11 @@ struct HomeView: View {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(AppLocalization.string("home.hero.fresh.title"))
-                        .font(AppTypography.captionEmphasis)
-                        .foregroundStyle(.white)
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                     Text(AppLocalization.string("home.hero.fresh.detail"))
                         .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                         .lineLimit(2)
                 }
 
@@ -1198,16 +1242,16 @@ struct HomeView: View {
 
                 Text(AppLocalization.string("home.hero.fresh.cta"))
                     .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color.appAccent)
+                    .foregroundStyle(homeTheme.accent)
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.white.opacity(0.05))
+                    .fill(AppColorRoles.surfaceInteractive)
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )
         }
@@ -1217,9 +1261,9 @@ struct HomeView: View {
     private func heroMiniLabel(title: String, icon: String, accent: Color) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .bold))
+                .font(AppTypography.iconSmall)
             Text(title)
-                .font(AppTypography.microEmphasis)
+                .font(AppTypography.eyebrow)
         }
         .foregroundStyle(accent)
     }
@@ -1230,7 +1274,7 @@ struct HomeView: View {
 
     private var keyMetricsModule: some View {
         HomeWidgetCard(
-            tint: Color.appAccent.opacity(0.16),
+            tint: measurementsTheme.softTint,
             depth: .elevated,
             contentPadding: 16,
             accessibilityIdentifier: "home.module.keyMetrics"
@@ -1251,7 +1295,7 @@ struct HomeView: View {
                         eyebrow: AppLocalization.string("home.empty.eyebrow"),
                         title: AppLocalization.string("home.keymetrics.empty.title"),
                         detail: AppLocalization.string("home.keymetrics.empty.detail"),
-                        accent: Color.appAccent,
+                        accent: measurementsTheme.accent,
                         ctaTitle: AppLocalization.string("Add measurement")
                     ) {
                         showQuickAddSheet = true
@@ -1261,7 +1305,7 @@ struct HomeView: View {
                         eyebrow: AppLocalization.string("home.empty.eyebrow"),
                         title: AppLocalization.string("home.keymetrics.empty.selection.title"),
                         detail: AppLocalization.string("home.keymetrics.empty.selection.detail"),
-                        accent: Color.appAccent,
+                        accent: measurementsTheme.accent,
                         ctaTitle: AppLocalization.string("Open Measurements")
                     ) {
                         router.selectedTab = .measurements
@@ -1311,7 +1355,7 @@ struct HomeView: View {
 
     private var recentPhotosContentModule: some View {
         HomeWidgetCard(
-            tint: Color.cyan.opacity(0.14),
+            tint: photosTheme.softTint,
             depth: .elevated,
             contentPadding: 16,
             accessibilityIdentifier: "home.module.recentPhotos"
@@ -1379,14 +1423,14 @@ struct HomeView: View {
 
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 8) {
-                        infoPill(text: recentPhotosContextPrimary, tint: Color.cyan)
-                        infoPill(text: recentPhotosContextSecondary, tint: .white.opacity(0.78))
+                        infoPill(text: recentPhotosContextPrimary, tint: photosTheme.accent)
+                        infoPill(text: recentPhotosContextSecondary, tint: AppColorRoles.textSecondary)
                         Spacer(minLength: 0)
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        infoPill(text: recentPhotosContextPrimary, tint: Color.cyan)
-                        infoPill(text: recentPhotosContextSecondary, tint: .white.opacity(0.78))
+                        infoPill(text: recentPhotosContextPrimary, tint: photosTheme.accent)
+                        infoPill(text: recentPhotosContextSecondary, tint: AppColorRoles.textSecondary)
                     }
                 }
 
@@ -1400,8 +1444,8 @@ struct HomeView: View {
                         title: recentPhotosInsightTitle,
                         detail: recentPhotosInsightDetail,
                         note: recentPhotosInsightNote,
-                        tint: Color.cyan.opacity(0.10),
-                        stroke: Color.cyan.opacity(0.22)
+                        tint: photosTheme.pillFill,
+                        stroke: photosTheme.border
                     )
                 }
                 .buttonStyle(.plain)
@@ -1415,7 +1459,7 @@ struct HomeView: View {
 
     private var recentPhotosEmptyModule: some View {
         HomeWidgetCard(
-            tint: Color.cyan.opacity(0.14),
+            tint: photosTheme.softTint,
             depth: .elevated,
             contentPadding: 16,
             accessibilityIdentifier: "home.module.recentPhotos"
@@ -1425,14 +1469,14 @@ struct HomeView: View {
                     eyebrow: AppLocalization.string("home.photos.latestsession"),
                     title: AppLocalization.string("Recent photos"),
                     subtitle: AppLocalization.string("home.photos.empty.subtitle"),
-                    accent: Color.cyan
+                    accent: photosTheme.accent
                 )
 
                 editorialEmptyStateCard(
                     eyebrow: AppLocalization.string("home.empty.eyebrow"),
                     title: AppLocalization.string("home.photos.empty.title"),
                     detail: AppLocalization.string("home.photos.empty.detail"),
-                    accent: Color.cyan,
+                    accent: photosTheme.accent,
                     ctaTitle: AppLocalization.string("Open Photos")
                 ) {
                     router.selectedTab = .photos
@@ -1446,7 +1490,7 @@ struct HomeView: View {
         Group {
             if isHealthSectionMounted {
                 HomeWidgetCard(
-                    tint: Color.cyan.opacity(0.16),
+                    tint: healthTheme.softTint,
                     depth: .base,
                     contentPadding: 16,
                     accessibilityIdentifier: "home.module.healthSummary"
@@ -1457,10 +1501,10 @@ struct HomeView: View {
                                 eyebrow: AppLocalization.string("home.health.snapshot"),
                                 title: AppLocalization.string("Health"),
                                 subtitle: healthModuleSubtitle,
-                                accent: Color.cyan,
+                                accent: healthTheme.accent,
                                 accessibilityIdentifier: "home.module.healthSummary.title"
                             )
-                            infoPill(text: healthModulePillText, tint: Color.cyan)
+                            infoPill(text: healthModulePillText, tint: healthTheme.accent)
                         }
 
                         if homeHealthStatItems.isEmpty {
@@ -1468,7 +1512,7 @@ struct HomeView: View {
                                 eyebrow: AppLocalization.string("home.empty.eyebrow"),
                                 title: healthEmptyStateTitle,
                                 detail: healthEmptyStateDetail,
-                                accent: Color.cyan,
+                                accent: healthTheme.accent,
                                 ctaTitle: healthEmptyStateCTA
                             ) {
                                 if !isSyncEnabled {
@@ -1482,8 +1526,8 @@ struct HomeView: View {
                                 eyebrow: AppLocalization.string("home.health.summary.card"),
                                 title: homeHealthSummaryTitle,
                                 detail: homeHealthSummaryDetail,
-                                tint: Color.cyan.opacity(0.10),
-                                stroke: Color.white.opacity(0.10)
+                                tint: healthTheme.pillFill,
+                                stroke: AppColorRoles.borderSubtle
                             )
 
                             LazyVGrid(
@@ -1530,8 +1574,8 @@ struct HomeView: View {
                                     title: AppLocalization.string("home.health.premium.title"),
                                     detail: AppLocalization.string("home.health.premium.detail"),
                                     note: AppLocalization.string("home.photos.compare.note.premium"),
-                                    tint: Color.cyan.opacity(0.10),
-                                    stroke: Color.white.opacity(0.10)
+                                    tint: premiumTheme.pillFill,
+                                    stroke: premiumTheme.border
                                 )
                             }
                             .buttonStyle(.plain)
@@ -1549,7 +1593,7 @@ struct HomeView: View {
 
     private var checklistModule: some View {
         HomeWidgetCard(
-            tint: Color.appAccent.opacity(0.14),
+            tint: homeTheme.softTint,
             depth: .base,
             contentPadding: 14,
             accessibilityIdentifier: "home.module.setupChecklist"
@@ -2518,17 +2562,17 @@ struct HomeView: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(eyebrow)
-                    .font(AppTypography.microEmphasis)
+                    .font(AppTypography.eyebrow)
                     .foregroundStyle(accent)
 
                 Text(title)
-                    .font(AppTypography.sectionTitle)
-                    .foregroundStyle(.white)
+                    .font(AppTypography.displaySection)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                     .accessibilityIdentifier(accessibilityIdentifier ?? "")
 
                 Text(subtitle)
                     .font(AppTypography.caption)
-                    .foregroundStyle(.white.opacity(0.68))
+                    .foregroundStyle(AppColorRoles.textSecondary)
                     .lineLimit(2)
             }
 
@@ -2537,10 +2581,10 @@ struct HomeView: View {
             if let action {
                 Button(action: action) {
                     Image(systemName: "arrow.up.right")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(AppTypography.iconMedium)
                         .foregroundStyle(accent)
                         .frame(width: 36, height: 36)
-                        .background(Color.white.opacity(0.05))
+                        .background(AppColorRoles.surfaceInteractive)
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -2559,16 +2603,16 @@ struct HomeView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(eyebrow)
-                .font(AppTypography.microEmphasis)
+                .font(AppTypography.eyebrow)
                 .foregroundStyle(accent)
 
             Text(title)
-                .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(.white)
+                .font(AppTypography.titleCompact)
+                .foregroundStyle(AppColorRoles.textPrimary)
 
             Text(detail)
                 .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.74))
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .lineLimit(3)
 
             Button(action: ctaAction) {
@@ -2581,17 +2625,17 @@ struct HomeView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(AppColorRoles.surfaceInteractive)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                 )
         )
     }
 
     private func infoPill(text: String, tint: Color) -> some View {
         Text(text)
-            .font(AppTypography.microEmphasis)
+            .font(AppTypography.badge)
             .foregroundStyle(tint)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
@@ -2608,16 +2652,16 @@ struct HomeView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(eyebrow)
-                .font(AppTypography.microEmphasis)
-                .foregroundStyle(.white.opacity(0.58))
+                .font(AppTypography.eyebrow)
+                .foregroundStyle(AppColorRoles.textTertiary)
 
             Text(title)
-                .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(.white)
+                .font(AppTypography.titleCompact)
+                .foregroundStyle(AppColorRoles.textPrimary)
 
             Text(detail)
                 .font(AppTypography.micro)
-                .foregroundStyle(.white.opacity(0.68))
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .lineLimit(2)
         }
         .padding(12)
@@ -2642,32 +2686,32 @@ struct HomeView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(eyebrow)
-                .font(AppTypography.microEmphasis)
-                .foregroundStyle(.white.opacity(0.58))
+                .font(AppTypography.eyebrow)
+                .foregroundStyle(AppColorRoles.textTertiary)
 
             Text(title)
-                .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(.white)
+                .font(AppTypography.titleCompact)
+                .foregroundStyle(AppColorRoles.textPrimary)
 
             Text(detail)
                 .font(AppTypography.micro)
-                .foregroundStyle(.white.opacity(0.68))
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .lineLimit(2)
 
             if let note {
                 Text(note)
-                    .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color.appAccent)
+                    .font(AppTypography.badge)
+                    .foregroundStyle(premiumTheme.accent)
                     .lineLimit(1)
             }
 
             HStack(spacing: 6) {
                 Text(AppLocalization.string("home.card.open"))
-                    .font(AppTypography.microEmphasis)
+                    .font(AppTypography.badge)
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(AppTypography.iconSmall)
             }
-            .foregroundStyle(.white.opacity(0.72))
+            .foregroundStyle(AppColorRoles.textSecondary)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -2684,30 +2728,30 @@ struct HomeView: View {
     private func compactHealthStatCard(_ item: HomeHealthStatItem) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(item.label)
-                .font(AppTypography.microEmphasis)
-                .foregroundStyle(.white.opacity(0.58))
+                .font(AppTypography.eyebrow)
+                .foregroundStyle(AppColorRoles.textTertiary)
                 .lineLimit(1)
 
             Text(item.value)
-                .font(AppTypography.bodyEmphasis.monospacedDigit())
-                .foregroundStyle(.white)
+                .font(AppTypography.dataDelta)
+                .foregroundStyle(AppColorRoles.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
 
             if let badge = item.badge, !badge.isEmpty {
                 Text(badge)
-                    .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color.cyan.opacity(0.95))
+                    .font(AppTypography.badge)
+                    .foregroundStyle(healthTheme.accent.opacity(0.95))
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(
                         Capsule(style: .continuous)
-                            .fill(Color.cyan.opacity(0.12))
+                            .fill(healthTheme.pillFill)
                             .overlay(
                                 Capsule(style: .continuous)
-                                    .stroke(Color.cyan.opacity(0.24), lineWidth: 1)
+                                    .stroke(healthTheme.pillStroke, lineWidth: 1)
                             )
                     )
             }
