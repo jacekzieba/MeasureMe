@@ -12,6 +12,7 @@ struct PremiumPaywallView: View {
     @State private var isCTAPulsing: Bool = false
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
+    private let premiumTheme = FeatureTheme.premium
 
     private enum SlideKind {
         case analyst
@@ -152,8 +153,8 @@ struct PremiumPaywallView: View {
                 ScrollView {
                     VStack(spacing: 14) {
                         Text(AppLocalization.string("Premium Edition"))
-                            .font(AppTypography.sectionTitle)
-                            .foregroundStyle(.white)
+                            .font(AppTypography.displaySection)
+                            .foregroundStyle(AppColorRoles.textPrimary)
                             .multilineTextAlignment(.center)
 
                         carousel(height: carouselHeight(for: proxy.size.height))
@@ -169,16 +170,16 @@ struct PremiumPaywallView: View {
                     premium.dismissPaywall()
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.86))
+                        .font(AppTypography.iconMedium)
+                        .foregroundStyle(AppColorRoles.textPrimary.opacity(0.86))
                         .frame(width: 44, height: 44)
                         .background(
                             Circle()
-                                .fill(Color.white.opacity(0.14))
+                                .fill(AppColorRoles.surfaceElevated)
                         )
                         .overlay(
                             Circle()
-                                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                                .stroke(AppColorRoles.borderStrong, lineWidth: 1)
                         )
                         .contentShape(Circle())
                 }
@@ -252,7 +253,7 @@ struct PremiumPaywallView: View {
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                                .stroke(AppColorRoles.borderStrong, lineWidth: 1)
                         )
                 )
                 .tag(slide.id)
@@ -267,7 +268,7 @@ struct PremiumPaywallView: View {
         HStack(spacing: 8) {
             ForEach(slides) { slide in
                 Capsule(style: .continuous)
-                    .fill(slide.id == selectedSlide ? Color.white : Color.white.opacity(0.28))
+                    .fill(slide.id == selectedSlide ? AppColorRoles.textPrimary : AppColorRoles.textTertiary)
                     .frame(width: slide.id == selectedSlide ? 18 : 7, height: 7)
             }
         }
@@ -276,8 +277,8 @@ struct PremiumPaywallView: View {
 
     private func featureDescriptionCard(for slide: PremiumSlide) -> some View {
         Text(AppLocalization.string(slide.bodyKey))
-            .font(.system(size: 15, weight: .semibold, design: .rounded))
-            .foregroundStyle(.white.opacity(0.95))
+            .font(AppTypography.bodyStrong)
+            .foregroundStyle(AppColorRoles.textPrimary.opacity(0.95))
             .multilineTextAlignment(.leading)
             .lineSpacing(3)
             .fixedSize(horizontal: false, vertical: true)
@@ -288,21 +289,21 @@ struct PremiumPaywallView: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [slide.tint.opacity(0.26), Color.white.opacity(0.06)],
+                            colors: [slide.tint.opacity(0.22), AppColorRoles.surfaceGlass],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            .stroke(AppColorRoles.borderStrong, lineWidth: 1)
                     )
             )
     }
 
     private var slideContentSeparator: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.18))
+            .fill(AppColorRoles.borderStrong)
             .frame(height: 1)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 2)
@@ -316,13 +317,13 @@ struct PremiumPaywallView: View {
                 .frame(width: 30, height: 30)
                 .overlay(
                     Image(systemName: slide.icon)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .font(AppTypography.iconSmall)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                 )
 
             Text(AppLocalization.string(slide.titleKey))
-                .font(.system(.title3, design: .rounded).weight(.bold))
-                .foregroundStyle(.white)
+                .font(AppTypography.displayStatement)
+                .foregroundStyle(AppColorRoles.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -346,17 +347,17 @@ struct PremiumPaywallView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Circle()
-                    .fill(Color.white.opacity(0.12))
+                    .fill(AppColorRoles.surfaceElevated)
                     .frame(width: 30, height: 30)
                     .overlay(
                         Image(systemName: "sparkles")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Color(hex: "#FCA311"))
+                            .font(AppTypography.iconSmall)
+                            .foregroundStyle(AppColorRoles.accentPrimary)
                     )
 
                 Text(AppLocalization.string("premium.carousel.insight.header"))
-                    .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white.opacity(0.92))
+                    .font(AppTypography.bodyStrong)
+                    .foregroundStyle(AppColorRoles.textPrimary.opacity(0.92))
             }
 
             Text(aiInsightAttributedText)
@@ -365,29 +366,29 @@ struct PremiumPaywallView: View {
 
             HStack(spacing: 8) {
                 Image(systemName: "lightbulb.fill")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color(hex: "#FDE68A"))
+                    .font(AppTypography.iconSmall)
+                    .foregroundStyle(AppColorRoles.accentPrimary.opacity(0.82))
 
                 Text(AppLocalization.string("premium.carousel.insight.tip"))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(Color(hex: "#FBBF24"))
+                    .foregroundStyle(AppColorRoles.accentPrimary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color(hex: "#3A2A1C").opacity(0.62))
+                    .fill(premiumTheme.pillFill)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(Color(hex: "#FBBF24").opacity(0.28), lineWidth: 1)
+                            .stroke(premiumTheme.border, lineWidth: 1)
                     )
             )
 
             if isPolishInterface {
                 Text(AppLocalization.string("premium.carousel.insight.language.note"))
                     .font(AppTypography.micro)
-                    .foregroundStyle(.white.opacity(0.72))
+                    .foregroundStyle(AppColorRoles.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -396,14 +397,14 @@ struct PremiumPaywallView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [Color(hex: "#1E2850").opacity(0.85), Color.black.opacity(0.45)],
+                        colors: [Color(hex: "#1E2850").opacity(0.85), AppColorRoles.surfaceCanvas.opacity(0.45)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                        .stroke(AppColorRoles.borderStrong, lineWidth: 1)
                 )
         )
     }
@@ -452,14 +453,18 @@ struct PremiumPaywallView: View {
     }
 
     private var comparisonToolMockup: some View {
+        let pastDate = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? AppClock.now
+        let pastLabel = pastDate.formatted(date: .abbreviated, time: .omitted)
+        let presentLabel = AppClock.now.formatted(date: .abbreviated, time: .omitted)
+
         VStack(spacing: 10) {
             ZStack {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color.black.opacity(0.24))
 
                 VStack(spacing: 10) {
-                    comparisonPoseGridRow(label: AppLocalization.string("premium.compare.when.past"), silhouetteOpacity: 0.72)
-                    comparisonPoseGridRow(label: AppLocalization.string("premium.compare.when.present"), silhouetteOpacity: 0.94)
+                    comparisonPoseGridRow(label: pastLabel, silhouetteOpacity: 0.72)
+                    comparisonPoseGridRow(label: presentLabel, silhouetteOpacity: 0.94)
                 }
                 .padding(12)
 
@@ -482,9 +487,9 @@ struct PremiumPaywallView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.left.and.right.circle.fill")
                         .font(.system(size: 12, weight: .semibold))
-                    Text(AppLocalization.string("premium.compare.when.past"))
+                    Text(pastLabel)
                     Text("↔")
-                    Text(AppLocalization.string("premium.compare.when.present"))
+                    Text(presentLabel)
                 }
             .font(AppTypography.microEmphasis)
             .foregroundStyle(Color(hex: "#F5A623"))
@@ -507,7 +512,7 @@ struct PremiumPaywallView: View {
             Text(label)
                 .font(AppTypography.microEmphasis)
                 .foregroundStyle(.white.opacity(0.84))
-                .frame(width: 38, alignment: .leading)
+                .frame(width: 74, alignment: .leading)
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
                 comparisonPoseCard(title: AppLocalization.string("premium.compare.pose.front"), silhouetteOpacity: silhouetteOpacity)
@@ -686,10 +691,21 @@ struct PremiumPaywallView: View {
                         .foregroundStyle(.white.opacity(0.92))
                 }
 
+                Text(AppLocalization.string("premium.carousel.unlock.body"))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(.white.opacity(0.82))
+                    .fixedSize(horizontal: false, vertical: true)
+
                 unlockBenefitRow(icon: "sparkles", tint: Color(hex: "#4ADE80"), textKey: "premium.carousel.unlock.item.ai")
                 unlockBenefitRow(icon: "photo.on.rectangle.angled", tint: Color(hex: "#60A5FA"), textKey: "premium.carousel.unlock.item.compare")
                 unlockBenefitRow(icon: "heart.text.square.fill", tint: Color(hex: "#34D399"), textKey: "premium.carousel.unlock.item.health")
                 unlockBenefitRow(icon: "doc.text.fill", tint: Color(hex: "#FBBF24"), textKey: "premium.carousel.unlock.item.export")
+                unlockBenefitRow(
+                    icon: "icloud.and.arrow.up",
+                    tint: Color(hex: "#A78BFA"),
+                    textKey: "premium.carousel.unlock.item.icloud",
+                    accessibilityID: "premium.carousel.unlock.item.icloud"
+                )
             }
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -773,7 +789,12 @@ struct PremiumPaywallView: View {
         }
     }
 
-    private func unlockBenefitRow(icon: String, tint: Color, textKey: String) -> some View {
+    private func unlockBenefitRow(
+        icon: String,
+        tint: Color,
+        textKey: String,
+        accessibilityID: String? = nil
+    ) -> some View {
         HStack(alignment: .center, spacing: 9) {
             Image(systemName: icon)
                 .font(.system(size: 13, weight: .semibold))
@@ -793,6 +814,7 @@ struct PremiumPaywallView: View {
         }
         .padding(.vertical, 2)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityIdentifier(accessibilityID ?? textKey)
     }
 
     private var planPicker: some View {

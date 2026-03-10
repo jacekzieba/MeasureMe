@@ -212,6 +212,17 @@
 "home.module.setup.subtitle" = "%d setup tasks are still worth finishing.";
 "home.module.setup.pill" = "%d left";
 "home.card.open" = "Open";
+"Key metrics" = "Key metrics";
+"Recent photos" = "Recent photos";
+"Open Photos" = "Open Photos";
+"Preparing" = "Preparing";
+"Import 1 Photo" = "Import 1 Photo";
+"Import %d Photos" = "Import %d Photos";
+"import.photos.title" = "Import %@";
+"import.photos.count" = "%d Photos";
+"Shoulder-to-Hip Ratio" = "Shoulder-to-Hip Ratio";
+"Waist" = "Waist";
+"You're trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "You're trending down steadily. Keep 3 strength sessions and 8k+ steps this week.";
 
 "progress.now" = "Now %@";
 "progress.goal" = "Goal %@";
@@ -252,7 +263,7 @@
 "Set goal" = "Set goal";
 "Open Quick Add from Home" = "Open Quick Add from Home";
 "Jump to Measurements and review goals" = "Jump to Measurements and review goals";
-"Start premium photo comparison from Home" = "Start premium photo comparison from Home";
+"Start premium photo comparison from Home" = "Start premium photo comparison with Premium account";
 "Guide the user back to setup tasks" = "Guide the user back to setup tasks";
 "Choose what the highlighted Home action should do." = "Choose what the highlighted Home action should do.";
 
@@ -492,11 +503,12 @@
 "premium.carousel.indicators.title" = "Beyond the Scale";
 "premium.carousel.indicators.body" = "Health and physique indicators show what your numbers mean for health and visual progress.";
 "premium.carousel.unlock.title" = "Train smarter. See real progress.";
-"premium.carousel.unlock.body" = "Get everything in one place to stay consistent and move faster with confidence.";
+"premium.carousel.unlock.body" = "Get everything in one place, including iCloud sync and backups, to stay consistent and move faster with confidence.";
 "premium.carousel.unlock.item.ai" = "Unlimited AI Body Insights";
 "premium.carousel.unlock.item.compare" = "Photo Comparison Tool";
 "premium.carousel.unlock.item.health" = "Health & Trends Analysis";
 "premium.carousel.unlock.item.export" = "Data Export (CSV)";
+"premium.carousel.unlock.item.icloud" = "iCloud sync & backup restore";
 "premium.carousel.unlock.item.support" = "Support independent developer from Poland 🇪🇺 🇵🇱";
 "premium.trial.timeline.title" = "Your 14-day trial";
 "premium.trial.timeline.today" = "Today — Unlock everything. No charge.";
@@ -799,6 +811,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Waist often changes before the scale does - especially when you build muscle." = "Waist often changes before the scale does - especially when you build muscle.";
 "Weight is useful. We will focus on trends, not daily noise." = "Weight is useful. We will focus on trends, not daily noise.";
 "Current value" = "Current value";
+"Latest entry: %@" = "Latest entry: %@";
 "Tip: log at roughly the same time for cleaner trends." = "Tip: log at roughly the same time for cleaner trends.";
 "Great start - your trend begins today." = "Great start - your trend begins today.";
 "A few details" = "A few details";
@@ -961,6 +974,37 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Export and delete" = "Export and delete";
 "Search Settings" = "Search Settings";
 "No matching settings" = "No matching settings";
+"settings.section.account" = "Account & Premium";
+"settings.section.setup" = "Your setup";
+"settings.section.measurements" = "Measurements & goals";
+"settings.section.insights" = "Insights";
+"settings.section.health" = "Health & integrations";
+"settings.section.support" = "Data & support";
+"settings.summary.premium.active" = "Premium active";
+"settings.summary.premium.free" = "Free plan";
+"settings.summary.premium.pitch" = "Unlock compare, AI Insights, indicators, and export from one place.";
+"settings.action.explorePremium" = "Explore Premium";
+"settings.summary.subscription.manage" = "Billing, renewal, and trial details";
+"settings.summary.home.modules" = "%d modules visible";
+"settings.summary.notifications.off" = "Reminders off";
+"settings.summary.notifications.none" = "Reminders on, no schedule yet";
+"settings.summary.notifications.count" = "%d reminders scheduled";
+"settings.summary.experience.full" = "Animations and haptics on";
+"settings.summary.experience.reduced" = "Animations and haptics off";
+"settings.summary.experience.mixed" = "One feedback layer is off";
+"settings.summary.profile.empty" = "Add your details";
+"settings.summary.profile.incomplete" = "Profile partially completed";
+"settings.summary.metrics.count" = "%d tracked measurements";
+"settings.summary.indicators.count" = "%d indicators enabled";
+"settings.summary.health.off" = "Apple Health sync is off";
+"settings.summary.health.on" = "Apple Health sync is on";
+"settings.summary.health.on.lastimport" = "Sync on, last import %@";
+"settings.summary.ai.available" = "Enabled on this device";
+"settings.summary.ai.disabled" = "Available, currently off";
+"settings.summary.ai.unavailable" = "Unavailable on this device";
+"settings.summary.ai.locked" = "Premium required";
+"settings.summary.data" = "Export, import, and delete local data";
+"settings.summary.support" = "FAQ and help";
 
 /* Onboarding explicit labels */
 "Lose weight" = "Lose weight";
@@ -1149,6 +1193,9 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "streak.detail.memberSince" = "Member since";
 "streak.detail.best" = "Best";
 "streak.detail.thisWeek" = "THIS WEEK";
+"streak.detail.heatmap.title" = "ACTIVITY";
+"streak.detail.heatmap.less" = "Less";
+"streak.detail.heatmap.more" = "More";
 "streak.detail.totalLogs" = "Total logs";
 "streak.detail.nextMilestone.label" = "%lld more weeks";
 "streak.detail.nextMilestone.sub" = "to your next milestone.";
@@ -1163,3 +1210,22 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "streak.detail.motivational.3.body" = "A quarter-year of continuous tracking. That's rare dedication — your data tells a powerful story.";
 "streak.detail.motivational.4.title" = "Unstoppable";
 "streak.detail.motivational.4.body" = "Half a year or more of tracking — you're in elite company. Keep going and the data speaks for itself.";
+
+"Automatic iCloud backup" = "Automatic iCloud backup";
+"Back up now" = "Back up now";
+"Restore latest backup" = "Restore latest backup";
+"No iCloud backup yet." = "No iCloud backup yet.";
+"Last iCloud backup: %@" = "Last iCloud backup: %@";
+"iCloud backup" = "iCloud backup";
+"This will replace current local data with the latest iCloud backup." = "This will replace current local data with the latest iCloud backup.";
+"Creating iCloud backup..." = "Creating iCloud backup...";
+"iCloud backup created successfully." = "iCloud backup created successfully.";
+"Restoring latest iCloud backup..." = "Restoring latest iCloud backup...";
+"Latest iCloud backup restored." = "Latest iCloud backup restored.";
+"iCloud backup requires Premium." = "iCloud backup requires Premium.";
+"iCloud backup is disabled." = "iCloud backup is disabled.";
+"iCloud Drive is unavailable on this device." = "iCloud Drive is unavailable on this device.";
+"No iCloud backup was found." = "No iCloud backup was found.";
+"The backup is incompatible with this app version." = "The backup is incompatible with this app version.";
+"Could not create iCloud backup: %@." = "Could not create iCloud backup: %@.";
+"Could not restore iCloud backup: %@." = "Could not restore iCloud backup: %@.";
