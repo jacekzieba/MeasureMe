@@ -172,8 +172,8 @@
 "home.photos.first.detail" = "Dodaj jeszcze jedno zdjęcie, aby sensownie je porównać.";
 "home.photos.latestsession" = "Ostatnia sesja";
 "home.photos.empty.subtitle" = "Zdjęcia sprawiają, że progres jest namacalny, a nie abstrakcyjny.";
-"home.photos.empty.title" = "Dodaj zdjęcia, aby je porównać";
-"home.photos.empty.detail" = "Dodaj zdjęcie i porównaj swój obecny wygląd z wcześniejszymi zapisami.";
+"home.photos.empty.title" = "Daj Home wizualne przed i po";
+"home.photos.empty.detail" = "Wystarczy jedno proste zdjęcie z dziś, żeby późniejsze porównanie miało sens.";
 "home.photos.meta.latest" = "Ostatnia sesja %@.";
 "home.photos.context.primary" = "Ostatnie %@";
 "home.photos.context.primary.empty" = "Zacznij pierwszą sesję";
@@ -192,22 +192,29 @@
 "home.nextfocus.finishSetup.detail" = "Wróć do pozostałych zadań.";
 "home.nextfocus.finishSetup.detail.done" = "Konfiguracja jest zakończona.";
 "home.health.synced" = "Synchronizacja";
-"home.health.snapshot" = "Zdrowie w skrócie";
+"home.health.snapshot" = "Migawka sylwetki";
 "home.health.latestreadings" = "Ostatnie zsynchronizowane odczyty";
 "home.health.incomplete.title" = "Dane zdrowotne są jeszcze niepełne";
 "home.health.incomplete.detail" = "Zsynchronizuj wagę, talię albo skład ciała, aby ten moduł był użyteczny.";
 "home.health.subtitle.setup" = "Połącz Apple Zdrowie, aby zamienić to w użyteczną migawkę.";
-"home.health.subtitle.waiting" = "Synchronizacja działa. Dodaj więcej danych o ciele.";
-"home.health.subtitle.preview" = "Na Stronie głównej widzisz jeden zsynchronizowany sygnał. Pełne podsumowanie zdrowia i sylwetki jest w Premium.";
+"home.health.subtitle.waiting" = "Synchronizacja działa. Dodaj więcej danych o ciele, aby ten skrót był trafniejszy.";
+"home.health.subtitle.preview" = "Na Home widzisz jeden zsynchronizowany sygnał. Pełne podsumowanie zdrowia i sylwetki jest w Premium.";
 "home.health.subtitle.ready" = "Szybki odczyt najważniejszych sygnałów zdrowotnych, które synchronizujesz.";
 "home.health.pill.setup" = "Konfiguracja";
 "home.health.pill.preview" = "Podgląd";
 "home.health.pill.ready" = "Gotowe";
 "home.health.empty.disconnected.title" = "Połącz Apple Zdrowie, jeśli chcesz mniej ręcznej pracy";
+<<<<<<< HEAD
 "home.health.empty.disconnected.detail" = "Dociągnij wagę, talię albo skład ciała, aby Strona główna pokazywała wzorce, a nie pustkę.";
 "home.health.empty.disconnected.detail.preview" = "Dociągnij jedną metrykę z Apple Zdrowie, aby podejrzeć Zdrowie na Stronie głównej. Pełne podsumowanie i sylwetka są w Premium.";
 "home.health.empty.synced.title" = "Dane z aplikacji Zdrowie są pobierane, ale brakuje nam kilku danych.";
 "home.health.empty.synced.detail" = "Dodaj kilka pomiarów, aby ta karta stała się użyteczna.";
+=======
+"home.health.empty.disconnected.detail" = "Dociągnij wagę, talię albo skład ciała, aby Home mówił wzorcami, a nie pustką.";
+"home.health.empty.disconnected.detail.preview" = "Dociągnij jedną metrykę z Apple Zdrowie, aby podejrzeć Health na Home. Pełne podsumowanie i sylwetka są w Premium.";
+"home.health.empty.synced.title" = "Zdrowie jest połączone, ale migawka jest jeszcze zbyt powierzchowna";
+"home.health.empty.synced.detail" = "Dodaj kilka kolejnych zsynchronizowanych odczytów ciała, a ta karta stanie się dużo bardziej użyteczna.";
+>>>>>>> 966d8c3 (Fix Polish localization gaps and date labels in photo compare)
 "home.health.empty.synced.detail.preview" = "Tutaj zobaczysz podgląd jednej zsynchronizowanej metryki. Więcej metryk zdrowia, sylwetka i pełne podsumowanie są w Premium.";
 "home.health.summary.card" = "Podsumowanie zdrowia";
 "home.health.premium.title" = "Odblokuj pełny widok Zdrowia";
@@ -239,7 +246,11 @@
 "Key metrics" = "Kluczowe metryki";
 "Recent photos" = "Najnowsze zdjęcia";
 "Open Photos" = "Otwórz Zdjęcia";
+<<<<<<< HEAD
 "Preparing" = "Dodawanie";
+=======
+"Preparing" = "Przygotowywanie...";
+>>>>>>> 966d8c3 (Fix Polish localization gaps and date labels in photo compare)
 "Import 1 Photo" = "Importuj 1 zdjęcie";
 "Import %d Photos" = "Importuj %d zdjęć";
 "import.photos.title" = "Importuj %@";
@@ -249,8 +260,12 @@
 "import.photos.count" = "%d zdjęć";
 "Shoulder-to-Hip Ratio" = "Stosunek barków do bioder";
 "Waist" = "Talia";
+<<<<<<< HEAD
 "You're trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Trend stabilnie spada. Utrzymaj 3 treningi siłowe i 8k+ kroków w tym tygodniu.";
 "This week" = "Ten tydzień";
+=======
+"You're trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Trend stabilnie spada. trzymaj 3 treningi siłowe i 8k+ kroków w tym tygodniu.";
+>>>>>>> 966d8c3 (Fix Polish localization gaps and date labels in photo compare)
 
 "progress.now" = "Teraz %@";
 "progress.goal" = "Cel %@";
@@ -291,7 +306,11 @@
 "Set goal" = "Ustaw cel";
 "Open Quick Add from Home" = "Otwórz Quick Add ze Strony głównej";
 "Jump to Measurements and review goals" = "Przejdź do Pomiarów i sprawdź cele";
+<<<<<<< HEAD
 "Start premium photo comparison from Home" = "Uruchom porównywanie zdjęć dzięki kontu Premium";
+=======
+"Start premium photo comparison from Home" = "Uruchom porównywanie zdjęć dzięki koncie Premium";
+>>>>>>> 966d8c3 (Fix Polish localization gaps and date labels in photo compare)
 "Guide the user back to setup tasks" = "Skieruj użytkownika z powrotem do zadań konfiguracji";
 "Choose what the highlighted Home action should do." = "Wybierz, co ma robić wyróżniona akcja na Stronie głównej.";
 
@@ -1611,4 +1630,7 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "The backup is incompatible with this app version." = "Backup jest niezgodny z tą wersją aplikacji.";
 "Could not create iCloud backup: %@." = "Nie udało się utworzyć backupu iCloud: %@.";
 "Could not restore iCloud backup: %@." = "Nie udało się przywrócić backupu iCloud: %@.";
+<<<<<<< HEAD
 "Reminder is set." = "Przypomnienie ustawione.";
+=======
+>>>>>>> 966d8c3 (Fix Polish localization gaps and date labels in photo compare)
