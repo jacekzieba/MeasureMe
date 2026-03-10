@@ -6,6 +6,8 @@ import UniformTypeIdentifiers
 
 /// Widok porównujący dwa zdjęcia obok siebie
 struct ComparePhotosView: View {
+    private let photosTheme = FeatureTheme.photos
+    private let measurementsTheme = FeatureTheme.measurements
     @Environment(\.dismiss) private var dismiss
     
     let olderPhoto: PhotoEntry
@@ -27,7 +29,7 @@ struct ComparePhotosView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                Color.black.ignoresSafeArea()
+                AppColorRoles.surfaceCanvas.ignoresSafeArea()
 
                 GeometryReader { geometry in
                     if showSlider {
@@ -40,7 +42,7 @@ struct ComparePhotosView: View {
             .navigationTitle(AppLocalization.string("Compare"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(Color.black, for: .navigationBar)
+            .toolbarBackground(AppColorRoles.surfaceCanvas, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Done")) {
@@ -80,19 +82,21 @@ struct ComparePhotosView: View {
         }
     }
     
-    // MARK: - Slider Comparison (Then/Now)
+    // MARK: - Slider Comparison (date labels)
     @ViewBuilder
     private func sliderComparisonView(in geometry: GeometryProxy) -> some View {
         VStack(spacing: 20) {
             Text(AppLocalization.string("Drag to compare"))
-                .font(.system(.headline, design: .rounded))
-                .foregroundStyle(.white.opacity(0.78))
+                .font(AppTypography.titleCompact)
+                .foregroundStyle(AppColorRoles.textSecondary)
             
             BeforeAfterSlider(
                 beforeImage: olderPhoto.imageData,
                 afterImage: newerPhoto.imageData,
                 beforeCacheID: olderCompareCacheID,
                 afterCacheID: newerCompareCacheID,
+                beforeDateLabel: olderPhoto.date.formatted(date: .abbreviated, time: .omitted),
+                afterDateLabel: newerPhoto.date.formatted(date: .abbreviated, time: .omitted),
                 size: CGSize(
                     width: max(1, geometry.size.width - 40),
                     height: max(1, geometry.size.height * 0.6)
@@ -117,7 +121,7 @@ struct ComparePhotosView: View {
                     AppGlassCard(
                         depth: .elevated,
                         cornerRadius: 16,
-                        tint: Color.appAccent.opacity(0.14),
+                        tint: photosTheme.softTint,
                         contentPadding: 10
                     ) {
                         VStack(spacing: 8) {
@@ -131,15 +135,9 @@ struct ComparePhotosView: View {
                             )
                             .frame(maxHeight: cardHeight)
                             
-                            VStack(spacing: 4) {
-                            Text(AppLocalization.string("Then"))
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.white.opacity(0.8))
-                                Text(olderPhoto.date.formatted(date: .abbreviated, time: .omitted))
-                                    .font(.caption2)
-                                    .foregroundStyle(.white.opacity(0.62))
-                            }
+                            Text(olderPhoto.date.formatted(date: .abbreviated, time: .omitted))
+                                .font(AppTypography.badge)
+                                .foregroundStyle(AppColorRoles.textPrimary)
                         }
                     }
                     
@@ -147,7 +145,7 @@ struct ComparePhotosView: View {
                     AppGlassCard(
                         depth: .elevated,
                         cornerRadius: 16,
-                        tint: Color.cyan.opacity(0.14),
+                        tint: photosTheme.strongTint,
                         contentPadding: 10
                     ) {
                         VStack(spacing: 8) {
@@ -161,15 +159,9 @@ struct ComparePhotosView: View {
                             )
                             .frame(maxHeight: cardHeight)
                             
-                            VStack(spacing: 4) {
-                            Text(AppLocalization.string("Now"))
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.white.opacity(0.8))
-                                Text(newerPhoto.date.formatted(date: .abbreviated, time: .omitted))
-                                    .font(.caption2)
-                                    .foregroundStyle(.white.opacity(0.62))
-                            }
+                            Text(newerPhoto.date.formatted(date: .abbreviated, time: .omitted))
+                                .font(AppTypography.badge)
+                                .foregroundStyle(AppColorRoles.textPrimary)
                         }
                     }
                 }
@@ -187,7 +179,7 @@ struct ComparePhotosView: View {
         AppGlassCard(
             depth: .elevated,
             cornerRadius: 18,
-            tint: Color.cyan.opacity(0.14),
+            tint: photosTheme.softTint,
             contentPadding: 14
         ) {
             VStack(spacing: 14) {
@@ -196,11 +188,11 @@ struct ComparePhotosView: View {
                 
                 HStack {
                     Image(systemName: "clock")
-                        .foregroundStyle(.white.opacity(0.76))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                     Text(AppLocalization.plural("compare.days.apart", daysDiff))
-                        .font(.subheadline.weight(.medium))
+                        .font(AppTypography.bodyStrong)
                         .monospacedDigit()
-                        .foregroundStyle(.white.opacity(0.84))
+                        .foregroundStyle(AppColorRoles.textPrimary)
                 }
                 
                 // Metric changes
@@ -208,12 +200,13 @@ struct ComparePhotosView: View {
                     AppGlassCard(
                         depth: .base,
                         cornerRadius: 14,
-                        tint: Color.appAccent.opacity(0.12),
+                        tint: measurementsTheme.softTint,
                         contentPadding: 12
                     ) {
                         VStack(alignment: .leading, spacing: 12) {
                             Text(AppLocalization.string("Changes"))
-                                .font(.headline)
+                                .font(AppTypography.displaySection)
+                                .foregroundStyle(AppColorRoles.textPrimary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             
                             ForEach(metricChanges, id: \.kind) { change in
@@ -485,13 +478,13 @@ private struct MetricChangeRow: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(change.kind.title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(AppTypography.bodyStrong)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                 
                 HStack(spacing: 4) {
                     Text("\(displayValue(change.oldValue).formatted(.number.precision(.fractionLength(1)))) → \(displayValue(change.newValue).formatted(.number.precision(.fractionLength(1)))) \(displayUnit)")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 }
             }
             
@@ -512,13 +505,13 @@ private struct MetricChangeRow: View {
                         if let percentage = change.percentageChange {
                             Text("\(abs(percentage).formatted(.number.precision(.fractionLength(1))))%")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppColorRoles.textSecondary)
                         }
                     }
                 } else {
                     Text(AppLocalization.string("No change"))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 }
             }
         }
@@ -542,11 +535,11 @@ private struct MetricChangeRow: View {
         let isGoodIncrease = change.kind == .leanBodyMass
         
         if change.difference > 0 {
-            return isGoodIncrease ? .green : .red
+            return isGoodIncrease ? AppColorRoles.chartPositive : AppColorRoles.chartNegative
         } else if change.difference < 0 {
-            return isGoodIncrease ? .red : .green
+            return isGoodIncrease ? AppColorRoles.chartNegative : AppColorRoles.chartPositive
         } else {
-            return .secondary
+            return AppColorRoles.textSecondary
         }
     }
 }
@@ -557,6 +550,8 @@ private struct BeforeAfterSlider: View {
     let afterImage: Data
     let beforeCacheID: String?
     let afterCacheID: String?
+    let beforeDateLabel: String
+    let afterDateLabel: String
     let size: CGSize
     
     @Environment(\.displayScale) private var displayScale
@@ -671,9 +666,11 @@ private struct BeforeAfterSlider: View {
             
             // Labels
             HStack {
-                Text(AppLocalization.string("Then"))
+                Text(beforeDateLabel)
                     .font(.caption)
                     .fontWeight(.bold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .foregroundStyle(.white)
                     .padding(8)
                     .background(.black.opacity(0.6))
@@ -683,9 +680,11 @@ private struct BeforeAfterSlider: View {
                 
                 Spacer()
                 
-                Text(AppLocalization.string("Now"))
+                Text(afterDateLabel)
                     .font(.caption)
                     .fontWeight(.bold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .foregroundStyle(.white)
                     .padding(8)
                     .background(.black.opacity(0.6))

@@ -86,7 +86,8 @@ private extension MultiPhotoImportView {
         if count == 1 {
             return AppLocalization.string("Import 1 Photo")
         }
-        return String(format: AppLocalization.string("Import %d Photos"), count)
+        let photosCount = AppLocalization.plural("import.photos.count", count)
+        return AppLocalization.string("import.photos.title", photosCount)
     }
 
     var thumbnailStrip: some View {
