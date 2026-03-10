@@ -139,7 +139,7 @@ struct PhysiqueIndicatorsSection: View {
                         destination: PhysiqueRatioDetailView(
                             title: AppLocalization.string("Shoulder-to-Waist Ratio"),
                             shortCode: "SWR",
-                            formula: "SWR = shoulders / waist",
+                            formula: AppLocalization.string("formula.swr"),
                             valueText: String(format: "%.2f", swr.value),
                             categoryName: AppLocalization.string(swr.category.rawValue),
                             categoryColor: swr.category.color,
@@ -171,7 +171,7 @@ struct PhysiqueIndicatorsSection: View {
                         destination: PhysiqueRatioDetailView(
                             title: AppLocalization.string("Chest-to-Waist Ratio"),
                             shortCode: "CWR",
-                            formula: "CWR = chest / waist",
+                            formula: AppLocalization.string("formula.cwr"),
                             valueText: String(format: "%.2f", result.value),
                             categoryName: AppLocalization.string(result.category.rawValue),
                             categoryColor: result.category.color,
@@ -205,7 +205,7 @@ struct PhysiqueIndicatorsSection: View {
                         destination: PhysiqueRatioDetailView(
                             title: AppLocalization.string("Shoulder-to-Hip Ratio"),
                             shortCode: "SHR",
-                            formula: "SHR = shoulders / hips",
+                            formula: AppLocalization.string("formula.shr"),
                             valueText: String(format: "%.2f", result.value),
                             categoryName: AppLocalization.string(result.category.rawValue),
                             categoryColor: result.category.color,
@@ -240,7 +240,7 @@ struct PhysiqueIndicatorsSection: View {
                         destination: PhysiqueRatioDetailView(
                             title: AppLocalization.string("Hip-to-Waist Ratio"),
                             shortCode: "HWR",
-                            formula: "HWR = hips / waist",
+                            formula: AppLocalization.string("formula.hwr"),
                             valueText: String(format: "%.2f", result.value),
                             categoryName: AppLocalization.string(result.category.rawValue),
                             categoryColor: result.category.color,
@@ -274,7 +274,7 @@ struct PhysiqueIndicatorsSection: View {
                         destination: PhysiqueRatioDetailView(
                             title: AppLocalization.string("Bust-to-Waist Ratio"),
                             shortCode: "BWR",
-                            formula: "BWR = bust_or_chest / waist",
+                            formula: AppLocalization.string("formula.bwr"),
                             valueText: String(format: "%.2f", result.value),
                             categoryName: AppLocalization.string(result.category.rawValue),
                             categoryColor: result.category.color,
@@ -308,7 +308,7 @@ struct PhysiqueIndicatorsSection: View {
                         destination: PhysiqueRatioDetailView(
                             title: AppLocalization.string("Shoulder-to-Hip Ratio"),
                             shortCode: "SHR",
-                            formula: "SHR = shoulders / hips",
+                            formula: AppLocalization.string("formula.shr"),
                             valueText: String(format: "%.2f", result.value),
                             categoryName: AppLocalization.string(result.category.rawValue),
                             categoryColor: result.category.color,
@@ -348,7 +348,7 @@ struct PhysiqueIndicatorsSection: View {
                     destination: PhysiqueRatioDetailView(
                         title: AppLocalization.string("Waist-Height Ratio"),
                         shortCode: "WHtR",
-                        formula: "WHtR = waist / height",
+                        formula: AppLocalization.string("formula.whtr"),
                         valueText: String(format: "%.2f", whtrVisual.ratio),
                         categoryName: AppLocalization.string(whtrVisual.category.rawValue),
                         categoryColor: whtrVisual.category.color,
@@ -380,7 +380,7 @@ struct PhysiqueIndicatorsSection: View {
                     destination: PhysiqueRatioDetailView(
                         title: AppLocalization.string("Body Fat Percentage"),
                         shortCode: "BF%",
-                        formula: "BF% = estimated fat mass / body mass",
+                        formula: AppLocalization.string("formula.bf"),
                         valueText: String(format: "%.1f%%", result.percent),
                         categoryName: AppLocalization.string(result.category.rawValue),
                         categoryColor: result.category.color,
@@ -410,7 +410,7 @@ struct PhysiqueIndicatorsSection: View {
                     destination: PhysiqueRatioDetailView(
                         title: AppLocalization.string("Relative Fat Mass"),
                         shortCode: "RFM",
-                        formula: "RFM = 64/76 - 20*(height / waist)",
+                        formula: AppLocalization.string("formula.rfm"),
                         valueText: String(format: "%.1f%%", result.percent),
                         categoryName: AppLocalization.string(result.category.rawValue),
                         categoryColor: result.category.color,

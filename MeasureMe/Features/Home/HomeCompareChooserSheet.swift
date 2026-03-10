@@ -125,6 +125,9 @@ struct HomeCompareChooserSheet: View {
             .background(Color.black.ignoresSafeArea())
             .navigationTitle(AppLocalization.string("home.compare.chooser.title"))
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.black, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Done")) {
@@ -157,27 +160,30 @@ struct HomeCompareChooserSheet: View {
             }
             .padding(.horizontal, 16)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(availableRanges, id: \.self) { range in
-                        Button {
-                            Haptics.selection()
-                            selectedRange = range
-                        } label: {
-                            Text(range.title)
-                                .font(AppTypography.microEmphasis)
-                                .foregroundStyle(selectedRange == range ? .black : .white.opacity(0.82))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(selectedRange == range ? Color.appAccent : Color.white.opacity(0.06))
-                                .clipShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("home.compare.filter.\(range.rawValue)")
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 110), spacing: 8, alignment: .leading)],
+                alignment: .leading,
+                spacing: 8
+            ) {
+                ForEach(availableRanges, id: \.self) { range in
+                    Button {
+                        Haptics.selection()
+                        selectedRange = range
+                    } label: {
+                        Text(range.title)
+                            .font(AppTypography.microEmphasis)
+                            .foregroundStyle(selectedRange == range ? .black : .white.opacity(0.82))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .background(selectedRange == range ? Color.appAccent : Color.white.opacity(0.06))
+                            .clipShape(Capsule())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("home.compare.filter.\(range.rawValue)")
                 }
-                .padding(.horizontal, 16)
             }
+            .padding(.horizontal, 16)
 
             if selectedRange == .custom {
                 HStack(spacing: 12) {

@@ -1533,6 +1533,14 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "ABSI (technical)" = "Wskaźnik kształtu ciała";
 "To calculate this indicator, add:" = "Aby obliczyć ten wskaźnik, dodaj:";
 "Formula" = "Wzór";
+"formula.swr" = "SWR = barki / talia";
+"formula.cwr" = "CWR = klatka / talia";
+"formula.shr" = "SHR = barki / biodra";
+"formula.hwr" = "HWR = biodra / talia";
+"formula.bwr" = "BWR = biust lub klatka / talia";
+"formula.whtr" = "WHtR = talia / wzrost";
+"formula.bf" = "BF% = szacowana masa tłuszczu / masa ciała";
+"formula.rfm" = "RFM = 64/76 - 20*(wzrost / talia)";
 "What it means" = "Co to oznacza";
 "How to improve" = "Jak poprawić";
 "Reference ranges" = "Zakresy referencyjne";
