@@ -153,7 +153,7 @@ struct PremiumPaywallView: View {
                 ScrollView {
                     VStack(spacing: 14) {
                         Text(AppLocalization.string("Premium Edition"))
-                            .font(AppTypography.displaySection)
+                            .font(AppTypography.sectionTitle)
                             .foregroundStyle(AppColorRoles.textPrimary)
                             .multilineTextAlignment(.center)
 
@@ -175,11 +175,11 @@ struct PremiumPaywallView: View {
                         .frame(width: 44, height: 44)
                         .background(
                             Circle()
-                                .fill(AppColorRoles.surfaceElevated)
+                                .fill(AppColorRoles.surfacePrimary)
                         )
                         .overlay(
                             Circle()
-                                .stroke(AppColorRoles.borderStrong, lineWidth: 1)
+                                .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                         )
                         .contentShape(Circle())
                 }
@@ -253,7 +253,7 @@ struct PremiumPaywallView: View {
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .stroke(AppColorRoles.borderStrong, lineWidth: 1)
+                                .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                         )
                 )
                 .tag(slide.id)
@@ -277,7 +277,7 @@ struct PremiumPaywallView: View {
 
     private func featureDescriptionCard(for slide: PremiumSlide) -> some View {
         Text(AppLocalization.string(slide.bodyKey))
-            .font(AppTypography.bodyStrong)
+            .font(AppTypography.bodyEmphasis)
             .foregroundStyle(AppColorRoles.textPrimary.opacity(0.95))
             .multilineTextAlignment(.leading)
             .lineSpacing(3)
@@ -289,21 +289,21 @@ struct PremiumPaywallView: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [slide.tint.opacity(0.22), AppColorRoles.surfaceGlass],
+                            colors: [slide.tint.opacity(0.22), AppColorRoles.surfaceSecondary],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(AppColorRoles.borderStrong, lineWidth: 1)
+                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )
     }
 
     private var slideContentSeparator: some View {
         Rectangle()
-            .fill(AppColorRoles.borderStrong)
+            .fill(AppColorRoles.borderSubtle)
             .frame(height: 1)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 2)
@@ -322,7 +322,7 @@ struct PremiumPaywallView: View {
                 )
 
             Text(AppLocalization.string(slide.titleKey))
-                .font(AppTypography.displayStatement)
+                .font(AppTypography.headlineEmphasis)
                 .foregroundStyle(AppColorRoles.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -347,16 +347,16 @@ struct PremiumPaywallView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Circle()
-                    .fill(AppColorRoles.surfaceElevated)
+                    .fill(AppColorRoles.surfacePrimary)
                     .frame(width: 30, height: 30)
                     .overlay(
                         Image(systemName: "sparkles")
                             .font(AppTypography.iconSmall)
-                            .foregroundStyle(AppColorRoles.accentPrimary)
+                            .foregroundStyle(Color.appAccent)
                     )
 
                 Text(AppLocalization.string("premium.carousel.insight.header"))
-                    .font(AppTypography.bodyStrong)
+                    .font(AppTypography.bodyEmphasis)
                     .foregroundStyle(AppColorRoles.textPrimary.opacity(0.92))
             }
 
@@ -367,11 +367,11 @@ struct PremiumPaywallView: View {
             HStack(spacing: 8) {
                 Image(systemName: "lightbulb.fill")
                     .font(AppTypography.iconSmall)
-                    .foregroundStyle(AppColorRoles.accentPrimary.opacity(0.82))
+                    .foregroundStyle(Color.appAccent.opacity(0.82))
 
                 Text(AppLocalization.string("premium.carousel.insight.tip"))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(AppColorRoles.accentPrimary)
+                    .foregroundStyle(Color.appAccent)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 10)
@@ -397,14 +397,14 @@ struct PremiumPaywallView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [Color(hex: "#1E2850").opacity(0.85), AppColorRoles.surfaceCanvas.opacity(0.45)],
+                        colors: [Color(hex: "#1E2850").opacity(0.85), Color.black.opacity(0.45)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(AppColorRoles.borderStrong, lineWidth: 1)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                 )
         )
     }

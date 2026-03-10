@@ -11,4 +11,13 @@ enum AppColorRoles {
     static let stateSuccess = Color(hex: "#22C55E")
     static let stateWarning = Color(hex: "#FCA311")
     static let stateError = Color(hex: "#EF4444")
+
+    // Backward-compatible aliases used by in-flight UI refactors.
+    static let surfaceCanvas = Color.black
+    static let surfaceGlass = surfaceSecondary
+    static let surfaceElevated = surfacePrimary
+    static let borderStrong = borderSubtle
+    static let accentPrimary = Color.appAccent
+    static let chartPositive = stateSuccess
+    static let chartNegative = stateError
 }
