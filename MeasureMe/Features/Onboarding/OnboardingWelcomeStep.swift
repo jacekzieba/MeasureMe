@@ -140,7 +140,7 @@ struct OnboardingWelcomeStep: View {
     private var insightPreview: some View {
         VStack(alignment: .leading, spacing: 0) {
             MetricInsightCard(
-                text: AppLocalization.systemString("You're trending down steadily. Keep 3 strength sessions and 8k+ steps this week."),
+                text: AppLocalization.string("You're trending down steadily. Keep 3 strength sessions and 8k+ steps this week."),
                 compact: true,
                 isLoading: false
             )
