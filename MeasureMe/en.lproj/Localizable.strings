@@ -1152,6 +1152,14 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "ABSI (technical)" = "ABSI (technical)";
 "To calculate this indicator, add:" = "To calculate this indicator, add:";
 "Formula" = "Formula";
+"formula.swr" = "SWR = shoulders / waist";
+"formula.cwr" = "CWR = chest / waist";
+"formula.shr" = "SHR = shoulders / hips";
+"formula.hwr" = "HWR = hips / waist";
+"formula.bwr" = "BWR = bust or chest / waist";
+"formula.whtr" = "WHtR = waist / height";
+"formula.bf" = "BF% = estimated fat mass / body mass";
+"formula.rfm" = "RFM = 64/76 - 20*(height / waist)";
 "What it means" = "What it means";
 "How to improve" = "How to improve";
 "Reference ranges" = "Reference ranges";
