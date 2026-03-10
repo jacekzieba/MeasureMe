@@ -109,16 +109,16 @@
 "home.thisweek.empty" = "Brak wpisów";
 "home.thisweek.single" = "Aktywne dni: 1";
 "home.thisweek.multiple" = "Aktywne dni: %d";
-"home.thisweek.detail.empty" = "Dodaj pomiar, aby aktywować ten tydzień.";
+"home.thisweek.detail.empty" = "Dodaj pierwszy pomiar w tym tygodniu.";
 "home.thisweek.detail.logged" = "Ostatni check-in: %@.";
 "home.goalstatus.ontrack" = "Jesteś na dobrej, zrównoważonej ścieżce.";
 "home.goalstatus.slightlyoff" = "Małe kroki też się liczą. Działaj dalej.";
 "home.goalstatus.needsattention" = "Dasz radę. Jeden check‑in na raz.";
 "home.goalstatus.nogoals" = "Ustaw cel, gdy będziesz gotowy.";
-"home.hero.fresh.title" = "Zacznij od jednego dobrego sygnału";
-"home.hero.fresh.detail" = "Jeden pomiar albo jedno zdjęcie wystarczy, żeby Strona główna zaczęła mieć sens.";
+"home.hero.fresh.title" = "Zacznij od pierwszego kroku";
+"home.hero.fresh.detail" = "Jeden pomiar albo zdjęcie wystarczy, aby zacząć.";
 "home.hero.fresh.cta" = "Zacznij teraz";
-"home.nextfocus.label" = "Sygnał progresu";
+"home.nextfocus.label" = "Progres";
 "home.nextfocus.cta" = "Zrób to teraz";
 "home.nextfocus.cta.metric" = "Zobacz metrykę";
 "home.nextfocus.cta.goal" = "Ustaw cel";
@@ -230,7 +230,10 @@
 "home.compare.filter.empty" = "Brak zdjęć w tym zakresie";
 "home.compare.filter.empty.detail" = "Wybierz inny zakres czasu, żeby znaleźć zdjęcia do porównania.";
 "home.module.setup.eyebrow" = "Rytm";
-"home.module.setup.subtitle" = "Warto domknąć jeszcze %d zadań startowych.";
+"home.module.setup.subtitle.one" = "Dokończ %d zadanie testowe";
+"home.module.setup.subtitle.few" = "Dokończ %d zadania testowe";
+"home.module.setup.subtitle.many" = "Dokończ %d zadań testowych";
+"home.module.setup.subtitle" = "Dokończ %d zadań testowych";
 "home.module.setup.pill" = "Zostało %d";
 "home.card.open" = "Otwórz";
 "Key metrics" = "Kluczowe metryki";
@@ -246,7 +249,7 @@
 "import.photos.count" = "%d zdjęć";
 "Shoulder-to-Hip Ratio" = "Stosunek barków do bioder";
 "Waist" = "Talia";
-"You're trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Trend stabilnie spada. Trzymaj 3 treningi siłowe i 8k+ kroków w tym tygodniu.";
+"You're trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Trend stabilnie spada. Utrzymaj 3 treningi siłowe i 8k+ kroków w tym tygodniu.";
 "This week" = "Ten tydzień";
 
 "progress.now" = "Teraz %@";
@@ -1230,9 +1233,9 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "One weekly nudge helps keep the habit." = "Jedno przypomnienie tygodniowo pomaga utrzymać nawyk.";
 "Connect Apple Health" = "Połącz Apple Zdrowie";
 "Import history and keep data in sync." = "Zaimportuj historię i utrzymuj dane na bieżąco.";
-"Explore Premium" = "Sprawdz premium";
-"Explore Premium (14 days free)" = "Sprawdz premium (14 dni za darmo)";
-"Try deeper insights and compare photos side-by-side." = "Otrzymuj Analizy AI, wskaźniki zdrowia, wskaźniki sylwetki, eksport danych i porównanie zdjęć.";
+"Explore Premium" = "Sprawdź Premium";
+"Explore Premium (14 days free)" = "Sprawdź Premium (14 dni za darmo)";
+"Try deeper insights and compare photos side-by-side." = "Otrzymuj Analizy AI i porównuj zdjęcia obok siebie.";
 "Finish setup (optional)" = "Dokończ konfigurację (opcjonalnie)";
 "Hide checklist" = "Ukryj checklistę";
 "Show setup checklist on Home" = "Pokaż checklistę konfiguracji na Stronie głównej";
@@ -1608,3 +1611,4 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "The backup is incompatible with this app version." = "Backup jest niezgodny z tą wersją aplikacji.";
 "Could not create iCloud backup: %@." = "Nie udało się utworzyć backupu iCloud: %@.";
 "Could not restore iCloud backup: %@." = "Nie udało się przywrócić backupu iCloud: %@.";
+"Reminder is set." = "Przypomnienie ustawione.";
