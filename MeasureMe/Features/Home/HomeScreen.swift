@@ -1092,7 +1092,7 @@ struct HomeView: View {
                     VStack(alignment: .leading, spacing: heroSummaryCardContentSpacing) {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text(primaryValue)
-                                .font(.system(size: prefersStackedHeroPanels ? 22 : 24, weight: .bold, design: .rounded).monospacedDigit())
+                                .font(heroSummaryCardPrimaryFont)
                                 .foregroundStyle(AppColorRoles.textPrimary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.82)
@@ -1101,11 +1101,12 @@ struct HomeView: View {
 
                             if let supportingLabel = nextFocusInsight.supportingLabel {
                                 Text(supportingLabel)
-                                    .font(AppTypography.badge)
+                                    .font(heroSummaryCardBadgeFont)
                                     .foregroundStyle(homeTheme.accent)
                                     .lineLimit(1)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 3)
+                                    .minimumScaleFactor(0.82)
+                                    .padding(.horizontal, heroSummaryCardBadgeHorizontalPadding)
+                                    .padding(.vertical, heroSummaryCardBadgeVerticalPadding)
                                     .background(
                                         Capsule(style: .continuous)
                                             .fill(homeTheme.pillFill)
@@ -1198,19 +1199,36 @@ struct HomeView: View {
     }
 
     private var heroSummaryCardPadding: CGFloat {
-        dynamicTypeSize.isAccessibilitySize ? 8 : 10
+        dynamicTypeSize.isAccessibilitySize ? 6 : 10
     }
 
     private var heroSummaryCardVerticalSpacing: CGFloat {
-        dynamicTypeSize.isAccessibilitySize ? 6 : 8
+        dynamicTypeSize.isAccessibilitySize ? 4 : 8
     }
 
     private var heroSummaryCardContentSpacing: CGFloat {
-        dynamicTypeSize.isAccessibilitySize ? 3 : 5
+        dynamicTypeSize.isAccessibilitySize ? 2 : 5
     }
 
     private var heroSummaryCardCaptionFont: Font {
         dynamicTypeSize.isAccessibilitySize ? AppTypography.caption : AppTypography.captionEmphasis
+    }
+
+    private var heroSummaryCardPrimaryFont: Font {
+        let size = dynamicTypeSize.isAccessibilitySize ? 19.0 : (prefersStackedHeroPanels ? 22.0 : 24.0)
+        return .system(size: size, weight: .bold, design: .rounded).monospacedDigit()
+    }
+
+    private var heroSummaryCardBadgeFont: Font {
+        dynamicTypeSize.isAccessibilitySize ? AppTypography.microEmphasis : AppTypography.badge
+    }
+
+    private var heroSummaryCardBadgeHorizontalPadding: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 4 : 6
+    }
+
+    private var heroSummaryCardBadgeVerticalPadding: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 2 : 3
     }
 
     private var heroSummaryCardSummaryLineLimit: Int {
@@ -1219,7 +1237,7 @@ struct HomeView: View {
 
     private var heroSummaryCardMinHeight: CGFloat {
         if dynamicTypeSize.isAccessibilitySize {
-            return 108
+            return 96
         }
         return prefersStackedHeroPanels ? 120 : 124
     }
@@ -1263,9 +1281,11 @@ struct HomeView: View {
     private func heroMiniLabel(title: String, icon: String, accent: Color) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(AppTypography.iconSmall)
+                .font(dynamicTypeSize.isAccessibilitySize ? AppTypography.microEmphasis : AppTypography.iconSmall)
             Text(title)
-                .font(AppTypography.eyebrow)
+                .font(dynamicTypeSize.isAccessibilitySize ? AppTypography.microEmphasis : AppTypography.eyebrow)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
         }
         .foregroundStyle(accent)
     }

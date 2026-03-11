@@ -9,15 +9,15 @@ enum AppColorRoles {
     static let textSecondary = Color.white.opacity(0.72)
     static let textTertiary = Color.white.opacity(0.5)
 
-    static let stateSuccess = Color(hex: "#22C55E")
-    static let stateWarning = Color(hex: "#FCA311")
+    static let stateSuccess = Color.appEmerald
+    static let stateWarning = Color.appAmber
     static let stateError = Color(hex: "#EF4444")
 
     // Feature accents
-    static let accentData = Color.appAccent
-    static let accentPhoto = Color.cyan
-    static let accentPremium = Color.appAccent
-    static let accentHealth = Color(hex: "#22C55E")
+    static let accentData = Color.appTeal
+    static let accentPhoto = Color.appCyan
+    static let accentPremium = Color.appRose
+    static let accentHealth = Color.appEmerald
 
     // Backward-compatible aliases used by in-flight UI refactors.
     static let surfaceCanvas = Color.black
@@ -25,7 +25,8 @@ enum AppColorRoles {
     static let surfaceElevated = surfacePrimary
     static let surfaceInteractive = surfacePrimary
     static let borderStrong = borderSubtle
-    static let accentPrimary = Color.appAccent
+    static let accentPrimary = Color.appAmber
     static let chartPositive = stateSuccess
     static let chartNegative = stateError
+    static let compareAfter = Color.appAmber
 }

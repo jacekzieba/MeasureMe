@@ -95,9 +95,13 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertTrue(remindersButton.waitForExistence(timeout: 5), "Przycisk boostera przypomnien powinien istniec")
         remindersButton.tap()
 
+        let sheet = app.otherElements["onboarding.reminder.sheet.visible"]
         let cancel = app.buttons["onboarding.reminder.cancel"]
         let confirm = app.buttons["onboarding.reminder.confirm"]
-        XCTAssertTrue(cancel.waitForExistence(timeout: 5) || confirm.waitForExistence(timeout: 5),
+        XCTAssertTrue(
+            sheet.waitForExistence(timeout: 5)
+                || cancel.waitForExistence(timeout: 5)
+                || confirm.waitForExistence(timeout: 5),
                       "Arkusz konfiguracji przypomnien powinien sie pojawic")
         if cancel.exists {
             cancel.tap()

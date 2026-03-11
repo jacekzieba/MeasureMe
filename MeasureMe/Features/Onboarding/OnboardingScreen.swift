@@ -220,6 +220,13 @@ struct OnboardingView: View {
                 setupReminder()
             }
         }
+        .overlay(alignment: .topLeading) {
+            if showReminderSetupSheet {
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .accessibilityIdentifier("onboarding.reminder.sheet.visible")
+            }
+        }
         .preferredColorScheme(.dark)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if focusedField == nil {

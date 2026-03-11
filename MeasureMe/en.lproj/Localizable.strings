@@ -1182,6 +1182,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Are physique indicators medical?" = "Are physique indicators medical?";
 "No. Physique indicators are visual and proportion-focused heuristics designed for appearance tracking, not medical diagnosis." = "No. Physique indicators are visual and proportion-focused heuristics designed for appearance tracking, not medical diagnosis.";
 "Apple Intelligence insights, Health Indicators, and photo comparison." = "Apple Intelligence insights, Health Indicators, Physique Indicators, and photo comparison.";
+"Loading photos" = "Loading photos";
 
 "photo.measurements.filled" = "%d filled";
 "startup.loading.status.initializingStorage" = "Initializing your workspace...";

@@ -303,6 +303,7 @@ struct MeasureMeApp: App {
         let args = ProcessInfo.processInfo.arguments
         let defaults = AppSettingsStore.shared
         let metricKeys = AppSettingsKeys.Metrics.allEnabledKeys
+        let shouldPrepareUITestTouchHandling = args.contains("-uiTestMode") || args.contains("-uiTestOnboardingMode")
         let enabledByDefault: Set<String> = [
             AppSettingsKeys.Metrics.weightEnabled,
             AppSettingsKeys.Metrics.bodyFatEnabled,
@@ -345,12 +346,14 @@ struct MeasureMeApp: App {
             }
         }
 
+        if shouldPrepareUITestTouchHandling {
+            // SwiftUI buttons inside onboarding/home scroll views can miss XCTest taps
+            // unless the default UIScrollView touch delay is disabled for UI tests.
+            UIScrollView.swizzleDelaysContentTouchesForUITesting()
+            UIScrollView.appearance().delaysContentTouches = false
+        }
+
         guard args.contains("-uiTestMode") else { return }
-        // Swizzle UIScrollView so every future instance has delaysContentTouches = false.
-        // This lets XCTest synthesised taps reach SwiftUI's .buttonStyle(.plain) buttons
-        // without the 150 ms hold that UIScrollView normally uses to distinguish tap vs scroll.
-        UIScrollView.swizzleDelaysContentTouchesForUITesting()
-        UIScrollView.appearance().delaysContentTouches = false
         defaults.removeObject(forKey: AppSettingsKeys.Home.homeLayoutData)
         defaults.set(\.homeLayout.layoutSchemaVersion, HomeLayoutSnapshot.currentSchemaVersion)
         defaults.set(\.onboarding.hasCompletedOnboarding, true)
@@ -358,6 +361,10 @@ struct MeasureMeApp: App {
         defaults.set(\.premium.premiumEntitlement, true)
         defaults.set(\.analytics.appleIntelligenceEnabled, true)
         defaults.set(\.onboarding.onboardingChecklistShow, false)
+        defaults.set(\.onboarding.onboardingChecklistMetricsCompleted, false)
+        defaults.set(\.onboarding.onboardingChecklistPremiumExplored, false)
+        defaults.set(\.onboarding.onboardingChecklistCollapsed, false)
+        defaults.set(\.onboarding.onboardingSkippedReminders, false)
         defaults.set(\.home.homeTabScrollOffset, -20.0)
         defaults.set(\.home.showLastPhotosOnHome, true)
         defaults.set(\.home.showMeasurementsOnHome, true)

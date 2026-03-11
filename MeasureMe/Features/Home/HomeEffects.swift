@@ -30,6 +30,9 @@ struct HomeEffects {
     }
 
     func reminderChecklistCompleted() -> Bool {
+        if ProcessInfo.processInfo.arguments.contains("-uiTestChecklistNeedsReminders") {
+            return false
+        }
         let reminders = notifications.loadReminders()
         let hasAnyReminder = notifications.smartEnabled || !reminders.isEmpty
         return notifications.notificationsEnabled && hasAnyReminder
