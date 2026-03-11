@@ -22,6 +22,6 @@ struct PhotoGridSkeletonView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Loading photos")
+        .accessibilityLabel(AppLocalization.string("Loading photos"))
     }
 }

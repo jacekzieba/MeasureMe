@@ -47,6 +47,7 @@ struct OnboardingReminderSetupSheet: View {
                     }
                 }
                 .scrollContentBackground(.hidden)
+                .accessibilityIdentifier("onboarding.reminder.sheet")
             }
             .navigationTitle(AppLocalization.systemString("Reminder schedule"))
             .navigationBarTitleDisplayMode(.inline)

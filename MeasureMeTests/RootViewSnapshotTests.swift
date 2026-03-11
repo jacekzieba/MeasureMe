@@ -85,6 +85,10 @@ final class RootViewSnapshotTests: XCTestCase {
 
     // Porównanie ze snapshotem w __Snapshots__.
     let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-    assertSnapshot(of: vc, as: .image, record: shouldRecord)
+    assertSnapshot(
+      of: vc,
+      as: .recursiveDescription,
+      record: shouldRecord
+    )
   }
 }
