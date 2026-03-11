@@ -7,10 +7,12 @@ enum AppColorRoles {
 
     static let textPrimary = Color.white
     static let textSecondary = Color.white.opacity(0.72)
+    static let textTertiary = Color.white.opacity(0.5)
 
     static let stateSuccess = Color(hex: "#22C55E")
     static let stateWarning = Color(hex: "#FCA311")
     static let stateError = Color(hex: "#EF4444")
+
     // Feature accents
     static let accentData = Color.appAccent
     static let accentPhoto = Color.cyan
