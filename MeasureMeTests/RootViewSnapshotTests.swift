@@ -22,10 +22,18 @@ final class RootViewSnapshotTests: XCTestCase {
     #endif
 
     let defaults = UserDefaults.standard
+    let settingsStore = AppSettingsStore.shared
     let baselineLanguage = defaults.object(forKey: "appLanguage")
     let baselineOnboarding = defaults.object(forKey: "hasCompletedOnboarding")
     let baselinePremiumFirstLaunch = defaults.object(forKey: "premium_first_launch_date")
+    let baselineUserName = defaults.object(forKey: "userName")
+    let baselineUserAge = defaults.object(forKey: "userAge")
+    let baselineUserGender = defaults.object(forKey: "userGender")
+    let baselineManualHeight = defaults.object(forKey: "manualHeight")
+    let baselineUnitsSystem = defaults.object(forKey: "unitsSystem")
+    let baselineNowOverride = AppClock.overrideNowForTesting
     let wereAnimationsEnabled = UIView.areAnimationsEnabled
+    let fixedNow = Date(timeIntervalSince1970: 1_770_000_000)
     defer {
       if let baselineLanguage {
         defaults.set(baselineLanguage, forKey: "appLanguage")
@@ -42,12 +50,47 @@ final class RootViewSnapshotTests: XCTestCase {
       } else {
         defaults.removeObject(forKey: "premium_first_launch_date")
       }
+      if let baselineUserName {
+        defaults.set(baselineUserName, forKey: "userName")
+      } else {
+        defaults.removeObject(forKey: "userName")
+      }
+      if let baselineUserAge {
+        defaults.set(baselineUserAge, forKey: "userAge")
+      } else {
+        defaults.removeObject(forKey: "userAge")
+      }
+      if let baselineUserGender {
+        defaults.set(baselineUserGender, forKey: "userGender")
+      } else {
+        defaults.removeObject(forKey: "userGender")
+      }
+      if let baselineManualHeight {
+        defaults.set(baselineManualHeight, forKey: "manualHeight")
+      } else {
+        defaults.removeObject(forKey: "manualHeight")
+      }
+      if let baselineUnitsSystem {
+        defaults.set(baselineUnitsSystem, forKey: "unitsSystem")
+      } else {
+        defaults.removeObject(forKey: "unitsSystem")
+      }
+      AppClock.overrideNowForTesting = baselineNowOverride
+      AppLocalization.reloadLanguage()
+      settingsStore.reload()
       UIView.setAnimationsEnabled(wereAnimationsEnabled)
     }
 
-    defaults.set("en", forKey: "appLanguage")
-    defaults.set(false, forKey: "hasCompletedOnboarding")
-    defaults.set(Date().timeIntervalSince1970, forKey: "premium_first_launch_date")
+    AppClock.overrideNowForTesting = fixedNow
+    settingsStore.set(\.experience.appLanguage, "en")
+    AppLocalization.reloadLanguage()
+    settingsStore.set(\.onboarding.hasCompletedOnboarding, false)
+    settingsStore.set(\.premium.premiumFirstLaunchDate, fixedNow.timeIntervalSince1970)
+    settingsStore.set(\.profile.userName, "Jacek")
+    settingsStore.set(\.profile.userAge, 32)
+    settingsStore.set(\.profile.userGender, "male")
+    settingsStore.set(\.profile.manualHeight, 180.0)
+    settingsStore.set(\.profile.unitsSystem, "metric")
     UIView.setAnimationsEnabled(false)
 
     // SwiftData: in-memory container, żeby @Query miało modelContext
@@ -62,7 +105,8 @@ final class RootViewSnapshotTests: XCTestCase {
     // Widok + wstrzyknięcie kontenera
     let view = RootView(
       premiumStore: premiumStore,
-      autoCheckPaywallPrompt: false
+      autoCheckPaywallPrompt: false,
+      runDeferredStartupWork: false
     )
       .modelContainer(container)
       .environment(\.colorScheme, .dark) // opcjonalnie; możesz zmienić na .light
@@ -81,7 +125,7 @@ final class RootViewSnapshotTests: XCTestCase {
     vc.view.layoutIfNeeded()
 
     // Pozwól onAppear Task uruchomić się i zakończyć zanim zrobimy snapshot.
-    try await Task.sleep(for: .milliseconds(50))
+    try await Task.sleep(for: .milliseconds(100))
 
     // Porównanie ze snapshotem w __Snapshots__.
     let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"

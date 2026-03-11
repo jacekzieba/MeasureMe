@@ -49,6 +49,7 @@ struct HealthMetricsSection: View {
     let waistDelta7dText: String?
     let displayMode: DisplayMode
     let title: String
+    private let runSideEffects: Bool
 
     init(
         latestWaist: Double?,
@@ -60,7 +61,8 @@ struct HealthMetricsSection: View {
         weightDelta7dText: String? = nil,
         waistDelta7dText: String? = nil,
         displayMode: DisplayMode = .full,
-        title: String = "Health"
+        title: String = "Health",
+        runSideEffects: Bool = true
     ) {
         self.latestWaist = latestWaist
         self.latestHeight = latestHeight
@@ -72,6 +74,7 @@ struct HealthMetricsSection: View {
         self.waistDelta7dText = waistDelta7dText
         self.displayMode = displayMode
         self.title = title
+        self.runSideEffects = runSideEffects
     }
 
     @State private var healthInsightText: String?
@@ -225,9 +228,15 @@ struct HealthMetricsSection: View {
             }
         }
         .task(id: healthInsightInput) {
+            guard runSideEffects else {
+                healthInsightText = nil
+                isLoadingInsight = false
+                return
+            }
             await loadHealthInsightIfNeeded()
         }
         .onAppear {
+            guard runSideEffects else { return }
             Task { @MainActor in
                 migrateLegacyVisibilityIfNeeded()
             }

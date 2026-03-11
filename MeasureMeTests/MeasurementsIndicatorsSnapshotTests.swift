@@ -11,13 +11,14 @@ import SwiftData
 
 final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
     @MainActor
-    func testHealthAndPhysiqueSections_snapshot_darkDefault() throws {
+    func testHealthAndPhysiqueSections_snapshot_darkDefault() async throws {
         #if !targetEnvironment(simulator)
         XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
         return
         #endif
 
         let defaults = UserDefaults.standard
+        let settingsStore = AppSettingsStore.shared
         let keys = [
             "appLanguage",
             "userGender",
@@ -55,20 +56,37 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
                 }
             }
             AppLocalization.reloadLanguage()
+            settingsStore.reload()
             UIView.setAnimationsEnabled(wereAnimationsEnabled)
         }
 
-        defaults.set("en", forKey: "appLanguage")
+        settingsStore.set(\.experience.appLanguage, "en")
         AppLocalization.reloadLanguage()
-        defaults.set("male", forKey: "userGender")
-        defaults.set(180.0, forKey: "manualHeight")
-        defaults.set("metric", forKey: "unitsSystem")
+        settingsStore.set(\.profile.userGender, "male")
+        settingsStore.set(\.profile.manualHeight, 180.0)
+        settingsStore.set(\.profile.unitsSystem, "metric")
 
-        let visibilityKeys = keys.filter { $0.hasPrefix("show") }
-        for key in visibilityKeys {
-            defaults.set(true, forKey: key)
-        }
-        defaults.set(true, forKey: "health_indicators_v2_migrated")
+        settingsStore.set(\.indicators.showWHtROnHome, true)
+        settingsStore.set(\.indicators.showRFMOnHome, true)
+        settingsStore.set(\.indicators.showBMIOnHome, true)
+        settingsStore.set(\.indicators.showBodyFatOnHome, true)
+        settingsStore.set(\.indicators.showLeanMassOnHome, true)
+        settingsStore.set(\.indicators.showWHROnHome, true)
+        settingsStore.set(\.indicators.showWaistRiskOnHome, true)
+        settingsStore.set(\.indicators.showABSIOnHome, true)
+        settingsStore.set(\.indicators.showBodyShapeScoreOnHome, true)
+        settingsStore.set(\.indicators.showCentralFatRiskOnHome, true)
+        settingsStore.set(\.indicators.showConicityOnHome, true)
+        settingsStore.set(\.health.healthIndicatorsV2Migrated, true)
+        settingsStore.set(\.indicators.showPhysiqueSWR, true)
+        settingsStore.set(\.indicators.showPhysiqueCWR, true)
+        settingsStore.set(\.indicators.showPhysiqueSHR, true)
+        settingsStore.set(\.indicators.showPhysiqueHWR, true)
+        settingsStore.set(\.indicators.showPhysiqueBWR, true)
+        settingsStore.set(\.indicators.showPhysiqueWHtR, true)
+        settingsStore.set(\.indicators.showPhysiqueBodyFat, true)
+        settingsStore.set(\.indicators.showPhysiqueRFM, true)
+        settingsStore.reload()
         UIView.setAnimationsEnabled(false)
 
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -94,7 +112,7 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
         premiumStore.isPremium = true
         let router = AppRouter()
 
-        let view = ScrollView {
+        let view = NavigationStack {
             VStack(spacing: 12) {
                 HealthMetricsSection(
                     latestWaist: 80.0,
@@ -104,7 +122,8 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
                     latestBodyFat: 16.0,
                     latestLeanMass: 63.0,
                     displayMode: .indicatorsOnly,
-                    title: ""
+                    title: "",
+                    runSideEffects: false
                 )
 
                 PhysiqueIndicatorsSection(
@@ -120,6 +139,7 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
+            .toolbar(.hidden, for: .navigationBar)
         }
         .modelContainer(container)
         .environmentObject(premiumStore)
@@ -127,9 +147,13 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
         .preferredColorScheme(.dark)
 
         let vc = UIHostingController(rootView: view)
-        vc.view.frame = CGRect(x: 0, y: 0, width: 390, height: 1800)
+        vc.view.frame = CGRect(x: 0, y: 0, width: 390, height: 1200)
+        let window = UIWindow(frame: vc.view.frame)
+        window.rootViewController = vc
+        window.makeKeyAndVisible()
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(100))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
         assertSnapshot(of: vc, as: .image, record: shouldRecord)
