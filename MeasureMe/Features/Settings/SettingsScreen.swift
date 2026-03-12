@@ -2,9 +2,38 @@ import SwiftUI
 import SwiftData
 import HealthKit
 import UIKit
+import Combine
 
 private extension Notification.Name {
     static let settingsOpenHomeSettingsRequested = Notification.Name("settingsOpenHomeSettingsRequested")
+}
+
+// MARK: - Alert consolidation
+
+enum SettingsAlert: Identifiable {
+    case deleteAllDataConfirm
+    case deleteAllDataResult(String)
+    case seedDummyDataConfirm
+    case seedDummyDataResult(String)
+    case backupResult(String)
+    case restoreConfirm
+    case restoreConflict(String)
+    case restoreResult(String)
+    case importResult(String)
+
+    var id: String {
+        switch self {
+        case .deleteAllDataConfirm: "deleteConfirm"
+        case .deleteAllDataResult: "deleteResult"
+        case .seedDummyDataConfirm: "seedConfirm"
+        case .seedDummyDataResult: "seedResult"
+        case .backupResult: "backupResult"
+        case .restoreConfirm: "restoreConfirm"
+        case .restoreConflict: "restoreConflict"
+        case .restoreResult: "restoreResult"
+        case .importResult: "importResult"
+        }
+    }
 }
 
 /// **SettingsView**
@@ -84,25 +113,11 @@ struct SettingsView: View {
     @State private var isPresentingShareSheet = false
     @State private var isExporting = false
     @State private var exportMessage: String = ""
-    @State private var showDeleteAllDataConfirm = false
-    @State private var showDeleteAllDataResult = false
-    @State private var deleteAllDataResultMessage = ""
     @State private var showImportPicker = false
     @State private var showImportStrategyAlert = false
     @State private var pendingImportURLs: [URL] = []
     @State private var isImporting = false
-    @State private var showImportResult = false
-    @State private var importResultMessage = ""
-    @State private var showSeedDummyDataConfirm = false
-    @State private var showSeedDummyDataResult = false
-    @State private var seedDummyDataResultMessage = ""
-    @State private var showBackupResult = false
-    @State private var backupResultMessage = ""
-    @State private var showRestoreBackupConfirm = false
-    @State private var showRestoreResult = false
-    @State private var restoreResultMessage = ""
-    @State private var showRestoreConflict = false
-    @State private var restoreConflictMessage = ""
+    @State private var activeAlert: SettingsAlert?
     @State private var settingsSearchQuery: String = ""
     @State private var selectedSettingsRoute: SettingsSearchRoute?
     
@@ -123,6 +138,56 @@ struct SettingsView: View {
     private var iCloudBackupErrorText: String? {
         let trimmed = iCloudBackupLastErrorMessage.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    // MARK: - Consolidated alert helpers
+
+    private var settingsAlertTitle: String {
+        switch activeAlert {
+        case .deleteAllDataConfirm, .deleteAllDataResult: AppLocalization.string("Delete all data")
+        case .seedDummyDataConfirm, .seedDummyDataResult: AppLocalization.string("Seed dummy data")
+        case .backupResult: AppLocalization.string("iCloud Backup")
+        case .restoreConfirm, .restoreResult: AppLocalization.string("Restore from backup")
+        case .restoreConflict: AppLocalization.string("Replace all local data with backup?")
+        case .importResult: AppLocalization.string("Import complete")
+        case .none: ""
+        }
+    }
+
+    @ViewBuilder
+    private func settingsAlertActions(_ alert: SettingsAlert) -> some View {
+        switch alert {
+        case .deleteAllDataConfirm:
+            Button(AppLocalization.string("Cancel"), role: .cancel) { }
+            Button(AppLocalization.string("Delete all data"), role: .destructive) { deleteAllUserData() }
+        case .seedDummyDataConfirm:
+            Button(AppLocalization.string("Cancel"), role: .cancel) { }
+            Button(AppLocalization.string("Seed dummy data")) { seedDummyData() }
+        case .restoreConfirm:
+            Button(AppLocalization.string("Cancel"), role: .cancel) { }
+            Button(AppLocalization.string("Restore"), role: .destructive) { performRestore() }
+        case .restoreConflict:
+            Button(AppLocalization.string("Cancel"), role: .cancel) { }
+            Button(AppLocalization.string("Replace"), role: .destructive) { performRestore() }
+        default:
+            Button(AppLocalization.string("OK"), role: .cancel) { }
+        }
+    }
+
+    @ViewBuilder
+    private func settingsAlertMessage(_ alert: SettingsAlert) -> some View {
+        switch alert {
+        case .deleteAllDataConfirm:
+            Text(AppLocalization.string("This removes all measurements, goals, photos, reminders, and imported HealthKit data stored in MeasureMe on this device. Apple Health records are not deleted and can be re-imported if sync is enabled again."))
+        case .deleteAllDataResult(let msg), .seedDummyDataResult(let msg),
+             .backupResult(let msg), .restoreResult(let msg),
+             .restoreConflict(let msg), .importResult(let msg):
+            Text(msg)
+        case .seedDummyDataConfirm:
+            Text(AppLocalization.string("This will add realistic sample measurements for recent weeks. Existing data will remain unchanged."))
+        case .restoreConfirm:
+            Text(AppLocalization.string("This will replace all current measurements, goals, photos, and settings with the latest iCloud backup."))
+        }
     }
 
     private var isSearchingSettings: Bool {
@@ -152,22 +217,25 @@ struct SettingsView: View {
         }
     }
 
-    private var homeModuleSummary: String {
+    @State private var homeModuleSummary: String = ""
+    @State private var notificationsSummary: String = ""
+
+    private func refreshHomeModuleSummary() {
         let visibleCount = settingsStore.homeLayoutSnapshot().items.filter(\.isVisible).count
-        return AppLocalization.string("settings.summary.home.modules", visibleCount)
+        homeModuleSummary = AppLocalization.string("settings.summary.home.modules", visibleCount)
     }
 
-    private var notificationsSummary: String {
+    private func refreshNotificationsSummary() {
         switch SettingsOverviewSummaryBuilder.notificationState(
             notificationsEnabled: notificationManager.notificationsEnabled,
             reminderCount: NotificationManager.shared.loadReminders().count
         ) {
         case .off:
-            return AppLocalization.string("settings.summary.notifications.off")
+            notificationsSummary = AppLocalization.string("settings.summary.notifications.off")
         case .enabledNoSchedule:
-            return AppLocalization.string("settings.summary.notifications.none")
+            notificationsSummary = AppLocalization.string("settings.summary.notifications.none")
         case .scheduled(let count):
-            return AppLocalization.string("settings.summary.notifications.count", count)
+            notificationsSummary = AppLocalization.string("settings.summary.notifications.count", count)
         }
     }
 
@@ -728,6 +796,15 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden) // Ukryj domyślne tło List
             .onAppear {
                 schedulePendingDeepLinksHandling()
+                refreshHomeModuleSummary()
+                refreshNotificationsSummary()
+            }
+            .onChange(of: settingsStore.snapshot.homeLayout.layoutData) { _, _ in
+                refreshHomeModuleSummary()
+            }
+            .onReceive(notificationManager.objectWillChange) { _ in
+                // Delay slightly so the new values are committed.
+                DispatchQueue.main.async { refreshNotificationsSummary() }
             }
             .onChange(of: settingsOpenTrackedMeasurements) { _, _ in
                 schedulePendingDeepLinksHandling()
@@ -755,58 +832,13 @@ struct SettingsView: View {
             .sheet(isPresented: $isPresentingShareSheet) {
                 ShareSheet(items: shareItems, subject: shareSubject)
             }
-            .alert(AppLocalization.string("Delete all data"), isPresented: $showDeleteAllDataConfirm) {
-                Button(AppLocalization.string("Cancel"), role: .cancel) { }
-                Button(AppLocalization.string("Delete all data"), role: .destructive) {
-                    deleteAllUserData()
-                }
-            } message: {
-                Text(AppLocalization.string("This removes all measurements, goals, photos, reminders, and imported HealthKit data stored in MeasureMe on this device. Apple Health records are not deleted and can be re-imported if sync is enabled again."))
-            }
-            .alert(AppLocalization.string("Delete all data"), isPresented: $showDeleteAllDataResult) {
-                Button(AppLocalization.string("OK"), role: .cancel) { }
-            } message: {
-                Text(deleteAllDataResultMessage)
-            }
-            .alert(AppLocalization.string("Seed dummy data"), isPresented: $showSeedDummyDataConfirm) {
-                Button(AppLocalization.string("Cancel"), role: .cancel) { }
-                Button(AppLocalization.string("Seed dummy data")) {
-                    seedDummyData()
-                }
-            } message: {
-                Text(AppLocalization.string("This will add realistic sample measurements for recent weeks. Existing data will remain unchanged."))
-            }
-            .alert(AppLocalization.string("Seed dummy data"), isPresented: $showSeedDummyDataResult) {
-                Button(AppLocalization.string("OK"), role: .cancel) { }
-            } message: {
-                Text(seedDummyDataResultMessage)
-            }
-            .alert(AppLocalization.string("iCloud Backup"), isPresented: $showBackupResult) {
-                Button(AppLocalization.string("OK"), role: .cancel) { }
-            } message: {
-                Text(backupResultMessage)
-            }
-            .alert(AppLocalization.string("Restore from backup"), isPresented: $showRestoreBackupConfirm) {
-                Button(AppLocalization.string("Cancel"), role: .cancel) { }
-                Button(AppLocalization.string("Restore"), role: .destructive) {
-                    performRestore()
-                }
-            } message: {
-                Text(AppLocalization.string("This will replace all current measurements, goals, photos, and settings with the latest iCloud backup."))
-            }
-            .alert(AppLocalization.string("Replace all local data with backup?"), isPresented: $showRestoreConflict) {
-                Button(AppLocalization.string("Cancel"), role: .cancel) { }
-                Button(AppLocalization.string("Replace"), role: .destructive) {
-                    performRestore()
-                }
-            } message: {
-                Text(restoreConflictMessage)
-            }
-            .alert(AppLocalization.string("Restore from backup"), isPresented: $showRestoreResult) {
-                Button(AppLocalization.string("OK"), role: .cancel) { }
-            } message: {
-                Text(restoreResultMessage)
-            }
+            .alert(
+                settingsAlertTitle,
+                isPresented: Binding(get: { activeAlert != nil }, set: { if !$0 { activeAlert = nil } }),
+                presenting: activeAlert,
+                actions: settingsAlertActions,
+                message: settingsAlertMessage
+            )
             .fileImporter(
                 isPresented: $showImportPicker,
                 allowedContentTypes: [.commaSeparatedText],
@@ -817,8 +849,7 @@ struct SettingsView: View {
                     pendingImportURLs = urls
                     showImportStrategyAlert = true
                 case .failure(let error):
-                    importResultMessage = AppLocalization.string("Could not open file: ") + error.localizedDescription
-                    showImportResult = true
+                    activeAlert = .importResult(AppLocalization.string("Could not open file: ") + error.localizedDescription)
                 }
             }
             .confirmationDialog(
@@ -837,11 +868,6 @@ struct SettingsView: View {
                 }
             } message: {
                 Text(AppLocalization.string("How should MeasureMe handle existing data?"))
-            }
-            .alert(AppLocalization.string("Import complete"), isPresented: $showImportResult) {
-                Button(AppLocalization.string("OK"), role: .cancel) { }
-            } message: {
-                Text(importResultMessage)
             }
             if isExporting {
                 exportOverlay
@@ -991,12 +1017,10 @@ struct SettingsView: View {
             switch result {
             case .success(let manifest):
                 Haptics.success()
-                backupResultMessage = AppLocalization.string("Backup complete. %d measurements, %d goals, %d photos saved.", manifest.metricsCount, manifest.goalsCount, manifest.photosCount)
-                showBackupResult = true
+                activeAlert = .backupResult(AppLocalization.string("Backup complete. %d measurements, %d goals, %d photos saved.", manifest.metricsCount, manifest.goalsCount, manifest.photosCount))
             case .failure(let error):
                 Haptics.error()
-                backupResultMessage = error.localizedMessage
-                showBackupResult = true
+                activeAlert = .backupResult(error.localizedMessage)
             }
         }
     }
@@ -1020,15 +1044,14 @@ struct SettingsView: View {
                     formatter.timeStyle = .short
                     let backupDate = formatter.string(from: manifest.createdAt)
 
-                    restoreConflictMessage = AppLocalization.string("Your data: %d measurements, %d goals, %d photos.", localMetrics, localGoals, localPhotos)
+                    let conflictMsg = AppLocalization.string("Your data: %d measurements, %d goals, %d photos.", localMetrics, localGoals, localPhotos)
                         + "\n"
                         + AppLocalization.string("Backup from %@ contains %d measurements, %d goals, %d photos.", backupDate, manifest.metricsCount, manifest.goalsCount, manifest.photosCount)
-                    showRestoreConflict = true
+                    activeAlert = .restoreConflict(conflictMsg)
                 }
             case .failure(let error):
                 Haptics.error()
-                restoreResultMessage = error.localizedMessage
-                showRestoreResult = true
+                activeAlert = .restoreResult(error.localizedMessage)
             }
         }
     }
@@ -1039,12 +1062,10 @@ struct SettingsView: View {
             switch result {
             case .success:
                 Haptics.success()
-                restoreResultMessage = AppLocalization.string("Data restored successfully from iCloud backup.")
-                showRestoreResult = true
+                activeAlert = .restoreResult(AppLocalization.string("Data restored successfully from iCloud backup."))
             case .failure(let error):
                 Haptics.error()
-                restoreResultMessage = error.localizedMessage
-                showRestoreResult = true
+                activeAlert = .restoreResult(error.localizedMessage)
             }
         }
     }
@@ -1068,13 +1089,11 @@ struct SettingsView: View {
             ImageCache.shared.removeAll()
             try await DiskImageCache.shared.removeAll()
 
-            deleteAllDataResultMessage = AppLocalization.string("All local app data has been deleted.")
-            showDeleteAllDataResult = true
+            activeAlert = .deleteAllDataResult(AppLocalization.string("All local app data has been deleted."))
             Haptics.success()
         } catch {
             AppLog.debug("⚠️ Failed to delete all app data: \(error)")
-            deleteAllDataResultMessage = AppLocalization.string("Could not delete all data. Please try again.")
-            showDeleteAllDataResult = true
+            activeAlert = .deleteAllDataResult(AppLocalization.string("Could not delete all data. Please try again."))
             Haptics.error()
         }
     }
@@ -1121,16 +1140,14 @@ struct SettingsView: View {
                 manualHeight = 180
             }
 
-            seedDummyDataResultMessage = String(
+            activeAlert = .seedDummyDataResult(String(
                 format: AppLocalization.string("Dummy data added: %d measurements."),
                 inserted
-            )
-            showSeedDummyDataResult = true
+            ))
             Haptics.success()
         } catch {
             AppLog.debug("⚠️ Failed to seed dummy data: \(error)")
-            seedDummyDataResultMessage = AppLocalization.string("Could not seed dummy data. Please try again.")
-            showSeedDummyDataResult = true
+            activeAlert = .seedDummyDataResult(AppLocalization.string("Could not seed dummy data. Please try again."))
             Haptics.error()
         }
     }
@@ -1309,11 +1326,11 @@ struct SettingsView: View {
                 },
                 onSeedDummyData: {
                     Haptics.light()
-                    showSeedDummyDataConfirm = true
+                    activeAlert = .seedDummyDataConfirm
                 },
                 onDeleteAll: {
                     Haptics.light()
-                    showDeleteAllDataConfirm = true
+                    activeAlert = .deleteAllDataConfirm
                 }
             )
         case .faq:
@@ -1357,17 +1374,17 @@ struct SettingsView: View {
         guard !urls.isEmpty else { return }
         isImporting = true
         Task {
+            var msg: String
             do {
-                let msg = try await SettingsImporter.importData(urls: urls, strategy: strategy, context: modelContext)
-                importResultMessage = msg
+                msg = try await SettingsImporter.importData(urls: urls, strategy: strategy, context: modelContext)
                 Haptics.success()
             } catch {
-                importResultMessage = error.localizedDescription
+                msg = error.localizedDescription
                 Haptics.error()
             }
             isImporting = false
             pendingImportURLs = []
-            showImportResult = true
+            activeAlert = .importResult(msg)
         }
     }
 }

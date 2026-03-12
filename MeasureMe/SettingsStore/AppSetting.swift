@@ -1,26 +1,33 @@
 import SwiftUI
+import Combine
+
+// MARK: - Per-keypath observer (fires objectWillChange only when THIS value changes)
+
+@MainActor
+final class _KeyPathSettingObserver<Value: Equatable>: ObservableObject {
+    let keyPath: WritableKeyPath<AppSettingsSnapshot, Value>
+    let store: AppSettingsStore
+    private var cancellable: AnyCancellable?
+
+    init(keyPath: WritableKeyPath<AppSettingsSnapshot, Value>, store: AppSettingsStore) {
+        self.keyPath = keyPath
+        self.store = store
+        self.cancellable = store.$snapshot
+            .map { $0[keyPath: keyPath] }
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+    }
+}
+
+// MARK: - Property wrapper
 
 @MainActor
 @propertyWrapper
-struct AppSetting<Value>: DynamicProperty {
-    private enum Storage {
-        case keyPath(WritableKeyPath<AppSettingsSnapshot, Value>)
-        case legacyKey(key: String, defaultValue: Value)
-    }
-
-    @ObservedObject private var settings: AppSettingsStore
-    private let storage: Storage
-
-    @available(*, deprecated, message: "Use keyPath-based AppSetting initializer.")
-    init(wrappedValue: Value, _ key: String) {
-        self.init(wrappedValue: wrappedValue, key, store: .shared)
-    }
-
-    @available(*, deprecated, message: "Use keyPath-based AppSetting initializer.")
-    init(wrappedValue: Value, _ key: String, store: AppSettingsStore) {
-        self.storage = .legacyKey(key: key, defaultValue: wrappedValue)
-        _settings = ObservedObject(wrappedValue: store)
-    }
+struct AppSetting<Value: Equatable>: DynamicProperty {
+    @StateObject private var observer: _KeyPathSettingObserver<Value>
 
     init(
         wrappedValue: Value,
@@ -34,38 +41,15 @@ struct AppSetting<Value>: DynamicProperty {
         _ keyPath: WritableKeyPath<AppSettingsSnapshot, Value>,
         store: AppSettingsStore
     ) {
-        self.storage = .keyPath(keyPath)
-        _settings = ObservedObject(wrappedValue: store)
+        _observer = StateObject(wrappedValue: _KeyPathSettingObserver(keyPath: keyPath, store: store))
     }
 
     var wrappedValue: Value {
-        get {
-            switch storage {
-            case .keyPath(let keyPath):
-                settings.snapshot[keyPath: keyPath]
-            case .legacyKey(let key, let defaultValue):
-                settings.value(forKey: key, default: defaultValue)
-            }
-        }
-        nonmutating set {
-            switch storage {
-            case .keyPath(let keyPath):
-                settings.set(keyPath, newValue)
-            case .legacyKey(let key, _):
-                settings.set(newValue, forKey: key)
-            }
-        }
+        get { observer.store.snapshot[keyPath: observer.keyPath] }
+        nonmutating set { observer.store.set(observer.keyPath, newValue) }
     }
 
     var projectedValue: Binding<Value> {
-        switch storage {
-        case .keyPath(let keyPath):
-            settings.binding(keyPath)
-        case .legacyKey:
-            Binding(
-                get: { wrappedValue },
-                set: { wrappedValue = $0 }
-            )
-        }
+        observer.store.binding(observer.keyPath)
     }
 }

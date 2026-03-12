@@ -42,12 +42,15 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
     private func makeView() -> some View {
         NavigationStack {
             DataSettingsDetailView(
+                iCloudBackupEnabled: .constant(false),
+                iCloudBackupLastSuccessText: "No iCloud backup yet.",
+                iCloudBackupLastErrorText: nil,
                 onExport: {},
                 onImport: {},
-                onSeedDummyData: {},
-                onDeleteAll: {},
                 onBackupNow: {},
-                onRestoreBackup: {}
+                onRestoreLatestBackup: {},
+                onSeedDummyData: {},
+                onDeleteAll: {}
             )
         }
         .preferredColorScheme(.dark)
