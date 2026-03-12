@@ -399,6 +399,7 @@ struct GoalProgressView: View {
 }
 
 struct ProgressViewCard: View {
+    private let measurementsTheme = FeatureTheme.measurements
     let isAchieved: Bool
     let progress: Double
     let percentage: Int
@@ -411,28 +412,28 @@ struct ProgressViewCard: View {
             HStack {
                 Text(AppLocalization.string("Progress"))
                     .font(AppTypography.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColorRoles.textSecondary)
                 Spacer()
                 Text("\(percentage)%")
-                    .font(AppTypography.bodyEmphasis)
+                    .font(AppTypography.dataCompact)
                     .monospacedDigit()
-                    .foregroundStyle(isAchieved ? Color(hex: "#22C55E") : Color(hex: "#FCA311"))
+                    .foregroundStyle(isAchieved ? AppColorRoles.stateSuccess : measurementsTheme.accent)
             }
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
+                        .fill(AppColorRoles.surfaceInteractive)
 
                     RoundedRectangle(cornerRadius: 4)
                         .fill(
                             LinearGradient(
                                 colors: isAchieved ? [
-                                    Color(hex: "#22C55E"),
-                                    Color(hex: "#22C55E").opacity(0.8)
+                                    AppColorRoles.stateSuccess,
+                                    AppColorRoles.stateSuccess.opacity(0.8)
                                 ] : [
-                                    Color(hex: "#FCA311"),
-                                    Color(hex: "#FCA311").opacity(0.8)
+                                    measurementsTheme.accent,
+                                    measurementsTheme.accent.opacity(0.8)
                                 ],
                                 startPoint: .leading,
                                 endPoint: .trailing
@@ -447,27 +448,29 @@ struct ProgressViewCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(AppLocalization.string("Current"))
                         .font(AppTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColorRoles.textSecondary)
                     Text(currentValueString)
                         .font(AppTypography.captionEmphasis)
                         .monospacedDigit()
+                        .foregroundStyle(AppColorRoles.textPrimary)
                 }
 
                 Spacer()
 
                 Image(systemName: directionUp ? "arrow.up" : "arrow.down")
                     .font(AppTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColorRoles.textTertiary)
 
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(AppLocalization.string("Goal"))
                         .font(AppTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColorRoles.textSecondary)
                     Text(goalValueString)
                         .font(AppTypography.captionEmphasis)
                         .monospacedDigit()
+                        .foregroundStyle(AppColorRoles.textPrimary)
                 }
             }
         }

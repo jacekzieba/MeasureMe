@@ -6,7 +6,7 @@ import SwiftData
 @MainActor
 final class HomeStartupOptimizationTests: XCTestCase {
     func testDeltaText_UsesNewestMinusOldestFromWindow() throws {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         let container = try ModelContainer(
             for: MetricSample.self,
             MetricGoal.self,

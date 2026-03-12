@@ -71,7 +71,7 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
         defaults.set(true, forKey: "health_indicators_v2_migrated")
         UIView.setAnimationsEnabled(false)
 
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         let container = try ModelContainer(
             for: MetricGoal.self, MetricSample.self, PhotoEntry.self,
             configurations: config

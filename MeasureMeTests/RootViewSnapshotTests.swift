@@ -51,7 +51,7 @@ final class RootViewSnapshotTests: XCTestCase {
     UIView.setAnimationsEnabled(false)
 
     // SwiftData: in-memory container, żeby @Query miało modelContext
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
     let container = try ModelContainer(
       for: MetricGoal.self, MetricSample.self, PhotoEntry.self,
       configurations: config

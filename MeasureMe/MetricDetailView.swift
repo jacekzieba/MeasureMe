@@ -21,6 +21,7 @@ import Foundation
 /// - Obliczenia wartości do wyświetlenia są cache'owane przez computed properties
 /// - Używa `persistentModelID` jako stabilnego identyfikatora w pętlach
 struct MetricDetailView: View {
+    private let measurementsTheme = FeatureTheme.measurements
     let kind: MetricKind
     @EnvironmentObject private var premiumStore: PremiumStore
 
@@ -190,7 +191,7 @@ struct MetricDetailView: View {
 
     var detailList: some View {
         ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 260)
+            AppScreenBackground(topHeight: 260, tint: measurementsTheme.softTint)
             List {
                 listContent
             }
@@ -259,16 +260,55 @@ struct MetricDetailView: View {
         }
     }
 
+    private var currentValueTrendSummary: (text: String, color: Color, icon: String)? {
+        guard let start = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) else { return nil }
+        let window = sortedSamplesAscending.filter { $0.date >= start }
+        guard let newest = window.max(by: { $0.date < $1.date }),
+              let oldest = window.min(by: { $0.date < $1.date }),
+              newest.persistentModelID != oldest.persistentModelID,
+              let deltaText = window.deltaText(days: 30, kind: kind, unitsSystem: unitsSystem) else {
+            return nil
+        }
+
+        let delta = newest.value - oldest.value
+        let outcome = kind.trendOutcome(from: oldest.value, to: newest.value, goal: currentGoal)
+        let relativeLabel = AppLocalization.string("trend.relative.30d")
+        let trendText = "\(deltaText) vs \(relativeLabel)"
+        let icon: String
+        if delta > 0 {
+            icon = "arrow.up.right"
+        } else if delta < 0 {
+            icon = "arrow.down.right"
+        } else {
+            icon = "arrow.left.and.right"
+        }
+        switch outcome {
+        case .positive:
+            return (trendText,
+                    AppColorRoles.chartPositive,
+                    icon)
+        case .negative:
+            return (trendText,
+                    AppColorRoles.chartNegative,
+                    icon)
+        case .neutral:
+            return (trendText,
+                    AppColorRoles.textSecondary,
+                    icon)
+        }
+    }
+
     private var emptyStateSection: some View {
         VStack(spacing: 16) {
-            kind.iconView(size: 56, tint: Color.appAccent)
+            kind.iconView(size: 56, tint: measurementsTheme.accent)
                 .opacity(0.7)
             VStack(spacing: 6) {
                 Text(AppLocalization.string("No data"))
-                    .font(.headline)
+                    .font(AppTypography.displaySection)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                 Text(AppLocalization.string("Add your first entry to see history and charts."))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(AppTypography.body)
+                    .foregroundStyle(AppColorRoles.textSecondary)
                     .multilineTextAlignment(.center)
             }
         }
@@ -302,13 +342,13 @@ struct MetricDetailView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(AppLocalization.string("AI Insights aren’t available right now."))
                         .font(AppTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColorRoles.textSecondary)
                     NavigationLink {
                         FAQView()
                     } label: {
                         Text(AppLocalization.string("Learn more in FAQ"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(Color.appAccent)
+                            .foregroundStyle(measurementsTheme.accent)
                     }
                 }
             } header: {
@@ -334,32 +374,32 @@ struct MetricDetailView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
                             Image(systemName: "target")
-                                .foregroundStyle(Color(hex: "#FCA311"))
+                                .foregroundStyle(measurementsTheme.accent)
                             Text(AppLocalization.string("Goal"))
                                 .font(AppTypography.bodyEmphasis)
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(AppColorRoles.textPrimary)
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(AppTypography.micro)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppColorRoles.textTertiary)
                         }
 
                         if let goal = currentGoal {
                             Text(AppLocalization.string("metric.goal.update.value", valueString(goal.targetValue)))
                                 .font(AppTypography.caption)
                                 .monospacedDigit()
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppColorRoles.textSecondary)
                         } else {
                             Text(AppLocalization.string("Set a target"))
                                 .font(AppTypography.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppColorRoles.textSecondary)
                         }
                     }
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     .padding(12)
                     .background(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.white.opacity(0.05))
+                            .fill(AppColorRoles.surfaceInteractive)
                     )
                     .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
@@ -373,22 +413,22 @@ struct MetricDetailView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
                             Image(systemName: "chart.line.uptrend.xyaxis")
-                                .foregroundStyle(Color(hex: "#FCA311"))
+                                .foregroundStyle(measurementsTheme.accent)
                             Text(AppLocalization.string("Trend"))
                                 .font(AppTypography.bodyEmphasis)
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(AppColorRoles.textPrimary)
                             Spacer()
                         }
 
                         Text(showTrendline ? AppLocalization.string("Visible") : AppLocalization.string("Hidden"))
                             .font(AppTypography.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     .padding(12)
                     .background(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.white.opacity(0.05))
+                            .fill(AppColorRoles.surfaceInteractive)
                     )
                     .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
@@ -432,7 +472,7 @@ struct MetricDetailView: View {
         Section {
             if relatedPhotos.isEmpty {
                 Text(AppLocalization.string("No related photos yet."))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColorRoles.textSecondary)
             } else {
                 MetricPhotosRow(photos: visiblePhotos)
                     .padding(.vertical, 4)
@@ -463,7 +503,7 @@ struct MetricDetailView: View {
                     Spacer()
                     Text(valueString(s.value))
                         .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 }
                 .contentShape(Rectangle())
                 .onTapGesture { edit(sample: s) }
@@ -505,7 +545,7 @@ struct MetricDetailView: View {
         Section {
             Text(measurementInstructions)
                 .font(AppTypography.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColorRoles.textSecondary)
         } header: {
             Text(AppLocalization.string("How to measure"))
         }
@@ -513,6 +553,52 @@ struct MetricDetailView: View {
 
     var chartSectionContent: some View {
         VStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        kind.iconView(size: 16, tint: measurementsTheme.accent)
+                        Text(AppLocalization.string("Current value"))
+                            .font(AppTypography.eyebrow)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                    }
+
+                    Text(valueString(latestSampleValue ?? 0))
+                        .font(AppTypography.dataCompact)
+                        .monospacedDigit()
+                        .foregroundStyle(AppColorRoles.textPrimary)
+
+                    if let latestSample = samples.last {
+                        Text(latestSample.date.formatted(date: .abbreviated, time: .omitted))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    if let currentValueTrendSummary {
+                        Label(currentValueTrendSummary.text, systemImage: currentValueTrendSummary.icon)
+                            .font(AppTypography.badge)
+                            .foregroundStyle(currentValueTrendSummary.color)
+                            .multilineTextAlignment(.trailing)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(currentValueTrendSummary.color.opacity(0.14))
+                            )
+                    }
+
+                    if let goalStatusText {
+                        Text(goalStatusText)
+                            .font(AppTypography.microEmphasis)
+                            .foregroundStyle(AppColorRoles.textTertiary)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+            }
+
             Picker(AppLocalization.string("Range"), selection: $timeframe) {
                 ForEach(Timeframe.allCases) { tf in
                     Text(tf.rawValue).tag(tf)
@@ -527,28 +613,28 @@ struct MetricDetailView: View {
                 if showTrendline {
                     HStack(spacing: 6) {
                         Capsule()
-                            .stroke(Color.white.opacity(0.35), style: StrokeStyle(lineWidth: 2, dash: [2, 4]))
+                            .stroke(AppColorRoles.textTertiary, style: StrokeStyle(lineWidth: 2, dash: [2, 4]))
                             .frame(width: 22, height: 2)
                         Text(AppLocalization.string("Trend"))
                             .font(AppTypography.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
                 }
 
                 if currentGoal != nil {
                     HStack(spacing: 6) {
                         Capsule()
-                            .fill(Color(hex: "#E5E5E5"))
+                            .fill(AppColorRoles.textSecondary)
                             .frame(width: 22, height: 2)
                         Text(AppLocalization.string("Goal"))
                             .font(AppTypography.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .center)
         }
-        .listRowBackground(Color(hex: "#1C1C1E"))
+        .listRowBackground(AppColorRoles.surfaceElevated)
     }
 
     var chartView: some View {
@@ -561,7 +647,7 @@ struct MetricDetailView: View {
                         series: .value("Trend", "Trend")
                     )
                     .interpolationMethod(.linear)
-                    .foregroundStyle(Color.white.opacity(0.35))
+                    .foregroundStyle(AppColorRoles.textTertiary)
                     .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [2, 4]))
                 }
             }
@@ -576,8 +662,8 @@ struct MetricDetailView: View {
                 .foregroundStyle(
                     LinearGradient(
                         colors: [
-                            Color(hex: "#FCA311").opacity(0.28),
-                            Color(hex: "#FCA311").opacity(0.02)
+                            measurementsTheme.accent.opacity(0.28),
+                            measurementsTheme.accent.opacity(0.02)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -590,7 +676,7 @@ struct MetricDetailView: View {
                 )
                 .interpolationMethod(.monotone)
                 .lineStyle(.init(lineWidth: 2.5))
-                .foregroundStyle(Color(hex: "#FCA311"))
+                .foregroundStyle(measurementsTheme.accent)
 
                 PointMark(
                     x: .value("Date", s.date),
@@ -598,7 +684,7 @@ struct MetricDetailView: View {
                 )
                 .symbol(Circle())
                 .symbolSize(20)
-                .foregroundStyle(Color(hex: "#FCA311"))
+                .foregroundStyle(measurementsTheme.accent)
 
                 if s.persistentModelID == chartSamples.last?.persistentModelID {
                     PointMark(
@@ -607,7 +693,7 @@ struct MetricDetailView: View {
                     )
                     .symbol(Circle())
                     .symbolSize(82)
-                    .foregroundStyle(Color(hex: "#FCA311").opacity(0.26))
+                    .foregroundStyle(measurementsTheme.accent.opacity(0.26))
                 }
             }
 
@@ -615,13 +701,13 @@ struct MetricDetailView: View {
                 let goalValue = displayValue(goal.targetValue)
                 RuleMark(y: .value("Goal", goalValue))
                     .lineStyle(StrokeStyle(lineWidth: 2))
-                    .foregroundStyle(Color(hex: "#E5E5E5"))
+                    .foregroundStyle(AppColorRoles.textSecondary)
             }
 
             if let scrubbedSample {
                 let scrubbedValue = displayValue(scrubbedSample.value)
                 RuleMark(x: .value("Selected Date", scrubbedSample.date))
-                    .foregroundStyle(Color.white.opacity(0.55))
+                    .foregroundStyle(AppColorRoles.textSecondary.opacity(0.8))
                     .lineStyle(StrokeStyle(lineWidth: 1))
 
                 PointMark(
@@ -630,26 +716,26 @@ struct MetricDetailView: View {
                 )
                 .symbol(Circle())
                 .symbolSize(58)
-                .foregroundStyle(Color.white)
+                .foregroundStyle(AppColorRoles.textPrimary)
             }
         }
         .chartYScale(domain: yDomain)
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 3)) { _ in
-                AxisGridLine().foregroundStyle(.white.opacity(0.12))
-                AxisTick().foregroundStyle(.white.opacity(0.2))
+                AxisGridLine().foregroundStyle(AppColorRoles.borderSubtle)
+                AxisTick().foregroundStyle(AppColorRoles.borderStrong)
                 AxisValueLabel(format: .dateTime.month(.abbreviated))
                     .font(AppTypography.micro)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(AppColorRoles.textTertiary)
             }
         }
         .chartYAxis {
             AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { _ in
-                AxisGridLine().foregroundStyle(.white.opacity(0.12))
-                AxisTick().foregroundStyle(.white.opacity(0.2))
+                AxisGridLine().foregroundStyle(AppColorRoles.borderSubtle)
+                AxisTick().foregroundStyle(AppColorRoles.borderStrong)
                 AxisValueLabel()
                     .font(AppTypography.micro)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(AppColorRoles.textTertiary)
             }
         }
         .frame(height: 168)
@@ -686,16 +772,16 @@ struct MetricDetailView: View {
                 HStack(spacing: 8) {
                     Text(scrubbedSample.date.formatted(date: .abbreviated, time: .omitted))
                         .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.72))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                     Text(valueString(scrubbedSample.value))
                         .font(AppTypography.microEmphasis.monospacedDigit())
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.black.opacity(0.38))
+                        .fill(AppColorRoles.surfaceCanvas.opacity(0.52))
                 )
                 .padding(.top, 6)
                 .padding(.leading, 6)

@@ -1,5 +1,6 @@
 import XCTest
 import SwiftData
+import CryptoKit
 @testable import MeasureMe
 
 @MainActor
@@ -241,11 +242,130 @@ final class ICloudBackupServiceTests: XCTestCase {
         XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<MetricSample>()), 0)
     }
 
+    // MARK: - Preflight restore
+
+    func testPreflightRestoreReturnsManifestWithoutModifyingData() async throws {
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_006_000) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        let targetContext = ModelContext(try makeContainer())
+        targetContext.insert(MetricSample(kind: .waist, value: 88, date: Date(timeIntervalSince1970: 200)))
+        try targetContext.save()
+
+        let result = await ICloudBackupService.preflightRestore(context: targetContext, isPremium: true)
+        guard case .success(let manifest) = result else {
+            return XCTFail("Expected successful preflight result")
+        }
+
+        XCTAssertEqual(manifest.metricsCount, 1)
+        XCTAssertEqual(manifest.goalsCount, 1)
+        XCTAssertEqual(manifest.photosCount, 1)
+        XCTAssertEqual(manifest.schemaVersion, 1)
+
+        // Target data must remain untouched.
+        XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<MetricSample>()), 1)
+    }
+
+    func testPreflightRestoreReturnsNoBackupFoundWhenEmpty() async throws {
+        let context = ModelContext(try makeContainer())
+        let result = await ICloudBackupService.preflightRestore(context: context, isPremium: true)
+        guard case .failure(let error) = result else {
+            return XCTFail("Expected no-backup failure")
+        }
+        XCTAssertEqual(error, .noBackupFound)
+    }
+
+    // MARK: - Backup size
+
+    func testCreateBackupStoresPositiveSizeBytes() async throws {
+        let context = ModelContext(try makeContainer())
+        seedSampleData(in: context)
+        try context.save()
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_007_000) }
+        let result = await ICloudBackupService.createBackupNow(context: context, isPremium: true)
+        guard case .success(let manifest) = result else {
+            return XCTFail("Expected successful backup result")
+        }
+
+        // Manifest should carry size.
+        XCTAssertNotNil(manifest.sizeBytes)
+        XCTAssertGreaterThan(manifest.sizeBytes ?? 0, 0)
+
+        // AppSettings should be updated.
+        let storedSize = AppSettingsStore.shared.snapshot.iCloudBackup.lastBackupSizeBytes
+        XCTAssertGreaterThan(storedSize, 0)
+    }
+
+    // MARK: - Localized error messages
+
+    func testAllBackupErrorCasesReturnNonEmptyLocalizedMessage() {
+        let cases: [ICloudBackupService.BackupError] = [
+            .premiumRequired,
+            .backupDisabled,
+            .noBackupFound,
+            .invalidBackupSchema,
+            .encryptionError,
+            .fileSystemError("test detail"),
+            .fileSystemError("iCloud container unavailable")
+        ]
+        for error in cases {
+            XCTAssertFalse(error.localizedMessage.isEmpty, "localizedMessage empty for \(error)")
+        }
+    }
+
+    // MARK: - Manifest backward compatibility
+
+    func testManifestDecodesWithoutSizeBytes() throws {
+        // Simulates a manifest written by an older app version (no sizeBytes field).
+        let json = """
+        {
+            "schemaVersion": 1,
+            "createdAt": "2024-01-01T00:00:00Z",
+            "metricsCount": 5,
+            "goalsCount": 2,
+            "photosCount": 1,
+            "settingsCount": 3,
+            "isEncrypted": true
+        }
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let manifest = try decoder.decode(ICloudBackupManifest.self, from: Data(json.utf8))
+
+        XCTAssertNil(manifest.sizeBytes)
+        XCTAssertEqual(manifest.metricsCount, 5)
+    }
+
+    func testManifestDecodesWithSizeBytes() throws {
+        let json = """
+        {
+            "schemaVersion": 1,
+            "createdAt": "2024-01-01T00:00:00Z",
+            "metricsCount": 5,
+            "goalsCount": 2,
+            "photosCount": 1,
+            "settingsCount": 3,
+            "isEncrypted": true,
+            "sizeBytes": 123456
+        }
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let manifest = try decoder.decode(ICloudBackupManifest.self, from: Data(json.utf8))
+
+        XCTAssertEqual(manifest.sizeBytes, 123456)
+    }
+
     // MARK: - Helpers
 
     private func makeContainer() throws -> ModelContainer {
         let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         return try ModelContainer(for: schema, configurations: [config])
     }
 

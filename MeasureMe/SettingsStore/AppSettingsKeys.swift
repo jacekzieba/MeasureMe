@@ -111,6 +111,14 @@ enum AppSettingsKeys {
         static let goalAchievementPrefix = "goal_achieved_"
     }
 
+    enum ICloudBackup {
+        static let isEnabled = "icloud_backup_enabled"
+        static let lastSuccessTimestamp = "icloud_backup_last_success_timestamp"
+        static let lastErrorMessage = "icloud_backup_last_error_message"
+        static let autoRestoreCompleted = "icloud_backup_auto_restore_completed"
+        static let lastBackupSizeBytes = "icloud_backup_last_size_bytes"
+    }
+
     enum Analytics {
         static let analyticsEnabled = "analytics_enabled"
         static let firstMetricAddedTracked = "analytics_first_metric_added_tracked"

@@ -9,15 +9,15 @@ struct MetricInsightCard: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "sparkles")
                 .font(compact ? AppTypography.iconSmall : AppTypography.iconSmall)
-                .foregroundStyle(Color(hex: "#FCA311"))
+                .foregroundStyle(AppColorRoles.accentPrimary)
                 .padding(8)
-                .background(Color.white.opacity(0.08))
+                .background(AppColorRoles.accentPrimary.opacity(0.12))
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(text)
-                    .font(compact ? AppTypography.microEmphasis : .subheadline)
-                    .foregroundStyle(.primary)
+                    .font(compact ? AppTypography.microEmphasis : AppTypography.body)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                     .multilineTextAlignment(.leading)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
@@ -28,7 +28,7 @@ struct MetricInsightCard: View {
 
                 Text(AppLocalization.string("AI generated"))
                     .font(AppTypography.micro)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColorRoles.textSecondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -37,15 +37,15 @@ struct MetricInsightCard: View {
         .padding(compact ? 10 : 14)
         .background(
             RoundedRectangle(cornerRadius: compact ? 12 : 14, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(AppColorRoles.surfaceGlass)
         )
         .overlay(
             RoundedRectangle(cornerRadius: compact ? 12 : 14, style: .continuous)
                 .stroke(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.35),
-                            Color.white.opacity(0.08)
+                            AppColorRoles.borderStrong,
+                            AppColorRoles.borderSubtle
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

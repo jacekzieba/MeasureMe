@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct EmptyStateCard: View {
+    private let premiumTheme = FeatureTheme.premium
     let title: String
     let message: String
     var systemImage: String = "tray"
@@ -9,11 +10,11 @@ struct EmptyStateCard: View {
     var accessibilityIdentifier: String? = nil
 
     var body: some View {
-        AppGlassCard(depth: .elevated, cornerRadius: AppRadius.xl, tint: Color.appAccent.opacity(0.10), contentPadding: AppSpacing.md) {
+        AppGlassCard(depth: .elevated, cornerRadius: AppRadius.xl, tint: premiumTheme.softTint, contentPadding: AppSpacing.md) {
             VStack(spacing: AppSpacing.sm) {
                 Image(systemName: systemImage)
                     .font(.system(size: 34, weight: .semibold))
-                    .foregroundStyle(Color.appAccent)
+                    .foregroundStyle(premiumTheme.accent)
                     .accessibilityHidden(true)
 
                 Text(title)
@@ -79,7 +80,7 @@ struct LoadingBlock: View {
     var body: some View {
         HStack(spacing: AppSpacing.xs) {
             ProgressView()
-                .tint(Color.appAccent)
+                .tint(AppColorRoles.accentPremium)
                 .accessibilityHidden(true)
             Text(title)
                 .font(AppTypography.caption)

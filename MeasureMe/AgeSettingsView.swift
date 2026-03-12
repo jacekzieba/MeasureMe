@@ -19,6 +19,7 @@ struct AgeSettingsView: View {
     @State private var ageInput: String = ""
     @State private var isLoadingHealthKit = false
     @State private var healthKitError: String?
+    private let theme = FeatureTheme.settings
 
     private var ageValidation: MetricInputValidator.ValidationResult {
         MetricInputValidator.validateAgeValue(Int(ageInput))
@@ -27,35 +28,31 @@ struct AgeSettingsView: View {
     @FocusState private var isAgeFocused: Bool
 
     var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-
-            ScrollView {
-                VStack(spacing: 16) {
+        SettingsScrollDetailScaffold(title: AppLocalization.string("Age"), theme: .settings) {
                     // MARK: - Age display / hero card
                     AppGlassCard(
                         depth: .floating,
-                        tint: Color.cyan.opacity(0.12),
+                        tint: theme.softTint,
                         contentPadding: 24
                     ) {
                         if userAge > 0 {
                             VStack(spacing: 8) {
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.green)
+                                        .foregroundStyle(AppColorRoles.stateSuccess)
                                     Text(AppLocalization.string("Current age"))
                                         .font(AppTypography.caption)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(AppColorRoles.textSecondary)
                                 }
 
                                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                                     Text("\(userAge)")
-                                        .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
-                                        .foregroundStyle(Color(hex: "#FCA311"))
+                                        .font(AppTypography.dataPrimary)
+                                        .foregroundStyle(theme.accent)
 
                                     Text(AppLocalization.string("years old"))
-                                        .font(.title.weight(.medium))
-                                        .foregroundStyle(.secondary)
+                                        .font(AppTypography.headline)
+                                        .foregroundStyle(AppColorRoles.textSecondary)
                                 }
                             }
                             .frame(maxWidth: .infinity)
@@ -64,12 +61,12 @@ struct AgeSettingsView: View {
                             VStack(spacing: 10) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.title)
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(AppColorRoles.stateWarning)
                                 Text(AppLocalization.string("No age set"))
                                     .font(AppTypography.bodyEmphasis)
                                 Text(AppLocalization.string("Set your age to improve health metric accuracy."))
                                     .font(AppTypography.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppColorRoles.textSecondary)
                                     .multilineTextAlignment(.center)
                             }
                             .frame(maxWidth: .infinity)
@@ -80,7 +77,7 @@ struct AgeSettingsView: View {
                     // MARK: - Options card
                     AppGlassCard(
                         depth: .elevated,
-                        tint: Color.cyan.opacity(0.08),
+                        tint: AppColorRoles.surfacePrimary,
                         contentPadding: 16
                     ) {
                         VStack(alignment: .leading, spacing: 14) {
@@ -99,10 +96,10 @@ struct AgeSettingsView: View {
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(AppLocalization.string("Import from Health"))
                                                 .font(AppTypography.bodyEmphasis)
-                                                .foregroundStyle(isLoadingHealthKit ? .secondary : .primary)
+                                                .foregroundStyle(isLoadingHealthKit ? AppColorRoles.textSecondary : AppColorRoles.textPrimary)
                                             Text(AppLocalization.string("Use age from HealthKit"))
                                                 .font(AppTypography.caption)
-                                                .foregroundStyle(.secondary)
+                                                .foregroundStyle(AppColorRoles.textSecondary)
                                         }
                                     }
                                 }
@@ -111,36 +108,36 @@ struct AgeSettingsView: View {
                                 if let error = healthKitError {
                                     Text(error)
                                         .font(AppTypography.caption)
-                                        .foregroundStyle(.red)
+                                        .foregroundStyle(AppColorRoles.stateError)
                                 }
 
-                                Divider().overlay(Color.white.opacity(0.12))
+                                Divider().overlay(AppColorRoles.borderSubtle)
                             }
 
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(AppLocalization.string("Enter your age"))
                                     .font(AppTypography.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppColorRoles.textSecondary)
 
                                 TextField(AppLocalization.string("Age in years"), text: $ageInput)
                                     .keyboardType(.numberPad)
-                                    .font(.system(.body, design: .rounded).monospacedDigit())
+                                    .font(AppTypography.dataValue)
                                     .focused($isAgeFocused)
 
                                 if !ageValidation.isValid, !ageInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, let message = ageValidation.message {
                                     Text(message)
                                         .font(AppTypography.micro)
-                                        .foregroundStyle(Color.red.opacity(0.9))
+                                        .foregroundStyle(AppColorRoles.stateError)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
 
                             Button {
                                 saveAge()
-                            } label: {
-                                Text(AppLocalization.string("Save"))
-                                    .font(.system(.headline, design: .rounded).weight(.semibold))
-                            }
+                    } label: {
+                        Text(AppLocalization.string("Save"))
+                            .font(AppTypography.buttonLabel)
+                    }
                             .buttonStyle(LiquidCapsuleButtonStyle())
                             .disabled(!ageValidation.isValid)
                             .frame(maxWidth: .infinity)
@@ -155,7 +152,7 @@ struct AgeSettingsView: View {
 
                             Text(AppLocalization.string("Age can be used for:"))
                                 .font(AppTypography.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppColorRoles.textSecondary)
 
                             VStack(alignment: .leading, spacing: 8) {
                                 InfoRow(
@@ -172,14 +169,7 @@ struct AgeSettingsView: View {
                             }
                         }
                     }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-            }
         }
-        .navigationTitle(AppLocalization.string("Age"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .keyboard) {
                 Button(AppLocalization.string("Done")) {
@@ -240,7 +230,7 @@ private struct InfoRow: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundStyle(Color(hex: "#FCA311"))
+                .foregroundStyle(AppColorRoles.accentPrimary)
                 .frame(width: 32)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -248,7 +238,7 @@ private struct InfoRow: View {
                     .font(.subheadline.weight(.medium))
                 Text(description)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColorRoles.textSecondary)
             }
         }
     }

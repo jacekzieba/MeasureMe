@@ -127,12 +127,16 @@ final class PremiumStore: ObservableObject {
         self.forceNonPremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForceNonPremium")
         #endif
         if settings.snapshot.premium.premiumFirstLaunchDate == 0 {
-            settings.set(\.premium.premiumFirstLaunchDate, AppClock.now.timeIntervalSince1970)
+            Task { @MainActor in
+                settings.set(\.premium.premiumFirstLaunchDate, AppClock.now.timeIntervalSince1970)
+            }
         }
         #if DEBUG
         if forcePremiumForUITests {
-            _isPremium = Published(wrappedValue: true)
-            settings.set(\.premium.premiumEntitlement, true)
+            Task { @MainActor in
+                self.isPremium = true
+                settings.set(\.premium.premiumEntitlement, true)
+            }
         }
         #endif
 
@@ -587,3 +591,4 @@ private extension PremiumStore.PaywallReason {
         }
     }
 }
+

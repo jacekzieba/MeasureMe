@@ -2,6 +2,7 @@ import SwiftData
 import SwiftUI
 
 struct ProfileSettingsSection: View {
+    private let theme = FeatureTheme.settings
     @Binding var userName: String
     @Binding var userGender: String
     @Binding var userAge: Int
@@ -28,7 +29,7 @@ struct ProfileSettingsSection: View {
 
     var body: some View {
         Section {
-            SettingsCard(tint: Color.white.opacity(0.08)) {
+            SettingsCard(tint: AppColorRoles.surfacePrimary) {
                 SettingsCardHeader(title: AppLocalization.string("Profile"), systemImage: "person.crop.circle")
 
                 HStack(spacing: 12) {
@@ -40,7 +41,8 @@ struct ProfileSettingsSection: View {
                         .multilineTextAlignment(.trailing)
                         .textInputAutocapitalization(.words)
                         .autocorrectionDisabled()
-                        .foregroundStyle(userName.isEmpty ? .secondary : Color.appAccent)
+                        .font(AppTypography.body)
+                        .foregroundStyle(userName.isEmpty ? AppColorRoles.textTertiary : theme.accent)
                         .frame(minWidth: 120)
                 }
 
@@ -58,10 +60,11 @@ struct ProfileSettingsSection: View {
                     } label: {
                         HStack(spacing: 6) {
                             Text(genderLabel)
-                                .foregroundStyle(Color.appAccent)
+                                .font(AppTypography.body)
+                                .foregroundStyle(theme.accent)
                             Image(systemName: "chevron.up.chevron.down")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(Color.appAccent)
+                                .font(AppTypography.iconSmall)
+                                .foregroundStyle(theme.accent)
                         }
                     }
                     .buttonStyle(.plain)
@@ -77,11 +80,12 @@ struct ProfileSettingsSection: View {
                     TextField(AppLocalization.string("0"), text: $ageInput)
                         .multilineTextAlignment(.trailing)
                         .keyboardType(.numberPad)
-                        .foregroundStyle(ageInput.isEmpty ? .secondary : Color.appAccent)
+                        .font(AppTypography.body)
+                        .foregroundStyle(ageInput.isEmpty ? AppColorRoles.textTertiary : theme.accent)
                         .frame(minWidth: 48)
                     Text(AppLocalization.string("profile.unit.age"))
                         .font(AppTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 }
                 .onChange(of: ageInput) { _, value in
                     let digits = value.filter(\.isNumber)
@@ -103,11 +107,12 @@ struct ProfileSettingsSection: View {
                     TextField(AppLocalization.string("0"), text: $heightInput)
                         .multilineTextAlignment(.trailing)
                         .keyboardType(.decimalPad)
-                        .foregroundStyle(heightInput.isEmpty ? .secondary : Color.appAccent)
+                        .font(AppTypography.body)
+                        .foregroundStyle(heightInput.isEmpty ? AppColorRoles.textTertiary : theme.accent)
                         .frame(minWidth: 64)
                     Text(heightUnitSymbol)
                         .font(AppTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 }
                 .onChange(of: heightInput) { _, value in
                     let normalized = value.replacingOccurrences(of: ",", with: ".")
@@ -157,10 +162,11 @@ struct ProfileSettingsSection: View {
 
 struct ProfileStatsCard: View {
     @Query private var allSamples: [MetricSample]
+    private let theme = FeatureTheme.settings
 
     var body: some View {
         Section {
-            SettingsCard(tint: Color.appAccent.opacity(0.08)) {
+            SettingsCard(tint: theme.softTint) {
                 SettingsCardHeader(
                     title: AppLocalization.string("Your Progress"),
                     systemImage: "chart.line.uptrend.xyaxis"
@@ -168,22 +174,21 @@ struct ProfileStatsCard: View {
 
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text("\(allSamples.count)")
-                        .font(.system(.largeTitle, design: .rounded).weight(.bold))
-                        .foregroundStyle(Color.appAccent)
-                        .monospacedDigit()
+                        .font(AppTypography.dataCompact)
+                        .foregroundStyle(theme.accent)
                         .contentTransition(.numericText())
                         .accessibilityLabel(AppLocalization.string("profile.stats.accessibility", allSamples.count))
 
                     Text(AppLocalization.string("total measurements"))
                         .font(AppTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 }
 
                 SettingsRowDivider()
 
                 Text(motivationalPhrase)
                     .font(AppTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColorRoles.textSecondary)
                     .italic()
                     .fixedSize(horizontal: false, vertical: true)
             }

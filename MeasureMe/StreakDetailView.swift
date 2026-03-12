@@ -14,6 +14,10 @@ struct StreakDetailView: View {
     @State private var glowRadius: CGFloat = 18
     @State private var totalEntries: Int = 0
     @State private var animationsStarted = false
+    @State private var allDayCounts: [Date: Int] = [:]
+    @State private var selectedYear: Int = 0
+    @State private var availableYears: [Int] = []
+    @State private var heatmapRevealed = false
 
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -47,6 +51,9 @@ struct StreakDetailView: View {
                     flameSection
                     statsSection
                     thisWeekSection
+                    if selectedYear > 0 {
+                        activityHeatmapSection
+                    }
                     milestoneSection
                     totalLogsRow
                     motivationalCard
@@ -59,13 +66,7 @@ struct StreakDetailView: View {
             headerBar
         }
         .onAppear {
-            var descriptor = FetchDescriptor<MetricSample>()
-            if let firstDate = streakManager.firstActiveDate {
-                descriptor = FetchDescriptor<MetricSample>(
-                    predicate: #Predicate { $0.date >= firstDate }
-                )
-            }
-            totalEntries = (try? modelContext.fetchCount(descriptor)) ?? 0
+            loadHeatmapData()
             if shouldAnimate {
                 startFlameAnimation()
             }
@@ -425,6 +426,304 @@ struct StreakDetailView: View {
 
     private var motivationalBody: String {
         AppLocalization.string("streak.detail.motivational.\(motivationalTier).body")
+    }
+
+    // MARK: - Activity Heatmap
+
+    private func loadHeatmapData() {
+        let calendar = Calendar(identifier: .iso8601)
+        let now = AppClock.now
+
+        guard let firstDate = streakManager.firstActiveDate else {
+            totalEntries = (try? modelContext.fetchCount(FetchDescriptor<MetricSample>())) ?? 0
+            return
+        }
+
+        let descriptor = FetchDescriptor<MetricSample>(
+            predicate: #Predicate<MetricSample> { $0.date >= firstDate }
+        )
+        let samples = (try? modelContext.fetch(descriptor)) ?? []
+        totalEntries = samples.count
+
+        // Group by start-of-day
+        var dayCounts: [Date: Int] = [:]
+        for sample in samples {
+            let day = calendar.startOfDay(for: sample.date)
+            dayCounts[day, default: 0] += 1
+        }
+
+        allDayCounts = dayCounts
+
+        // Build available years
+        let firstYear = calendar.component(.year, from: firstDate)
+        let currentYear = calendar.component(.year, from: now)
+        availableYears = Array(stride(from: currentYear, through: firstYear, by: -1))
+        selectedYear = currentYear
+
+        if shouldAnimate {
+            withAnimation(AppMotion.sectionEnter) {
+                heatmapRevealed = true
+            }
+        } else {
+            heatmapRevealed = true
+        }
+    }
+
+    private func heatmapColor(for count: Int) -> Color {
+        switch count {
+        case 0:     return .white.opacity(0.07)
+        case 1:     return Color.orange.opacity(0.3)
+        case 2:     return Color.orange.opacity(0.55)
+        default:    return Color.appAccent
+        }
+    }
+
+    /// Months to display for the selected year — from first-active month to
+    /// current month (current year) or December (past years).
+    private var visibleMonths: [Int] {
+        let calendar = Calendar(identifier: .iso8601)
+        let now = AppClock.now
+        let currentYear = calendar.component(.year, from: now)
+        let currentMonth = calendar.component(.month, from: now)
+
+        let firstMonth: Int
+        if let firstDate = streakManager.firstActiveDate {
+            let firstYear = calendar.component(.year, from: firstDate)
+            firstMonth = (firstYear == selectedYear)
+                ? calendar.component(.month, from: firstDate)
+                : 1
+        } else {
+            firstMonth = 1
+        }
+
+        let lastMonth = (selectedYear == currentYear) ? currentMonth : 12
+        guard firstMonth <= lastMonth else { return [] }
+        return Array(firstMonth...lastMonth)
+    }
+
+    /// Dynamic column count: 1 for a single month, 2 for 2–4, 3 for 5+.
+    private var heatmapGridColumns: [GridItem] {
+        let cols: Int
+        switch visibleMonths.count {
+        case 1:     cols = 1
+        case 2...4: cols = 2
+        default:    cols = 3
+        }
+        return Array(repeating: GridItem(.flexible(), spacing: 8), count: cols)
+    }
+
+    private var activityHeatmapSection: some View {
+        AppGlassCard(depth: .base, cornerRadius: 18, tint: .clear, contentPadding: 16) {
+            VStack(alignment: .leading, spacing: 14) {
+                // Header with title + optional year picker
+                HStack {
+                    Text(AppLocalization.string("streak.detail.heatmap.title"))
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(.white.opacity(0.55))
+                        .tracking(2)
+                        .textCase(.uppercase)
+
+                    Spacer()
+
+                    if availableYears.count > 1 {
+                        Menu {
+                            ForEach(availableYears, id: \.self) { year in
+                                Button {
+                                    heatmapRevealed = false
+                                    Task { @MainActor in
+                                        try? await Task.sleep(for: .milliseconds(40))
+                                        selectedYear = year
+                                        if shouldAnimate {
+                                            withAnimation(AppMotion.sectionEnter) {
+                                                heatmapRevealed = true
+                                            }
+                                        } else {
+                                            heatmapRevealed = true
+                                        }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(String(year))
+                                        if year == selectedYear {
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(String(selectedYear))
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit())
+                                    .foregroundStyle(.white)
+
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.5))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(.white.opacity(0.1)))
+                        }
+                    }
+                }
+
+                // Adaptive grid — only months with potential data
+                LazyVGrid(columns: heatmapGridColumns, spacing: 12) {
+                    ForEach(visibleMonths, id: \.self) { month in
+                        miniMonthView(month: month)
+                    }
+                }
+
+                // Legend
+                HStack(spacing: 6) {
+                    Spacer()
+                    Text(AppLocalization.string("streak.detail.heatmap.less"))
+                        .font(AppTypography.micro)
+                        .foregroundStyle(.white.opacity(0.4))
+
+                    ForEach(0..<4, id: \.self) { level in
+                        RoundedRectangle(cornerRadius: 2, style: .continuous)
+                            .fill(heatmapColor(for: level))
+                            .frame(width: 10, height: 10)
+                    }
+
+                    Text(AppLocalization.string("streak.detail.heatmap.more"))
+                        .font(AppTypography.micro)
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+            }
+        }
+    }
+
+    private func miniMonthView(month: Int) -> some View {
+        let cells = monthCells(month: month)
+
+        return VStack(alignment: .leading, spacing: 3) {
+            Text(monthName(month))
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(0.55))
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            let dayCols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
+            LazyVGrid(columns: dayCols, spacing: 2) {
+                ForEach(cells, id: \.id) { cell in
+                    heatmapCellView(cell, monthIndex: month)
+                }
+            }
+        }
+    }
+
+    private struct MonthCell: Identifiable {
+        let id: String
+        let count: Int
+        let isToday: Bool
+        let isVisible: Bool // false for leading/trailing blanks and future/pre-start days
+    }
+
+    private func monthCells(month: Int) -> [MonthCell] {
+        let calendar = Calendar(identifier: .iso8601)
+        let now = AppClock.now
+        let todayStart = calendar.startOfDay(for: now)
+
+        // First day of this month
+        var comps = DateComponents()
+        comps.year = selectedYear
+        comps.month = month
+        comps.day = 1
+        guard let firstOfMonth = calendar.date(from: comps) else { return [] }
+
+        let range = calendar.range(of: .day, in: .month, for: firstOfMonth) ?? (1..<31)
+        let daysInMonth = range.count
+
+        // ISO 8601: Monday = 1 .. Sunday = 7
+        // We want Monday = column 0 .. Sunday = column 6
+        let firstWeekday = calendar.component(.weekday, from: firstOfMonth)
+        // Convert from Sunday=1..Saturday=7 to Monday=0..Sunday=6
+        let leadingBlanks = (firstWeekday + 5) % 7
+
+        // Determine first active date boundary
+        let firstActiveStart: Date = {
+            if let d = streakManager.firstActiveDate {
+                return calendar.startOfDay(for: d)
+            }
+            return .distantPast
+        }()
+
+        var cells: [MonthCell] = []
+
+        // Leading blanks
+        for i in 0..<leadingBlanks {
+            cells.append(MonthCell(id: "blank-lead-\(month)-\(i)", count: 0, isToday: false, isVisible: false))
+        }
+
+        // Actual days
+        for day in 1...daysInMonth {
+            var dayComps = DateComponents()
+            dayComps.year = selectedYear
+            dayComps.month = month
+            dayComps.day = day
+            guard let date = calendar.date(from: dayComps) else { continue }
+            let dayStart = calendar.startOfDay(for: date)
+            let isBeforeStart = dayStart < firstActiveStart
+            let isFuture = dayStart > todayStart
+            let isToday = calendar.isDateInToday(date)
+            let count = allDayCounts[dayStart] ?? 0
+
+            cells.append(MonthCell(
+                id: "day-\(month)-\(day)",
+                count: count,
+                isToday: isToday,
+                isVisible: !isBeforeStart && !isFuture
+            ))
+        }
+
+        // Trailing blanks to fill last row
+        let remainder = cells.count % 7
+        if remainder > 0 {
+            let trailingBlanks = 7 - remainder
+            for i in 0..<trailingBlanks {
+                cells.append(MonthCell(id: "blank-trail-\(month)-\(i)", count: 0, isToday: false, isVisible: false))
+            }
+        }
+
+        return cells
+    }
+
+    private func heatmapCellView(_ cell: MonthCell, monthIndex: Int) -> some View {
+        RoundedRectangle(cornerRadius: 2, style: .continuous)
+            .fill(cell.isVisible ? heatmapColor(for: cell.count) : Color.clear)
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                if cell.isToday && cell.isVisible {
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .stroke(.white.opacity(0.7), lineWidth: 1)
+                }
+            }
+            .shadow(
+                color: (cell.isVisible && cell.count >= 3)
+                    ? Color.appAccent.opacity(0.35) : .clear,
+                radius: 2
+            )
+            .opacity(heatmapRevealed ? 1 : 0)
+            .scaleEffect(heatmapRevealed ? 1 : 0.5)
+            .animation(
+                shouldAnimate
+                    ? .spring(response: 0.3, dampingFraction: 0.8)
+                        .delay(Double(monthIndex) * 0.04)
+                    : nil,
+                value: heatmapRevealed
+            )
+    }
+
+    private func monthName(_ month: Int) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "LLL"
+        var comps = DateComponents()
+        comps.year = selectedYear
+        comps.month = month
+        comps.day = 1
+        guard let date = Calendar(identifier: .iso8601).date(from: comps) else { return "" }
+        return formatter.string(from: date).uppercased()
     }
 
     // MARK: - Helpers

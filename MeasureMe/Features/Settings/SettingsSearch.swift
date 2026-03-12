@@ -1,6 +1,6 @@
 import Foundation
 
-enum SettingsSearchRoute: String, Hashable {
+enum SettingsSearchRoute: String, Hashable, Identifiable {
     case profile
     case metrics
     case indicators
@@ -15,6 +15,8 @@ enum SettingsSearchRoute: String, Hashable {
     case data
     case faq
     case about
+
+    var id: String { rawValue }
 }
 
 struct SettingsSearchItem: Identifiable {

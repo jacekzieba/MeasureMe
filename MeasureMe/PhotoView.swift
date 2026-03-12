@@ -9,6 +9,7 @@ extension Notification.Name {
 /// Pokazuje zdjęcia w formie siatki (grid) z trybem selekcji i porównywania
 /// Alternatywny widok listy znajduje się w PhotosListView (PhotosView.swift)
 struct PhotoView: View {
+    private let photosTheme = FeatureTheme.photos
 
     @Environment(\.modelContext) private var context
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -78,7 +79,7 @@ struct PhotoView: View {
             ZStack(alignment: .top) {
                 AppScreenBackground(
                     topHeight: 380,
-                    tint: Color.cyan.opacity(0.22)
+                    tint: photosTheme.softTint
                 )
                 
                 VStack(spacing: 0) {
@@ -132,7 +133,7 @@ struct PhotoView: View {
                                 .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background(.ultraThinMaterial, in: Capsule())
+                                .background(photosTheme.pillFill, in: Capsule())
                                 .padding(.top, 8)
                                 .padding(.leading, 12)
                                 .accessibilityIdentifier("photos.compare.selectTwoHook")

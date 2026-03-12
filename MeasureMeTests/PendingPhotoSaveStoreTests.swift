@@ -477,7 +477,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
 
 private extension PendingPhotoSaveStoreTests {
     func makeContainer() throws -> ModelContainer {
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         return try ModelContainer(
             for: PhotoEntry.self,
             MetricSample.self,
