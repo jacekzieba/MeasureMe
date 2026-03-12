@@ -828,6 +828,7 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Why: so your charts do not start from zero." = "Why: so your charts do not start from zero.";
 "Connect" = "Connect";
 "Connected" = "Connected";
+"Next" = "Next";
 "Weekly reminder" = "Weekly reminder";
 "One gentle nudge a week helps the habit stick." = "One gentle nudge a week helps the habit stick.";
 "Why: consistency beats intensity." = "Why: consistency beats intensity.";
@@ -847,6 +848,8 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Weekly reminder is set." = "Weekly reminder is set.";
 "First Photo" = "First Photo";
 "Photos make progress easier to notice." = "Photos make progress easier to notice.";
+"Add your first photo now. Come back later to compare progress." = "Add your first photo now. Come back later to compare progress.";
+"Too early for an automatic comparison. Choose photos manually." = "Too early for an automatic comparison. Choose photos manually.";
 "Track only what matters to you." = "Track only what matters to you.";
 "One weekly nudge helps keep the habit." = "One weekly nudge helps keep the habit.";
 "Connect Apple Health" = "Connect Apple Health";
@@ -1194,6 +1197,10 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "widget.metric.name" = "Metric";
 "widget.metric.description" = "Shows your selected metric with trend chart and 30-day change.";
 "widget.metric.no_data" = "No data yet";
+"Earlier" = "Earlier";
+"Session" = "Session";
+"Select Date" = "Select date";
+"Premium" = "Premium";
 "widget.metric.chart_label" = "30d";
 
 /* Streak Detail */
@@ -1254,3 +1261,4 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Backup from %@ contains %d measurements, %d goals, %d photos." = "Backup from %@ contains %d measurements, %d goals, %d photos.";
 "Replace all local data with backup?" = "Replace all local data with backup?";
 "Replace" = "Replace";
+"Choose Photos" = "Choose Photos";

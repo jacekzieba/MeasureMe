@@ -7,6 +7,7 @@ struct PhotoDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
+    @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)]) private var allPhotos: [PhotoEntry]
     
     @Bindable var photo: PhotoEntry
     
@@ -22,10 +23,16 @@ struct PhotoDetailView: View {
     @State private var editedDate: Date
     @State private var editedTags: Set<PhotoTag>
     @State private var editedMetrics: [MetricValueSnapshot]
+    let onCompareRequested: ((PhotoEntry, PhotoEntry) -> Void)?
     let onDeleted: (() -> Void)?
     
-    init(photo: PhotoEntry, onDeleted: (() -> Void)? = nil) {
+    init(
+        photo: PhotoEntry,
+        onCompareRequested: ((PhotoEntry, PhotoEntry) -> Void)? = nil,
+        onDeleted: (() -> Void)? = nil
+    ) {
         self.photo = photo
+        self.onCompareRequested = onCompareRequested
         self.onDeleted = onDeleted
         _editedDate = State(initialValue: photo.date)
         _editedTags = State(initialValue: Set(photo.tags))
@@ -37,11 +44,15 @@ struct PhotoDetailView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     photoSection
-                    dateSection
-                    tagsSection
-                    metricsSection
-                    
-                    if !isEditing {
+                    if isEditing {
+                        dateSection
+                        tagsSection
+                        metricsSection
+                    } else {
+                        sessionSummarySection
+                        secondaryActionsSection
+                        tagsSection
+                        metricsSection
                         deleteButton
                     }
                 }
@@ -61,23 +72,6 @@ struct PhotoDetailView: View {
                         Button(AppLocalization.string("Save")) {
                             saveChanges()
                         }
-                    } else {
-                        Button(AppLocalization.string("Edit")) {
-                            startEditing()
-                        }
-                    }
-                }
-
-                if !isEditing {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            saveToPhotos()
-                        } label: {
-                            Label(AppLocalization.string("Save to Photos"), systemImage: "square.and.arrow.down")
-                        }
-                        .disabled(isSavingToPhotos)
-                        .accessibilityLabel(AppLocalization.string("Save photo to gallery"))
-                        .accessibilityHint(AppLocalization.string("accessibility.save.photo.to.gallery.hint"))
                     }
                 }
                 
@@ -106,6 +100,12 @@ struct PhotoDetailView: View {
 
 // MARK: - Sections
 private extension PhotoDetailView {
+    var previousPhoto: PhotoEntry? {
+        allPhotos
+            .filter { $0.persistentModelID != photo.persistentModelID && $0.date < photo.date }
+            .sorted { $0.date > $1.date }
+            .first
+    }
     
     var photoSection: some View {
         PhotoPreviewSection(
@@ -113,6 +113,47 @@ private extension PhotoDetailView {
             cacheID: String(describing: photo.id),
             onTapFullScreen: { showFullScreen = true }
         )
+    }
+
+    var sessionSummarySection: some View {
+        PhotoSessionSummaryCard(
+            photo: photo,
+            previousPhoto: previousPhoto
+        )
+    }
+
+    @ViewBuilder
+    var secondaryActionsSection: some View {
+        VStack(spacing: 12) {
+            if let previousPhoto, let onCompareRequested {
+                Button {
+                    onCompareRequested(previousPhoto, photo)
+                } label: {
+                    Label(AppLocalization.string("Compare"), systemImage: "arrow.left.and.right")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+            }
+
+            HStack(spacing: 12) {
+                Button {
+                    saveToPhotos()
+                } label: {
+                    Label(AppLocalization.string("Save to Photos"), systemImage: "square.and.arrow.down")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
+                .disabled(isSavingToPhotos)
+
+                Button {
+                    startEditing()
+                } label: {
+                    Label(AppLocalization.string("Edit"), systemImage: "slider.horizontal.3")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
+            }
+        }
     }
     
     var dateSection: some View {

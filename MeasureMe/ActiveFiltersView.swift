@@ -45,7 +45,6 @@ struct ActiveFiltersView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 8)
             }
-            .background(.ultraThinMaterial)
         }
     }
 }

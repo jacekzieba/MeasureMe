@@ -247,28 +247,16 @@ extension MetricDetailView {
     ///   - startDate:  Opcjonalna data startowa — zapisywana razem z startValue jako MetricSample.
     func setGoal(targetValue: Double, direction: MetricGoal.Direction,
                  startValue: Double? = nil, startDate: Date? = nil) {
-        if let existing = currentGoal {
-            // Aktualizuj istniejący cel
-            existing.targetValue = targetValue
-            existing.direction = direction
-            existing.startValue = startValue
-            existing.startDate = startDate
-            existing.createdDate = .now
-        } else {
-            // Utwórz nowy cel
-            let goal = MetricGoal(kind: kind, targetValue: targetValue, direction: direction,
-                                  startValue: startValue, startDate: startDate)
-            context.insert(goal)
-        }
-        // Zapisz wartość startową jako MetricSample (jeśli podana i nie istnieje już bliźniacza próbka)
-        if let sv = startValue, let sd = startDate {
-            let alreadyExists = samples.contains {
-                abs($0.date.timeIntervalSince(sd)) < 60 && abs($0.value - sv) < 0.001
-            }
-            if !alreadyExists {
-                context.insert(MetricSample(kind: kind, value: sv, date: sd))
-            }
-        }
+        MetricGoalStore.upsertGoal(
+            kind: kind,
+            targetValue: targetValue,
+            direction: direction,
+            startValue: startValue,
+            startDate: startDate,
+            in: context,
+            existingGoal: currentGoal,
+            existingSamples: samples
+        )
         WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
     }
     
@@ -547,6 +535,7 @@ struct AddMetricSampleView: View {
                                         .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
                                         .fixedSize()
                                         .focused($isValueFocused)
+                                        .accessibilityIdentifier("goal.input.value")
 
                                     Text(kind.unitSymbol(unitsSystem: unitsSystem))
                                         .font(.title.weight(.medium))
@@ -1036,6 +1025,7 @@ struct SetGoalView: View {
                         dismiss()
                     }
                     .disabled(!isFormValid)
+                    .accessibilityIdentifier("goal.save")
                 }
             }
             .alert(AppLocalization.string("Delete Goal"), isPresented: $showDeleteConfirmation) {

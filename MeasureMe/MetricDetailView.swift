@@ -46,6 +46,7 @@ struct MetricDetailView: View {
     @State var detailedInsight: String?
     @State var isLoadingInsight = false
     @State private var scrubbedSample: MetricSample?
+    @State private var chartScrubState: ChartScrubState = .idle
     
     @AppSetting(\.experience.photosFilterTag) var photosFilterTag: String = ""
 
@@ -80,6 +81,12 @@ struct MetricDetailView: View {
     }
 
     @State var timeframe: Timeframe = .month
+
+    private enum ChartScrubState {
+        case idle
+        case armed
+        case scrubbing
+    }
 
     // MARK: - Initialization
     
@@ -142,6 +149,34 @@ struct MetricDetailView: View {
 
     var visiblePhotos: [PhotoEntry] {
         Array(relatedPhotos.prefix(3))
+    }
+
+    var latestSample: MetricSample? {
+        sortedSamplesAscending.last
+    }
+
+    var previousSample: MetricSample? {
+        guard sortedSamplesAscending.count > 1 else { return nil }
+        return sortedSamplesAscending[sortedSamplesAscending.count - 2]
+    }
+
+    var heroDeltaValueText: String? {
+        guard let latestSample, let previousSample else { return nil }
+        let delta = displayValue(latestSample.value - previousSample.value)
+        guard abs(delta) >= 0.05 else { return nil }
+        let sign = delta > 0 ? "+" : "-"
+        return "\(sign)\(abs(delta).formatted(.number.precision(.fractionLength(1)))) \(kind.unitSymbol(unitsSystem: unitsSystem))"
+    }
+
+    var heroDeltaCaption: String {
+        guard let latestSample, let previousSample else {
+            return AppLocalization.string("Current value")
+        }
+        let days = max(Calendar.current.dateComponents([.day], from: previousSample.date, to: latestSample.date).day ?? 0, 0)
+        if days == 0 {
+            return AppLocalization.string("Current value")
+        }
+        return AppLocalization.plural("compare.days.apart", days)
     }
     
     var historyLimit: Int { 5 }
@@ -248,13 +283,8 @@ struct MetricDetailView: View {
             emptyStateSection
             howToMeasureSection
         } else {
+            heroSection
             insightSection
-            chartSection
-            goalTrendSection
-            progressSection
-            if relatedTag != nil {
-                photosSection
-            }
             historySection
             howToMeasureSection
         }
@@ -357,141 +387,26 @@ struct MetricDetailView: View {
         }
     }
 
-    private var chartSection: some View {
+    private var heroSection: some View {
         Section {
-            chartSectionContent
-        } header: {
-            Text(AppLocalization.string("Chart"))
-        }
-    }
+            AppGlassCard(
+                depth: .floating,
+                cornerRadius: 24,
+                tint: measurementsTheme.strongTint,
+                contentPadding: 18
+            ) {
+                VStack(spacing: 18) {
+                    metricHeroSummary
 
-    private var goalTrendSection: some View {
-        Section {
-            HStack(spacing: 12) {
-                Button {
-                    showGoalSheet = true
-                } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "target")
-                                .foregroundStyle(measurementsTheme.accent)
-                            Text(AppLocalization.string("Goal"))
-                                .font(AppTypography.bodyEmphasis)
-                                .foregroundStyle(AppColorRoles.textPrimary)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(AppTypography.micro)
-                                .foregroundStyle(AppColorRoles.textTertiary)
-                        }
+                    Divider()
+                        .overlay(Color.white.opacity(0.08))
 
-                        if let goal = currentGoal {
-                            Text(AppLocalization.string("metric.goal.update.value", valueString(goal.targetValue)))
-                                .font(AppTypography.caption)
-                                .monospacedDigit()
-                                .foregroundStyle(AppColorRoles.textSecondary)
-                        } else {
-                            Text(AppLocalization.string("Set a target"))
-                                .font(AppTypography.caption)
-                                .foregroundStyle(AppColorRoles.textSecondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(AppColorRoles.surfaceInteractive)
-                    )
-                    .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(currentGoal == nil ? AppLocalization.string("accessibility.goal.set") : AppLocalization.string("accessibility.goal.update"))
-                .accessibilityHint(AppLocalization.string("accessibility.goal.define"))
-
-                Button {
-                    showTrendline.toggle()
-                } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "chart.line.uptrend.xyaxis")
-                                .foregroundStyle(measurementsTheme.accent)
-                            Text(AppLocalization.string("Trend"))
-                                .font(AppTypography.bodyEmphasis)
-                                .foregroundStyle(AppColorRoles.textPrimary)
-                            Spacer()
-                        }
-
-                        Text(showTrendline ? AppLocalization.string("Visible") : AppLocalization.string("Hidden"))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColorRoles.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(AppColorRoles.surfaceInteractive)
-                    )
-                    .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(AppLocalization.string("accessibility.trendline"))
-                .accessibilityValue(showTrendline ? AppLocalization.string("accessibility.visible") : AppLocalization.string("accessibility.hidden"))
-                .accessibilityHint(AppLocalization.string("accessibility.trendline.toggle"))
-            }
-            .swipeActions {
-                if currentGoal != nil {
-                    Button(role: .destructive) {
-                        deleteGoal()
-                    } label: {
-                        Label(AppLocalization.string("Delete Goal"), systemImage: "trash")
-                    }
+                    chartSectionContent
                 }
             }
-        } header: {
-            Text(AppLocalization.string("Goal & Trend"))
-        }
-    }
-
-    @ViewBuilder
-    private var progressSection: some View {
-        if let goal = currentGoal, let latest = samples.last {
-            Section {
-                GoalProgressView(
-                    goal: goal,
-                    latest: latest,
-                    baselineValue: baselineValue(for: goal)
-                ) { value in
-                    valueString(value)
-                }
-            } header: {
-                Text(AppLocalization.string("Progress"))
-            }
-        }
-    }
-
-    private var photosSection: some View {
-        Section {
-            if relatedPhotos.isEmpty {
-                Text(AppLocalization.string("No related photos yet."))
-                    .foregroundStyle(AppColorRoles.textSecondary)
-            } else {
-                MetricPhotosRow(photos: visiblePhotos)
-                    .padding(.vertical, 4)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-            }
-        } header: {
-            HStack {
-                Text(AppLocalization.string("Photos"))
-                Spacer()
-                if relatedPhotos.count > 3, let tag = relatedTag {
-                    Button(AppLocalization.string("View More")) {
-                        photosFilterTag = tag.rawValue
-                        router.selectedTab = .photos
-                    }
-                    .font(AppTypography.sectionAction)
-                    .accessibilityLabel(AppLocalization.string("View more photos"))
-                    .accessibilityHint(AppLocalization.string("accessibility.photos.filtered"))
-                }
-            }
+            .padding(.vertical, 4)
+            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 8, trailing: 16))
+            .listRowBackground(Color.clear)
         }
     }
 
@@ -553,52 +468,6 @@ struct MetricDetailView: View {
 
     var chartSectionContent: some View {
         VStack(spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        kind.iconView(size: 16, tint: measurementsTheme.accent)
-                        Text(AppLocalization.string("Current value"))
-                            .font(AppTypography.eyebrow)
-                            .foregroundStyle(AppColorRoles.textSecondary)
-                    }
-
-                    Text(valueString(latestSampleValue ?? 0))
-                        .font(AppTypography.dataCompact)
-                        .monospacedDigit()
-                        .foregroundStyle(AppColorRoles.textPrimary)
-
-                    if let latestSample = samples.last {
-                        Text(latestSample.date.formatted(date: .abbreviated, time: .omitted))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColorRoles.textSecondary)
-                    }
-                }
-
-                Spacer(minLength: 8)
-
-                VStack(alignment: .trailing, spacing: 6) {
-                    if let currentValueTrendSummary {
-                        Label(currentValueTrendSummary.text, systemImage: currentValueTrendSummary.icon)
-                            .font(AppTypography.badge)
-                            .foregroundStyle(currentValueTrendSummary.color)
-                            .multilineTextAlignment(.trailing)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule(style: .continuous)
-                                    .fill(currentValueTrendSummary.color.opacity(0.14))
-                            )
-                    }
-
-                    if let goalStatusText {
-                        Text(goalStatusText)
-                            .font(AppTypography.microEmphasis)
-                            .foregroundStyle(AppColorRoles.textTertiary)
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
-            }
-
             Picker(AppLocalization.string("Range"), selection: $timeframe) {
                 ForEach(Timeframe.allCases) { tf in
                     Text(tf.rawValue).tag(tf)
@@ -633,8 +502,190 @@ struct MetricDetailView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .center)
+
+            HStack(spacing: 12) {
+                Button {
+                    showGoalSheet = true
+                } label: {
+                    secondaryActionCard(
+                        title: AppLocalization.string("Goal"),
+                        value: currentGoal.map { AppLocalization.string("metric.goal.update.value", valueString($0.targetValue)) } ?? AppLocalization.string("Set Goal"),
+                        icon: "target",
+                        showsChevron: true
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("metric.detail.goal")
+                .accessibilityLabel(currentGoal == nil ? AppLocalization.string("accessibility.goal.set") : AppLocalization.string("accessibility.goal.update"))
+                .accessibilityHint(AppLocalization.string("accessibility.goal.define"))
+
+                Button {
+                    showTrendline.toggle()
+                } label: {
+                    secondaryActionCard(
+                        title: AppLocalization.string("Trend"),
+                        value: showTrendline ? AppLocalization.string("Visible") : AppLocalization.string("Hidden"),
+                        icon: "chart.line.uptrend.xyaxis"
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("metric.detail.trend")
+                .accessibilityLabel(AppLocalization.string("accessibility.trendline"))
+                .accessibilityValue(showTrendline ? AppLocalization.string("accessibility.visible") : AppLocalization.string("accessibility.hidden"))
+                .accessibilityHint(AppLocalization.string("accessibility.trendline.toggle"))
+            }
         }
-        .listRowBackground(AppColorRoles.surfaceElevated)
+    }
+
+    private var metricHeroSummary: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        kind.iconView(size: 18, tint: measurementsTheme.accent)
+                        Text(AppLocalization.string("Current value"))
+                            .font(AppTypography.eyebrow)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                    }
+
+                    Text(valueString(latestSampleValue ?? 0))
+                        .font(AppTypography.dataCompact)
+                        .monospacedDigit()
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.22)
+                        .allowsTightening(true)
+
+                    if let latestSample {
+                        Text(latestSample.date.formatted(date: .abbreviated, time: .omitted))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                if let currentValueTrendSummary {
+                    Label(currentValueTrendSummary.text, systemImage: currentValueTrendSummary.icon)
+                        .font(AppTypography.badge)
+                        .foregroundStyle(currentValueTrendSummary.color)
+                        .multilineTextAlignment(.trailing)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(currentValueTrendSummary.color.opacity(0.14))
+                        )
+                }
+            }
+            if relatedTag != nil {
+                metricHeroPhotoProof
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var metricHeroPhotoProof: some View {
+        if relatedPhotos.isEmpty {
+            HStack(spacing: 10) {
+                Image(systemName: "photo.on.rectangle.angled")
+                    .font(.headline)
+                    .foregroundStyle(measurementsTheme.accent)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(AppLocalization.string("Photo Progress"))
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                    Text(AppLocalization.string("No related photos yet."))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                }
+
+                Spacer()
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(AppColorRoles.surfaceInteractive)
+            )
+        } else {
+            Button {
+                if let tag = relatedTag {
+                    photosFilterTag = tag.rawValue
+                    router.selectedTab = .photos
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(AppLocalization.string("Photo Progress"))
+                            .font(AppTypography.bodyEmphasis)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+                        Text(heroDeltaCaption)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    HStack(spacing: 6) {
+                        ForEach(visiblePhotos, id: \.persistentModelID) { photo in
+                            DownsampledImageView(
+                                imageData: photo.thumbnailOrImageData,
+                                targetSize: CGSize(width: 42, height: 42),
+                                contentMode: .fill,
+                                cornerRadius: 12,
+                                showsProgress: false,
+                                cacheID: String(describing: photo.id)
+                            )
+                            .frame(width: 42, height: 42)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                    }
+
+                    Image(systemName: "chevron.right")
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColorRoles.textTertiary)
+                }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(AppColorRoles.surfaceInteractive)
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(AppLocalization.string("View more photos"))
+            .accessibilityHint(AppLocalization.string("accessibility.photos.filtered"))
+        }
+    }
+
+    private func secondaryActionCard(title: String, value: String, icon: String, showsChevron: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .foregroundStyle(measurementsTheme.accent)
+                Text(title)
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+                Spacer()
+                if showsChevron {
+                    Image(systemName: "chevron.right")
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColorRoles.textTertiary)
+                }
+            }
+
+            Text(value)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColorRoles.textSecondary)
+                .multilineTextAlignment(.leading)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+        )
     }
 
     var chartView: some View {
@@ -747,22 +798,21 @@ struct MetricDetailView: View {
                 Rectangle()
                     .fill(.clear)
                     .contentShape(Rectangle())
-                    .allowsHitTesting(isChartScrubbingEnabled)
                     .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 0.2)
-                            .sequenced(before: DragGesture(minimumDistance: 0))
+                        SpatialTapGesture()
+                            .onEnded { value in
+                                handleChartTap(at: value.location, proxy: proxy, geometry: geometry)
+                            }
+                    )
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 10)
                             .onChanged { value in
-                                switch value {
-                                case .second(true, let drag):
-                                    if let drag {
-                                        updateScrubbedSample(at: drag.location, proxy: proxy, geometry: geometry)
-                                    }
-                                default:
-                                    break
-                                }
+                                handleChartDragChanged(value, proxy: proxy, geometry: geometry)
                             }
                             .onEnded { _ in
-                                scrubbedSample = nil
+                                if chartScrubState != .idle {
+                                    endChartScrubbing()
+                                }
                             }
                     )
             }
@@ -788,6 +838,7 @@ struct MetricDetailView: View {
             }
         }
         .clipped()
+        .accessibilityIdentifier("metric.detail.chart")
         .accessibilityChartDescriptor(MetricChartAXDescriptor(descriptor: chartDescriptor))
         .accessibilityLabel(AppLocalization.string("accessibility.chart", kind.title))
         .accessibilityHint(AppLocalization.string("accessibility.chart.hint"))
@@ -900,5 +951,98 @@ struct MetricDetailView: View {
             abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
         }
     }
+
+    private func handleChartTap(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
+        guard isChartScrubbingEnabled else { return }
+        guard isLocationNearChartSeries(location, proxy: proxy, geometry: geometry) else {
+            endChartScrubbing()
+            return
+        }
+
+        chartScrubState = .armed
+        updateScrubbedSample(at: location, proxy: proxy, geometry: geometry)
+    }
+
+    private func handleChartDragChanged(_ value: DragGesture.Value, proxy: ChartProxy, geometry: GeometryProxy) {
+        guard isChartScrubbingEnabled else { return }
+
+        switch chartScrubState {
+        case .armed, .scrubbing:
+            chartScrubState = .scrubbing
+            updateScrubbedSample(at: value.location, proxy: proxy, geometry: geometry)
+
+        case .idle:
+            guard isLocationNearChartSeries(value.startLocation, proxy: proxy, geometry: geometry) else { return }
+            let horizontal = abs(value.translation.width)
+            let vertical = abs(value.translation.height)
+            guard horizontal >= 8, horizontal > vertical else { return }
+
+            chartScrubState = .scrubbing
+            updateScrubbedSample(at: value.location, proxy: proxy, geometry: geometry)
+        }
+    }
+
+    private func endChartScrubbing() {
+        chartScrubState = .idle
+        scrubbedSample = nil
+    }
+
+    private func isLocationNearChartSeries(_ location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) -> Bool {
+        let hitTolerance: CGFloat = 24
+        let segmentTolerance: CGFloat = 20
+
+        let positions = chartSampleScreenPositions(proxy: proxy, geometry: geometry)
+        guard !positions.isEmpty else { return false }
+
+        let nearPoint = positions.contains { location.distance(to: $0.point) <= hitTolerance }
+        if nearPoint {
+            return true
+        }
+
+        guard positions.count > 1 else { return false }
+        for index in 0..<(positions.count - 1) {
+            let start = positions[index].point
+            let end = positions[index + 1].point
+            if location.distance(toSegmentStart: start, end: end) <= segmentTolerance {
+                return true
+            }
+        }
+        return false
+    }
+
+    private func chartSampleScreenPositions(proxy: ChartProxy, geometry: GeometryProxy) -> [(sample: MetricSample, point: CGPoint)] {
+        guard let plotFrame = proxy.plotFrame else { return [] }
+        let plotOrigin = geometry[plotFrame].origin
+
+        return chartSamples.compactMap { sample in
+            guard let xPosition = proxy.position(forX: sample.date),
+                  let yPosition = proxy.position(forY: displayValue(sample.value)) else {
+                return nil
+            }
+
+            return (
+                sample: sample,
+                point: CGPoint(x: plotOrigin.x + xPosition, y: plotOrigin.y + yPosition)
+            )
+        }
+    }
 }
 // Metody rozszerzenia sa zdefiniowane w MetricDetailComponents.swift
+
+private extension CGPoint {
+    func distance(to point: CGPoint) -> CGFloat {
+        hypot(x - point.x, y - point.y)
+    }
+
+    func distance(toSegmentStart start: CGPoint, end: CGPoint) -> CGFloat {
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        let lengthSquared = dx * dx + dy * dy
+        guard lengthSquared > 0 else { return distance(to: start) }
+
+        let projection = ((x - start.x) * dx + (y - start.y) * dy) / lengthSquared
+        let clamped = max(0, min(1, projection))
+        let projected = CGPoint(x: start.x + clamped * dx, y: start.y + clamped * dy)
+        return distance(to: projected)
+    }
+}

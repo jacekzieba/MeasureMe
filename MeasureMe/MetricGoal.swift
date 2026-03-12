@@ -94,3 +94,51 @@ final class MetricGoal {
         }
     }
 }
+
+enum MetricGoalStore {
+    /// Upserts a goal and optionally persists a matching start sample for the same metric.
+    @discardableResult
+    static func upsertGoal(
+        kind: MetricKind,
+        targetValue: Double,
+        direction: MetricGoal.Direction,
+        startValue: Double? = nil,
+        startDate: Date? = nil,
+        in context: ModelContext,
+        existingGoal: MetricGoal?,
+        existingSamples: [MetricSample],
+        now: Date = .now
+    ) -> MetricGoal {
+        let goal: MetricGoal
+        if let existingGoal {
+            existingGoal.targetValue = targetValue
+            existingGoal.direction = direction
+            existingGoal.startValue = startValue
+            existingGoal.startDate = startDate
+            existingGoal.createdDate = now
+            goal = existingGoal
+        } else {
+            let newGoal = MetricGoal(
+                kind: kind,
+                targetValue: targetValue,
+                direction: direction,
+                createdDate: now,
+                startValue: startValue,
+                startDate: startDate
+            )
+            context.insert(newGoal)
+            goal = newGoal
+        }
+
+        if let startValue, let startDate {
+            let matchingStartSampleExists = existingSamples.contains {
+                abs($0.date.timeIntervalSince(startDate)) < 60 && abs($0.value - startValue) < 0.001
+            }
+            if !matchingStartSampleExists {
+                context.insert(MetricSample(kind: kind, value: startValue, date: startDate))
+            }
+        }
+
+        return goal
+    }
+}

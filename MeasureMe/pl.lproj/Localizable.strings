@@ -634,7 +634,8 @@
 "Value" = "Wartość";
 "View All" = "Zobacz wszystkie";
 "View Full Screen" = "Pełny ekran";
-"View More" = "Zobacz więcej";
+"View More" = "Wybierz zdjęcia";
+"Choose Photos" = "Wybierz zdjęcia";
 "View more" = "Zobacz więcej";
 "View more photos" = "Zobacz więcej zdjęć";
 "Weekly check-ins" = "Cotygodniowe wpisy";
@@ -1185,6 +1186,7 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Why: so your charts do not start from zero." = "Dlaczego: dzięki temu wykresy nie zaczynają się od zera.";
 "Connect" = "Połącz";
 "Connected" = "Połączono";
+"Next" = "Dalej";
 "Weekly reminder" = "Cotygodniowe przypomnienie";
 "One gentle nudge a week helps the habit stick." = "Jedno delikatne przypomnienie tygodniowo pomaga utrzymać nawyk.";
 "Why: consistency beats intensity." = "Dlaczego: regularność wygrywa z intensywnością.";
@@ -1203,6 +1205,8 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Weekly reminder is set." = "Cotygodniowe przypomnienie zostało ustawione.";
 "First Photo" = "Pierwsze zdjęcie";
 "Photos make progress easier to notice." = "Zdjęcia ułatwiają zauważenie postępu.";
+"Add your first photo now. Come back later to compare progress." = "Dodaj pierwsze zdjęcie teraz. Wróć później, aby porównać postęp.";
+"Too early for an automatic comparison. Choose photos manually." = "Za wcześnie na automatyczne porównanie. Wybierz zdjęcia ręcznie.";
 "Track only what matters to you." = "Śledź tylko to, co jest dla Ciebie ważne.";
 "One weekly nudge helps keep the habit." = "Jedno przypomnienie tygodniowo pomaga utrzymać nawyk.";
 "Connect Apple Health" = "Połącz aplikację Zdrowie";
@@ -1655,3 +1659,7 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Replace all local data with backup?" = "Zastąpić wszystkie lokalne dane kopią zapasową?";
 "Replace" = "Zastąp";
 "Reminder is set." = "Przypomnienie ustawione.";
+"Earlier" = "Wcześniej";
+"Session" = "Sesja";
+"Select Date" = "Wybierz datę";
+"Premium" = "Premium";

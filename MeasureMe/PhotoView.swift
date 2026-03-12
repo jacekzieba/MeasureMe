@@ -16,6 +16,7 @@ struct PhotoView: View {
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
+    @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)]) private var allPhotos: [PhotoEntry]
     
     @StateObject private var filters = PhotoFilters()
     @State private var showFilters = false
@@ -30,7 +31,7 @@ struct PhotoView: View {
     @State private var multiPhotoImportPayload: MultiPhotoImportPayload? = nil
     @State private var showSingleImportFlow = false
     @State private var showMultiImportFlow = false
-    @State private var showCompare = false
+    @State private var compareChooserContext: CompareChooserContext?
     @State private var refreshToken = UUID()
     @State private var recentlySavedPhoto: PhotoEntry?
     @State private var recentlySavedPhotoEventID = UUID()
@@ -38,6 +39,8 @@ struct PhotoView: View {
     @State private var isSelecting = false
     @State private var selectedPhotos: Set<PhotoEntry> = []
     @State private var selectedPhotoForDetail: PhotoEntry?
+    @State private var selectedComparePair: PhotoComparePair?
+    @State private var heroCompareOverride: TemporaryHeroPairOverride?
     @State private var showDeleteConfirmation = false
     @State private var didRunUITestAutoOpen = false
     @State private var failureToastMessage: String?
@@ -54,6 +57,12 @@ struct PhotoView: View {
     private var uiTestModeEnabled: Bool {
         ProcessInfo.processInfo.arguments.contains("-uiTestMode")
     }
+
+    private var canUsePremiumCompare: Bool {
+        premiumStore.isPremium || uiTestModeEnabled
+    }
+
+    private let heroCompareOverrideLifetime: TimeInterval = 30 * 60
 
     #if DEBUG
     /// Liczba zdjęć do otwarcia w MultiPhotoImportView podczas testu UI.
@@ -82,82 +91,104 @@ struct PhotoView: View {
                     tint: photosTheme.softTint
                 )
                 
-                VStack(spacing: 0) {
-                    ScreenTitleHeader(title: AppLocalization.string("Photos"), topPadding: 6, bottomPadding: 2)
-
-                    // Active filters bar
-                    if filters.isActive {
-                        ActiveFiltersView(filters: filters) {
-                            filters.reset()
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.top, 6)
+                ZStack(alignment: .bottom) {
+                    PhotoContentView(
+                        filters: filters,
+                        isPremium: premiumStore.isPremium || uiTestModeEnabled,
+                        isSelecting: isSelecting,
+                        selectedPhotos: $selectedPhotos,
+                        onPhotoTap: handlePhotoTap,
+                        onPhotoLongPress: handlePhotoLongPress,
+                        onAddPhoto: {
+                            Haptics.light()
+                            showSourcePicker = true
+                        },
+                        onOpenCompareChooser: {
+                            Haptics.light()
+                            guard canUsePremiumCompare else {
+                                premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
+                                return
+                            }
+                            compareChooserContext = CompareChooserContext(
+                                olderPhoto: nil,
+                                newerPhoto: nil,
+                                preferredSlot: .newer
+                            )
+                        },
+                        onChooseHeroSlot: { pair, slot in
+                            Haptics.light()
+                            guard canUsePremiumCompare else {
+                                premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
+                                return
+                            }
+                            compareChooserContext = CompareChooserContext(
+                                olderPhoto: pair.older,
+                                newerPhoto: pair.newer,
+                                preferredSlot: slot
+                            )
+                        },
+                        onOpenSuggestedCompare: { pair in
+                            guard canUsePremiumCompare else {
+                                premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
+                                return
+                            }
+                            openCompare(using: pair.older, pair.newer)
+                        },
+                        heroCompareOverride: heroCompareOverride,
+                        refreshToken: refreshToken,
+                        recentlySavedPhoto: recentlySavedPhoto,
+                        recentlySavedPhotoEventID: recentlySavedPhotoEventID,
+                        pendingItems: pendingPhotoSaveStore.pendingItems
+                    )
+                    .refreshable {
+                        refreshToken = UUID()
                     }
-                    
-                    // Main content
-                    ZStack(alignment: .bottom) {
-                        PhotoContentView(
-                            filters: filters,
-                            isSelecting: isSelecting,
-                            selectedPhotos: $selectedPhotos,
-                            onPhotoTap: handlePhotoTap,
-                            onPhotoLongPress: handlePhotoLongPress,
-                            onAddPhoto: {
-                                Haptics.light()
-                                showSourcePicker = true
-                            },
-                            refreshToken: refreshToken,
-                            recentlySavedPhoto: recentlySavedPhoto,
-                            recentlySavedPhotoEventID: recentlySavedPhotoEventID,
-                            pendingItems: pendingPhotoSaveStore.pendingItems
-                        )
-                        .refreshable {
-                            refreshToken = UUID()
+                    .overlay(alignment: .top) {
+                        if showsFailureToast, let failureToastMessage {
+                            InlineErrorBanner(
+                                message: failureToastMessage,
+                                accessibilityIdentifier: "photos.pending.failureToast"
+                            )
+                            .padding(.horizontal, 12)
+                            .padding(.top, 8)
+                            .transition(.move(edge: .top).combined(with: .opacity))
                         }
-                        .overlay(alignment: .top) {
-                            if showsFailureToast, let failureToastMessage {
-                                InlineErrorBanner(
-                                    message: failureToastMessage,
-                                    accessibilityIdentifier: "photos.pending.failureToast"
-                                )
-                                .padding(.horizontal, 12)
-                                .padding(.top, 8)
-                                .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                    .overlay(alignment: .topLeading) {
+                        if uiTestModeEnabled && isSelecting {
+                            Button("Select 2") {
+                                selectFirstTwoPhotosForUITest()
                             }
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(photosTheme.pillFill, in: Capsule())
+                            .padding(.top, 8)
+                            .padding(.leading, 12)
+                            .accessibilityIdentifier("photos.compare.selectTwoHook")
                         }
-                        .overlay(alignment: .topLeading) {
-                            if uiTestModeEnabled && isSelecting {
-                                Button("Select 2") {
-                                    selectFirstTwoPhotosForUITest()
-                                }
-                                .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(photosTheme.pillFill, in: Capsule())
-                                .padding(.top, 8)
-                                .padding(.leading, 12)
-                                .accessibilityIdentifier("photos.compare.selectTwoHook")
-                            }
-                        }
+                    }
 
-                        // Pasek akcji na dole (usuwanie + porownywanie)
-                        if isSelecting && !selectedPhotos.isEmpty {
-                            selectionActionBar
-                                .padding(.bottom, 20)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
+                    // Pasek akcji na dole (usuwanie + porownywanie)
+                    if isSelecting && !selectedPhotos.isEmpty {
+                        selectionActionBar
+                            .padding(.bottom, 20)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar { toolbarContent }
             .onAppear {
                 applyExternalFilterIfNeeded()
                 #if DEBUG
                 openUITestImportHookIfNeeded()
                 #endif
+            }
+            .task(id: heroCompareOverride?.id) {
+                await scheduleHeroCompareOverrideReset()
             }
             .onChange(of: photosFilterTag) { _, _ in
                 applyExternalFilterIfNeeded()
@@ -231,19 +262,35 @@ struct PhotoView: View {
             .sheet(isPresented: $showFilters) {
                 PhotoFilterView(filters: filters)
             }
-            .sheet(isPresented: $showCompare) {
-                let selectedArray = Array(selectedPhotos).sorted(by: { $0.date < $1.date })
-                if selectedArray.count == 2 {
-                    ComparePhotosView(
-                        olderPhoto: selectedArray[0],
-                        newerPhoto: selectedArray[1]
-                    )
+            .sheet(item: $compareChooserContext) { context in
+                HomeCompareChooserSheet(
+                    photos: allPhotos,
+                    initialOlderPhoto: context.olderPhoto,
+                    initialNewerPhoto: context.newerPhoto,
+                    preferredSlot: context.preferredSlot,
+                    onSelectionChanged: { olderPhoto, newerPhoto in
+                        heroCompareOverride = TemporaryHeroPairOverride(
+                            pair: PhotoComparePair(olderPhoto: olderPhoto, newerPhoto: newerPhoto),
+                            expiresAt: AppClock.now.addingTimeInterval(heroCompareOverrideLifetime)
+                        )
+                    }
+                ) { olderPhoto, newerPhoto in
+                    openCompare(using: olderPhoto, newerPhoto)
                 }
+            }
+            .sheet(item: $selectedComparePair) { pair in
+                ComparePhotosView(
+                    olderPhoto: pair.olderPhoto,
+                    newerPhoto: pair.newerPhoto
+                )
             }
             .sheet(item: $selectedPhotoForDetail, onDismiss: {
                 refreshToken = UUID()
             }) { photo in
-                PhotoDetailView(photo: photo) {
+                PhotoDetailView(photo: photo, onCompareRequested: { olderPhoto, newerPhoto in
+                    selectedPhotoForDetail = nil
+                    openCompare(using: olderPhoto, newerPhoto)
+                }) {
                     selectedPhotos.remove(photo)
                     selectedPhotoForDetail = nil
                     refreshToken = UUID()
@@ -287,7 +334,47 @@ struct PhotoView: View {
             selectedPhotos = [photo]
         }
     }
+
+    func openCompare(using olderPhoto: PhotoEntry, _ newerPhoto: PhotoEntry) {
+        let sorted = [olderPhoto, newerPhoto].sorted { $0.date < $1.date }
+        guard sorted.count == 2 else { return }
+        selectedComparePair = PhotoComparePair(olderPhoto: sorted[0], newerPhoto: sorted[1])
+    }
     
+}
+
+private struct PhotoComparePair: Identifiable {
+    let olderPhoto: PhotoEntry
+    let newerPhoto: PhotoEntry
+
+    var id: String {
+        "\(olderPhoto.persistentModelID)_\(newerPhoto.persistentModelID)"
+    }
+}
+
+private struct TemporaryHeroPairOverride: Identifiable {
+    let pair: PhotoComparePair
+    let expiresAt: Date
+
+    var id: String {
+        "\(pair.id)_\(expiresAt.timeIntervalSince1970)"
+    }
+
+    var isActive: Bool {
+        expiresAt > AppClock.now
+    }
+}
+
+private struct CompareChooserContext: Identifiable {
+    let olderPhoto: PhotoEntry?
+    let newerPhoto: PhotoEntry?
+    let preferredSlot: CompareChooserSlot
+
+    var id: String {
+        let olderID = olderPhoto.map { String(describing: $0.persistentModelID) } ?? "nil"
+        let newerID = newerPhoto.map { String(describing: $0.persistentModelID) } ?? "nil"
+        return "\(preferredSlot)_\(olderID)_\(newerID)"
+    }
 }
 
 private extension PhotoView {
@@ -309,7 +396,10 @@ private extension PhotoView {
 
                 Button {
                     if canCompare {
-                        showCompare = true
+                        let selectedArray = Array(selectedPhotos).sorted(by: { $0.date < $1.date })
+                        if selectedArray.count == 2 {
+                            openCompare(using: selectedArray[0], selectedArray[1])
+                        }
                     } else {
                         Haptics.selection()
                         premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
@@ -468,6 +558,31 @@ private extension PhotoView {
             if !showsFailureToast {
                 failureToastMessage = nil
             }
+        }
+    }
+
+    @MainActor
+    private func scheduleHeroCompareOverrideReset() async {
+        guard let heroCompareOverride else { return }
+        guard heroCompareOverride.isActive else {
+            self.heroCompareOverride = nil
+            return
+        }
+
+        let delay = heroCompareOverride.expiresAt.timeIntervalSince(AppClock.now)
+        guard delay > 0 else {
+            self.heroCompareOverride = nil
+            return
+        }
+
+        do {
+            try await Task.sleep(for: .seconds(delay))
+        } catch {
+            return
+        }
+
+        if self.heroCompareOverride?.id == heroCompareOverride.id {
+            self.heroCompareOverride = nil
         }
     }
 
@@ -702,11 +817,16 @@ private struct PhotoContentView: View {
     @Environment(\.modelContext) private var context
 
     let filters: PhotoFilters
+    let isPremium: Bool
     let isSelecting: Bool
     @Binding var selectedPhotos: Set<PhotoEntry>
     let onPhotoTap: (PhotoEntry) -> Void
     let onPhotoLongPress: (PhotoEntry) -> Void
     let onAddPhoto: () -> Void
+    let onOpenCompareChooser: () -> Void
+    let onChooseHeroSlot: (PhotoComparePairSuggestion, CompareChooserSlot) -> Void
+    let onOpenSuggestedCompare: (PhotoComparePairSuggestion) -> Void
+    let heroCompareOverride: TemporaryHeroPairOverride?
     let refreshToken: UUID
     let recentlySavedPhoto: PhotoEntry?
     let recentlySavedPhotoEventID: UUID
@@ -718,6 +838,7 @@ private struct PhotoContentView: View {
     @State private var hasMore: Bool = true
     @State private var fetchOffset: Int = 0
     @State private var usesInMemoryTagFiltering: Bool = false
+    @State private var hasAnySavedPhotos: Bool = false
     
     private let pageSize: Int = 60
 
@@ -758,6 +879,43 @@ private struct PhotoContentView: View {
             pendingByID[id] ?? persistedByID[id]
         }
     }
+
+    private var archiveItems: [PhotoGridRenderItem] {
+        renderItems
+    }
+
+    private var suggestedPair: PhotoComparePairSuggestion? {
+        suggestedPhotoComparePair(from: photos)
+    }
+
+    private var activeHeroCompareOverride: TemporaryHeroPairOverride? {
+        guard let heroCompareOverride, heroCompareOverride.isActive else { return nil }
+        guard photos.contains(where: { $0.persistentModelID == heroCompareOverride.pair.olderPhoto.persistentModelID }),
+              photos.contains(where: { $0.persistentModelID == heroCompareOverride.pair.newerPhoto.persistentModelID }) else {
+            return nil
+        }
+        return heroCompareOverride
+    }
+
+    private var heroPairSuggestion: PhotoComparePairSuggestion? {
+        if let activeHeroCompareOverride {
+            return PhotoComparePairSuggestion(
+                older: activeHeroCompareOverride.pair.olderPhoto,
+                newer: activeHeroCompareOverride.pair.newerPhoto
+            )
+        }
+        return suggestedPair
+    }
+
+    private var heroState: PhotoCompareHeroState {
+        if photos.isEmpty && visiblePendingItems.isEmpty {
+            return .onboarding
+        }
+        if let heroPairSuggestion {
+            return .pair(heroPairSuggestion)
+        }
+        return .manualOnly
+    }
     
     private var filtersKey: String {
         let tags = filters.selectedTags
@@ -769,12 +927,20 @@ private struct PhotoContentView: View {
     
     var body: some View {
         PhotoGridView(
-            renderItems: renderItems,
+            filters: filters,
+            archiveItems: archiveItems,
+            heroState: heroState,
+            hasAnySavedPhotos: hasAnySavedPhotos || !pendingItems.isEmpty,
+            filtersActive: filters.isActive,
+            isPremium: isPremium,
             isSelecting: isSelecting,
             selectedPhotos: $selectedPhotos,
             onPhotoTap: onPhotoTap,
             onPhotoLongPress: onPhotoLongPress,
             onAddPhoto: onAddPhoto,
+            onOpenCompareChooser: onOpenCompareChooser,
+            onChooseHeroSlot: onChooseHeroSlot,
+            onOpenSuggestedCompare: onOpenSuggestedCompare,
             isLoadingInitial: isLoadingInitial,
             isLoadingMore: isLoadingMore,
             hasMore: hasMore,
@@ -797,6 +963,7 @@ private struct PhotoContentView: View {
         hasMore = true
         fetchOffset = 0
         photos = []
+        hasAnySavedPhotos = ((try? context.fetchCount(FetchDescriptor<PhotoEntry>())) ?? 0) > 0
         
         await loadMoreUntilVisibleOrExhausted()
         isLoadingInitial = false
@@ -916,12 +1083,22 @@ private enum PhotoGridRenderItem: Identifiable {
 
 // MARK: - Photo Grid View (Reusable)
 private struct PhotoGridView: View {
-    let renderItems: [PhotoGridRenderItem]
+    private let photosTheme = FeatureTheme.photos
+
+    let filters: PhotoFilters
+    let archiveItems: [PhotoGridRenderItem]
+    let heroState: PhotoCompareHeroState
+    let hasAnySavedPhotos: Bool
+    let filtersActive: Bool
+    let isPremium: Bool
     let isSelecting: Bool
     @Binding var selectedPhotos: Set<PhotoEntry>
     let onPhotoTap: (PhotoEntry) -> Void
     let onPhotoLongPress: (PhotoEntry) -> Void
     let onAddPhoto: () -> Void
+    let onOpenCompareChooser: () -> Void
+    let onChooseHeroSlot: (PhotoComparePairSuggestion, CompareChooserSlot) -> Void
+    let onOpenSuggestedCompare: (PhotoComparePairSuggestion) -> Void
     let isLoadingInitial: Bool
     let isLoadingMore: Bool
     let hasMore: Bool
@@ -930,10 +1107,14 @@ private struct PhotoGridView: View {
     
     var body: some View {
         Group {
-            if renderItems.isEmpty {
+            if archiveItems.isEmpty {
                 if isLoadingInitial {
                     ScrollView {
-                        PhotoGridSkeletonView()
+                        VStack(spacing: 18) {
+                            headerSection
+                            PhotoGridHeroSkeleton()
+                            PhotoGridSkeletonView(itemCount: 6)
+                        }
                             .padding(.horizontal, 12)
                             .padding(.top, 8)
                             .padding(.bottom, 12)
@@ -943,7 +1124,32 @@ private struct PhotoGridView: View {
                 }
             } else {
                 ScrollView {
-                    photoGrid
+                    VStack(alignment: .leading, spacing: 18) {
+                        headerSection
+                        PhotoCompareHeroCard(
+                            state: heroState,
+                            isPremium: isPremium,
+                            onOpenChooser: onOpenCompareChooser,
+                            onChooseOlderPhoto: {
+                                if case .pair(let suggestedPair) = heroState {
+                                    onChooseHeroSlot(suggestedPair, .older)
+                                }
+                            },
+                            onChooseNewerPhoto: {
+                                if case .pair(let suggestedPair) = heroState {
+                                    onChooseHeroSlot(suggestedPair, .newer)
+                                }
+                            },
+                            onCompare: {
+                                if case .pair(let suggestedPair) = heroState {
+                                    onOpenSuggestedCompare(suggestedPair)
+                                }
+                            },
+                            onAddPhoto: onAddPhoto
+                        )
+
+                        archiveSection
+                    }
                         .padding(.horizontal, 12)
                         .padding(.top, 8)
                         .padding(.bottom, 12)
@@ -964,48 +1170,82 @@ private struct PhotoGridView: View {
     }
     
     var emptyState: some View {
-        AppGlassCard(
-            depth: .elevated,
-            cornerRadius: 20,
-            tint: Color.cyan.opacity(0.12),
-            contentPadding: 16
-        ) {
-            VStack(spacing: 14) {
-                Image(systemName: "photo.on.rectangle")
-                    .font(.system(size: 60))
-                    .foregroundStyle(.secondary)
-                
-                Text(AppLocalization.string("No Photos Found"))
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                Text(AppLocalization.string("Try adjusting your filters or add a new photo"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 8)
-                
-                Button {
-                    onAddPhoto()
-                } label: {
-                    Label(AppLocalization.string("Add Photo"), systemImage: "plus")
-                        .frame(maxWidth: .infinity)
+        ScrollView {
+            VStack(spacing: 18) {
+                headerSection
+
+                AppGlassCard(
+                    depth: .elevated,
+                    cornerRadius: 20,
+                    tint: photosTheme.softTint,
+                    contentPadding: 16
+                ) {
+                    VStack(spacing: 14) {
+                        Image(systemName: "photo.on.rectangle")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.secondary)
+                        
+                        Text(filtersActive && hasAnySavedPhotos ? AppLocalization.string("No Photos Found") : AppLocalization.string("Photo Progress"))
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text(filtersActive && hasAnySavedPhotos
+                             ? AppLocalization.string("Try adjusting your filters or add a new photo")
+                             : AppLocalization.string("Photos make progress easier to notice."))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 8)
+                        
+                        Button {
+                            onAddPhoto()
+                        } label: {
+                            Label(AppLocalization.string("Add Photo"), systemImage: "plus")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(AppAccentButtonStyle())
+                        .padding(.horizontal, 20)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(AppAccentButtonStyle())
-                .padding(.horizontal, 20)
             }
-            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 12)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 28)
     }
-    
-    var photoGrid: some View {
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ScreenTitleHeader(title: AppLocalization.string("Photos"), topPadding: 6, bottomPadding: 0, horizontalPadding: 8)
+
+            if filters.isActive {
+                ActiveFiltersView(filters: filters) {
+                    filters.reset()
+                }
+            }
+        }
+    }
+
+    private var archiveSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(AppLocalization.string("Photos"))
+                    .font(AppTypography.headlineEmphasis)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+                Spacer()
+            }
+
+            photoGrid
+        }
+    }
+
+    private var photoGrid: some View {
         LazyVGrid(
             columns: [GridItem(.adaptive(minimum: 110), spacing: 8)],
             spacing: 8
         ) {
-            ForEach(Array(renderItems.enumerated()), id: \.element.id) { index, item in
+            ForEach(Array(archiveItems.enumerated()), id: \.element.id) { index, item in
                 switch item {
                 case .persisted(let photo):
                     Button {
@@ -1054,6 +1294,21 @@ private struct PhotoGridView: View {
             ? AppLocalization.string("Selected")
             : AppLocalization.string("Not selected")
         return "\(dateText), \(selectedText)"
+    }
+}
+
+private struct PhotoGridHeroSkeleton: View {
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var shouldShimmer: Bool {
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+    }
+
+    var body: some View {
+        SkeletonBlock(cornerRadius: 24, opacity: 0.18)
+            .frame(height: 280)
+            .skeletonShimmer(enabled: shouldShimmer)
     }
 }
 

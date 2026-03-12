@@ -61,4 +61,53 @@ final class PersistenceAndModelIntegrityTests: XCTestCase {
         goal.kindRaw = "invalid-kind"
         XCTAssertNil(goal.kind)
     }
+
+    /// Co sprawdza: Nowy cel zapisuje się poprawnie, a kolejne ustawienie robi update zamiast duplikatu.
+    /// Dlaczego: To zabezpiecza regresję "Set Goal" zarówno dla insertu, jak i edycji.
+    /// Kryteria: W bazie pozostaje jeden goal dla metryki, a próbka startowa nie duplikuje się przy update.
+    func testMetricGoalStoreUpsertsGoalAndAvoidsDuplicateStartSample() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+        let startDate = Date(timeIntervalSince1970: 1_710_000_000)
+
+        let inserted = MetricGoalStore.upsertGoal(
+            kind: .weight,
+            targetValue: 75,
+            direction: .decrease,
+            startValue: 80,
+            startDate: startDate,
+            in: context,
+            existingGoal: nil,
+            existingSamples: [],
+            now: startDate
+        )
+        try context.save()
+
+        var goals = try context.fetch(FetchDescriptor<MetricGoal>())
+        var samples = try context.fetch(FetchDescriptor<MetricSample>())
+        XCTAssertEqual(goals.count, 1, "Pierwsze ustawienie celu powinno tworzyć jeden rekord")
+        XCTAssertEqual(samples.count, 1, "Pierwsze ustawienie celu z punktem startowym powinno dodać próbkę startową")
+        XCTAssertEqual(inserted.targetValue, 75, accuracy: 0.001)
+        XCTAssertEqual(inserted.startValue ?? 0, 80, accuracy: 0.001)
+
+        _ = MetricGoalStore.upsertGoal(
+            kind: .weight,
+            targetValue: 74,
+            direction: .decrease,
+            startValue: 80,
+            startDate: startDate,
+            in: context,
+            existingGoal: goals.first,
+            existingSamples: samples,
+            now: startDate.addingTimeInterval(3600)
+        )
+        try context.save()
+
+        goals = try context.fetch(FetchDescriptor<MetricGoal>())
+        samples = try context.fetch(FetchDescriptor<MetricSample>())
+        XCTAssertEqual(goals.count, 1, "Kolejne ustawienie celu powinno aktualizować istniejący rekord")
+        XCTAssertEqual(samples.count, 1, "Aktualizacja nie powinna duplikować próbki startowej")
+        XCTAssertEqual(goals[0].targetValue, 74, accuracy: 0.001)
+        XCTAssertEqual(goals[0].createdDate.timeIntervalSince1970, startDate.addingTimeInterval(3600).timeIntervalSince1970, accuracy: 0.001)
+    }
 }

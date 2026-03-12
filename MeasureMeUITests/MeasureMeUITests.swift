@@ -85,23 +85,146 @@ final class MeasureMeUITests: XCTestCase {
         }
     }
 
+    @MainActor
+    /// Co sprawdza: Kafelek celu pod wykresem otwiera formularz i pozwala zapisać nowy cel.
+    /// Dlaczego: To zabezpiecza regresję, w której "Set Goal" wygląda jak CTA, ale nie działa albo nie zapisuje danych.
+    /// Kryteria: Sheet celu otwiera się, zapis jest możliwy, a po zamknięciu ekran pokazuje nowy target.
+    func testSetGoalFromChartCardSavesTarget() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestMode",
+            "-uiTestSeedMeasurements"
+        ]
+        app.launch()
+
+        waitForAppToBecomeInteractable(app)
+
+        let openWeightDetail = app.buttons["metric.tile.open.weight"].firstMatch
+        if !openWeightDetail.waitForExistence(timeout: 3) {
+            let nextFocus = app.buttons["home.nextFocus.button"].firstMatch
+            if nextFocus.waitForExistence(timeout: 3) {
+                nextFocus.tap()
+            } else {
+                tapTab(in: app, identifier: "tab.measurements", fallbackLabels: ["Measurements", "Pomiary"])
+            }
+        }
+
+        XCTAssertTrue(openWeightDetail.waitForExistence(timeout: 5), "Weight detail navigation button should exist")
+        openWeightDetail.tap()
+
+        let goalButton = app.buttons["metric.detail.goal"].firstMatch
+        XCTAssertTrue(goalButton.waitForExistence(timeout: 5), "Goal action should be tappable under the chart")
+        goalButton.tap()
+
+        let goalInput = app.textFields["goal.input.value"].firstMatch
+        XCTAssertTrue(goalInput.waitForExistence(timeout: 5), "Goal input should be visible after tapping hero goal segment")
+        goalInput.tap()
+        goalInput.typeText("75")
+
+        let saveButton = app.buttons["goal.save"].firstMatch
+        XCTAssertTrue(saveButton.waitForExistence(timeout: 5), "Save button should exist in goal sheet")
+        XCTAssertTrue(saveButton.isEnabled, "Valid goal value should enable saving")
+        saveButton.tap()
+
+        XCTAssertTrue(goalButton.waitForExistence(timeout: 5), "Goal sheet should dismiss after saving")
+        XCTAssertFalse(app.staticTexts["Set a target"].firstMatch.exists, "Saved goal should replace the placeholder copy")
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", "75")).firstMatch.waitForExistence(timeout: 5),
+            "Saved goal target should be visible on the detail screen"
+        )
+    }
+
+    @MainActor
+    /// Co sprawdza: Ekran szczegółu metryki nie renderuje już sekcji "Your Progress", a pionowy swipe po wykresie nadal przewija ekran.
+    /// Dlaczego: To zabezpiecza nowy układ karty i regresję, w której overlay wykresu blokuje scroll listy.
+    /// Kryteria: Goal i Trend są obecne pod wykresem, "Your Progress" nie istnieje, a po swipe na wykresie sekcja History pozostaje osiągalna.
+    func testMetricDetailChartCardLayoutAndVerticalScroll() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestMode",
+            "-uiTestSeedMeasurements"
+        ]
+        app.launch()
+
+        waitForAppToBecomeInteractable(app)
+
+        let openWeightDetail = app.buttons["metric.tile.open.weight"].firstMatch
+        if !openWeightDetail.waitForExistence(timeout: 3) {
+            let nextFocus = app.buttons["home.nextFocus.button"].firstMatch
+            if nextFocus.waitForExistence(timeout: 3) {
+                nextFocus.tap()
+            } else {
+                tapTab(in: app, identifier: "tab.measurements", fallbackLabels: ["Measurements", "Pomiary"])
+            }
+        }
+
+        XCTAssertTrue(openWeightDetail.waitForExistence(timeout: 5), "Weight detail navigation button should exist")
+        openWeightDetail.tap()
+
+        XCTAssertTrue(app.buttons["metric.detail.goal"].firstMatch.waitForExistence(timeout: 5), "Goal action should be visible")
+        XCTAssertTrue(app.buttons["metric.detail.trend"].firstMatch.waitForExistence(timeout: 5), "Trend action should be visible")
+        XCTAssertFalse(app.staticTexts["Your Progress"].firstMatch.exists, "Legacy Your Progress section should not be rendered")
+        XCTAssertFalse(app.staticTexts["Twoje postępy"].firstMatch.exists, "Legacy localized progress section should not be rendered")
+
+        let chart = app.otherElements["metric.detail.chart"].firstMatch
+        XCTAssertTrue(chart.waitForExistence(timeout: 5), "Chart should be visible")
+
+        let historyHeader = app.staticTexts["History"].firstMatch
+        XCTAssertTrue(historyHeader.waitForExistence(timeout: 5), "History header should be reachable before swipe")
+        let initialMinY = historyHeader.frame.minY
+
+        chart.swipeUp()
+
+        XCTAssertTrue(historyHeader.waitForExistence(timeout: 2), "History header should remain reachable after swiping on chart")
+        XCTAssertLessThan(historyHeader.frame.minY, initialMinY, "Swiping on the chart should scroll content upward")
+    }
+
     private func isSwitchOff(_ element: XCUIElement) -> Bool {
         guard let value = element.value as? String else { return false }
         return value == "0" || value.lowercased() == "off"
     }
 
+    private func waitForAppToBecomeInteractable(_ app: XCUIApplication) {
+        if app.otherElements["app.root.ready"].waitForExistence(timeout: 3) {
+            return
+        }
+
+        let likelyInteractiveElements: [XCUIElement] = [
+            app.tabBars.firstMatch,
+            app.buttons["metric.tile.open.weight"].firstMatch,
+            app.buttons["home.nextFocus.button"].firstMatch,
+            app.navigationBars.firstMatch
+        ]
+
+        let becameInteractable = likelyInteractiveElements.contains { $0.waitForExistence(timeout: 5) }
+        XCTAssertTrue(becameInteractable, "App should become interactable even if app.root.ready is unavailable")
+    }
+
     private func tapTab(in app: XCUIApplication, identifier: String, fallbackLabels: [String]) {
+        let tabBar = app.tabBars.firstMatch
+        _ = tabBar.waitForExistence(timeout: 10)
+
         for _ in 0..<6 {
-            let tab = app.buttons[identifier].firstMatch
-            if tab.exists && tab.isHittable {
-                tab.tap()
-                return
+            let candidates = [identifier] + fallbackLabels
+            for candidate in candidates {
+                let button = app.buttons[candidate].firstMatch
+                if button.exists && button.isHittable {
+                    button.tap()
+                    return
+                }
             }
 
-            for label in fallbackLabels {
-                let candidate = app.buttons[label].firstMatch
-                if candidate.exists && candidate.isHittable {
-                    candidate.tap()
+            if tabBar.exists {
+                let xOffset: CGFloat
+                switch identifier {
+                case "tab.home": xOffset = 0.10
+                case "tab.measurements": xOffset = 0.30
+                case "tab.photos": xOffset = 0.70
+                case "tab.settings": xOffset = 0.90
+                default: xOffset = 0.50
+                }
+                tabBar.coordinate(withNormalizedOffset: CGVector(dx: xOffset, dy: 0.5)).tap()
+                if app.buttons[identifier].exists || app.buttons.matching(NSPredicate(format: "identifier == %@", identifier)).count > 0 {
                     return
                 }
             }
