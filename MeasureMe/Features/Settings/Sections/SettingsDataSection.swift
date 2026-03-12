@@ -1,8 +1,13 @@
 import SwiftUI
 
 struct SettingsDataSection: View {
+    @Binding var iCloudBackupEnabled: Bool
+    let iCloudBackupLastSuccessText: String
+    let iCloudBackupLastErrorText: String?
     let onExport: () -> Void
     let onImport: () -> Void
+    let onBackupNow: () -> Void
+    let onRestoreLatestBackup: () -> Void
     let onSeedDummyData: () -> Void
     let onDeleteAll: () -> Void
 
@@ -12,8 +17,13 @@ struct SettingsDataSection: View {
                 SettingsCardHeader(title: AppLocalization.string("Data"), systemImage: "square.and.arrow.up")
                 NavigationLink {
                     DataSettingsDetailView(
+                        iCloudBackupEnabled: $iCloudBackupEnabled,
+                        iCloudBackupLastSuccessText: iCloudBackupLastSuccessText,
+                        iCloudBackupLastErrorText: iCloudBackupLastErrorText,
                         onExport: onExport,
                         onImport: onImport,
+                        onBackupNow: onBackupNow,
+                        onRestoreLatestBackup: onRestoreLatestBackup,
                         onSeedDummyData: onSeedDummyData,
                         onDeleteAll: onDeleteAll
                     )

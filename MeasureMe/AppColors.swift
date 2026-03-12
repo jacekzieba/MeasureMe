@@ -1,22 +1,23 @@
 import SwiftUI
 
 extension Color {
-    // MARK: - App Colors
-    static let appBlack = Color(hex: "#000000")
+    // MARK: - Base palette
+    static let appInk = Color(hex: "#050816")
+    static let appMidnight = Color(hex: "#0C1329")
     static let appNavy = Color(hex: "#14213D")
-    static let appAccent = Color(hex: "#FCA311")
-    static let appGray = Color(hex: "#E5E5E5")
-    static let appWhite = Color(hex: "#FFFFFF")
+    static let appFog = Color(hex: "#C6D0E1")
+    static let appPaper = Color(hex: "#F7F8FB")
 
-    // Backward-compatible semantic palette aliases.
-    static let appInk = appBlack
-    static let appAmber = appAccent
-    static let appFog = appGray
-    static let appPaper = appWhite
+    static let appAmber = Color(hex: "#FCA311")
+    static let appTeal = Color(hex: "#29C7B8")
+    static let appCyan = Color(hex: "#46B8FF")
+    static let appIndigo = Color(hex: "#7C8CFF")
+    static let appEmerald = Color(hex: "#2DD881")
+    static let appRose = Color(hex: "#FF6B8A")
 
-    // Feature accents used by theme roles and token-compatibility tests.
-    static let appCyan = Color(hex: "#22D3EE")
-    static let appTeal = Color(hex: "#14B8A6")
-    static let appRose = Color(hex: "#F43F5E")
-    static let appEmerald = Color(hex: "#22C55E")
+    // MARK: - Backward compatibility
+    static let appBlack = appInk
+    static let appAccent = appAmber
+    static let appGray = appFog
+    static let appWhite = appPaper
 }

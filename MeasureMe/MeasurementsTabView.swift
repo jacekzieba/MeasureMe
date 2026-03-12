@@ -5,6 +5,8 @@ import Foundation
 import Accessibility
 
 struct MeasurementsTabView: View {
+    private let measurementsTheme = FeatureTheme.measurements
+    private let healthTheme = FeatureTheme.health
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var router: AppRouter
@@ -89,22 +91,22 @@ struct MeasurementsTabView: View {
     private var sectionTint: Color {
         switch selectedTab {
         case .metrics:
-            return Color.cyan.opacity(0.22)
+            return measurementsTheme.softTint
         case .health:
-            return healthAccent.opacity(0.28)
+            return healthTheme.softTint
         case .physique:
-            return Color(hex: "#14B8A6").opacity(0.24)
+            return AppColorRoles.accentPhysique.opacity(0.18)
         }
     }
 
     private func tabAccent(for tab: MeasurementsTab) -> Color {
         switch tab {
         case .metrics:
-            return Color(hex: "#FCA311")
+            return measurementsTheme.accent
         case .health:
-            return healthAccent
+            return healthTheme.accent
         case .physique:
-            return Color(hex: "#14B8A6")
+            return AppColorRoles.accentPhysique
         }
     }
 
@@ -174,17 +176,17 @@ struct MeasurementsTabView: View {
                                 AppGlassCard(
                                     depth: .base,
                                     cornerRadius: AppRadius.md,
-                                    tint: Color.cyan.opacity(0.12),
+                                    tint: measurementsTheme.softTint,
                                     contentPadding: AppSpacing.sm
                                 ) {
                                     HStack(spacing: AppSpacing.xs) {
                                         Image(systemName: "plus.circle.fill")
                                             .font(.body)
-                                            .foregroundStyle(Color.appAccent)
+                                            .foregroundStyle(measurementsTheme.accent)
 
                                         Text(AppLocalization.string("measurements.quickadd.hint"))
                                             .font(AppTypography.caption)
-                                            .foregroundStyle(.white.opacity(0.72))
+                                            .foregroundStyle(AppColorRoles.textSecondary)
 
                                         Spacer(minLength: 4)
 
@@ -195,7 +197,7 @@ struct MeasurementsTabView: View {
                                         } label: {
                                             Image(systemName: "xmark")
                                                 .font(.caption2.weight(.semibold))
-                                                .foregroundStyle(.secondary)
+                                                .foregroundStyle(AppColorRoles.textTertiary)
                                                 .frame(width: 28, height: 28)
                                                 .contentShape(Rectangle())
                                         }
@@ -280,7 +282,7 @@ struct MeasurementsTabView: View {
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(scrollOffset < -16 ? .visible : .hidden, for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
         }
         .preferredColorScheme(.dark)
         .onAppear {
@@ -295,13 +297,13 @@ struct MeasurementsTabView: View {
         AppGlassCard(
             depth: .base,
             cornerRadius: AppRadius.lg,
-            tint: Color.appAccent.opacity(0.10),
+            tint: measurementsTheme.softTint,
             contentPadding: AppSpacing.sm
         ) {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text(AppLocalization.string("Tracked metric visibility can be changed in Settings."))
                     .font(AppTypography.caption)
-                    .foregroundStyle(.white.opacity(0.82))
+                    .foregroundStyle(AppColorRoles.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Button {
@@ -316,7 +318,7 @@ struct MeasurementsTabView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(Color.appAccent)
+                .foregroundStyle(measurementsTheme.accent)
                 .frame(minHeight: 44, alignment: .leading)
                 .contentShape(Rectangle())
             }
@@ -389,13 +391,13 @@ private struct MeasurementsCategoryTabs: View {
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .minimumScaleFactor(0.74)
-                            .foregroundStyle(selectedTab == tab ? .black : .white.opacity(0.92))
+                            .foregroundStyle(selectedTab == tab ? AppColorRoles.textOnAccent : AppColorRoles.textPrimary)
                             .padding(.horizontal, 8)
                     }
                     .frame(maxWidth: .infinity, minHeight: 52)
                     .overlay(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.white.opacity(selectedTab == tab ? 0.10 : 0.16), lineWidth: selectedTab == tab ? 0.5 : 1)
+                            .stroke(selectedTab == tab ? AppColorRoles.borderStrong : AppColorRoles.borderSubtle, lineWidth: selectedTab == tab ? 0.5 : 1)
                     )
                 }
                 .buttonStyle(.plain)
@@ -408,12 +410,12 @@ private struct MeasurementsCategoryTabs: View {
                 .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                        .stroke(AppColorRoles.borderStrong, lineWidth: 1)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .inset(by: 0.5)
-                        .stroke(Color.black.opacity(0.22), lineWidth: 0.6)
+                        .stroke(AppColorRoles.surfaceCanvas.opacity(0.32), lineWidth: 0.6)
                 )
         )
         .frame(minHeight: 64)
@@ -425,6 +427,7 @@ private struct MeasurementsCategoryTabs: View {
 
 
 struct MetricChartTile: View {
+    private let measurementsTheme = FeatureTheme.measurements
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var router: AppRouter
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -513,7 +516,7 @@ struct MetricChartTile: View {
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(alignment: .top, spacing: 10) {
-                            kind.iconView(size: 20, tint: Color.appAccent)
+                            kind.iconView(size: 20, tint: measurementsTheme.accent)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(kind.title)
@@ -524,7 +527,7 @@ struct MetricChartTile: View {
 
                                 Text(AppLocalization.string("measurements.metric.nodata"))
                                     .font(AppTypography.caption)
-                                    .foregroundStyle(.white.opacity(0.5))
+                                    .foregroundStyle(AppColorRoles.textTertiary)
                             }
                         }
 
@@ -545,7 +548,7 @@ struct MetricChartTile: View {
                             } label: {
                                 Image(systemName: "chevron.right")
                                     .font(.title3)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppColorRoles.textTertiary)
                                     .frame(width: 44, height: 44)
                             }
                             .buttonStyle(.plain)
@@ -556,7 +559,7 @@ struct MetricChartTile: View {
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 8) {
-                                kind.iconView(size: 20, tint: Color.appAccent)
+                                kind.iconView(size: 20, tint: measurementsTheme.accent)
 
                                 Text(kind.title)
                                     .font(AppTypography.bodyEmphasis)
@@ -567,7 +570,7 @@ struct MetricChartTile: View {
 
                             Text(AppLocalization.string("measurements.metric.nodata"))
                                 .font(AppTypography.caption)
-                                .foregroundStyle(.white.opacity(0.5))
+                                .foregroundStyle(AppColorRoles.textTertiary)
                         }
 
                         Spacer(minLength: 8)
@@ -585,7 +588,7 @@ struct MetricChartTile: View {
                         } label: {
                             Image(systemName: "chevron.right")
                                 .font(.title3)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppColorRoles.textTertiary)
                                 .frame(width: 44, height: 44)
                         }
                         .buttonStyle(.plain)
@@ -598,7 +601,7 @@ struct MetricChartTile: View {
                 AppGlassBackground(
                     depth: .elevated,
                     cornerRadius: 16,
-                    tint: Color.appAccent.opacity(0.14)
+                    tint: measurementsTheme.softTint
                 )
             )
             .accessibilityElement(children: .ignore)
@@ -611,7 +614,7 @@ struct MetricChartTile: View {
                 // Header
                 HStack {
                     HStack(spacing: 8) {
-                        kind.iconView(size: 20, tint: Color.appAccent)
+                        kind.iconView(size: 20, tint: measurementsTheme.accent)
 
                         Text(kind.title)
                             .font(AppTypography.bodyEmphasis)
@@ -624,7 +627,7 @@ struct MetricChartTile: View {
                     } label: {
                         Image(systemName: "chevron.right")
                             .font(.title3)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppColorRoles.textTertiary)
                             .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
@@ -634,8 +637,9 @@ struct MetricChartTile: View {
                 // Wartosc + trend + informacje o celu
                 if let latest {
                     Text(valueString(metricValue: latest.value))
-                        .font(AppTypography.metricValue)
+                        .font(AppTypography.dataCompact)
                         .monospacedDigit()
+                        .foregroundStyle(AppColorRoles.textPrimary)
 
                     if let trendInfo {
                         HStack(spacing: 6) {
@@ -653,8 +657,8 @@ struct MetricChartTile: View {
                         .font(AppTypography.caption)
                         .foregroundStyle(
                             trendInfo.outcome == .positive
-                            ? Color(hex: "#22C55E")
-                            : (trendInfo.outcome == .negative ? Color(hex: "#EF4444") : Color.white.opacity(0.6))
+                            ? AppColorRoles.chartPositive
+                            : (trendInfo.outcome == .negative ? AppColorRoles.chartNegative : AppColorRoles.textTertiary)
                         )
                     }
 
@@ -674,7 +678,7 @@ struct MetricChartTile: View {
                             .monospacedDigit()
                         }
                         .font(AppTypography.caption)
-                        .foregroundStyle(isAchieved ? Color(hex: "#22C55E") : Color(hex: "#FCA311"))
+                        .foregroundStyle(isAchieved ? AppColorRoles.stateSuccess : measurementsTheme.accent)
                     }
 
                     if canUseAppleIntelligence, let shortInsight {
@@ -693,20 +697,20 @@ struct MetricChartTile: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(AppLocalization.string("AI Insights aren't available right now."))
                                 .font(AppTypography.micro)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppColorRoles.textSecondary)
                             NavigationLink {
                                 FAQView()
                             } label: {
                                 Text(AppLocalization.string("Learn more in FAQ"))
                                     .font(AppTypography.microEmphasis)
-                                    .foregroundStyle(Color.appAccent)
+                                    .foregroundStyle(measurementsTheme.accent)
                             }
                         }
                     }
                 } else {
                     Text(AppLocalization.string("—"))
-                        .font(AppTypography.metricValue)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.dataHero)
+                        .foregroundStyle(AppColorRoles.textTertiary)
                 }
 
                 // Chart - z podwójnym maskowaniem
@@ -729,8 +733,8 @@ struct MetricChartTile: View {
                             .foregroundStyle(
                                 LinearGradient(
                                     colors: [
-                                        Color(hex: "#FCA311").opacity(0.28),
-                                        Color(hex: "#FCA311").opacity(0.02)
+                                        measurementsTheme.accent.opacity(0.28),
+                                        measurementsTheme.accent.opacity(0.02)
                                     ],
                                     startPoint: .top,
                                     endPoint: .bottom
@@ -747,7 +751,7 @@ struct MetricChartTile: View {
                             )
                             .interpolationMethod(.monotone)
                             .lineStyle(.init(lineWidth: 2.5))
-                            .foregroundStyle(Color(hex: "#FCA311"))
+                            .foregroundStyle(measurementsTheme.accent)
                         }
 
                         // 🔸 PUNKTY
@@ -757,7 +761,7 @@ struct MetricChartTile: View {
                                 y: .value("Value", displayValue(s.value))
                             )
                             .symbolSize(24)
-                            .foregroundStyle(Color(hex: "#FCA311").opacity(0.6))
+                            .foregroundStyle(measurementsTheme.accent.opacity(0.6))
                         }
 
                         // Linia celu (z annotation)
@@ -765,15 +769,15 @@ struct MetricChartTile: View {
                             let goalValue = displayValue(goal.targetValue)
                             RuleMark(y: .value("Goal", goalValue))
                                 .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [6, 3]))
-                                .foregroundStyle(Color(hex: "#E5E5E5").opacity(0.7))
+                                .foregroundStyle(AppColorRoles.textSecondary.opacity(0.7))
                                 .annotation(position: goalLabelPosition(for: goalValue), alignment: .leading) {
                                     Text(AppLocalization.string("Goal"))
                                         .font(AppTypography.micro)
-                                        .foregroundStyle(Color(hex: "#E5E5E5"))
+                                        .foregroundStyle(AppColorRoles.textPrimary)
                                         .padding(.horizontal, 4)
                                         .padding(.vertical, 2)
                                         .background(
-                                            Capsule().fill(Color.black.opacity(0.75))
+                                            Capsule().fill(AppColorRoles.surfaceCanvas.opacity(0.82))
                                         )
                                         .offset(x: 6)
                                 }
@@ -785,20 +789,20 @@ struct MetricChartTile: View {
                         .chartYScale(domain: yDomain)
                         .chartXAxis {
                             AxisMarks(values: .automatic(desiredCount: 3)) { _ in
-                                AxisGridLine().foregroundStyle(.white.opacity(0.12))
-                                AxisTick().foregroundStyle(.white.opacity(0.2))
+                                AxisGridLine().foregroundStyle(AppColorRoles.borderSubtle)
+                                AxisTick().foregroundStyle(AppColorRoles.borderStrong)
                                 AxisValueLabel(format: .dateTime.month(.abbreviated))
                                     .font(AppTypography.micro)
-                                    .foregroundStyle(.white.opacity(0.5))
+                                    .foregroundStyle(AppColorRoles.textTertiary)
                             }
                         }
                         .chartYAxis {
                             AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { _ in
-                                AxisGridLine().foregroundStyle(.white.opacity(0.12))
-                                AxisTick().foregroundStyle(.white.opacity(0.2))
+                                AxisGridLine().foregroundStyle(AppColorRoles.borderSubtle)
+                                AxisTick().foregroundStyle(AppColorRoles.borderStrong)
                                 AxisValueLabel()
                                     .font(AppTypography.micro)
-                                    .foregroundStyle(.white.opacity(0.5))
+                                    .foregroundStyle(AppColorRoles.textTertiary)
                             }
                         }
                         .accessibilityChartDescriptor(MetricChartAXDescriptor(descriptor: chartDescriptor))
@@ -817,7 +821,7 @@ struct MetricChartTile: View {
                 AppGlassBackground(
                     depth: .elevated,
                     cornerRadius: 16,
-                    tint: Color.appAccent.opacity(0.14)
+                    tint: measurementsTheme.softTint
                 )
             )
             .task(id: insightInput) {

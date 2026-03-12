@@ -8,27 +8,15 @@ struct ProfileSettingsDetailView: View {
     @Binding var unitsSystem: String
 
     var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-            List {
-                ProfileSettingsSection(
-                    userName: $userName,
-                    userGender: $userGender,
-                    userAge: $userAge,
-                    manualHeight: $manualHeight,
-                    unitsSystem: $unitsSystem
-                )
-                ProfileStatsCard()
-            }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .padding(.top, 8)
+        SettingsDetailScaffold(title: AppLocalization.string("Profile"), theme: .settings) {
+            ProfileSettingsSection(
+                userName: $userName,
+                userGender: $userGender,
+                userAge: $userAge,
+                manualHeight: $manualHeight,
+                unitsSystem: $unitsSystem
+            )
+            ProfileStatsCard()
         }
-        .navigationTitle(AppLocalization.string("Profile"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
     }
 }

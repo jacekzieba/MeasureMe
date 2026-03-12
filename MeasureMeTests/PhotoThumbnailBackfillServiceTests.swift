@@ -82,7 +82,7 @@ final class PhotoThumbnailBackfillServiceTests: XCTestCase {
 private extension PhotoThumbnailBackfillServiceTests {
     func makeContainer() throws -> ModelContainer {
         let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         return try ModelContainer(for: schema, configurations: [config])
     }
 

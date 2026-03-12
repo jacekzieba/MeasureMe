@@ -53,7 +53,7 @@ final class QuickAddSaveServiceTests: XCTestCase {
         }
 
         let schema = Schema([MetricSample.self, MetricGoal.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         let container = try ModelContainer(for: schema, configurations: [config])
         ctx = ModelContext(container)
     }

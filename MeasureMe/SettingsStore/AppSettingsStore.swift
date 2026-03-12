@@ -392,6 +392,13 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(analytics.firstPhotoAddedTracked, forKey: AppSettingsKeys.Analytics.firstPhotoAddedTracked)
             defaults.set(analytics.appleIntelligenceEnabled, forKey: AppSettingsKeys.Analytics.appleIntelligenceEnabled)
 
+            let iCloudBackup = snapshot.iCloudBackup
+            defaults.set(iCloudBackup.isEnabled, forKey: AppSettingsKeys.ICloudBackup.isEnabled)
+            defaults.set(iCloudBackup.lastSuccessTimestamp, forKey: AppSettingsKeys.ICloudBackup.lastSuccessTimestamp)
+            defaults.set(iCloudBackup.lastErrorMessage, forKey: AppSettingsKeys.ICloudBackup.lastErrorMessage)
+            defaults.set(iCloudBackup.autoRestoreCompleted, forKey: AppSettingsKeys.ICloudBackup.autoRestoreCompleted)
+            defaults.set(Int(iCloudBackup.lastBackupSizeBytes), forKey: AppSettingsKeys.ICloudBackup.lastBackupSizeBytes)
+
             defaults.set(snapshot.internalState.settingsSchemaVersion, forKey: AppSettingsKeys.settingsSchemaVersion)
         }
     }

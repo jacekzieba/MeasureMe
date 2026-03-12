@@ -1,8 +1,20 @@
+import Foundation
 import Combine
 
 final class AppRouter: ObservableObject {
-    @Published var selectedTab: AppTab = .home
+    @Published var selectedTab: AppTab
     @Published var presentedSheet: PresentedSheet? = nil
+
+    init(selectedTab: AppTab = AppRouter.defaultSelectedTab()) {
+        self.selectedTab = selectedTab
+    }
+
+    private static func defaultSelectedTab() -> AppTab {
+        if ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab") {
+            return .settings
+        }
+        return .home
+    }
 }
 
 enum PresentedSheet: Identifiable {

@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct IndicatorsSettingsSection: View {
+    private let healthTheme = FeatureTheme.health
+    private let physiqueAccent = AppColorRoles.accentPhysique
     @Binding var showWHtROnHome: Bool
     @Binding var showRFMOnHome: Bool
     @Binding var showBMIOnHome: Bool
@@ -25,7 +27,7 @@ struct IndicatorsSettingsSection: View {
 
     var body: some View {
         Section {
-            SettingsCard(tint: Color.appAccent.opacity(0.10)) {
+            SettingsCard(tint: AppColorRoles.surfacePrimary) {
                 SettingsCardHeader(title: AppLocalization.string("Indicators"), systemImage: "slider.horizontal.3")
 
                 disclosureRow(
@@ -67,7 +69,7 @@ struct IndicatorsSettingsSection: View {
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.semibold))
                         .rotationEffect(.degrees(isExpanded.wrappedValue ? 180 : 0))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                 }
                 .contentShape(Rectangle())
                 .frame(minHeight: 44)
@@ -136,7 +138,7 @@ struct IndicatorsSettingsSection: View {
     private func metricsGroupTitle(_ title: String) -> some View {
         Text(AppLocalization.string(title))
             .font(AppTypography.captionEmphasis)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(AppColorRoles.textSecondary)
             .textCase(.uppercase)
             .padding(.top, 10)
             .padding(.bottom, 4)
@@ -147,7 +149,7 @@ struct IndicatorsSettingsSection: View {
         Toggle(isOn: isOn) {
             Text(title)
         }
-        .tint(Color.appAccent)
+        .tint(healthTheme.accent)
         .onChange(of: isOn.wrappedValue) { _, _ in Haptics.selection() }
         .padding(.vertical, 10)
         .frame(minHeight: 44)
@@ -157,7 +159,7 @@ struct IndicatorsSettingsSection: View {
         Toggle(isOn: isOn) {
             Text(title)
         }
-        .tint(Color(hex: "#14B8A6"))
+        .tint(physiqueAccent)
         .onChange(of: isOn.wrappedValue) { _, _ in Haptics.selection() }
         .padding(.vertical, 10)
         .frame(minHeight: 44)
@@ -165,12 +167,13 @@ struct IndicatorsSettingsSection: View {
 
     private var rowDivider: some View {
         Divider()
-            .overlay(Color.white.opacity(0.12))
+            .overlay(AppColorRoles.borderSubtle)
             .padding(.vertical, 4)
     }
 }
 
 struct HealthIndicatorsSettingsSection: View {
+    private let theme = FeatureTheme.health
     @Binding var showWHtROnHome: Bool
     @Binding var showRFMOnHome: Bool
     @Binding var showBMIOnHome: Bool
@@ -184,7 +187,7 @@ struct HealthIndicatorsSettingsSection: View {
 
     var body: some View {
         Section {
-            SettingsCard(tint: Color.appAccent.opacity(0.10)) {
+            SettingsCard(tint: theme.softTint) {
                 SettingsCardHeader(title: AppLocalization.string("Health indicators"), systemImage: "heart.text.square.fill")
                 VStack(spacing: 0) {
                     metricsGroupTitle("Core indicators")
@@ -223,7 +226,7 @@ struct HealthIndicatorsSettingsSection: View {
     private func metricsGroupTitle(_ title: String) -> some View {
         Text(AppLocalization.string(title))
             .font(AppTypography.captionEmphasis)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(AppColorRoles.textSecondary)
             .textCase(.uppercase)
             .padding(.top, 10)
             .padding(.bottom, 4)
@@ -234,7 +237,7 @@ struct HealthIndicatorsSettingsSection: View {
         Toggle(isOn: isOn) {
             Text(title)
         }
-        .tint(Color.appAccent)
+        .tint(theme.accent)
         .onChange(of: isOn.wrappedValue) { _, _ in Haptics.selection() }
         .padding(.vertical, 10)
         .frame(minHeight: 44)
@@ -242,12 +245,13 @@ struct HealthIndicatorsSettingsSection: View {
 
     private var rowDivider: some View {
         Divider()
-            .overlay(Color.white.opacity(0.12))
+            .overlay(AppColorRoles.borderSubtle)
             .padding(.vertical, 4)
     }
 }
 
 struct PhysiqueIndicatorsSettingsSection: View {
+    private let accent = AppColorRoles.accentPhysique
     @Binding var showPhysiqueSWR: Bool
     @Binding var showPhysiqueCWR: Bool
     @Binding var showPhysiqueSHR: Bool
@@ -259,7 +263,7 @@ struct PhysiqueIndicatorsSettingsSection: View {
 
     var body: some View {
         Section {
-            SettingsCard(tint: Color(hex: "#14B8A6").opacity(0.16)) {
+            SettingsCard(tint: accent.opacity(0.16)) {
                 SettingsCardHeader(title: AppLocalization.string("Physique indicators"), systemImage: "figure.strengthtraining.traditional")
                 VStack(spacing: 0) {
                     metricsGroupTitle("Proportion ratios")
@@ -292,7 +296,7 @@ struct PhysiqueIndicatorsSettingsSection: View {
     private func metricsGroupTitle(_ title: String) -> some View {
         Text(AppLocalization.string(title))
             .font(AppTypography.captionEmphasis)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(AppColorRoles.textSecondary)
             .textCase(.uppercase)
             .padding(.top, 10)
             .padding(.bottom, 4)
@@ -303,7 +307,7 @@ struct PhysiqueIndicatorsSettingsSection: View {
         Toggle(isOn: isOn) {
             Text(title)
         }
-        .tint(Color(hex: "#14B8A6"))
+        .tint(accent)
         .onChange(of: isOn.wrappedValue) { _, _ in Haptics.selection() }
         .padding(.vertical, 10)
         .frame(minHeight: 44)
@@ -311,7 +315,7 @@ struct PhysiqueIndicatorsSettingsSection: View {
 
     private var rowDivider: some View {
         Divider()
-            .overlay(Color.white.opacity(0.12))
+            .overlay(AppColorRoles.borderSubtle)
             .padding(.vertical, 4)
     }
 }

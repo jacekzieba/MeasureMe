@@ -55,41 +55,28 @@ private extension HomeModuleKind {
 
 struct HomeSettingsDetailView: View {
     @ObservedObject private var settingsStore = AppSettingsStore.shared
+    private let theme = FeatureTheme.settings
 
     private var layout: HomeLayoutSnapshot {
         settingsStore.homeLayoutSnapshot()
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-
-            List {
-                moduleOverviewCard
-                moduleVisibilitySection
-                resetSection
-            }
-            .accessibilityIdentifier("settings.home.detail")
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .padding(.top, 8)
+        SettingsDetailScaffold(title: AppLocalization.string("Home"), theme: .settings) {
+            moduleOverviewCard
+            moduleVisibilitySection
+            resetSection
         }
         .accessibilityIdentifier("settings.home.detail")
-        .navigationTitle(AppLocalization.string("Home"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
     }
 
     private var moduleOverviewCard: some View {
         Section {
-            SettingsCard(tint: Color.cyan.opacity(0.10)) {
+            SettingsCard(tint: theme.softTint) {
                 SettingsCardHeader(title: AppLocalization.string("Home modules"), systemImage: "square.grid.2x2")
                 Text(AppLocalization.string("Home now uses a modular dashboard. Full drag-and-drop editing will come later directly on the Home screen."))
                     .font(AppTypography.caption)
-                    .foregroundStyle(.white.opacity(0.74))
+                    .foregroundStyle(AppColorRoles.textSecondary)
             }
         }
         .listRowSeparator(.hidden)
@@ -100,7 +87,7 @@ struct HomeSettingsDetailView: View {
 
     private var moduleVisibilitySection: some View {
         Section {
-            SettingsCard(tint: Color.appAccent.opacity(0.10)) {
+            SettingsCard(tint: AppColorRoles.surfacePrimary) {
                 SettingsCardHeader(title: AppLocalization.string("Visible modules"), systemImage: "eye")
 
                 ForEach(HomeModuleKind.activeCases, id: \.self) { kind in
@@ -109,14 +96,15 @@ struct HomeSettingsDetailView: View {
                             GlassPillIcon(systemName: kind.settingsSystemImage)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(kind.settingsTitle)
-                                    .foregroundStyle(.white)
+                                    .font(AppTypography.body)
+                                    .foregroundStyle(AppColorRoles.textPrimary)
                                 Text(kind.settingsSubtitle)
                                     .font(AppTypography.micro)
-                                    .foregroundStyle(.white.opacity(0.62))
+                                    .foregroundStyle(AppColorRoles.textSecondary)
                             }
                         }
                     }
-                    .tint(Color.appAccent)
+                    .tint(theme.accent)
 
                     if kind != HomeModuleKind.activeCases.last {
                         SettingsRowDivider()
@@ -132,11 +120,11 @@ struct HomeSettingsDetailView: View {
 
     private var resetSection: some View {
         Section {
-            SettingsCard(tint: Color.white.opacity(0.08)) {
+            SettingsCard(tint: AppColorRoles.surfaceInteractive) {
                 SettingsCardHeader(title: AppLocalization.string("Layout"), systemImage: "arrow.counterclockwise")
                 Text(AppLocalization.string("Restore the recommended Home arrangement while keeping your current module visibility choices."))
                     .font(AppTypography.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(AppColorRoles.textSecondary)
 
                 Button {
                     Haptics.selection()

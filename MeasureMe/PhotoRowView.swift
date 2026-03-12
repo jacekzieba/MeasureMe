@@ -33,11 +33,11 @@ private struct PhotoMetadataView: View {
             HStack {
                 Image(systemName: "calendar")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(AppColorRoles.textTertiary)
                 
                 Text(photo.date.formatted(date: .abbreviated, time: .shortened))
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(AppColorRoles.textSecondary)
             }
             
             // Tagi
@@ -81,11 +81,11 @@ private struct PhotoMetricsLabel: View {
         HStack(spacing: 4) {
             Image(systemName: "chart.line.uptrend.xyaxis")
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(AppColorRoles.textTertiary)
             
             Text(AppLocalization.plural("photo.metrics.recorded", count))
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(AppColorRoles.textTertiary)
         }
     }
 }
@@ -100,8 +100,8 @@ struct PhotoCardStyle: ViewModifier {
             .background(
                 LinearGradient(
                     colors: [
-                        Color(hex: "#14213D").opacity(0.4),
-                        Color(hex: "#000000")
+                        FeatureTheme.photos.strongTint,
+                        AppColorRoles.surfaceCanvas
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -110,7 +110,7 @@ struct PhotoCardStyle: ViewModifier {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color(hex: "#FCA311").opacity(0.2), lineWidth: 1)
+                    .stroke(FeatureTheme.photos.border, lineWidth: 1)
             )
     }
 }
@@ -123,8 +123,8 @@ struct PhotoTagStyle: ViewModifier {
             .fontWeight(.medium)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(Color(hex: "#FCA311").opacity(0.2))
-            .foregroundStyle(Color(hex: "#FCA311"))
+            .background(FeatureTheme.photos.pillFill)
+            .foregroundStyle(FeatureTheme.photos.accent)
             .clipShape(Capsule())
     }
 }

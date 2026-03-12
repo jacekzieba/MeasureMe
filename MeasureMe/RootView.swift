@@ -10,6 +10,7 @@ struct RootView: View {
     @AppSetting(\.onboarding.hasCompletedOnboarding) private var hasCompletedOnboarding: Bool = false
     private let autoCheckPaywallPrompt: Bool
     private let isAuditCaptureEnabled = AuditConfig.current.isEnabled
+    private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
     @State private var didConfigurePendingStore = false
     @State private var didScheduleDeferredStartupWork = false
 
@@ -73,6 +74,7 @@ struct RootView: View {
                 }
             }
         }
+        .accessibilityIdentifier(isUITestMode ? "app.root.ready" : "app.root")
         .onAppear {
             Task { @MainActor in
                 configurePendingStoreIfNeeded()

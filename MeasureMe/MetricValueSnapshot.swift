@@ -5,7 +5,7 @@ import Foundation
 /// - porównań (Compare)
 /// - eksportu obrazów
 /// - zachowania kontekstu historycznego
-struct MetricValueSnapshot: Codable, Identifiable {
+struct MetricValueSnapshot: Codable, Identifiable, Equatable {
 
     let id: UUID
     let metricRawValue: String

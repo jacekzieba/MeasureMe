@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import UIKit
+import BackgroundTasks
 
 @main
 struct MeasureMeApp: App {
@@ -15,6 +16,8 @@ struct MeasureMeApp: App {
     @State private var startupAttemptID: Int = 0
     @State private var showCrashAlert = false
     private let isRunningXCTest = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode") || ProcessInfo.processInfo.arguments.contains("-uiTestOnboardingMode")
+    private let isSettingsUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab")
 
     private enum StartupState {
         case loading
@@ -56,6 +59,15 @@ struct MeasureMeApp: App {
         }
     }
 
+    private struct StartupStorageContextError: LocalizedError {
+        let step: String
+        let underlying: Error
+
+        var errorDescription: String? {
+            "Step '\(step)' failed: \(underlying.localizedDescription)"
+        }
+    }
+
     init() {
         // Zainstaluj crash reporter jako pierwszy krok
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
@@ -65,6 +77,7 @@ struct MeasureMeApp: App {
         }
 
         configureUITestDefaultsIfNeeded()
+        registerBackgroundTasks()
 
         let segmentedFont = UIFont.systemFont(ofSize: 13, weight: .semibold).withMonospacedDigits()
         UISegmentedControl.appearance().setTitleTextAttributes([.font: segmentedFont, .foregroundColor: UIColor.white], for: .normal)
@@ -109,29 +122,34 @@ struct MeasureMeApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                switch startupState {
-                case .loading:
-                    StartupLoadingView(
-                        statusKey: startupLoadingState.statusKey,
-                        progress: startupLoadingState.progress
-                    )
-                    .transition(.opacity)
-                case .ready(let container):
-                    RootView()
-                        .modelContainer(container)
+                if isSettingsUITestMode {
+                    SettingsUITestHostView()
+                } else {
+                    switch startupState {
+                    case .loading:
+                        StartupLoadingView(
+                            statusKey: startupLoadingState.statusKey,
+                            progress: startupLoadingState.progress
+                        )
                         .transition(.opacity)
-                case .failed(let message):
-                    StartupErrorView(
-                        message: message,
-                        onRetry: {
-                            startupAttemptID += 1
-                        }
-                    )
+                    case .ready(let container):
+                        RootView()
+                            .modelContainer(container)
+                            .transition(.opacity)
+                    case .failed(let message):
+                        StartupErrorView(
+                            message: message,
+                            onRetry: {
+                                startupAttemptID += 1
+                            }
+                        )
+                    }
                 }
             }
             .environment(\.locale, appLocale)
             .environmentObject(settingsStore)
             .task(id: startupAttemptID) {
+                guard !isSettingsUITestMode else { return }
                 await bootstrapApp()
             }
             .onAppear {
@@ -142,6 +160,13 @@ struct MeasureMeApp: App {
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
                 WidgetDataWriter.flushPendingWrites()
                 CrashReporter.shared.persistLogBuffer()
+                guard !isRunningXCTest else { return }
+                guard case .ready(let container) = startupState else { return }
+                let context = ModelContext(container)
+                let isPremium = settingsStore.snapshot.premium.premiumEntitlement
+                Task { @MainActor in
+                    await ICloudBackupService.runScheduledBackupIfNeeded(context: context, isPremium: isPremium)
+                }
             }
             .alert(AppLocalization.string("Crash Detected"), isPresented: $showCrashAlert) {
                 Button(AppLocalization.string("View Report")) {
@@ -181,7 +206,12 @@ struct MeasureMeApp: App {
                 duration: 0.16
             )
             let containerSetupState = StartupInstrumentation.begin("CreatePersistentModelContainer")
-            let container = try createPersistentModelContainer()
+            let container: ModelContainer
+            do {
+                container = try createPersistentModelContainer()
+            } catch {
+                throw StartupStorageContextError(step: "createPersistentModelContainer", underlying: error)
+            }
             StartupInstrumentation.end("CreatePersistentModelContainer", state: containerSetupState)
             updateStartupLoading(
                 phase: .initializingStorage,
@@ -195,14 +225,28 @@ struct MeasureMeApp: App {
                 duration: 0.22
             )
             let uiTestSetupState = StartupInstrumentation.begin("PrepareUITestData")
-            try cleanUITestDataIfNeeded(container: container)
-            try seedUITestDataIfNeeded(container: container)
+            do {
+                try cleanUITestDataIfNeeded(container: container)
+                try seedUITestDataIfNeeded(container: container)
+            } catch {
+                throw StartupStorageContextError(step: "prepareUITestData", underlying: error)
+            }
             StartupInstrumentation.end("PrepareUITestData", state: uiTestSetupState)
             updateStartupLoading(
                 phase: .preparingData,
                 targetProgress: 0.78,
                 duration: 0.24
             )
+
+            if isUITestMode {
+                startupLoadingState.progress = 1.0
+                startupState = .ready(container)
+                StartupInstrumentation.event("FirstFrameReady")
+                Analytics.shared.track(.appFirstFrameReady)
+                runDeferredStartupWork(container: container)
+                StartupInstrumentation.end("AppBootstrap", state: bootstrapState)
+                return
+            }
 
             updateStartupLoading(
                 phase: .finalizing,
@@ -274,15 +318,104 @@ struct MeasureMeApp: App {
             StartupInstrumentation.end("DeferredHealthKitSetup", state: healthSetupState)
         }
 
+        Task(priority: .utility) { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
+            let autoRestoreState = StartupInstrumentation.begin("DeferredICloudAutoRestore")
+            let context = ModelContext(container)
+            _ = await ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: context)
+            StartupInstrumentation.end("DeferredICloudAutoRestore", state: autoRestoreState)
+        }
+
         Task(priority: .background) {
             try? await Task.sleep(for: .milliseconds(600))
             let context = ModelContext(container)
             let units = settingsStore.snapshot.profile.unitsSystem
             WidgetDataWriter.writeAllAndReload(context: context, unitsSystem: units)
         }
+
+        Task(priority: .utility) {
+            try? await Task.sleep(for: .milliseconds(800))
+            let context = ModelContext(container)
+            _ = await ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: context)
+            let isPremium = AppSettingsStore.shared.snapshot.premium.premiumEntitlement
+            await ICloudBackupService.runScheduledBackupIfNeeded(context: context, isPremium: isPremium)
+            if AppSettingsStore.shared.snapshot.iCloudBackup.isEnabled {
+                Self.scheduleBackgroundBackup()
+            }
+        }
+    }
+
+    // MARK: - Background Backup Task
+
+    private static let backgroundBackupTaskID = "com.jacek.measureme.icloud-backup"
+
+    private func registerBackgroundTasks() {
+        BGTaskScheduler.shared.register(
+            forTaskWithIdentifier: Self.backgroundBackupTaskID,
+            using: nil
+        ) { task in
+            Self.handleBackgroundBackup(task: task as! BGProcessingTask)
+        }
+    }
+
+    private static func handleBackgroundBackup(task: BGProcessingTask) {
+        let operation = Task {
+            do {
+                let container = try createBackgroundModelContainer()
+                let context = ModelContext(container)
+                let isPremium = AppSettingsStore.shared.snapshot.premium.premiumEntitlement
+                await ICloudBackupService.runScheduledBackupIfNeeded(context: context, isPremium: isPremium)
+            } catch {
+                // Container creation failed; nothing to back up
+            }
+        }
+        task.expirationHandler = { operation.cancel() }
+        Task {
+            _ = await operation.result
+            task.setTaskCompleted(success: true)
+            scheduleBackgroundBackup()
+        }
+    }
+
+    static func scheduleBackgroundBackup() {
+        let request = BGProcessingTaskRequest(identifier: backgroundBackupTaskID)
+        request.requiresNetworkConnectivity = true
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 86_400)
+        try? BGTaskScheduler.shared.submit(request)
+    }
+
+    private static func createBackgroundModelContainer() throws -> ModelContainer {
+        let fileManager = FileManager.default
+        guard let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            throw StartupStorageError.applicationSupportDirectoryUnavailable
+        }
+        try fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
+
+        let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
+        return try ModelContainer(for: schema, configurations: [configuration])
     }
 
     private func createPersistentModelContainer() throws -> ModelContainer {
+        let isSettingsUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab")
+
+        if isUITestMode {
+            let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+            if isSettingsUITestMode {
+                return try ModelContainer(
+                    for: MetricSample.self,
+                    MetricGoal.self,
+                    configurations: configuration
+                )
+            }
+            return try ModelContainer(
+                for: MetricSample.self,
+                MetricGoal.self,
+                PhotoEntry.self,
+                configurations: configuration
+            )
+        }
+
         let fileManager = FileManager.default
         guard let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             throw StartupStorageError.applicationSupportDirectoryUnavailable
@@ -294,14 +427,65 @@ struct MeasureMeApp: App {
             MetricGoal.self,
             PhotoEntry.self
         ])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        return try ModelContainer(for: schema, configurations: [configuration])
+        // App uses custom iCloud backup flow; disable SwiftData CloudKit sync to avoid
+        // CloudKit schema constraints on local-only models.
+        let configuration = ModelConfiguration(schema: schema, cloudKitDatabase: .none)
+        do {
+            return try ModelContainer(for: schema, configurations: [configuration])
+        } catch {
+            guard shouldAttemptStoreResetAfterContainerFailure else { throw error }
+            AppLog.debug("⚠️ SwiftData container init failed. Attempting one-time store reset. Error: \(error)")
+            try purgePersistentStoreFiles()
+            return try ModelContainer(for: schema, configurations: [configuration])
+        }
+    }
+
+    private var shouldAttemptStoreResetAfterContainerFailure: Bool {
+        #if DEBUG
+        true
+        #elseif targetEnvironment(simulator)
+        true
+        #else
+        false
+        #endif
+    }
+
+    private func purgePersistentStoreFiles() throws {
+        let fileManager = FileManager.default
+        let roots: [URL] = [
+            fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first,
+            fileManager.urls(for: .documentDirectory, in: .userDomainMask).first
+        ].compactMap { $0 }
+
+        for root in roots {
+            guard let files = try? fileManager.contentsOfDirectory(
+                at: root,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            ) else {
+                continue
+            }
+
+            for url in files where isLikelySwiftDataStore(url) {
+                try? fileManager.removeItem(at: url)
+                // If SwiftData uses SQLite sidecars, clean them as well.
+                try? fileManager.removeItem(atPath: url.path + "-wal")
+                try? fileManager.removeItem(atPath: url.path + "-shm")
+            }
+        }
+    }
+
+    private func isLikelySwiftDataStore(_ url: URL) -> Bool {
+        let ext = url.pathExtension.lowercased()
+        if ext == "store" || ext == "sqlite" || ext == "db" { return true }
+        return url.lastPathComponent.lowercased().contains("default.store")
     }
 
     private func configureUITestDefaultsIfNeeded() {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
         let defaults = AppSettingsStore.shared
+        let uiTestLanguage = requestedUITestLanguage(from: args) ?? "en"
         let metricKeys = AppSettingsKeys.Metrics.allEnabledKeys
         let shouldPrepareUITestTouchHandling = args.contains("-uiTestMode") || args.contains("-uiTestOnboardingMode")
         let enabledByDefault: Set<String> = [
@@ -333,7 +517,7 @@ struct MeasureMeApp: App {
 
         if args.contains("-uiTestOnboardingMode") {
             defaults.set(\.onboarding.hasCompletedOnboarding, false)
-            defaults.set(\.experience.appLanguage, "en")
+            defaults.set(\.experience.appLanguage, uiTestLanguage)
             defaults.set(\.premium.premiumEntitlement, false)
             defaults.set(\.analytics.appleIntelligenceEnabled, true)
             defaults.set(\.onboarding.onboardingChecklistShow, true)
@@ -357,7 +541,7 @@ struct MeasureMeApp: App {
         defaults.removeObject(forKey: AppSettingsKeys.Home.homeLayoutData)
         defaults.set(\.homeLayout.layoutSchemaVersion, HomeLayoutSnapshot.currentSchemaVersion)
         defaults.set(\.onboarding.hasCompletedOnboarding, true)
-        defaults.set(\.experience.appLanguage, "en")
+        defaults.set(\.experience.appLanguage, uiTestLanguage)
         defaults.set(\.premium.premiumEntitlement, true)
         defaults.set(\.analytics.appleIntelligenceEnabled, true)
         defaults.set(\.onboarding.onboardingChecklistShow, false)
@@ -415,6 +599,9 @@ struct MeasureMeApp: App {
             || args.contains("-uiTestOnboardingMode")
             || (AuditConfig.current.isEnabled && AuditConfig.current.useMockData)
         guard shouldClean else { return }
+        if isUITestMode {
+            return
+        }
 
         let context = ModelContext(container)
         try context.fetch(FetchDescriptor<MetricSample>()).forEach { context.delete($0) }
@@ -468,6 +655,13 @@ struct MeasureMeApp: App {
         return parsed
     }
 
+    private func requestedUITestLanguage(from args: [String]) -> String? {
+        if args.contains("-uiTestLanguagePL") { return "pl" }
+        if args.contains("-uiTestLanguageEN") { return "en" }
+        if args.contains("-uiTestLanguageSystem") { return "system" }
+        return nil
+    }
+
     private func requestedHomePinnedAction(from args: [String]) -> HomePinnedAction? {
         guard let flagIndex = args.firstIndex(of: "-uiTestHomePinnedAction") else { return nil }
         let nextIndex = args.index(after: flagIndex)
@@ -513,6 +707,25 @@ struct MeasureMeApp: App {
             label.draw(in: textRect, withAttributes: attrs)
         }
         return image.jpegData(compressionQuality: 0.84)
+    }
+}
+
+private struct SettingsUITestHostView: View {
+    @StateObject private var premiumStore = PremiumStore(startListener: false)
+    @StateObject private var metricsStore = ActiveMetricsStore()
+
+    var body: some View {
+        NavigationStack {
+            SettingsView()
+        }
+        .environmentObject(premiumStore)
+        .environmentObject(metricsStore)
+        .sheet(isPresented: $premiumStore.isPaywallPresented) {
+            PremiumPaywallView()
+                .environmentObject(premiumStore)
+        }
+        .preferredColorScheme(.dark)
+        .accessibilityIdentifier("app.root.ready")
     }
 }
 

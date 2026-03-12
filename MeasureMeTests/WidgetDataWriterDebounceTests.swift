@@ -15,7 +15,7 @@ final class WidgetDataWriterDebounceTests: XCTestCase {
         try super.setUpWithError()
 
         let schema = Schema([MetricSample.self, MetricGoal.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         container = try ModelContainer(for: schema, configurations: [config])
         context = ModelContext(container)
 

@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 struct HealthSettingsSection: View {
+    private let theme = FeatureTheme.health
     @Binding var isSyncEnabled: Bool
     let lastImportText: String?
     @Binding var hkWeight: Bool
@@ -18,7 +19,7 @@ struct HealthSettingsSection: View {
 
     var body: some View {
         Section {
-            SettingsCard(tint: Color.appAccent.opacity(0.10)) {
+            SettingsCard(tint: theme.softTint) {
                 SettingsCardHeader(title: AppLocalization.string("Health"), systemImage: "heart.fill")
                 syncRow
                 SettingsRowDivider()
@@ -53,7 +54,7 @@ struct HealthSettingsSection: View {
                 Spacer()
                 Toggle("", isOn: $isSyncEnabled)
                     .labelsHidden()
-                    .tint(Color.appAccent)
+                    .tint(theme.accent)
                     .frame(width: 52, alignment: .trailing)
                     .accessibilityLabel(AppLocalization.string("Sync with Apple Health"))
                     .accessibilityIdentifier("settings.health.sync.toggle")
@@ -62,13 +63,13 @@ struct HealthSettingsSection: View {
 
             Text(AppLocalization.string("health.last.import", lastImportText ?? "—"))
                 .font(AppTypography.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .padding(.leading, 44)
 
             if let syncStatusMessage {
                 Text(syncStatusMessage)
                     .font(AppTypography.caption)
-                    .foregroundStyle(Color.red.opacity(0.9))
+                    .foregroundStyle(AppColorRoles.stateError)
                     .padding(.leading, 44)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("settings.health.sync.error")
@@ -126,7 +127,7 @@ struct HealthSettingsSection: View {
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.semibold))
                         .rotationEffect(.degrees(isMetricsExpanded ? 180 : 0))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColorRoles.textTertiary)
                 }
                 .contentShape(Rectangle())
             }
@@ -158,7 +159,7 @@ struct HealthSettingsSection: View {
 
     private var rowDivider: some View {
         Divider()
-            .overlay(Color.white.opacity(0.12))
+            .overlay(AppColorRoles.borderSubtle)
             .padding(.vertical, 4)
     }
 
@@ -166,12 +167,12 @@ struct HealthSettingsSection: View {
         HStack(spacing: 10) {
             Text(title)
             Spacer()
-            Toggle("", isOn: isOn)
+        Toggle("", isOn: isOn)
                 .labelsHidden()
                 .accessibilityLabel(title)
                 .frame(width: 52, alignment: .trailing)
         }
-        .tint(Color.appAccent)
+        .tint(theme.accent)
         .onChange(of: isOn.wrappedValue) { _, _ in Haptics.selection() }
         .padding(.vertical, 10)
         .frame(minHeight: 44)

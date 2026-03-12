@@ -115,6 +115,14 @@ struct AppSettingsSnapshot: Sendable {
         var appleIntelligenceEnabled: Bool
     }
 
+    struct ICloudBackup: Sendable {
+        var isEnabled: Bool
+        var lastSuccessTimestamp: Double
+        var lastErrorMessage: String
+        var autoRestoreCompleted: Bool
+        var lastBackupSizeBytes: Int64
+    }
+
     struct InternalState: Sendable {
         var settingsSchemaVersion: Int
     }
@@ -130,6 +138,7 @@ struct AppSettingsSnapshot: Sendable {
     var diagnostics: Diagnostics
     var notifications: Notifications
     var analytics: Analytics
+    var iCloudBackup: ICloudBackup
     var internalState: InternalState
 
     static let registeredDefaults: [String: Any] = [
@@ -169,7 +178,9 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.Notifications.smartEnabled: false,
         AppSettingsKeys.Health.healthIndicatorsV2Migrated: false,
         AppSettingsKeys.Indicators.showConicityOnHome: true,
-        AppSettingsKeys.Analytics.appleIntelligenceEnabled: true
+        AppSettingsKeys.Analytics.appleIntelligenceEnabled: true,
+        AppSettingsKeys.ICloudBackup.isEnabled: true,
+        AppSettingsKeys.ICloudBackup.autoRestoreCompleted: false
     ]
 
     static func load(from defaults: UserDefaults) -> AppSettingsSnapshot {
@@ -276,6 +287,13 @@ struct AppSettingsSnapshot: Sendable {
                 firstMetricAddedTracked: defaults.bool(forKey: AppSettingsKeys.Analytics.firstMetricAddedTracked),
                 firstPhotoAddedTracked: defaults.bool(forKey: AppSettingsKeys.Analytics.firstPhotoAddedTracked),
                 appleIntelligenceEnabled: defaults.object(forKey: AppSettingsKeys.Analytics.appleIntelligenceEnabled) as? Bool ?? true
+            ),
+            iCloudBackup: .init(
+                isEnabled: defaults.bool(forKey: AppSettingsKeys.ICloudBackup.isEnabled),
+                lastSuccessTimestamp: defaults.double(forKey: AppSettingsKeys.ICloudBackup.lastSuccessTimestamp),
+                lastErrorMessage: defaults.string(forKey: AppSettingsKeys.ICloudBackup.lastErrorMessage) ?? "",
+                autoRestoreCompleted: defaults.bool(forKey: AppSettingsKeys.ICloudBackup.autoRestoreCompleted),
+                lastBackupSizeBytes: Int64(defaults.integer(forKey: AppSettingsKeys.ICloudBackup.lastBackupSizeBytes))
             ),
             internalState: .init(
                 settingsSchemaVersion: defaults.integer(forKey: AppSettingsKeys.settingsSchemaVersion)

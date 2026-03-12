@@ -8,7 +8,7 @@ struct TabBarContainer: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var premiumStore: PremiumStore
     @State private var didApplyAuditRoute = false
-    @State private var mountedTabs: Set<AppTab> = [.home]
+    @State private var mountedTabs: Set<AppTab> = TabBarContainer.initialMountedTabs()
 
     var body: some View {
         let isUITest = CommandLine.arguments.contains("-uiTestMode") || CommandLine.arguments.contains("-uiTestOnboardingMode")
@@ -154,6 +154,12 @@ struct TabBarContainer: View {
     }
 
     private func applyAuditRouteIfNeeded() {
+        if ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab") {
+            router.selectedTab = .settings
+            mountTabIfNeeded(.settings)
+            return
+        }
+
         guard AuditConfig.current.isEnabled else { return }
         guard !didApplyAuditRoute else { return }
         didApplyAuditRoute = true
@@ -202,6 +208,15 @@ private extension View {
         } else {
             self
         }
+    }
+}
+
+private extension TabBarContainer {
+    static func initialMountedTabs() -> Set<AppTab> {
+        if ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab") {
+            return [.settings]
+        }
+        return [.home]
     }
 }
 

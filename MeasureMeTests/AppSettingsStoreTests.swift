@@ -22,6 +22,8 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertTrue(store.snapshot.experience.animationsEnabled)
         XCTAssertTrue(store.snapshot.notifications.photoRemindersEnabled)
         XCTAssertTrue(store.snapshot.health.healthkitSyncWeight)
+        XCTAssertTrue(store.snapshot.iCloudBackup.isEnabled)
+        XCTAssertFalse(store.snapshot.iCloudBackup.autoRestoreCompleted)
     }
 
     func testSetAndReloadUpdatesSnapshot() async {
