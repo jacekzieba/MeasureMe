@@ -45,6 +45,7 @@ struct MetricDetailView: View {
     @State var showAllHistory = false
     @State var insightState: InsightState = .loading
     @State var isLoadingInsight = false
+    @State private var showInsightConversation = false
     @State private var scrubbedSample: MetricSample?
     @State private var chartScrubState: ChartScrubState = .idle
     @State private var chartWidth: CGFloat = 0
@@ -309,6 +310,15 @@ struct MetricDetailView: View {
                 }
             )
         }
+        .sheet(isPresented: $showInsightConversation) {
+            if let input = insightInput, case .ready(let text) = insightState {
+                InsightConversationView(
+                    metricTitle: kind.title,
+                    originalInsight: text,
+                    input: input
+                )
+            }
+        }
         .task(id: insightInput) {
             await loadInsightIfNeeded()
         }
@@ -395,6 +405,8 @@ struct MetricDetailView: View {
                         isLoading: isLoadingInsight,
                         onRefresh: { Task { await refreshInsight() } }
                     )
+                    .contentShape(Rectangle())
+                    .onTapGesture { showInsightConversation = true }
                 case .loading:
                     MetricInsightCard(
                         text: AppLocalization.string("Generating insight..."),

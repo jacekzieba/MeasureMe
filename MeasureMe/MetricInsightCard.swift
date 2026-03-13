@@ -6,6 +6,8 @@ struct MetricInsightCard: View {
     let isLoading: Bool
     var onRefresh: (() -> Void)? = nil
 
+    @State private var shimmerPhase: CGFloat = 0
+
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "sparkles")
@@ -14,21 +16,31 @@ struct MetricInsightCard: View {
                 .padding(8)
                 .background(AppColorRoles.accentPrimary.opacity(0.12))
                 .clipShape(Circle())
+                .symbolEffect(.pulse, isActive: isLoading)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(text)
-                    .font(compact ? AppTypography.microEmphasis : AppTypography.body)
-                    .foregroundStyle(AppColorRoles.textPrimary)
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .layoutPriority(1)
-                    .redacted(reason: isLoading ? .placeholder : [])
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityIdentifier(compact ? "insight.card.text.compact" : "insight.card.text.detail")
+                if isLoading {
+                    shimmerBlock(width: .infinity, height: compact ? 12 : 14)
+                    shimmerBlock(width: 180, height: compact ? 12 : 14)
+                    if !compact {
+                        shimmerBlock(width: 140, height: 14)
+                    }
+                } else {
+                    Text(text)
+                        .font(compact ? AppTypography.microEmphasis : AppTypography.body)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .layoutPriority(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityIdentifier(compact ? "insight.card.text.compact" : "insight.card.text.detail")
+                }
 
                 HStack {
-                    Text(AppLocalization.string("AI generated"))
+                    Text(isLoading
+                         ? AppLocalization.string("Generating insight...")
+                         : AppLocalization.string("AI generated"))
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColorRoles.textSecondary)
 
@@ -70,5 +82,29 @@ struct MetricInsightCard: View {
                 )
         )
         .shadow(color: Color.black.opacity(0.16), radius: 10, x: 0, y: 4)
+        .onChange(of: isLoading) {
+            if isLoading {
+                withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                    shimmerPhase = 1
+                }
+            } else {
+                shimmerPhase = 0
+            }
+        }
+        .onAppear {
+            if isLoading {
+                withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                    shimmerPhase = 1
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func shimmerBlock(width: CGFloat, height: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: 4, style: .continuous)
+            .fill(AppColorRoles.textSecondary.opacity(0.08 + 0.08 * shimmerPhase))
+            .frame(maxWidth: width == .infinity ? .infinity : width, alignment: .leading)
+            .frame(height: height)
     }
 }

@@ -12,7 +12,10 @@ struct MeasurementsTabView: View {
     @EnvironmentObject private var router: AppRouter
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @AppSetting(\.profile.userName) private var userName: String = ""
+    @AppSetting(\.profile.userGender) private var userGenderRaw: String = "notSpecified"
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
+    @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.experience.quickAddHintDismissed) private var quickAddHintDismissed: Bool = false
     @AppSetting(\.experience.hasCustomizedMetrics) private var hasCustomizedMetrics: Bool = false
@@ -53,12 +56,19 @@ struct MeasurementsTabView: View {
 
     private var latestByKind: [MetricKind: MetricSample] { cachedLatestByKind }
 
+    private var userGender: Gender {
+        Gender(rawValue: userGenderRaw) ?? .notSpecified
+    }
+
     private var latestWaist: Double? {
         latestByKind[.waist]?.value
     }
 
     private var latestHeight: Double? {
-        latestByKind[.height]?.value
+        if manualHeight > 0 {
+            return manualHeight
+        }
+        return latestByKind[.height]?.value
     }
 
     private var latestWeight: Double? {
@@ -98,6 +108,44 @@ struct MeasurementsTabView: View {
         case .physique:
             return AppColorRoles.accentPhysique.opacity(0.18)
         }
+    }
+
+    private var metricsSummaryInput: SectionInsightInput? {
+        AISectionSummaryInputBuilder.metricsInput(
+            userName: userName,
+            activeKinds: metricsStore.activeKinds,
+            latestByKind: latestByKind,
+            samplesByKind: samplesByKind,
+            unitsSystem: unitsSystem
+        )
+    }
+
+    private var healthSummaryInput: SectionInsightInput? {
+        AISectionSummaryInputBuilder.healthInput(
+            userName: userName,
+            userGender: userGender,
+            latestWaist: latestWaist,
+            latestHeight: latestHeight,
+            latestWeight: latestWeight,
+            latestHips: latestHips,
+            latestBodyFat: latestBodyFat,
+            latestLeanMass: latestLeanMass,
+            unitsSystem: unitsSystem
+        )
+    }
+
+    private var physiqueSummaryInput: SectionInsightInput? {
+        AISectionSummaryInputBuilder.physiqueInput(
+            userName: userName,
+            userGender: userGender,
+            latestWaist: latestWaist,
+            latestHeight: latestHeight,
+            latestBodyFat: latestBodyFat,
+            latestShoulders: latestShoulders,
+            latestChest: latestChest,
+            latestBust: latestBust,
+            latestHips: latestHips
+        )
     }
 
     private func tabAccent(for tab: MeasurementsTab) -> Color {
@@ -156,6 +204,14 @@ struct MeasurementsTabView: View {
                         .animation(shouldAnimate ? .easeInOut(duration: 0.24) : nil, value: selectedTab)
 
                         if selectedTab == .metrics {
+                            AISectionSummaryCard(
+                                input: metricsSummaryInput,
+                                missingDataMessage: AppLocalization.string("AI summary needs metric data. Add measurements to generate insights."),
+                                tint: measurementsTheme.softTint,
+                                accessibilityIdentifier: "measurements.metrics.ai.summary"
+                            )
+                            .padding(.horizontal, AppSpacing.md)
+
                             if samples.isEmpty {
                                 // MARK: - Hero empty state
                                 EmptyStateCard(
@@ -261,6 +317,14 @@ struct MeasurementsTabView: View {
                                 .padding(.horizontal, AppSpacing.md)
                         } else if selectedTab == .health {
                             if premiumStore.isPremium {
+                                AISectionSummaryCard(
+                                    input: healthSummaryInput,
+                                    missingDataMessage: AppLocalization.string("AI summary needs health indicator data. Add required measurements first."),
+                                    tint: healthTheme.softTint,
+                                    accessibilityIdentifier: "measurements.health.ai.summary"
+                                )
+                                .padding(.horizontal, AppSpacing.md)
+
                                 HealthMetricsSection(
                                     latestWaist: latestWaist,
                                     latestHeight: latestHeight,
@@ -284,6 +348,14 @@ struct MeasurementsTabView: View {
                             }
                         } else {
                             if premiumStore.isPremium {
+                                AISectionSummaryCard(
+                                    input: physiqueSummaryInput,
+                                    missingDataMessage: AppLocalization.string("AI summary needs physique indicator data. Add required measurements first."),
+                                    tint: AppColorRoles.accentPhysique.opacity(0.18),
+                                    accessibilityIdentifier: "measurements.physique.ai.summary"
+                                )
+                                .padding(.horizontal, AppSpacing.md)
+
                                 PhysiqueIndicatorsSection(
                                     latestWaist: latestWaist,
                                     latestHeight: latestHeight,
@@ -337,9 +409,9 @@ struct MeasurementsTabView: View {
     private var trackedMetricsFooter: some View {
         AppGlassCard(
             depth: .base,
-            cornerRadius: AppRadius.lg,
+            cornerRadius: 16,
             tint: measurementsTheme.softTint,
-            contentPadding: AppSpacing.sm
+            contentPadding: 14
         ) {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text(AppLocalization.string("measurements.footer.dynamic", metricsStore.activeKinds.count, metricsStore.allKindsInOrder.count))

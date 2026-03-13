@@ -29,6 +29,7 @@ struct HomeView: View {
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
     @AppSetting(\.profile.userAge) private var userAgeValue: Int = 0
+    @AppSetting(\.profile.userGender) private var userGenderRaw: String = "notSpecified"
     @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
     @AppSetting(\.health.isSyncEnabled) var isSyncEnabled: Bool = false
@@ -113,6 +114,10 @@ struct HomeView: View {
 
     private var userAge: Int? {
         userAgeValue > 0 ? userAgeValue : nil
+    }
+
+    private var userGender: Gender {
+        Gender(rawValue: userGenderRaw) ?? .notSpecified
     }
 
     // Designated initializer that accepts an explicit streakManager to avoid touching MainActor in default params (Swift 6 safe)
@@ -286,12 +291,75 @@ struct HomeView: View {
         cachedLatestByKind[.weight]?.value
     }
 
+    private var latestShoulders: Double? {
+        cachedLatestByKind[.shoulders]?.value
+    }
+
+    private var latestChest: Double? {
+        cachedLatestByKind[.chest]?.value
+    }
+
+    private var latestBust: Double? {
+        cachedLatestByKind[.bust]?.value
+    }
+
+    private var latestHips: Double? {
+        cachedLatestByKind[.hips]?.value
+    }
+
     private var weightDelta7dText: String? {
         metricDeltaTextFromCache(kind: .weight, days: 7)
     }
 
     private var waistDelta7dText: String? {
         metricDeltaTextFromCache(kind: .waist, days: 7)
+    }
+
+    private var homeMetricsSummaryInput: SectionInsightInput? {
+        AISectionSummaryInputBuilder.metricsInput(
+            userName: userName,
+            activeKinds: metricsStore.activeKinds,
+            latestByKind: cachedLatestByKind,
+            samplesByKind: cachedSamplesByKind,
+            unitsSystem: unitsSystem
+        )
+    }
+
+    private var homeHealthSummaryInput: SectionInsightInput? {
+        AISectionSummaryInputBuilder.healthInput(
+            userName: userName,
+            userGender: userGender,
+            latestWaist: latestWaist,
+            latestHeight: manualHeight > 0 ? manualHeight : latestHeight,
+            latestWeight: latestWeight,
+            latestHips: latestHips,
+            latestBodyFat: latestBodyFat,
+            latestLeanMass: latestLeanMass,
+            unitsSystem: unitsSystem
+        )
+    }
+
+    private var homePhysiqueSummaryInput: SectionInsightInput? {
+        AISectionSummaryInputBuilder.physiqueInput(
+            userName: userName,
+            userGender: userGender,
+            latestWaist: latestWaist,
+            latestHeight: manualHeight > 0 ? manualHeight : latestHeight,
+            latestBodyFat: latestBodyFat,
+            latestShoulders: latestShoulders,
+            latestChest: latestChest,
+            latestBust: latestBust,
+            latestHips: latestHips
+        )
+    }
+
+    private var homeBottomSummaryInput: SectionInsightInput? {
+        AISectionSummaryInputBuilder.homeCombinedInput(
+            userName: userName,
+            metricsInput: homeMetricsSummaryInput,
+            healthInput: homeHealthSummaryInput,
+            physiqueInput: homePhysiqueSummaryInput
+        )
     }
 
     // MARK: - Cache Rebuild Helpers
@@ -762,6 +830,14 @@ struct HomeView: View {
                     .frame(height: 0)
 
                     dashboardBoard
+
+                    AISectionSummaryCard(
+                        input: homeBottomSummaryInput,
+                        missingDataMessage: AppLocalization.string("AI summary needs data from Metrics, Health Indicators, or Physique Indicators."),
+                        tint: homeTheme.softTint,
+                        accessibilityIdentifier: "home.bottom.ai.summary"
+                    )
+                    .padding(.top, 14)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
