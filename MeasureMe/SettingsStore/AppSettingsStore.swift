@@ -317,6 +317,8 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(onboarding.hasCompletedOnboarding, forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding)
             defaults.set(onboarding.onboardingSkippedHealthKit, forKey: AppSettingsKeys.Onboarding.onboardingSkippedHealthKit)
             defaults.set(onboarding.onboardingSkippedReminders, forKey: AppSettingsKeys.Onboarding.onboardingSkippedReminders)
+            defaults.set(onboarding.onboardingViewedICloudBackupOffer, forKey: AppSettingsKeys.Onboarding.onboardingViewedICloudBackupOffer)
+            defaults.set(onboarding.onboardingSkippedICloudBackup, forKey: AppSettingsKeys.Onboarding.onboardingSkippedICloudBackup)
             defaults.set(onboarding.onboardingChecklistShow, forKey: AppSettingsKeys.Onboarding.onboardingChecklistShow)
             defaults.set(onboarding.onboardingChecklistCollapsed, forKey: AppSettingsKeys.Onboarding.onboardingChecklistCollapsed)
             defaults.set(onboarding.onboardingChecklistHideCompleted, forKey: AppSettingsKeys.Onboarding.onboardingChecklistHideCompleted)
@@ -363,6 +365,7 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(experience.quickAddHintDismissed, forKey: AppSettingsKeys.Experience.quickAddHintDismissed)
             defaults.set(experience.photosFilterTag, forKey: AppSettingsKeys.Experience.photosFilterTag)
             defaults.set(experience.saveUnchangedQuickAdd, forKey: AppSettingsKeys.Experience.saveUnchangedQuickAdd)
+            defaults.set(experience.hasCustomizedMetrics, forKey: AppSettingsKeys.Experience.hasCustomizedMetrics)
 
             let premium = snapshot.premium
             defaults.set(premium.premiumEntitlement, forKey: AppSettingsKeys.Premium.entitlement)

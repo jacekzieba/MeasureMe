@@ -122,6 +122,7 @@ final class PremiumStore: ObservableObject {
         self.notificationManager = notificationManager ?? NotificationManager.shared
         self.settings = settings
         self.analytics = analytics ?? Analytics.shared
+        self.isPremium = settings.snapshot.premium.premiumEntitlement
         #if DEBUG
         self.forcePremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForcePremium")
         self.forceNonPremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForceNonPremium")
@@ -591,4 +592,3 @@ private extension PremiumStore.PaywallReason {
         }
     }
 }
-

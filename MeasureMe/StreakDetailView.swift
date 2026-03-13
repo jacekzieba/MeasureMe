@@ -227,12 +227,15 @@ struct StreakDetailView: View {
         let calendar = Calendar(identifier: .iso8601)
         let now = AppClock.now
         guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start else { return [] }
-        let dayLabels = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+        let formatter = DateFormatter()
+        formatter.locale = AppLocalization.currentLanguage.locale
+        let localizedSymbols = formatter.shortWeekdaySymbols ?? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        let isoWeekdayLabels = Array(localizedSymbols.dropFirst()) + [localizedSymbols[0]]
         return (0..<7).compactMap { offset in
             guard let date = calendar.date(byAdding: .day, value: offset, to: weekStart) else { return nil }
             let isToday = calendar.isDateInToday(date)
             let isPast = date < calendar.startOfDay(for: now) && !isToday
-            return WeekDay(index: offset, label: dayLabels[offset], isToday: isToday, isPast: isPast)
+            return WeekDay(index: offset, label: isoWeekdayLabels[offset].uppercased(with: formatter.locale), isToday: isToday, isPast: isPast)
         }
     }
 
@@ -454,10 +457,12 @@ struct StreakDetailView: View {
 
         allDayCounts = dayCounts
 
-        // Build available years
-        let firstYear = calendar.component(.year, from: firstDate)
+        // Build available years — only years that actually contain samples
         let currentYear = calendar.component(.year, from: now)
+        let yearsWithData: Set<Int> = Set(dayCounts.keys.map { calendar.component(.year, from: $0) })
+        let firstYear = yearsWithData.min() ?? currentYear
         availableYears = Array(stride(from: currentYear, through: firstYear, by: -1))
+            .filter { $0 == currentYear || yearsWithData.contains($0) }
         selectedYear = currentYear
 
         if shouldAnimate {
@@ -478,8 +483,8 @@ struct StreakDetailView: View {
         }
     }
 
-    /// Months to display for the selected year — from first-active month to
-    /// current month (current year) or December (past years).
+    /// Months to display for the selected year — from first-active month,
+    /// padded to a multiple of 3 so the grid row is always full.
     private var visibleMonths: [Int] {
         let calendar = Calendar(identifier: .iso8601)
         let now = AppClock.now
@@ -498,18 +503,17 @@ struct StreakDetailView: View {
 
         let lastMonth = (selectedYear == currentYear) ? currentMonth : 12
         guard firstMonth <= lastMonth else { return [] }
-        return Array(firstMonth...lastMonth)
+
+        // Pad to fill the last row of 3 columns (cap at December)
+        let count = lastMonth - firstMonth + 1
+        let remainder = count % 3
+        let padded = (remainder == 0) ? lastMonth : min(lastMonth + (3 - remainder), 12)
+        return Array(firstMonth...padded)
     }
 
-    /// Dynamic column count: 1 for a single month, 2 for 2–4, 3 for 5+.
+    /// Always 3 columns so tiles stay small even with 1–2 months of data.
     private var heatmapGridColumns: [GridItem] {
-        let cols: Int
-        switch visibleMonths.count {
-        case 1:     cols = 1
-        case 2...4: cols = 2
-        default:    cols = 3
-        }
-        return Array(repeating: GridItem(.flexible(), spacing: 8), count: cols)
+        Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
     }
 
     private var activityHeatmapSection: some View {
@@ -569,8 +573,8 @@ struct StreakDetailView: View {
 
                 // Adaptive grid — only months with potential data
                 LazyVGrid(columns: heatmapGridColumns, spacing: 12) {
-                    ForEach(visibleMonths, id: \.self) { month in
-                        miniMonthView(month: month)
+                    ForEach(Array(visibleMonths.enumerated()), id: \.element) { index, month in
+                        miniMonthView(month: month, showDayHeaders: index % 3 == 0)
                     }
                 }
 
@@ -595,7 +599,7 @@ struct StreakDetailView: View {
         }
     }
 
-    private func miniMonthView(month: Int) -> some View {
+    private func miniMonthView(month: Int, showDayHeaders: Bool = false) -> some View {
         let cells = monthCells(month: month)
 
         return VStack(alignment: .leading, spacing: 3) {
@@ -605,12 +609,34 @@ struct StreakDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             let dayCols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
+
+            if showDayHeaders {
+                let headers = dayHeaderSymbols()
+                LazyVGrid(columns: dayCols, spacing: 2) {
+                    ForEach(Array(headers.enumerated()), id: \.offset) { _, symbol in
+                        Text(symbol)
+                            .font(.system(size: 8, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.35))
+                    }
+                }
+            }
+
             LazyVGrid(columns: dayCols, spacing: 2) {
                 ForEach(cells, id: \.id) { cell in
                     heatmapCellView(cell, monthIndex: month)
                 }
             }
         }
+    }
+
+    /// Mon–Sun day-of-week symbols in current locale (e.g. P/W/Ś/C/P/S/N for Polish).
+    private func dayHeaderSymbols() -> [String] {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.autoupdatingCurrent
+        let symbols = formatter.veryShortStandaloneWeekdaySymbols ?? []
+        guard symbols.count == 7 else { return [] }
+        // Rotate from Sunday-first to ISO Monday-first
+        return Array(symbols[1...]) + [symbols[0]]
     }
 
     private struct MonthCell: Identifiable {
@@ -622,8 +648,6 @@ struct StreakDetailView: View {
 
     private func monthCells(month: Int) -> [MonthCell] {
         let calendar = Calendar(identifier: .iso8601)
-        let now = AppClock.now
-        let todayStart = calendar.startOfDay(for: now)
 
         // First day of this month
         var comps = DateComponents()
@@ -665,7 +689,6 @@ struct StreakDetailView: View {
             guard let date = calendar.date(from: dayComps) else { continue }
             let dayStart = calendar.startOfDay(for: date)
             let isBeforeStart = dayStart < firstActiveStart
-            let isFuture = dayStart > todayStart
             let isToday = calendar.isDateInToday(date)
             let count = allDayCounts[dayStart] ?? 0
 
@@ -673,7 +696,7 @@ struct StreakDetailView: View {
                 id: "day-\(month)-\(day)",
                 count: count,
                 isToday: isToday,
-                isVisible: !isBeforeStart && !isFuture
+                isVisible: !isBeforeStart
             ))
         }
 

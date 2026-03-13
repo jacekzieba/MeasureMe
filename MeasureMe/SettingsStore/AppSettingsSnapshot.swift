@@ -32,6 +32,8 @@ struct AppSettingsSnapshot: Sendable {
         var hasCompletedOnboarding: Bool
         var onboardingSkippedHealthKit: Bool
         var onboardingSkippedReminders: Bool
+        var onboardingViewedICloudBackupOffer: Bool
+        var onboardingSkippedICloudBackup: Bool
         var onboardingChecklistShow: Bool
         var onboardingChecklistCollapsed: Bool
         var onboardingChecklistHideCompleted: Bool
@@ -81,6 +83,7 @@ struct AppSettingsSnapshot: Sendable {
         var quickAddHintDismissed: Bool
         var photosFilterTag: String
         var saveUnchangedQuickAdd: Bool
+        var hasCustomizedMetrics: Bool
     }
 
     struct Premium: Sendable {
@@ -158,6 +161,8 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.Notifications.importNotificationsEnabled: true,
         AppSettingsKeys.Onboarding.onboardingSkippedHealthKit: false,
         AppSettingsKeys.Onboarding.onboardingSkippedReminders: false,
+        AppSettingsKeys.Onboarding.onboardingViewedICloudBackupOffer: false,
+        AppSettingsKeys.Onboarding.onboardingSkippedICloudBackup: false,
         AppSettingsKeys.Onboarding.onboardingChecklistShow: true,
         AppSettingsKeys.Onboarding.onboardingChecklistCollapsed: false,
         AppSettingsKeys.Onboarding.onboardingChecklistHideCompleted: false,
@@ -179,7 +184,7 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.Health.healthIndicatorsV2Migrated: false,
         AppSettingsKeys.Indicators.showConicityOnHome: true,
         AppSettingsKeys.Analytics.appleIntelligenceEnabled: true,
-        AppSettingsKeys.ICloudBackup.isEnabled: true,
+        AppSettingsKeys.ICloudBackup.isEnabled: false,
         AppSettingsKeys.ICloudBackup.autoRestoreCompleted: false
     ]
 
@@ -213,6 +218,8 @@ struct AppSettingsSnapshot: Sendable {
                 hasCompletedOnboarding: defaults.bool(forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding),
                 onboardingSkippedHealthKit: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingSkippedHealthKit),
                 onboardingSkippedReminders: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingSkippedReminders),
+                onboardingViewedICloudBackupOffer: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingViewedICloudBackupOffer),
+                onboardingSkippedICloudBackup: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingSkippedICloudBackup),
                 onboardingChecklistShow: defaults.object(forKey: AppSettingsKeys.Onboarding.onboardingChecklistShow) as? Bool ?? true,
                 onboardingChecklistCollapsed: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistCollapsed),
                 onboardingChecklistHideCompleted: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistHideCompleted),
@@ -258,7 +265,8 @@ struct AppSettingsSnapshot: Sendable {
                 appLanguage: defaults.string(forKey: AppSettingsKeys.Experience.appLanguage) ?? "system",
                 quickAddHintDismissed: defaults.bool(forKey: AppSettingsKeys.Experience.quickAddHintDismissed),
                 photosFilterTag: defaults.string(forKey: AppSettingsKeys.Experience.photosFilterTag) ?? "",
-                saveUnchangedQuickAdd: defaults.bool(forKey: AppSettingsKeys.Experience.saveUnchangedQuickAdd)
+                saveUnchangedQuickAdd: defaults.bool(forKey: AppSettingsKeys.Experience.saveUnchangedQuickAdd),
+                hasCustomizedMetrics: defaults.bool(forKey: AppSettingsKeys.Experience.hasCustomizedMetrics)
             ),
             premium: .init(
                 premiumEntitlement: defaults.bool(forKey: AppSettingsKeys.Premium.entitlement),

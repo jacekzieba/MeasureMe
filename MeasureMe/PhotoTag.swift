@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum PhotoTag: String, Codable, CaseIterable, Identifiable {
+enum PhotoTag: String, Codable, CaseIterable, Identifiable, Sendable {
 
     // MARK: - Special
     case wholeBody

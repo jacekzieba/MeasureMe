@@ -3,6 +3,25 @@ import SwiftData
 import CryptoKit
 
 enum ICloudBackupService {
+    private struct StoredBackupManifest: Codable, Sendable {
+        let schemaVersion: Int
+        let createdAt: Date
+        let isEncrypted: Bool
+    }
+
+    private actor RestoreCoordinator {
+        private var isRestoring = false
+
+        func beginRestore() -> Bool {
+            guard !isRestoring else { return false }
+            isRestoring = true
+            return true
+        }
+
+        func endRestore() {
+            isRestoring = false
+        }
+    }
 
     // MARK: - Errors
 
@@ -25,21 +44,21 @@ enum ICloudBackupService {
             case .invalidBackupSchema:
                 return AppLocalization.string("The backup is incompatible with this app version.")
             case .encryptionError:
-                return AppLocalization.string("Could not create iCloud backup: %@.", "encryption")
+                return AppLocalization.string("Could not access iCloud backup right now.")
             case .fileSystemError(let detail):
                 if detail.contains("iCloud container unavailable") {
                     return AppLocalization.string("iCloud Drive is unavailable on this device.")
                 }
-                return AppLocalization.string("Could not create iCloud backup: %@.", detail)
+                return AppLocalization.string("Could not access iCloud backup right now.")
             }
         }
     }
 
     // MARK: - Test overrides
 
-    static var testBackupRootURLOverride: URL?
-    static var testNowOverride: (() -> Date)?
-    static var testEncryptionKeyOverride: SymmetricKey?
+    nonisolated(unsafe) static var testBackupRootURLOverride: URL?
+    nonisolated(unsafe) static var testNowOverride: (() -> Date)?
+    nonisolated(unsafe) static var testEncryptionKeyOverride: SymmetricKey?
 
     static func resetTestOverrides() {
         testBackupRootURLOverride = nil
@@ -49,11 +68,11 @@ enum ICloudBackupService {
 
     // MARK: - Constants
 
-    private static let currentSchemaVersion = 1
-    private static let maxRetainedBackups = 7
-    private static let scheduledBackupInterval: TimeInterval = 86_400 // 24 hours
-    private static let backupExtension = "measuremebackup"
-    private static let keychainTag = "com.jacek.measureme.backup-key".data(using: .utf8)!
+    private nonisolated static let currentSchemaVersion = 1
+    private nonisolated static let maxRetainedBackups = 7
+    private nonisolated static let scheduledBackupInterval: TimeInterval = 86_400 // 24 hours
+    private nonisolated static let backupExtension = "measuremebackup"
+    private static let restoreCoordinator = RestoreCoordinator()
 
     // MARK: - Public API
 
@@ -62,9 +81,8 @@ enum ICloudBackupService {
         isPremium: Bool
     ) async -> Result<ICloudBackupManifest, BackupError> {
         guard isPremium else { return .failure(.premiumRequired) }
-        guard AppSettingsStore.shared.snapshot.iCloudBackup.isEnabled else {
-            return .failure(.backupDisabled)
-        }
+        let isEnabled = await MainActor.run { AppSettingsStore.shared.snapshot.iCloudBackup.isEnabled }
+        guard isEnabled else { return .failure(.backupDisabled) }
 
         guard let rootURL = backupRootURL() else {
             return .failure(.fileSystemError("iCloud container unavailable"))
@@ -75,29 +93,12 @@ enum ICloudBackupService {
         }
 
         do {
-            let fm = FileManager.default
-            try fm.createDirectory(at: rootURL, withIntermediateDirectories: true)
-
-            let timestamp = now()
-            let packageName = "backup-\(Int(timestamp.timeIntervalSince1970)).\(backupExtension)"
-            let packageURL = rootURL.appendingPathComponent(packageName, isDirectory: true)
-            try fm.createDirectory(at: packageURL, withIntermediateDirectories: true)
-
-            let photosDir = packageURL.appendingPathComponent("photos", isDirectory: true)
-            try fm.createDirectory(at: photosDir, withIntermediateDirectories: true)
-
-            // Fetch data
             let metrics = try context.fetch(FetchDescriptor<MetricSample>())
             let goals = try context.fetch(FetchDescriptor<MetricGoal>())
             let photos = try context.fetch(FetchDescriptor<PhotoEntry>())
-
-            // Serialize and encrypt metrics
             let codableMetrics = metrics.map {
                 CodableMetricSample(kindRaw: $0.kindRaw, value: $0.value, date: $0.date)
             }
-            try writeEncrypted(codableMetrics, to: packageURL.appendingPathComponent("metrics.json"), key: key)
-
-            // Serialize and encrypt goals
             let codableGoals = goals.map {
                 CodableMetricGoal(
                     kindRaw: $0.kindRaw,
@@ -108,16 +109,10 @@ enum ICloudBackupService {
                     startDate: $0.startDate
                 )
             }
-            try writeEncrypted(codableGoals, to: packageURL.appendingPathComponent("goals.json"), key: key)
-
-            // Serialize photos index and write image files
             var codablePhotos: [CodablePhotoEntry] = []
+            var encryptedPhotoFiles: [(fileID: String, imageData: Data, thumbnailData: Data?)] = []
             for photo in photos {
                 let fileID = UUID().uuidString
-                try photo.imageData.write(to: photosDir.appendingPathComponent("\(fileID).dat"))
-                if let thumb = photo.thumbnailData {
-                    try thumb.write(to: photosDir.appendingPathComponent("\(fileID)_thumb.dat"))
-                }
                 codablePhotos.append(CodablePhotoEntry(
                     fileID: fileID,
                     date: photo.date,
@@ -127,39 +122,64 @@ enum ICloudBackupService {
                     },
                     hasThumbnail: photo.thumbnailData != nil
                 ))
+                encryptedPhotoFiles.append((fileID: fileID, imageData: photo.imageData, thumbnailData: photo.thumbnailData))
             }
-            try writeEncrypted(codablePhotos, to: packageURL.appendingPathComponent("photos_index.json"), key: key)
-
-            // Serialize settings
-            let settingsEntries = captureSettings()
-            try writeEncrypted(settingsEntries, to: packageURL.appendingPathComponent("settings.json"), key: key)
-
-            // Write manifest (plaintext)
+            let settingsEntries = await MainActor.run { captureSettings() }
             let manifest = ICloudBackupManifest(
                 schemaVersion: currentSchemaVersion,
-                createdAt: timestamp,
+                createdAt: now(),
                 metricsCount: metrics.count,
                 goalsCount: goals.count,
                 photosCount: photos.count,
                 settingsCount: settingsEntries.count,
                 isEncrypted: true
             )
+            let timestamp = manifest.createdAt
 
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            let manifestData = try encoder.encode(manifest)
-            try manifestData.write(to: packageURL.appendingPathComponent("manifest.json"))
+            let backupFileExtension = Self.backupExtension
 
-            // Retention
-            try enforceRetention(in: rootURL)
+            let manifestData = try encodeStoredManifest(
+                StoredBackupManifest(
+                    schemaVersion: manifest.schemaVersion,
+                    createdAt: manifest.createdAt,
+                    isEncrypted: manifest.isEncrypted
+                )
+            )
 
-            // Calculate backup size
-            let backupSize = directorySize(packageURL)
-            AppSettingsStore.shared.set(\.iCloudBackup.lastBackupSizeBytes, backupSize)
+            let backupSize = try await Task.detached(priority: .utility) { () -> Int64 in
+                let fm = FileManager.default
+                try fm.createDirectory(at: rootURL, withIntermediateDirectories: true)
 
-            // Update settings
-            AppSettingsStore.shared.set(\.iCloudBackup.lastSuccessTimestamp, timestamp.timeIntervalSince1970)
-            AppSettingsStore.shared.set(\.iCloudBackup.lastErrorMessage, "")
+                let packageName = "backup-\(Int(timestamp.timeIntervalSince1970)).\(backupFileExtension)"
+                let packageURL = rootURL.appendingPathComponent(packageName, isDirectory: true)
+                try fm.createDirectory(at: packageURL, withIntermediateDirectories: true)
+
+                let photosDir = packageURL.appendingPathComponent("photos", isDirectory: true)
+                try fm.createDirectory(at: photosDir, withIntermediateDirectories: true)
+
+                try Self.writeEncrypted(codableMetrics, to: packageURL.appendingPathComponent("metrics.json"), key: key)
+                try Self.writeEncrypted(codableGoals, to: packageURL.appendingPathComponent("goals.json"), key: key)
+                try Self.writeEncrypted(codablePhotos, to: packageURL.appendingPathComponent("photos_index.json"), key: key)
+                try Self.writeEncrypted(settingsEntries, to: packageURL.appendingPathComponent("settings.json"), key: key)
+
+                for file in encryptedPhotoFiles {
+                    try Self.writeEncryptedData(file.imageData, to: photosDir.appendingPathComponent("\(file.fileID).dat"), key: key)
+                    if let thumbnailData = file.thumbnailData {
+                        try Self.writeEncryptedData(thumbnailData, to: photosDir.appendingPathComponent("\(file.fileID)_thumb.dat"), key: key)
+                    }
+                }
+
+                try manifestData.write(to: packageURL.appendingPathComponent("manifest.json"))
+
+                try Self.enforceRetention(in: rootURL)
+                return Self.directorySize(packageURL)
+            }.value
+
+            await MainActor.run {
+                AppSettingsStore.shared.set(\.iCloudBackup.lastBackupSizeBytes, backupSize)
+                AppSettingsStore.shared.set(\.iCloudBackup.lastSuccessTimestamp, timestamp.timeIntervalSince1970)
+                AppSettingsStore.shared.set(\.iCloudBackup.lastErrorMessage, "")
+            }
 
             let manifestWithSize = ICloudBackupManifest(
                 schemaVersion: currentSchemaVersion,
@@ -174,8 +194,10 @@ enum ICloudBackupService {
 
             return .success(manifestWithSize)
         } catch {
-            let message = error.localizedDescription
-            AppSettingsStore.shared.set(\.iCloudBackup.lastErrorMessage, message)
+            let message = userFacingErrorMessage(for: error)
+            await MainActor.run {
+                AppSettingsStore.shared.set(\.iCloudBackup.lastErrorMessage, message)
+            }
             return .failure(.fileSystemError(message))
         }
     }
@@ -202,31 +224,49 @@ enum ICloudBackupService {
     }
 
     static func restoreLatestBackupIfNeededOnStartup(context: ModelContext) async -> Bool {
-        let settings = AppSettingsStore.shared.snapshot.iCloudBackup
-        guard !settings.autoRestoreCompleted else { return false }
+        let snapshot = await MainActor.run { AppSettingsStore.shared.snapshot }
+        let settings = snapshot.iCloudBackup
+        let onboarding = snapshot.onboarding
+        let hasPremium = snapshot.premium.premiumEntitlement
 
-        let sampleCount = (try? context.fetchCount(FetchDescriptor<MetricSample>())) ?? 0
-        guard sampleCount == 0 else { return false }
+        guard hasPremium else { return false }
+        guard onboarding.onboardingViewedICloudBackupOffer else { return false }
+        guard settings.isEnabled else { return false }
+        guard !settings.autoRestoreCompleted else { return false }
+        guard await restoreCoordinator.beginRestore() else { return false }
+
+        guard isStoreEmpty(context: context) else {
+            await restoreCoordinator.endRestore()
+            return false
+        }
 
         guard let rootURL = backupRootURL(),
               let key = encryptionKey(),
               let latestPackage = latestBackupPackage(in: rootURL) else {
+            await restoreCoordinator.endRestore()
             return false
         }
 
         let result = await restoreFromPackage(latestPackage, context: context, key: key)
+        await restoreCoordinator.endRestore()
         if case .success = result {
-            AppSettingsStore.shared.set(\.iCloudBackup.autoRestoreCompleted, true)
+            await MainActor.run {
+                AppSettingsStore.shared.set(\.iCloudBackup.autoRestoreCompleted, true)
+            }
             return true
         }
         return false
     }
 
     static func runScheduledBackupIfNeeded(context: ModelContext, isPremium: Bool) async {
-        let settings = AppSettingsStore.shared.snapshot.iCloudBackup
-        guard settings.isEnabled else { return }
+        let (isEnabled, lastSuccessTimestamp): (Bool, Double) = await MainActor.run {
+            let s = AppSettingsStore.shared.snapshot.iCloudBackup
+            return (s.isEnabled, s.lastSuccessTimestamp)
+        }
+        guard isPremium else { return }
+        guard isEnabled else { return }
 
-        let lastSuccess = Date(timeIntervalSince1970: settings.lastSuccessTimestamp)
+        let lastSuccess = Date(timeIntervalSince1970: lastSuccessTimestamp)
         let elapsed = now().timeIntervalSince(lastSuccess)
         guard elapsed >= scheduledBackupInterval else { return }
 
@@ -236,13 +276,17 @@ enum ICloudBackupService {
     /// Returns the manifest of the latest backup without performing a restore.
     /// Use this to display backup details before the user confirms a destructive restore.
     static func preflightRestore(
-        context: ModelContext,
+        context _: ModelContext,
         isPremium: Bool
     ) async -> Result<ICloudBackupManifest, BackupError> {
         guard isPremium else { return .failure(.premiumRequired) }
 
         guard let rootURL = backupRootURL() else {
             return .failure(.fileSystemError("iCloud container unavailable"))
+        }
+
+        guard let key = encryptionKey() else {
+            return .failure(.encryptionError)
         }
 
         guard let latestPackage = latestBackupPackage(in: rootURL) else {
@@ -252,12 +296,15 @@ enum ICloudBackupService {
         do {
             let manifestURL = latestPackage.appendingPathComponent("manifest.json")
             let manifestData = try Data(contentsOf: manifestURL)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            let manifest = try decoder.decode(ICloudBackupManifest.self, from: manifestData)
-            return .success(manifest)
+            let manifest = try decodeStoredManifest(from: manifestData)
+            let summary = try await loadManifestSummary(
+                packageURL: latestPackage,
+                key: key,
+                storedManifest: manifest
+            )
+            return .success(summary)
         } catch {
-            return .failure(.fileSystemError(error.localizedDescription))
+            return .failure(.fileSystemError(userFacingErrorMessage(for: error)))
         }
     }
 
@@ -269,45 +316,64 @@ enum ICloudBackupService {
         key: SymmetricKey
     ) async -> Result<Void, BackupError> {
         do {
-            // Read and validate manifest
             let manifestURL = packageURL.appendingPathComponent("manifest.json")
             let manifestData = try Data(contentsOf: manifestURL)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            let manifest = try decoder.decode(ICloudBackupManifest.self, from: manifestData)
-
+            let manifest = try decodeStoredManifest(from: manifestData)
             guard manifest.schemaVersion == currentSchemaVersion else {
                 return .failure(.invalidBackupSchema)
             }
 
-            // Decrypt all data before modifying the store
-            let metrics: [CodableMetricSample] = try readEncrypted(
-                from: packageURL.appendingPathComponent("metrics.json"), key: key
-            )
-            let goals: [CodableMetricGoal] = try readEncrypted(
-                from: packageURL.appendingPathComponent("goals.json"), key: key
-            )
-            let photoEntries: [CodablePhotoEntry] = try readEncrypted(
-                from: packageURL.appendingPathComponent("photos_index.json"), key: key
-            )
-            let settingsEntries: [SettingsEntry] = try readEncrypted(
-                from: packageURL.appendingPathComponent("settings.json"), key: key
-            )
+            let payload = try await Task.detached(priority: .utility) { () -> RestorePayload in
+                let metrics: [CodableMetricSample] = try Self.readEncrypted(
+                    from: packageURL.appendingPathComponent("metrics.json"), key: key
+                )
+                let goals: [CodableMetricGoal] = try Self.readEncrypted(
+                    from: packageURL.appendingPathComponent("goals.json"), key: key
+                )
+                let photoEntries: [CodablePhotoEntry] = try Self.readEncrypted(
+                    from: packageURL.appendingPathComponent("photos_index.json"), key: key
+                )
+                let settingsEntries: [SettingsEntry] = try Self.readEncrypted(
+                    from: packageURL.appendingPathComponent("settings.json"), key: key
+                )
 
-            let photosDir = packageURL.appendingPathComponent("photos", isDirectory: true)
+                let photosDir = packageURL.appendingPathComponent("photos", isDirectory: true)
+                let restoredPhotos = try photoEntries.map { entry in
+                    let imageURL = photosDir.appendingPathComponent("\(entry.fileID).dat")
+                    let imageData = try Self.readEncryptedData(from: imageURL, key: key)
 
-            // Delete existing data
+                    var thumbnailData: Data?
+                    if entry.hasThumbnail {
+                        let thumbURL = photosDir.appendingPathComponent("\(entry.fileID)_thumb.dat")
+                        thumbnailData = try Self.readEncryptedData(from: thumbURL, key: key)
+                    }
+
+                    return RestoredPhotoEntry(
+                        imageData: imageData,
+                        thumbnailData: thumbnailData,
+                        date: entry.date,
+                        tagRawValues: entry.tags,
+                        linkedMetrics: entry.linkedMetrics
+                    )
+                }
+
+                return RestorePayload(
+                    metrics: metrics,
+                    goals: goals,
+                    photos: restoredPhotos,
+                    settingsEntries: settingsEntries
+                )
+            }.value
+
             try deleteAll(MetricSample.self, from: context)
             try deleteAll(MetricGoal.self, from: context)
             try deleteAll(PhotoEntry.self, from: context)
 
-            // Restore metrics
-            for m in metrics {
+            for m in payload.metrics {
                 context.insert(MetricSample(kind: MetricKind(rawValue: m.kindRaw) ?? .weight, value: m.value, date: m.date))
             }
 
-            // Restore goals
-            for g in goals {
+            for g in payload.goals {
                 context.insert(MetricGoal(
                     kind: MetricKind(rawValue: g.kindRaw) ?? .weight,
                     targetValue: g.targetValue,
@@ -318,61 +384,101 @@ enum ICloudBackupService {
                 ))
             }
 
-            // Restore photos
-            for p in photoEntries {
-                let imageURL = photosDir.appendingPathComponent("\(p.fileID).dat")
-                let imageData = try Data(contentsOf: imageURL)
-
-                var thumbnailData: Data?
-                if p.hasThumbnail {
-                    let thumbURL = photosDir.appendingPathComponent("\(p.fileID)_thumb.dat")
-                    thumbnailData = try? Data(contentsOf: thumbURL)
-                }
-
-                let tags = p.tags.compactMap { PhotoTag(rawValue: $0) }
-                let linked = p.linkedMetrics.map {
-                    MetricValueSnapshot(metricRawValue: $0.metricRawValue, value: $0.value, unit: $0.unit)
-                }
-
+            for photo in payload.photos {
                 context.insert(PhotoEntry(
-                    imageData: imageData,
-                    thumbnailData: thumbnailData,
-                    date: p.date,
-                    tags: tags,
-                    linkedMetrics: linked
+                    imageData: photo.imageData,
+                    thumbnailData: photo.thumbnailData,
+                    date: photo.date,
+                    tags: photo.tagRawValues.compactMap(PhotoTag.init(rawValue:)),
+                    linkedMetrics: photo.linkedMetrics.map {
+                        MetricValueSnapshot(metricRawValue: $0.metricRawValue, value: $0.value, unit: $0.unit)
+                    }
                 ))
             }
 
             try context.save()
 
-            // Restore settings
-            restoreSettings(settingsEntries)
-
-            AppSettingsStore.shared.set(\.iCloudBackup.lastErrorMessage, "")
-
+            await MainActor.run { restoreSettings(payload.settingsEntries) }
+            await MainActor.run {
+                AppSettingsStore.shared.set(\.iCloudBackup.lastErrorMessage, "")
+            }
             return .success(())
+        } catch let error as BackupError {
+            return .failure(error)
         } catch {
-            return .failure(.fileSystemError(error.localizedDescription))
+            return .failure(.fileSystemError(userFacingErrorMessage(for: error)))
         }
     }
 
     // MARK: - Encryption
 
-    private static func writeEncrypted<T: Encodable>(_ value: T, to url: URL, key: SymmetricKey) throws {
+    private static func encodeStoredManifest(_ manifest: StoredBackupManifest) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        return try encoder.encode(manifest)
+    }
+
+    private static func decodeStoredManifest(from data: Data) throws -> StoredBackupManifest {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(StoredBackupManifest.self, from: data)
+    }
+
+    private static func loadManifestSummary(
+        packageURL: URL,
+        key: SymmetricKey,
+        storedManifest: StoredBackupManifest
+    ) async throws -> ICloudBackupManifest {
+        try await Task.detached(priority: .utility) {
+            let metrics: [CodableMetricSample] = try Self.readEncrypted(
+                from: packageURL.appendingPathComponent("metrics.json"), key: key
+            )
+            let goals: [CodableMetricGoal] = try Self.readEncrypted(
+                from: packageURL.appendingPathComponent("goals.json"), key: key
+            )
+            let photos: [CodablePhotoEntry] = try Self.readEncrypted(
+                from: packageURL.appendingPathComponent("photos_index.json"), key: key
+            )
+            let settings: [SettingsEntry] = try Self.readEncrypted(
+                from: packageURL.appendingPathComponent("settings.json"), key: key
+            )
+
+            return ICloudBackupManifest(
+                schemaVersion: storedManifest.schemaVersion,
+                createdAt: storedManifest.createdAt,
+                metricsCount: metrics.count,
+                goalsCount: goals.count,
+                photosCount: photos.count,
+                settingsCount: settings.count,
+                isEncrypted: storedManifest.isEncrypted,
+                sizeBytes: Self.directorySize(packageURL)
+            )
+        }.value
+    }
+
+    private nonisolated static func writeEncrypted<T: Encodable>(_ value: T, to url: URL, key: SymmetricKey) throws {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         let plaintext = try encoder.encode(value)
-        let sealed = try ChaChaPoly.seal(plaintext, using: key)
-        try sealed.combined.write(to: url)
+        try writeEncryptedData(plaintext, to: url, key: key)
     }
 
-    private static func readEncrypted<T: Decodable>(from url: URL, key: SymmetricKey) throws -> T {
-        let combined = try Data(contentsOf: url)
-        let sealedBox = try ChaChaPoly.SealedBox(combined: combined)
-        let plaintext = try ChaChaPoly.open(sealedBox, using: key)
+    private nonisolated static func readEncrypted<T: Decodable>(from url: URL, key: SymmetricKey) throws -> T {
+        let plaintext = try readEncryptedData(from: url, key: key)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode(T.self, from: plaintext)
+    }
+
+    private nonisolated static func writeEncryptedData(_ data: Data, to url: URL, key: SymmetricKey) throws {
+        let sealed = try ChaChaPoly.seal(data, using: key)
+        try sealed.combined.write(to: url)
+    }
+
+    private nonisolated static func readEncryptedData(from url: URL, key: SymmetricKey) throws -> Data {
+        let combined = try Data(contentsOf: url)
+        let sealedBox = try ChaChaPoly.SealedBox(combined: combined)
+        return try ChaChaPoly.open(sealedBox, using: key)
     }
 
     // MARK: - Encryption key management
@@ -420,17 +526,17 @@ enum ICloudBackupService {
 
     // MARK: - Backup discovery & retention
 
-    private static func backupRootURL() -> URL? {
+    private nonisolated static func backupRootURL() -> URL? {
         if let override = testBackupRootURLOverride { return override }
         return FileManager.default.url(forUbiquityContainerIdentifier: "iCloud.com.jacek.measureme")?
             .appendingPathComponent("Documents/Backups", isDirectory: true)
     }
 
-    private static func now() -> Date {
+    private nonisolated static func now() -> Date {
         testNowOverride?() ?? Date()
     }
 
-    private static func allBackupPackages(in rootURL: URL) -> [URL] {
+    private nonisolated static func allBackupPackages(in rootURL: URL) -> [URL] {
         let fm = FileManager.default
         guard let contents = try? fm.contentsOfDirectory(
             at: rootURL,
@@ -443,11 +549,18 @@ enum ICloudBackupService {
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
-    private static func latestBackupPackage(in rootURL: URL) -> URL? {
+    private nonisolated static func latestBackupPackage(in rootURL: URL) -> URL? {
         allBackupPackages(in: rootURL).last
     }
 
-    private static func enforceRetention(in rootURL: URL) throws {
+    private nonisolated static func isStoreEmpty(context: ModelContext) -> Bool {
+        let sampleCount = (try? context.fetchCount(FetchDescriptor<MetricSample>())) ?? 0
+        let goalCount = (try? context.fetchCount(FetchDescriptor<MetricGoal>())) ?? 0
+        let photoCount = (try? context.fetchCount(FetchDescriptor<PhotoEntry>())) ?? 0
+        return sampleCount == 0 && goalCount == 0 && photoCount == 0
+    }
+
+    private nonisolated static func enforceRetention(in rootURL: URL) throws {
         let packages = allBackupPackages(in: rootURL)
         guard packages.count > maxRetainedBackups else { return }
 
@@ -459,7 +572,7 @@ enum ICloudBackupService {
 
     // MARK: - Directory size
 
-    private static func directorySize(_ url: URL) -> Int64 {
+    private nonisolated static func directorySize(_ url: URL) -> Int64 {
         let fm = FileManager.default
         guard let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: [.fileSizeKey]) else { return 0 }
         var total: Int64 = 0
@@ -471,11 +584,148 @@ enum ICloudBackupService {
 
     // MARK: - Model deletion helper
 
-    private static func deleteAll<T: PersistentModel>(_ type: T.Type, from context: ModelContext) throws {
+    private nonisolated static func deleteAll<T: PersistentModel>(_ type: T.Type, from context: ModelContext) throws {
         try context.delete(model: type)
     }
 
     // MARK: - Settings backup
+
+    @MainActor private static func captureSettings() -> [SettingsEntry] {
+        let store = AppSettingsStore.shared
+        var entries: [SettingsEntry] = []
+
+        for key in backupSettingsKeys {
+            guard let value = store.object(forKey: key) else { continue }
+
+            if let s = value as? String {
+                entries.append(SettingsEntry(key: key, type: .string, stringValue: s, numberValue: nil, boolValue: nil, dataValue: nil))
+            } else if let b = value as? Bool {
+                entries.append(SettingsEntry(key: key, type: .bool, stringValue: nil, numberValue: nil, boolValue: b, dataValue: nil))
+            } else if let i = value as? Int {
+                entries.append(SettingsEntry(key: key, type: .int, stringValue: nil, numberValue: Double(i), boolValue: nil, dataValue: nil))
+            } else if let d = value as? Double {
+                entries.append(SettingsEntry(key: key, type: .double, stringValue: nil, numberValue: d, boolValue: nil, dataValue: nil))
+            } else if let data = value as? Data {
+                entries.append(SettingsEntry(key: key, type: .data, stringValue: nil, numberValue: nil, boolValue: nil, dataValue: data))
+            }
+        }
+
+        return entries
+    }
+
+    @MainActor private static func restoreSettings(_ entries: [SettingsEntry]) {
+        let store = AppSettingsStore.shared
+        for entry in entries {
+            switch entry.type {
+            case .string:
+                if let value = entry.stringValue {
+                    store.set(value, forKey: entry.key)
+                } else {
+                    store.removeObject(forKey: entry.key)
+                }
+            case .bool:
+                if let value = entry.boolValue {
+                    store.set(value, forKey: entry.key)
+                } else {
+                    store.removeObject(forKey: entry.key)
+                }
+            case .int:
+                if let value = entry.numberValue {
+                    store.set(Int(value), forKey: entry.key)
+                } else {
+                    store.removeObject(forKey: entry.key)
+                }
+            case .double:
+                if let value = entry.numberValue {
+                    store.set(value, forKey: entry.key)
+                } else {
+                    store.removeObject(forKey: entry.key)
+                }
+            case .data:
+                if let value = entry.dataValue {
+                    store.set(value, forKey: entry.key)
+                } else {
+                    store.removeObject(forKey: entry.key)
+                }
+            }
+        }
+        store.reload()
+    }
+
+    private static func userFacingErrorMessage(for error: Error) -> String {
+        if let backupError = error as? BackupError {
+            return backupError.localizedMessage
+        }
+
+        let nsError = error as NSError
+        switch nsError.domain {
+        case NSCocoaErrorDomain:
+            return AppLocalization.string("Could not access iCloud backup right now.")
+        case NSPOSIXErrorDomain:
+            return AppLocalization.string("Could not access iCloud backup right now.")
+        default:
+            return AppLocalization.string("Could not access iCloud backup right now.")
+        }
+    }
+
+    // MARK: - Codable transport types
+
+    private struct CodableMetricSample: Codable, Sendable {
+        let kindRaw: String
+        let value: Double
+        let date: Date
+    }
+
+    private struct CodableMetricGoal: Codable, Sendable {
+        let kindRaw: String
+        let targetValue: Double
+        let directionRaw: String
+        let createdDate: Date
+        let startValue: Double?
+        let startDate: Date?
+    }
+
+    private struct CodablePhotoEntry: Codable, Sendable {
+        let fileID: String
+        let date: Date
+        let tags: [String]
+        let linkedMetrics: [CodableLinkedMetric]
+        let hasThumbnail: Bool
+    }
+
+    private struct CodableLinkedMetric: Codable, Sendable {
+        let metricRawValue: String
+        let value: Double
+        let unit: String
+    }
+
+    private struct RestoredPhotoEntry: Sendable {
+        let imageData: Data
+        let thumbnailData: Data?
+        let date: Date
+        let tagRawValues: [String]
+        let linkedMetrics: [CodableLinkedMetric]
+    }
+
+    private struct RestorePayload: Sendable {
+        let metrics: [CodableMetricSample]
+        let goals: [CodableMetricGoal]
+        let photos: [RestoredPhotoEntry]
+        let settingsEntries: [SettingsEntry]
+    }
+
+    struct SettingsEntry: Codable, Sendable {
+        let key: String
+        let type: ValueType
+        let stringValue: String?
+        let numberValue: Double?
+        let boolValue: Bool?
+        let dataValue: Data?
+
+        enum ValueType: String, Codable, Sendable {
+            case string, int, double, bool, data
+        }
+    }
 
     private static let backupSettingsKeys: [String] = [
         AppSettingsKeys.Profile.userName,
@@ -526,89 +776,4 @@ enum ICloudBackupService {
         AppSettingsKeys.Analytics.appleIntelligenceEnabled,
         AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled,
     ] + AppSettingsKeys.Metrics.allEnabledKeys
-
-    private static func captureSettings() -> [SettingsEntry] {
-        let store = AppSettingsStore.shared
-        var entries: [SettingsEntry] = []
-
-        for key in backupSettingsKeys {
-            guard let value = store.object(forKey: key) else { continue }
-
-            if let s = value as? String {
-                entries.append(SettingsEntry(key: key, type: .string, stringValue: s, numberValue: nil, boolValue: nil, dataValue: nil))
-            } else if let b = value as? Bool {
-                entries.append(SettingsEntry(key: key, type: .bool, stringValue: nil, numberValue: nil, boolValue: b, dataValue: nil))
-            } else if let i = value as? Int {
-                entries.append(SettingsEntry(key: key, type: .int, stringValue: nil, numberValue: Double(i), boolValue: nil, dataValue: nil))
-            } else if let d = value as? Double {
-                entries.append(SettingsEntry(key: key, type: .double, stringValue: nil, numberValue: d, boolValue: nil, dataValue: nil))
-            } else if let data = value as? Data {
-                entries.append(SettingsEntry(key: key, type: .data, stringValue: nil, numberValue: nil, boolValue: nil, dataValue: data))
-            }
-        }
-
-        return entries
-    }
-
-    private static func restoreSettings(_ entries: [SettingsEntry]) {
-        let store = AppSettingsStore.shared
-        for entry in entries {
-            switch entry.type {
-            case .string:
-                store.set(entry.stringValue, forKey: entry.key)
-            case .bool:
-                store.set(entry.boolValue, forKey: entry.key)
-            case .int:
-                if let n = entry.numberValue { store.set(Int(n), forKey: entry.key) }
-            case .double:
-                store.set(entry.numberValue, forKey: entry.key)
-            case .data:
-                store.set(entry.dataValue, forKey: entry.key)
-            }
-        }
-    }
-
-    // MARK: - Codable transport types
-
-    private struct CodableMetricSample: Codable {
-        let kindRaw: String
-        let value: Double
-        let date: Date
-    }
-
-    private struct CodableMetricGoal: Codable {
-        let kindRaw: String
-        let targetValue: Double
-        let directionRaw: String
-        let createdDate: Date
-        let startValue: Double?
-        let startDate: Date?
-    }
-
-    private struct CodablePhotoEntry: Codable {
-        let fileID: String
-        let date: Date
-        let tags: [String]
-        let linkedMetrics: [CodableLinkedMetric]
-        let hasThumbnail: Bool
-    }
-
-    private struct CodableLinkedMetric: Codable {
-        let metricRawValue: String
-        let value: Double
-        let unit: String
-    }
-
-    struct SettingsEntry: Codable {
-        let key: String
-        let type: ValueType
-        let stringValue: String?
-        let numberValue: Double?
-        let boolValue: Bool?
-        let dataValue: Data?
-
-        enum ValueType: String, Codable {
-            case string, int, double, bool, data
-        }
-    }
 }

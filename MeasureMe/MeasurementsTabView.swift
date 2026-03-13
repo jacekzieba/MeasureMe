@@ -15,6 +15,7 @@ struct MeasurementsTabView: View {
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.experience.quickAddHintDismissed) private var quickAddHintDismissed: Bool = false
+    @AppSetting(\.experience.hasCustomizedMetrics) private var hasCustomizedMetrics: Bool = false
     @State private var scrollOffset: CGFloat = 0
     @State private var refreshToken = UUID()
     @Query(sort: [SortDescriptor(\MetricSample.date, order: .reverse)])
@@ -208,6 +209,46 @@ struct MeasurementsTabView: View {
                                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
                             }
 
+                            // MARK: - Metrics discovery banner
+                            if !hasCustomizedMetrics {
+                                AppGlassCard(
+                                    depth: .base,
+                                    cornerRadius: AppRadius.md,
+                                    tint: measurementsTheme.softTint,
+                                    contentPadding: AppSpacing.sm
+                                ) {
+                                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                        HStack(spacing: AppSpacing.xs) {
+                                            Image(systemName: "sparkles")
+                                                .font(.body)
+                                                .foregroundStyle(measurementsTheme.accent)
+
+                                            Text(AppLocalization.string("measurements.discovery.hint", metricsStore.activeKinds.count, metricsStore.allKindsInOrder.count))
+                                                .font(AppTypography.caption)
+                                                .foregroundStyle(AppColorRoles.textSecondary)
+                                        }
+
+                                        Button {
+                                            Haptics.selection()
+                                            settingsOpenTrackedMeasurements = true
+                                            router.selectedTab = .settings
+                                        } label: {
+                                            HStack(spacing: 6) {
+                                                Text(AppLocalization.string("measurements.discovery.cta"))
+                                                Image(systemName: "chevron.right")
+                                                    .font(.caption.weight(.semibold))
+                                            }
+                                            .font(AppTypography.captionEmphasis)
+                                            .foregroundStyle(measurementsTheme.accent)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(.horizontal, AppSpacing.md)
+                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                                .accessibilityIdentifier("measurements.discovery.banner")
+                            }
+
                             ForEach(metricsStore.activeKinds, id: \.self) { kind in
                                 MetricChartTile(
                                     kind: kind,
@@ -301,7 +342,7 @@ struct MeasurementsTabView: View {
             contentPadding: AppSpacing.sm
         ) {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text(AppLocalization.string("Tracked metric visibility can be changed in Settings."))
+                Text(AppLocalization.string("measurements.footer.dynamic", metricsStore.activeKinds.count, metricsStore.allKindsInOrder.count))
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColorRoles.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -879,7 +920,9 @@ struct MetricChartTile: View {
             timeframeLabel: AppLocalization.string("Last 30 days"),
             sampleCount: recentSamples.count,
             delta7DaysText: recentSamples.deltaText(days: 7, kind: kind, unitsSystem: unitsSystem),
+            delta14DaysText: nil,
             delta30DaysText: recentSamples.deltaText(days: 30, kind: kind, unitsSystem: unitsSystem),
+            delta90DaysText: nil,
             goalStatusText: goalStatusText,
             goalDirectionText: currentGoal?.direction.rawValue,
             defaultFavorableDirectionText: kind.defaultFavorableDirectionWhenNoGoal.rawValue

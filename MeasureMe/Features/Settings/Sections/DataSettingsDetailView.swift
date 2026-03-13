@@ -4,12 +4,14 @@ struct DataSettingsDetailView: View {
     @AppSetting(\.analytics.analyticsEnabled) private var analyticsEnabled: Bool = true
     @AppSetting(\.iCloudBackup.lastBackupSizeBytes) private var lastBackupSizeBytes: Int64 = 0
     @Binding var iCloudBackupEnabled: Bool
+    let isPremium: Bool
     let iCloudBackupLastSuccessText: String
     let iCloudBackupLastErrorText: String?
     let onExport: () -> Void
     let onImport: () -> Void
     let onBackupNow: () -> Void
     let onRestoreLatestBackup: () -> Void
+    let onUnlockICloudBackup: () -> Void
     let onSeedDummyData: () -> Void
     let onDeleteAll: () -> Void
 
@@ -47,6 +49,10 @@ struct DataSettingsDetailView: View {
                             Text(AppLocalization.string("Automatic iCloud backup"))
                                 .font(AppTypography.body)
                                 .foregroundStyle(AppColorRoles.textPrimary)
+                            Text(AppLocalization.string("Encrypted iCloud backup for measurements and photos. Premium only."))
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColorRoles.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
                             Text(iCloudBackupLastSuccessText)
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppColorRoles.textSecondary)
@@ -56,7 +62,12 @@ struct DataSettingsDetailView: View {
                                     .font(AppTypography.caption)
                                     .foregroundStyle(AppColorRoles.textSecondary)
                             }
-                            if let iCloudBackupLastErrorText, !iCloudBackupLastErrorText.isEmpty {
+                            if !isPremium {
+                                Text(AppLocalization.string("Upgrade to Premium to enable encrypted iCloud backup and restore."))
+                                    .font(AppTypography.captionEmphasis)
+                                    .foregroundStyle(theme.accent)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            } else if let iCloudBackupLastErrorText, !iCloudBackupLastErrorText.isEmpty {
                                 Text(iCloudBackupLastErrorText)
                                     .font(AppTypography.caption)
                                     .foregroundStyle(.red)
@@ -74,7 +85,10 @@ struct DataSettingsDetailView: View {
                         Toggle("", isOn: $iCloudBackupEnabled)
                             .labelsHidden()
                             .frame(width: 52, alignment: .trailing)
-                            .disabled(!isICloudAvailable)
+                            .disabled(!isICloudAvailable || !isPremium)
+                            .accessibilityLabel(AppLocalization.string("Automatic iCloud backup"))
+                            .accessibilityValue(iCloudBackupEnabled ? AppLocalization.string("Enabled") : AppLocalization.string("Disabled"))
+                            .accessibilityHint(AppLocalization.string("Turns encrypted iCloud backup on or off for your measurements and photos."))
                     }
                     .tint(theme.accent)
                     .onChange(of: iCloudBackupEnabled) { _, _ in
@@ -83,13 +97,27 @@ struct DataSettingsDetailView: View {
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     .accessibilityIdentifier("settings.data.icloud.toggle")
 
+                    if !isPremium {
+                        SettingsRowDivider()
+
+                        Button(action: onUnlockICloudBackup) {
+                            rowLabel(
+                                systemName: "crown",
+                                title: AppLocalization.string("Unlock in Premium"),
+                                foreground: theme.accent
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("settings.data.icloud.unlockPremium")
+                    }
+
                     SettingsRowDivider()
 
                     Button(action: onBackupNow) {
                         rowLabel(systemName: "arrow.clockwise.icloud", title: AppLocalization.string("Back up now"))
                     }
                     .buttonStyle(.plain)
-                    .disabled(!isICloudAvailable)
+                    .disabled(isPremium && !isICloudAvailable)
                     .accessibilityIdentifier("settings.data.icloud.backupNow")
 
                     SettingsRowDivider()
@@ -102,7 +130,7 @@ struct DataSettingsDetailView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .disabled(!isICloudAvailable)
+                    .disabled(isPremium && !isICloudAvailable)
                     .accessibilityIdentifier("settings.data.icloud.restoreLatest")
 
                     SettingsRowDivider()
@@ -125,6 +153,9 @@ struct DataSettingsDetailView: View {
                         Toggle("", isOn: $analyticsEnabled)
                             .labelsHidden()
                             .frame(width: 52, alignment: .trailing)
+                            .accessibilityLabel(AppLocalization.string("Share anonymous analytics"))
+                            .accessibilityValue(analyticsEnabled ? AppLocalization.string("Enabled") : AppLocalization.string("Disabled"))
+                            .accessibilityHint(AppLocalization.string("Turns anonymous product analytics on or off."))
                     }
                     .tint(theme.accent)
                     .onChange(of: analyticsEnabled) { _, _ in

@@ -6,11 +6,13 @@ struct RootView: View {
     @StateObject private var premiumStore: PremiumStore
     @StateObject private var metricsStore: ActiveMetricsStore
     @StateObject private var pendingPhotoSaveStore = PendingPhotoSaveStore()
+    @StateObject private var onboardingUITestBridge = OnboardingUITestBridge.shared
     @Environment(\.modelContext) private var modelContext
     @AppSetting(\.onboarding.hasCompletedOnboarding) private var hasCompletedOnboarding: Bool = false
     private let autoCheckPaywallPrompt: Bool
     private let isAuditCaptureEnabled = AuditConfig.current.isEnabled
     private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+    private let isOnboardingUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestOnboardingMode")
     @State private var didConfigurePendingStore = false
     @State private var didScheduleDeferredStartupWork = false
 
@@ -44,6 +46,42 @@ struct RootView: View {
                     .zIndex(2)
             }
 
+            if isOnboardingUITestMode, !hasCompletedOnboarding {
+                VStack(alignment: .leading, spacing: 8) {
+                    Button("UITest Next") {
+                        NotificationCenter.default.post(name: .onboardingUITestNext, object: nil)
+                    }
+                    .accessibilityIdentifier("root.onboarding.test.next")
+
+                    Button("UITest Back") {
+                        NotificationCenter.default.post(name: .onboardingUITestBack, object: nil)
+                    }
+                    .accessibilityIdentifier("root.onboarding.test.back")
+
+                    Button("UITest Skip") {
+                        NotificationCenter.default.post(name: .onboardingUITestSkip, object: nil)
+                    }
+                    .accessibilityIdentifier("root.onboarding.test.skip")
+
+                    Text("step:\(onboardingUITestBridge.currentStepIndex)")
+                        .accessibilityIdentifier("root.onboarding.test.step")
+                    Text("icloudViewed:\(onboardingUITestBridge.iCloudViewed)")
+                        .accessibilityIdentifier("root.onboarding.test.icloudViewed")
+                    Text("icloudSkipped:\(onboardingUITestBridge.iCloudSkipped)")
+                        .accessibilityIdentifier("root.onboarding.test.icloudSkipped")
+                    Text("icloudEnabled:\(onboardingUITestBridge.iCloudEnabled)")
+                        .accessibilityIdentifier("root.onboarding.test.icloudEnabled")
+                }
+                .font(.system(size: 10, weight: .semibold))
+                .padding(8)
+                .background(Color.black.opacity(0.18))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.top, 12)
+                .padding(.leading, 8)
+                .zIndex(3)
+            }
+
             if ProcessInfo.processInfo.arguments.contains("-uiTestMode"),
                premiumStore.showTrialReminderOptInPrompt {
                 VStack(spacing: 0) {
@@ -73,8 +111,17 @@ struct RootView: View {
                     .accessibilityIdentifier("premium.trial.reminder.prompt.confirm")
                 }
             }
+
+            if isUITestMode {
+                Text("ready")
+                    .font(.system(size: 1))
+                    .foregroundStyle(.clear)
+                    .frame(width: 1, height: 1)
+                    .clipped()
+                    .accessibilityIdentifier("app.root.ready")
+            }
         }
-        .accessibilityIdentifier(isUITestMode ? "app.root.ready" : "app.root")
+        .accessibilityIdentifier("app.root")
         .onAppear {
             Task { @MainActor in
                 configurePendingStoreIfNeeded()

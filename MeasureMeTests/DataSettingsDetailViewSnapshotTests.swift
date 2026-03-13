@@ -43,12 +43,14 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         NavigationStack {
             DataSettingsDetailView(
                 iCloudBackupEnabled: .constant(false),
+                isPremium: true,
                 iCloudBackupLastSuccessText: "No iCloud backup yet.",
                 iCloudBackupLastErrorText: nil,
                 onExport: {},
                 onImport: {},
                 onBackupNow: {},
                 onRestoreLatestBackup: {},
+                onUnlockICloudBackup: {},
                 onSeedDummyData: {},
                 onDeleteAll: {}
             )

@@ -1,4 +1,5 @@
-/* Custom keys */
+/* Localizable.strings */
+
 "notification.log.title" = "%@Zapisz pomiary";
 "notification.log.body" = "Szybki wpis teraz utrzymuje Twoje postępy na właściwej ścieżce.";
 "notification.smart.title" = "%@Czas na szybki wpis";
@@ -42,7 +43,6 @@
 "Helps improve app quality and UX. No health values or personal data are sent." = "Pomaga ulepszać jakość aplikacji i UX. Nie wysyłamy wartości zdrowotnych ani danych osobowych.";
 "When enabled, recent app logs may be attached to reports you share." = "Po włączeniu do udostępnianych raportów mogą być dołączane ostatnie logi aplikacji.";
 "Could not start the app because local storage failed to initialize. Please retry. Error: %@" = "Nie udało się uruchomić aplikacji, ponieważ nie można zainicjalizować pamięci lokalnej. Spróbuj ponownie. Błąd: %@";
-
 "photos.active.filters.count" = "%d aktywnych filtrów";
 "photos.active.filters.count.one" = "%d aktywny filtr";
 "photos.active.filters.count.few" = "%d aktywne filtry";
@@ -69,7 +69,6 @@
 "compare.days.apart.many" = "%d dni odstępu";
 "trend.vs.relative" = "względem %@";
 "trend.relative.30d" = "30 dni temu";
-
 "accessibility.opens.details" = "Otwiera szczegóły: %@";
 "accessibility.metric.summary.trend" = "%@, %@, %@ względem %@";
 "accessibility.metric.summary.value" = "%@, %@";
@@ -98,7 +97,6 @@
 "quickadd.first.value.hint" = "Wpisz swoją pierwszą wartość";
 "metric.add.title" = "Dodaj %@";
 "metric.edit.title" = "Edytuj %@";
-
 "home.greeting.morning" = "Dzień dobry";
 "home.greeting.morning.named" = "Dzień dobry, %@";
 "home.greeting.afternoon" = "Dzień dobry";
@@ -251,13 +249,19 @@
 "Waist" = "Talia";
 "You're trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Trend stabilnie spada. Utrzymaj 3 treningi siłowe i 8k+ kroków w tym tygodniu.";
 "This week" = "Ten tydzień";
-
 "progress.now" = "Teraz %@";
 "progress.goal" = "Cel %@";
-
 "accessibility.open.measurements" = "Otwórz wszystkie pomiary";
 "accessibility.opens.measurements" = "Otwiera zakładkę Pomiary";
 "accessibility.open.photos" = "Otwórz wszystkie zdjęcia";
+"Could not access iCloud backup right now." = "Nie można teraz uzyskać dostępu do kopii zapasowej iCloud.";
+"Encrypted backup for your measurements and photos. Premium only." = "Zaszyfrowana kopia zapasowa pomiarów i zdjęć. Tylko w Premium.";
+"Why: optional iCloud backup keeps a protected copy when you choose Premium." = "Dlaczego: opcjonalna kopia zapasowa iCloud zachowuje chronioną kopię, gdy wybierzesz Premium.";
+"Enable backup" = "Włącz backup";
+"Unlock in Premium" = "Odblokuj w Premium";
+"Upgrade to Premium to enable encrypted iCloud backup and restore." = "Przejdź na Premium, aby włączyć zaszyfrowany backup iCloud i przywracanie.";
+"Enable automatic iCloud backup first." = "Najpierw włącz automatyczny backup iCloud.";
+"Your data stays on this device by default. Encrypted iCloud backup is optional and available with Premium if you enable it." = "Domyślnie Twoje dane pozostają na tym urządzeniu. Zaszyfrowany backup iCloud jest opcjonalny i dostępny w Premium, jeśli go włączysz.";
 "accessibility.opens.photos" = "Otwiera zakładkę Zdjęcia";
 "accessibility.open.photo.details" = "Otwórz szczegóły zdjęcia";
 "accessibility.compare.mode.side" = "Przełącz na tryb obok siebie";
@@ -294,7 +298,6 @@
 "Start premium photo comparison from Home" = "Uruchom porównywanie zdjęć dzięki kontu Premium";
 "Guide the user back to setup tasks" = "Skieruj użytkownika z powrotem do zadań konfiguracji";
 "Choose what the highlighted Home action should do." = "Wybierz, co ma robić wyróżniona akcja na Stronie głównej.";
-
 "age.years.old" = "%d lat";
 "age.years.old.one" = "%d rok";
 "age.years.old.few" = "%d lata";
@@ -325,7 +328,6 @@
 "onboarding.step.count" = "Krok %d z %d";
 "healthkit.import.failed" = "Nie udało się zaimportować: %@";
 "reference.ranges.gender" = "Zakresy referencyjne (%@)";
-
 "metric.weight" = "Waga";
 "metric.bodyfat" = "Tkanka tłuszczowa";
 "metric.height" = "Wzrost";
@@ -344,8 +346,6 @@
 "metric.rightthigh" = "Prawe udo";
 "metric.leftcalf" = "Lewa łydka";
 "metric.rightcalf" = "Prawa łydka";
-
-/* Category labels */
 "Excellence" = "Świetnie";
 "Keep steady" = "Trzymaj tempo";
 "Worth attention" = "Warte uwagi";
@@ -377,8 +377,6 @@
 "Child/Adolescent" = "Dziecko/Nastolatek";
 "Adult" = "Dorosły";
 "Senior" = "Senior";
-
-/* UI strings */
 "About" = "O aplikacji";
 "About BMI" = "O BMI";
 "About Health Metrics" = "O metrykach zdrowia";
@@ -660,8 +658,6 @@
 "System" = "Systemowy";
 "English" = "Angielski";
 "Polish" = "Polski";
-
-/* Long-form health texts */
 "A Body Shape Index (ABSI) measures the health risk associated with your abdominal fat distribution, independent of your total body weight. It focuses on health outcomes rather than appearance." = "Wskaźnik ABSI mierzy ryzyko zdrowotne związane z rozkładem tłuszczu w okolicy brzucha, niezależnie od całkowitej masy ciała. Skupia się na zdrowiu, a nie na wyglądzie.";
 "ABSI is a research-based indicator and should be considered alongside other health metrics. It is not a medical diagnosis. Consult with healthcare professionals for personalized health assessments and recommendations." = "ABSI jest wskaźnikiem opartym na badaniach i powinien być rozpatrywany razem z innymi metrykami zdrowotnymi. Nie stanowi diagnozy medycznej. Skonsultuj się ze specjalistą w celu indywidualnej oceny i zaleceń.";
 "Body fat percentage is the proportion of your body weight that is fat tissue. It provides a more accurate picture of your body composition than weight or BMI alone." = "Procent tkanki tłuszczowej to udział tłuszczu w masie ciała. Daje dokładniejszy obraz składu ciała niż sama waga lub BMI.";
@@ -686,13 +682,10 @@
 "Body Shape Risk" = "Ryzyko wg ABSI";
 "Central Fat Risk" = "Otyłość brzuszna";
 "Why it matters" = "Dlaczego to ważne";
-
-/* FAQ */
 "FAQ" = "FAQ";
 "Getting started" = "Na start";
 "Data and privacy" = "Dane i prywatność";
 "Usage" = "Użytkowanie";
-
 "How do I take measurements?" = "Jak wykonywać pomiary?";
 "Measure at a consistent time of day, in similar conditions, and record trends rather than single readings." = "Mierz o stałej porze dnia, w podobnych warunkach, i zapisuj trendy zamiast pojedynczych odczytów.";
 "Why are circumference measurements important?" = "Dlaczego pomiary obwodów są ważne?";
@@ -707,7 +700,6 @@
 "Open a metric, tap Goal, and set a target value and direction (increase or decrease)." = "Otwórz metrykę, stuknij Cel i ustaw wartość docelową oraz kierunek (zwiększanie lub zmniejszanie).";
 "How is progress calculated?" = "Jak liczony jest progres?";
 "Progress starts at the value you had when the goal was created and moves toward the target. It reaches 100% when the goal is met." = "Progres startuje od wartości z chwili utworzenia celu i przesuwa się w stronę celu. Osiąga 100%, gdy cel zostanie spełniony.";
-
 "What happens to my data?" = "Co się dzieje z moimi danymi?";
 "Your data is stored on device and encrypted. MeasureMe works offline by default." = "Twoje dane są przechowywane na urządzeniu i szyfrowane. MeasureMe działa domyślnie offline.";
 "Do I have to connect HealthKit?" = "Czy muszę połączyć aplikację Zdrowie?";
@@ -718,7 +710,6 @@
 "Your data stays on device. If you choose to export or share, you control where it goes." = "Twoje dane pozostają na urządzeniu. Jeśli zdecydujesz się je wyeksportować lub udostępnić, sam kontrolujesz gdzie trafiają.";
 "Is any data processed on the internet?" = "Czy dane są przetwarzane w internecie?";
 "No. Measurements and photos are not sent to external servers." = "Nie. Pomiary i zdjęcia nie są wysyłane na zewnętrzne serwery.";
-
 "Can I export my data or photos?" = "Czy mogę wyeksportować dane albo zdjęcia?";
 "Yes. Use Export data in Settings. Photos can be saved from the photo detail view." = "Tak. Użyj Eksportuj dane w Ustawieniach. Zdjęcia można zapisać z widoku szczegółów zdjęcia.";
 "Do I need to measure every day?" = "Czy muszę mierzyć się codziennie?";
@@ -779,13 +770,9 @@
 "Significantly above range" = "Znacznie powyżej zakresu";
 "WHR Ranges (Male)" = "Zakresy WHR (mężczyźni)";
 "WHR Ranges (Female)" = "Zakresy WHR (kobiety)";
-
 "The waist-to-height ratio (WHtR) is a measure of body fat distribution. It is calculated by dividing waist circumference by height.\n\nResearch suggests that WHtR is a good predictor of cardiovascular disease risk and metabolic syndrome.\n\nA WHtR of 0.5 or less is considered healthy for most adults, meaning your waist circumference should be less than half your height." = "Stosunek talii do wzrostu (WHtR) to miara rozkładu tkanki tłuszczowej. Oblicza się go, dzieląc obwód talii przez wzrost.\n\nBadania sugerują, że WHtR jest dobrym wskaźnikiem ryzyka chorób sercowo‑naczyniowych i zespołu metabolicznego.\n\nWHtR równe 0,5 lub mniej uznaje się za zdrowe u większości dorosłych, co oznacza, że obwód talii powinien być mniejszy niż połowa wzrostu.";
-
 "The waist-to-hip ratio (WHR) is a measure of body fat distribution. It is calculated by dividing waist circumference by hip circumference.\n\nWHR is used as a measurement of obesity, which in turn is a possible indicator of health risk. A higher WHR suggests more abdominal fat, which is associated with increased health risks.\n\nThe thresholds differ between males and females due to different body compositions." = "Stosunek talii do bioder (WHR) to miara rozkładu tkanki tłuszczowej. Oblicza się go, dzieląc obwód talii przez obwód bioder.\n\nWHR jest używany jako miara otyłości, a tym samym możliwy wskaźnik ryzyka zdrowotnego. Wyższy WHR sugeruje więcej tłuszczu brzusznego, co wiąże się ze zwiększonym ryzykiem zdrowotnym.\n\nProgi różnią się dla kobiet i mężczyzn ze względu na różnice w budowie ciała.";
-
 "Body Mass Index (BMI) is a measure of body fat based on height and weight. It is calculated by dividing weight in kilograms by height in meters squared.\n\nBMI is a useful screening tool for identifying weight categories that may lead to health problems, but it's not diagnostic of body fatness or health.\n\nBMI interpretation varies by age:\n• Children & adolescents (< 18): Simplified ranges are used (ideally percentile charts)\n• Adults (18-65): Standard WHO ranges apply\n• Seniors (> 65): Slightly higher ranges may be healthier\n\nBMI does not distinguish between muscle and fat mass, so athletes or people with high muscle mass may have a high BMI despite having low body fat." = "Wskaźnik masy ciała (BMI) to miara tkanki tłuszczowej na podstawie wzrostu i wagi. Oblicza się go, dzieląc wagę w kilogramach przez wzrost w metrach do kwadratu.\n\nBMI jest przydatnym narzędziem przesiewowym do identyfikacji kategorii masy ciała mogących prowadzić do problemów zdrowotnych, ale nie jest diagnozą składu ciała ani zdrowia.\n\nInterpretacja BMI zależy od wieku:\n• Dzieci i młodzież (< 18): stosuje się uproszczone zakresy (najlepiej siatki centylowe)\n• Dorośli (18–65): obowiązują standardowe zakresy WHO\n• Seniorzy (> 65): nieco wyższe zakresy mogą być zdrowsze\n\nBMI nie rozróżnia masy mięśniowej i tłuszczowej, dlatego sportowcy lub osoby z dużą masą mięśni mogą mieć wysokie BMI mimo niskiego poziomu tłuszczu.";
-
 "Your waist-to-height ratio is within the healthy range." = "Twój stosunek talii do wzrostu mieści się w zdrowym zakresie.";
 "Your waist-to-height ratio indicates increased health risks." = "Twój stosunek talii do wzrostu wskazuje na podwyższone ryzyko zdrowotne.";
 "Your waist-to-height ratio indicates high health risks." = "Twój stosunek talii do wzrostu wskazuje na wysokie ryzyko zdrowotne.";
@@ -803,7 +790,6 @@
 "Your central fat distribution indicates low health risk." = "Rozkład tłuszczu centralnego wskazuje na niskie ryzyko zdrowotne.";
 "Your central fat distribution indicates moderate health risk." = "Rozkład tłuszczu centralnego wskazuje na umiarkowane ryzyko zdrowotne.";
 "Your central fat distribution indicates high health risk." = "Rozkład tłuszczu centralnego wskazuje na wysokie ryzyko zdrowotne.";
-
 "Central fat focus" = "Tłuszcz centralny";
 "Beyond weight" = "Poza wagą";
 "Guides action" = "Wskazuje kierunek";
@@ -813,7 +799,6 @@
 "Body composition" = "Skład ciała";
 "Metabolic health" = "Zdrowie metaboliczne";
 "Tracking change" = "Śledzenie zmian";
-
 "ABSI highlights abdominal fat, which is linked to cardiometabolic risk." = "ABSI podkreśla tłuszcz brzuszny, który wiąże się z ryzykiem sercowo‑metabolicznym.";
 "It adds context beyond scale weight or BMI alone." = "Dodaje kontekst poza samą wagę lub BMI.";
 "Waist changes can shift risk category over time." = "Zmiany w talii mogą z czasem zmieniać kategorię ryzyka.";
@@ -831,7 +816,6 @@
 "Actionable" = "Do działania";
 "Composition focus" = "Skupienie na składzie";
 "Progress clarity" = "Jasność postępu";
-
 "BMI gives a fast, broad view of weight status over time." = "BMI daje szybki, szeroki obraz statusu masy ciała w czasie.";
 "Large shifts can correlate with cardiometabolic risk." = "Duże zmiany mogą korelować z ryzykiem sercowo‑metabolicznym.";
 "Pair it with waist and body fat for a fuller picture." = "Łącz z talią i procentem tłuszczu dla pełniejszego obrazu.";
@@ -846,8 +830,6 @@
 "health.whtr.description" = "Stosunek talii do wzrostu (WHtR) to miara rozkładu tkanki tłuszczowej. Oblicza się go, dzieląc obwód talii przez wzrost.\n\nBadania sugerują, że WHtR jest dobrym wskaźnikiem ryzyka chorób sercowo‑naczyniowych i zespołu metabolicznego.\n\nWHtR równe 0,5 lub mniej uznaje się za zdrowe u większości dorosłych, co oznacza, że obwód talii powinien być mniejszy niż połowa wzrostu.";
 "health.whr.description" = "Stosunek talii do bioder (WHR) to miara rozkładu tkanki tłuszczowej. Oblicza się go, dzieląc obwód talii przez obwód bioder.\n\nWHR jest używany jako miara otyłości, a tym samym możliwy wskaźnik ryzyka zdrowotnego. Wyższy WHR sugeruje więcej tłuszczu brzusznego, co wiąże się ze zwiększonym ryzykiem zdrowotnym.\n\nProgi różnią się dla kobiet i mężczyzn ze względu na różnice w budowie ciała.";
 "health.bmi.description" = "Wskaźnik masy ciała (BMI) to miara tkanki tłuszczowej na podstawie wzrostu i wagi. Oblicza się go, dzieląc wagę w kilogramach przez wzrost w metrach do kwadratu.\n\nBMI jest przydatnym narzędziem przesiewowym do identyfikacji kategorii masy ciała mogących prowadzić do problemów zdrowotnych, ale nie jest diagnozą składu ciała ani zdrowia.\n\nInterpretacja BMI zależy od wieku:\n• Dzieci i młodzież (< 18): stosuje się uproszczone zakresy (najlepiej siatki centylowe)\n• Dorośli (18–65): obowiązują standardowe zakresy WHO\n• Seniorzy (> 65): nieco wyższe zakresy mogą być zdrowsze\n\nBMI nie rozróżnia masy mięśniowej i tłuszczowej, dlatego sportowcy lub osoby z dużą masą mięśni mogą mieć wysokie BMI mimo niskiego poziomu tłuszczu.";
-
-/* Onboarding */
 "MeasureMe" = "MeasureMe";
 "Measurements Matter" = "Pomiary mają znaczenie";
 "Welcome" = "Witamy";
@@ -934,27 +916,18 @@
 "Notifications enabled." = "Powiadomienia włączone.";
 "Notifications denied. You can enable them later in Settings." = "Powiadomienia odrzucone. Możesz je włączyć później w Ustawieniach.";
 "Health sync enabled, but we couldn’t import data." = "Synchronizacja z aplikacją Zdrowie jest włączona, ale nie udało się zaimportować danych.";
-
-
-/* UI Titles */
 "Open iOS Settings" = "Otwórz Ustawienia iOS";
 "Indicators" = "Wskaźniki";
 "Health indicators" = "Wskaźniki zdrowia";
 "Choose health and physique indicators" = "Wybierz wskaźniki zdrowia i sylwetki";
-
-/* Apple Intelligence availability */
 "Apple Intelligence isn’t available right now." = "Analizy AI są teraz niedostępne.";
 "Learn more in FAQ" = "Dowiedz się więcej w FAQ";
-
-/* Measurement instructions */
 "measure.instructions.weight" = "Waż się o tej samej porze dnia, najlepiej rano. Używaj tej samej wagi na twardym, równym podłożu. Zapisz wynik po skorzystaniu z toalety i przed jedzeniem lub piciem.";
 "measure.instructions.waist" = "Stań rozluźniony/a i mierz na wysokości pępka po normalnym wydechu. Taśma ma przylegać, ale nie uciskać i być równoległa do podłogi. Mierz zawsze w tym samym miejscu.";
 "measure.instructions.bodyFat" = "Używaj tego samego urządzenia i podobnych warunków. Mierz się, gdy jesteś nawodniony/a i o stałej porze dnia. Unikaj pomiaru tuż po treningu lub dużym posiłku.";
 "measure.instructions.leanBodyMass" = "Korzystaj z tego samego urządzenia i podobnych warunków. Mierz o tej samej porze i przy podobnym nawodnieniu. Śledź trendy, a nie pojedyncze odczyty.";
 "measure.instructions.height" = "Mierz się boso na płaskim podłożu, plecami przy ścianie. Głowa prosto, barki rozluźnione, pięty razem. Dla spójności mierz o tej samej porze dnia.";
 "measure.instructions.circumference" = "Używaj miękkiej taśmy krawieckiej na gołej skórze lub cienkiej odzieży. Taśma ma być poziomo i przylegać bez uciskania. Mierz zawsze w tych samych punktach.";
-
-/* Premium paywall */
 "premium.benefit.ai" = "Analizy AI";
 "premium.benefit.indicators" = "Wskaźniki zdrowia i sylwetki";
 "premium.benefit.export" = "Eksport danych";
@@ -1060,16 +1033,7 @@
 "BMI (Body Mass Index)" = "BMI (wskaźnik masy ciała)";
 "Body Shape Risk (ABSI)" = "Wskaźnik kształtu ciała";
 "Central Fat Risk (Conicity)" = "Otyłość brzuszna (Conicity)";
-
-/* FAQ - Apple Intelligence */
 "What if Apple Intelligence is unavailable?" = "Co jeśli Analizy AI są niedostępne?";
-"Apple Intelligence requires a supported device, supported language, and that Apple Intelligence is enabled in system settings. Check that your device and language are supported, update to the latest iOS, and enable Apple Intelligence in Settings → Apple Intelligence & Siri. If it’s still unavailable, restart your device and try again." = "Analizy AI w MeasureMe korzystają z Apple Intelligence i wymagają:
-• Obsługiwanych urządzeń: iPhone 15 Pro/Pro Max oraz nowsze modele iPhone 16/17; iPad Pro lub iPad Air z M1 lub nowszym; iPad mini z A17 Pro; MacBook Air/Pro, iMac, Mac mini, Mac Studio z M1 lub nowszym; Mac Pro (M2 Ultra); Apple Vision Pro. Apple Watch Series 6/Ultra/SE (2. gen)+ wymaga sparowanego iPhone’a z Apple Intelligence w pobliżu.
-• Obsługiwanych języków: angielski, duński, niderlandzki, francuski, niemiecki, włoski, norweski, portugalski, hiszpański, szwedzki, turecki, chiński (uproszczony/tradycyjny), japoński, koreański, wietnamski.
-• Obsługiwanego systemu: iOS 18.1+, iPadOS 18.1+, macOS Sequoia 15.1+, visionOS 2.4+, watchOS 11+.
-Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że język urządzenia i Siri są takie same. Podczas pobierania modeli trzymaj urządzenie na Wi-Fi i zasilaniu.";
-
-/* FAQ - Premium */
 "Premium and subscriptions" = "Premium i subskrypcje";
 "What is Premium Edition?" = "Czym jest wersja Premium?";
 "Premium unlocks Apple Intelligence insights, Health Indicators, data export, and photo comparison. It also supports a small business from Poland." = "Premium odblokowuje Analizy AI, wskaźniki zdrowia, wskaźniki sylwetki, eksport danych i porównywanie zdjęć. Analizy AI w MeasureMe używają Apple Intelligence, które musi być dostępne i włączone.";
@@ -1081,7 +1045,6 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Go to Settings → Premium Edition and tap Restore purchases." = "Przejdź do Ustawień → Wersja Premium i stuknij Przywróć zakupy.";
 "What happens if I cancel Premium?" = "Co się stanie, jeśli anuluję Premium?";
 "You keep all your data. Premium-only features become locked, but your measurements and photos remain safe on device." = "Zachowujesz wszystkie dane. Funkcje premium zostaną zablokowane, ale pomiary i zdjęcia pozostaną bezpiecznie na urządzeniu.";
-
 "Health" = "Zdrowie";
 "Profile" = "Profil";
 "Show" = "Pokaż";
@@ -1093,8 +1056,6 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Diagnostics" = "Diagnostyka";
 "App" = "Aplikacja";
 "Feature request" = "Zgłoś funkcję";
-
-/* Missing keys */
 "Above range" = "Powyżej zakresu";
 "Add data" = "Dodaj dane";
 "Add name" = "Dodaj imię";
@@ -1149,8 +1110,6 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "goal.remaining" = "%.1f %@ do celu";
 "goal.away" = "%.1f %@ od celu";
 "Importing Health data in background. You can continue." = "Import danych z aplikacji Zdrowie trwa w tle. Możesz przejść dalej.";
-
-/* Onboarding v2 i checklista */
 "Your first check-in" = "Twój pierwszy wpis";
 "A few details (optional)" = "Kilka danych (opcjonalnie)";
 "Make it effortless" = "Ułatw sobie start";
@@ -1230,8 +1189,6 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "profile.stats.phrase.5" = "250+ wpisów. Znasz swoje ciało lepiej niż ktokolwiek.";
 "profile.stats.phrase.6" = "500+ wpisów. Prawdziwe oddanie.";
 "profile.stats.phrase.7" = "1000+ wpisów. Legendarna konsekwencja.";
-
-/* Onboarding carousel rebuild */
 "A few details" = "Kilka danych";
 "Boosters" = "Automatyzacja";
 "Progress tracking that feels clear and motivating." = "Śledzenie postępu, które jest czytelne i motywujące.";
@@ -1258,8 +1215,6 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Drop premium preview screenshot here later." = "Tutaj później dodamy podgląd premium.";
 "What you'll see inside" = "Co zobaczysz w środku";
 "Cancel anytime in App Store settings." = "Anuluj w dowolnym momencie w ustawieniach App Store.";
-
-/* Checklist controls */
 "Finish setup" = "Dokończ konfigurację";
 "Collapse checklist" = "Zwiń checklistę";
 "Expand checklist" = "Rozwiń checklistę";
@@ -1278,6 +1233,9 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Enable AI Insights" = "Włącz Analizy AI";
 "AI Insights" = "Analizy AI";
 "AI Insights aren’t available right now." = "Analizy AI są teraz niedostępne.";
+"Not enough data to generate insights yet." = "Za mało danych, aby wygenerować wgląd.";
+"Not enough data in the selected range to generate insights yet." = "Za mało danych w wybranym zakresie, aby wygenerować wgląd.";
+"Couldn't generate an insight right now. Please try again in a moment." = "Nie udało się teraz wygenerować wglądu. Spróbuj ponownie za chwilę.";
 "AI generated" = "Wygenerowano przez AI";
 "AI Insights: unavailable (Premium Edition required)" = "Analizy AI: niedostępne (wymagana jest wersja Premium)";
 "What if AI Insights are unavailable?" = "Co jeśli Analizy AI są niedostępne?";
@@ -1365,8 +1323,6 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "settings.summary.ai.locked" = "Wymaga Premium";
 "settings.summary.data" = "Eksport, import i usuwanie danych lokalnych";
 "settings.summary.support" = "FAQ i pomoc";
-
-/* Onboarding explicit labels */
 "Lose weight" = "Schudnąć";
 "Build muscles" = "Zbudować mięśnie";
 "Improve my health" = "Poprawić zdrowie";
@@ -1379,16 +1335,12 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "onboarding.example.data" = "Dane przykładowe";
 "You can skip and fill this later." = "Możesz pominąć i uzupełnić to później.";
 "Show %d more" = "Pokaż %d więcej";
-
-/* Wykresy i trendy */
 "trend.steady" = "stabilnie";
 "trend.up" = "trend wzrostowy";
 "trend.down" = "trend spadkowy";
 "chart.summary.metric" = "%1$@, %2$@, od %3$@ do %4$@, %5$@.";
 "chart.summary.empty" = "%@, brak danych wykresu.";
 "chart.title.metric" = "Trend %@";
-
-/* Cele i zakresy czasu */
 "Set Goal" = "Ustaw cel";
 "Update Goal" = "Zaktualizuj cel";
 "Set" = "Ustaw";
@@ -1398,8 +1350,6 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Last year" = "Ostatni rok";
 "All time" = "Cały okres";
 "Goal already achieved." = "Cel został już osiągnięty.";
-
-/* Komunikaty i uprawnienia */
 "No products returned by StoreKit." = "StoreKit nie zwrócił żadnych produktów.";
 "Unable to save this image." = "Nie udało się zapisać tego obrazu.";
 "Permission denied. Enable Photos access in Settings." = "Brak uprawnień. Włącz dostęp do Zdjęć w Ustawieniach.";
@@ -1413,13 +1363,9 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Daily" = "Codziennie";
 "Weekly" = "Co tydzień";
 "Failed to delete HealthKit samples." = "Nie udało się usunąć próbek z aplikacji Zdrowie.";
-
-/* Etykiety dostepnosci i UI (dodane do audytu UX) */
 "Show Less" = "Pokaż mniej";
 "No active measurements" = "Brak aktywnych pomiarów";
 "Photo Date" = "Data zdjęcia";
-
-/* Tracked Measurements UX improvements */
 "tracked.keymetrics.header" = "Przypnij do Strony głównej";
 "tracked.keymetrics.description" = "Stuknij ★, aby przypiąć 1–3 metryki na ekranie głównym i w zakładce Pomiary. Sam decydujesz ile.";
 "tracked.keymetrics.counter" = "%d z 3 przypiętych";
@@ -1434,17 +1380,15 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "tracked.snackbar.added" = "Dodano do śledzenia";
 "tracked.snackbar.removed" = "Usunięto ze śledzenia";
 "tracked.snackbar.undo" = "Cofnij";
-
-// MARK: - Metric Input
 "metric.input.tap_to_edit" = "Stuknij, aby edytować";
-
-// MARK: - Measurements Empty States
 "measurements.empty.title" = "Rozpocznij pierwszy pomiar";
 "measurements.empty.body" = "Śledź wagę, wymiary ciała i więcej. Twoje wykresy postępów pojawią się tutaj.";
 "measurements.quickadd.hint" = "Porada: stuknij + w prawym dolnym rogu, aby szybko dodać pomiar";
 "measurements.metric.nodata" = "Brak danych";
-
-// MARK: - Photo Selection & Batch Deletion
+"measurements.discovery.hint" = "Śledzisz %d z %d metryk. Dodaj bicepsy, biodra, uda i więcej.";
+"measurements.discovery.cta" = "Dostosuj";
+"measurements.footer.dynamic" = "Śledzisz %d z %d metryk. Kolejne dodasz w Ustawieniach.";
+"checklist.choosemetrics.detail.dynamic" = "Śledzisz %d. Dostępnych jest jeszcze %d — bicepsy, biodra, uda…";
 "Select" = "Zaznacz";
 "Delete Photos" = "Usuń zdjęcia";
 "photos.selected.count" = "Wybrano: %d";
@@ -1461,8 +1405,6 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "photos.delete.count.a11y.few" = "Usuń %d wybrane zdjęcia";
 "photos.delete.count.a11y.many" = "Usuń %d wybranych zdjęć";
 "Double tap to select or deselect this photo" = "Stuknij dwukrotnie, aby zaznaczyć lub odznaczyć to zdjęcie";
-
-// MARK: - Data Import
 "Import data" = "Importuj dane";
 "Merge (keep existing data)" = "Połącz (zachowaj istniejące dane)";
 "Replace (delete existing data)" = "Zastąp (usuń istniejące dane)";
@@ -1479,8 +1421,6 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "This will add realistic sample measurements for recent weeks. Existing data will remain unchanged." = "To doda realistyczne przykładowe pomiary z ostatnich tygodni. Istniejące dane pozostaną bez zmian.";
 "Dummy data added: %d measurements." = "Dodano dane testowe: %d pomiarów.";
 "Could not seed dummy data. Please try again." = "Nie udało się dodać danych testowych. Spróbuj ponownie.";
-
-// MARK: - About Section
 "Website" = "Strona internetowa";
 "About MeasureMe" = "O MeasureMe";
 "Credits" = "Podziękowania";
@@ -1593,14 +1533,10 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "startup.loading.status.preparingData" = "Przygotowuję dane...";
 "startup.loading.status.finalizing" = "Finalizuję uruchamianie...";
 "startup.loading.progress.label" = "Postęp uruchamiania";
-
-/* Widget */
 "widget.metric.name" = "Metryka";
 "widget.metric.description" = "Pokazuje wybraną metrykę z wykresem trendu i zmianą z 30 dni.";
 "widget.metric.no_data" = "Brak danych";
 "widget.metric.chart_label" = "30 dni";
-
-/* Streak Detail */
 "streak.detail.title" = "SERIA";
 "streak.detail.weekStreak" = "SERIA TYGODNI";
 "streak.detail.streakStarted" = "Seria od";
@@ -1615,7 +1551,7 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "streak.detail.nextMilestone.sub" = "do odblokowania kolejnego kamienia milowego.";
 "streak.detail.milestone.reached" = "Wszystkie cele odblokowane! 🎉";
 "streak.detail.motivational.0.title" = "Zaczynasz";
-"streak.detail.motivational.0.body" = "Każdy tydzień się liczy. Każdy wpis daje Ci wyraźniejszy obraz swojego ciała i jego potrzeb.";
+"streak.detail.motivational.0.body" = "Każdy tydzień się liczy. Każdy wpis daje Ci wyraźniejszy obraz Twojego ciała i jego potrzeb.";
 "streak.detail.motivational.1.title" = "Budujesz impet";
 "streak.detail.motivational.1.body" = "Budujesz prawdziwy nawyk. Systematyczność teraz jest tym, co oddziela tych, którzy śledzą, od tych, którzy się zmieniają.";
 "streak.detail.motivational.2.title" = "Idzie jak z płatka";
@@ -1624,7 +1560,6 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "streak.detail.motivational.3.body" = "Kwartał ciągłego śledzenia. To rzadka wytrwałość — Twoje dane opowiadają potężną historię.";
 "streak.detail.motivational.4.title" = "Nie do zatrzymania";
 "streak.detail.motivational.4.body" = "Pół roku lub więcej śledzenia — jesteś w elitarnym gronie. Kontynuuj, a dane mówią same za siebie.";
-
 "Automatic iCloud backup" = "Automatyczna kopia zapasowa w iCloud";
 "Back up now" = "Utwórz kopię zapasową teraz";
 "Restore latest backup" = "Przywróć najnowszą kopię zapasową";
@@ -1646,7 +1581,6 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "iCloud Backup" = "Kopia zapasowa iCloud";
 "Automatic backup" = "Automatyczna kopia zapasowa";
 "Last backup" = "Ostatnia kopia";
-"Back up now" = "Utwórz kopię teraz";
 "Restore from backup" = "Przywróć z kopii";
 "Restore" = "Przywróć";
 "This will replace all current measurements, goals, photos, and settings with the latest iCloud backup." = "Spowoduje to zastąpienie wszystkich pomiarów, celów, zdjęć i ustawień najnowszą kopią zapasową z iCloud.";
@@ -1655,6 +1589,11 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Data restored successfully from iCloud backup." = "Dane przywrócone z kopii zapasowej iCloud.";
 "Restore failed: %@" = "Przywracanie nieudane: %@";
 "Your data: %d measurements, %d goals, %d photos." = "Twoje dane: %d pomiarów, %d celów, %d zdjęć.";
+"Latest iCloud backup was restored automatically. Review your measurements and photos to confirm everything looks right." = "Najnowsza kopia zapasowa iCloud została przywrócona automatycznie. Sprawdź pomiary i zdjęcia, aby potwierdzić, że wszystko wygląda poprawnie.";
+"Turns encrypted iCloud backup on or off for your measurements and photos." = "Włącza lub wyłącza zaszyfrowaną kopię zapasową iCloud dla pomiarów i zdjęć.";
+"Turns anonymous product analytics on or off." = "Włącza lub wyłącza anonimową analitykę produktu.";
+"Select the first date for photo comparison." = "Wybierz datę początkową porównania zdjęć.";
+"Select the last date for photo comparison." = "Wybierz datę końcową porównania zdjęć.";
 "Backup from %@ contains %d measurements, %d goals, %d photos." = "Kopia z %@ zawiera %d pomiarów, %d celów, %d zdjęć.";
 "Replace all local data with backup?" = "Zastąpić wszystkie lokalne dane kopią zapasową?";
 "Replace" = "Zastąp";
@@ -1663,3 +1602,4 @@ Włącz w Ustawieniach → Apple Intelligence i Siri oraz upewnij się, że jęz
 "Session" = "Sesja";
 "Select Date" = "Wybierz datę";
 "Premium" = "Premium";
+"Apple Intelligence insights, Health Indicators, Physique Indicators, and photo comparison." = "Analizy AI, wskaźniki zdrowia, wskaźniki sylwetki i porównywanie zdjęć.";

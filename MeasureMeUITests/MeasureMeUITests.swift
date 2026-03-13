@@ -86,6 +86,53 @@ final class MeasureMeUITests: XCTestCase {
     }
 
     @MainActor
+    /// Co sprawdza: Sekcja AI w szczegółach metryki pozostaje widoczna przy zmianie zakresu wykresu.
+    /// Dlaczego: Chroni regresję, w której przełączenie 7D/30D/All chowa insight mimo aktywnego AI.
+    /// Kryteria: Insight istnieje i nadal zawiera marker po przełączeniach zakresu.
+    func testInsightRemainsVisibleWhenSwitchingChartRange() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestMode",
+            "-uiTestForcePremium",
+            "-uiTestForceAIAvailable",
+            "-uiTestLongInsight",
+            "-uiTestSeedMeasurements"
+        ]
+        app.launch()
+
+        waitForAppToBecomeInteractable(app)
+
+        let openWeightDetail = app.buttons["metric.tile.open.weight"].firstMatch
+        if !openWeightDetail.waitForExistence(timeout: 3) {
+            let nextFocus = app.buttons["home.nextFocus.button"].firstMatch
+            if nextFocus.waitForExistence(timeout: 3) {
+                nextFocus.tap()
+            } else {
+                tapTab(in: app, identifier: "tab.measurements", fallbackLabels: ["Measurements", "Pomiary"])
+            }
+        }
+        XCTAssertTrue(openWeightDetail.waitForExistence(timeout: 5))
+        openWeightDetail.tap()
+
+        let detailInsight = app.staticTexts["insight.card.text.detail"].firstMatch
+        XCTAssertTrue(detailInsight.waitForExistence(timeout: 8))
+        XCTAssertTrue(detailInsight.label.contains("UI_TEST_LONG_INSIGHT_MARKER"))
+
+        let range7D = app.buttons["7D"].firstMatch
+        if range7D.exists { range7D.tap() }
+        XCTAssertTrue(detailInsight.waitForExistence(timeout: 5))
+
+        let range30D = app.buttons["30D"].firstMatch
+        if range30D.exists { range30D.tap() }
+        XCTAssertTrue(detailInsight.waitForExistence(timeout: 5))
+
+        let rangeAll = app.buttons["All"].firstMatch
+        if rangeAll.exists { rangeAll.tap() }
+        XCTAssertTrue(detailInsight.waitForExistence(timeout: 5))
+        XCTAssertTrue(detailInsight.label.contains("UI_TEST_LONG_INSIGHT_MARKER"))
+    }
+
+    @MainActor
     /// Co sprawdza: Kafelek celu pod wykresem otwiera formularz i pozwala zapisać nowy cel.
     /// Dlaczego: To zabezpiecza regresję, w której "Set Goal" wygląda jak CTA, ale nie działa albo nie zapisuje danych.
     /// Kryteria: Sheet celu otwiera się, zapis jest możliwy, a po zamknięciu ekran pokazuje nowy target.

@@ -5,6 +5,7 @@ import BackgroundTasks
 
 @main
 struct MeasureMeApp: App {
+    @UIApplicationDelegateAdaptor(MeasureMeAppDelegate.self) private var appDelegate
     @AppSetting(\.experience.appLanguage) private var appLanguage: String = "system"
     @StateObject private var settingsStore = AppSettingsStore.shared
     @State private var startupState: StartupState = .loading
@@ -15,9 +16,11 @@ struct MeasureMeApp: App {
     )
     @State private var startupAttemptID: Int = 0
     @State private var showCrashAlert = false
+    @State private var autoRestoreMessage: String?
     private let isRunningXCTest = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode") || ProcessInfo.processInfo.arguments.contains("-uiTestOnboardingMode")
     private let isSettingsUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab")
+    private var isUnitTestHostMode: Bool { isRunningXCTest && !isUITestMode && !isSettingsUITestMode }
 
     private enum StartupState {
         case loading
@@ -76,8 +79,10 @@ struct MeasureMeApp: App {
             Analytics.shared.track(.appLaunched)
         }
 
-        configureUITestDefaultsIfNeeded()
-        registerBackgroundTasks()
+        if !isUnitTestHostMode {
+            configureUITestDefaultsIfNeeded()
+            registerBackgroundTasks()
+        }
 
         let segmentedFont = UIFont.systemFont(ofSize: 13, weight: .semibold).withMonospacedDigits()
         UISegmentedControl.appearance().setTitleTextAttributes([.font: segmentedFont, .foregroundColor: UIColor.white], for: .normal)
@@ -85,12 +90,14 @@ struct MeasureMeApp: App {
         UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(Color.appAccent)
 
         // Select all text when any TextField gains focus (avoids "080" problem)
-        NotificationCenter.default.addObserver(
-            forName: UITextField.textDidBeginEditingNotification,
-            object: nil, queue: .main
-        ) { notification in
-            if let textField = notification.object as? UITextField {
-                DispatchQueue.main.async { textField.selectAll(nil) }
+        if !isUnitTestHostMode {
+            NotificationCenter.default.addObserver(
+                forName: UITextField.textDidBeginEditingNotification,
+                object: nil, queue: .main
+            ) { notification in
+                if let textField = notification.object as? UITextField {
+                    DispatchQueue.main.async { textField.selectAll(nil) }
+                }
             }
         }
 
@@ -122,7 +129,9 @@ struct MeasureMeApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if isSettingsUITestMode {
+                if isUnitTestHostMode {
+                    UnitTestHostView()
+                } else if isSettingsUITestMode {
                     SettingsUITestHostView()
                 } else {
                     switch startupState {
@@ -150,6 +159,7 @@ struct MeasureMeApp: App {
             .environmentObject(settingsStore)
             .task(id: startupAttemptID) {
                 guard !isSettingsUITestMode else { return }
+                guard !isUnitTestHostMode else { return }
                 await bootstrapApp()
             }
             .onAppear {
@@ -162,9 +172,9 @@ struct MeasureMeApp: App {
                 CrashReporter.shared.persistLogBuffer()
                 guard !isRunningXCTest else { return }
                 guard case .ready(let container) = startupState else { return }
-                let context = ModelContext(container)
-                let isPremium = settingsStore.snapshot.premium.premiumEntitlement
-                Task { @MainActor in
+                Task(priority: .utility) {
+                    let context = ModelContext(container)
+                    let isPremium = AppSettingsStore.shared.snapshot.premium.premiumEntitlement
                     await ICloudBackupService.runScheduledBackupIfNeeded(context: context, isPremium: isPremium)
                 }
             }
@@ -178,6 +188,19 @@ struct MeasureMeApp: App {
                 }
             } message: {
                 Text(AppLocalization.string("The app crashed last time. You can view and share the crash report in Settings → Data → Crash Reports."))
+            }
+            .alert(
+                AppLocalization.string("iCloud Backup"),
+                isPresented: Binding(
+                    get: { autoRestoreMessage != nil },
+                    set: { if !$0 { autoRestoreMessage = nil } }
+                )
+            ) {
+                Button(AppLocalization.string("OK"), role: .cancel) {
+                    autoRestoreMessage = nil
+                }
+            } message: {
+                Text(autoRestoreMessage ?? "")
             }
         }
     }
@@ -302,12 +325,22 @@ struct MeasureMeApp: App {
     private func runDeferredStartupWork(container: ModelContainer) {
         guard !isRunningXCTest else { return }
 
+        scheduleDeferredStorageProtection()
+        scheduleDeferredHealthSetup(container: container)
+        scheduleDeferredAutoRestore(container: container)
+        scheduleDeferredWidgetRefresh(container: container)
+        scheduleDeferredBackupMaintenance(container: container)
+    }
+
+    private func scheduleDeferredStorageProtection() {
         Task(priority: .utility) {
             let storageProtectionState = StartupInstrumentation.begin("DeferredStorageProtection")
             DatabaseEncryption.applyRecommendedProtectionIfNeeded()
             StartupInstrumentation.end("DeferredStorageProtection", state: storageProtectionState)
         }
+    }
 
+    private func scheduleDeferredHealthSetup(container: ModelContainer) {
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(200))
             let healthSetupState = StartupInstrumentation.begin("DeferredHealthKitSetup")
@@ -315,31 +348,40 @@ struct MeasureMeApp: App {
             HealthKitManager.shared.configure(modelContainer: container)
             _ = HealthKitManager.shared.reconcileStoredSyncState()
             HealthKitManager.shared.startObservingHealthKitUpdates()
+            await IntentDeferredHealthSyncProcessor.processPendingIfNeeded()
             StartupInstrumentation.end("DeferredHealthKitSetup", state: healthSetupState)
         }
+    }
 
+    private func scheduleDeferredAutoRestore(container: ModelContainer) {
         Task(priority: .utility) { @MainActor in
             try? await Task.sleep(for: .milliseconds(250))
             let autoRestoreState = StartupInstrumentation.begin("DeferredICloudAutoRestore")
             let context = ModelContext(container)
-            _ = await ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: context)
+            let didRestore = await ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: context)
+            if didRestore {
+                autoRestoreMessage = AppLocalization.string("Latest iCloud backup was restored automatically. Review your measurements and photos to confirm everything looks right.")
+            }
             StartupInstrumentation.end("DeferredICloudAutoRestore", state: autoRestoreState)
         }
+    }
 
+    private func scheduleDeferredWidgetRefresh(container: ModelContainer) {
         Task(priority: .background) {
             try? await Task.sleep(for: .milliseconds(600))
             let context = ModelContext(container)
             let units = settingsStore.snapshot.profile.unitsSystem
             WidgetDataWriter.writeAllAndReload(context: context, unitsSystem: units)
         }
+    }
 
+    private func scheduleDeferredBackupMaintenance(container: ModelContainer) {
         Task(priority: .utility) {
             try? await Task.sleep(for: .milliseconds(800))
             let context = ModelContext(container)
-            _ = await ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: context)
             let isPremium = AppSettingsStore.shared.snapshot.premium.premiumEntitlement
             await ICloudBackupService.runScheduledBackupIfNeeded(context: context, isPremium: isPremium)
-            if AppSettingsStore.shared.snapshot.iCloudBackup.isEnabled {
+            if isPremium, AppSettingsStore.shared.snapshot.iCloudBackup.isEnabled {
                 Self.scheduleBackgroundBackup()
             }
         }
@@ -373,7 +415,10 @@ struct MeasureMeApp: App {
         Task {
             _ = await operation.result
             task.setTaskCompleted(success: true)
-            scheduleBackgroundBackup()
+            let snapshot = AppSettingsStore.shared.snapshot
+            if snapshot.premium.premiumEntitlement, snapshot.iCloudBackup.isEnabled {
+                scheduleBackgroundBackup()
+            }
         }
     }
 
@@ -399,20 +444,30 @@ struct MeasureMeApp: App {
     private func createPersistentModelContainer() throws -> ModelContainer {
         let isSettingsUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab")
 
-        if isUITestMode {
+        if isUnitTestHostMode {
             let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
-            if isSettingsUITestMode {
-                return try ModelContainer(
-                    for: MetricSample.self,
-                    MetricGoal.self,
-                    configurations: configuration
-                )
-            }
             return try ModelContainer(
                 for: MetricSample.self,
                 MetricGoal.self,
                 PhotoEntry.self,
                 configurations: configuration
+            )
+        }
+
+        if isUITestMode {
+            if isSettingsUITestMode {
+                let schema = Schema([MetricSample.self, MetricGoal.self])
+                let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+                return try ModelContainer(
+                    for: schema,
+                    configurations: [configuration]
+                )
+            }
+            let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self])
+            let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+            return try ModelContainer(
+                for: schema,
+                configurations: [configuration]
             )
         }
 
@@ -519,6 +574,9 @@ struct MeasureMeApp: App {
             defaults.set(\.onboarding.hasCompletedOnboarding, false)
             defaults.set(\.experience.appLanguage, uiTestLanguage)
             defaults.set(\.premium.premiumEntitlement, false)
+            defaults.set(\.iCloudBackup.isEnabled, false)
+            defaults.set(\.onboarding.onboardingViewedICloudBackupOffer, false)
+            defaults.set(\.onboarding.onboardingSkippedICloudBackup, false)
             defaults.set(\.analytics.appleIntelligenceEnabled, true)
             defaults.set(\.onboarding.onboardingChecklistShow, true)
             defaults.set(\.home.homeTabScrollOffset, 0.0)
@@ -527,6 +585,14 @@ struct MeasureMeApp: App {
             }
             for keyPath in indicatorKeysEnabledByDefault {
                 defaults.set(keyPath, true)
+            }
+            if args.contains("-uiTestForcePremium") {
+                defaults.set(\.premium.premiumEntitlement, true)
+            }
+            if args.contains("-uiTestEnableICloudBackup") {
+                defaults.set(\.iCloudBackup.isEnabled, true)
+                defaults.set(\.onboarding.onboardingViewedICloudBackupOffer, true)
+                defaults.set(\.onboarding.onboardingSkippedICloudBackup, false)
             }
         }
 
@@ -543,6 +609,9 @@ struct MeasureMeApp: App {
         defaults.set(\.onboarding.hasCompletedOnboarding, true)
         defaults.set(\.experience.appLanguage, uiTestLanguage)
         defaults.set(\.premium.premiumEntitlement, true)
+        defaults.set(\.iCloudBackup.isEnabled, false)
+        defaults.set(\.onboarding.onboardingViewedICloudBackupOffer, false)
+        defaults.set(\.onboarding.onboardingSkippedICloudBackup, false)
         defaults.set(\.analytics.appleIntelligenceEnabled, true)
         defaults.set(\.onboarding.onboardingChecklistShow, false)
         defaults.set(\.onboarding.onboardingChecklistMetricsCompleted, false)
@@ -554,6 +623,8 @@ struct MeasureMeApp: App {
         defaults.set(\.home.showMeasurementsOnHome, true)
         defaults.set(\.home.showHealthMetricsOnHome, true)
         defaults.set(\.home.homePinnedActionRaw, "")
+        defaults.removeObject(forKey: AppSettingsKeys.Entry.pendingAppEntryAction)
+        defaults.removeObject(forKey: AppSettingsKeys.Entry.pendingHealthKitSyncFromIntent)
         defaults.set(\.profile.manualHeight, 180.0)
 
         if args.contains("-uiTestNoActiveMetrics") {
@@ -569,6 +640,11 @@ struct MeasureMeApp: App {
         if args.contains("-uiTestForceNonPremium") {
             defaults.set(\.premium.premiumEntitlement, false)
         }
+        if args.contains("-uiTestEnableICloudBackup") {
+            defaults.set(\.iCloudBackup.isEnabled, true)
+            defaults.set(\.onboarding.onboardingViewedICloudBackupOffer, true)
+            defaults.set(\.onboarding.onboardingSkippedICloudBackup, false)
+        }
         if args.contains("-uiTestShowChecklist") {
             defaults.set(\.onboarding.onboardingChecklistShow, true)
         }
@@ -577,6 +653,9 @@ struct MeasureMeApp: App {
         }
         if let pinnedAction = requestedHomePinnedAction(from: args) {
             defaults.set(\.home.homePinnedActionRaw, pinnedAction.rawValue)
+        }
+        if let pendingAction = requestedPendingAppEntryAction(from: args) {
+            defaults.set(pendingAction.rawValue, forKey: AppSettingsKeys.Entry.pendingAppEntryAction)
         }
         if args.contains("-uiTestPhysiqueSWROff") {
             defaults.set(\.indicators.showPhysiqueSWR, false)
@@ -669,6 +748,13 @@ struct MeasureMeApp: App {
         return HomePinnedAction(rawValue: args[nextIndex])
     }
 
+    private func requestedPendingAppEntryAction(from args: [String]) -> AppEntryAction? {
+        guard let flagIndex = args.firstIndex(of: "-uiTestPendingAppEntryAction") else { return nil }
+        let nextIndex = args.index(after: flagIndex)
+        guard nextIndex < args.endIndex else { return nil }
+        return AppEntryAction(rawValue: args[nextIndex])
+    }
+
     private func seedUITestPhotos(count: Int, into context: ModelContext) {
         let safeCount = max(0, min(count, 300))
         let now = AppClock.now
@@ -726,6 +812,14 @@ private struct SettingsUITestHostView: View {
         }
         .preferredColorScheme(.dark)
         .accessibilityIdentifier("app.root.ready")
+    }
+}
+
+private struct UnitTestHostView: View {
+    var body: some View {
+        Color.clear
+            .ignoresSafeArea()
+            .accessibilityIdentifier("app.unit-test.host")
     }
 }
 

@@ -43,10 +43,11 @@ struct MetricDetailView: View {
     @State var showGoalSheet = false
     @State var showTrendline = true
     @State var showAllHistory = false
-    @State var detailedInsight: String?
+    @State var insightState: InsightState = .loading
     @State var isLoadingInsight = false
     @State private var scrubbedSample: MetricSample?
     @State private var chartScrubState: ChartScrubState = .idle
+    @State private var chartWidth: CGFloat = 0
     
     @AppSetting(\.experience.photosFilterTag) var photosFilterTag: String = ""
 
@@ -86,6 +87,12 @@ struct MetricDetailView: View {
         case idle
         case armed
         case scrubbing
+    }
+
+    enum InsightState {
+        case loading
+        case ready(String)
+        case fallback(String)
     }
 
     // MARK: - Initialization
@@ -135,8 +142,38 @@ struct MetricDetailView: View {
         }
     }
 
+    var chartRenderPointLimit: Int {
+        Self.chartRenderPointLimit(for: timeframe, availableWidth: chartWidth)
+    }
+
+    var chartRenderSamples: [MetricSample] {
+        Self.sampledChartSamples(from: chartSamples, maxPoints: chartRenderPointLimit)
+    }
+
+    var chartTrendSamples: [MetricSample] {
+        Self.sampledChartSamples(
+            from: chartSamples,
+            maxPoints: Self.chartTrendPointLimit(for: timeframe, availableWidth: chartWidth)
+        )
+    }
+
+    var chartInteractionSamples: [MetricSample] {
+        Self.sampledChartSamples(
+            from: chartRenderSamples,
+            maxPoints: Self.chartInteractionPointLimit(for: timeframe, availableWidth: chartWidth)
+        )
+    }
+
+    var shouldRenderAllChartPoints: Bool {
+        chartRenderSamples.count <= 220
+    }
+
+    var latestRenderedSampleID: PersistentIdentifier? {
+        chartRenderSamples.last?.persistentModelID
+    }
+    
     var isChartScrubbingEnabled: Bool {
-        !chartSamples.isEmpty
+        !chartInteractionSamples.isEmpty
     }
     
     var relatedTag: PhotoTag? {
@@ -348,19 +385,26 @@ struct MetricDetailView: View {
 
     @ViewBuilder
     private var insightSection: some View {
-        if supportsAppleIntelligence, (isLoadingInsight || detailedInsight != nil) {
+        if supportsAppleIntelligence {
             Section {
-                if let detailedInsight {
+                switch insightState {
+                case .ready(let text):
                     MetricInsightCard(
-                        text: detailedInsight,
+                        text: text,
                         compact: false,
                         isLoading: isLoadingInsight
                     )
-                } else if isLoadingInsight {
+                case .loading:
                     MetricInsightCard(
                         text: AppLocalization.string("Generating insight..."),
                         compact: false,
                         isLoading: true
+                    )
+                case .fallback(let message):
+                    MetricInsightCard(
+                        text: message,
+                        compact: false,
+                        isLoading: isLoadingInsight
                     )
                 }
             } header: {
@@ -703,7 +747,7 @@ struct MetricDetailView: View {
                 }
             }
 
-            ForEach(chartSamples, id: \.persistentModelID) { s in
+            ForEach(chartRenderSamples, id: \.persistentModelID) { s in
                 AreaMark(
                     x: .value("Date", s.date),
                     yStart: .value("Baseline", yDomain.lowerBound),
@@ -729,15 +773,17 @@ struct MetricDetailView: View {
                 .lineStyle(.init(lineWidth: 2.5))
                 .foregroundStyle(measurementsTheme.accent)
 
-                PointMark(
-                    x: .value("Date", s.date),
-                    y: .value("Value", displayValue(s.value))
-                )
-                .symbol(Circle())
-                .symbolSize(20)
-                .foregroundStyle(measurementsTheme.accent)
+                if shouldRenderAllChartPoints {
+                    PointMark(
+                        x: .value("Date", s.date),
+                        y: .value("Value", displayValue(s.value))
+                    )
+                    .symbol(Circle())
+                    .symbolSize(20)
+                    .foregroundStyle(measurementsTheme.accent)
+                }
 
-                if s.persistentModelID == chartSamples.last?.persistentModelID {
+                if s.persistentModelID == latestRenderedSampleID {
                     PointMark(
                         x: .value("Latest Date", s.date),
                         y: .value("Latest Value", displayValue(s.value))
@@ -745,6 +791,16 @@ struct MetricDetailView: View {
                     .symbol(Circle())
                     .symbolSize(82)
                     .foregroundStyle(measurementsTheme.accent.opacity(0.26))
+
+                    if !shouldRenderAllChartPoints {
+                        PointMark(
+                            x: .value("Latest Date Marker", s.date),
+                            y: .value("Latest Value Marker", displayValue(s.value))
+                        )
+                        .symbol(Circle())
+                        .symbolSize(24)
+                        .foregroundStyle(measurementsTheme.accent)
+                    }
                 }
             }
 
@@ -790,6 +846,17 @@ struct MetricDetailView: View {
             }
         }
         .frame(height: 168)
+        .background {
+            GeometryReader { geometry in
+                Color.clear
+                    .onAppear {
+                        updateChartWidthIfNeeded(geometry.size.width)
+                    }
+                    .onChange(of: geometry.size.width) { _, newValue in
+                        updateChartWidthIfNeeded(newValue)
+                    }
+            }
+        }
         .chartPlotStyle { plot in
             plot.clipped()
         }
@@ -865,10 +932,10 @@ struct MetricDetailView: View {
     }
     
     var trendlineSegment: (startDate: Date, startValue: Double, endDate: Date, endValue: Double)? {
-        guard chartSamples.count >= 2 else { return nil }
+        guard chartTrendSamples.count >= 2 else { return nil }
 
-        let times = chartSamples.map { $0.date.timeIntervalSinceReferenceDate }
-        let values = chartSamples.map { displayValue($0.value) }
+        let times = chartTrendSamples.map { $0.date.timeIntervalSinceReferenceDate }
+        let values = chartTrendSamples.map { displayValue($0.value) }
         
         let count = Double(values.count)
         let sumX = times.reduce(0, +)
@@ -883,7 +950,7 @@ struct MetricDetailView: View {
         let intercept = (sumY - slope * sumX) / count
         
         guard let startTime = times.first, let endTime = times.last,
-              let firstSample = chartSamples.first, let lastSample = chartSamples.last else { return nil }
+              let firstSample = chartTrendSamples.first, let lastSample = chartTrendSamples.last else { return nil }
         let startValue = slope * startTime + intercept
         let endValue = slope * endTime + intercept
 
@@ -907,7 +974,7 @@ struct MetricDetailView: View {
     /// Dynamicznie oblicza zakres osi Y na podstawie danych i celu
     /// Uwzględnia minimalny span i padding dla czytelności
     var yDomain: ClosedRange<Double> {
-        var values = chartSamples.map { displayValue($0.value) }
+        var values = chartRenderSamples.map { displayValue($0.value) }
         
         // Dodaj wartość celu, aby była widoczna na wykresie
         if let goal = currentGoal {
@@ -924,7 +991,7 @@ struct MetricDetailView: View {
     }
 
     private func updateScrubbedSample(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
-        guard !chartSamples.isEmpty else {
+        guard !chartInteractionSamples.isEmpty else {
             scrubbedSample = nil
             return
         }
@@ -947,7 +1014,7 @@ struct MetricDetailView: View {
             return
         }
 
-        scrubbedSample = chartSamples.min {
+        scrubbedSample = chartInteractionSamples.min {
             abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
         }
     }
@@ -1014,7 +1081,7 @@ struct MetricDetailView: View {
         guard let plotFrame = proxy.plotFrame else { return [] }
         let plotOrigin = geometry[plotFrame].origin
 
-        return chartSamples.compactMap { sample in
+        return chartInteractionSamples.compactMap { sample in
             guard let xPosition = proxy.position(forX: sample.date),
                   let yPosition = proxy.position(forY: displayValue(sample.value)) else {
                 return nil
@@ -1026,8 +1093,131 @@ struct MetricDetailView: View {
             )
         }
     }
+
+    private func updateChartWidthIfNeeded(_ newWidth: CGFloat) {
+        let normalized = max(newWidth, 0)
+        guard abs(chartWidth - normalized) >= 1 else { return }
+        chartWidth = normalized
+    }
+
+    static func chartRenderPointLimit(for timeframe: Timeframe, availableWidth: CGFloat) -> Int {
+        let width = max(availableWidth, 240)
+        let densityBudget = Int((width / 1.6).rounded())
+        return min(timeframe.maximumRenderPointLimit, max(timeframe.minimumRenderPointLimit, densityBudget))
+    }
+
+    static func chartTrendPointLimit(for timeframe: Timeframe, availableWidth: CGFloat) -> Int {
+        let width = max(availableWidth, 240)
+        let densityBudget = Int((width / 3.2).rounded())
+        let cappedByRender = min(chartRenderPointLimit(for: timeframe, availableWidth: width), 120)
+        return min(cappedByRender, max(40, densityBudget))
+    }
+
+    static func chartInteractionPointLimit(for timeframe: Timeframe, availableWidth: CGFloat) -> Int {
+        let width = max(availableWidth, 240)
+        let densityBudget = Int((width / 3.6).rounded())
+        let cappedByRender = min(chartRenderPointLimit(for: timeframe, availableWidth: width), 96)
+        return min(cappedByRender, max(36, densityBudget))
+    }
+
+    static func sampledChartSamples(from samples: [MetricSample], maxPoints: Int) -> [MetricSample] {
+        guard maxPoints > 0, samples.count > maxPoints else { return samples }
+        guard let first = samples.first, let last = samples.last else { return samples }
+        if maxPoints == 1 { return [last] }
+        if maxPoints == 2 { return [first, last] }
+
+        let interior = Array(samples.dropFirst().dropLast())
+        guard !interior.isEmpty else { return [first, last] }
+
+        let remainingSlots = maxPoints - 2
+        let bucketCount = max(1, remainingSlots / 3)
+        let bucketSize = Double(interior.count) / Double(bucketCount)
+
+        var selected: [MetricSample] = [first]
+        var selectedIDs: Set<PersistentIdentifier> = [first.persistentModelID, last.persistentModelID]
+
+        for bucket in 0..<bucketCount {
+            let start = Int(floor(Double(bucket) * bucketSize))
+            let end = Int(floor(Double(bucket + 1) * bucketSize))
+            let lower = max(0, min(start, interior.count - 1))
+            let upper = max(lower + 1, min(end, interior.count))
+            guard lower < upper else { continue }
+
+            let slice = Array(interior[lower..<upper])
+            guard let representative = slice[safe: slice.count / 2],
+                  let localMin = slice.min(by: { $0.value < $1.value }),
+                  let localMax = slice.max(by: { $0.value < $1.value }) else {
+                continue
+            }
+
+            for sample in [representative, localMin, localMax] where !selectedIDs.contains(sample.persistentModelID) {
+                selected.append(sample)
+                selectedIDs.insert(sample.persistentModelID)
+            }
+        }
+
+        selected.append(last)
+        selected.sort { lhs, rhs in
+            if lhs.date == rhs.date {
+                let left = samples.firstIndex(where: { $0.persistentModelID == lhs.persistentModelID }) ?? 0
+                let right = samples.firstIndex(where: { $0.persistentModelID == rhs.persistentModelID }) ?? 0
+                return left < right
+            }
+            return lhs.date < rhs.date
+        }
+
+        if selected.count <= maxPoints { return selected }
+
+        var trimmed: [MetricSample] = [first]
+        let interiorTrimmed = Array(selected.dropFirst().dropLast())
+        let allowedInterior = max(0, maxPoints - 2)
+        if allowedInterior > 0, !interiorTrimmed.isEmpty {
+            let step = Double(interiorTrimmed.count) / Double(allowedInterior)
+            var index = 0.0
+            for _ in 0..<allowedInterior {
+                let candidate = interiorTrimmed[min(Int(index), interiorTrimmed.count - 1)]
+                if trimmed.last?.persistentModelID != candidate.persistentModelID {
+                    trimmed.append(candidate)
+                }
+                index += step
+            }
+        }
+        if trimmed.last?.persistentModelID != last.persistentModelID {
+            trimmed.append(last)
+        }
+        return trimmed
+    }
 }
 // Metody rozszerzenia sa zdefiniowane w MetricDetailComponents.swift
+
+private extension MetricDetailView.Timeframe {
+    var minimumRenderPointLimit: Int {
+        switch self {
+        case .week: return 56
+        case .month: return 72
+        case .threeMonths: return 84
+        case .year: return 96
+        case .all: return 112
+        }
+    }
+
+    var maximumRenderPointLimit: Int {
+        switch self {
+        case .week: return 220
+        case .month: return 240
+        case .threeMonths: return 260
+        case .year: return 280
+        case .all: return 320
+        }
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        guard indices.contains(index) else { return nil }
+        return self[index]
+    }
+}
 
 private extension CGPoint {
     func distance(to point: CGPoint) -> CGFloat {

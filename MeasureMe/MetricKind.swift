@@ -19,7 +19,7 @@
 import Foundation
 import SwiftUI
 
-enum MetricKind: String, CaseIterable, Hashable, Identifiable {
+enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
     var id: String { rawValue }
 
     // MARK: - Body Composition & Size

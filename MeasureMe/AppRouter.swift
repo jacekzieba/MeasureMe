@@ -4,6 +4,7 @@ import Combine
 final class AppRouter: ObservableObject {
     @Published var selectedTab: AppTab
     @Published var presentedSheet: PresentedSheet? = nil
+    @Published private(set) var photoComposerRequestID: UUID?
 
     init(selectedTab: AppTab = AppRouter.defaultSelectedTab()) {
         self.selectedTab = selectedTab
@@ -14,6 +15,15 @@ final class AppRouter: ObservableObject {
             return .settings
         }
         return .home
+    }
+
+    func requestPhotoComposer() {
+        photoComposerRequestID = UUID()
+    }
+
+    func consumePhotoComposerRequest(_ requestID: UUID) {
+        guard photoComposerRequestID == requestID else { return }
+        photoComposerRequestID = nil
     }
 }
 

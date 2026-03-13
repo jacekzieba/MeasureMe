@@ -4,11 +4,14 @@ import SwiftUI
 struct OnboardingBoostersStep: View {
     let isSyncEnabled: Bool
     let isReminderScheduled: Bool
+    let isICloudBackupEnabled: Bool
+    let isPremium: Bool
     let isRequestingHealthKit: Bool
     let isRequestingNotifications: Bool
 
     let onRequestHealthKit: () -> Void
     let onSetupReminder: () -> Void
+    let onRequestICloudBackup: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -37,7 +40,29 @@ struct OnboardingBoostersStep: View {
                 buttonIdentifier: "onboarding.booster.reminders",
                 action: onSetupReminder
             )
+
+            boosterCard(
+                icon: "icloud",
+                title: AppLocalization.systemString("iCloud Backup"),
+                detail: AppLocalization.systemString("Encrypted backup for your measurements and photos. Premium only."),
+                why: AppLocalization.systemString("Why: optional iCloud backup keeps a protected copy when you choose Premium."),
+                buttonTitle: iCloudBackupButtonTitle,
+                isLoading: false,
+                isComplete: isICloudBackupEnabled,
+                buttonIdentifier: "onboarding.booster.icloud",
+                action: onRequestICloudBackup
+            )
         }
+    }
+
+    private var iCloudBackupButtonTitle: String {
+        if isICloudBackupEnabled {
+            return AppLocalization.systemString("Enabled")
+        }
+        if isPremium {
+            return AppLocalization.systemString("Enable backup")
+        }
+        return AppLocalization.systemString("Unlock in Premium")
     }
 
     // MARK: - Booster card

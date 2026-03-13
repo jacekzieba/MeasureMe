@@ -19,11 +19,42 @@ final class QuickAddUITests: XCTestCase {
     private func launchWithActiveMetrics() {
         app.launchArguments = ["-uiTestMode"]
         app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
     }
 
     private func launchWithNoMetrics() {
         app.launchArguments = ["-uiTestMode", "-uiTestNoActiveMetrics"]
         app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+    }
+
+    private func tapTab(named name: String) {
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 20), "Expected tab bar to exist.")
+
+        let localizedCandidates: [String]
+        switch name {
+        case "tab.home":
+            localizedCandidates = ["tab.home", "Home", "Start", "Dom", "Strona główna"]
+        case "tab.measurements":
+            localizedCandidates = ["tab.measurements", "Measurements", "Pomiary"]
+        case "tab.photos":
+            localizedCandidates = ["tab.photos", "Photos", "Zdjęcia", "Zdjecia"]
+        case "tab.settings":
+            localizedCandidates = ["tab.settings", "Settings", "Ustawienia"]
+        default:
+            localizedCandidates = [name]
+        }
+
+        for candidate in localizedCandidates {
+            let button = tabBar.buttons[candidate].firstMatch
+            if button.waitForExistence(timeout: 3) {
+                button.tap()
+                return
+            }
+        }
+
+        XCTFail("Expected tab \(name) to exist.")
     }
 
     /// Otworz arkusz QuickAdd z glownego entry pointu w tab barze i poczekaj, az bedzie gotowy.
@@ -131,5 +162,56 @@ final class QuickAddUITests: XCTestCase {
         }
         // Jesli addButton nie istnieje (zasiane dane = hasAnyMeasurements), to tez poprawnie
         // QuickAdd jest wtedy otwierany inaczej, gdy dane juz istnieja.
+    }
+
+    @MainActor
+    func testPendingQuickAddEntryActionOpensQuickAddSheetOnLaunch() {
+        app.launchArguments = [
+            "-uiTestMode",
+            "-uiTestPendingAppEntryAction", "openQuickAdd"
+        ]
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+
+        XCTAssertTrue(
+            app.buttons["quickadd.save"].waitForExistence(timeout: 20),
+            "Pending app entry action should present Quick Add right after launch"
+        )
+    }
+
+    @MainActor
+    func testPendingAddPhotoEntryActionOpensPhotoSourceChooserOnLaunch() {
+        app.launchArguments = [
+            "-uiTestMode",
+            "-uiTestPendingAppEntryAction", "openAddPhoto"
+        ]
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+
+        let cameraOption = app.buttons["photos.add.menu.camera"].firstMatch
+        let libraryOption = app.buttons["photos.add.menu.library"].firstMatch
+        XCTAssertTrue(
+            cameraOption.waitForExistence(timeout: 20),
+            "Pending app entry action should open Add Photo source chooser with camera option"
+        )
+        XCTAssertTrue(libraryOption.exists, "Source chooser should also expose library option")
+    }
+
+    @MainActor
+    func testPhotosAddButtonShowsAnchoredMenuOptions() {
+        app.launchArguments = ["-uiTestMode", "-uiTestSeedMeasurements"]
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+
+        tapTab(named: "tab.photos")
+
+        let addButton = app.buttons["photos.add.button"].firstMatch
+        XCTAssertTrue(addButton.waitForExistence(timeout: 8))
+        addButton.tap()
+
+        let cameraOption = app.buttons["photos.add.menu.camera"].firstMatch
+        let libraryOption = app.buttons["photos.add.menu.library"].firstMatch
+        XCTAssertTrue(cameraOption.waitForExistence(timeout: 3), "Camera option should be visible in add menu")
+        XCTAssertTrue(libraryOption.exists, "Library option should be visible in add menu")
     }
 }

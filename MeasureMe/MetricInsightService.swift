@@ -11,7 +11,9 @@ nonisolated struct MetricInsightInput: Sendable, Hashable {
     let timeframeLabel: String
     let sampleCount: Int
     let delta7DaysText: String?
+    let delta14DaysText: String?
     let delta30DaysText: String?
+    let delta90DaysText: String?
     let goalStatusText: String?
     /// "increase" | "decrease" (nil oznacza brak aktywnego celu)
     let goalDirectionText: String?
@@ -209,8 +211,12 @@ actor MetricInsightService {
 
             Content rules:
             Use the provided goal direction if present; otherwise use the default favorable direction hint.
-            Paragraph 1: 1 short sentence, max 88 characters, summarizing the recent trend.
-            Paragraph 2: 1-2 short sentences, max 180 characters, ending with one specific next step for the next 7 days.
+            Paragraph 1: 1 short sentence, max 96 characters, summarizing the overall trend.
+            Paragraph 2: 2-4 short sentences, max 420 characters.
+            Paragraph 2 must include:
+            - one comparison across short, mid, and long trend windows when available (14/30/90 days),
+            - one concrete recommendation for the next 7 days,
+            - goal context if present.
             """
         )
 
@@ -223,24 +229,28 @@ actor MetricInsightService {
     }
 
     private func buildPrompt(for input: MetricInsightInput) -> String {
-        let trend7d = Self.trendDirection(from: input.delta7DaysText)
+        let trend14d = Self.trendDirection(from: input.delta14DaysText ?? input.delta7DaysText)
         let trend30d = Self.trendDirection(from: input.delta30DaysText)
+        let trend90d = Self.trendDirection(from: input.delta90DaysText)
         let goalDirection = input.goalDirectionText ?? "none"
 
         return """
         Metric: \(input.metricTitle)
         User name: \(input.userName ?? "unknown")
         Latest value: \(input.latestValueText)
-        Timeframe: \(input.timeframeLabel)
-        Number of samples in timeframe: \(input.sampleCount)
-        7-day change: \(input.delta7DaysText ?? "not enough data")
+        Aggregated analysis window: \(input.timeframeLabel)
+        Number of samples in analysis window: \(input.sampleCount)
+        14-day change: \(input.delta14DaysText ?? input.delta7DaysText ?? "not enough data")
         30-day change: \(input.delta30DaysText ?? "not enough data")
+        90-day change: \(input.delta90DaysText ?? "not enough data")
         Goal status: \(input.goalStatusText ?? "no active goal")
         Goal direction: \(goalDirection)
         Default favorable direction (if no goal): \(input.defaultFavorableDirectionText)
-        Trend direction (7 days): \(trend7d)
+        Trend direction (14 days): \(trend14d)
         Trend direction (30 days): \(trend30d)
+        Trend direction (90 days): \(trend90d)
 
+        Ignore any UI chart range and write the insight from these aggregated windows only.
         Write the two-paragraph insight using second person.
         """
     }

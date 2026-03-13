@@ -16,12 +16,13 @@ struct PhotoView: View {
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
+    @EnvironmentObject private var router: AppRouter
     @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)]) private var allPhotos: [PhotoEntry]
     
     @StateObject private var filters = PhotoFilters()
     @State private var showFilters = false
     @State private var showAddPhoto = false        // deep link / empty state
-    @State private var showSourcePicker = false    // confirmationDialog
+    @State private var showSourceChooserSheet = false
     @State private var showCamera = false
     @State private var cameraPickerImage: UIImage? = nil
     @State private var showLibraryPicker = false   // PHPicker (1 i wiele)
@@ -101,7 +102,7 @@ struct PhotoView: View {
                         onPhotoLongPress: handlePhotoLongPress,
                         onAddPhoto: {
                             Haptics.light()
-                            showSourcePicker = true
+                            showSourceChooserSheet = true
                         },
                         onOpenCompareChooser: {
                             Haptics.light()
@@ -183,9 +184,13 @@ struct PhotoView: View {
             .toolbar { toolbarContent }
             .onAppear {
                 applyExternalFilterIfNeeded()
+                consumePendingPhotoComposerRequestIfNeeded()
                 #if DEBUG
                 openUITestImportHookIfNeeded()
                 #endif
+            }
+            .onChange(of: router.photoComposerRequestID) { _, _ in
+                consumePendingPhotoComposerRequestIfNeeded()
             }
             .task(id: heroCompareOverride?.id) {
                 await scheduleHeroCompareOverrideReset()
@@ -200,7 +205,7 @@ struct PhotoView: View {
                 handlePendingPhotoFailure(newValue)
             }
             .onReceive(NotificationCenter.default.publisher(for: .homeOpenPhotoComposer)) { _ in
-                showSourcePicker = true
+                showSourceChooserSheet = true
             }
             // Deep link / empty state — otwiera AddPhotoView bez zdjęcia
             .sheet(isPresented: $showAddPhoto) {
@@ -245,19 +250,9 @@ struct PhotoView: View {
                     EmptyView()
                 }
             }
-            // Confirmation dialog — dwie opcje (PHPicker obsługuje i 1, i wiele)
-            .confirmationDialog(
-                AppLocalization.string("Add Photo"),
-                isPresented: $showSourcePicker,
-                titleVisibility: .visible
-            ) {
-                Button(AppLocalization.string("Take Photo")) {
-                    showCamera = true
-                }
-                Button(AppLocalization.string("Choose from Library")) {
-                    showLibraryPicker = true
-                }
-                Button(AppLocalization.string("Cancel"), role: .cancel) {}
+            .sheet(isPresented: $showSourceChooserSheet) {
+                sourceChooserSheet
+                    .presentationDetents([.medium])
             }
             .sheet(isPresented: $showFilters) {
                 PhotoFilterView(filters: filters)
@@ -310,6 +305,12 @@ struct PhotoView: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+
+    private func consumePendingPhotoComposerRequestIfNeeded() {
+        guard let requestID = router.photoComposerRequestID else { return }
+        showSourceChooserSheet = true
+        router.consumePhotoComposerRequest(requestID)
     }
     
     func handlePhotoTap(_ photo: PhotoEntry) {
@@ -1384,9 +1385,20 @@ private extension PhotoView {
                 .accessibilityLabel(AppLocalization.string("Open photo filters"))
 
                 if !isSelecting {
-                    Button {
-                        Haptics.light()
-                        showSourcePicker = true
+                    Menu {
+                        Button {
+                            openCameraFlow(fromSourceChooserSheet: false)
+                        } label: {
+                            Label(AppLocalization.string("Take Photo"), systemImage: "camera.fill")
+                        }
+                        .accessibilityIdentifier("photos.add.menu.camera")
+
+                        Button {
+                            openLibraryFlow(fromSourceChooserSheet: false)
+                        } label: {
+                            Label(AppLocalization.string("Choose from Library"), systemImage: "photo.on.rectangle")
+                        }
+                        .accessibilityIdentifier("photos.add.menu.library")
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -1394,6 +1406,80 @@ private extension PhotoView {
                     .accessibilityLabel(AppLocalization.string("Add photo"))
                 }
             }
+        }
+    }
+
+    private var sourceChooserSheet: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(AppLocalization.string("Add Photo"))
+                    .font(AppTypography.displaySection)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+
+                Button {
+                    openCameraFlow(fromSourceChooserSheet: true)
+                } label: {
+                    HStack(spacing: 12) {
+                        GlassPillIcon(systemName: "camera.fill")
+                        Text(AppLocalization.string("Take Photo"))
+                            .font(AppTypography.bodyEmphasis)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+                        Spacer()
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("photos.add.menu.camera")
+
+                Button {
+                    openLibraryFlow(fromSourceChooserSheet: true)
+                } label: {
+                    HStack(spacing: 12) {
+                        GlassPillIcon(systemName: "photo.on.rectangle")
+                        Text(AppLocalization.string("Choose from Library"))
+                            .font(AppTypography.bodyEmphasis)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+                        Spacer()
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("photos.add.menu.library")
+
+                Spacer(minLength: 0)
+            }
+            .padding(16)
+            .background(Color.black.ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(AppLocalization.string("Cancel")) {
+                        showSourceChooserSheet = false
+                    }
+                }
+            }
+        }
+        .accessibilityIdentifier("photos.sourceChooser.visible")
+    }
+
+    private func openCameraFlow(fromSourceChooserSheet: Bool) {
+        Haptics.light()
+        if fromSourceChooserSheet {
+            showSourceChooserSheet = false
+            DispatchQueue.main.async {
+                showCamera = true
+            }
+        } else {
+            showCamera = true
+        }
+    }
+
+    private func openLibraryFlow(fromSourceChooserSheet: Bool) {
+        Haptics.light()
+        if fromSourceChooserSheet {
+            showSourceChooserSheet = false
+            DispatchQueue.main.async {
+                showLibraryPicker = true
+            }
+        } else {
+            showLibraryPicker = true
         }
     }
 

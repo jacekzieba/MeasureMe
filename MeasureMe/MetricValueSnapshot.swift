@@ -5,7 +5,7 @@ import Foundation
 /// - porównań (Compare)
 /// - eksportu obrazów
 /// - zachowania kontekstu historycznego
-struct MetricValueSnapshot: Codable, Identifiable, Equatable {
+struct MetricValueSnapshot: Codable, Identifiable, Equatable, Sendable {
 
     let id: UUID
     let metricRawValue: String
@@ -16,7 +16,7 @@ struct MetricValueSnapshot: Codable, Identifiable, Equatable {
         MetricKind(rawValue: metricRawValue)
     }
 
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         kind: MetricKind,
         value: Double,
@@ -28,7 +28,7 @@ struct MetricValueSnapshot: Codable, Identifiable, Equatable {
         self.unit = unit
     }
 
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         metricRawValue: String,
         value: Double,

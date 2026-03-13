@@ -10,7 +10,7 @@ struct ICloudBackupManifest: Codable, Sendable {
     let isEncrypted: Bool
     let sizeBytes: Int64?
 
-    init(
+    nonisolated init(
         schemaVersion: Int,
         createdAt: Date,
         metricsCount: Int,

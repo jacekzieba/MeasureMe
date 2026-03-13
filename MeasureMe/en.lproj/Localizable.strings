@@ -1,3 +1,5 @@
+/* Localizable.strings */
+
 "notification.log.title" = "%@log your measurements";
 "notification.log.body" = "A quick check-in now keeps your progress on track.";
 "notification.smart.title" = "%@time for a quick log";
@@ -33,7 +35,6 @@
 "Helps improve app quality and UX. No health values or personal data are sent." = "Helps improve app quality and UX. No health values or personal data are sent.";
 "When enabled, recent app logs may be attached to reports you share." = "When enabled, recent app logs may be attached to reports you share.";
 "Could not start the app because local storage failed to initialize. Please retry. Error: %@" = "Could not start the app because local storage failed to initialize. Please retry. Error: %@";
-
 "photos.active.filters.count" = "%d active filters";
 "photos.showing.count" = "Showing %d of %d photos";
 "photos.showing.range" = "Showing photos from %@ to %@";
@@ -48,7 +49,6 @@
 "compare.days.apart" = "%d days apart";
 "trend.vs.relative" = "vs %@";
 "trend.relative.30d" = "30d ago";
-
 "accessibility.opens.details" = "Opens %@ details";
 "accessibility.metric.summary.trend" = "%@, %@, %@ vs %@";
 "accessibility.metric.summary.value" = "%@, %@";
@@ -77,7 +77,6 @@
 "quickadd.first.value.hint" = "Enter your first value";
 "metric.add.title" = "Add %@";
 "metric.edit.title" = "Edit %@";
-
 "home.greeting.morning" = "Good Morning";
 "home.greeting.morning.named" = "Good Morning, %@";
 "home.greeting.afternoon" = "Good Afternoon";
@@ -223,10 +222,8 @@
 "Shoulder-to-Hip Ratio" = "Shoulder-to-Hip Ratio";
 "Waist" = "Waist";
 "You're trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "You're trending down steadily. Keep 3 strength sessions and 8k+ steps this week.";
-
 "progress.now" = "Now %@";
 "progress.goal" = "Goal %@";
-
 "accessibility.open.measurements" = "Open all measurements";
 "accessibility.opens.measurements" = "Opens the Measurements tab";
 "accessibility.open.photos" = "Open all photos";
@@ -238,6 +235,14 @@
 "accessibility.compare.exit" = "Exit compare mode";
 "accessibility.setup.checklist.options" = "Checklist options";
 "accessibility.setup.checklist.options.hint" = "Opens actions to hide or collapse the setup checklist.";
+"Could not access iCloud backup right now." = "Could not access iCloud backup right now.";
+"Encrypted backup for your measurements and photos. Premium only." = "Encrypted backup for your measurements and photos. Premium only.";
+"Why: optional iCloud backup keeps a protected copy when you choose Premium." = "Why: optional iCloud backup keeps a protected copy when you choose Premium.";
+"Enable backup" = "Enable backup";
+"Unlock in Premium" = "Unlock in Premium";
+"Upgrade to Premium to enable encrypted iCloud backup and restore." = "Upgrade to Premium to enable encrypted iCloud backup and restore.";
+"Enable automatic iCloud backup first." = "Enable automatic iCloud backup first.";
+"Your data stays on this device by default. Encrypted iCloud backup is optional and available with Premium if you enable it." = "Your data stays on this device by default. Encrypted iCloud backup is optional and available with Premium if you enable it.";
 "accessibility.setup.checklist.completed" = "Completed";
 "accessibility.setup.checklist.incomplete" = "Not completed";
 "accessibility.setup.checklist.loading" = "In progress";
@@ -266,7 +271,6 @@
 "Start premium photo comparison from Home" = "Start premium photo comparison with Premium account";
 "Guide the user back to setup tasks" = "Guide the user back to setup tasks";
 "Choose what the highlighted Home action should do." = "Choose what the highlighted Home action should do.";
-
 "age.years.old" = "%d years old";
 "profile.unit.age" = "years";
 "health.last.import" = "Last import: %@";
@@ -291,7 +295,6 @@
 "onboarding.step.count" = "Step %d of %d";
 "healthkit.import.failed" = "Failed to import: %@";
 "reference.ranges.gender" = "Reference Ranges (%@)";
-
 "metric.weight" = "Weight";
 "metric.bodyfat" = "Body fat";
 "metric.height" = "Height";
@@ -314,8 +317,6 @@
 "health.whtr.description" = "The waist-to-height ratio (WHtR) is a measure of body fat distribution. It is calculated by dividing waist circumference by height.\n\nResearch suggests that WHtR is a good predictor of cardiovascular disease risk and metabolic syndrome.\n\nA WHtR of 0.5 or less is considered healthy for most adults, meaning your waist circumference should be less than half your height.";
 "health.whr.description" = "The waist-to-hip ratio (WHR) is a measure of body fat distribution. It is calculated by dividing waist circumference by hip circumference.\n\nWHR is used as a measurement of obesity, which in turn is a possible indicator of health risk. A higher WHR suggests more abdominal fat, which is associated with increased health risks.\n\nThe thresholds differ between males and females due to different body compositions.";
 "health.bmi.description" = "Body Mass Index (BMI) is a measure of body fat based on height and weight. It is calculated by dividing weight in kilograms by height in meters squared.\n\nBMI is a useful screening tool for identifying weight categories that may lead to health problems, but it's not diagnostic of body fatness or health.\n\nBMI interpretation varies by age:\n• Children & adolescents (< 18): Simplified ranges are used (ideally percentile charts)\n• Adults (18-65): Standard WHO ranges apply\n• Seniors (> 65): Slightly higher ranges may be healthier\n\nBMI does not distinguish between muscle and fat mass, so athletes or people with high muscle mass may have a high BMI despite having low body fat.";
-
-/* Onboarding */
 "MeasureMe" = "MeasureMe";
 "Measurements Matter" = "Measurements Matter";
 "Welcome" = "Welcome";
@@ -437,9 +438,6 @@
 "Weekly check-ins" = "Weekly check-ins";
 "Waist -1.8 cm" = "Waist -1.8 cm";
 "Weight -0.9 kg" = "Weight -0.9 kg";
-
-
-/* UI Titles */
 "Photos" = "Photos";
 "Measurements" = "Measurements";
 "Settings" = "Settings";
@@ -448,20 +446,14 @@
 "Indicators" = "Indicators";
 "Health indicators" = "Health indicators";
 "Choose health and physique indicators" = "Choose health and physique indicators";
-
-/* Apple Intelligence availability */
 "Apple Intelligence isn’t available right now." = "AI Insights aren’t available right now.";
 "Learn more in FAQ" = "Learn more in FAQ";
-
-/* Measurement instructions */
 "measure.instructions.weight" = "Weigh yourself at the same time of day, ideally in the morning. Use the same scale on a hard, level surface. Record after using the bathroom and before eating or drinking.";
 "measure.instructions.waist" = "Stand relaxed and measure at the level of your navel after a normal exhale. Keep the tape snug but not tight and parallel to the floor. Measure the same point each time.";
 "measure.instructions.bodyFat" = "Use the same device and conditions each time. Measure when hydrated and at a consistent time of day. Avoid measuring right after exercise or a large meal.";
 "measure.instructions.leanBodyMass" = "Use a consistent device under similar conditions. Aim for the same time of day and hydration level. Track trends rather than single readings.";
 "measure.instructions.height" = "Measure barefoot on a flat surface with your back against a wall. Keep your head level, shoulders relaxed, heels together. Measure at the same time of day for consistency.";
 "measure.instructions.circumference" = "Use a soft tape measure on bare skin or thin clothing. Keep the tape level and snug without compressing the skin. Use the same landmarks each time.";
-
-/* Premium paywall */
 "premium.benefit.ai" = "AI Insights";
 "premium.benefit.indicators" = "Health & Physique Indicators";
 "premium.benefit.export" = "Data export";
@@ -567,16 +559,7 @@
 "BMI (Body Mass Index)" = "BMI (Body Mass Index)";
 "Body Shape Risk (ABSI)" = "Body Shape Risk (ABSI)";
 "Central Fat Risk (Conicity)" = "Central Fat Risk (Conicity)";
-
-/* FAQ - Apple Intelligence */
 "What if Apple Intelligence is unavailable?" = "What if AI Insights are unavailable?";
-"Apple Intelligence requires a supported device, supported language, and that Apple Intelligence is enabled in system settings. Check that your device and language are supported, update to the latest iOS, and enable Apple Intelligence in Settings → Apple Intelligence & Siri. If it’s still unavailable, restart your device and try again." = "AI Insights in MeasureMe use Apple Intelligence and require:
-• Supported devices: iPhone 15 Pro/Pro Max and newer iPhone 16/17 models; iPad Pro or iPad Air with M1 or later; iPad mini with A17 Pro; MacBook Air/Pro, iMac, Mac mini, Mac Studio with M1 or later; Mac Pro (M2 Ultra); Apple Vision Pro. Apple Watch Series 6/Ultra/SE (2nd gen)+ requires a paired Apple Intelligence-enabled iPhone nearby.
-• Supported languages: English, Danish, Dutch, French, German, Italian, Norwegian, Portuguese, Spanish, Swedish, Turkish, Chinese (Simplified/Traditional), Japanese, Korean, Vietnamese.
-• Supported OS: iOS 18.1+, iPadOS 18.1+, macOS Sequoia 15.1+, visionOS 2.4+, watchOS 11+.
-Enable in Settings → Apple Intelligence & Siri and make sure device and Siri language match. Keep your device on Wi-Fi and power while models download.";
-
-/* FAQ - Premium */
 "Premium and subscriptions" = "Premium and subscriptions";
 "What is Premium Edition?" = "What is Premium Edition?";
 "Premium unlocks Apple Intelligence insights, Health Indicators, data export, and photo comparison. It also supports a small business from Poland." = "Premium unlocks AI Insights, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence and require it to be available and enabled.";
@@ -588,7 +571,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Go to Settings → Premium Edition and tap Restore purchases." = "Go to Settings → Premium Edition and tap Restore purchases.";
 "What happens if I cancel Premium?" = "What happens if I cancel Premium?";
 "You keep all your data. Premium-only features become locked, but your measurements and photos remain safe on device." = "You keep all your data. Premium-only features become locked, but your measurements and photos remain safe on device.";
-
 "Health" = "Health";
 "Profile" = "Profile";
 "Home" = "Home";
@@ -602,8 +584,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Diagnostics" = "Diagnostics";
 "App" = "App";
 "Feature request" = "Feature request";
-
-/* Missing keys */
 "Above range" = "Above range";
 "Add data" = "Add data";
 "Add name" = "Add name";
@@ -644,8 +624,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "WHR Ranges (Male)" = "WHR Ranges (Male)";
 "WHR Ranges (Female)" = "WHR Ranges (Female)";
 "WHtR Ranges" = "WHtR Ranges";
-
-/* Health metric categories */
 "Normal weight" = "Normal weight";
 "Increased weight" = "Increased weight";
 "High weight" = "High weight";
@@ -662,8 +640,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Child/Adolescent" = "Child/Adolescent";
 "Adult" = "Adult";
 "Senior" = "Senior";
-
-/* Health metric category descriptions */
 "Your waist-to-height ratio is within the healthy range." = "Your waist-to-height ratio is within the healthy range.";
 "Your waist-to-height ratio indicates increased health risks." = "Your waist-to-height ratio indicates increased health risks.";
 "Your waist-to-height ratio indicates high health risks." = "Your waist-to-height ratio indicates high health risks.";
@@ -689,8 +665,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Your BMI indicates overweight." = "Your BMI indicates overweight.";
 "BMI is significantly above the typical range for this age." = "BMI is significantly above the typical range for this age.";
 "Your BMI indicates obesity." = "Your BMI indicates obesity.";
-
-/* Health metric legend descriptions */
 "Low health risk" = "Low health risk";
 "Increased health risk" = "Increased health risk";
 "High health risk" = "High health risk";
@@ -702,12 +676,8 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Typical range" = "Typical range";
 "Above typical range" = "Above typical range";
 "Significantly above range" = "Significantly above range";
-
-/* Napisy dla brakujacych danych */
 "Missing waist or height measurement" = "Missing waist or height measurement";
 "Missing waist or hip measurement" = "Missing waist or hip measurement";
-
-/* WHtR Detail View */
 "Waist-to-Height Ratio" = "Waist-to-Height Ratio";
 "WHtR" = "WHtR";
 "About WHtR" = "About WHtR";
@@ -717,16 +687,12 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Higher ratios are linked to insulin resistance and metabolic strain." = "Higher ratios are linked to insulin resistance and metabolic strain.";
 "Actionable" = "Actionable";
 "Waist changes can move this ratio quickly, making it useful for progress." = "Waist changes can move this ratio quickly, making it useful for progress.";
-
-/* WHR Detail View */
 "Waist-to-Hip Ratio" = "Waist-to-Hip Ratio";
 "WHR" = "WHR";
 "About WHR" = "About WHR";
 "Gender not specified" = "Gender not specified";
 "WHR thresholds differ between males and females. Set your gender in Settings for more accurate ranges." = "WHR thresholds differ between males and females. Set your gender in Settings for more accurate ranges.";
 "Currently showing female ranges (more conservative)." = "Currently showing female ranges (more conservative).";
-
-/* BMI Detail View */
 "Body Mass Index" = "Body Mass Index";
 "BMI" = "BMI";
 "About BMI" = "About BMI";
@@ -737,8 +703,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Large shifts can correlate with cardiometabolic risk." = "Large shifts can correlate with cardiometabolic risk.";
 "Use with context" = "Use with context";
 "Pair it with waist and body fat for a fuller picture." = "Pair it with waist and body fat for a fuller picture.";
-
-/* RFM Detail View */
 "Relative Fat Mass" = "Relative Fat Mass";
 "What is RFM?" = "What is RFM?";
 "Relative Fat Mass (RFM) is an estimate of total body fat percentage based on your height and waist circumference. It provides a simple way to assess body composition without specialized equipment." = "Relative Fat Mass (RFM) is an estimate of total body fat percentage based on your height and waist circumference. It provides a simple way to assess body composition without specialized equipment.";
@@ -751,8 +715,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Reference Ranges" = "Reference Ranges";
 "Important" = "Important";
 "RFM is an estimation tool and may not be accurate for athletes, pregnant women, or people with certain medical conditions. For the most accurate body composition analysis, consult with a healthcare professional." = "RFM is an estimation tool and may not be accurate for athletes, pregnant women, or people with certain medical conditions. For the most accurate body composition analysis, consult with a healthcare professional.";
-
-/* ABSI Detail View */
 "Body Shape Risk" = "Body Shape Risk";
 "What is Body Shape Risk?" = "What is Body Shape Risk?";
 "A Body Shape Index (ABSI) measures the health risk associated with your abdominal fat distribution, independent of your total body weight. It focuses on health outcomes rather than appearance." = "A Body Shape Index (ABSI) measures the health risk associated with your abdominal fat distribution, independent of your total body weight. It focuses on health outcomes rather than appearance.";
@@ -763,8 +725,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Risk Categories" = "Risk Categories";
 "Health Note" = "Health Note";
 "ABSI is a research-based indicator and should be considered alongside other health metrics. It is not a medical diagnosis. Consult with healthcare professionals for personalized health assessments and recommendations." = "ABSI is a research-based indicator and should be considered alongside other health metrics. It is not a medical diagnosis. Consult with healthcare professionals for personalized health assessments and recommendations.";
-
-/* Conicity Detail View */
 "Central Fat Risk" = "Central Fat Risk";
 "What is Central Fat Risk?" = "What is Central Fat Risk?";
 "The Conicity Index is an indicator of central (abdominal) fat accumulation. It evaluates how your body mass is distributed around your waist relative to your height and weight." = "The Conicity Index is an indicator of central (abdominal) fat accumulation. It evaluates how your body mass is distributed around your waist relative to your height and weight.";
@@ -773,7 +733,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "It can reveal risk even when weight looks stable." = "It can reveal risk even when weight looks stable.";
 "Waist changes help move this index in a healthier direction." = "Waist changes help move this index in a healthier direction.";
 "The Conicity Index is a screening tool and should be interpreted alongside other health indicators. It is not a medical diagnosis. Consult with healthcare professionals for comprehensive health assessments." = "The Conicity Index is a screening tool and should be interpreted alongside other health indicators. It is not a medical diagnosis. Consult with healthcare professionals for comprehensive health assessments.";
-
 "Visible" = "Visible";
 "Hidden" = "Hidden";
 "Go deeper when you need it." = "Go deeper when you need it.";
@@ -791,8 +750,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "goal.remaining" = "%.1f %@ to goal";
 "goal.away" = "%.1f %@ away from goal";
 "Importing Health data in background. You can continue." = "Importing Health data in background. You can continue.";
-
-/* Onboarding v2 i checklista */
 "Your first check-in" = "Your first check-in";
 "A few details (optional)" = "A few details (optional)";
 "Make it effortless" = "Make it effortless";
@@ -875,6 +832,9 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Enable AI Insights" = "Enable AI Insights";
 "AI Insights" = "AI Insights";
 "AI Insights aren’t available right now." = "AI Insights aren’t available right now.";
+"Not enough data to generate insights yet." = "Not enough data to generate insights yet.";
+"Not enough data in the selected range to generate insights yet." = "Not enough data in the selected range to generate insights yet.";
+"Couldn't generate an insight right now. Please try again in a moment." = "Couldn't generate an insight right now. Please try again in a moment.";
 "AI generated" = "AI generated";
 "AI Insights: unavailable (Premium Edition required)" = "AI Insights: unavailable (Premium Edition required)";
 "What if AI Insights are unavailable?" = "What if AI Insights are unavailable?";
@@ -908,9 +868,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Open Measurements, choose Weight, tap Goal, then set your target value and direction." = "Open Measurements, choose Weight, tap Goal, then set your target value and direction.";
 "Open Measurements" = "Open Measurements";
 "Shows how to set your first weight goal" = "Shows how to set your first weight goal";
-
-/* Onboarding carousel rebuild */
-"A few details" = "A few details";
 "Boosters" = "Boosters";
 "Progress tracking that feels clear and motivating." = "Progress tracking that feels clear and motivating.";
 "Start with one metric. Add more whenever you want." = "Start with one metric. Add more whenever you want.";
@@ -936,8 +893,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Drop premium preview screenshot here later." = "Drop premium preview screenshot here later.";
 "What you'll see inside" = "What you'll see inside";
 "Cancel anytime in App Store settings." = "Cancel anytime in App Store settings.";
-
-/* Checklist controls */
 "Finish setup" = "Finish setup";
 "Collapse checklist" = "Collapse checklist";
 "Expand checklist" = "Expand checklist";
@@ -1009,8 +964,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "settings.summary.ai.locked" = "Premium required";
 "settings.summary.data" = "Export, import, and delete local data";
 "settings.summary.support" = "FAQ and help";
-
-/* Onboarding explicit labels */
 "Lose weight" = "Lose weight";
 "Build muscles" = "Build muscles";
 "Improve my health" = "Improve my health";
@@ -1023,8 +976,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "onboarding.example.data" = "Sample data";
 "You can skip and fill this later." = "You can skip and fill this later.";
 "Show %d more" = "Show %d more";
-
-/* Wykresy i trendy */
 "Date" = "Date";
 "trend.steady" = "steady";
 "trend.up" = "trending up";
@@ -1032,8 +983,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "chart.summary.metric" = "%1$@, %2$@, from %3$@ to %4$@, %5$@.";
 "chart.summary.empty" = "%@, no chart data yet.";
 "chart.title.metric" = "%@ trend";
-
-/* Cele i ramy czasowe */
 "Set Goal" = "Set Goal";
 "Update Goal" = "Update Goal";
 "Set" = "Set";
@@ -1043,8 +992,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Last year" = "Last year";
 "All time" = "All time";
 "Goal already achieved." = "Goal already achieved.";
-
-/* Komunikaty i uprawnienia */
 "No products returned by StoreKit." = "No products returned by StoreKit.";
 "Unable to save this image." = "Unable to save this image.";
 "Permission denied. Enable Photos access in Settings." = "Permission denied. Enable Photos access in Settings.";
@@ -1058,8 +1005,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Daily" = "Daily";
 "Weekly" = "Weekly";
 "Failed to delete HealthKit samples." = "Failed to delete HealthKit samples.";
-
-/* Etykiety dostepnosci i UI (dodane do audytu UX) */
 "Close" = "Close";
 "Show Less" = "Show Less";
 "View All" = "View All";
@@ -1067,8 +1012,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Photo Date" = "Photo Date";
 "From" = "From";
 "To" = "To";
-
-/* Tracked Measurements UX improvements */
 "tracked.keymetrics.header" = "Pin to Home";
 "tracked.keymetrics.description" = "Tap ★ to pin 1–3 metrics to your Home screen and Measurements tab. You decide how many.";
 "tracked.keymetrics.counter" = "%d of 3 pinned";
@@ -1083,17 +1026,15 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "tracked.snackbar.added" = "Added to Tracking";
 "tracked.snackbar.removed" = "Removed from Tracking";
 "tracked.snackbar.undo" = "Undo";
-
-// MARK: - Metric Input
 "metric.input.tap_to_edit" = "Tap to edit";
-
-// MARK: - Measurements Empty States
 "measurements.empty.title" = "Start your first measurement";
 "measurements.empty.body" = "Track weight, body measurements, and more. Your progress charts will appear here.";
 "measurements.quickadd.hint" = "Tip: Tap + in the tab bar for quick entry anytime";
 "measurements.metric.nodata" = "No data yet";
-
-// MARK: - Photo Selection & Batch Deletion
+"measurements.discovery.hint" = "Tracking %d of %d metrics. Add biceps, hips, thighs and more.";
+"measurements.discovery.cta" = "Customize";
+"measurements.footer.dynamic" = "Tracking %d of %d metrics. You can add more in Settings.";
+"checklist.choosemetrics.detail.dynamic" = "Tracking %d. %d more available — biceps, hips, thighs…";
 "Select" = "Select";
 "Delete Photos" = "Delete Photos";
 "photos.selected.count" = "%d selected";
@@ -1110,8 +1051,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "photos.delete.count.a11y.few" = "Delete %d selected photos";
 "photos.delete.count.a11y.many" = "Delete %d selected photos";
 "Double tap to select or deselect this photo" = "Double tap to select or deselect this photo";
-
-// MARK: - Data Import
 "Import data" = "Import data";
 "Merge (keep existing data)" = "Merge (keep existing data)";
 "Replace (delete existing data)" = "Replace (delete existing data)";
@@ -1128,13 +1067,10 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "This will add realistic sample measurements for recent weeks. Existing data will remain unchanged." = "This will add realistic sample measurements for recent weeks. Existing data will remain unchanged.";
 "Dummy data added: %d measurements." = "Dummy data added: %d measurements.";
 "Could not seed dummy data. Please try again." = "Could not seed dummy data. Please try again.";
-
-// MARK: - About Section
 "Website" = "Website";
 "About MeasureMe" = "About MeasureMe";
 "Credits" = "Credits";
 "Icons by Icons8" = "Icons by Icons8";
-"Diagnostics" = "Diagnostics";
 "Physique indicators" = "Physique indicators";
 "Choose physique indicators" = "Choose physique indicators";
 "Upgrade to Premium Edition to unlock Physique indicators." = "Upgrade to Premium Edition to unlock Physique indicators.";
@@ -1151,7 +1087,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Set your gender in Profile to unlock this indicator and its ranges." = "Set your gender in Profile to unlock this indicator and its ranges.";
 "Body Shape Risk in this app is standardized ABSI (z-score), not an arbitrary composite." = "Body Shape Risk in this app is standardized ABSI (z-score), not an arbitrary composite.";
 "Fat distribution" = "Fat distribution";
-"Waist circumference" = "Waist circumference";
 "ABSI (technical)" = "ABSI (technical)";
 "To calculate this indicator, add:" = "To calculate this indicator, add:";
 "Formula" = "Formula";
@@ -1186,14 +1121,11 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "No. Physique indicators are visual and proportion-focused heuristics designed for appearance tracking, not medical diagnosis." = "No. Physique indicators are visual and proportion-focused heuristics designed for appearance tracking, not medical diagnosis.";
 "Apple Intelligence insights, Health Indicators, and photo comparison." = "Apple Intelligence insights, Health Indicators, Physique Indicators, and photo comparison.";
 "Loading photos" = "Loading photos";
-
 "photo.measurements.filled" = "%d filled";
 "startup.loading.status.initializingStorage" = "Initializing your workspace...";
 "startup.loading.status.preparingData" = "Preparing your data...";
 "startup.loading.status.finalizing" = "Finalizing startup...";
 "startup.loading.progress.label" = "Startup progress";
-
-/* Widget */
 "widget.metric.name" = "Metric";
 "widget.metric.description" = "Shows your selected metric with trend chart and 30-day change.";
 "widget.metric.no_data" = "No data yet";
@@ -1202,8 +1134,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Select Date" = "Select date";
 "Premium" = "Premium";
 "widget.metric.chart_label" = "30d";
-
-/* Streak Detail */
 "streak.detail.title" = "STREAK";
 "streak.detail.weekStreak" = "WEEK STREAK";
 "streak.detail.streakStarted" = "Streak started";
@@ -1227,7 +1157,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "streak.detail.motivational.3.body" = "A quarter-year of continuous tracking. That's rare dedication — your data tells a powerful story.";
 "streak.detail.motivational.4.title" = "Unstoppable";
 "streak.detail.motivational.4.body" = "Half a year or more of tracking — you're in elite company. Keep going and the data speaks for itself.";
-
 "Automatic iCloud backup" = "Automatic iCloud backup";
 "Back up now" = "Back up now";
 "Restore latest backup" = "Restore latest backup";
@@ -1249,7 +1178,6 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "iCloud Backup" = "iCloud Backup";
 "Automatic backup" = "Automatic backup";
 "Last backup" = "Last backup";
-"Back up now" = "Back up now";
 "Restore from backup" = "Restore from backup";
 "Restore" = "Restore";
 "This will replace all current measurements, goals, photos, and settings with the latest iCloud backup." = "This will replace all current measurements, goals, photos, and settings with the latest iCloud backup.";
@@ -1258,7 +1186,420 @@ Enable in Settings → Apple Intelligence & Siri and make sure device and Siri l
 "Data restored successfully from iCloud backup." = "Data restored successfully from iCloud backup.";
 "Restore failed: %@" = "Restore failed: %@";
 "Your data: %d measurements, %d goals, %d photos." = "Your data: %d measurements, %d goals, %d photos.";
+"Latest iCloud backup was restored automatically. Review your measurements and photos to confirm everything looks right." = "Latest iCloud backup was restored automatically. Review your measurements and photos to confirm everything looks right.";
+"Turns encrypted iCloud backup on or off for your measurements and photos." = "Turns encrypted iCloud backup on or off for your measurements and photos.";
+"Turns anonymous product analytics on or off." = "Turns anonymous product analytics on or off.";
+"Select the first date for photo comparison." = "Select the first date for photo comparison.";
+"Select the last date for photo comparison." = "Select the last date for photo comparison.";
+"View more photos" = "View more photos";
+"App language" = "App language";
+"System" = "System";
+"English" = "English";
+"Polish" = "Polish";
 "Backup from %@ contains %d measurements, %d goals, %d photos." = "Backup from %@ contains %d measurements, %d goals, %d photos.";
 "Replace all local data with backup?" = "Replace all local data with backup?";
 "Replace" = "Replace";
 "Choose Photos" = "Choose Photos";
+"A simple scale based on WHtR where 1.00 is the core threshold." = "A simple scale based on WHtR where 1.00 is the core threshold.";
+"AI Insights aren't available right now." = "AI Insights aren't available right now.";
+"About" = "About";
+"About Health Metrics" = "About Health Metrics";
+"About Measure" = "About Measure";
+"About this metric" = "About this metric";
+"Active" = "Active";
+"Add" = "Add";
+"Add Metric" = "Add Metric";
+"Add Photo" = "Add Photo";
+"Add Reminder" = "Add Reminder";
+"Add at least one valid value to save." = "Add at least one valid value to save.";
+"Add at least one value before saving." = "Add at least one value before saving.";
+"Add measurement" = "Add measurement";
+"Add one-time or repeatable reminders. You can edit or remove them any time." = "Add one-time or repeatable reminders. You can edit or remove them any time.";
+"Add photo" = "Add photo";
+"Add reminder" = "Add reminder";
+"Add the missing measurements to calculate these health indicators:" = "Add the missing measurements to calculate these health indicators:";
+"Add your first entry to see history and charts." = "Add your first entry to see history and charts.";
+"Adjust upper or lower body training based on your aesthetic goal." = "Adjust upper or lower body training based on your aesthetic goal.";
+"Age can be used for:" = "Age can be used for:";
+"All photos are optimized!" = "All photos are optimized!";
+"All photos have been optimized." = "All photos have been optimized.";
+"All tags" = "All tags";
+"Animations" = "Animations";
+"Apple Health" = "Apple Health";
+"Apple Intelligence isn’t available on this device." = "Apple Intelligence isn’t available on this device.";
+"Apple Intelligence: unavailable (Premium Edition required)" = "Apple Intelligence: unavailable (Premium Edition required)";
+"Apply" = "Apply";
+"Are health indicators a reliable source?" = "Are health indicators a reliable source?";
+"Athletic" = "Athletic";
+"Auto-renewable subscription. You can cancel anytime in your App Store account settings. Payment is charged to your Apple ID at confirmation. The subscription renews unless canceled at least 24 hours before the end of the current period." = "Auto-renewable subscription. You can cancel anytime in your App Store account settings. Payment is charged to your Apple ID at confirmation. The subscription renews unless canceled at least 24 hours before the end of the current period.";
+"Average size:" = "Average size:";
+"Beyond weight" = "Beyond weight";
+"Body Fat Percentage" = "Body Fat Percentage";
+"Body Mass Index (BMI) is a measure of body fat based on height and weight. It is calculated by dividing weight in kilograms by height in meters squared.\n\nBMI is a useful screening tool for identifying weight categories that may lead to health problems, but it's not diagnostic of body fatness or health.\n\nBMI interpretation varies by age:\n• Children & adolescents (< 18): Simplified ranges are used (ideally percentile charts)\n• Adults (18-65): Standard WHO ranges apply\n• Seniors (> 65): Slightly higher ranges may be healthier\n\nBMI does not distinguish between muscle and fat mass, so athletes or people with high muscle mass may have a high BMI despite having low body fat." = "Body Mass Index (BMI) is a measure of body fat based on height and weight. It is calculated by dividing weight in kilograms by height in meters squared.\n\nBMI is a useful screening tool for identifying weight categories that may lead to health problems, but it's not diagnostic of body fatness or health.\n\nBMI interpretation varies by age:\n• Children & adolescents (< 18): Simplified ranges are used (ideally percentile charts)\n• Adults (18-65): Standard WHO ranges apply\n• Seniors (> 65): Slightly higher ranges may be healthier\n\nBMI does not distinguish between muscle and fat mass, so athletes or people with high muscle mass may have a high BMI despite having low body fat.";
+"Body fat percentage is the proportion of your body weight that is fat tissue. It provides a more accurate picture of your body composition than weight or BMI alone." = "Body fat percentage is the proportion of your body weight that is fat tissue. It provides a more accurate picture of your body composition than weight or BMI alone.";
+"Body fat percentage measurements can vary depending on the measurement method. For the most accurate assessment, use the same device consistently and measure under similar conditions." = "Body fat percentage measurements can vary depending on the measurement method. For the most accurate assessment, use the same device consistently and measure under similar conditions.";
+"Body fat percentage shows how weight is split between fat and lean mass." = "Body fat percentage shows how weight is split between fat and lean mass.";
+"Build delts/back or lower body depending on your desired look." = "Build delts/back or lower body depending on your desired look.";
+"Build upper chest and back while reducing waist." = "Build upper chest and back while reducing waist.";
+"Building up" = "Building up";
+"Can I compare photos?" = "Can I compare photos?";
+"Can I disable animations or haptics?" = "Can I disable animations or haptics?";
+"Can I edit or delete a measurement?" = "Can I edit or delete a measurement?";
+"Can I export my data or photos?" = "Can I export my data or photos?";
+"Can I use the app offline?" = "Can I use the app offline?";
+"Cancel" = "Cancel";
+"Central fat" = "Central fat";
+"Central fat focus" = "Central fat focus";
+"Changes" = "Changes";
+"Chart" = "Chart";
+"Checking photos..." = "Checking photos...";
+"Choose from Library" = "Choose from Library";
+"Choose indicators to show" = "Choose indicators to show";
+"Choose one-time, daily or weekly schedule." = "Choose one-time, daily or weekly schedule.";
+"Choose up to 3 to show on Home and Measurements." = "Choose up to 3 to show on Home and Measurements.";
+"Choose whether you want to increase or decrease this metric." = "Choose whether you want to increase or decrease this metric.";
+"Choose..." = "Choose...";
+"Clear" = "Clear";
+"Clear All" = "Clear All";
+"Clear Filters" = "Clear Filters";
+"Clear all filters" = "Clear all filters";
+"Collapsed" = "Collapsed";
+"Compact health indicator summary" = "Compact health indicator summary";
+"Compare" = "Compare";
+"Compare selected photos" = "Compare selected photos";
+"Compare selected photos — Premium required" = "Compare selected photos — Premium required";
+"Composition focus" = "Composition focus";
+"Could not enable Health sync. Please try again." = "Could not enable Health sync. Please try again.";
+"Could not load photo. Please try again." = "Could not load photo. Please try again.";
+"Could not save photos. Please try again." = "Could not save photos. Please try again.";
+"Current" = "Current";
+"Current Height" = "Current Height";
+"Current age" = "Current age";
+"Data Source" = "Data Source";
+"Data and privacy" = "Data and privacy";
+"Date Range" = "Date Range";
+"Day‑to‑day changes are normal and can be caused by hydration, salt intake, sleep, stress, and training." = "Day‑to‑day changes are normal and can be caused by hydration, salt intake, sleep, stress, and training.";
+"Decrease" = "Decrease";
+"Delete" = "Delete";
+"Delete Goal" = "Delete Goal";
+"Delete Photo" = "Delete Photo";
+"Different devices and methods can produce different values. Trends are more important than single readings." = "Different devices and methods can produce different values. Trends are more important than single readings.";
+"Direction" = "Direction";
+"Do I have to connect HealthKit?" = "Do I have to connect HealthKit?";
+"Do I need to measure every day?" = "Do I need to measure every day?";
+"Do you send notifications automatically?" = "Do you send notifications automatically?";
+"Done" = "Done";
+"Double tap to open photo details" = "Double tap to open photo details";
+"Double tap to show or hide this metrics group" = "Double tap to show or hide this metrics group";
+"Drag to compare" = "Drag to compare";
+"Edit" = "Edit";
+"Edit measurement" = "Edit measurement";
+"Elevated" = "Elevated";
+"Enable Apple Intelligence" = "Enable Apple Intelligence";
+"Enable health indicators in Settings to generate your summary." = "Enable health indicators in Settings to generate your summary.";
+"Enable health indicators in Settings to see results here." = "Enable health indicators in Settings to see results here.";
+"Enable metrics below to pick key metrics for Home." = "Enable metrics below to pick key metrics for Home.";
+"Enable metrics in the Measurements tab to add values quickly." = "Enable metrics in the Measurements tab to add values quickly.";
+"Enter value" = "Enter value";
+"Enter value in 0–100 range" = "Enter value in 0–100 range";
+"Enter your age" = "Enter your age";
+"Essential" = "Essential";
+"Excellence" = "Excellence";
+"Expanded" = "Expanded";
+"Explore Premium (14 days free)" = "Explore Premium (14 days free)";
+"Export" = "Export";
+"Export comparison image" = "Export comparison image";
+"Export data" = "Export data";
+"FAQ" = "FAQ";
+"Filter" = "Filter";
+"Filter Photos" = "Filter Photos";
+"Filters" = "Filters";
+"Finalizing" = "Finalizing";
+"Fitness" = "Fitness";
+"Focus area" = "Focus area";
+"For best consistency, measure in the morning after using the bathroom and before eating or drinking." = "For best consistency, measure in the morning after using the bathroom and before eating or drinking.";
+"From HealthKit" = "From HealthKit";
+"Generate diagnostics" = "Generate diagnostics";
+"Getting started" = "Getting started";
+"Go to Settings" = "Go to Settings";
+"Go to Settings → Tracked Measurements and select the metrics you want to follow." = "Go to Settings → Tracked Measurements and select the metrics you want to follow.";
+"Goal" = "Goal";
+"Goal & Trend" = "Goal & Trend";
+"Goal achieved" = "Goal achieved";
+"Goal type" = "Goal type";
+"Greeting, streak, goals, and momentum" = "Greeting, streak, goals, and momentum";
+"Guides action" = "Guides action";
+"Haptics" = "Haptics";
+"Health Metrics" = "Health Metrics";
+"Health data is not available on this device." = "Health data is not available on this device.";
+"Health date range is invalid." = "Health date range is invalid.";
+"Health indicators are informational and based on simple algorithms from reputable health and medical institutions. They are not a diagnosis and should be reviewed with a medical professional." = "Health indicators are informational and based on simple algorithms from reputable health and medical institutions. They are not a diagnosis and should be reviewed with a medical professional.";
+"Health summary" = "Health summary";
+"Height (cm)" = "Height (cm)";
+"Height is stored in Settings and used to calculate health indicators like WHtR and BMI." = "Height is stored in Settings and used to calculate health indicators like WHtR and BMI.";
+"Height is used to calculate important health metrics:" = "Height is used to calculate important health metrics:";
+"Higher value means narrower waist relative to hips." = "Higher value means narrower waist relative to hips.";
+"History" = "History";
+"Home key metrics" = "Home key metrics";
+"Home modules" = "Home modules";
+"Home now uses a modular dashboard. Full drag-and-drop editing will come later directly on the Home screen." = "Home now uses a modular dashboard. Full drag-and-drop editing will come later directly on the Home screen.";
+"How do I add measurements?" = "How do I add measurements?";
+"How do I choose which metrics to track?" = "How do I choose which metrics to track?";
+"How do I set goals?" = "How do I set goals?";
+"How do I take measurements?" = "How do I take measurements?";
+"How do photos help?" = "How do photos help?";
+"How is progress calculated?" = "How is progress calculated?";
+"How to measure" = "How to measure";
+"Import from Health" = "Import from Health";
+"Import latest from Health" = "Import latest from Health";
+"Improve posture, upper body training, and reduce waist gradually." = "Improve posture, upper body training, and reduce waist gradually.";
+"In physique view, BF% mostly controls sharpness and visible muscle separation." = "In physique view, BF% mostly controls sharpness and visible muscle separation.";
+"In physique view, WHtR is a visibility filter for proportions and definition." = "In physique view, WHtR is a visibility filter for proportions and definition.";
+"Increase" = "Increase";
+"Information" = "Information";
+"Insight" = "Insight";
+"Is any data processed on the internet?" = "Is any data processed on the internet?";
+"It helps track recomposition even when scale weight is steady." = "It helps track recomposition even when scale weight is steady.";
+"Keep steady" = "Keep steady";
+"LBM percentage represents how much of your total body weight is lean mass. Higher percentages generally indicate better muscle mass and metabolic health." = "LBM percentage represents how much of your total body weight is lean mass. Higher percentages generally indicate better muscle mass and metabolic health.";
+"Largest photo:" = "Largest photo:";
+"Last Photos" = "Last Photos";
+"Latest height" = "Latest height";
+"Latest progress photos" = "Latest progress photos";
+"Layout" = "Layout";
+"Lean Body Mass" = "Lean Body Mass";
+"Lean body mass is your total body weight minus body fat. It includes muscle, bone, organs, and water - everything except fat tissue." = "Lean body mass is your total body weight minus body fat. It includes muscle, bone, organs, and water - everything except fat tissue.";
+"Learn more" = "Learn more";
+"Limit reached" = "Limit reached";
+"Load More" = "Load More";
+"Log another check-in to reveal the trend." = "Log another check-in to reveal the trend.";
+"Low" = "Low";
+"Lower waist and build delts/lats for a stronger silhouette." = "Lower waist and build delts/lats for a stronger silhouette.";
+"Lower waist and build glutes/legs progressively." = "Lower waist and build glutes/legs progressively.";
+"Lower waist while maintaining strength to improve visual definition." = "Lower waist while maintaining strength to improve visual definition.";
+"Main lever is waist reduction while preserving muscle." = "Main lever is waist reduction while preserving muscle.";
+"Manage reminders" = "Manage reminders";
+"Manage subscription" = "Manage subscription";
+"Manual height" = "Manual height";
+"Maximum Photos Selected" = "Maximum Photos Selected";
+"Measure at a consistent time of day, in similar conditions, and record trends rather than single readings." = "Measure at a consistent time of day, in similar conditions, and record trends rather than single readings.";
+"Measurement" = "Measurement";
+"Measurement reminders" = "Measurement reminders";
+"Measurement time" = "Measurement time";
+"Measurements (Optional)" = "Measurements (Optional)";
+"Measurements section" = "Measurements section";
+"Metric Snapshots" = "Metric Snapshots";
+"Metric and Imperial. You can switch anytime in Settings → Units." = "Metric and Imperial. You can switch anytime in Settings → Units.";
+"Migration Complete!" = "Migration Complete!";
+"Missing data" = "Missing data";
+"Missing measurements" = "Missing measurements";
+"More Info" = "More Info";
+"Next: you can choose what to track, and change it anytime." = "Next: you can choose what to track, and change it anytime.";
+"No Photos Found" = "No Photos Found";
+"No age set" = "No age set";
+"No change" = "No change";
+"No data yet" = "No data yet";
+"No height set" = "No height set";
+"No indicators selected" = "No indicators selected";
+"No metrics recorded" = "No metrics recorded";
+"No problem—go to the metric and update or delete the goal at any time." = "No problem—go to the metric and update or delete the goal at any time.";
+"No related photos for this metric." = "No related photos for this metric.";
+"No related photos yet." = "No related photos yet.";
+"No reminders yet" = "No reminders yet";
+"No tags" = "No tags";
+"No tags selected" = "No tags selected";
+"No. HealthKit is optional. You can log everything manually." = "No. HealthKit is optional. You can log everything manually.";
+"No. Measurements and photos are not sent to external servers." = "No. Measurements and photos are not sent to external servers.";
+"No. Regular, consistent check‑ins are more valuable than daily measurements." = "No. Regular, consistent check‑ins are more valuable than daily measurements.";
+"Normal" = "Normal";
+"Not available" = "Not available";
+"Not selected" = "Not selected";
+"Note: For children and adolescents, BMI interpretation should ideally use age and gender-specific percentile charts. These simplified ranges are approximations." = "Note: For children and adolescents, BMI interpretation should ideally use age and gender-specific percentile charts. These simplified ranges are approximations.";
+"Nothing to save" = "Nothing to save";
+"Now" = "Now";
+"OK" = "OK";
+"On track" = "On track";
+"Only if you enable reminders in Settings → Notifications." = "Only if you enable reminders in Settings → Notifications.";
+"Open a metric, tap Goal, and set a target value and direction (increase or decrease)." = "Open a metric, tap Goal, and set a target value and direction (increase or decrease).";
+"Open all measurements" = "Open all measurements";
+"Open all photos" = "Open all photos";
+"Open photo details" = "Open photo details";
+"Open photo filters" = "Open photo filters";
+"Optimal" = "Optimal";
+"Optimization Available" = "Optimization Available";
+"Optimize Photos" = "Optimize Photos";
+"Options" = "Options";
+"Other" = "Other";
+"Photo" = "Photo";
+"Photo Optimization" = "Photo Optimization";
+"Photo Saved" = "Photo Saved";
+"Photo actions" = "Photo actions";
+"Photo reminders" = "Photo reminders";
+"Photos show visual changes that the scale doesn’t capture, especially when body composition is changing." = "Photos show visual changes that the scale doesn’t capture, especially when body composition is changing.";
+"Pick your focus" = "Pick your focus";
+"Premium Edition required" = "Premium Edition required";
+"Progress" = "Progress";
+"Progress clarity" = "Progress clarity";
+"Progress starts at the value you had when the goal was created and moves toward the target. It reaches 100% when the goal is met." = "Progress starts at the value you had when the goal was created and moves toward the target. It reaches 100% when the goal is met.";
+"RFM acts as a body-fat estimator interpreted through a visual lens in this section." = "RFM acts as a body-fat estimator interpreted through a visual lens in this section.";
+"Range" = "Range";
+"Read frequently asked questions" = "Read frequently asked questions";
+"Reduce gradually to protect lean mass and visual quality." = "Reduce gradually to protect lean mass and visual quality.";
+"Remaining onboarding and setup tasks" = "Remaining onboarding and setup tasks";
+"Reminders" = "Reminders";
+"Repeat" = "Repeat";
+"Reset" = "Reset";
+"Reset Filters" = "Reset Filters";
+"Reset Home layout" = "Reset Home layout";
+"Restore purchases" = "Restore purchases";
+"Restore the recommended Home arrangement while keeping your current module visibility choices." = "Restore the recommended Home arrangement while keeping your current module visibility choices.";
+"Retry" = "Retry";
+"Risk insight" = "Risk insight";
+"Room to improve" = "Room to improve";
+"Save" = "Save";
+"Save Measurements" = "Save Measurements";
+"Save photo to gallery" = "Save photo to gallery";
+"Save to Photos" = "Save to Photos";
+"Save unchanged values" = "Save unchanged values";
+"Saving" = "Saving";
+"Section" = "Section";
+"Select Metric" = "Select Metric";
+"Select tags to filter photos. Photos matching any selected tag will be shown." = "Select tags to filter photos. Photos matching any selected tag will be shown.";
+"Select up to three key metrics in Settings." = "Select up to three key metrics in Settings.";
+"Selected" = "Selected";
+"Set Height" = "Set Height";
+"Set a goal to see progress." = "Set a goal to see progress.";
+"Set a target" = "Set a target";
+"Set height manually" = "Set height manually";
+"Set your age to improve health metric accuracy." = "Set your age to improve health metric accuracy.";
+"Set your height to calculate health metrics like WHtR (Waist-to-Height Ratio)." = "Set your height to calculate health metrics like WHtR (Waist-to-Height Ratio).";
+"Setup checklist" = "Setup checklist";
+"Share" = "Share";
+"Show health summary on Home" = "Show health summary on Home";
+"Show measurements on Home" = "Show measurements on Home";
+"Show photos on Home" = "Show photos on Home";
+"Showing all photos" = "Showing all photos";
+"Shows how much upper torso dominates over waist." = "Shows how much upper torso dominates over waist.";
+"Simplest V-taper indicator: wider upper body relative to waist." = "Simplest V-taper indicator: wider upper body relative to waist.";
+"Smart Notifications" = "Smart Notifications";
+"Smart reminders" = "Smart reminders";
+"Smart reminders only trigger after a period of inactivity. When you log a measurement, the timer resets." = "Smart reminders only trigger after a period of inactivity. When you log a measurement, the timer resets.";
+"Some Health data types are unavailable on this device." = "Some Health data types are unavailable on this device.";
+"Some health metrics cannot be calculated because the following measurements are missing:" = "Some health metrics cannot be calculated because the following measurements are missing:";
+"Start Premium" = "Start Premium";
+"Startup failed" = "Startup failed";
+"Summary hero" = "Summary hero";
+"Sync height for calculations" = "Sync height for calculations";
+"Synced from Health app" = "Synced from Health app";
+"Tags" = "Tags";
+"Take Photo" = "Take Photo";
+"Tap to unlock Photo Comparison with Premium" = "Tap to unlock Photo Comparison with Premium";
+"Target Value" = "Target Value";
+"The waist-to-height ratio (WHtR) is a measure of body fat distribution. It is calculated by dividing waist circumference by height.\n\nResearch suggests that WHtR is a good predictor of cardiovascular disease risk and metabolic syndrome.\n\nA WHtR of 0.5 or less is considered healthy for most adults, meaning your waist circumference should be less than half your height." = "The waist-to-height ratio (WHtR) is a measure of body fat distribution. It is calculated by dividing waist circumference by height.\n\nResearch suggests that WHtR is a good predictor of cardiovascular disease risk and metabolic syndrome.\n\nA WHtR of 0.5 or less is considered healthy for most adults, meaning your waist circumference should be less than half your height.";
+"The waist-to-hip ratio (WHR) is a measure of body fat distribution. It is calculated by dividing waist circumference by hip circumference.\n\nWHR is used as a measurement of obesity, which in turn is a possible indicator of health risk. A higher WHR suggests more abdominal fat, which is associated with increased health risks.\n\nThe thresholds differ between males and females due to different body compositions." = "The waist-to-hip ratio (WHR) is a measure of body fat distribution. It is calculated by dividing waist circumference by hip circumference.\n\nWHR is used as a measurement of obesity, which in turn is a possible indicator of health risk. A higher WHR suggests more abdominal fat, which is associated with increased health risks.\n\nThe thresholds differ between males and females due to different body compositions.";
+"Then" = "Then";
+"These notifications are sent when specific events happen." = "These notifications are sent when specific events happen.";
+"This data comes from the Health app. Lean body mass measurements can vary based on the device and method used. For tracking progress, use the same measurement method consistently." = "This data comes from the Health app. Lean body mass measurements can vary based on the device and method used. For tracking progress, use the same measurement method consistently.";
+"This data is sourced from the Health app, which may collect it from compatible scales, fitness devices, or manual entries." = "This data is sourced from the Health app, which may collect it from compatible scales, fitness devices, or manual entries.";
+"This height is used for health metric calculations." = "This height is used for health metric calculations.";
+"This height will be used for health metric calculations like WHtR." = "This height will be used for health metric calculations like WHtR.";
+"This week" = "This week";
+"This will reduce photo file sizes while maintaining quality. Photos will be resized to max 1920px and compressed to ~2MB." = "This will reduce photo file sizes while maintaining quality. Photos will be resized to max 1920px and compressed to ~2MB.";
+"Time of day" = "Time of day";
+"To calculate all indicators, add:" = "To calculate all indicators, add:";
+"To calculate health metrics, please add:" = "To calculate health metrics, please add:";
+"To see your LBM percentage, please add your weight measurements. This helps provide more accurate health insights." = "To see your LBM percentage, please add your weight measurements. This helps provide more accurate health insights.";
+"Total photos:" = "Total photos:";
+"Total size:" = "Total size:";
+"Trackable" = "Trackable";
+"Tracked measurements" = "Tracked measurements";
+"Trend" = "Trend";
+"Trendline" = "Trendline";
+"Try adjusting your filters or add a new photo" = "Try adjusting your filters or add a new photo";
+"Unlock" = "Unlock";
+"Unlock your full progress system." = "Unlock your full progress system.";
+"Update measurements" = "Update measurements";
+"Upgrade to Premium" = "Upgrade to Premium";
+"Upgrade to Premium Edition to unlock Health Indicators." = "Upgrade to Premium Edition to unlock Health Indicators.";
+"Upper torso to waist proportion used in visual silhouette assessment." = "Upper torso to waist proportion used in visual silhouette assessment.";
+"Upper-to-lower balance is goal-dependent and should be tracked as trend." = "Upper-to-lower balance is goal-dependent and should be tracked as trend.";
+"Upper-to-lower body balance. This is preference-dependent, not good/bad." = "Upper-to-lower body balance. This is preference-dependent, not good/bad.";
+"Usage" = "Usage";
+"Use Quick Add or open a metric and tap Update to enter a new value with date and time." = "Use Quick Add or open a metric and tap Update to enter a new value with date and time.";
+"Use a soft measuring tape for circumferences. For weight and body fat, a smart scale can be helpful, but it can have a margin of error. The most accurate body composition results come from a DEXA scan." = "Use a soft measuring tape for circumferences. For weight and body fat, a smart scale can be helpful, but it can have a margin of error. The most accurate body composition results come from a DEXA scan.";
+"Use age from HealthKit" = "Use age from HealthKit";
+"Used for health metrics" = "Used for health metrics";
+"Value" = "Value";
+"Very high levels can add cardiometabolic strain over time." = "Very high levels can add cardiometabolic strain over time.";
+"View Full Screen" = "View Full Screen";
+"View More" = "View More";
+"View more" = "View more";
+"Visible modules" = "Visible modules";
+"Waist circumference is a direct marker of central fat distribution." = "Waist circumference is a direct marker of central fat distribution.";
+"Waist-Height Ratio" = "Waist-Height Ratio";
+"Weight is total body mass. Body fat % estimates fat as a portion of total weight. Lean body mass is everything except fat." = "Weight is total body mass. Body fat % estimates fat as a portion of total weight. Lean body mass is everything except fat.";
+"What happens if I set the wrong goal?" = "What happens if I set the wrong goal?";
+"What happens to my data?" = "What happens to my data?";
+"What is Body Fat Percentage?" = "What is Body Fat Percentage?";
+"What is Lean Body Mass?" = "What is Lean Body Mass?";
+"What is the privacy policy?" = "What is the privacy policy?";
+"What time of day should I measure?" = "What time of day should I measure?";
+"What tools should I use for measurements?" = "What tools should I use for measurements?";
+"What units does the app support?" = "What units does the app support?";
+"What’s the difference between weight, body fat %, and lean body mass?" = "What’s the difference between weight, body fat %, and lean body mass?";
+"When enabled, current values are saved even if unchanged." = "When enabled, current values are saved even if unchanged.";
+"Why It Matters" = "Why It Matters";
+"Why are circumference measurements important?" = "Why are circumference measurements important?";
+"Why do HealthKit values look different from manual entries?" = "Why do HealthKit values look different from manual entries?";
+"Why do my measurements fluctuate?" = "Why do my measurements fluctuate?";
+"Why is age important?" = "Why is age important?";
+"Why is height important?" = "Why is height important?";
+"Why it matters" = "Why it matters";
+"Why: gentle nudges keep you consistent." = "Why: gentle nudges keep you consistent.";
+"Worth attention" = "Worth attention";
+"Yes. In Settings → Experience you can turn off animations and haptics." = "Yes. In Settings → Experience you can turn off animations and haptics.";
+"Yes. Open a metric, go to History, and tap an entry to edit or swipe to delete." = "Yes. Open a metric, go to History, and tap an entry to edit or swipe to delete.";
+"Yes. The app works fully offline; HealthKit sync is optional." = "Yes. The app works fully offline; HealthKit sync is optional.";
+"Yes. Use Compare in the Photos tab and select two photos to view them side by side." = "Yes. Use Compare in the Photos tab and select two photos to view them side by side.";
+"Yes. Use Export data in Settings. Photos can be saved from the photo detail view." = "Yes. Use Export data in Settings. Photos can be saved from the photo detail view.";
+"You can build muscle and lose fat at the same time, so the scale might not change much. Waist circumference often reflects fat loss more clearly than weight alone." = "You can build muscle and lose fat at the same time, so the scale might not change much. Waist circumference often reflects fat loss more clearly than weight alone.";
+"You can choose up to 3 key metrics for Home." = "You can choose up to 3 key metrics for Home.";
+"You can only compare two photos at a time. Please deselect one photo before selecting another." = "You can only compare two photos at a time. Please deselect one photo before selecting another.";
+"You've set your height manually. Health metrics will use this value." = "You've set your height manually. Health metrics will use this value.";
+"Your data is stored on device and encrypted. MeasureMe works offline by default." = "Your data is stored on device and encrypted. MeasureMe works offline by default.";
+"Your data stays on device. If you choose to export or share, you control where it goes." = "Your data stays on device. If you choose to export or share, you control where it goes.";
+"Your top tracked measurements" = "Your top tracked measurements";
+"age.years.old.few" = "age.years.old.few";
+"age.years.old.many" = "age.years.old.many";
+"age.years.old.one" = "age.years.old.one";
+"compare.days.apart.few" = "compare.days.apart.few";
+"compare.days.apart.many" = "compare.days.apart.many";
+"compare.days.apart.one" = "compare.days.apart.one";
+"home.module.setup.subtitle.few" = "home.module.setup.subtitle.few";
+"home.module.setup.subtitle.many" = "home.module.setup.subtitle.many";
+"home.module.setup.subtitle.one" = "home.module.setup.subtitle.one";
+"import.photos.count.few" = "import.photos.count.few";
+"import.photos.count.many" = "import.photos.count.many";
+"import.photos.count.one" = "import.photos.count.one";
+"notification.photo.body.few" = "notification.photo.body.few";
+"notification.photo.body.many" = "notification.photo.body.many";
+"notification.photo.body.one" = "notification.photo.body.one";
+"notification.smart.after.days.few" = "notification.smart.after.days.few";
+"notification.smart.after.days.many" = "notification.smart.after.days.many";
+"notification.smart.after.days.one" = "notification.smart.after.days.one";
+"notification.smart.body.few" = "notification.smart.body.few";
+"notification.smart.body.many" = "notification.smart.body.many";
+"notification.smart.body.one" = "notification.smart.body.one";
+"photo.metrics.recorded.few" = "photo.metrics.recorded.few";
+"photo.metrics.recorded.many" = "photo.metrics.recorded.many";
+"photo.metrics.recorded.one" = "photo.metrics.recorded.one";
+"photos.active.filters.count.few" = "photos.active.filters.count.few";
+"photos.active.filters.count.many" = "photos.active.filters.count.many";
+"photos.active.filters.count.one" = "photos.active.filters.count.one";
+"photos.optimization.count.few" = "photos.optimization.count.few";
+"photos.optimization.count.many" = "photos.optimization.count.many";
+"photos.optimization.count.one" = "photos.optimization.count.one";
+"photos.tags.count.few" = "photos.tags.count.few";
+"photos.tags.count.many" = "photos.tags.count.many";
+"photos.tags.count.one" = "photos.tags.count.one";
+"years old" = "years old";

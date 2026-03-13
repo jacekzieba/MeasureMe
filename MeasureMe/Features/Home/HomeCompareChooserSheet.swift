@@ -100,8 +100,6 @@ struct HomeCompareChooserSheet: View {
                     }
 
                     pairHeader
-                    filterSection
-                    photoGrid
 
                     Button {
                         confirmCompare()
@@ -112,6 +110,9 @@ struct HomeCompareChooserSheet: View {
                     .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
                     .disabled(!compareEnabled)
                     .accessibilityIdentifier("home.compare.confirm")
+
+                    filterSection
+                    photoGrid
                 }
                 .padding(16)
             }
@@ -251,6 +252,9 @@ struct HomeCompareChooserSheet: View {
                         displayedComponents: [.date]
                     )
                     .labelsHidden()
+                    .accessibilityLabel(AppLocalization.string("From"))
+                    .accessibilityHint(AppLocalization.string("Select the first date for photo comparison."))
+                    .accessibilityIdentifier("home.compare.custom.from")
 
                     DatePicker(
                         AppLocalization.string("To"),
@@ -258,6 +262,9 @@ struct HomeCompareChooserSheet: View {
                         displayedComponents: [.date]
                     )
                     .labelsHidden()
+                    .accessibilityLabel(AppLocalization.string("To"))
+                    .accessibilityHint(AppLocalization.string("Select the last date for photo comparison."))
+                    .accessibilityIdentifier("home.compare.custom.to")
                 }
             }
 

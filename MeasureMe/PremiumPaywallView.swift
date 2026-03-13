@@ -187,6 +187,7 @@ struct PremiumPaywallView: View {
                 .padding(.trailing, 16)
                 .accessibilityLabel(AppLocalization.string("accessibility.close.premium.paywall"))
                 .accessibilityHint(AppLocalization.string("accessibility.close.premium.paywall.hint"))
+                .accessibilityIdentifier("premium.paywall.close")
             }
         }
         .onAppear {

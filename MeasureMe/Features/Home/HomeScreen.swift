@@ -858,7 +858,7 @@ struct HomeView: View {
     }
 
     private func refreshingHomeRoot<Content: View>(_ content: Content) -> some View {
-        content
+        let observedContent = content
             .onChange(of: recentSamplesSignature) { _, _ in
                 refreshMeasurementCaches()
             }
@@ -895,13 +895,21 @@ struct HomeView: View {
                     showMoreChecklistItems = false
                 }
             }
-            .refreshable {
-                syncMeasurementsFromPhotosIfNeeded(force: true)
-                refreshMeasurementCaches()
-                rebuildGoalsCache()
-                fetchHealthKitData()
-                refreshChecklistState()
+
+        return Group {
+            if showStreakDetail {
+                observedContent
+            } else {
+                observedContent
+                    .refreshable {
+                        syncMeasurementsFromPhotosIfNeeded(force: true)
+                        refreshMeasurementCaches()
+                        rebuildGoalsCache()
+                        fetchHealthKitData()
+                        refreshChecklistState()
+                    }
             }
+        }
     }
 
     private func shouldRenderModule(_ kind: HomeModuleKind) -> Bool {
@@ -2167,11 +2175,16 @@ struct HomeView: View {
             )
         )
 
+        let activeMetricCount = metricsStore.activeKinds.count
+        let totalMetricCount = metricsStore.allKindsInOrder.count
+        let inactiveMetricCount = totalMetricCount - activeMetricCount
         items.append(
             SetupChecklistItem(
                 id: "choose_metrics",
                 title: AppLocalization.string("Choose metrics"),
-                detail: AppLocalization.string("Track only what matters to you."),
+                detail: inactiveMetricCount > 0
+                    ? AppLocalization.string("checklist.choosemetrics.detail.dynamic", activeMetricCount, inactiveMetricCount)
+                    : AppLocalization.string("Track only what matters to you."),
                 icon: "slider.horizontal.3",
                 isCompleted: onboardingChecklistMetricsCompleted,
                 isLoading: false

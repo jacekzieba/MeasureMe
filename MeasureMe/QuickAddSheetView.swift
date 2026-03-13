@@ -295,7 +295,7 @@ struct QuickAddSheetView: View {
 
     private var trackedMetricsFooter: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
-            Text(AppLocalization.string("Tracked metric visibility can be changed in Settings."))
+            Text(AppLocalization.string("measurements.footer.dynamic", kinds.count, 18))
                 .font(AppTypography.caption)
                 .foregroundStyle(.white.opacity(0.82))
                 .fixedSize(horizontal: false, vertical: true)

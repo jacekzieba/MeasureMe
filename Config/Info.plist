@@ -6,6 +6,29 @@
 	<array>
 		<string>com.jacek.measureme.icloud-backup</string>
 	</array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.jacek.measureme.quickAdd</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>SHORTCUT_QUICK_ADD_TITLE</string>
+			<key>UIApplicationShortcutItemSubtitle</key>
+			<string>SHORTCUT_QUICK_ADD_SUBTITLE</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>plus.circle.fill</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.jacek.measureme.addPhoto</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>SHORTCUT_ADD_PHOTO_TITLE</string>
+			<key>UIApplicationShortcutItemSubtitle</key>
+			<string>SHORTCUT_ADD_PHOTO_SUBTITLE</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>camera.fill</string>
+		</dict>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>

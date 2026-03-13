@@ -2,12 +2,14 @@ import SwiftUI
 
 struct SettingsDataSection: View {
     @Binding var iCloudBackupEnabled: Bool
+    let isPremium: Bool
     let iCloudBackupLastSuccessText: String
     let iCloudBackupLastErrorText: String?
     let onExport: () -> Void
     let onImport: () -> Void
     let onBackupNow: () -> Void
     let onRestoreLatestBackup: () -> Void
+    let onUnlockICloudBackup: () -> Void
     let onSeedDummyData: () -> Void
     let onDeleteAll: () -> Void
 
@@ -18,12 +20,14 @@ struct SettingsDataSection: View {
                 NavigationLink {
                     DataSettingsDetailView(
                         iCloudBackupEnabled: $iCloudBackupEnabled,
+                        isPremium: isPremium,
                         iCloudBackupLastSuccessText: iCloudBackupLastSuccessText,
                         iCloudBackupLastErrorText: iCloudBackupLastErrorText,
                         onExport: onExport,
                         onImport: onImport,
                         onBackupNow: onBackupNow,
                         onRestoreLatestBackup: onRestoreLatestBackup,
+                        onUnlockICloudBackup: onUnlockICloudBackup,
                         onSeedDummyData: onSeedDummyData,
                         onDeleteAll: onDeleteAll
                     )

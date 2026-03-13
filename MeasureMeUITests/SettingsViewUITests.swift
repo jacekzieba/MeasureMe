@@ -61,11 +61,14 @@ final class SettingsViewUITests: XCTestCase {
         waitForAppShell()
         openDataSettings()
 
+        let unlockButton = app.descendants(matching: .any)["settings.data.icloud.unlockPremium"].firstMatch
+        XCTAssertTrue(unlockButton.waitForExistence(timeout: 5), "Non-premium user should see explicit Premium unlock control for iCloud backup")
+
         let backupNowButton = app.descendants(matching: .any)["settings.data.icloud.backupNow"].firstMatch
         XCTAssertTrue(backupNowButton.waitForExistence(timeout: 5), "Expected backup-now control")
         backupNowButton.tap()
 
-        let paywallCloseButton = app.buttons["Close Premium screen"].firstMatch
+        let paywallCloseButton = app.buttons["premium.paywall.close"].firstMatch
         XCTAssertTrue(paywallCloseButton.waitForExistence(timeout: 5), "Backup action should open paywall for non-premium users")
 
         let iCloudBenefit = app.descendants(matching: .any)["premium.carousel.unlock.item.icloud"].firstMatch
@@ -73,6 +76,23 @@ final class SettingsViewUITests: XCTestCase {
             app.swipeLeft()
         }
         XCTAssertTrue(iCloudBenefit.waitForExistence(timeout: 5), "Premium paywall should mention iCloud sync/backup on the last card")
+    }
+
+    @MainActor
+    func testPremiumSettingsShowICloudBackupWithoutUnlockCTA() {
+        app.launchArguments = ["-uiTestMode", "-uiTestOpenSettingsTab", "-uiTestEnableICloudBackup"]
+        app.launch()
+        waitForAppShell()
+        openDataSettings()
+
+        let unlockButton = app.descendants(matching: .any)["settings.data.icloud.unlockPremium"].firstMatch
+        XCTAssertFalse(unlockButton.exists, "Premium user should not see unlock CTA in iCloud backup settings")
+
+        let backupToggle = app.descendants(matching: .any)["settings.data.icloud.toggle"].firstMatch
+        XCTAssertTrue(backupToggle.waitForExistence(timeout: 5), "Expected iCloud backup toggle for Premium user")
+
+        let backupNowButton = app.descendants(matching: .any)["settings.data.icloud.backupNow"].firstMatch
+        XCTAssertTrue(backupNowButton.exists, "Premium user should see backup action")
     }
 
     @MainActor

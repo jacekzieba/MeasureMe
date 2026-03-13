@@ -11,7 +11,7 @@ extension MetricDetailView {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "MMM d"
 
-        let points: [(String, Double)] = chartSamples.map { sample in
+        let points: [(String, Double)] = chartRenderSamples.map { sample in
             let label = dateFormatter.string(from: sample.date)
             return (label, displayValue(sample.value))
         }
@@ -93,15 +93,20 @@ extension MetricDetailView {
     }
 
     var insightInput: MetricInsightInput? {
-        guard supportsAppleIntelligence, let latest = chartSamples.last else { return nil }
+        guard supportsAppleIntelligence, let latest = sortedSamplesAscending.last else { return nil }
+        let recent14 = sortedSamplesAscending.filterInLast(days: 14)
+        let recent30 = sortedSamplesAscending.filterInLast(days: 30)
+        let recent90 = sortedSamplesAscending.filterInLast(days: 90)
         return MetricInsightInput(
             userName: userName.isEmpty ? nil : userName,
             metricTitle: kind.englishTitle,
             latestValueText: valueString(latest.value),
-            timeframeLabel: timeframeLabel,
-            sampleCount: chartSamples.count,
-            delta7DaysText: chartSamples.deltaText(days: 7, kind: kind, unitsSystem: unitsSystem),
-            delta30DaysText: chartSamples.deltaText(days: 30, kind: kind, unitsSystem: unitsSystem),
+            timeframeLabel: AppLocalization.string("Last 90 days"),
+            sampleCount: recent90.count,
+            delta7DaysText: nil,
+            delta14DaysText: recent14.deltaText(days: 14, kind: kind, unitsSystem: unitsSystem),
+            delta30DaysText: recent30.deltaText(days: 30, kind: kind, unitsSystem: unitsSystem),
+            delta90DaysText: recent90.deltaText(days: 90, kind: kind, unitsSystem: unitsSystem),
             goalStatusText: goalStatusText,
             goalDirectionText: currentGoal?.direction.rawValue,
             defaultFavorableDirectionText: kind.defaultFavorableDirectionWhenNoGoal.rawValue
@@ -120,8 +125,8 @@ extension MetricDetailView {
 
     var goalForecastText: String? {
         guard let goal = currentGoal,
-              let latest = chartSamples.last,
-              let trend = trendlineSegment else { return nil }
+              let latest = sortedSamplesAscending.last,
+              let trend = insightTrendlineSegment else { return nil }
 
         if goal.isAchieved(currentValue: latest.value) {
             return AppLocalization.string("Goal already achieved.")
@@ -158,6 +163,34 @@ extension MetricDetailView {
         return AppLocalization.string("metric.goal.projected.date", formatted)
     }
 
+    var insightTrendlineSegment: (startDate: Date, startValue: Double, endDate: Date, endValue: Double)? {
+        let recent90 = sortedSamplesAscending.filterInLast(days: 90)
+        guard recent90.count >= 2 else { return nil }
+
+        let times = recent90.map { $0.date.timeIntervalSinceReferenceDate }
+        let values = recent90.map { displayValue($0.value) }
+        let count = Double(values.count)
+        let sumX = times.reduce(0, +)
+        let sumY = values.reduce(0, +)
+        let sumXY = zip(times, values).reduce(0) { $0 + ($1.0 * $1.1) }
+        let sumXX = times.reduce(0) { $0 + ($1 * $1) }
+
+        let denominator = (count * sumXX - sumX * sumX)
+        guard denominator != 0 else { return nil }
+
+        let slope = (count * sumXY - sumX * sumY) / denominator
+        let intercept = (sumY - slope * sumX) / count
+
+        guard let startTime = times.first, let endTime = times.last,
+              let firstSample = recent90.first, let lastSample = recent90.last else { return nil }
+        return (
+            startDate: firstSample.date,
+            startValue: slope * startTime + intercept,
+            endDate: lastSample.date,
+            endValue: slope * endTime + intercept
+        )
+    }
+
     func baselineValue(for goal: MetricGoal) -> Double {
         // Priorytet: użytkownik podał jawny punkt startowy
         if let sv = goal.startValue { return sv }
@@ -187,12 +220,22 @@ extension MetricDetailView {
 
     @MainActor
     func loadInsightIfNeeded() async {
-        guard let input = insightInput else {
-            detailedInsight = nil
+        guard supportsAppleIntelligence else {
             isLoadingInsight = false
             return
         }
 
+        guard let input = insightInput else {
+            insightState = .fallback(AppLocalization.string("Not enough data to generate insights yet."))
+            isLoadingInsight = false
+            return
+        }
+
+        if case .ready = insightState {
+            // stale-while-revalidate: keep previous insight visible while refreshing
+        } else {
+            insightState = .loading
+        }
         isLoadingInsight = true
         let generated = await MetricInsightService.shared.generateInsight(for: input)
         let baseText = generated?.detailedText ?? ""
@@ -200,9 +243,14 @@ extension MetricDetailView {
             let combined = [baseText, forecast]
                 .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
                 .joined(separator: " ")
-            detailedInsight = combined.isEmpty ? forecast : combined
+            insightState = .ready(combined.isEmpty ? forecast : combined)
         } else {
-            detailedInsight = baseText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : baseText
+            let trimmed = baseText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                insightState = .fallback(AppLocalization.string("Couldn't generate an insight right now. Please try again in a moment."))
+            } else {
+                insightState = .ready(trimmed)
+            }
         }
         isLoadingInsight = false
     }
@@ -266,6 +314,13 @@ extension MetricDetailView {
             context.delete(goal)
             WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
         }
+    }
+}
+
+private extension Array where Element == MetricSample {
+    func filterInLast(days: Int, now: Date = AppClock.now) -> [MetricSample] {
+        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: now) else { return self }
+        return filter { $0.date >= start }
     }
 }
 

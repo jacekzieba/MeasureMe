@@ -103,7 +103,7 @@ struct SettingsView: View {
     @AppSetting(\.health.healthkitSyncHeight) private var hkHeight: Bool = true
     @AppSetting(\.health.healthkitSyncLeanBodyMass) private var hkLeanMass: Bool = true
     @AppSetting(\.health.healthkitSyncWaist) private var hkWaist: Bool = true
-    @AppSetting(\.iCloudBackup.isEnabled) private var iCloudBackupEnabled: Bool = true
+    @AppSetting(\.iCloudBackup.isEnabled) private var iCloudBackupEnabled: Bool = false
     @AppSetting(\.iCloudBackup.lastSuccessTimestamp) private var iCloudBackupLastSuccessTimestamp: Double = 0
     @AppSetting(\.iCloudBackup.lastErrorMessage) private var iCloudBackupLastErrorMessage: String = ""
 
@@ -1012,8 +1012,17 @@ struct SettingsView: View {
 
     private func performBackupNow() {
         Task { @MainActor in
-            AppSettingsStore.shared.set(\.iCloudBackup.isEnabled, true)
-            let result = await ICloudBackupService.createBackupNow(context: modelContext, isPremium: true)
+            guard premiumStore.isPremium else {
+                Haptics.light()
+                premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
+                return
+            }
+            guard iCloudBackupEnabled else {
+                Haptics.error()
+                activeAlert = .backupResult(AppLocalization.string("Enable automatic iCloud backup first."))
+                return
+            }
+            let result = await ICloudBackupService.createBackupNow(context: modelContext, isPremium: premiumStore.isPremium)
             switch result {
             case .success(let manifest):
                 Haptics.success()
@@ -1027,7 +1036,12 @@ struct SettingsView: View {
 
     private func initiateRestore() {
         Task { @MainActor in
-            let preflightResult = await ICloudBackupService.preflightRestore(context: modelContext, isPremium: true)
+            guard premiumStore.isPremium else {
+                Haptics.light()
+                premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
+                return
+            }
+            let preflightResult = await ICloudBackupService.preflightRestore(context: modelContext, isPremium: premiumStore.isPremium)
             switch preflightResult {
             case .success(let manifest):
                 let localMetrics = (try? modelContext.fetchCount(FetchDescriptor<MetricSample>())) ?? 0
@@ -1058,7 +1072,12 @@ struct SettingsView: View {
 
     private func performRestore() {
         Task { @MainActor in
-            let result = await ICloudBackupService.restoreLatestBackupManually(context: modelContext, isPremium: true)
+            guard premiumStore.isPremium else {
+                Haptics.light()
+                premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
+                return
+            }
+            let result = await ICloudBackupService.restoreLatestBackupManually(context: modelContext, isPremium: premiumStore.isPremium)
             switch result {
             case .success:
                 Haptics.success()
@@ -1287,6 +1306,7 @@ struct SettingsView: View {
         case .data:
             DataSettingsDetailView(
                 iCloudBackupEnabled: $iCloudBackupEnabled,
+                isPremium: premiumStore.isPremium,
                 iCloudBackupLastSuccessText: iCloudBackupLastSuccessText,
                 iCloudBackupLastErrorText: iCloudBackupErrorText,
                 onExport: {
@@ -1323,6 +1343,10 @@ struct SettingsView: View {
                         onAllowed: { initiateRestore() },
                         onLocked: { premiumStore.presentPaywall(reason: .feature($0)) }
                     )
+                },
+                onUnlockICloudBackup: {
+                    Haptics.light()
+                    premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
                 },
                 onSeedDummyData: {
                     Haptics.light()
