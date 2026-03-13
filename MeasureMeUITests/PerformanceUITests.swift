@@ -138,7 +138,7 @@ final class PerformanceUITests: XCTestCase {
             return true
         }
 
-        let onboardingNext = app.buttons["onboarding.next"].firstMatch
+        let onboardingNext = onboardingNextButton()
         if onboardingNext.waitForExistence(timeout: 2) {
             for _ in 0..<4 {
                 onboardingNext.tap()
@@ -152,6 +152,14 @@ final class PerformanceUITests: XCTestCase {
         }
 
         return tabBar.waitForExistence(timeout: 3)
+    }
+
+    private func onboardingNextButton() -> XCUIElement {
+        let uiTestNext = app.buttons["UITest Next"].firstMatch
+        if uiTestNext.waitForExistence(timeout: 0.5) {
+            return uiTestNext
+        }
+        return app.buttons["onboarding.next"].firstMatch
     }
 
     private func averageColdLaunchDurationMs(sampleCount: Int) -> Double {

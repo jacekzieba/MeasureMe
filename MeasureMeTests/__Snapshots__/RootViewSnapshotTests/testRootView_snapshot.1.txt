@@ -12,7 +12,7 @@
    |    |    |    |    |    |    |    |    |    | <_TtCGC7SwiftUI32NavigationStackHostingControllerVS_7AnyView_P10$1dadfd8f011HostingView; frame = (0 0; 390 844); clipsToBounds = YES; gestureRecognizers = <NSArray>; backgroundColor = <UIDynamicSystemColor; name = systemBackgroundColor>; layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914RBDrawingLayer> (layer)
    |    |    |    |    |    |    |    |    |    |    | <_TtCC7SwiftUI17HostingScrollView17PlatformContainer; frame = (0 0; 390 844); anchorPoint = (0, 0); tintColor = UIExtendedSRGBColorSpace 0.988235 0.639216 0.0666667 1; layer = <CALayer>>
-   |    |    |    |    |    |    |    |    |    |    |    | <SwiftUI.HostingScrollView; baseClass = UIScrollView; frame = (0 0; 390 844); clipsToBounds = YES; gestureRecognizers = <NSArray>; layer = <CALayer>; contentOffset: {0, -54}; contentSize: {390, 1717.6666666666665}; adjustedContentInset: {54, 0, 83, 0} bottomEdge=<style=soft backgroundCapture=sampled>>
+   |    |    |    |    |    |    |    |    |    |    |    | <SwiftUI.HostingScrollView; baseClass = UIScrollView; frame = (0 0; 390 844); clipsToBounds = YES; gestureRecognizers = <NSArray>; layer = <CALayer>; contentOffset: {0, -54}; contentSize: {390, 1752.6666666666665}; adjustedContentInset: {54, 0, 83, 0} bottomEdge=<style=soft backgroundCapture=sampled>>
    |    |    |    |    |    |    |    |    |    |    |    |    | <_UITouchPassthroughView; frame = (0 -54; 390 844); layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    |    |    |    |    | <_TtCC5UIKit20ScrollEdgeEffectView12BackdropView; identifier = 'Background source for'; frame = (0 696.2; 390 147.8); userInteractionEnabled = NO; layer = <CABackdropLayer>>
    |    |    |    |    |    |    |    |    |    |    |    |    | <SwiftUI.UIKitRefreshControl; baseClass = UIRefreshControl; frame = (0 0; 390 60); hidden = YES; autoresize = W; layer = <CALayer>>
@@ -21,7 +21,7 @@
    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    | <_UIRefreshControlModernReplicatorView; frame = (0 0; 100 100); layer = <CAReplicatorLayer>>
    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    | <_UIRefreshControlSeedView; frame = (48.3333 35; 3.66667 10); backgroundColor = <UIDynamicCatalogSystemColor; name = labelColor>; layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    |    |    |    |    |    | <UILabel; frame = (10 48.6667; 370 0); alpha = 0; userInteractionEnabled = NO; backgroundColor = UIExtendedGrayColorSpace 0 0; layer = <_UILabelLayer>>
-   |    |    |    |    |    |    |    |    |    |    |    |    | <_TtCC7SwiftUI17HostingScrollView22PlatformGroupContainer; frame = (0 0; 390 1717.67); layer = <CALayer>>
+   |    |    |    |    |    |    |    |    |    |    |    |    | <_TtCC7SwiftUI17HostingScrollView22PlatformGroupContainer; frame = (0 0; 390 1752.67); layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    | <CABackdropLayer> (layer)
@@ -31,12 +31,6 @@
    |    |    |    |    |    |    |    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    |    |    |    |    |    |    | <SwiftUI.ImageLayer> (layer)
    |    |    |    |    |    |    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
-   |    |    |    |    |    |    |    |    |    |    |    |    |    | <CABackdropLayer> (layer)
-   |    |    |    |    |    |    |    |    |    |    |    |    |    | <CALayer> (layer)
-   |    |    |    |    |    |    |    |    |    |    |    |    |    | <CALayer> (layer)
-   |    |    |    |    |    |    |    |    |    |    |    |    |    | <CALayer> (layer)
-   |    |    |    |    |    |    |    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_E19F490D25D5E0EC8A24903AF958E34115PaintShapeLayer> (layer)
-   |    |    |    |    |    |    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
    |    |    |    |    |    |    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
    |    |    |    |    |    |    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    |    |    |    |    |    |    | <CALayer> (layer)
@@ -72,7 +66,7 @@
    |    |    |    |    |    |    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
    |    |    |    |    |    |    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
-   |    |    |    |    |    |    |    |    |    |    |    |    |    | <SwiftUI._UIInheritedView; frame = (16 422; 358 356); anchorPoint = (0, 0); clipsToBounds = YES; autoresizesSubviews = NO; layer = <CALayer>>
+   |    |    |    |    |    |    |    |    |    |    |    |    |    | <SwiftUI._UIInheritedView; frame = (16 457; 358 356); anchorPoint = (0, 0); clipsToBounds = YES; autoresizesSubviews = NO; layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    |    |    |    |    |    | <SwiftUI.HostingUIButton; baseClass = UIButton; frame = (308 35; 36 36); anchorPoint = (0, 0); opaque = NO; tintColor = UIExtendedSRGBColorSpace 0.988235 0.639216 0.0666667 1; gestureRecognizers = <NSArray>; layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
    |    |    |    |    |    |    |    |    |    |    |    |    |    | <CALayer> (layer)
@@ -151,8 +145,8 @@
    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    | <UIView; identifier = 'darkeningView'; frame = (0 0; 390 147.8); alpha = 0; backgroundColor = UIExtendedGrayColorSpace 0 1; layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    | <_UIPortalView; frame = (0 0; 390 147.8); layer = <CAPortalLayer>; 
    |    |    |    |    |    |    |    |    |    |    |    |    |    |    | <UIImageView; identifier = 'additionalDimming'; frame = (-120 4.8; 630 286); alpha = 0.01; opaque = NO; userInteractionEnabled = NO; image = <_UIResizableImage CGImage "AdditionalDimmingOverlay"; (240 240)@1>; layer = <CALayer>>
-   |    |    |    |    |    |    |    |    |    |    |    |    | <_UIScrollViewScrollIndicator; frame = (384 3; 3 319); alpha = 0; autoresize = LM; layer = <CALayer>>
-   |    |    |    |    |    |    |    |    |    |    |    |    |    | <UIView; frame = (0 0; 3 319); backgroundColor = UIExtendedGrayColorSpace 1 0.5; layer = <CALayer>>
+   |    |    |    |    |    |    |    |    |    |    |    |    | <_UIScrollViewScrollIndicator; frame = (384 3; 3 313); alpha = 0; autoresize = LM; layer = <CALayer>>
+   |    |    |    |    |    |    |    |    |    |    |    |    |    | <UIView; frame = (0 0; 3 313); backgroundColor = UIExtendedGrayColorSpace 1 0.5; layer = <CALayer>>
    |    |    |    |    |    |    |    | <_UIFloatingBarContainerView; frame = (0 0; 390 844); layer = <CALayer>>
    |    |    |    |    |    |    |    |    | <_TtGC5UIKitP10$186d42c1422FloatingBarHostingViewVS_20FloatingBarContainer_; frame = (0 0; 390 844); layer = <CALayer>>
    |    |    |    |    |    |    |    |    | <_UIPointerInteractionAssistantEffectContainerView; frame = (0 0; 0 0); userInteractionEnabled = NO; layer = <CALayer>>
@@ -244,15 +238,15 @@
    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
-   |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
+   |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_E19F490D25D5E0EC8A24903AF958E34115ColorShapeLayer> (layer)
    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
-   |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
+   |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_E19F490D25D5E0EC8A24903AF958E34115ColorShapeLayer> (layer)
    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
-   |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
+   |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_E19F490D25D5E0EC8A24903AF958E34115ColorShapeLayer> (layer)
    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    | <SwiftUI.GradientLayer> (layer)
    |    |    |    |    |    |    |    | <CALayer> (layer)
@@ -269,7 +263,6 @@
    |    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914RBDrawingLayer> (layer)
    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    | <CALayer> (layer)
-   |    |    |    |    |    |    |    |    | <CABackdropLayer> (layer)
    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    |    | <CALayer> (layer)
    |    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
@@ -294,14 +287,14 @@
    |    |    |    |    |    |    |    | <_TtGC7SwiftUI21UIKitPlatformViewHostGVS_P10$1dae0923832PlatformViewRepresentableAdaptorVS_P10$1dadc9d1c24PlatformTextFieldAdaptor__; baseClass = _TtGC5UIKit22UICorePlatformViewHostGV7SwiftUIP10$1dae0923832PlatformViewRepresentableAdaptorVS1_P10$1dadc9d1c24PlatformTextFieldAdaptor__; frame = (16 180.667; 326 34); anchorPoint = (0, 0); tintColor = UIExtendedSRGBColorSpace 0 0.568627 1 1; layer = <CALayer>>
    |    |    |    |    |    |    |    |    | <UITextField; frame = (0 0; 326 34); text = 'Jacek'; opaque = NO; autoresize = W+H; gestureRecognizers = <NSArray>; placeholder = np. Jacek; borderStyle = RoundedRect; background = <_UITextFieldSystemBackgroundProvider: backgroundView=<_UITextFieldRoundedRectBackgroundViewNeue; frame = (0 0; 326 34); opaque = NO; autoresize = W+H; userInteractionEnabled = NO; backgroundColor = <UIDynamicSystemColor; name = _textFieldBackgroundColor>; layer = <CALayer>>, fillColor=(null), textfield=<UITextField>>; layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    | <_UITextFieldRoundedRectBackgroundViewNeue; frame = (0 0; 326 34); opaque = NO; autoresize = W+H; userInteractionEnabled = NO; backgroundColor = <UIDynamicSystemColor; name = _textFieldBackgroundColor>; layer = <CALayer>>
-   |    |    |    |    |    |    |    |    |    | <_UITouchPassthroughView; frame = (0 0; 0 0); layer = <CALayer>>
+   |    |    |    |    |    |    |    |    |    | <_UITouchPassthroughView; frame = (0 0; 312 30); layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    | <_UITextLayoutCanvasView; frame = (7 2; 312 30); layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    |    | <_UITextLayoutFragmentView; frame = (-8 4; 95 22.3333); opaque = NO; layer = <CALayer>>
    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
    |    |    |    |    |    |    |    | <_TtGC7SwiftUI21UIKitPlatformViewHostGVS_P10$1dae0923832PlatformViewRepresentableAdaptorVS_P10$1dadc9d1c24PlatformTextFieldAdaptor__; baseClass = _TtGC5UIKit22UICorePlatformViewHostGV7SwiftUIP10$1dae0923832PlatformViewRepresentableAdaptorVS1_P10$1dadc9d1c24PlatformTextFieldAdaptor__; frame = (16 249; 326 34); anchorPoint = (0, 0); tintColor = UIExtendedSRGBColorSpace 0 0.568627 1 1; layer = <CALayer>>
    |    |    |    |    |    |    |    |    | <UITextField; frame = (0 0; 326 34); text = '180.0'; opaque = NO; autoresize = W+H; gestureRecognizers = <NSArray>; placeholder = Centymetry; borderStyle = RoundedRect; background = <_UITextFieldSystemBackgroundProvider: backgroundView=<_UITextFieldRoundedRectBackgroundViewNeue; frame = (0 0; 326 34); opaque = NO; autoresize = W+H; userInteractionEnabled = NO; backgroundColor = <UIDynamicSystemColor; name = _textFieldBackgroundColor>; layer = <CALayer>>, fillColor=(null), textfield=<UITextField>>; layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    | <_UITextFieldRoundedRectBackgroundViewNeue; frame = (0 0; 326 34); opaque = NO; autoresize = W+H; userInteractionEnabled = NO; backgroundColor = <UIDynamicSystemColor; name = _textFieldBackgroundColor>; layer = <CALayer>>
-   |    |    |    |    |    |    |    |    |    | <_UITouchPassthroughView; frame = (0 0; 0 0); layer = <CALayer>>
+   |    |    |    |    |    |    |    |    |    | <_UITouchPassthroughView; frame = (0 0; 312 30); layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    | <_UITextLayoutCanvasView; frame = (7 2; 312 30); layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    |    | <_UITextLayoutFragmentView; frame = (-8 4; 92 22.3333); opaque = NO; layer = <CALayer>>
    |    |    |    |    |    |    |    | <_TtC7SwiftUIP33_863CCF9D49B535DAEB1C7D61BEE53B5914CGDrawingLayer> (layer)
@@ -334,7 +327,7 @@
    |    |    |    |    |    |    |    | <_TtGC7SwiftUI21UIKitPlatformViewHostGVS_P10$1dae0923832PlatformViewRepresentableAdaptorVS_P10$1dadc9d1c24PlatformTextFieldAdaptor__; baseClass = _TtGC5UIKit22UICorePlatformViewHostGV7SwiftUIP10$1dae0923832PlatformViewRepresentableAdaptorVS1_P10$1dadc9d1c24PlatformTextFieldAdaptor__; frame = (16 382.667; 326 34); anchorPoint = (0, 0); tintColor = UIExtendedSRGBColorSpace 0 0.568627 1 1; layer = <CALayer>>
    |    |    |    |    |    |    |    |    | <UITextField; frame = (0 0; 326 34); text = '32'; opaque = NO; autoresize = W+H; gestureRecognizers = <NSArray>; placeholder = Wiek w latach; borderStyle = RoundedRect; background = <_UITextFieldSystemBackgroundProvider: backgroundView=<_UITextFieldRoundedRectBackgroundViewNeue; frame = (0 0; 326 34); opaque = NO; autoresize = W+H; userInteractionEnabled = NO; backgroundColor = <UIDynamicSystemColor; name = _textFieldBackgroundColor>; layer = <CALayer>>, fillColor=(null), textfield=<UITextField>>; layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    | <_UITextFieldRoundedRectBackgroundViewNeue; frame = (0 0; 326 34); opaque = NO; autoresize = W+H; userInteractionEnabled = NO; backgroundColor = <UIDynamicSystemColor; name = _textFieldBackgroundColor>; layer = <CALayer>>
-   |    |    |    |    |    |    |    |    |    | <_UITouchPassthroughView; frame = (0 0; 0 0); layer = <CALayer>>
+   |    |    |    |    |    |    |    |    |    | <_UITouchPassthroughView; frame = (0 0; 312 30); layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    | <_UITextLayoutCanvasView; frame = (7 2; 312 30); layer = <CALayer>>
    |    |    |    |    |    |    |    |    |    |    | <_UITextLayoutFragmentView; frame = (-8 4; 70 22.3333); opaque = NO; layer = <CALayer>>
    |    |    |    |    |    |    |    | <CALayer> (layer)

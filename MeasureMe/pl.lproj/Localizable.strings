@@ -254,13 +254,13 @@
 "accessibility.open.measurements" = "Otwórz wszystkie pomiary";
 "accessibility.opens.measurements" = "Otwiera zakładkę Pomiary";
 "accessibility.open.photos" = "Otwórz wszystkie zdjęcia";
-"Could not access iCloud backup right now." = "Nie można teraz uzyskać dostępu do kopii zapasowej iCloud.";
-"Encrypted backup for your measurements and photos. Premium only." = "Zaszyfrowana kopia zapasowa pomiarów i zdjęć. Tylko w Premium.";
-"Why: optional iCloud backup keeps a protected copy when you choose Premium." = "Dlaczego: opcjonalna kopia zapasowa iCloud zachowuje chronioną kopię, gdy wybierzesz Premium.";
-"Enable backup" = "Włącz backup";
+"Could not access iCloud backup right now." = "Nie można teraz uzyskać dostępu do kopii zapasowej iCloud. Spróbuj ponownie za chwilę.";
+"Encrypted backup for your measurements and photos. Premium only." = "Zaszyfrowana kopia zapasowa pomiarów i zdjęć. Dostępna tylko w Premium.";
+"Why: optional iCloud backup keeps a protected copy when you choose Premium." = "Dlaczego: opcjonalna kopia zapasowa iCloud pozwala zachować chronioną kopię danych, jeśli korzystasz z Premium.";
+"Enable backup" = "Włącz kopię zapasową";
 "Unlock in Premium" = "Odblokuj w Premium";
-"Upgrade to Premium to enable encrypted iCloud backup and restore." = "Przejdź na Premium, aby włączyć zaszyfrowany backup iCloud i przywracanie.";
-"Enable automatic iCloud backup first." = "Najpierw włącz automatyczny backup iCloud.";
+"Upgrade to Premium to enable encrypted iCloud backup and restore." = "Przejdź na Premium, aby włączyć zaszyfrowaną kopię zapasową iCloud i przywracanie danych.";
+"Enable automatic iCloud backup first." = "Najpierw włącz automatyczną kopię zapasową iCloud.";
 "Your data stays on this device by default. Encrypted iCloud backup is optional and available with Premium if you enable it." = "Domyślnie Twoje dane pozostają na tym urządzeniu. Zaszyfrowany backup iCloud jest opcjonalny i dostępny w Premium, jeśli go włączysz.";
 "accessibility.opens.photos" = "Otwiera zakładkę Zdjęcia";
 "accessibility.open.photo.details" = "Otwórz szczegóły zdjęcia";
@@ -1233,9 +1233,9 @@
 "Enable AI Insights" = "Włącz Analizy AI";
 "AI Insights" = "Analizy AI";
 "AI Insights aren’t available right now." = "Analizy AI są teraz niedostępne.";
-"Not enough data to generate insights yet." = "Za mało danych, aby wygenerować wgląd.";
-"Not enough data in the selected range to generate insights yet." = "Za mało danych w wybranym zakresie, aby wygenerować wgląd.";
-"Couldn't generate an insight right now. Please try again in a moment." = "Nie udało się teraz wygenerować wglądu. Spróbuj ponownie za chwilę.";
+"Not enough data to generate insights yet." = "Za mało danych, aby wygenerować podsumowanie.";
+"Not enough data in the selected range to generate insights yet." = "Za mało danych w wybranym zakresie, aby wygenerować podsumowanie.";
+"Couldn't generate an insight right now. Please try again in a moment." = "Nie udało się teraz wygenerować podsumowania. Spróbuj ponownie za chwilę.";
 "AI generated" = "Wygenerowano przez AI";
 "AI Insights: unavailable (Premium Edition required)" = "Analizy AI: niedostępne (wymagana jest wersja Premium)";
 "What if AI Insights are unavailable?" = "Co jeśli Analizy AI są niedostępne?";
@@ -1589,7 +1589,7 @@
 "Data restored successfully from iCloud backup." = "Dane przywrócone z kopii zapasowej iCloud.";
 "Restore failed: %@" = "Przywracanie nieudane: %@";
 "Your data: %d measurements, %d goals, %d photos." = "Twoje dane: %d pomiarów, %d celów, %d zdjęć.";
-"Latest iCloud backup was restored automatically. Review your measurements and photos to confirm everything looks right." = "Najnowsza kopia zapasowa iCloud została przywrócona automatycznie. Sprawdź pomiary i zdjęcia, aby potwierdzić, że wszystko wygląda poprawnie.";
+"Latest iCloud backup was restored automatically. Review your measurements and photos to confirm everything looks right." = "Najnowsza kopia zapasowa iCloud została przywrócona automatycznie. Sprawdź pomiary i zdjęcia, aby upewnić się, że wszystko wygląda poprawnie.";
 "Turns encrypted iCloud backup on or off for your measurements and photos." = "Włącza lub wyłącza zaszyfrowaną kopię zapasową iCloud dla pomiarów i zdjęć.";
 "Turns anonymous product analytics on or off." = "Włącza lub wyłącza anonimową analitykę produktu.";
 "Select the first date for photo comparison." = "Wybierz datę początkową porównania zdjęć.";
@@ -1602,4 +1602,4 @@
 "Session" = "Sesja";
 "Select Date" = "Wybierz datę";
 "Premium" = "Premium";
-"Apple Intelligence insights, Health Indicators, Physique Indicators, and photo comparison." = "Analizy AI, wskaźniki zdrowia, wskaźniki sylwetki i porównywanie zdjęć.";
+"Apple Intelligence insights, Health Indicators, Physique Indicators, and photo comparison." = "Analizy Apple Intelligence, wskaźniki zdrowia, wskaźniki sylwetki i porównywanie zdjęć.";

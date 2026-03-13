@@ -94,13 +94,11 @@ final class MeasurementsPhysiqueUITests: XCTestCase {
 
     @MainActor
     func testPhysiqueToggleInSettingsAffectsMeasurementsVisibility() {
-        launchApp(arguments: ["-uiTestMode", "-uiTestForcePremium", "-uiTestGenderMale", "-uiTestPhysiqueSWROff"])
+        launchApp(arguments: ["-uiTestMode", "-uiTestForcePremium", "-uiTestGenderMale", "-uiTestPhysiqueSWROff", "-uiTestOpenSettingsTab"])
+        waitForSettingsOverview()
+        tapSettingsTabIfNeeded()
 
-        let settingsTab = app.tabBars.buttons["tab.settings"]
-        XCTAssertTrue(settingsTab.waitForExistence(timeout: 5), "Settings tab should exist")
-        settingsTab.tap()
-
-        let searchField = app.searchFields.firstMatch
+        let searchField = settingsSearchField()
         XCTAssertTrue(searchField.waitForExistence(timeout: 5), "Settings search should exist")
         searchField.tap()
         searchField.typeText("physique")
@@ -114,6 +112,8 @@ final class MeasurementsPhysiqueUITests: XCTestCase {
         XCTAssertTrue(swrToggle.waitForExistence(timeout: 5), "SWR toggle should exist")
         XCTAssertEqual(swrToggle.value as? String, "0", "SWR toggle should be OFF")
 
+        app.terminate()
+        launchApp(arguments: ["-uiTestMode", "-uiTestForcePremium", "-uiTestGenderMale", "-uiTestPhysiqueSWROff"])
         openMeasurementsTab()
         app.buttons["measurements.tab.physique"].tap()
 
@@ -123,5 +123,56 @@ final class MeasurementsPhysiqueUITests: XCTestCase {
             measurementsScroll.staticTexts["Shoulder-to-Waist Ratio"].exists,
             "SWR row should be hidden when toggle is disabled"
         )
+    }
+
+    private func settingsSearchField() -> XCUIElement {
+        if app.textFields["settings.search.field"].firstMatch.exists {
+            return app.textFields["settings.search.field"].firstMatch
+        }
+        if app.descendants(matching: .any)["settings.search.field"].firstMatch.exists {
+            return app.descendants(matching: .any)["settings.search.field"].firstMatch
+        }
+        return app.textFields.firstMatch
+    }
+
+    private func tapSettingsTabIfNeeded() {
+        if app.descendants(matching: .any)["settings.root"].firstMatch.exists
+            || app.descendants(matching: .any)["settings.section.search"].firstMatch.exists
+            || settingsSearchField().exists {
+            return
+        }
+
+        for candidate in ["tab.settings", "Settings", "Ustawienia"] {
+            let button = app.buttons[candidate].firstMatch
+            if button.waitForExistence(timeout: 2) {
+                button.tap()
+                return
+            }
+        }
+    }
+
+    private func waitForSettingsOverview(timeout: TimeInterval = 20) {
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: min(timeout, 10)))
+
+        let appRoot = app.otherElements["app.root.ready"].firstMatch
+        let settingsRoot = app.descendants(matching: .any)["settings.root"].firstMatch
+        let searchSection = app.descendants(matching: .any)["settings.section.search"].firstMatch
+        let accountSection = app.descendants(matching: .any)["settings.section.account"].firstMatch
+        let supportSection = app.descendants(matching: .any)["settings.section.support"].firstMatch
+        let startupLoading = app.otherElements["startup.loading.root"].firstMatch
+
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if appRoot.exists && (settingsRoot.exists || settingsSearchField().exists || searchSection.exists || accountSection.exists || supportSection.exists) {
+                return
+            }
+            if startupLoading.exists {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.35))
+                continue
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+        }
+
+        XCTFail("Settings overview should become ready before interacting. Debug tree: \(app.debugDescription)")
     }
 }

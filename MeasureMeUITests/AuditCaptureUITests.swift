@@ -154,18 +154,18 @@ final class AuditCaptureUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
-        XCTAssertTrue(app.buttons["onboarding.next"].waitForExistence(timeout: 15))
+        XCTAssertTrue(onboardingNextButton(in: app).waitForExistence(timeout: 15))
         saveScreenshot(screen: "onboarding_welcome")
 
-        app.buttons["onboarding.next"].tap()
+        onboardingNextButton(in: app).tap()
         XCTAssertTrue(app.textFields["onboarding.profile.name"].waitForExistence(timeout: 8))
         saveScreenshot(screen: "onboarding_profile")
 
-        app.buttons["onboarding.next"].tap()
+        onboardingNextButton(in: app).tap()
         XCTAssertTrue(app.buttons["onboarding.booster.reminders"].waitForExistence(timeout: 8))
         saveScreenshot(screen: "onboarding_boosters")
 
-        app.buttons["onboarding.next"].tap()
+        onboardingNextButton(in: app).tap()
         XCTAssertTrue(app.buttons["onboarding.premium.restore"].waitForExistence(timeout: 8))
         saveScreenshot(screen: "paywall_onboarding")
     }
@@ -226,13 +226,12 @@ final class AuditCaptureUITests: XCTestCase {
         onboardingApp.launch()
 
         XCTAssertTrue(onboardingApp.wait(for: .runningForeground, timeout: 10))
-        let onboardingNext = onboardingApp.buttons["onboarding.next"]
-        XCTAssertTrue(onboardingNext.waitForExistence(timeout: 15))
-        onboardingNext.tap()
-        onboardingNext.tap()
-        onboardingNext.tap()
+        XCTAssertTrue(onboardingNextButton(in: onboardingApp).waitForExistence(timeout: 15))
+        for _ in 0..<3 {
+            onboardingNextButton(in: onboardingApp).tap()
+        }
 
-        let onboardingBack = onboardingApp.buttons["onboarding.back"]
+        let onboardingBack = onboardingBackButton(in: onboardingApp)
         let onboardingTrial = onboardingApp.buttons["onboarding.premium.trial"]
         let onboardingRestore = onboardingApp.buttons["onboarding.premium.restore"]
         XCTAssertTrue(onboardingBack.waitForExistence(timeout: 8))
@@ -307,16 +306,16 @@ final class AuditCaptureUITests: XCTestCase {
         onboardingApp.launch()
 
         XCTAssertTrue(onboardingApp.wait(for: .runningForeground, timeout: 10))
-        let onboardingNext = onboardingApp.buttons["onboarding.next"]
-        let onboardingBack = onboardingApp.buttons["onboarding.back"]
+        let onboardingNext = onboardingNextButton(in: onboardingApp)
+        let onboardingBack = onboardingBackButton(in: onboardingApp)
         XCTAssertTrue(onboardingNext.waitForExistence(timeout: 15))
         XCTAssertTrue(onboardingBack.waitForExistence(timeout: 15))
         assertMinHitTarget(onboardingNext, minSize: 44, name: "onboarding.next")
         assertMinHitTarget(onboardingBack, minSize: 44, name: "onboarding.back")
 
-        onboardingNext.tap()
-        onboardingNext.tap()
-        onboardingNext.tap()
+        for _ in 0..<3 {
+            onboardingNextButton(in: onboardingApp).tap()
+        }
 
         let trial = onboardingApp.buttons["onboarding.premium.trial"]
         XCTAssertTrue(waitForExistenceWithScroll(trial, in: onboardingApp, timeout: 10, maxSwipes: 8))
@@ -367,6 +366,22 @@ final class AuditCaptureUITests: XCTestCase {
         }
 
         XCTFail("Could not find tab with labels: \(candidates.joined(separator: ", "))")
+    }
+
+    private func onboardingNextButton(in app: XCUIApplication) -> XCUIElement {
+        let identifierNext = app.buttons["onboarding.next"].firstMatch
+        if identifierNext.waitForExistence(timeout: 0.5) {
+            return identifierNext
+        }
+        return app.buttons["UITest Next"].firstMatch
+    }
+
+    private func onboardingBackButton(in app: XCUIApplication) -> XCUIElement {
+        let identifierBack = app.buttons["onboarding.back"].firstMatch
+        if identifierBack.waitForExistence(timeout: 0.5) {
+            return identifierBack
+        }
+        return app.buttons["UITest Back"].firstMatch
     }
 
     private func fallbackTabIndex(for candidates: [String]) -> Int? {

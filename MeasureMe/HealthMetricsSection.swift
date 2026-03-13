@@ -288,9 +288,23 @@ struct HealthMetricsSection: View {
                         .accessibilityIdentifier("home.health.ai.text")
                 }
 
-                Text(AppLocalization.string("AI generated"))
-                    .font(AppTypography.micro)
-                    .foregroundStyle(.secondary)
+                HStack {
+                    Text(AppLocalization.string("AI generated"))
+                        .font(AppTypography.micro)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    if !isLoadingInsight {
+                        Button {
+                            Task { await refreshHealthInsight() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(AppTypography.micro)
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityLabel(AppLocalization.string("Refresh insight"))
+                        .accessibilityIdentifier("home.health.ai.refresh")
+                    }
+                }
             }
             .padding(14)
             .background(
@@ -762,6 +776,15 @@ struct HealthMetricsSection: View {
         default:
             return (AppLocalization.string(raw), HealthIndicatorPalette.emphasisHex)
         }
+    }
+
+    @MainActor
+    private func refreshHealthInsight() async {
+        guard let input = healthInsightInput else { return }
+        await MetricInsightService.shared.invalidateHealth()
+        isLoadingInsight = true
+        healthInsightText = await MetricInsightService.shared.generateHealthInsight(for: input)
+        isLoadingInsight = false
     }
 
     @MainActor

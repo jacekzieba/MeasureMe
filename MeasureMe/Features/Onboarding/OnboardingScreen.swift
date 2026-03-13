@@ -367,6 +367,7 @@ struct OnboardingView: View {
                 .font(AppTypography.micro)
                 .foregroundStyle(Color.appGray)
         }
+        .accessibilityElement(children: .combine)
         .accessibilityIdentifier("onboarding.privacy.note")
     }
 

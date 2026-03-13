@@ -53,13 +53,21 @@ final class TextTruncationUITests: XCTestCase {
         for step in 1...4 {
             scanCurrentScreenForTruncatedText(context: "Onboarding.Step\(step)", maxSwipes: 2)
 
-            let nextButton = app.buttons["onboarding.next"].firstMatch
+            let nextButton = onboardingNextButton()
             if nextButton.waitForExistence(timeout: 2), nextButton.isHittable {
                 nextButton.tap()
             } else {
                 break
             }
         }
+    }
+
+    private func onboardingNextButton() -> XCUIElement {
+        let uiTestNext = app.buttons["UITest Next"].firstMatch
+        if uiTestNext.waitForExistence(timeout: 0.5) {
+            return uiTestNext
+        }
+        return app.buttons["onboarding.next"].firstMatch
     }
 
     private func tapTab(_ identifier: String, fallbackLabels: [String]) {

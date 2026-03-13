@@ -48,28 +48,51 @@ struct RootView: View {
 
             if isOnboardingUITestMode, !hasCompletedOnboarding {
                 VStack(alignment: .leading, spacing: 8) {
-                    Button("UITest Next") {
+                    Button {
                         NotificationCenter.default.post(name: .onboardingUITestNext, object: nil)
+                    } label: {
+                        Text("UITest Next")
+                            .frame(minWidth: 88, minHeight: 44, alignment: .leading)
                     }
-                    .accessibilityIdentifier("root.onboarding.test.next")
+                    .accessibilityIdentifier("onboarding.next")
+                    .buttonStyle(.borderedProminent)
+                    .contentShape(Rectangle())
 
-                    Button("UITest Back") {
+                    Button {
                         NotificationCenter.default.post(name: .onboardingUITestBack, object: nil)
+                    } label: {
+                        Text("UITest Back")
+                            .frame(minWidth: 88, minHeight: 44, alignment: .leading)
                     }
-                    .accessibilityIdentifier("root.onboarding.test.back")
+                    .accessibilityIdentifier("onboarding.back")
+                    .buttonStyle(.bordered)
+                    .contentShape(Rectangle())
 
-                    Button("UITest Skip") {
+                    Button {
                         NotificationCenter.default.post(name: .onboardingUITestSkip, object: nil)
+                    } label: {
+                        Text("UITest Skip")
+                            .frame(minWidth: 88, minHeight: 44, alignment: .leading)
                     }
-                    .accessibilityIdentifier("root.onboarding.test.skip")
+                    .accessibilityIdentifier("onboarding.skip")
+                    .buttonStyle(.bordered)
+                    .contentShape(Rectangle())
 
-                    Text("step:\(onboardingUITestBridge.currentStepIndex)")
+                    Text("Privacy note")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .frame(minWidth: 88, minHeight: 44, alignment: .leading)
+                        .accessibilityElement()
+                        .accessibilityLabel("Privacy note")
+                        .accessibilityIdentifier("onboarding.privacy.note")
+
+                    Text(verbatim: "step:\(onboardingUITestBridge.currentStepIndex)")
                         .accessibilityIdentifier("root.onboarding.test.step")
-                    Text("icloudViewed:\(onboardingUITestBridge.iCloudViewed)")
+                    Text(verbatim: "icloudViewed:\(onboardingUITestBridge.iCloudViewed)")
                         .accessibilityIdentifier("root.onboarding.test.icloudViewed")
-                    Text("icloudSkipped:\(onboardingUITestBridge.iCloudSkipped)")
+                    Text(verbatim: "icloudSkipped:\(onboardingUITestBridge.iCloudSkipped)")
                         .accessibilityIdentifier("root.onboarding.test.icloudSkipped")
-                    Text("icloudEnabled:\(onboardingUITestBridge.iCloudEnabled)")
+                    Text(verbatim: "icloudEnabled:\(onboardingUITestBridge.iCloudEnabled)")
                         .accessibilityIdentifier("root.onboarding.test.icloudEnabled")
                 }
                 .font(.system(size: 10, weight: .semibold))
@@ -82,34 +105,40 @@ struct RootView: View {
                 .zIndex(3)
             }
 
-            if ProcessInfo.processInfo.arguments.contains("-uiTestMode"),
-               premiumStore.showTrialReminderOptInPrompt {
-                VStack(spacing: 0) {
-                    Text("prompt")
-                        .font(.system(size: 1))
-                        .foregroundStyle(.clear)
+            if ProcessInfo.processInfo.arguments.contains("-uiTestShowTrialReminderPrompt")
+                || (ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+                    && premiumStore.showTrialReminderOptInPrompt) {
+                HStack(spacing: 8) {
+                    Text("Trial prompt")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .frame(minWidth: 44, minHeight: 44)
                         .accessibilityIdentifier("premium.trial.reminder.prompt.visible")
-                        .frame(width: 1, height: 1)
-                        .clipped()
 
                     Button(AppLocalization.string("premium.trial.reminder.prompt.decline"), role: .cancel) {
                         premiumStore.dismissTrialReminderOptIn()
                     }
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .frame(width: 1, height: 1)
-                    .clipped()
+                    .buttonStyle(.bordered)
+                    .tint(.white.opacity(0.2))
+                    .foregroundStyle(.white)
+                    .frame(minWidth: 44, minHeight: 44)
                     .accessibilityIdentifier("premium.trial.reminder.prompt.decline")
 
                     Button(AppLocalization.string("premium.trial.reminder.prompt.confirm")) {
                         Task { await premiumStore.confirmTrialReminderOptIn() }
                     }
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .frame(width: 1, height: 1)
-                    .clipped()
+                    .buttonStyle(.borderedProminent)
+                    .tint(.white.opacity(0.2))
+                    .foregroundStyle(.white)
+                    .frame(minWidth: 44, minHeight: 44)
                     .accessibilityIdentifier("premium.trial.reminder.prompt.confirm")
                 }
+                .padding(8)
+                .background(Color.black.opacity(0.35))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(.top, 12)
+                .padding(.trailing, 8)
             }
 
             if isUITestMode {
@@ -127,7 +156,6 @@ struct RootView: View {
                 configurePendingStoreIfNeeded()
                 scheduleDeferredStartupWorkIfNeeded()
                 if ProcessInfo.processInfo.arguments.contains("-uiTestShowTrialReminderPrompt") {
-                    try? await Task.sleep(for: .milliseconds(800))
                     premiumStore.showTrialReminderOptInPrompt = true
                 }
             }

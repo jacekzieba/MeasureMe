@@ -4,6 +4,7 @@ struct MetricInsightCard: View {
     let text: String
     let compact: Bool
     let isLoading: Bool
+    var onRefresh: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -26,9 +27,24 @@ struct MetricInsightCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier(compact ? "insight.card.text.compact" : "insight.card.text.detail")
 
-                Text(AppLocalization.string("AI generated"))
-                    .font(AppTypography.micro)
-                    .foregroundStyle(AppColorRoles.textSecondary)
+                HStack {
+                    Text(AppLocalization.string("AI generated"))
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+
+                    if let onRefresh, !isLoading {
+                        Spacer()
+                        Button {
+                            onRefresh()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColorRoles.textSecondary)
+                        }
+                        .accessibilityLabel(AppLocalization.string("Refresh insight"))
+                        .accessibilityIdentifier("insight.card.refresh")
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

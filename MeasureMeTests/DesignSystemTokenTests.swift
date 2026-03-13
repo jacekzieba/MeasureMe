@@ -28,7 +28,7 @@ final class DesignSystemTokenTests: XCTestCase {
         XCTAssertEqual(rgba(AppColorRoles.accentPrimary), rgba(Color.appAmber))
         XCTAssertEqual(rgba(AppColorRoles.accentPhoto), rgba(Color.appCyan))
         XCTAssertEqual(rgba(AppColorRoles.accentData), rgba(Color.appTeal))
-        XCTAssertEqual(rgba(AppColorRoles.accentPremium), rgba(Color.appRose))
+        XCTAssertEqual(rgba(AppColorRoles.accentPremium), rgba(Color.appAmber))
         XCTAssertEqual(rgba(AppColorRoles.accentHealth), rgba(Color.appEmerald))
         XCTAssertEqual(rgba(AppColorRoles.chartPositive), rgba(Color.appEmerald))
         XCTAssertEqual(rgba(AppColorRoles.compareAfter), rgba(Color.appAmber))

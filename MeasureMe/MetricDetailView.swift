@@ -392,7 +392,8 @@ struct MetricDetailView: View {
                     MetricInsightCard(
                         text: text,
                         compact: false,
-                        isLoading: isLoadingInsight
+                        isLoading: isLoadingInsight,
+                        onRefresh: { Task { await refreshInsight() } }
                     )
                 case .loading:
                     MetricInsightCard(
@@ -404,7 +405,8 @@ struct MetricDetailView: View {
                     MetricInsightCard(
                         text: message,
                         compact: false,
-                        isLoading: isLoadingInsight
+                        isLoading: isLoadingInsight,
+                        onRefresh: { Task { await refreshInsight() } }
                     )
                 }
             } header: {

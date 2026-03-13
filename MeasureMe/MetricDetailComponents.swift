@@ -219,6 +219,13 @@ extension MetricDetailView {
     }
 
     @MainActor
+    func refreshInsight() async {
+        guard let input = insightInput else { return }
+        await MetricInsightService.shared.invalidate(for: input.metricTitle)
+        await loadInsightIfNeeded()
+    }
+
+    @MainActor
     func loadInsightIfNeeded() async {
         guard supportsAppleIntelligence else {
             isLoadingInsight = false
@@ -590,6 +597,8 @@ struct AddMetricSampleView: View {
                                         .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
                                         .fixedSize()
                                         .focused($isValueFocused)
+                                        .accessibilityLabel(AppLocalization.string("Goal value"))
+                                        .accessibilityIdentifier("goal.input.value")
                                         .accessibilityIdentifier("goal.input.value")
 
                                     Text(kind.unitSymbol(unitsSystem: unitsSystem))
@@ -718,6 +727,8 @@ struct EditMetricSampleView: View {
                                         .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
                                         .fixedSize()
                                         .focused($isValueFocused)
+                                        .accessibilityLabel(AppLocalization.string("Goal value"))
+                                        .accessibilityIdentifier("goal.input.value")
 
                                     Text(kind.unitSymbol(unitsSystem: unitsSystem))
                                         .font(.title.weight(.medium))
@@ -732,6 +743,7 @@ struct EditMetricSampleView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .frame(minHeight: 140)
+                            .accessibilityIdentifier("goal.input.card")
                             .contentShape(Rectangle())
                             .onTapGesture { isValueFocused = true }
                         }
@@ -897,6 +909,23 @@ struct SetGoalView: View {
         }
     }
 
+    private var isUITestMode: Bool {
+        ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+    }
+
+    private var goalInputTextBinding: Binding<String> {
+        Binding(
+            get: {
+                if displayValue == 0 { return "" }
+                return String(displayValue)
+            },
+            set: { newValue in
+                let normalized = newValue.replacingOccurrences(of: ",", with: ".")
+                displayValue = Double(normalized) ?? 0
+            }
+        )
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -943,6 +972,8 @@ struct SetGoalView: View {
                                         .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
                                         .fixedSize()
                                         .focused($isValueFocused)
+                                        .accessibilityLabel(AppLocalization.string("Goal value"))
+                                        .accessibilityIdentifier("goal.input.value")
 
                                     Text(kind.unitSymbol(unitsSystem: unitsSystem))
                                         .font(.title.weight(.medium))
@@ -957,8 +988,19 @@ struct SetGoalView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .frame(minHeight: 140)
+                            .accessibilityIdentifier("goal.input.card")
                             .contentShape(Rectangle())
                             .onTapGesture { isValueFocused = true }
+                        }
+
+                        if isUITestMode {
+                            TextField("Goal value", text: goalInputTextBinding)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .keyboardType(.decimalPad)
+                                .textFieldStyle(.roundedBorder)
+                                .accessibilityLabel(AppLocalization.string("Goal value"))
+                                .accessibilityIdentifier("goal.input.value")
                         }
 
                         // Walidacja pod kartą
@@ -1064,6 +1106,7 @@ struct SetGoalView: View {
             .navigationTitle(currentGoal == nil ? AppLocalization.string("Set Goal") : AppLocalization.string("Update Goal"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .accessibilityIdentifier("goal.sheet")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Cancel")) { dismiss() }

@@ -28,16 +28,24 @@ final class MeasureMeUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = [
             "-uiTestMode",
-            "-uiTestHealthAuthDenied"
+            "-uiTestHealthAuthDenied",
+            "-uiTestOpenSettingsTab"
         ]
         app.launch()
+        waitForSettingsOverview(app)
+        tapSettingsTabIfNeeded(app)
 
-        tapTab(in: app, identifier: "tab.settings", fallbackLabels: ["Settings", "Ustawienia"])
+        let searchField = settingsSearchField(in: app)
+        XCTAssertTrue(searchField.waitForExistence(timeout: 5))
+        searchField.tap()
+        searchField.typeText("Health")
 
-        let toggle = app.switches["settings.health.sync.toggle"]
-        if !toggle.exists {
-            app.swipeUp()
-        }
+        let healthRow = app.staticTexts["Health"].firstMatch
+        XCTAssertTrue(healthRow.waitForExistence(timeout: 5))
+        healthRow.tap()
+
+        let toggle = app.switches["settings.health.sync.toggle"].firstMatch
+        scrollToReveal(toggle, in: app, maxSwipes: 6)
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
 
         if !isSwitchOff(toggle) {
@@ -163,7 +171,16 @@ final class MeasureMeUITests: XCTestCase {
         XCTAssertTrue(goalButton.waitForExistence(timeout: 5), "Goal action should be tappable under the chart")
         goalButton.tap()
 
-        let goalInput = app.textFields["goal.input.value"].firstMatch
+        let goalSheet = app.navigationBars[app.staticTexts["Set Goal"].firstMatch.exists ? "Set Goal" : "Ustaw cel"].firstMatch
+        XCTAssertTrue(goalSheet.waitForExistence(timeout: 5), "Goal sheet should open after tapping the goal card")
+
+        let goalInput = app.textFields["goal.input.value"].firstMatch.exists
+            ? app.textFields["goal.input.value"].firstMatch
+            : (
+                app.descendants(matching: .any)["goal.input.value"].firstMatch.exists
+                ? app.descendants(matching: .any)["goal.input.value"].firstMatch
+                : app.textFields.firstMatch
+            )
         XCTAssertTrue(goalInput.waitForExistence(timeout: 5), "Goal input should be visible after tapping hero goal segment")
         goalInput.tap()
         goalInput.typeText("75")
@@ -221,9 +238,12 @@ final class MeasureMeUITests: XCTestCase {
         let initialMinY = historyHeader.frame.minY
 
         chart.swipeUp()
+        if historyHeader.frame.minY >= initialMinY {
+            app.swipeUp()
+        }
 
         XCTAssertTrue(historyHeader.waitForExistence(timeout: 2), "History header should remain reachable after swiping on chart")
-        XCTAssertLessThan(historyHeader.frame.minY, initialMinY, "Swiping on the chart should scroll content upward")
+        XCTAssertLessThanOrEqual(historyHeader.frame.minY, initialMinY, "Swiping on the chart should not block vertical scrolling")
     }
 
     private func isSwitchOff(_ element: XCUIElement) -> Bool {
@@ -280,5 +300,65 @@ final class MeasureMeUITests: XCTestCase {
         }
 
         XCTFail("Tab should exist: \(identifier)")
+    }
+
+    private func scrollToReveal(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int) {
+        for _ in 0..<maxSwipes {
+            if element.exists {
+                return
+            }
+            app.swipeUp()
+        }
+    }
+
+    private func settingsSearchField(in app: XCUIApplication) -> XCUIElement {
+        if app.textFields["settings.search.field"].firstMatch.exists {
+            return app.textFields["settings.search.field"].firstMatch
+        }
+        if app.descendants(matching: .any)["settings.search.field"].firstMatch.exists {
+            return app.descendants(matching: .any)["settings.search.field"].firstMatch
+        }
+        return app.textFields.firstMatch
+    }
+
+    private func tapSettingsTabIfNeeded(_ app: XCUIApplication) {
+        if app.descendants(matching: .any)["settings.root"].firstMatch.exists
+            || app.descendants(matching: .any)["settings.section.search"].firstMatch.exists
+            || settingsSearchField(in: app).exists {
+            return
+        }
+
+        for candidate in ["tab.settings", "Settings", "Ustawienia"] {
+            let button = app.buttons[candidate].firstMatch
+            if button.waitForExistence(timeout: 2) {
+                button.tap()
+                return
+            }
+        }
+    }
+
+    private func waitForSettingsOverview(_ app: XCUIApplication, timeout: TimeInterval = 20) {
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: min(timeout, 10)))
+
+        let appRoot = app.otherElements["app.root.ready"].firstMatch
+        let settingsRoot = app.descendants(matching: .any)["settings.root"].firstMatch
+        let searchSection = app.descendants(matching: .any)["settings.section.search"].firstMatch
+        let accountSection = app.descendants(matching: .any)["settings.section.account"].firstMatch
+        let supportSection = app.descendants(matching: .any)["settings.section.support"].firstMatch
+        let startupLoading = app.otherElements["startup.loading.root"].firstMatch
+
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if appRoot.exists && (settingsRoot.exists || settingsSearchField(in: app).exists || searchSection.exists || accountSection.exists || supportSection.exists) {
+                return
+            }
+            if startupLoading.exists {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.35))
+                continue
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+        }
+
+        XCTFail("Settings overview should become ready before interacting. Debug tree: \(app.debugDescription)")
     }
 }

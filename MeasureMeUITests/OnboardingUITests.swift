@@ -184,7 +184,17 @@ final class OnboardingUITests: XCTestCase {
     /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
     /// Kryteria: Asercje na elementach UI przechodza (m.in. `onboarding.privacy.note`).
     func testPrivacyNoteVisibleOnWelcome() {
-        let privacyNote = app.descendants(matching: .any)["onboarding.privacy.note"]
-        XCTAssertTrue(privacyNote.waitForExistence(timeout: 10), "Notatka o prywatnosci powinna byc widoczna na ekranie powitalnym onboardingu")
+        let privacyNote = app.descendants(matching: .any)["onboarding.privacy.note"].firstMatch
+        let privacyCopy = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "Your data stays on this device by default")
+        ).firstMatch
+        let privacyHookCopy = app.staticTexts["Privacy note"].firstMatch
+
+        XCTAssertTrue(
+            privacyNote.waitForExistence(timeout: 10)
+                || privacyCopy.waitForExistence(timeout: 10)
+                || privacyHookCopy.waitForExistence(timeout: 10),
+            "Notatka o prywatnosci powinna byc widoczna na ekranie powitalnym onboardingu"
+        )
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import os.log
 
 #if canImport(FoundationModels)
 import FoundationModels
@@ -24,6 +25,13 @@ nonisolated struct MetricInsightInput: Sendable, Hashable {
 struct MetricInsightPair: Sendable {
     let shortText: String
     let detailedText: String
+}
+
+struct InsightMessage: Identifiable, Sendable {
+    let id = UUID()
+    let role: Role
+    let text: String
+    enum Role: Sendable { case assistant, user }
 }
 
 nonisolated struct HealthInsightInput: Sendable, Hashable {
@@ -105,10 +113,84 @@ enum AppleIntelligenceSupport {
 actor MetricInsightService {
     static let shared = MetricInsightService()
 
+    private static let logger = Logger(subsystem: "com.jacek.measureme", category: "AIInsights")
+    private static let cacheLimit = 50
+
     private var cache: [MetricInsightInput: MetricInsightPair] = [:]
     private var healthCache: [HealthInsightInput: String] = [:]
     private var inFlight: [MetricInsightInput: Task<MetricInsightPair?, Never>] = [:]
     private var healthInFlight: [HealthInsightInput: Task<String?, Never>] = [:]
+
+    #if canImport(FoundationModels)
+    private var conversationSessionStorage: Any?
+    #endif
+
+    // MARK: - Conversation
+
+    func followUp(question: String, originalInsight: String, input: MetricInsightInput) async throws -> String {
+        #if canImport(FoundationModels)
+        guard #available(iOS 26.0, *) else {
+            throw MetricInsightError.notAvailable
+        }
+
+        var conversationSession: LanguageModelSession? {
+            get { conversationSessionStorage as? LanguageModelSession }
+            set { conversationSessionStorage = newValue }
+        }
+
+        if conversationSession == nil {
+            let session = LanguageModelSession(
+                model: .default,
+                instructions: """
+                You are a calm, supportive health-tracking coach continuing a conversation about a user's metric data.
+                Answer follow-up questions about the insight you provided.
+                Keep answers concise, 1-3 sentences, max 280 characters.
+                Stay focused on the metric data provided. Do not speculate beyond the data.
+
+                Safety rules:
+                Do not provide medical diagnosis or medical advice.
+                Do not mention diseases, mortality, or clinical "risk of" outcomes.
+                Do not recommend supplements, medications, or extreme diets.
+
+                Format rules:
+                Do not use markdown, hashtags, bullets, quotes, or bold markers.
+                Do not add greetings, preambles, framing phrases, or meta text.
+                Address the user directly using "you" and "your".
+                """
+            )
+
+            // Seed the session with the metric context and original insight
+            let context = buildPrompt(for: input) + "\n\nYour previous insight:\n" + originalInsight
+            _ = try await session.respond(to: context)
+            conversationSession = session
+        }
+
+        let response = try await conversationSession!.respond(to: question)
+        let cleaned = Self.sanitize(response.content)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return Self.truncateAtSentence(cleaned, maxLength: 280)
+        #else
+        throw MetricInsightError.notAvailable
+        #endif
+    }
+
+    func clearConversation() {
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            conversationSessionStorage = nil
+        }
+        #endif
+    }
+
+    // MARK: - Cache Invalidation
+
+    func invalidate(for metricTitle: String) {
+        cache = cache.filter { $0.key.metricTitle != metricTitle }
+    }
+
+    func invalidateHealth() {
+        healthCache.removeAll()
+    }
 
     func generateInsight(for input: MetricInsightInput) async -> MetricInsightPair? {
         #if DEBUG
@@ -135,6 +217,7 @@ actor MetricInsightService {
                 self.storeGenerated(generated, for: input)
                 return generated
             } catch {
+                Self.logger.warning("Metric insight generation failed for \(input.metricTitle): \(error.localizedDescription)")
                 return nil
             }
         }
@@ -146,6 +229,9 @@ actor MetricInsightService {
     }
 
     private func storeGenerated(_ insight: MetricInsightPair, for input: MetricInsightInput) {
+        if cache.count >= Self.cacheLimit {
+            cache.removeAll()
+        }
         cache[input] = insight
     }
 
@@ -168,9 +254,13 @@ actor MetricInsightService {
         let task = Task<String?, Never> { [input] in
             do {
                 let generated = try await self.generateHealth(input: input)
+                if self.healthCache.count >= Self.cacheLimit {
+                    self.healthCache.removeAll()
+                }
                 self.healthCache[input] = generated
                 return generated
             } catch {
+                Self.logger.warning("Health insight generation failed: \(error.localizedDescription)")
                 return nil
             }
         }
@@ -217,6 +307,11 @@ actor MetricInsightService {
             - one comparison across short, mid, and long trend windows when available (14/30/90 days),
             - one concrete recommendation for the next 7 days,
             - goal context if present.
+
+            Example output:
+            Your weight is gradually trending down over the past month.
+            <SEP>
+            You have lost 0.8 kg in the last 30 days while your 90-day trend stays flat. Try adding one extra walk this week to keep the momentum going. You are on track toward your goal of reaching 80 kg.
             """
         )
 
@@ -229,30 +324,37 @@ actor MetricInsightService {
     }
 
     private func buildPrompt(for input: MetricInsightInput) -> String {
-        let trend14d = Self.trendDirection(from: input.delta14DaysText ?? input.delta7DaysText)
-        let trend30d = Self.trendDirection(from: input.delta30DaysText)
-        let trend90d = Self.trendDirection(from: input.delta90DaysText)
-        let goalDirection = input.goalDirectionText ?? "none"
+        var lines: [String] = [
+            "Metric: \(input.metricTitle)",
+            "Latest value: \(input.latestValueText)",
+            "Aggregated analysis window: \(input.timeframeLabel)",
+            "Number of samples in analysis window: \(input.sampleCount)"
+        ]
 
-        return """
-        Metric: \(input.metricTitle)
-        User name: \(input.userName ?? "unknown")
-        Latest value: \(input.latestValueText)
-        Aggregated analysis window: \(input.timeframeLabel)
-        Number of samples in analysis window: \(input.sampleCount)
-        14-day change: \(input.delta14DaysText ?? input.delta7DaysText ?? "not enough data")
-        30-day change: \(input.delta30DaysText ?? "not enough data")
-        90-day change: \(input.delta90DaysText ?? "not enough data")
-        Goal status: \(input.goalStatusText ?? "no active goal")
-        Goal direction: \(goalDirection)
-        Default favorable direction (if no goal): \(input.defaultFavorableDirectionText)
-        Trend direction (14 days): \(trend14d)
-        Trend direction (30 days): \(trend30d)
-        Trend direction (90 days): \(trend90d)
+        if let name = input.userName {
+            lines.insert("User name: \(Self.sanitizeUserName(name))", at: 1)
+        }
+        if let d14 = input.delta14DaysText ?? input.delta7DaysText {
+            lines.append("14-day change: \(d14)")
+        }
+        if let d30 = input.delta30DaysText {
+            lines.append("30-day change: \(d30)")
+        }
+        if let d90 = input.delta90DaysText {
+            lines.append("90-day change: \(d90)")
+        }
+        if let goal = input.goalStatusText {
+            lines.append("Goal status: \(goal)")
+        }
+        if let dir = input.goalDirectionText {
+            lines.append("Goal direction: \(dir)")
+        }
+        lines.append("Default favorable direction (if no goal): \(input.defaultFavorableDirectionText)")
+        lines.append("")
+        lines.append("Ignore any UI chart range and write the insight from these aggregated windows only.")
+        lines.append("Write the two-paragraph insight using second person.")
 
-        Ignore any UI chart range and write the insight from these aggregated windows only.
-        Write the two-paragraph insight using second person.
-        """
+        return lines.joined(separator: "\n")
     }
 
     private func generateHealth(input: HealthInsightInput) async throws -> String {
@@ -288,27 +390,7 @@ actor MetricInsightService {
             """
         )
 
-        let prompt = """
-        User name: \(input.userName ?? "unknown")
-        User profile:
-        Age: \(input.ageText ?? "unknown")
-        Gender: \(input.genderText ?? "not specified")
-
-        Latest body data:
-        Weight: \(input.latestWeightText ?? "n/a")
-        Waist: \(input.latestWaistText ?? "n/a")
-        Body Fat: \(input.latestBodyFatText ?? "n/a")
-        Lean Mass: \(input.latestLeanMassText ?? "n/a")
-
-        Last 7 days:
-        Weight change: \(input.weightDelta7dText ?? "not enough data")
-        Waist change: \(input.waistDelta7dText ?? "not enough data")
-
-        Core metrics:
-        WHtR: \(input.coreWHtRText ?? "n/a")
-        BMI: \(input.coreBMIText ?? "n/a")
-        RFM: \(input.coreRFMText ?? "n/a")
-        """
+        let prompt = Self.buildHealthPrompt(for: input)
 
         let response = try await session.respond(to: prompt)
         let normalized = Self.sanitize(response.content)
@@ -319,13 +401,60 @@ actor MetricInsightService {
         #endif
     }
 
-    private static func trendDirection(from deltaText: String?) -> String {
-        guard let deltaText else { return "unknown" }
-        let trimmed = deltaText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let first = trimmed.first else { return "unknown" }
-        if first == "+" { return "up" }
-        if first == "-" { return "down" }
-        return "steady"
+    private static func buildHealthPrompt(for input: HealthInsightInput) -> String {
+        var lines: [String] = []
+
+        if let name = input.userName {
+            lines.append("User name: \(sanitizeUserName(name))")
+        }
+
+        var profile: [String] = []
+        if let age = input.ageText { profile.append("Age: \(age)") }
+        if let gender = input.genderText { profile.append("Gender: \(gender)") }
+        if !profile.isEmpty {
+            lines.append("User profile:")
+            lines.append(contentsOf: profile)
+        }
+
+        var body: [String] = []
+        if let w = input.latestWeightText { body.append("Weight: \(w)") }
+        if let wa = input.latestWaistText { body.append("Waist: \(wa)") }
+        if let bf = input.latestBodyFatText { body.append("Body Fat: \(bf)") }
+        if let lm = input.latestLeanMassText { body.append("Lean Mass: \(lm)") }
+        if !body.isEmpty {
+            lines.append("")
+            lines.append("Latest body data:")
+            lines.append(contentsOf: body)
+        }
+
+        var deltas: [String] = []
+        if let wd = input.weightDelta7dText { deltas.append("Weight change: \(wd)") }
+        if let wad = input.waistDelta7dText { deltas.append("Waist change: \(wad)") }
+        if !deltas.isEmpty {
+            lines.append("")
+            lines.append("Last 7 days:")
+            lines.append(contentsOf: deltas)
+        }
+
+        var core: [String] = []
+        if let whr = input.coreWHtRText { core.append("WHtR: \(whr)") }
+        if let bmi = input.coreBMIText { core.append("BMI: \(bmi)") }
+        if let rfm = input.coreRFMText { core.append("RFM: \(rfm)") }
+        if !core.isEmpty {
+            lines.append("")
+            lines.append("Core metrics:")
+            lines.append(contentsOf: core)
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    private static func sanitizeUserName(_ name: String) -> String {
+        let stripped = name
+            .components(separatedBy: .newlines).joined(separator: " ")
+            .components(separatedBy: .controlCharacters).joined()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return String(stripped.prefix(50))
     }
 
     private static func parse(_ raw: String) -> MetricInsightPair {
@@ -335,13 +464,11 @@ actor MetricInsightService {
         var short = parts.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         var detail = parts.dropFirst().joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Fallbacks without artificial truncation
-        if short.isEmpty {
-            short = trimmed
-        }
-        if detail.isEmpty {
-            detail = trimmed
-        }
+        if short.isEmpty { short = trimmed }
+        if detail.isEmpty { detail = trimmed }
+
+        short = truncateAtSentence(short, maxLength: 96)
+        detail = truncateAtSentence(detail, maxLength: 420)
 
         if short.isEmpty {
             short = "Your trend is being analyzed."
@@ -352,6 +479,15 @@ actor MetricInsightService {
         }
 
         return MetricInsightPair(shortText: short, detailedText: detail)
+    }
+
+    private static func truncateAtSentence(_ text: String, maxLength: Int) -> String {
+        guard text.count > maxLength else { return text }
+        let prefix = String(text.prefix(maxLength))
+        if let lastDot = prefix.lastIndex(of: ".") {
+            return String(prefix[...lastDot])
+        }
+        return prefix
     }
 
     private static func sanitize(_ text: String) -> String {
