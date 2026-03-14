@@ -26,6 +26,9 @@ struct QuickAddSheetView: View {
     @State private var isSaving = false
     @State private var showNoChangesAlert = false
     @State private var saveErrorMessage: String?
+    @State private var showSanityWarning = false
+    @State private var suspiciousEntries: [SanityChecker.SuspiciousEntry] = []
+    @State private var pendingSaveEntries: [QuickAddSaveService.Entry]? = nil
     @FocusState private var focusedKind: MetricKind?
     @State private var rulerBaseValues: [MetricKind: Double] = [:]
     private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
@@ -112,6 +115,23 @@ struct QuickAddSheetView: View {
                 }
             } message: {
                 Text(saveErrorMessage ?? "")
+            }
+            .confirmationDialog(
+                AppLocalization.string("sanity.warning.title"),
+                isPresented: $showSanityWarning,
+                titleVisibility: .visible
+            ) {
+                Button(AppLocalization.string("sanity.warning.save"), role: .destructive) {
+                    if let entries = pendingSaveEntries {
+                        Task { await saveAll(entries: entries) }
+                    }
+                    pendingSaveEntries = nil
+                }
+                Button(AppLocalization.string("Cancel"), role: .cancel) {
+                    pendingSaveEntries = nil
+                }
+            } message: {
+                Text(sanityWarningMessage)
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -263,7 +283,7 @@ struct QuickAddSheetView: View {
                     showNoChangesAlert = true
                 } else {
                     Haptics.medium()
-                    Task { await saveAll() }
+                    attemptSave()
                 }
             } label: {
                 Group {
@@ -547,14 +567,39 @@ struct QuickAddSheetView: View {
         kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
     }
 
-    private func saveAll() async {
-        guard !isSaving else { return }
-        await MainActor.run { isSaving = true }
-
+    private func attemptSave() {
         let entries: [QuickAddSaveService.Entry] = preparedEntries(includeUnchanged: saveUnchangedValues)
             .map { kind, displayValue in
                 QuickAddSaveService.Entry(kind: kind, metricValue: metricValue(for: kind, displayValue: displayValue))
             }
+
+        let suspicious = SanityChecker.check(
+            entries: entries.map { (kind: $0.kind, metricValue: $0.metricValue, date: date) },
+            previousValues: latest
+        )
+
+        if suspicious.isEmpty {
+            Task { await saveAll(entries: entries) }
+        } else {
+            suspiciousEntries = suspicious
+            pendingSaveEntries = entries
+            Haptics.trigger(.warningSoft)
+            showSanityWarning = true
+        }
+    }
+
+    private var sanityWarningMessage: String {
+        suspiciousEntries.map { entry in
+            let prev = entry.kind.valueForDisplay(fromMetric: entry.previousValue, unitsSystem: unitsSystem)
+            let new = entry.kind.valueForDisplay(fromMetric: entry.newValue, unitsSystem: unitsSystem)
+            let unit = entry.kind.unitSymbol(unitsSystem: unitsSystem)
+            return String(format: "%@: %.1f \u{2192} %.1f %@", entry.kind.title, prev, new, unit)
+        }.joined(separator: "\n")
+    }
+
+    private func saveAll(entries: [QuickAddSaveService.Entry]) async {
+        guard !isSaving else { return }
+        await MainActor.run { isSaving = true }
 
         // Powiadomienia (zapis pomiaru + osiagniecie celu)
         await MainActor.run {

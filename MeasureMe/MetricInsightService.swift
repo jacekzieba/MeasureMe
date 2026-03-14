@@ -119,11 +119,11 @@ enum AppleIntelligenceSupport {
 
 // MARK: - Persistent Cache
 
-private struct InsightDiskCache {
-    private static let suiteName = "group.com.jacek.measureme"
+nonisolated struct InsightDiskCache {
+    nonisolated(unsafe) static var suiteName = "group.com.jacek.measureme"
     private static let storeKey = "insight_disk_cache_v1"
-    private static let ttl: TimeInterval = 24 * 60 * 60 // 24 hours
-    private static let maxEntries = 80
+    nonisolated(unsafe) static var ttl: TimeInterval = 24 * 60 * 60 // 24 hours
+    nonisolated(unsafe) static var maxEntries = 80
 
     struct Entry: Codable {
         let shortText: String
@@ -183,7 +183,7 @@ actor MetricInsightService {
     static let shared = MetricInsightService()
 
     private static let logger = Logger(subsystem: "com.jacek.measureme", category: "AIInsights")
-    private static let cacheLimit = 50
+    static let cacheLimit = 50
 
     private var cache: [MetricInsightInput: MetricInsightPair] = [:]
     private var healthCache: [HealthInsightInput: String] = [:]
@@ -191,6 +191,55 @@ actor MetricInsightService {
     private var inFlight: [MetricInsightInput: Task<MetricInsightPair?, Never>] = [:]
     private var healthInFlight: [HealthInsightInput: Task<String?, Never>] = [:]
     private var sectionInFlight: [SectionInsightInput: Task<String?, Never>] = [:]
+
+    // MARK: - Concurrency Queue
+
+    private let maxConcurrent = 2
+    private var activeGenerationCount = 0
+    private var generationWaiters: [CheckedContinuation<Void, Never>] = []
+
+    private func acquireGenerationSlot() async {
+        if activeGenerationCount < maxConcurrent {
+            activeGenerationCount += 1
+            return
+        }
+        await withCheckedContinuation { continuation in
+            generationWaiters.append(continuation)
+        }
+    }
+
+    private func releaseGenerationSlot() {
+        if let next = generationWaiters.first {
+            generationWaiters.removeFirst()
+            next.resume()
+        } else {
+            activeGenerationCount -= 1
+        }
+    }
+
+    #if DEBUG
+    /// Visible only in tests via @testable import.
+    private var _testGenerateOverride: (@Sendable (MetricInsightInput) async throws -> MetricInsightPair)?
+    private var _testGenerateHealthOverride: (@Sendable (HealthInsightInput) async throws -> String)?
+    private var _testGenerateSectionOverride: (@Sendable (SectionInsightInput) async throws -> String)?
+    private var _testAvailabilityOverride: Bool?
+
+    func setTestGenerateOverride(_ block: (@Sendable (MetricInsightInput) async throws -> MetricInsightPair)?) {
+        _testGenerateOverride = block
+    }
+
+    func setTestGenerateHealthOverride(_ block: (@Sendable (HealthInsightInput) async throws -> String)?) {
+        _testGenerateHealthOverride = block
+    }
+
+    func setTestGenerateSectionOverride(_ block: (@Sendable (SectionInsightInput) async throws -> String)?) {
+        _testGenerateSectionOverride = block
+    }
+
+    func setTestAvailabilityOverride(_ value: Bool?) {
+        _testAvailabilityOverride = value
+    }
+    #endif
 
     #if canImport(FoundationModels)
     private var conversationSessionStorage: Any?
@@ -231,13 +280,13 @@ actor MetricInsightService {
             )
 
             // Seed the session with the metric context and original insight
-            let context = buildPrompt(for: input) + "\n\nYour previous insight:\n" + originalInsight
+            let context = InsightTextProcessor.buildPrompt(for: input) + "\n\nYour previous insight:\n" + originalInsight
             _ = try await session.respond(to: context)
             conversationSession = session
         }
 
         let response = try await conversationSession!.respond(to: question)
-        let cleaned = Self.sanitize(response.content)
+        let cleaned = InsightTextProcessor.sanitize(response.content)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return cleaned
         #else
@@ -268,6 +317,8 @@ actor MetricInsightService {
         sectionCache.removeAll()
     }
 
+    // MARK: - Generation
+
     func generateInsight(for input: MetricInsightInput) async -> MetricInsightPair? {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-uiTestLongInsight") {
@@ -277,7 +328,7 @@ actor MetricInsightService {
             )
         }
         #endif
-        guard await MainActor.run(body: { AppleIntelligenceSupport.isAvailable() }) else { return nil }
+        guard await isAvailable() else { return nil }
 
         if let cached = cache[input] {
             return cached
@@ -324,10 +375,10 @@ actor MetricInsightService {
     func generateHealthInsight(for input: HealthInsightInput) async -> String? {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-uiTestLongHealthInsight") {
-            return "UI_TEST_LONG_HEALTH_INSIGHT_MARKER You’re trending in a steady direction with consistent entries and balanced changes across your core indicators. Keep momentum by logging at the same time, aiming for three strength sessions, and a daily 8–10k step target this week. Focus on regular meals and hydration to support recovery and energy."
+            return "UI_TEST_LONG_HEALTH_INSIGHT_MARKER You're trending in a steady direction with consistent entries and balanced changes across your core indicators. Keep momentum by logging at the same time, aiming for three strength sessions, and a daily 8–10k step target this week. Focus on regular meals and hydration to support recovery and energy."
         }
         #endif
-        guard await MainActor.run(body: { AppleIntelligenceSupport.isAvailable() }) else { return nil }
+        guard await isAvailable() else { return nil }
 
         if let cached = healthCache[input] {
             return cached
@@ -363,7 +414,7 @@ actor MetricInsightService {
             return "UI_TEST_LONG_SECTION_INSIGHT_MARKER You have enough signal across measurements, health indicators, and physique ratios to keep a clear direction this week. Stay consistent with logging and focus on one priority lever to keep momentum."
         }
         #endif
-        guard await MainActor.run(body: { AppleIntelligenceSupport.isAvailable() }) else { return nil }
+        guard await isAvailable() else { return nil }
 
         if let cached = sectionCache[input] {
             return cached
@@ -393,303 +444,216 @@ actor MetricInsightService {
         return value
     }
 
+    // MARK: - Private Generation (with concurrency queue)
+
+    private func isAvailable() async -> Bool {
+        #if DEBUG
+        if let override = _testAvailabilityOverride { return override }
+        #endif
+        return await MainActor.run(body: { AppleIntelligenceSupport.isAvailable() })
+    }
+
     private func generate(input: MetricInsightInput) async throws -> MetricInsightPair {
+        #if DEBUG
+        if let override = _testGenerateOverride {
+            await acquireGenerationSlot()
+            do {
+                let result = try await override(input)
+                releaseGenerationSlot()
+                return result
+            } catch {
+                releaseGenerationSlot()
+                throw error
+            }
+        }
+        #endif
+
         #if canImport(FoundationModels)
         guard #available(iOS 26.0, *) else {
             throw MetricInsightError.notAvailable
         }
 
-        let session = LanguageModelSession(
-            model: .default,
-            instructions: """
-            You are a calm, supportive health-tracking coach.
-            Write in clear, plain English.
-            Keep tone non-judgmental, practical, and concise.
-            Address the user directly using "you" and "your".
-            Never write in third person about the user.
+        await acquireGenerationSlot()
 
-            Safety rules:
-            Do not provide medical diagnosis or medical advice.
-            Do not mention diseases, mortality, or clinical "risk of" outcomes.
-            Do not recommend supplements, medications, or extreme diets.
-            If some data is missing or ambiguous, do not guess; omit that detail.
-            Do not repeat placeholders like "unknown", "n/a", or "not enough data".
+        do {
+            let session = LanguageModelSession(
+                model: .default,
+                instructions: """
+                You are a calm, supportive health-tracking coach.
+                Write in clear, plain English.
+                Keep tone non-judgmental, practical, and concise.
+                Address the user directly using "you" and "your".
+                Never write in third person about the user.
 
-            Format rules:
-            Do not use markdown, hashtags, bullets, quotes, or bold markers.
-            Do not add greetings, preambles, framing phrases, or meta text (e.g., "As an AI...").
-            Return exactly two paragraphs separated by a single line containing only: <SEP>
-            Do not include any other line breaks.
+                Safety rules:
+                Do not provide medical diagnosis or medical advice.
+                Do not mention diseases, mortality, or clinical "risk of" outcomes.
+                Do not recommend supplements, medications, or extreme diets.
+                If some data is missing or ambiguous, do not guess; omit that detail.
+                Do not repeat placeholders like "unknown", "n/a", or "not enough data".
 
-            Content rules:
-            Use the provided goal direction if present; otherwise use the default favorable direction hint.
-            Paragraph 1: 1 very short sentence, around 40-60 characters, summarizing the overall trend. This is shown as a headline on a compact card — keep it punchy.
-            Paragraph 2: 2-4 short sentences, around 150-250 characters total.
-            Paragraph 2 must include:
-            - one comparison across available trend windows (14/30/90 days),
-            - one concrete recommendation for the next 7 days,
-            - if a goal is present: mention progress so far, current momentum, and whether the pace needs adjusting. Go beyond just an estimated completion date — highlight what is working and what could improve.
+                Format rules:
+                Do not use markdown, hashtags, bullets, quotes, or bold markers.
+                Do not add greetings, preambles, framing phrases, or meta text (e.g., "As an AI...").
+                Return exactly two paragraphs separated by a single line containing only: <SEP>
+                Do not include any other line breaks.
 
-            Example output:
-            Weight trending down steadily.
-            <SEP>
-            You lost 0.8 kg in 30 days while your 7-day pace picked up. Try one extra walk this week to keep momentum. You are 2.3 kg from your goal and recent progress looks solid.
-            """
-        )
+                Content rules:
+                Use the provided goal direction if present; otherwise use the default favorable direction hint.
+                Paragraph 1: 1 very short sentence, around 40-60 characters, summarizing the overall trend. This is shown as a headline on a compact card — keep it punchy.
+                Paragraph 2: 2-4 short sentences, around 150-250 characters total.
+                Paragraph 2 must include:
+                - one comparison across available trend windows (14/30/90 days),
+                - one concrete recommendation for the next 7 days,
+                - if a goal is present: mention progress so far, current momentum, and whether the pace needs adjusting. Go beyond just an estimated completion date — highlight what is working and what could improve.
 
-        let prompt = buildPrompt(for: input)
-        let response = try await session.respond(to: prompt)
-        return Self.parse(response.content)
+                Example output:
+                Weight trending down steadily.
+                <SEP>
+                You lost 0.8 kg in 30 days while your 7-day pace picked up. Try one extra walk this week to keep momentum. You are 2.3 kg from your goal and recent progress looks solid.
+                """
+            )
+
+            let prompt = InsightTextProcessor.buildPrompt(for: input)
+            let response = try await session.respond(to: prompt)
+            releaseGenerationSlot()
+            return InsightTextProcessor.parse(response.content)
+        } catch {
+            releaseGenerationSlot()
+            throw error
+        }
         #else
         throw MetricInsightError.notAvailable
         #endif
     }
 
-    private func buildPrompt(for input: MetricInsightInput) -> String {
-        var lines: [String] = [
-            "Metric: \(input.metricTitle)",
-            "Latest value: \(input.latestValueText)",
-            "Aggregated analysis window: \(input.timeframeLabel)",
-            "Number of samples in analysis window: \(input.sampleCount)"
-        ]
-
-        if let name = input.userName {
-            lines.insert("User name: \(Self.sanitizeUserName(name))", at: 1)
-        }
-        if let d14 = input.delta14DaysText ?? input.delta7DaysText {
-            lines.append("14-day change: \(d14)")
-        }
-        if let d30 = input.delta30DaysText {
-            lines.append("30-day change: \(d30)")
-        }
-        if let d90 = input.delta90DaysText {
-            lines.append("90-day change: \(d90)")
-        }
-        if let goal = input.goalStatusText {
-            lines.append("Goal status: \(goal)")
-        }
-        if let dir = input.goalDirectionText {
-            lines.append("Goal direction: \(dir)")
-        }
-        lines.append("Default favorable direction (if no goal): \(input.defaultFavorableDirectionText)")
-        lines.append("")
-        lines.append("Ignore any UI chart range and write the insight from these aggregated windows only.")
-        lines.append("Write the two-paragraph insight using second person.")
-
-        return lines.joined(separator: "\n")
-    }
-
     private func generateHealth(input: HealthInsightInput) async throws -> String {
+        #if DEBUG
+        if let override = _testGenerateHealthOverride {
+            await acquireGenerationSlot()
+            do {
+                let result = try await override(input)
+                releaseGenerationSlot()
+                return result
+            } catch {
+                releaseGenerationSlot()
+                throw error
+            }
+        }
+        #endif
+
         #if canImport(FoundationModels)
         guard #available(iOS 26.0, *) else {
             throw MetricInsightError.notAvailable
         }
 
-        let session = LanguageModelSession(
-            model: .default,
-            instructions: """
-            You are a supportive health and fitness coach.
-            Write in plain English.
-            Address the user directly using "you" and "your".
-            Never write in third person about the user.
-            Summarize current state, recent changes, and trend direction.
-            Include one concrete focus area and one practical next-step instruction.
-            Keep it warm, encouraging, and non-alarming.
-            Use positive framing and gentle reassurance.
-            Avoid judgmental labels.
+        await acquireGenerationSlot()
 
-            Safety rules:
-            Do not provide medical diagnosis or medical advice.
-            Do not mention diseases, mortality, or clinical "risk of" outcomes.
-            Do not recommend supplements, medications, or extreme diets.
-            If some data is missing or ambiguous, do not guess; omit that detail.
-            Do not repeat placeholders like "unknown", "n/a", or "not enough data".
+        do {
+            let session = LanguageModelSession(
+                model: .default,
+                instructions: """
+                You are a supportive health and fitness coach.
+                Write in plain English.
+                Address the user directly using "you" and "your".
+                Never write in third person about the user.
+                Summarize current state, recent changes, and trend direction.
+                Include one concrete focus area and one practical next-step instruction.
+                Keep it warm, encouraging, and non-alarming.
+                Use positive framing and gentle reassurance.
+                Avoid judgmental labels.
 
-            Format rules:
-            Do not use markdown, hashtags, bullets, quotes, or bold markers.
-            Do not add greetings, preambles, framing phrases, or meta text (e.g., "As an AI...").
-            Output 3-4 short sentences in one paragraph, max 360 characters.
+                Safety rules:
+                Do not provide medical diagnosis or medical advice.
+                Do not mention diseases, mortality, or clinical "risk of" outcomes.
+                Do not recommend supplements, medications, or extreme diets.
+                If some data is missing or ambiguous, do not guess; omit that detail.
+                Do not repeat placeholders like "unknown", "n/a", or "not enough data".
 
-            Example output:
-            Your weight is holding steady at 82 kg with body fat down slightly over the past week. Your waist-to-height ratio sits in a healthy range and your lean mass is well maintained. Focus on hitting three strength sessions this week and keeping daily steps above 8,000.
-            """
-        )
+                Format rules:
+                Do not use markdown, hashtags, bullets, quotes, or bold markers.
+                Do not add greetings, preambles, framing phrases, or meta text (e.g., "As an AI...").
+                Output 3-4 short sentences in one paragraph, max 360 characters.
 
-        let prompt = Self.buildHealthPrompt(for: input)
+                Example output:
+                Your weight is holding steady at 82 kg with body fat down slightly over the past week. Your waist-to-height ratio sits in a healthy range and your lean mass is well maintained. Focus on hitting three strength sessions this week and keeping daily steps above 8,000.
+                """
+            )
 
-        let response = try await session.respond(to: prompt)
-        let normalized = Self.sanitize(response.content)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return normalized
+            let prompt = InsightTextProcessor.buildHealthPrompt(for: input)
+            let response = try await session.respond(to: prompt)
+            let normalized = InsightTextProcessor.sanitize(response.content)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            releaseGenerationSlot()
+            return normalized
+        } catch {
+            releaseGenerationSlot()
+            throw error
+        }
         #else
         throw MetricInsightError.notAvailable
         #endif
     }
 
     private func generateSection(input: SectionInsightInput) async throws -> String {
+        #if DEBUG
+        if let override = _testGenerateSectionOverride {
+            await acquireGenerationSlot()
+            do {
+                let result = try await override(input)
+                releaseGenerationSlot()
+                return result
+            } catch {
+                releaseGenerationSlot()
+                throw error
+            }
+        }
+        #endif
+
         #if canImport(FoundationModels)
         guard #available(iOS 26.0, *) else {
             throw MetricInsightError.notAvailable
         }
 
-        let session = LanguageModelSession(
-            model: .default,
-            instructions: """
-            You are a concise fitness and body-tracking coach.
-            Write in plain English.
-            Address the user directly using "you" and "your".
-            Never write in third person about the user.
-            Summarize the current state from the provided section data.
-            Mention one clear trend and one practical next step for the next 7 days.
+        await acquireGenerationSlot()
 
-            Safety rules:
-            Do not provide medical diagnosis or medical advice.
-            Do not mention diseases, mortality, or clinical "risk of" outcomes.
-            Do not recommend supplements, medications, or extreme diets.
-            If data is missing, skip it instead of guessing.
+        do {
+            let session = LanguageModelSession(
+                model: .default,
+                instructions: """
+                You are a concise fitness and body-tracking coach.
+                Write in plain English.
+                Address the user directly using "you" and "your".
+                Never write in third person about the user.
+                Summarize the current state from the provided section data.
+                Mention one clear trend and one practical next step for the next 7 days.
 
-            Format rules:
-            Do not use markdown, bullets, quotes, or headings.
-            Do not add greetings or meta text.
-            Output 2-3 short sentences in one paragraph, max 380 characters.
-            """
-        )
+                Safety rules:
+                Do not provide medical diagnosis or medical advice.
+                Do not mention diseases, mortality, or clinical "risk of" outcomes.
+                Do not recommend supplements, medications, or extreme diets.
+                If data is missing, skip it instead of guessing.
 
-        let prompt = Self.buildSectionPrompt(for: input)
-        let response = try await session.respond(to: prompt)
-        return Self.sanitize(response.content)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+                Format rules:
+                Do not use markdown, bullets, quotes, or headings.
+                Do not add greetings or meta text.
+                Output 2-3 short sentences in one paragraph, max 380 characters.
+                """
+            )
+
+            let prompt = InsightTextProcessor.buildSectionPrompt(for: input)
+            let response = try await session.respond(to: prompt)
+            let normalized = InsightTextProcessor.sanitize(response.content)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            releaseGenerationSlot()
+            return normalized
+        } catch {
+            releaseGenerationSlot()
+            throw error
+        }
         #else
         throw MetricInsightError.notAvailable
         #endif
-    }
-
-    private static func buildHealthPrompt(for input: HealthInsightInput) -> String {
-        var lines: [String] = []
-
-        if let name = input.userName {
-            lines.append("User name: \(sanitizeUserName(name))")
-        }
-
-        var profile: [String] = []
-        if let age = input.ageText { profile.append("Age: \(age)") }
-        if let gender = input.genderText { profile.append("Gender: \(gender)") }
-        if !profile.isEmpty {
-            lines.append("User profile:")
-            lines.append(contentsOf: profile)
-        }
-
-        var body: [String] = []
-        if let w = input.latestWeightText { body.append("Weight: \(w)") }
-        if let wa = input.latestWaistText { body.append("Waist: \(wa)") }
-        if let bf = input.latestBodyFatText { body.append("Body Fat: \(bf)") }
-        if let lm = input.latestLeanMassText { body.append("Lean Mass: \(lm)") }
-        if !body.isEmpty {
-            lines.append("")
-            lines.append("Latest body data:")
-            lines.append(contentsOf: body)
-        }
-
-        var deltas: [String] = []
-        if let wd = input.weightDelta7dText { deltas.append("Weight change: \(wd)") }
-        if let wad = input.waistDelta7dText { deltas.append("Waist change: \(wad)") }
-        if !deltas.isEmpty {
-            lines.append("")
-            lines.append("Last 7 days:")
-            lines.append(contentsOf: deltas)
-        }
-
-        var core: [String] = []
-        if let whr = input.coreWHtRText { core.append("WHtR: \(whr)") }
-        if let bmi = input.coreBMIText { core.append("BMI: \(bmi)") }
-        if let rfm = input.coreRFMText { core.append("RFM: \(rfm)") }
-        if !core.isEmpty {
-            lines.append("")
-            lines.append("Core metrics:")
-            lines.append(contentsOf: core)
-        }
-
-        return lines.joined(separator: "\n")
-    }
-
-    private static func buildSectionPrompt(for input: SectionInsightInput) -> String {
-        var lines: [String] = [
-            "Section ID: \(input.sectionID)",
-            "Section title: \(input.sectionTitle)"
-        ]
-
-        if let name = input.userName {
-            lines.append("User name: \(sanitizeUserName(name))")
-        }
-
-        lines.append("")
-        lines.append("Section data:")
-        lines.append(contentsOf: input.contextLines)
-
-        return lines.joined(separator: "\n")
-    }
-
-    private static func sanitizeUserName(_ name: String) -> String {
-        let stripped = name
-            .components(separatedBy: .newlines).joined(separator: " ")
-            .components(separatedBy: .controlCharacters).joined()
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return String(stripped.prefix(50))
-    }
-
-    private static func parse(_ raw: String) -> MetricInsightPair {
-        let trimmed = sanitize(raw).trimmingCharacters(in: .whitespacesAndNewlines)
-        let parts = trimmed.components(separatedBy: "\n<SEP>\n")
-
-        var short = parts.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        var detail = parts.dropFirst().joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if short.isEmpty { short = trimmed }
-        if detail.isEmpty { detail = trimmed }
-
-        if short.isEmpty {
-            short = "Your trend is being analyzed."
-        }
-
-        if detail.isEmpty {
-            detail = "Keep logging consistently to get a clearer trend signal."
-        }
-
-        return MetricInsightPair(shortText: short, detailedText: detail)
-    }
-
-    private static func sanitize(_ text: String) -> String {
-        var output = text
-        output = output.replacingOccurrences(of: "###", with: "")
-        output = output.replacingOccurrences(of: "##", with: "")
-        output = output.replacingOccurrences(of: "#", with: "")
-        output = output.replacingOccurrences(of: "**", with: "")
-        output = output.replacingOccurrences(of: "__", with: "")
-        output = output.replacingOccurrences(of: "`", with: "")
-        output = output.replacingOccurrences(of: "\n- ", with: "\n")
-        output = output.replacingOccurrences(of: "\n* ", with: "\n")
-        output = output.replacingOccurrences(of: "\n• ", with: "\n")
-        output = output.replacingOccurrences(of: "SHORT:", with: "", options: .caseInsensitive)
-        output = output.replacingOccurrences(of: "DETAIL:", with: "", options: .caseInsensitive)
-        output = output.replacingOccurrences(of: "As an AI", with: "", options: .caseInsensitive)
-        output = output.replacingOccurrences(of: "Certainly,", with: "", options: .caseInsensitive)
-        output = output.replacingOccurrences(of: "Here is", with: "", options: .caseInsensitive)
-        output = output.replacingOccurrences(of: "Here's", with: "", options: .caseInsensitive)
-        // Strip URLs
-        if let urlRegex = try? NSRegularExpression(pattern: "https?://\\S+", options: .caseInsensitive) {
-            output = urlRegex.stringByReplacingMatches(in: output, range: NSRange(output.startIndex..., in: output), withTemplate: "")
-        }
-        // Strip phone numbers (7+ digits with optional separators/prefix)
-        if let phoneRegex = try? NSRegularExpression(pattern: "(?:\\+\\d{1,3}[\\s-]?)?(?:\\(?\\d{2,4}\\)?[\\s-]?){1,3}\\d{3,4}", options: []) {
-            output = phoneRegex.stringByReplacingMatches(in: output, range: NSRange(output.startIndex..., in: output), withTemplate: "")
-        }
-        while output.contains("  ") {
-            output = output.replacingOccurrences(of: "  ", with: " ")
-        }
-        while output.contains("\n\n\n") {
-            output = output.replacingOccurrences(of: "\n\n\n", with: "\n\n")
-        }
-        return output
     }
 }
 

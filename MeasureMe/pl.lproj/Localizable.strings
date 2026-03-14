@@ -1603,3 +1603,5 @@
 "Select Date" = "Wybierz datę";
 "Premium" = "Premium";
 "Apple Intelligence insights, Health Indicators, Physique Indicators, and photo comparison." = "Analizy Apple Intelligence, wskaźniki zdrowia, wskaźniki sylwetki i porównywanie zdjęć.";
+"sanity.warning.title" = "Nietypowe zmiany";
+"sanity.warning.save" = "Zapisz mimo to";

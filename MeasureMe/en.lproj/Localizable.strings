@@ -1603,3 +1603,5 @@
 "photos.tags.count.many" = "photos.tags.count.many";
 "photos.tags.count.one" = "photos.tags.count.one";
 "years old" = "years old";
+"sanity.warning.title" = "Unusual Changes";
+"sanity.warning.save" = "Save Anyway";
