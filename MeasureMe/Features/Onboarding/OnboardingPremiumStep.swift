@@ -7,7 +7,7 @@ struct OnboardingPremiumStep: View {
 
     @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
 
-    @State private var selectedProductID: String? = PremiumConstants.yearlyPackageID
+    @State private var selectedProductID: String? = nil
 
     // MARK: - Computed: products
 
@@ -44,10 +44,10 @@ struct OnboardingPremiumStep: View {
             Button {
                 onboardingChecklistPremiumExplored = true
                 Haptics.light()
-                if let product = selectedProduct {
-                    Task { await premiumStore.purchase(product) }
-                } else {
-                    premiumStore.presentPaywall(reason: .onboarding)
+                guard let product = selectedProduct else { return }
+                Task {
+                    premiumStore.setPurchaseContext(reason: .onboarding)
+                    await premiumStore.purchase(product)
                 }
             } label: {
                 Text(AppLocalization.systemString("Start my 14-day free trial"))
@@ -57,6 +57,7 @@ struct OnboardingPremiumStep: View {
             }
             .buttonStyle(.bordered)
             .tint(Color.appAccent)
+            .disabled(selectedProduct == nil || premiumStore.isLoading)
             .appHitTarget()
             .accessibilityIdentifier("onboarding.premium.trial")
             .accessibilitySortPriority(3)
@@ -73,6 +74,10 @@ struct OnboardingPremiumStep: View {
             if premiumStore.products.isEmpty {
                 await premiumStore.loadProducts()
             }
+            preselectProductIfNeeded()
+        }
+        .onChange(of: premiumStore.products.map(\.id)) { _, _ in
+            preselectProductIfNeeded()
         }
     }
 
@@ -304,6 +309,15 @@ struct OnboardingPremiumStep: View {
     private func formatPrice(_ amount: Decimal, formatter: NumberFormatter?) -> String? {
         guard let formatter else { return nil }
         return formatter.string(from: amount as NSDecimalNumber)
+    }
+
+    private func preselectProductIfNeeded() {
+        let availableIDs = Set(onboardingPremiumProducts.map(\.id))
+        if let selectedProductID, availableIDs.contains(selectedProductID) {
+            return
+        }
+
+        selectedProductID = yearlyProduct?.id ?? monthlyProduct?.id
     }
 
     private var legalBlock: some View {

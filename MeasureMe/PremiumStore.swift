@@ -189,6 +189,10 @@ final class PremiumStore: ObservableObject {
         isPaywallPresented = true
     }
 
+    func setPurchaseContext(reason: PaywallReason) {
+        paywallReason = reason
+    }
+
     func dismissPaywall() {
         isPaywallPresented = false
     }
