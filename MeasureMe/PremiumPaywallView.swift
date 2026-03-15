@@ -1,6 +1,6 @@
 import SwiftUI
-import StoreKit
 import UIKit
+import RevenueCatUI
 
 struct PremiumPaywallView: View {
     @EnvironmentObject private var premium: PremiumStore
@@ -10,6 +10,8 @@ struct PremiumPaywallView: View {
     @State private var selectedProductID: String?
     @State private var selectedSlide: Int = 0
     @State private var isCTAPulsing: Bool = false
+    @State private var isCustomerCenterPresented: Bool = false
+    @State private var isRevenueCatPaywallPresented: Bool = false
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
     private let premiumTheme = FeatureTheme.premium
@@ -31,22 +33,22 @@ struct PremiumPaywallView: View {
         let gradient: [Color]
     }
 
-    private var monthly: Product? {
-        premium.products.first { $0.id == PremiumConstants.monthlyProductID }
+    private var monthly: PremiumProduct? {
+        premium.products.first { isMonthlyPlan($0) }
     }
 
-    private var yearly: Product? {
-        premium.products.first { $0.id == PremiumConstants.yearlyProductID }
+    private var yearly: PremiumProduct? {
+        premium.products.first { isYearlyPlan($0) }
     }
 
-    private var selectedProduct: Product? {
+    private var selectedProduct: PremiumProduct? {
         if let selectedProductID {
             return premium.products.first { $0.id == selectedProductID }
         }
         return yearly ?? monthly
     }
 
-    private var availableProducts: [Product] {
+    private var availableProducts: [PremiumProduct] {
         premium.products.sorted { $0.price < $1.price }
     }
 
@@ -198,7 +200,7 @@ struct PremiumPaywallView: View {
                     await premium.syncEntitlements()
                 }
                 if selectedProductID == nil {
-                    selectedProductID = PremiumConstants.yearlyProductID
+                    selectedProductID = yearly?.id ?? monthly?.id
                 }
                 if shouldAnimateCTA {
                     isCTAPulsing = true
@@ -221,6 +223,14 @@ struct PremiumPaywallView: View {
         }
         .onChange(of: shouldAnimateCTA) { _, shouldAnimate in
             isCTAPulsing = shouldAnimate
+        }
+        .presentCustomerCenter(isPresented: $isCustomerCenterPresented)
+        .sheet(isPresented: $isRevenueCatPaywallPresented) {
+            if let offering = premium.currentOffering {
+                PaywallView(offering: offering, displayCloseButton: true)
+            } else {
+                PaywallView(displayCloseButton: true)
+            }
         }
     }
 
@@ -850,8 +860,14 @@ struct PremiumPaywallView: View {
                         .buttonStyle(.plain)
                         .font(AppTypography.captionEmphasis)
                         .foregroundStyle(Color.appAccent)
+                        Button("Open RevenueCat Paywall") {
+                            isRevenueCatPaywallPresented = true
+                        }
+                        .buttonStyle(.plain)
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(Color.appAccent)
                     } else {
-                        Text(AppLocalization.string("No products returned by StoreKit."))
+                        Text(AppLocalization.string("No products returned by RevenueCat."))
                             .font(AppTypography.micro)
                             .foregroundStyle(Color.orange.opacity(0.9))
                             .fixedSize(horizontal: false, vertical: true)
@@ -887,7 +903,7 @@ struct PremiumPaywallView: View {
         }
     }
 
-    private func planRow(product: Product) -> some View {
+    private func planRow(product: PremiumProduct) -> some View {
         let isSelected = product.id == selectedProductID
         let subtitle = planSubtitle(for: product)
         let secondaryPrice = secondaryPriceLine(for: product)
@@ -1015,6 +1031,9 @@ struct PremiumPaywallView: View {
             Button(AppLocalization.string("Restore purchases")) {
                 Task { await premium.restorePurchases() }
             }
+            Button("Customer Center") {
+                isCustomerCenterPresented = true
+            }
             Link(AppLocalization.string("Terms of Use"), destination: LegalLinks.termsOfUse)
         }
         .font(AppTypography.captionEmphasis)
@@ -1022,31 +1041,29 @@ struct PremiumPaywallView: View {
         .padding(.top, 4)
     }
 
-    private func planTitle(for product: Product) -> String {
-        switch product.id {
-        case PremiumConstants.monthlyProductID:
+    private func planTitle(for product: PremiumProduct) -> String {
+        if isMonthlyPlan(product) {
             return AppLocalization.string("premium.plan.monthly")
-        case PremiumConstants.yearlyProductID:
+        }
+        if isYearlyPlan(product) {
             return AppLocalization.string("premium.plan.yearly")
-        default:
-            return product.displayName
         }
+        return product.displayName
     }
 
-    private func planSubtitle(for product: Product) -> String {
-        switch product.id {
-        case PremiumConstants.monthlyProductID:
+    private func planSubtitle(for product: PremiumProduct) -> String {
+        if isMonthlyPlan(product) {
             return AppLocalization.string("premium.plan.billing.monthly")
-        case PremiumConstants.yearlyProductID:
-            return AppLocalization.string("premium.plan.billing.yearly")
-        default:
-            return AppLocalization.string("premium.plan.billing.default")
         }
+        if isYearlyPlan(product) {
+            return AppLocalization.string("premium.plan.billing.yearly")
+        }
+        return AppLocalization.string("premium.plan.billing.default")
     }
 
-    private func primaryPriceLine(for product: Product) -> String {
+    private func primaryPriceLine(for product: PremiumProduct) -> String {
         let periodLabel: String
-        if product.id == PremiumConstants.yearlyProductID {
+        if isYearlyPlan(product) {
             periodLabel = AppLocalization.string("premium.plan.period.year")
         } else {
             periodLabel = AppLocalization.string("premium.plan.period.month")
@@ -1054,15 +1071,13 @@ struct PremiumPaywallView: View {
         return "\(product.displayPrice)/\(periodLabel)"
     }
 
-    private func secondaryPriceLine(for product: Product) -> String? {
-        switch product.id {
-        case PremiumConstants.yearlyProductID:
+    private func secondaryPriceLine(for product: PremiumProduct) -> String? {
+        if isYearlyPlan(product) {
             let monthlyEquivalent = product.price / Decimal(12)
-            let monthlyEquivalentDisplay = monthlyEquivalent.formatted(product.priceFormatStyle)
+            let monthlyEquivalentDisplay = formatPrice(monthlyEquivalent, formatter: product.priceFormatter) ?? product.displayPrice
             return AppLocalization.string("premium.plan.equivalent.monthly.dynamic", monthlyEquivalentDisplay)
-        default:
-            return nil
         }
+        return nil
     }
 
     private var billedAfterTrialText: Text {
@@ -1072,7 +1087,7 @@ struct PremiumPaywallView: View {
         }
 
         let periodLabel: String
-        if product.id == PremiumConstants.yearlyProductID {
+        if isYearlyPlan(product) {
             periodLabel = AppLocalization.string("premium.plan.period.year")
         } else {
             periodLabel = AppLocalization.string("premium.plan.period.month")
@@ -1087,5 +1102,24 @@ struct PremiumPaywallView: View {
             attributed[emphasizedRange].inlinePresentationIntent = .stronglyEmphasized
         }
         return Text(attributed)
+    }
+
+    private func isMonthlyPlan(_ product: PremiumProduct) -> Bool {
+        product.id == PremiumConstants.monthlyPackageID
+            || product.id == PremiumConstants.revenueCatMonthlyPackageID
+            || product.productIdentifier == PremiumConstants.monthlyProductID
+            || product.productIdentifier == PremiumConstants.legacyMonthlyProductID
+    }
+
+    private func isYearlyPlan(_ product: PremiumProduct) -> Bool {
+        product.id == PremiumConstants.yearlyPackageID
+            || product.id == PremiumConstants.revenueCatYearlyPackageID
+            || product.productIdentifier == PremiumConstants.yearlyProductID
+            || product.productIdentifier == PremiumConstants.legacyYearlyProductID
+    }
+
+    private func formatPrice(_ amount: Decimal, formatter: NumberFormatter?) -> String? {
+        guard let formatter else { return nil }
+        return formatter.string(from: amount as NSDecimalNumber)
     }
 }

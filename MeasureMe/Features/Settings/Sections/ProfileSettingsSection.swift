@@ -164,6 +164,13 @@ struct ProfileStatsCard: View {
     @Query private var allSamples: [MetricSample]
     private let theme = FeatureTheme.settings
 
+    private var totalLogs: Int {
+        if let firstDate = StreakManager.shared.firstActiveDate {
+            return allSamples.filter { $0.date >= firstDate }.count
+        }
+        return allSamples.count
+    }
+
     var body: some View {
         Section {
             SettingsCard(tint: theme.softTint) {
@@ -173,13 +180,13 @@ struct ProfileStatsCard: View {
                 )
 
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    Text("\(allSamples.count)")
+                    Text("\(totalLogs)")
                         .font(AppTypography.dataCompact)
                         .foregroundStyle(theme.accent)
                         .contentTransition(.numericText())
-                        .accessibilityLabel(AppLocalization.string("profile.stats.accessibility", allSamples.count))
+                        .accessibilityLabel(AppLocalization.string("profile.stats.accessibility", totalLogs))
 
-                    Text(AppLocalization.string("total measurements"))
+                    Text(AppLocalization.string("streak.detail.totalLogs"))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColorRoles.textSecondary)
                 }
@@ -200,7 +207,7 @@ struct ProfileStatsCard: View {
     }
 
     private var motivationalPhrase: String {
-        switch allSamples.count {
+        switch totalLogs {
         case 0:
             return AppLocalization.string("profile.stats.phrase.0")
         case 1...10:

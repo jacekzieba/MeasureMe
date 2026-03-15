@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import UIKit
 import BackgroundTasks
+import RevenueCat
 
 @main
 struct MeasureMeApp: App {
@@ -71,7 +72,24 @@ struct MeasureMeApp: App {
         }
     }
 
+    private enum RevenueCatConfig {
+        static let testStoreAPIKey = "test_IqhDylvTOfSwcULqzOlKpGIXmEa"
+        static let appStoreAPIKey = "appl_wTCpVzaoTfaUEHWONdHdqWyBnsr"
+
+        static var apiKey: String {
+            let useTestStore = ProcessInfo.processInfo.environment["MEASUREME_RC_TEST_STORE"] == "1"
+            return useTestStore ? testStoreAPIKey : appStoreAPIKey
+        }
+    }
+
     init() {
+        if !isRunningXCTest, !Purchases.isConfigured {
+            #if DEBUG
+            Purchases.logLevel = .debug
+            #endif
+            Purchases.configure(withAPIKey: RevenueCatConfig.apiKey)
+        }
+
         // Zainstaluj crash reporter jako pierwszy krok
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
             CrashReporter.shared.install()
