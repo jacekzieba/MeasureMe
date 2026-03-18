@@ -4,22 +4,56 @@ import Photos
 import ImageIO
 import UniformTypeIdentifiers
 
+// MARK: - Compare Mode
+
+private enum CompareMode: String, CaseIterable, Identifiable {
+    case slider
+    case sideBySide
+    case ghost
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .slider:    return AppLocalization.string("compare.mode.slider")
+        case .sideBySide: return AppLocalization.string("compare.mode.sideBySide")
+        case .ghost:     return AppLocalization.string("compare.mode.ghost")
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .slider:    return "camera.metering.none"
+        case .sideBySide: return "rectangle.split.2x1"
+        case .ghost:     return "person.2.crop.square.stack"
+        }
+    }
+}
+
 /// Widok porównujący dwa zdjęcia obok siebie
 struct ComparePhotosView: View {
     private let photosTheme = FeatureTheme.photos
     private let measurementsTheme = FeatureTheme.measurements
     @Environment(\.dismiss) private var dismiss
-    
+
     let olderPhoto: PhotoEntry
     let newerPhoto: PhotoEntry
-    
-    @State private var showSlider = true
+
+    @State private var compareMode: CompareMode = .slider
     @State private var showSaveAlert = false
     @State private var saveMessage = ""
     @State private var isExporting = false
     @State private var showShareSheet = false
     @State private var shareItems: [Any] = []
+    @State private var showTransformationSheet = false
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
+
+    // Ghost overlay state
+    @State private var ghostOpacity: Double = 0.5
+    @State private var ghostOffset: CGSize = .zero
+    @State private var ghostScale: CGFloat = 1.0
+    @GestureState private var ghostDragOffset: CGSize = .zero
+    @GestureState private var ghostPinchScale: CGFloat = 1.0
 
     private var olderCompareCacheID: String {
         compareCacheID(for: olderPhoto)
@@ -34,11 +68,29 @@ struct ComparePhotosView: View {
             ZStack(alignment: .top) {
                 Color.black.ignoresSafeArea()
 
-                GeometryReader { geometry in
-                    if showSlider {
-                        sliderComparisonView(in: geometry)
-                    } else {
-                        sideBySideView(in: geometry)
+                VStack(spacing: 0) {
+                    Picker("Compare Mode", selection: $compareMode) {
+                        ForEach(CompareMode.allCases) { mode in
+                            Label(mode.label, systemImage: mode.icon)
+                                .tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .glassSegmentedControl(tint: photosTheme.accent)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+                    .accessibilityIdentifier("photos.compare.modePicker")
+
+                    GeometryReader { geometry in
+                        switch compareMode {
+                        case .slider:
+                            sliderComparisonView(in: geometry)
+                        case .sideBySide:
+                            sideBySideView(in: geometry)
+                        case .ghost:
+                            ghostOverlayView(in: geometry)
+                        }
                     }
                 }
             }
@@ -58,31 +110,26 @@ struct ComparePhotosView: View {
                     if isExporting {
                         ProgressView()
                     }
+
+                    Button {
+                        showTransformationSheet = true
+                    } label: {
+                        Image(systemName: "sparkles.rectangle.stack")
+                    }
+                    .accessibilityLabel(AppLocalization.string("transformation.card.share"))
+                    .accessibilityIdentifier("photos.compare.transformation")
+
                     Menu {
                         Button {
                             exportMergedComparison()
                         } label: {
                             Label(AppLocalization.string("transformation.card.save"), systemImage: "square.and.arrow.down")
                         }
-                        Button {
-                            exportTransformationCard()
-                        } label: {
-                            Label(AppLocalization.string("transformation.card.share"), systemImage: "sparkles.rectangle.stack")
-                        }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
                     .disabled(isExporting)
                     .accessibilityIdentifier("photos.compare.export.menu")
-
-                    Button {
-                        showSlider.toggle()
-                    } label: {
-                        Image(systemName: showSlider ? "rectangle.split.2x1" : "camera.metering.none")
-                    }
-                    .accessibilityLabel(showSlider
-                        ? AppLocalization.string("accessibility.compare.mode.side")
-                        : AppLocalization.string("accessibility.compare.mode.slider"))
                 }
             }
             .alert(AppLocalization.string("Export"), isPresented: $showSaveAlert) {
@@ -92,6 +139,13 @@ struct ComparePhotosView: View {
             }
             .sheet(isPresented: $showShareSheet) {
                 ShareSheet(items: shareItems)
+            }
+            .sheet(isPresented: $showTransformationSheet) {
+                TransformationCardPreviewSheet(
+                    olderPhoto: olderPhoto,
+                    newerPhoto: newerPhoto,
+                    unitsSystem: unitsSystem
+                )
             }
         }
     }
@@ -187,6 +241,164 @@ struct ComparePhotosView: View {
         }
     }
     
+    // MARK: - Ghost Overlay View
+
+    @ViewBuilder
+    private func ghostOverlayView(in geometry: GeometryProxy) -> some View {
+        let imageWidth = max(1, geometry.size.width - 40)
+        let imageHeight = max(1, geometry.size.height * 0.55)
+        let imageSize = CGSize(width: imageWidth, height: imageHeight)
+
+        ScrollView {
+            VStack(spacing: 12) {
+                ZStack {
+                    // Base layer: "before" (older) image
+                    DownsampledImageView(
+                        imageData: olderPhoto.imageData,
+                        targetSize: imageSize,
+                        contentMode: .fit,
+                        cornerRadius: 12,
+                        cacheID: olderCompareCacheID,
+                        renderScaleOverride: compareSideBySideRenderScale
+                    )
+                    .frame(width: imageWidth, height: imageHeight)
+
+                    // Overlay layer: "after" (newer) image
+                    DownsampledImageView(
+                        imageData: newerPhoto.imageData,
+                        targetSize: imageSize,
+                        contentMode: .fit,
+                        cornerRadius: 0,
+                        cacheID: newerCompareCacheID,
+                        renderScaleOverride: compareSideBySideRenderScale
+                    )
+                    .frame(width: imageWidth, height: imageHeight)
+                    .opacity(ghostOpacity)
+                    .scaleEffect(ghostScale * ghostPinchScale)
+                    .offset(
+                        x: ghostOffset.width + ghostDragOffset.width,
+                        y: ghostOffset.height + ghostDragOffset.height
+                    )
+                    .gesture(ghostDragGesture)
+                    .gesture(ghostPinchGesture)
+                    .accessibilityIdentifier("photos.compare.ghost.afterImage")
+
+                    // Date badges
+                    VStack {
+                        HStack {
+                            dateBadge(olderPhoto.date)
+                            Spacer()
+                            dateBadge(newerPhoto.date)
+                        }
+                        .padding(12)
+                        Spacer()
+                    }
+                }
+                .frame(width: imageWidth, height: imageHeight)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                ghostControls
+
+                comparisonInfo
+            }
+            .padding()
+        }
+    }
+
+    @ViewBuilder
+    private var ghostControls: some View {
+        AppGlassCard(
+            depth: .elevated,
+            cornerRadius: 16,
+            tint: photosTheme.softTint,
+            contentPadding: 12
+        ) {
+            VStack(spacing: 10) {
+                HStack(spacing: 10) {
+                    Image(systemName: "eye.slash")
+                        .font(.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+
+                    Slider(value: $ghostOpacity, in: 0...1)
+                        .tint(.appAccent)
+                        .accessibilityLabel(AppLocalization.string("accessibility.compare.ghost.opacity"))
+                        .accessibilityValue("\(Int(ghostOpacity * 100))%")
+                        .accessibilityIdentifier("photos.compare.ghost.opacity")
+
+                    Image(systemName: "eye")
+                        .font(.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                }
+
+                HStack {
+                    Text(AppLocalization.string("compare.ghost.opacity.label"))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+
+                    Spacer()
+
+                    Text("\(Int(ghostOpacity * 100))%")
+                        .font(AppTypography.captionEmphasis)
+                        .monospacedDigit()
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                }
+
+                if ghostOffset != .zero || ghostScale != 1.0 {
+                    Button {
+                        resetGhostAlignment()
+                    } label: {
+                        Label(AppLocalization.string("compare.ghost.reset"), systemImage: "arrow.counterclockwise")
+                            .font(AppTypography.captionEmphasis)
+                    }
+                    .buttonStyle(LiquidCapsuleButtonStyle(tint: photosTheme.accent))
+                    .accessibilityIdentifier("photos.compare.ghost.reset")
+                }
+            }
+        }
+        .padding(.horizontal, 2)
+    }
+
+    @ViewBuilder
+    private func dateBadge(_ date: Date) -> some View {
+        Text(date.formatted(date: .abbreviated, time: .omitted))
+            .font(.caption)
+            .fontWeight(.bold)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .foregroundStyle(.white)
+            .padding(8)
+            .background(.black.opacity(0.6))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+
+    private var ghostDragGesture: some Gesture {
+        DragGesture()
+            .updating($ghostDragOffset) { value, state, _ in
+                state = value.translation
+            }
+            .onEnded { value in
+                ghostOffset.width += value.translation.width
+                ghostOffset.height += value.translation.height
+            }
+    }
+
+    private var ghostPinchGesture: some Gesture {
+        MagnifyGesture()
+            .updating($ghostPinchScale) { value, state, _ in
+                state = value.magnification
+            }
+            .onEnded { value in
+                ghostScale = MetricChange.clampedGhostScale(ghostScale, magnification: value.magnification)
+            }
+    }
+
+    private func resetGhostAlignment() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            ghostOffset = .zero
+            ghostScale = 1.0
+        }
+    }
+
     // MARK: - Comparison Info
     @ViewBuilder
     private var comparisonInfo: some View {
@@ -236,35 +448,7 @@ struct ComparePhotosView: View {
     
     // MARK: - Metric Changes
     private var metricChanges: [MetricChange] {
-        var changes: [MetricChange] = []
-        
-        // Pobiera wszystkie metryki z obu zdjec
-        let olderMetrics = Dictionary(uniqueKeysWithValues: olderPhoto.linkedMetrics.compactMap { snapshot -> (String, MetricValueSnapshot)? in
-            guard let kind = snapshot.kind else { return nil }
-            return (kind.rawValue, snapshot)
-        })
-        
-        let newerMetrics = Dictionary(uniqueKeysWithValues: newerPhoto.linkedMetrics.compactMap { snapshot -> (String, MetricValueSnapshot)? in
-            guard let kind = snapshot.kind else { return nil }
-            return (kind.rawValue, snapshot)
-        })
-        
-        // Wyszukuje wspolne metryki i oblicza zmiany
-        for (kindRaw, newerSnapshot) in newerMetrics {
-            if let olderSnapshot = olderMetrics[kindRaw],
-               let kind = newerSnapshot.kind {
-                let difference = newerSnapshot.value - olderSnapshot.value
-                changes.append(MetricChange(
-                    kind: kind,
-                    oldValue: olderSnapshot.value,
-                    newValue: newerSnapshot.value,
-                    difference: difference,
-                    storedUnit: newerSnapshot.unit
-                ))
-            }
-        }
-        
-        return changes.sorted { $0.kind.title < $1.kind.title }
+        MetricChange.changes(older: olderPhoto.linkedMetrics, newer: newerPhoto.linkedMetrics)
     }
 
     private var compareSideBySideRenderScale: CGFloat {
@@ -349,39 +533,6 @@ struct ComparePhotosView: View {
         }
     }
     
-    private func exportTransformationCard() {
-        guard !isExporting else { return }
-        isExporting = true
-
-        let weightOld = olderPhoto.linkedMetrics.first { $0.kind == .weight }?.value
-        let weightNew = newerPhoto.linkedMetrics.first { $0.kind == .weight }?.value
-
-        let input = TransformationCardInput(
-            olderImageData: olderPhoto.imageData,
-            newerImageData: newerPhoto.imageData,
-            olderDate: olderPhoto.date,
-            newerDate: newerPhoto.date,
-            weightOld: weightOld,
-            weightNew: weightNew,
-            unitsSystem: unitsSystem
-        )
-
-        Task.detached(priority: .userInitiated) {
-            let jpegData = TransformationCardRenderer.render(input)
-
-            await MainActor.run {
-                isExporting = false
-                guard let jpegData, let image = UIImage(data: jpegData) else {
-                    saveMessage = AppLocalization.string("Failed to prepare the comparison image.")
-                    showSaveAlert = true
-                    return
-                }
-                shareItems = [image]
-                showShareSheet = true
-            }
-        }
-    }
-
     private nonisolated static func mergeImagesHorizontallyJPEGData(leftData: Data, rightData: Data) -> Data? {
         autoreleasepool {
             guard let leftCG = downsampleForExportCGImage(from: leftData, maxDimension: 2048),
@@ -467,12 +618,12 @@ struct ComparePhotosView: View {
 
 // MARK: - Image Saver
 
-private enum ImageSaveResult {
+enum ImageSaveResult {
     case success
     case failure(String)
 }
 
-private final class ImageSaver: NSObject {
+final class ImageSaver: NSObject {
     private static var activeSavers: [ImageSaver] = []
     private let completion: (ImageSaveResult) -> Void
     
@@ -503,16 +654,56 @@ private final class ImageSaver: NSObject {
 }
 
 // MARK: - Metric Change Model
-private struct MetricChange {
+struct MetricChange {
     let kind: MetricKind
     let oldValue: Double
     let newValue: Double
     let difference: Double
     let storedUnit: String
-    
+
     var percentageChange: Double? {
         guard oldValue != 0 else { return nil }
         return (difference / oldValue) * 100
+    }
+
+    /// Oblicza zmiany metryk między dwoma zestawami snapshotów.
+    static func changes(
+        older: [MetricValueSnapshot],
+        newer: [MetricValueSnapshot]
+    ) -> [MetricChange] {
+        let olderMetrics = Dictionary(
+            uniqueKeysWithValues: older.compactMap { snapshot -> (String, MetricValueSnapshot)? in
+                guard let kind = snapshot.kind else { return nil }
+                return (kind.rawValue, snapshot)
+            }
+        )
+        let newerMetrics = Dictionary(
+            uniqueKeysWithValues: newer.compactMap { snapshot -> (String, MetricValueSnapshot)? in
+                guard let kind = snapshot.kind else { return nil }
+                return (kind.rawValue, snapshot)
+            }
+        )
+
+        var result: [MetricChange] = []
+        for (kindRaw, newerSnapshot) in newerMetrics {
+            if let olderSnapshot = olderMetrics[kindRaw],
+               let kind = newerSnapshot.kind {
+                let difference = newerSnapshot.value - olderSnapshot.value
+                result.append(MetricChange(
+                    kind: kind,
+                    oldValue: olderSnapshot.value,
+                    newValue: newerSnapshot.value,
+                    difference: difference,
+                    storedUnit: newerSnapshot.unit
+                ))
+            }
+        }
+        return result.sorted { $0.kind.title < $1.kind.title }
+    }
+
+    /// Clamp dla ghost pinch scale.
+    static func clampedGhostScale(_ currentScale: CGFloat, magnification: CGFloat) -> CGFloat {
+        min(max(currentScale * magnification, 0.5), 3.0)
     }
 }
 
@@ -627,28 +818,26 @@ private struct BeforeAfterSlider: View {
     @State private var cachedBeforeImage: UIImage?
     @State private var cachedAfterImage: UIImage?
     
+    private var bothImagesReady: Bool {
+        cachedBeforeImage != nil && cachedAfterImage != nil
+    }
+
     var body: some View {
         let clampedSlider = sliderPosition.isFinite ? min(max(sliderPosition, 0), 1) : 0.5
 
         ZStack {
-            // Obraz "przed" (tlo) - z cache
-            if let beforeUIImage = cachedBeforeImage {
-                Image(uiImage: beforeUIImage)
+            if bothImagesReady {
+                // Obraz "przed" (tlo)
+                Image(uiImage: cachedBeforeImage!)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFill()
                     .frame(width: validSize.width, height: validSize.height)
                     .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-            } else {
-                Color(.systemGray5)
-                    .frame(width: validSize.width, height: validSize.height)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-            
-            // Obraz "po" (maska) - z cache
-            if let afterUIImage = cachedAfterImage {
-                Image(uiImage: afterUIImage)
+
+                // Obraz "po" (maska)
+                Image(uiImage: cachedAfterImage!)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFill()
@@ -660,86 +849,95 @@ private struct BeforeAfterSlider: View {
                             .frame(width: validSize.width * clampedSlider)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-            }
-            
-            // Slider handle
-            GeometryReader { geometry in
-                ZStack {
-                    // Vertical line
-                    Rectangle()
-                        .fill(.white)
-                        .frame(width: isDragging ? 4 : 3)
-                        .shadow(radius: isDragging ? 8 : 5)
-                    
-                    // Handle circle
-                    Circle()
-                        .fill(.white)
-                        .frame(width: isDragging ? 50 : 44, height: isDragging ? 50 : 44)
-                        .shadow(radius: isDragging ? 8 : 5)
-                        .overlay {
-                            HStack(spacing: isDragging ? 5 : 4) {
-                                Image(systemName: "chevron.left")
-                                    .font(isDragging ? .caption : .caption2)
-                                    .foregroundStyle(.gray)
-                                Image(systemName: "chevron.right")
-                                    .font(isDragging ? .caption : .caption2)
-                                    .foregroundStyle(.gray)
+
+                // Slider handle
+                GeometryReader { geometry in
+                    ZStack {
+                        // Vertical line
+                        Rectangle()
+                            .fill(.white)
+                            .frame(width: isDragging ? 4 : 3)
+                            .shadow(radius: isDragging ? 8 : 5)
+
+                        // Handle circle
+                        Circle()
+                            .fill(.white)
+                            .frame(width: isDragging ? 50 : 44, height: isDragging ? 50 : 44)
+                            .shadow(radius: isDragging ? 8 : 5)
+                            .overlay {
+                                HStack(spacing: isDragging ? 5 : 4) {
+                                    Image(systemName: "chevron.left")
+                                        .font(isDragging ? .caption : .caption2)
+                                        .foregroundStyle(.gray)
+                                    Image(systemName: "chevron.right")
+                                        .font(isDragging ? .caption : .caption2)
+                                        .foregroundStyle(.gray)
+                                }
                             }
-                        }
+                    }
+                    .frame(maxHeight: .infinity)
+                    .position(x: validSize.width * clampedSlider, y: geometry.size.height / 2)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                if !isDragging {
+                                    isDragging = true
+                                }
+
+                                let newPosition = value.location.x / max(validSize.width, 1)
+                                guard newPosition.isFinite else { return }
+                                sliderPosition = min(max(newPosition, 0), 1)
+                            }
+                            .onEnded { _ in
+                                isDragging = false
+
+                                // Snap do środka jeśli blisko
+                                if abs(sliderPosition - 0.5) < 0.05 {
+                                    sliderPosition = 0.5
+                                }
+                            }
+                    )
                 }
-                .frame(maxHeight: .infinity)
-                .position(x: validSize.width * clampedSlider, y: geometry.size.height / 2)
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            if !isDragging {
-                                isDragging = true
-                            }
-                            
-                            let newPosition = value.location.x / max(validSize.width, 1)
-                            guard newPosition.isFinite else { return }
-                            sliderPosition = min(max(newPosition, 0), 1)
-                        }
-                        .onEnded { _ in
-                            isDragging = false
-                            
-                            // Snap do środka jeśli blisko
-                            if abs(sliderPosition - 0.5) < 0.05 {
-                                sliderPosition = 0.5
-                            }
-                        }
-                )
+
+                // Labels
+                HStack {
+                    Text(beforeDateLabel)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .foregroundStyle(.white)
+                        .padding(8)
+                        .background(.black.opacity(0.6))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .padding()
+                        .opacity(clampedSlider > 0.2 ? 1 : 0.3)
+
+                    Spacer()
+
+                    Text(afterDateLabel)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .foregroundStyle(.white)
+                        .padding(8)
+                        .background(.black.opacity(0.6))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .padding()
+                        .opacity(clampedSlider < 0.8 ? 1 : 0.3)
+                }
+                .frame(maxHeight: .infinity, alignment: .top)
+            } else {
+                // Placeholder while loading
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.systemGray5))
+                    .frame(width: validSize.width, height: validSize.height)
+                    .overlay {
+                        ProgressView()
+                            .tint(.gray)
+                    }
             }
-            
-            // Labels
-            HStack {
-                Text(beforeDateLabel)
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .foregroundStyle(.white)
-                    .padding(8)
-                    .background(.black.opacity(0.6))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .padding()
-                    .opacity(clampedSlider > 0.2 ? 1 : 0.3)
-                
-                Spacer()
-                
-                Text(afterDateLabel)
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .foregroundStyle(.white)
-                    .padding(8)
-                    .background(.black.opacity(0.6))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .padding()
-                    .opacity(clampedSlider < 0.8 ? 1 : 0.3)
-            }
-            .frame(maxHeight: .infinity, alignment: .top)
         }
         .frame(width: validSize.width, height: validSize.height)
         .clipShape(RoundedRectangle(cornerRadius: 12))

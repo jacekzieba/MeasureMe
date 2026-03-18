@@ -1,6 +1,7 @@
 /// Cel testow: Weryfikuje renderowanie karty transformacji (TransformationCardRenderer).
 /// Dlaczego to wazne: Blad w renderowaniu cicho niszczy eksport uzytkownika do social media.
-///   Testy pokrywaja: generowanie JPEG, layout z/bez wagi, edge cases (0 dni, imperial).
+///   Testy pokrywaja: generowanie JPEG, layout z/bez wagi, edge cases (0 dni, imperial),
+///   oba aspect ratio (story 9:16, square 1:1).
 /// Kryteria zaliczenia: Wszystkie nonisolated static func zwracaja deterministyczny wynik
 ///   dla danego wejscia — zero zaleznosci od UI czy SwiftData.
 
@@ -35,7 +36,8 @@ private func makeInput(
     weightNew: Double? = 78.0,
     unitsSystem: String = "metric",
     olderDate: Date = Calendar.current.date(from: DateComponents(year: 2020, month: 1, day: 1))!,
-    newerDate: Date = Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 17))!
+    newerDate: Date = Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 17))!,
+    aspectRatio: CardAspectRatio = .square
 ) -> TransformationCardInput {
     TransformationCardInput(
         olderImageData: makeTestImageData(color: (0.8, 0.2, 0.2)),
@@ -44,11 +46,12 @@ private func makeInput(
         newerDate: newerDate,
         weightOld: weightOld,
         weightNew: weightNew,
-        unitsSystem: unitsSystem
+        unitsSystem: unitsSystem,
+        aspectRatio: aspectRatio
     )
 }
 
-// MARK: - Basic Rendering
+// MARK: - Basic Rendering (Square)
 
 final class TransformationCardRenderTests: XCTestCase {
 
@@ -67,8 +70,8 @@ final class TransformationCardRenderTests: XCTestCase {
     }
 
     /// Co sprawdza: Wynikowy obraz ma wymiary 1080x1080.
-    func testRenderOutputIs1080x1080() {
-        let data = TransformationCardRenderer.render(makeInput())!
+    func testRenderSquareOutputIs1080x1080() {
+        let data = TransformationCardRenderer.render(makeInput(aspectRatio: .square))!
         let image = UIImage(data: data)!
         XCTAssertEqual(Int(image.size.width * image.scale), 1080, "Width should be 1080px")
         XCTAssertEqual(Int(image.size.height * image.scale), 1080, "Height should be 1080px")
@@ -79,6 +82,52 @@ final class TransformationCardRenderTests: XCTestCase {
         let data = TransformationCardRenderer.render(makeInput())!
         XCTAssertGreaterThan(data.count, 10_000, "JPEG should be larger than 10KB")
         XCTAssertLessThan(data.count, 5_000_000, "JPEG should be smaller than 5MB")
+    }
+}
+
+// MARK: - Story Aspect Ratio (9:16)
+
+final class TransformationCardStoryTests: XCTestCase {
+
+    /// Co sprawdza: Story render zwraca niepuste Data.
+    func testStoryRenderReturnsNonNilData() {
+        let data = TransformationCardRenderer.render(makeInput(aspectRatio: .story))
+        XCTAssertNotNil(data)
+        XCTAssertFalse(data!.isEmpty)
+    }
+
+    /// Co sprawdza: Wynikowy obraz Story ma wymiary 1080x1920.
+    func testStoryOutputIs1080x1920() {
+        let data = TransformationCardRenderer.render(makeInput(aspectRatio: .story))!
+        let image = UIImage(data: data)!
+        XCTAssertEqual(Int(image.size.width * image.scale), 1080, "Width should be 1080px")
+        XCTAssertEqual(Int(image.size.height * image.scale), 1920, "Height should be 1920px")
+    }
+
+    /// Co sprawdza: Story jest poprawnym JPEG.
+    func testStoryOutputIsValidJPEG() {
+        let data = TransformationCardRenderer.render(makeInput(aspectRatio: .story))!
+        let bytes = [UInt8](data.prefix(3))
+        XCTAssertEqual(bytes, [0xFF, 0xD8, 0xFF])
+    }
+
+    /// Co sprawdza: Story bez wagi nie crashuje.
+    func testStoryWithoutWeightReturnsNonNil() {
+        let data = TransformationCardRenderer.render(makeInput(weightOld: nil, weightNew: nil, aspectRatio: .story))
+        XCTAssertNotNil(data)
+    }
+
+    /// Co sprawdza: Story imperial units nie crashuje.
+    func testStoryImperialUnitsReturnsNonNil() {
+        let data = TransformationCardRenderer.render(makeInput(unitsSystem: "imperial", aspectRatio: .story))
+        XCTAssertNotNil(data)
+    }
+
+    /// Co sprawdza: Rozmiar pliku Story jest rozsądny.
+    func testStoryOutputHasReasonableFileSize() {
+        let data = TransformationCardRenderer.render(makeInput(aspectRatio: .story))!
+        XCTAssertGreaterThan(data.count, 10_000)
+        XCTAssertLessThan(data.count, 8_000_000)
     }
 }
 
@@ -94,7 +143,7 @@ final class TransformationCardNoWeightTests: XCTestCase {
 
     /// Co sprawdza: Obraz bez wagi jest poprawnym JPEG 1080x1080.
     func testRenderWithoutWeightIs1080x1080() {
-        let data = TransformationCardRenderer.render(makeInput(weightOld: nil, weightNew: nil))!
+        let data = TransformationCardRenderer.render(makeInput(weightOld: nil, weightNew: nil, aspectRatio: .square))!
         let image = UIImage(data: data)!
         XCTAssertEqual(Int(image.size.width * image.scale), 1080)
         XCTAssertEqual(Int(image.size.height * image.scale), 1080)
@@ -164,6 +213,19 @@ final class TransformationCardEdgeCaseTests: XCTestCase {
         let data = TransformationCardRenderer.render(makeInput(olderDate: start, newerDate: end))
         XCTAssertNotNil(data)
     }
+
+    /// Co sprawdza: Story edge cases - same day.
+    func testStoryRenderSameDayDoesNotCrash() {
+        let now = Date()
+        let data = TransformationCardRenderer.render(makeInput(olderDate: now, newerDate: now, aspectRatio: .story))
+        XCTAssertNotNil(data)
+    }
+
+    /// Co sprawdza: Story extreme weight change.
+    func testStoryExtremeWeightDoesNotCrash() {
+        let data = TransformationCardRenderer.render(makeInput(weightOld: 300.0, weightNew: 60.0, aspectRatio: .story))
+        XCTAssertNotNil(data)
+    }
 }
 
 // MARK: - Photo Input Variations
@@ -217,5 +279,42 @@ final class TransformationCardPhotoInputTests: XCTestCase {
         )
         let data = TransformationCardRenderer.render(input)
         XCTAssertNotNil(data)
+    }
+
+    /// Co sprawdza: Mixed aspect ratios w trybie Story.
+    func testStoryMixedAspectRatiosDoesNotCrash() {
+        let portrait = makeTestImageData(width: 300, height: 600)
+        let landscape = makeTestImageData(width: 600, height: 300)
+        let input = TransformationCardInput(
+            olderImageData: portrait,
+            newerImageData: landscape,
+            olderDate: Calendar.current.date(from: DateComponents(year: 2020, month: 1, day: 1))!,
+            newerDate: Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 17))!,
+            weightOld: 90.0,
+            weightNew: 78.0,
+            unitsSystem: "metric",
+            aspectRatio: .story
+        )
+        let data = TransformationCardRenderer.render(input)
+        XCTAssertNotNil(data)
+    }
+}
+
+// MARK: - CardAspectRatio
+
+final class CardAspectRatioTests: XCTestCase {
+
+    func testStoryDimensions() {
+        XCTAssertEqual(CardAspectRatio.story.width, 1080)
+        XCTAssertEqual(CardAspectRatio.story.height, 1920)
+    }
+
+    func testSquareDimensions() {
+        XCTAssertEqual(CardAspectRatio.square.width, 1080)
+        XCTAssertEqual(CardAspectRatio.square.height, 1080)
+    }
+
+    func testAllCasesCount() {
+        XCTAssertEqual(CardAspectRatio.allCases.count, 2)
     }
 }
