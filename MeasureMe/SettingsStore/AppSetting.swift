@@ -5,13 +5,9 @@ import Combine
 
 @MainActor
 final class _KeyPathSettingObserver<Value: Equatable>: ObservableObject {
-    let keyPath: WritableKeyPath<AppSettingsSnapshot, Value>
-    let store: AppSettingsStore
     private var cancellable: AnyCancellable?
 
     init(keyPath: WritableKeyPath<AppSettingsSnapshot, Value>, store: AppSettingsStore) {
-        self.keyPath = keyPath
-        self.store = store
         self.cancellable = store.$snapshot
             .map { $0[keyPath: keyPath] }
             .removeDuplicates()
@@ -19,6 +15,11 @@ final class _KeyPathSettingObserver<Value: Equatable>: ObservableObject {
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
             }
+    }
+
+    deinit {
+        cancellable?.cancel()
+        cancellable = nil
     }
 }
 

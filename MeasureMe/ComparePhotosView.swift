@@ -119,17 +119,14 @@ struct ComparePhotosView: View {
                     .accessibilityLabel(AppLocalization.string("transformation.card.share"))
                     .accessibilityIdentifier("photos.compare.transformation")
 
-                    Menu {
-                        Button {
-                            exportMergedComparison()
-                        } label: {
-                            Label(AppLocalization.string("transformation.card.save"), systemImage: "square.and.arrow.down")
-                        }
+                    Button {
+                        exportMergedComparison()
                     } label: {
-                        Image(systemName: "ellipsis.circle")
+                        Image(systemName: "square.and.arrow.down")
                     }
                     .disabled(isExporting)
-                    .accessibilityIdentifier("photos.compare.export.menu")
+                    .accessibilityLabel(AppLocalization.string("Export"))
+                    .accessibilityIdentifier("photos.compare.export")
                 }
             }
             .alert(AppLocalization.string("Export"), isPresented: $showSaveAlert) {

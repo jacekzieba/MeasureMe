@@ -36,6 +36,9 @@ The app is designed for quick daily/weekly check-ins and long-term progress moni
 - `MeasureMeWidget` - widget extension
 - `MeasureMeTests` - unit and snapshot tests
 - `MeasureMeUITests` - UI tests
+- `TestPlans` - shared Xcode test plans for release validation
+- `scripts` - local automation helpers for validation and QA runs
+- `docs` - release-validation checklist and result templates
 - `MeasureMe.xcodeproj` - Xcode project and schemes
 - `.github/workflows/ios-ci.yml` - CI pipeline
 
@@ -90,6 +93,19 @@ xcodebuild \
   CODE_SIGNING_ALLOWED=NO \
   test
 ```
+
+Release validation helpers:
+
+```bash
+scripts/release_validation.sh show-test-plans
+scripts/release_validation.sh analyze
+scripts/release_validation.sh sim-regression
+scripts/release_validation.sh device-ui 'platform=iOS,id=<device-id>' build/release-validation/session 1
+scripts/release_validation.sh checkers-sim
+scripts/release_validation.sh archive-rc
+```
+
+Dedicated release-validation docs live in `docs/release-validation.md`.
 
 Run static analysis (non-blocking in CI):
 
