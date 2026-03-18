@@ -54,7 +54,7 @@ final class AppSettingsStore: ObservableObject {
     }
 
     func reload() {
-        scheduleSnapshotRefresh()
+        snapshot = AppSettingsSnapshot.load(from: defaults)
     }
 
     func healthKitAnchor(for kind: MetricKind) -> Data? {
@@ -403,6 +403,27 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(Int(iCloudBackup.lastBackupSizeBytes), forKey: AppSettingsKeys.ICloudBackup.lastBackupSizeBytes)
 
             defaults.set(snapshot.internalState.settingsSchemaVersion, forKey: AppSettingsKeys.settingsSchemaVersion)
+
+            // Mirror intent-relevant keys to App Group suite for out-of-process access
+            Self.syncIntentSettings(snapshot, defaults: defaults)
+        }
+    }
+
+    private static let appGroupDefaults = UserDefaults(suiteName: "group.com.jacek.measureme")
+
+    #if DEBUG
+    /// Forces an immediate synchronous reload of the snapshot from the underlying UserDefaults.
+    /// Use only in tests to avoid the normal async 10 ms debounce refresh.
+    func forceReloadSnapshot() {
+        snapshot = AppSettingsSnapshot.load(from: defaults)
+    }
+    #endif
+
+    private static func syncIntentSettings(_ snapshot: AppSettingsSnapshot, defaults: UserDefaults) {
+        guard let shared = appGroupDefaults, shared !== defaults else { return }
+        shared.set(snapshot.profile.unitsSystem, forKey: AppSettingsKeys.Profile.unitsSystem)
+        for key in AppSettingsKeys.Metrics.allEnabledKeys {
+            shared.set(defaults.bool(forKey: key), forKey: key)
         }
     }
 

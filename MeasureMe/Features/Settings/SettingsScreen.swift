@@ -120,6 +120,8 @@ struct SettingsView: View {
     @State private var activeAlert: SettingsAlert?
     @State private var settingsSearchQuery: String = ""
     @State private var selectedSettingsRoute: SettingsSearchRoute?
+    @State private var showExportFormatPicker = false
+    @State private var showPDFRangeSheet = false
     
     private var lastImportText: String? {
         guard lastHealthImportTimestamp > 0 else { return nil }
@@ -913,10 +915,26 @@ struct SettingsView: View {
     }
 
     private func exportMetricsCSV() {
-        exportMessage = AppLocalization.string("Preparing data export...")
+        exportData(format: .csv)
+    }
+
+    private func exportData(format: SettingsExporter.ExportFormat, pdfStartDate: Date? = nil) {
+        switch format {
+        case .csv:  exportMessage = AppLocalization.string("Preparing data export...")
+        case .json: exportMessage = AppLocalization.string("Preparing JSON export...")
+        case .pdf:  exportMessage = AppLocalization.string("Generating PDF report...")
+        }
         isExporting = true
         Task {
-            let out = await SettingsExporter.exportMetrics(context: modelContext, unitsSystem: unitsSystem)
+            let out: SettingsExporter.ExportOutput
+            switch format {
+            case .csv:
+                out = await SettingsExporter.exportMetrics(context: modelContext, unitsSystem: unitsSystem)
+            case .json:
+                out = await SettingsExporter.exportMetricsJSON(context: modelContext, unitsSystem: unitsSystem)
+            case .pdf:
+                out = await SettingsExporter.exportMetricsPDF(context: modelContext, unitsSystem: unitsSystem, startDate: pdfStartDate)
+            }
             shareItems = out.items
             shareSubject = out.subject
             isExporting = false
@@ -1312,7 +1330,7 @@ struct SettingsView: View {
                 onExport: {
                     Haptics.light()
                     if premiumStore.isPremium {
-                        exportMetricsCSV()
+                        showExportFormatPicker = true
                     } else {
                         premiumStore.presentPaywall(reason: .feature("Data export"))
                     }
@@ -1357,6 +1375,22 @@ struct SettingsView: View {
                     activeAlert = .deleteAllDataConfirm
                 }
             )
+            .confirmationDialog(
+                AppLocalization.string("Export format"),
+                isPresented: $showExportFormatPicker
+            ) {
+                Button("CSV") { exportData(format: .csv) }
+                Button("JSON") { exportData(format: .json) }
+                Button(AppLocalization.string("PDF Report")) { showPDFRangeSheet = true }
+                Button(AppLocalization.string("Cancel"), role: .cancel) {}
+            } message: {
+                Text(AppLocalization.string("Choose an export format"))
+            }
+            .sheet(isPresented: $showPDFRangeSheet) {
+                ExportPDFRangeSheet { startDate in
+                    exportData(format: .pdf, pdfStartDate: startDate)
+                }
+            }
         case .faq:
             FAQView()
         case .about:

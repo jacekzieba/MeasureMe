@@ -150,8 +150,9 @@ enum ICloudBackupService {
                 let fm = FileManager.default
                 try fm.createDirectory(at: rootURL, withIntermediateDirectories: true)
 
-                let packageName = "backup-\(Int(timestamp.timeIntervalSince1970)).\(backupFileExtension)"
-                let packageURL = rootURL.appendingPathComponent(packageName, isDirectory: true)
+                let stamp = Int(timestamp.timeIntervalSince1970)
+                let wipName = "backup-\(stamp).\(backupFileExtension)-wip"
+                let packageURL = rootURL.appendingPathComponent(wipName, isDirectory: true)
                 try fm.createDirectory(at: packageURL, withIntermediateDirectories: true)
 
                 let photosDir = packageURL.appendingPathComponent("photos", isDirectory: true)
@@ -171,8 +172,13 @@ enum ICloudBackupService {
 
                 try manifestData.write(to: packageURL.appendingPathComponent("manifest.json"))
 
+                // Atomically rename from WIP to final extension
+                let finalName = "backup-\(stamp).\(backupFileExtension)"
+                let finalURL = rootURL.appendingPathComponent(finalName, isDirectory: true)
+                try fm.moveItem(at: packageURL, to: finalURL)
+
                 try Self.enforceRetention(in: rootURL)
-                return Self.directorySize(packageURL)
+                return Self.directorySize(finalURL)
             }.value
 
             await MainActor.run {
@@ -365,19 +371,52 @@ enum ICloudBackupService {
                 )
             }.value
 
+            // Snapshot existing data for rollback in case save fails
+            let existingMetrics = try context.fetch(FetchDescriptor<MetricSample>())
+            let existingGoals = try context.fetch(FetchDescriptor<MetricGoal>())
+            let existingPhotos = try context.fetch(FetchDescriptor<PhotoEntry>())
+
+            let snapshotMetrics = existingMetrics.map {
+                CodableMetricSample(kindRaw: $0.kindRaw, value: $0.value, date: $0.date)
+            }
+            let snapshotGoals = existingGoals.map {
+                CodableMetricGoal(
+                    kindRaw: $0.kindRaw,
+                    targetValue: $0.targetValue,
+                    directionRaw: $0.directionRaw,
+                    createdDate: $0.createdDate,
+                    startValue: $0.startValue,
+                    startDate: $0.startDate
+                )
+            }
+            let snapshotPhotos = existingPhotos.map { photo in
+                RestoredPhotoEntry(
+                    imageData: photo.imageData,
+                    thumbnailData: photo.thumbnailData,
+                    date: photo.date,
+                    tagRawValues: photo.tags.map(\.rawValue),
+                    linkedMetrics: photo.linkedMetrics.map {
+                        CodableLinkedMetric(metricRawValue: $0.metricRawValue, value: $0.value, unit: $0.unit)
+                    }
+                )
+            }
+
             try deleteAll(MetricSample.self, from: context)
             try deleteAll(MetricGoal.self, from: context)
             try deleteAll(PhotoEntry.self, from: context)
 
             for m in payload.metrics {
-                context.insert(MetricSample(kind: MetricKind(rawValue: m.kindRaw) ?? .weight, value: m.value, date: m.date))
+                guard let kind = MetricKind(rawValue: m.kindRaw) else { continue }
+                context.insert(MetricSample(kind: kind, value: m.value, date: m.date))
             }
 
             for g in payload.goals {
+                guard let kind = MetricKind(rawValue: g.kindRaw) else { continue }
+                guard let direction = MetricGoal.Direction(rawValue: g.directionRaw) else { continue }
                 context.insert(MetricGoal(
-                    kind: MetricKind(rawValue: g.kindRaw) ?? .weight,
+                    kind: kind,
                     targetValue: g.targetValue,
-                    direction: MetricGoal.Direction(rawValue: g.directionRaw) ?? .decrease,
+                    direction: direction,
                     createdDate: g.createdDate,
                     startValue: g.startValue,
                     startDate: g.startDate
@@ -396,7 +435,45 @@ enum ICloudBackupService {
                 ))
             }
 
-            try context.save()
+            do {
+                try context.save()
+            } catch {
+                // Rollback: re-insert original data
+                try? deleteAll(MetricSample.self, from: context)
+                try? deleteAll(MetricGoal.self, from: context)
+                try? deleteAll(PhotoEntry.self, from: context)
+                for m in snapshotMetrics {
+                    if let kind = MetricKind(rawValue: m.kindRaw) {
+                        context.insert(MetricSample(kind: kind, value: m.value, date: m.date))
+                    }
+                }
+                for g in snapshotGoals {
+                    if let kind = MetricKind(rawValue: g.kindRaw),
+                       let dir = MetricGoal.Direction(rawValue: g.directionRaw) {
+                        context.insert(MetricGoal(
+                            kind: kind,
+                            targetValue: g.targetValue,
+                            direction: dir,
+                            createdDate: g.createdDate,
+                            startValue: g.startValue,
+                            startDate: g.startDate
+                        ))
+                    }
+                }
+                for photo in snapshotPhotos {
+                    context.insert(PhotoEntry(
+                        imageData: photo.imageData,
+                        thumbnailData: photo.thumbnailData,
+                        date: photo.date,
+                        tags: photo.tagRawValues.compactMap(PhotoTag.init(rawValue:)),
+                        linkedMetrics: photo.linkedMetrics.map {
+                            MetricValueSnapshot(metricRawValue: $0.metricRawValue, value: $0.value, unit: $0.unit)
+                        }
+                    ))
+                }
+                try? context.save()
+                throw error
+            }
 
             await MainActor.run { restoreSettings(payload.settingsEntries) }
             await MainActor.run {
@@ -519,9 +596,18 @@ enum ICloudBackupService {
         ]
 
         let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
-        guard addStatus == errSecSuccess else { return nil }
+        if addStatus == errSecSuccess {
+            return newKey
+        } else if addStatus == errSecDuplicateItem {
+            // Key was synced via iCloud Keychain between read and add — retry read
+            var retryResult: AnyObject?
+            let retryStatus = SecItemCopyMatching(query as CFDictionary, &retryResult)
+            if retryStatus == errSecSuccess, let data = retryResult as? Data {
+                return SymmetricKey(data: data)
+            }
+        }
 
-        return newKey
+        return nil
     }
 
     // MARK: - Backup discovery & retention
@@ -658,14 +744,10 @@ enum ICloudBackupService {
         }
 
         let nsError = error as NSError
-        switch nsError.domain {
-        case NSCocoaErrorDomain:
-            return AppLocalization.string("Could not access iCloud backup right now.")
-        case NSPOSIXErrorDomain:
-            return AppLocalization.string("Could not access iCloud backup right now.")
-        default:
-            return AppLocalization.string("Could not access iCloud backup right now.")
+        if nsError.domain == NSCocoaErrorDomain, nsError.code == NSFileWriteOutOfSpaceError {
+            return AppLocalization.string("iCloud storage is full. Free up space in Settings → iCloud to continue backups.")
         }
+        return AppLocalization.string("Could not access iCloud backup right now.")
     }
 
     // MARK: - Codable transport types

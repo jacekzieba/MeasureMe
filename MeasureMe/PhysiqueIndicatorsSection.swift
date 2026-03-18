@@ -599,6 +599,7 @@ private struct PhysiqueRequiresGenderCard: View {
                 Text(AppLocalization.string("Set gender to unlock these indicators"))
                     .font(AppTypography.bodyEmphasis)
                     .foregroundStyle(.white)
+                    .accessibilityIdentifier("physique.requires.gender.title")
             }
 
             Text(AppLocalization.string("Physique ratio interpretation in this section is sex-specific. Set your profile gender to view values and ranges."))
@@ -615,6 +616,7 @@ private struct PhysiqueRequiresGenderCard: View {
                     .padding(.vertical, 8)
                     .background(Color(hex: "#FCA311"), in: RoundedRectangle(cornerRadius: 8))
             }
+            .accessibilityIdentifier("physique.requires.gender.cta")
             .buttonStyle(.plain)
         }
         .padding(12)

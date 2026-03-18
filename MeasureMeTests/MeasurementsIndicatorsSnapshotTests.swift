@@ -54,12 +54,13 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
                     defaults.removeObject(forKey: key)
                 }
             }
+            AppSettingsStore.shared.forceReloadSnapshot()
+            AppLocalization.settings = .shared
             AppLocalization.reloadLanguage()
             UIView.setAnimationsEnabled(wereAnimationsEnabled)
         }
 
         defaults.set("en", forKey: "appLanguage")
-        AppLocalization.reloadLanguage()
         defaults.set("male", forKey: "userGender")
         defaults.set(180.0, forKey: "manualHeight")
         defaults.set("metric", forKey: "unitsSystem")
@@ -69,6 +70,15 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
             defaults.set(true, forKey: key)
         }
         defaults.set(true, forKey: "health_indicators_v2_migrated")
+
+        // Force-sync AppSettingsStore.shared snapshot so @AppSetting wrappers reflect test values
+        // immediately, without waiting for the normal async 10 ms debounce refresh.
+        AppSettingsStore.shared.forceReloadSnapshot()
+
+        // Same sync-load fix for AppLocalization so language is English during render.
+        AppLocalization.settings = AppSettingsStore(defaults: defaults)
+        AppLocalization.reloadLanguage()
+
         UIView.setAnimationsEnabled(false)
 
         let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)

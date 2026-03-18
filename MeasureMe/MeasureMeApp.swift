@@ -414,7 +414,8 @@ struct MeasureMeApp: App {
             forTaskWithIdentifier: Self.backgroundBackupTaskID,
             using: nil
         ) { task in
-            Self.handleBackgroundBackup(task: task as! BGProcessingTask)
+            guard let processingTask = task as? BGProcessingTask else { return }
+            Self.handleBackgroundBackup(task: processingTask)
         }
     }
 

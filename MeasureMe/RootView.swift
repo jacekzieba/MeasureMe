@@ -231,7 +231,7 @@ struct RootView: View {
         guard !didScheduleDeferredStartupWork else { return }
         didScheduleDeferredStartupWork = true
 
-        Task(priority: .utility) { @MainActor in
+        Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(1200))
 
             premiumStore.startIfNeeded()

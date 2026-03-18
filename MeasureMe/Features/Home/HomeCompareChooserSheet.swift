@@ -81,10 +81,9 @@ struct HomeCompareChooserSheet: View {
                 VStack(alignment: .leading, spacing: 18) {
                     Text("\(filteredPhotos.count)")
                         .font(.system(size: 1))
-                        .foregroundStyle(.clear)
                         .accessibilityIdentifier("home.compare.filteredCount")
                         .frame(width: 1, height: 1)
-                        .clipped()
+                        .opacity(0.001)
 
                     if isUITestMode {
                         Button(AppLocalization.string("home.compare.chooser.uihook")) {

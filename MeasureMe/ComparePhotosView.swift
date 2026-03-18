@@ -17,6 +17,9 @@ struct ComparePhotosView: View {
     @State private var showSaveAlert = false
     @State private var saveMessage = ""
     @State private var isExporting = false
+    @State private var showShareSheet = false
+    @State private var shareItems: [Any] = []
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
     private var olderCompareCacheID: String {
         compareCacheID(for: olderPhoto)
@@ -55,15 +58,23 @@ struct ComparePhotosView: View {
                     if isExporting {
                         ProgressView()
                     }
-                    Button {
-                        exportMergedComparison()
+                    Menu {
+                        Button {
+                            exportMergedComparison()
+                        } label: {
+                            Label(AppLocalization.string("transformation.card.save"), systemImage: "square.and.arrow.down")
+                        }
+                        Button {
+                            exportTransformationCard()
+                        } label: {
+                            Label(AppLocalization.string("transformation.card.share"), systemImage: "sparkles.rectangle.stack")
+                        }
                     } label: {
-                        Image(systemName: "square.and.arrow.down")
+                        Image(systemName: "ellipsis.circle")
                     }
                     .disabled(isExporting)
-                    .accessibilityIdentifier("photos.compare.export")
-                    .accessibilityLabel(AppLocalization.string("Export comparison image"))
-                    
+                    .accessibilityIdentifier("photos.compare.export.menu")
+
                     Button {
                         showSlider.toggle()
                     } label: {
@@ -78,6 +89,9 @@ struct ComparePhotosView: View {
                 Button(AppLocalization.string("OK"), role: .cancel) { }
             } message: {
                 Text(saveMessage)
+            }
+            .sheet(isPresented: $showShareSheet) {
+                ShareSheet(items: shareItems)
             }
         }
     }
@@ -335,6 +349,39 @@ struct ComparePhotosView: View {
         }
     }
     
+    private func exportTransformationCard() {
+        guard !isExporting else { return }
+        isExporting = true
+
+        let weightOld = olderPhoto.linkedMetrics.first { $0.kind == .weight }?.value
+        let weightNew = newerPhoto.linkedMetrics.first { $0.kind == .weight }?.value
+
+        let input = TransformationCardInput(
+            olderImageData: olderPhoto.imageData,
+            newerImageData: newerPhoto.imageData,
+            olderDate: olderPhoto.date,
+            newerDate: newerPhoto.date,
+            weightOld: weightOld,
+            weightNew: weightNew,
+            unitsSystem: unitsSystem
+        )
+
+        Task.detached(priority: .userInitiated) {
+            let jpegData = TransformationCardRenderer.render(input)
+
+            await MainActor.run {
+                isExporting = false
+                guard let jpegData, let image = UIImage(data: jpegData) else {
+                    saveMessage = AppLocalization.string("Failed to prepare the comparison image.")
+                    showSaveAlert = true
+                    return
+                }
+                shareItems = [image]
+                showShareSheet = true
+            }
+        }
+    }
+
     private nonisolated static func mergeImagesHorizontallyJPEGData(leftData: Data, rightData: Data) -> Data? {
         autoreleasepool {
             guard let leftCG = downsampleForExportCGImage(from: leftData, maxDimension: 2048),

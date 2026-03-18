@@ -47,4 +47,42 @@ final class IntentDeferredHealthSyncProcessorTests: XCTestCase {
         XCTAssertEqual(syncedKinds, [.weight, .waist])
         XCTAssertTrue(IntentDeferredHealthSyncStore.pendingEntries(settings: settings).isEmpty)
     }
+
+    func testProcessorReEnqueuesFailedEntries() async {
+        let suiteName = "IntentDeferredHealthSyncProcessorTests.reEnqueue.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("Expected dedicated UserDefaults suite")
+            return
+        }
+        defaults.removePersistentDomain(forName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let settings = AppSettingsStore(defaults: defaults)
+        settings.set(\.health.isSyncEnabled, true)
+
+        // Enqueue 3 entries: weight, bodyFat, height
+        IntentDeferredHealthSyncStore.enqueue(kind: .weight, metricValue: 80, date: Date(timeIntervalSince1970: 1_000), settings: settings)
+        IntentDeferredHealthSyncStore.enqueue(kind: .bodyFat, metricValue: 20, date: Date(timeIntervalSince1970: 2_000), settings: settings)
+        IntentDeferredHealthSyncStore.enqueue(kind: .height, metricValue: 180, date: Date(timeIntervalSince1970: 3_000), settings: settings)
+
+        struct SyncError: Error {}
+
+        let recorder = IntentSyncRecorder()
+        await IntentDeferredHealthSyncProcessor.processPendingIfNeeded(settings: settings) { kind, _, _ in
+            if kind == .bodyFat {
+                throw SyncError()
+            }
+            await recorder.append(kind)
+        }
+
+        // Weight and height should have synced successfully
+        let syncedKinds = await recorder.syncedKinds
+        XCTAssertEqual(syncedKinds, [.weight, .height])
+
+        // bodyFat should have been re-enqueued
+        let remaining = IntentDeferredHealthSyncStore.pendingEntries(settings: settings)
+        XCTAssertEqual(remaining.count, 1)
+        XCTAssertEqual(remaining.first?.kindRaw, MetricKind.bodyFat.rawValue)
+        XCTAssertEqual(remaining.first?.metricValue, 20)
+    }
 }

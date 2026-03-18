@@ -10,6 +10,7 @@ protocol PremiumBillingClient {
     func purchase(_ package: Package) async throws -> PurchaseResultData
     func restorePurchases() async throws -> CustomerInfo
     func customerInfo() async throws -> CustomerInfo
+    var customerInfoStream: AsyncStream<CustomerInfo> { get }
 }
 
 protocol PremiumNotificationManaging: AnyObject {
@@ -76,6 +77,10 @@ struct RevenueCatBillingClient: PremiumBillingClient {
 
     func customerInfo() async throws -> CustomerInfo {
         try await Purchases.shared.customerInfo()
+    }
+
+    var customerInfoStream: AsyncStream<CustomerInfo> {
+        Purchases.shared.customerInfoStream
     }
 }
 
@@ -222,6 +227,13 @@ final class PremiumStore: ObservableObject {
         updateListenerTask = Task {
             await loadProducts()
             await refreshEntitlements()
+            // Listen for real-time entitlement changes (renewals, expirations, refunds)
+            #if DEBUG
+            guard !forcePremiumForUITests, !forceNonPremiumForUITests else { return }
+            #endif
+            for await info in billingClient.customerInfoStream {
+                applyCustomerInfo(info)
+            }
         }
     }
 

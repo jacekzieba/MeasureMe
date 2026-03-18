@@ -20,7 +20,8 @@ struct PhotoGridThumb: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .onAppear {
             guard photo.thumbnailData == nil else { return }
-            Task(priority: .utility) {
+            guard !ProcessInfo.processInfo.arguments.contains("-uiTestMode") else { return }
+            Task {
                 await PhotoThumbnailBackfillService.shared.enqueueIfNeeded(
                     photoID: photo.persistentModelID,
                     originalImageData: photo.imageData,

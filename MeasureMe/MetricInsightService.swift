@@ -120,10 +120,16 @@ enum AppleIntelligenceSupport {
 // MARK: - Persistent Cache
 
 nonisolated struct InsightDiskCache {
+    #if DEBUG
     nonisolated(unsafe) static var suiteName = "group.com.jacek.measureme"
-    private static let storeKey = "insight_disk_cache_v1"
-    nonisolated(unsafe) static var ttl: TimeInterval = 24 * 60 * 60 // 24 hours
+    nonisolated(unsafe) static var ttl: TimeInterval = 24 * 60 * 60
     nonisolated(unsafe) static var maxEntries = 80
+    #else
+    static let suiteName = "group.com.jacek.measureme"
+    static let ttl: TimeInterval = 24 * 60 * 60
+    static let maxEntries = 80
+    #endif
+    private static let storeKey = "insight_disk_cache_v1"
 
     struct Entry: Codable {
         let shortText: String
@@ -285,7 +291,10 @@ actor MetricInsightService {
             conversationSession = session
         }
 
-        let response = try await conversationSession!.respond(to: question)
+        guard let session = conversationSession else {
+            throw MetricInsightError.notAvailable
+        }
+        let response = try await session.respond(to: question)
         let cleaned = InsightTextProcessor.sanitize(response.content)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return cleaned

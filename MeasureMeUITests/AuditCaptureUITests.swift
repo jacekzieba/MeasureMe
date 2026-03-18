@@ -191,6 +191,7 @@ final class AuditCaptureUITests: XCTestCase {
 
         let tileButton = app.buttons["metric.tile.open.weight"].firstMatch
         XCTAssertTrue(tileButton.waitForExistence(timeout: 8))
+        scrollToReveal(tileButton, in: app)
         XCTAssertTrue(tileButton.isHittable)
 
         openTab(app, candidates: TabLabel.home)

@@ -535,3 +535,389 @@ final class TempFileWriterTests: XCTestCase {
         XCTAssertTrue(url.standardized.path.hasPrefix(tmpDir.path), "Plik powinien być w katalogu tymczasowym")
     }
 }
+
+// MARK: - buildMetricsJSON
+
+final class MetricsJSONBuilderTests: XCTestCase {
+
+    private func sampleRow(kindRaw: String = "weight", title: String = "Weight", metricValue: Double = 80.1234, metricUnit: String = "kg", displayValue: Double = 80.12, unit: String = "kg", date: Date = iso("2026-03-15T10:30:00.000Z")) -> SettingsExporter.MetricCSVRowSnapshot {
+        SettingsExporter.MetricCSVRowSnapshot(
+            kindRaw: kindRaw,
+            metricTitle: title,
+            metricValue: metricValue,
+            metricUnit: metricUnit,
+            displayValue: displayValue,
+            unit: unit,
+            date: date
+        )
+    }
+
+    private func goalRow(kindRaw: String = "weight", title: String = "Weight", direction: String = "decrease", targetMetricValue: Double = 75.0, targetMetricUnit: String = "kg", targetDisplayValue: Double = 75.0, targetDisplayUnit: String = "kg", startMetricValue: Double? = 85.0, startDisplayValue: Double? = 85.0, startDate: Date? = iso("2025-01-01T08:00:00.000Z"), createdDate: Date = iso("2025-01-01T08:00:00.000Z")) -> SettingsExporter.MetricGoalSnapshot {
+        SettingsExporter.MetricGoalSnapshot(
+            kindRaw: kindRaw,
+            metricTitle: title,
+            direction: direction,
+            targetMetricValue: targetMetricValue,
+            targetMetricUnit: targetMetricUnit,
+            targetDisplayValue: targetDisplayValue,
+            targetDisplayUnit: targetDisplayUnit,
+            startMetricValue: startMetricValue,
+            startDisplayValue: startDisplayValue,
+            startDate: startDate,
+            createdDate: createdDate
+        )
+    }
+
+    private func parseJSON(_ data: Data) throws -> [String: Any] {
+        try JSONSerialization.jsonObject(with: data) as! [String: Any]
+    }
+
+    /// Co sprawdza: Pusty zestaw danych produkuje poprawny JSON z pustymi tablicami.
+    func testEmptyDataReturnsValidJSON() throws {
+        let data = try XCTUnwrap(SettingsExporter.buildMetricsJSON(metrics: [], goals: [], unitsSystem: "metric"))
+        let json = try parseJSON(data)
+        let metrics = json["metrics"] as? [[String: Any]]
+        let goals = json["goals"] as? [[String: Any]]
+        XCTAssertNotNil(metrics)
+        XCTAssertNotNil(goals)
+        XCTAssertEqual(metrics?.count, 0)
+        XCTAssertEqual(goals?.count, 0)
+    }
+
+    /// Co sprawdza: Klucze top-level są obecne.
+    func testTopLevelKeysPresent() throws {
+        let data = try XCTUnwrap(SettingsExporter.buildMetricsJSON(metrics: [], goals: [], unitsSystem: "metric"))
+        let json = try parseJSON(data)
+        XCTAssertNotNil(json["exportVersion"])
+        XCTAssertNotNil(json["exportDate"])
+        XCTAssertNotNil(json["appVersion"])
+        XCTAssertNotNil(json["unitsSystem"])
+        XCTAssertNotNil(json["metrics"])
+        XCTAssertNotNil(json["goals"])
+    }
+
+    /// Co sprawdza: unitsSystem jest zapisywany poprawnie.
+    func testUnitsSystemStored() throws {
+        let data = try XCTUnwrap(SettingsExporter.buildMetricsJSON(metrics: [], goals: [], unitsSystem: "imperial"))
+        let json = try parseJSON(data)
+        XCTAssertEqual(json["unitsSystem"] as? String, "imperial")
+    }
+
+    /// Co sprawdza: Liczba elementów w tablicy metrics odpowiada wejściu.
+    func testMetricsArrayMatchesInputCount() throws {
+        let rows = [
+            sampleRow(kindRaw: "weight"),
+            sampleRow(kindRaw: "bodyFat", title: "Body fat", metricUnit: "%", unit: "%"),
+            sampleRow(kindRaw: "waist", title: "Waist", metricUnit: "cm", unit: "cm")
+        ]
+        let data = try XCTUnwrap(SettingsExporter.buildMetricsJSON(metrics: rows, goals: [], unitsSystem: "metric"))
+        let json = try parseJSON(data)
+        let metrics = json["metrics"] as? [[String: Any]]
+        XCTAssertEqual(metrics?.count, 3)
+    }
+
+    /// Co sprawdza: Pole metricId odpowiada kindRaw z wejścia.
+    func testMetricIdFieldMatchesKindRaw() throws {
+        let rows = [sampleRow(kindRaw: "leftBicep", title: "Left bicep")]
+        let data = try XCTUnwrap(SettingsExporter.buildMetricsJSON(metrics: rows, goals: [], unitsSystem: "metric"))
+        let json = try parseJSON(data)
+        let metrics = json["metrics"] as? [[String: Any]]
+        XCTAssertEqual(metrics?.first?["metricId"] as? String, "leftBicep")
+    }
+
+    /// Co sprawdza: Liczba elementów w tablicy goals odpowiada wejściu.
+    func testGoalsArrayMatchesInputCount() throws {
+        let goals = [goalRow(), goalRow(kindRaw: "waist", title: "Waist", direction: "decrease")]
+        let data = try XCTUnwrap(SettingsExporter.buildMetricsJSON(metrics: [], goals: goals, unitsSystem: "metric"))
+        let json = try parseJSON(data)
+        let goalsArr = json["goals"] as? [[String: Any]]
+        XCTAssertEqual(goalsArr?.count, 2)
+    }
+
+    /// Co sprawdza: Opcjonalne pola celu (startValueMetric, startDate) są pomijane gdy nil.
+    func testGoalOptionalFieldsAbsentWhenNil() throws {
+        let goal = goalRow(startMetricValue: nil, startDisplayValue: nil, startDate: nil)
+        let data = try XCTUnwrap(SettingsExporter.buildMetricsJSON(metrics: [], goals: [goal], unitsSystem: "metric"))
+        let json = try parseJSON(data)
+        let goalsArr = json["goals"] as? [[String: Any]]
+        let firstGoal = try XCTUnwrap(goalsArr?.first)
+        XCTAssertNil(firstGoal["startValueMetric"])
+        XCTAssertNil(firstGoal["startValue"])
+        XCTAssertNil(firstGoal["startDate"])
+    }
+
+    /// Co sprawdza: exportVersion jest "1.0".
+    func testExportVersionIs1_0() throws {
+        let data = try XCTUnwrap(SettingsExporter.buildMetricsJSON(metrics: [], goals: [], unitsSystem: "metric"))
+        let json = try parseJSON(data)
+        XCTAssertEqual(json["exportVersion"] as? String, "1.0")
+    }
+
+    /// Co sprawdza: Pole timestamp w metryce jest poprawnym ISO 8601 z milisekundami.
+    func testTimestampFieldIsISO8601() throws {
+        let inputDate = iso("2026-03-15T10:30:45.123Z")
+        let rows = [sampleRow(date: inputDate)]
+        let data = try XCTUnwrap(SettingsExporter.buildMetricsJSON(metrics: rows, goals: [], unitsSystem: "metric"))
+        let json = try parseJSON(data)
+        let metrics = try XCTUnwrap(json["metrics"] as? [[String: Any]])
+        let timestamp = try XCTUnwrap(metrics.first?["timestamp"] as? String)
+        // Musi parsować się z powrotem do tej samej daty
+        let parsed = isoFormatter.date(from: timestamp)
+        XCTAssertNotNil(parsed, "timestamp powinien być poprawnym ISO 8601")
+        XCTAssertEqual(parsed!.timeIntervalSince1970, inputDate.timeIntervalSince1970, accuracy: 0.01)
+    }
+
+    /// Co sprawdza: valueMetric jest zaokrąglone do 4 miejsc po przecinku.
+    func testMetricValueRoundedTo4Decimals() throws {
+        let rows = [sampleRow(metricValue: 80.12345678)]
+        let data = try XCTUnwrap(SettingsExporter.buildMetricsJSON(metrics: rows, goals: [], unitsSystem: "metric"))
+        let json = try parseJSON(data)
+        let metrics = try XCTUnwrap(json["metrics"] as? [[String: Any]])
+        let value = try XCTUnwrap(metrics.first?["valueMetric"] as? Double)
+        XCTAssertEqual(value, 80.1235, accuracy: 0.00001, "valueMetric powinno być zaokrąglone do 4 miejsc")
+    }
+
+    /// Co sprawdza: value (display) jest zaokrąglone do 2 miejsc po przecinku.
+    func testDisplayValueRoundedTo2Decimals() throws {
+        let rows = [sampleRow(displayValue: 176.456)]
+        let data = try XCTUnwrap(SettingsExporter.buildMetricsJSON(metrics: rows, goals: [], unitsSystem: "metric"))
+        let json = try parseJSON(data)
+        let metrics = try XCTUnwrap(json["metrics"] as? [[String: Any]])
+        let value = try XCTUnwrap(metrics.first?["value"] as? Double)
+        XCTAssertEqual(value, 176.46, accuracy: 0.001, "value powinno być zaokrąglone do 2 miejsc")
+    }
+
+    /// Co sprawdza: Gdy opcjonalne pola celu nie są nil, są obecne w JSON.
+    func testGoalWithAllOptionalFieldsPresent() throws {
+        let goal = goalRow(startMetricValue: 85.0, startDisplayValue: 85.0, startDate: iso("2025-06-01T00:00:00.000Z"))
+        let data = try XCTUnwrap(SettingsExporter.buildMetricsJSON(metrics: [], goals: [goal], unitsSystem: "metric"))
+        let json = try parseJSON(data)
+        let goalsArr = try XCTUnwrap(json["goals"] as? [[String: Any]])
+        let firstGoal = try XCTUnwrap(goalsArr.first)
+        XCTAssertNotNil(firstGoal["startValueMetric"], "startValueMetric powinno być obecne gdy nie nil")
+        XCTAssertNotNil(firstGoal["startValue"], "startValue powinno być obecne gdy nie nil")
+        XCTAssertNotNil(firstGoal["startDate"], "startDate powinno być obecne gdy nie nil")
+    }
+}
+
+// MARK: - buildMetricsPDF
+
+final class MetricsPDFBuilderTests: XCTestCase {
+
+    private func sampleRow(kindRaw: String = "weight", title: String = "Weight", displayValue: Double = 80.0, unit: String = "kg", date: Date = iso("2026-03-15T10:30:00.000Z")) -> SettingsExporter.MetricCSVRowSnapshot {
+        SettingsExporter.MetricCSVRowSnapshot(
+            kindRaw: kindRaw,
+            metricTitle: title,
+            metricValue: displayValue,
+            metricUnit: "kg",
+            displayValue: displayValue,
+            unit: unit,
+            date: date
+        )
+    }
+
+    /// Co sprawdza: PDF builder zwraca niepuste dane.
+    func testPDFDataIsNonEmpty() {
+        let data = SettingsExporter.buildMetricsPDF(
+            metrics: [sampleRow()],
+            goals: [],
+            unitsSystem: "metric",
+            dateRange: (start: nil, end: Date()),
+            logoImage: nil
+        )
+        XCTAssertFalse(data.isEmpty)
+    }
+
+    /// Co sprawdza: Dane zaczynają się od magic bytes %PDF.
+    func testPDFDataStartsWithPDFMagicBytes() {
+        let data = SettingsExporter.buildMetricsPDF(
+            metrics: [sampleRow()],
+            goals: [],
+            unitsSystem: "metric",
+            dateRange: (start: nil, end: Date()),
+            logoImage: nil
+        )
+        let prefix = String(data: data.prefix(5), encoding: .ascii) ?? ""
+        XCTAssertTrue(prefix.hasPrefix("%PDF"), "PDF data should start with %PDF magic bytes")
+    }
+
+    /// Co sprawdza: Puste dane produkują poprawny PDF (nie crash).
+    func testEmptyDataProducesValidPDF() {
+        let data = SettingsExporter.buildMetricsPDF(
+            metrics: [],
+            goals: [],
+            unitsSystem: "metric",
+            dateRange: (start: nil, end: Date()),
+            logoImage: nil
+        )
+        XCTAssertFalse(data.isEmpty)
+        let prefix = String(data: data.prefix(5), encoding: .ascii) ?? ""
+        XCTAssertTrue(prefix.hasPrefix("%PDF"))
+    }
+
+    /// Co sprawdza: nil logoImage nie powoduje crash.
+    func testPDFWithNilLogoDoesNotCrash() {
+        let data = SettingsExporter.buildMetricsPDF(
+            metrics: [sampleRow(), sampleRow(kindRaw: "waist", title: "Waist", displayValue: 82.5, unit: "cm")],
+            goals: [],
+            unitsSystem: "metric",
+            dateRange: (start: Date.distantPast, end: Date()),
+            logoImage: nil
+        )
+        XCTAssertFalse(data.isEmpty)
+    }
+
+    /// Co sprawdza: PDF z wieloma kategoriami danych i celami produkuje dane > 1KB.
+    func testPDFWithGoalsProducesLargerFile() {
+        let goal = SettingsExporter.MetricGoalSnapshot(
+            kindRaw: "weight",
+            metricTitle: "Weight",
+            direction: "decrease",
+            targetMetricValue: 75.0,
+            targetMetricUnit: "kg",
+            targetDisplayValue: 75.0,
+            targetDisplayUnit: "kg",
+            startMetricValue: 85.0,
+            startDisplayValue: 85.0,
+            startDate: iso("2025-01-01T08:00:00.000Z"),
+            createdDate: iso("2025-01-01T08:00:00.000Z")
+        )
+        let data = SettingsExporter.buildMetricsPDF(
+            metrics: [sampleRow()],
+            goals: [goal],
+            unitsSystem: "metric",
+            dateRange: (start: nil, end: Date()),
+            logoImage: nil
+        )
+        XCTAssertGreaterThan(data.count, 1000, "PDF with goals should be larger than 1KB")
+    }
+
+    /// Co sprawdza: Dane ze wszystkich 4 kategorii (18 metryk) nie powodują crash.
+    func testPDFWithAllCategoriesProducesData() {
+        let allKinds: [(String, String, String)] = [
+            ("weight", "Weight", "kg"), ("bodyFat", "Body fat", "%"), ("height", "Height", "cm"),
+            ("leanBodyMass", "Lean body mass", "kg"), ("waist", "Waist", "cm"),
+            ("neck", "Neck", "cm"), ("shoulders", "Shoulders", "cm"),
+            ("bust", "Bust", "cm"), ("chest", "Chest", "cm"),
+            ("leftBicep", "Left bicep", "cm"), ("rightBicep", "Right bicep", "cm"),
+            ("leftForearm", "Left forearm", "cm"), ("rightForearm", "Right forearm", "cm"),
+            ("hips", "Hips", "cm"), ("leftThigh", "Left thigh", "cm"),
+            ("rightThigh", "Right thigh", "cm"), ("leftCalf", "Left calf", "cm"),
+            ("rightCalf", "Right calf", "cm")
+        ]
+        let rows = allKinds.map { sampleRow(kindRaw: $0.0, title: $0.1, displayValue: 50.0, unit: $0.2) }
+        let data = SettingsExporter.buildMetricsPDF(
+            metrics: rows,
+            goals: [],
+            unitsSystem: "metric",
+            dateRange: (start: nil, end: Date()),
+            logoImage: nil
+        )
+        XCTAssertFalse(data.isEmpty)
+        let prefix = String(data: data.prefix(5), encoding: .ascii) ?? ""
+        XCTAssertTrue(prefix.hasPrefix("%PDF"))
+    }
+
+    /// Co sprawdza: System imperial nie powoduje crash.
+    func testPDFWithImperialUnitsDoesNotCrash() {
+        let data = SettingsExporter.buildMetricsPDF(
+            metrics: [sampleRow(displayValue: 176.37, unit: "lb")],
+            goals: [],
+            unitsSystem: "imperial",
+            dateRange: (start: nil, end: Date()),
+            logoImage: nil
+        )
+        XCTAssertFalse(data.isEmpty)
+    }
+
+    /// Co sprawdza: startDate w przyszłości → puste dane ale poprawny PDF.
+    func testPDFWithFutureStartDateProducesValidEmptyPDF() {
+        let futureDate = Calendar.current.date(byAdding: .year, value: 10, to: Date())!
+        let data = SettingsExporter.buildMetricsPDF(
+            metrics: [],
+            goals: [],
+            unitsSystem: "metric",
+            dateRange: (start: futureDate, end: Date()),
+            logoImage: nil
+        )
+        XCTAssertFalse(data.isEmpty)
+        let prefix = String(data: data.prefix(5), encoding: .ascii) ?? ""
+        XCTAssertTrue(prefix.hasPrefix("%PDF"))
+    }
+
+    /// Co sprawdza: 0 metryk + cele → poprawny PDF z sekcją celów.
+    func testPDFOnlyGoalsNoMetrics() {
+        let goals = (0..<3).map { i in
+            SettingsExporter.MetricGoalSnapshot(
+                kindRaw: "weight",
+                metricTitle: "Weight",
+                direction: "decrease",
+                targetMetricValue: 70.0 + Double(i),
+                targetMetricUnit: "kg",
+                targetDisplayValue: 70.0 + Double(i),
+                targetDisplayUnit: "kg",
+                startMetricValue: nil,
+                startDisplayValue: nil,
+                startDate: nil,
+                createdDate: iso("2025-01-01T08:00:00.000Z")
+            )
+        }
+        let data = SettingsExporter.buildMetricsPDF(
+            metrics: [],
+            goals: goals,
+            unitsSystem: "metric",
+            dateRange: (start: nil, end: Date()),
+            logoImage: nil
+        )
+        XCTAssertFalse(data.isEmpty)
+    }
+
+    /// Co sprawdza: Duży zbiór danych (200+ pomiarów) generuje większy PDF niż pusty.
+    func testPDFLargeDataSetProducesLargerFile() {
+        let emptyData = SettingsExporter.buildMetricsPDF(
+            metrics: [],
+            goals: [],
+            unitsSystem: "metric",
+            dateRange: (start: nil, end: Date()),
+            logoImage: nil
+        )
+        let baseDate = iso("2026-03-15T10:30:00.000Z")
+        var manyRows: [SettingsExporter.MetricCSVRowSnapshot] = []
+        for i in 0..<200 {
+            let isWeight = i % 2 == 0
+            let row = sampleRow(
+                kindRaw: isWeight ? "weight" : "waist",
+                title: isWeight ? "Weight" : "Waist",
+                displayValue: 70.0 + Double(i) * 0.1,
+                unit: isWeight ? "kg" : "cm",
+                date: baseDate.addingTimeInterval(Double(i) * 86400)
+            )
+            manyRows.append(row)
+        }
+        let largeData = SettingsExporter.buildMetricsPDF(
+            metrics: manyRows,
+            goals: [],
+            unitsSystem: "metric",
+            dateRange: (start: nil, end: Date()),
+            logoImage: nil
+        )
+        XCTAssertGreaterThan(largeData.count, emptyData.count, "PDF z 200 pomiarami powinien być większy niż pusty")
+    }
+}
+
+// MARK: - ExportFormat
+
+final class ExportFormatTests: XCTestCase {
+
+    /// Co sprawdza: ExportFormat.allCases zawiera dokładnie 3 elementy.
+    func testExportFormatCaseIterable() {
+        XCTAssertEqual(SettingsExporter.ExportFormat.allCases.count, 3)
+    }
+
+    /// Co sprawdza: rawValues to "csv", "json", "pdf".
+    func testExportFormatRawValues() {
+        XCTAssertEqual(SettingsExporter.ExportFormat.csv.rawValue, "csv")
+        XCTAssertEqual(SettingsExporter.ExportFormat.json.rawValue, "json")
+        XCTAssertEqual(SettingsExporter.ExportFormat.pdf.rawValue, "pdf")
+    }
+}

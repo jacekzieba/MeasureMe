@@ -600,7 +600,7 @@ struct HomeView: View {
 
     private func scheduleDeferredStartupPhaseB() {
         deferredPhaseBTask?.cancel()
-        deferredPhaseBTask = Task(priority: .utility) { @MainActor in
+        deferredPhaseBTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(900))
             guard !Task.isCancelled else { return }
             refreshMeasurementCaches()
@@ -616,7 +616,7 @@ struct HomeView: View {
         forceSync: Bool = false
     ) {
         deferredPhaseCTask?.cancel()
-        deferredPhaseCTask = Task(priority: .background) { @MainActor in
+        deferredPhaseCTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(delayMilliseconds))
             guard !Task.isCancelled else { return }
 
@@ -630,7 +630,7 @@ struct HomeView: View {
 
     private func scheduleDeferredSectionMounts() {
         deferredSectionMountTask?.cancel()
-        deferredSectionMountTask = Task(priority: .utility) { @MainActor in
+        deferredSectionMountTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(450))
             guard !Task.isCancelled else { return }
             StartupInstrumentation.event("HomeLastPhotosMountStart")

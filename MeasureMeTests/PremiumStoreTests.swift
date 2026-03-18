@@ -45,6 +45,10 @@ private final class MockPremiumBillingClient: PremiumBillingClient {
         }
         throw NSError(domain: "test.customerInfo.unmocked", code: 4)
     }
+
+    var customerInfoStream: AsyncStream<CustomerInfo> {
+        AsyncStream { continuation in continuation.finish() }
+    }
 }
 
 private final class MockPremiumNotificationManager: PremiumNotificationManaging {

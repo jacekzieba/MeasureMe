@@ -131,6 +131,39 @@ final class SettingsViewUITests: XCTestCase {
         assertRoute("About", opens: "About")
     }
 
+    @MainActor
+    func testHealthDetailContentStartsBelowNavigationBar() {
+        app.launch()
+        waitForAppShell()
+        tapSettingsTab()
+
+        let healthRow = app.staticTexts["Health"].firstMatch
+        scrollToReveal(healthRow)
+        XCTAssertTrue(healthRow.waitForExistence(timeout: 5), "Health row should exist in Settings")
+        healthRow.tap()
+
+        let syncToggle = app.switches["settings.health.sync.toggle"].firstMatch
+        XCTAssertTrue(syncToggle.waitForExistence(timeout: 5), "Health sync toggle should exist")
+
+        let topHeaderButton = app.buttons.allElementsBoundByIndex
+            .filter { $0.exists && $0.isHittable && $0.frame.minY < 140 }
+            .min { $0.frame.minY < $1.frame.minY }
+
+        if let topHeaderButton {
+            XCTAssertGreaterThanOrEqual(
+                syncToggle.frame.minY,
+                topHeaderButton.frame.maxY + 8,
+                "Health detail content should start below the top header controls"
+            )
+        } else {
+            XCTAssertGreaterThanOrEqual(
+                syncToggle.frame.minY,
+                110,
+                "Health detail content should stay below the expected top safe area"
+            )
+        }
+    }
+
     private func tapSettingsTab() {
         if app.textFields["settings.search.field"].firstMatch.exists
             || app.textFields["settings.section.search"].firstMatch.exists

@@ -73,7 +73,7 @@ enum IntentMetricKind: String, AppEnum, CaseIterable, Sendable {
 }
 
 enum AppIntentMetricResolver {
-    private static let orderedMetricFlags: [(MetricKind, String)] = [
+    nonisolated private static let orderedMetricFlags: [(MetricKind, String)] = [
         (.weight, "metric_weight_enabled"),
         (.bodyFat, "metric_bodyFat_enabled"),
         (.leanBodyMass, "metric_nonFatMass_enabled"),
@@ -217,7 +217,7 @@ struct AddMeasurementIntent: AppIntent {
     var date: Date?
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let defaults = UserDefaults.standard
+        let defaults = UserDefaults(suiteName: "group.com.jacek.measureme") ?? .standard
         let unitsSystem = defaults.string(forKey: "unitsSystem") ?? "metric"
         let activeMetrics = Set(AppIntentMetricResolver.activeMetrics(defaults: defaults))
         let validated = try await MainActor.run {

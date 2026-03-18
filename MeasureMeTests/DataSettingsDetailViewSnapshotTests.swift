@@ -17,6 +17,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         "icloud_backup_enabled",
         "icloud_backup_last_success_timestamp",
         "icloud_backup_last_error_message",
+        "icloud_backup_last_size_bytes",
         "analytics_enabled"
     ]
 
@@ -80,16 +81,23 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         let wereAnimationsEnabled = UIView.areAnimationsEnabled
         defer {
             restoreDefaults(baseline)
+            AppSettingsStore.shared.forceReloadSnapshot()
+            AppLocalization.settings = .shared
+            AppLocalization.reloadLanguage()
             UIView.setAnimationsEnabled(wereAnimationsEnabled)
         }
 
         let defaults = UserDefaults.standard
         defaults.set("en", forKey: "appLanguage")
-        AppLocalization.reloadLanguage()
         defaults.set(false, forKey: "icloud_backup_enabled")
         defaults.removeObject(forKey: "icloud_backup_last_success_timestamp")
         defaults.set("", forKey: "icloud_backup_last_error_message")
+        defaults.set(5120, forKey: "icloud_backup_last_size_bytes")
         defaults.set(true, forKey: "analytics_enabled")
+        // Force-sync AppSettingsStore.shared so @AppSetting values reflect test state immediately.
+        AppSettingsStore.shared.forceReloadSnapshot()
+        AppLocalization.settings = AppSettingsStore(defaults: defaults)
+        AppLocalization.reloadLanguage()
         UIView.setAnimationsEnabled(false)
 
         let vc = makeHostingController(view: makeView())
@@ -110,17 +118,23 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         let wereAnimationsEnabled = UIView.areAnimationsEnabled
         defer {
             restoreDefaults(baseline)
+            AppSettingsStore.shared.forceReloadSnapshot()
+            AppLocalization.settings = .shared
+            AppLocalization.reloadLanguage()
             UIView.setAnimationsEnabled(wereAnimationsEnabled)
         }
 
         let defaults = UserDefaults.standard
         defaults.set("en", forKey: "appLanguage")
-        AppLocalization.reloadLanguage()
         defaults.set(true, forKey: "icloud_backup_enabled")
         // Use a fixed timestamp far in the past so relative text is stable ("X years ago")
         defaults.set(1609459200.0, forKey: "icloud_backup_last_success_timestamp") // 2021-01-01
         defaults.set("", forKey: "icloud_backup_last_error_message")
+        defaults.set(5120, forKey: "icloud_backup_last_size_bytes")
         defaults.set(true, forKey: "analytics_enabled")
+        AppSettingsStore.shared.forceReloadSnapshot()
+        AppLocalization.settings = AppSettingsStore(defaults: defaults)
+        AppLocalization.reloadLanguage()
         UIView.setAnimationsEnabled(false)
 
         let vc = makeHostingController(view: makeView())
@@ -141,16 +155,22 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         let wereAnimationsEnabled = UIView.areAnimationsEnabled
         defer {
             restoreDefaults(baseline)
+            AppSettingsStore.shared.forceReloadSnapshot()
+            AppLocalization.settings = .shared
+            AppLocalization.reloadLanguage()
             UIView.setAnimationsEnabled(wereAnimationsEnabled)
         }
 
         let defaults = UserDefaults.standard
         defaults.set("en", forKey: "appLanguage")
-        AppLocalization.reloadLanguage()
         defaults.set(true, forKey: "icloud_backup_enabled")
         defaults.removeObject(forKey: "icloud_backup_last_success_timestamp")
         defaults.set("iCloud Drive is unavailable on this device.", forKey: "icloud_backup_last_error_message")
+        defaults.set(5120, forKey: "icloud_backup_last_size_bytes")
         defaults.set(true, forKey: "analytics_enabled")
+        AppSettingsStore.shared.forceReloadSnapshot()
+        AppLocalization.settings = AppSettingsStore(defaults: defaults)
+        AppLocalization.reloadLanguage()
         UIView.setAnimationsEnabled(false)
 
         let vc = makeHostingController(view: makeView())

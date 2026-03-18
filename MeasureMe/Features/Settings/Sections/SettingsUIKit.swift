@@ -1,6 +1,7 @@
 import SwiftUI
 
 private let settingsDetailTheme = FeatureTheme.settings
+private let settingsDetailTopInset: CGFloat = 12
 
 struct SettingsCard<Content: View>: View {
     let tint: Color
@@ -201,12 +202,16 @@ struct SettingsDetailScaffold<Content: View>: View {
             List {
                 content
             }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                Color.clear
+                    .frame(height: settingsDetailTopInset)
+                    .accessibilityHidden(true)
+            }
             .scrollContentBackground(.hidden)
             .listStyle(.plain)
             .listSectionSpacing(24)
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
-            .padding(.top, 8)
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
@@ -238,8 +243,13 @@ struct SettingsScrollDetailScaffold<Content: View>: View {
                     content
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 16)
+                .padding(.top, 4)
                 .padding(.bottom, 24)
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                Color.clear
+                    .frame(height: settingsDetailTopInset)
+                    .accessibilityHidden(true)
             }
         }
         .navigationTitle(title)

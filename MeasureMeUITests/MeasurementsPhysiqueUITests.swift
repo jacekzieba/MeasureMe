@@ -88,8 +88,18 @@ final class MeasurementsPhysiqueUITests: XCTestCase {
         XCTAssertTrue(physiqueButton.waitForExistence(timeout: 5), "Physique tab should exist")
         physiqueButton.tap()
 
-        XCTAssertTrue(app.staticTexts["Set gender to unlock these indicators"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Open profile settings"].waitForExistence(timeout: 5))
+        let titleElement = app.descendants(matching: .any)["physique.requires.gender.title"].firstMatch
+        let titleFallback = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", "gender")).firstMatch
+        XCTAssertTrue(
+            titleElement.waitForExistence(timeout: 5) || titleFallback.waitForExistence(timeout: 5),
+            "Gender required title should be visible"
+        )
+        let ctaElement = app.descendants(matching: .any)["physique.requires.gender.cta"].firstMatch
+        let ctaFallback = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "profile settings")).firstMatch
+        XCTAssertTrue(
+            ctaElement.waitForExistence(timeout: 5) || ctaFallback.waitForExistence(timeout: 5),
+            "Open profile settings CTA should be visible"
+        )
     }
 
     @MainActor

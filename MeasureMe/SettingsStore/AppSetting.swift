@@ -27,7 +27,16 @@ final class _KeyPathSettingObserver<Value: Equatable>: ObservableObject {
 @MainActor
 @propertyWrapper
 struct AppSetting<Value: Equatable>: DynamicProperty {
+    // The observer's sole job is to call objectWillChange when the specific
+    // keypath value changes, driving SwiftUI re-renders. We intentionally
+    // never read `observer.keyPath` or `observer.store` from wrappedValue /
+    // projectedValue — accessing @StateObject.wrappedValue outside a View body
+    // causes "Accessing StateObject without being installed on a View" warnings.
+    // Instead we keep `keyPath` and `store` as plain stored properties so they
+    // are always safe to access regardless of SwiftUI's installation state.
     @StateObject private var observer: _KeyPathSettingObserver<Value>
+    private let keyPath: WritableKeyPath<AppSettingsSnapshot, Value>
+    private let store: AppSettingsStore
 
     init(
         wrappedValue: Value,
@@ -41,15 +50,17 @@ struct AppSetting<Value: Equatable>: DynamicProperty {
         _ keyPath: WritableKeyPath<AppSettingsSnapshot, Value>,
         store: AppSettingsStore
     ) {
+        self.keyPath = keyPath
+        self.store = store
         _observer = StateObject(wrappedValue: _KeyPathSettingObserver(keyPath: keyPath, store: store))
     }
 
     var wrappedValue: Value {
-        get { observer.store.snapshot[keyPath: observer.keyPath] }
-        nonmutating set { observer.store.set(observer.keyPath, newValue) }
+        get { store.snapshot[keyPath: keyPath] }
+        nonmutating set { store.set(keyPath, newValue) }
     }
 
     var projectedValue: Binding<Value> {
-        observer.store.binding(observer.keyPath)
+        store.binding(keyPath)
     }
 }

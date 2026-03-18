@@ -84,12 +84,22 @@ enum IntentDeferredHealthSyncProcessor {
         let entries = IntentDeferredHealthSyncStore.drain(settings: settings)
         guard !entries.isEmpty else { return }
 
+        var failedEntries: [PendingHealthKitIntentSyncEntry] = []
         for entry in entries {
             guard let kind = MetricKind(rawValue: entry.kindRaw), kind.isHealthSynced else { continue }
             do {
                 try await syncOperation(kind, entry.metricValue, entry.date)
             } catch {
                 AppLog.debug("⚠️ Deferred HealthKit sync from intent failed for \(kind.rawValue): \(error.localizedDescription)")
+                failedEntries.append(entry)
+            }
+        }
+        // Re-enqueue failed entries for next attempt
+        for failed in failedEntries {
+            if let kind = MetricKind(rawValue: failed.kindRaw) {
+                IntentDeferredHealthSyncStore.enqueue(
+                    kind: kind, metricValue: failed.metricValue, date: failed.date, settings: settings
+                )
             }
         }
     }
