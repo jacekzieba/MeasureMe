@@ -597,7 +597,7 @@ enum SettingsExporter {
         dateFormatter.timeStyle = .none
 
         var pageNumber = 1
-        var totalPages = 1 // Estimated, will draw footer at end
+        var _ = 1 // Estimated, will draw footer at end
 
         // Build summaries grouped by metric
         let grouped = Dictionary(grouping: metrics) { $0.kindRaw }

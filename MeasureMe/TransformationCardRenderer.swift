@@ -11,9 +11,9 @@ enum CardAspectRatio: String, CaseIterable, Sendable {
     case story
     case square
 
-    var width: Int { 1080 }
+    nonisolated var width: Int { 1080 }
 
-    var height: Int {
+    nonisolated var height: Int {
         switch self {
         case .story: 1920
         case .square: 1080
@@ -54,7 +54,7 @@ struct TransformationCardInput: Sendable {
 
 // MARK: - Renderer
 
-enum TransformationCardRenderer {
+nonisolated enum TransformationCardRenderer {
 
     private static let inkR: CGFloat = 5 / 255
     private static let inkG: CGFloat = 8 / 255
@@ -406,7 +406,7 @@ enum TransformationCardRenderer {
         ctx.fillPath()
         ctx.restoreGState()
 
-        if let subtitle, let subLine {
+        if subtitle != nil, let subLine {
             // Two lines: title on top, subtitle below
             let titleX = pillX + (pillW - textBounds.width) / 2
             let subX = pillX + (pillW - subBounds.width) / 2
