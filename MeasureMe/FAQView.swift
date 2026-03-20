@@ -2,13 +2,7 @@ import SwiftUI
 
 struct FAQView: View {
     var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 260)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    ScreenTitleHeader(title: AppLocalization.string("FAQ"), topPadding: 6, bottomPadding: 8)
-
+        SettingsScrollDetailScaffold(title: AppLocalization.string("FAQ"), theme: .settings) {
                     faqSection(
                         title: "Getting started",
                         items: [
@@ -164,38 +158,24 @@ struct FAQView: View {
                             )
                         ]
                     )
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
-            }
         }
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .preferredColorScheme(.dark)
     }
 
     private func faqSection(title: String, items: [FAQItem]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(AppLocalization.string(title))
-                .font(AppTypography.sectionTitle)
-                .foregroundStyle(.white)
+                .font(AppTypography.displaySection)
+                .foregroundStyle(AppColorRoles.textPrimary)
 
             ForEach(items) { item in
-                VStack(alignment: .leading, spacing: 6) {
+                SettingsCard(tint: AppColorRoles.surfacePrimary) {
                     Text(AppLocalization.string(item.question))
                         .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                     Text(AppLocalization.string(item.answer))
                         .font(AppTypography.caption)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 }
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.white.opacity(0.05))
-                )
             }
         }
     }

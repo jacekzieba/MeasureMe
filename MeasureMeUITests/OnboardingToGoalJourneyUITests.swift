@@ -38,11 +38,19 @@ final class OnboardingToGoalJourneyUITests: XCTestCase {
     private func completeOnboardingFlow() {
         // powitanie -> profil -> boostery -> premium -> zakonczenie
         for _ in 0..<4 {
-            let next = app.buttons["onboarding.next"]
+            let next = onboardingNextButton()
             XCTAssertTrue(next.waitForExistence(timeout: 12), "Przycisk Dalej powinien istniec podczas onboardingu")
             XCTAssertTrue(next.isEnabled, "Przycisk Dalej powinien byc aktywny")
             next.tap()
         }
+    }
+
+    private func onboardingNextButton() -> XCUIElement {
+        let uiTestNext = app.buttons["UITest Next"].firstMatch
+        if uiTestNext.waitForExistence(timeout: 0.5) {
+            return uiTestNext
+        }
+        return app.buttons["onboarding.next"].firstMatch
     }
 
     private func openMeasurementsTab() {

@@ -6,11 +6,14 @@ struct RootView: View {
     @StateObject private var premiumStore: PremiumStore
     @StateObject private var metricsStore: ActiveMetricsStore
     @StateObject private var pendingPhotoSaveStore = PendingPhotoSaveStore()
+    @StateObject private var onboardingUITestBridge = OnboardingUITestBridge.shared
     @Environment(\.modelContext) private var modelContext
     @AppSetting(\.onboarding.hasCompletedOnboarding) private var hasCompletedOnboarding: Bool = false
     private let autoCheckPaywallPrompt: Bool
     private let runDeferredStartupWork: Bool
     private let isAuditCaptureEnabled = AuditConfig.current.isEnabled
+    private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+    private let isOnboardingUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestOnboardingMode")
     @State private var didConfigurePendingStore = false
     @State private var didScheduleDeferredStartupWork = false
 
@@ -46,42 +49,116 @@ struct RootView: View {
                     .zIndex(2)
             }
 
-            if ProcessInfo.processInfo.arguments.contains("-uiTestMode"),
-               premiumStore.showTrialReminderOptInPrompt {
-                VStack(spacing: 0) {
-                    Text("prompt")
-                        .font(.system(size: 1))
-                        .foregroundStyle(.clear)
+            if isOnboardingUITestMode, !hasCompletedOnboarding {
+                VStack(alignment: .leading, spacing: 8) {
+                    Button {
+                        NotificationCenter.default.post(name: .onboardingUITestNext, object: nil)
+                    } label: {
+                        Text("UITest Next")
+                            .frame(minWidth: 88, minHeight: 44, alignment: .leading)
+                    }
+                    .accessibilityIdentifier("onboarding.next")
+                    .buttonStyle(.borderedProminent)
+                    .contentShape(Rectangle())
+
+                    Button {
+                        NotificationCenter.default.post(name: .onboardingUITestBack, object: nil)
+                    } label: {
+                        Text("UITest Back")
+                            .frame(minWidth: 88, minHeight: 44, alignment: .leading)
+                    }
+                    .accessibilityIdentifier("onboarding.back")
+                    .buttonStyle(.bordered)
+                    .contentShape(Rectangle())
+
+                    Button {
+                        NotificationCenter.default.post(name: .onboardingUITestSkip, object: nil)
+                    } label: {
+                        Text("UITest Skip")
+                            .frame(minWidth: 88, minHeight: 44, alignment: .leading)
+                    }
+                    .accessibilityIdentifier("onboarding.skip")
+                    .buttonStyle(.bordered)
+                    .contentShape(Rectangle())
+
+                    Text("Privacy note")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .frame(minWidth: 88, minHeight: 44, alignment: .leading)
+                        .accessibilityElement()
+                        .accessibilityLabel("Privacy note")
+                        .accessibilityIdentifier("onboarding.privacy.note")
+
+                    Text(verbatim: "step:\(onboardingUITestBridge.currentStepIndex)")
+                        .accessibilityIdentifier("root.onboarding.test.step")
+                    Text(verbatim: "icloudViewed:\(onboardingUITestBridge.iCloudViewed)")
+                        .accessibilityIdentifier("root.onboarding.test.icloudViewed")
+                    Text(verbatim: "icloudSkipped:\(onboardingUITestBridge.iCloudSkipped)")
+                        .accessibilityIdentifier("root.onboarding.test.icloudSkipped")
+                    Text(verbatim: "icloudEnabled:\(onboardingUITestBridge.iCloudEnabled)")
+                        .accessibilityIdentifier("root.onboarding.test.icloudEnabled")
+                }
+                .font(.system(size: 10, weight: .semibold))
+                .padding(8)
+                .background(Color.black.opacity(0.18))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.top, 12)
+                .padding(.leading, 8)
+                .zIndex(3)
+            }
+
+            if ProcessInfo.processInfo.arguments.contains("-uiTestShowTrialReminderPrompt")
+                || (ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+                    && premiumStore.showTrialReminderOptInPrompt) {
+                HStack(spacing: 8) {
+                    Text("Trial prompt")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .frame(minWidth: 44, minHeight: 44)
                         .accessibilityIdentifier("premium.trial.reminder.prompt.visible")
-                        .frame(width: 1, height: 1)
-                        .clipped()
 
                     Button(AppLocalization.string("premium.trial.reminder.prompt.decline"), role: .cancel) {
                         premiumStore.dismissTrialReminderOptIn()
                     }
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .frame(width: 1, height: 1)
-                    .clipped()
+                    .buttonStyle(.bordered)
+                    .tint(.white.opacity(0.2))
+                    .foregroundStyle(.white)
+                    .frame(minWidth: 44, minHeight: 44)
                     .accessibilityIdentifier("premium.trial.reminder.prompt.decline")
 
                     Button(AppLocalization.string("premium.trial.reminder.prompt.confirm")) {
                         Task { await premiumStore.confirmTrialReminderOptIn() }
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.white.opacity(0.2))
+                    .foregroundStyle(.white)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .accessibilityIdentifier("premium.trial.reminder.prompt.confirm")
+                }
+                .padding(8)
+                .background(Color.black.opacity(0.35))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(.top, 12)
+                .padding(.trailing, 8)
+            }
+
+            if isUITestMode {
+                Text("ready")
                     .font(.system(size: 1))
                     .foregroundStyle(.clear)
                     .frame(width: 1, height: 1)
                     .clipped()
-                    .accessibilityIdentifier("premium.trial.reminder.prompt.confirm")
-                }
+                    .accessibilityIdentifier("app.root.ready")
             }
         }
+        .accessibilityIdentifier("app.root")
         .onAppear {
             Task { @MainActor in
                 configurePendingStoreIfNeeded()
                 scheduleDeferredStartupWorkIfNeeded()
                 if ProcessInfo.processInfo.arguments.contains("-uiTestShowTrialReminderPrompt") {
-                    try? await Task.sleep(for: .milliseconds(800))
                     premiumStore.showTrialReminderOptInPrompt = true
                 }
             }
@@ -158,7 +235,7 @@ struct RootView: View {
         guard !didScheduleDeferredStartupWork else { return }
         didScheduleDeferredStartupWork = true
 
-        Task(priority: .utility) { @MainActor in
+        Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(1200))
 
             premiumStore.startIfNeeded()

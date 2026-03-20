@@ -1,0 +1,47 @@
+"intent.metric.type" = "Metric";
+"intent.metric.weight" = "Weight";
+"intent.metric.bodyFat" = "Body Fat";
+"intent.metric.leanBodyMass" = "Lean Body Mass";
+"intent.metric.waist" = "Waist";
+"intent.metric.neck" = "Neck";
+"intent.metric.shoulders" = "Shoulders";
+"intent.metric.bust" = "Bust";
+"intent.metric.chest" = "Chest";
+"intent.metric.leftBicep" = "Left Bicep";
+"intent.metric.rightBicep" = "Right Bicep";
+"intent.metric.leftForearm" = "Left Forearm";
+"intent.metric.rightForearm" = "Right Forearm";
+"intent.metric.hips" = "Hips";
+"intent.metric.leftThigh" = "Left Thigh";
+"intent.metric.rightThigh" = "Right Thigh";
+"intent.metric.leftCalf" = "Left Calf";
+"intent.metric.rightCalf" = "Right Calf";
+
+"intent.openQuickAdd.title" = "Open Quick Add";
+"intent.openQuickAdd.description" = "Opens Quick Add in MeasureMe.";
+"intent.openQuickAdd.success" = "Opening Quick Add.";
+
+"intent.openAddPhoto.title" = "Open Add Photo";
+"intent.openAddPhoto.description" = "Opens the Add Photo flow in MeasureMe.";
+"intent.openAddPhoto.success" = "Opening Add Photo.";
+
+"intent.addMeasurement.title" = "Add Measurement";
+"intent.addMeasurement.description" = "Saves a measurement in MeasureMe.";
+"intent.addMeasurement.metric" = "Metric";
+"intent.addMeasurement.value" = "Value";
+"intent.addMeasurement.date" = "Date";
+"intent.addMeasurement.success" = "Measurement saved.";
+"intent.addMeasurement.error.noActiveMetrics" = "No active metrics are available.";
+"intent.addMeasurement.error.metricNotActive" = "This metric is not active in MeasureMe.";
+"intent.addMeasurement.error.storage" = "Could not save measurement.";
+
+"intent.shortcut.quickAdd.phrase1" = "Open Quick Add in";
+"intent.shortcut.quickAdd.phrase2" = "Quick Add in";
+"intent.shortcut.quickAdd.shortTitle" = "Quick Add";
+
+"intent.shortcut.addPhoto.phrase1" = "Open Add Photo in";
+"intent.shortcut.addPhoto.phrase2" = "Add Photo in";
+"intent.shortcut.addPhoto.shortTitle" = "Add Photo";
+
+"intent.shortcut.addMeasurement.phrase1" = "Add measurement in";
+"intent.shortcut.addMeasurement.shortTitle" = "Add Measurement";

@@ -189,7 +189,7 @@ struct HomeWidgetCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     init(
-        tint: Color = Color.appAccent.opacity(0.14),
+        tint: Color = FeatureTheme.home.softTint,
         depth: AppGlassDepth = .elevated,
         contentPadding: CGFloat = 14,
         accessibilityIdentifier: String? = nil,
@@ -235,15 +235,15 @@ struct HomeQuickActionButton: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 10) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(AppTypography.iconLarge)
                     .foregroundStyle(tint)
                     .frame(width: 36, height: 36)
                     .background(tint.opacity(0.16))
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                 Text(title)
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white)
+                    .font(AppTypography.buttonLabel)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .minimumScaleFactor(0.85)
             }
@@ -251,10 +251,10 @@ struct HomeQuickActionButton: View {
             .frame(maxWidth: .infinity, minHeight: 88, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.white.opacity(0.05))
+                    .fill(AppColorRoles.surfaceInteractive)
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )
         }

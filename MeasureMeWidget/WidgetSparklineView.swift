@@ -8,6 +8,7 @@ struct WidgetSparklineView: View {
 
     var body: some View {
         GeometryReader { geo in
+            let points = normalizedPoints(in: geo.size)
             if samples.count < 2 {
                 // Placeholder: dashed center line
                 Path { path in
@@ -20,12 +21,11 @@ struct WidgetSparklineView: View {
                 ZStack(alignment: .bottom) {
                     // Gradient fill beneath the trend line
                     Path { path in
-                        let pts = normalizedPoints(in: geo.size)
-                        guard let first = pts.first else { return }
+                        guard let first = points.first else { return }
                         path.move(to: CGPoint(x: first.x, y: geo.size.height))
                         path.addLine(to: first)
-                        pts.dropFirst().forEach { path.addLine(to: $0) }
-                        if let last = pts.last {
+                        points.dropFirst().forEach { path.addLine(to: $0) }
+                        if let last = points.last {
                             path.addLine(to: CGPoint(x: last.x, y: geo.size.height))
                         }
                         path.closeSubpath()
@@ -38,10 +38,9 @@ struct WidgetSparklineView: View {
 
                     // Trend line
                     Path { path in
-                        let pts = normalizedPoints(in: geo.size)
-                        guard let first = pts.first else { return }
+                        guard let first = points.first else { return }
                         path.move(to: first)
-                        pts.dropFirst().forEach { path.addLine(to: $0) }
+                        points.dropFirst().forEach { path.addLine(to: $0) }
                     }
                     .stroke(trendColor,
                             style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))

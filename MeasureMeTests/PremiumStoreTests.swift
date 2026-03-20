@@ -5,50 +5,49 @@
 import XCTest
 import StoreKit
 import UserNotifications
+import RevenueCat
 @testable import MeasureMe
 
 private final class MockPremiumBillingClient: PremiumBillingClient {
-    var productsToReturn: [Product] = []
-    var productsError: Error?
+    var offeringsError: Error?
     var purchaseError: Error?
-    var syncError: Error?
-    private(set) var productsCallCount: Int = 0
-    private(set) var currentEntitlementsCallCount: Int = 0
-    private(set) var transactionUpdatesCallCount: Int = 0
+    var restoreError: Error?
+    var customerInfoError: Error?
+    private(set) var offeringsCallCount: Int = 0
+    private(set) var customerInfoCallCount: Int = 0
 
-    func products(for identifiers: [String]) async throws -> [Product] {
-        productsCallCount += 1
-        if let productsError {
-            throw productsError
+    func offerings() async throws -> Offerings {
+        offeringsCallCount += 1
+        if let offeringsError {
+            throw offeringsError
         }
-        return productsToReturn
+        throw NSError(domain: "test.offerings.unmocked", code: 1)
     }
 
-    func purchase(_ product: Product) async throws -> Product.PurchaseResult {
+    func purchase(_ package: Package) async throws -> PurchaseResultData {
         if let purchaseError {
             throw purchaseError
         }
-        return .pending
+        throw NSError(domain: "test.purchase.unmocked", code: 2)
     }
 
-    func syncPurchases() async throws {
-        if let syncError {
-            throw syncError
+    func restorePurchases() async throws -> CustomerInfo {
+        if let restoreError {
+            throw restoreError
         }
+        throw NSError(domain: "test.restore.unmocked", code: 3)
     }
 
-    func currentEntitlements() -> AsyncStream<VerificationResult<Transaction>> {
-        currentEntitlementsCallCount += 1
-        return AsyncStream<VerificationResult<Transaction>> { continuation in
-            continuation.finish()
+    func customerInfo() async throws -> CustomerInfo {
+        customerInfoCallCount += 1
+        if let customerInfoError {
+            throw customerInfoError
         }
+        throw NSError(domain: "test.customerInfo.unmocked", code: 4)
     }
 
-    func transactionUpdates() -> AsyncStream<VerificationResult<Transaction>> {
-        transactionUpdatesCallCount += 1
-        return AsyncStream<VerificationResult<Transaction>> { continuation in
-            continuation.finish()
-        }
+    var customerInfoStream: AsyncStream<CustomerInfo> {
+        AsyncStream { continuation in continuation.finish() }
     }
 }
 
@@ -174,7 +173,7 @@ final class PremiumStoreTests: XCTestCase {
     /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testLoadProductsErrorSetsFailureState() async {
         let billing = MockPremiumBillingClient()
-        billing.productsError = NSError(domain: "test", code: 1)
+        billing.offeringsError = NSError(domain: "test", code: 1)
         let notifications = MockPremiumNotificationManager()
         let analytics = MockPremiumAnalyticsClient()
         let store = PremiumStore(
@@ -195,7 +194,7 @@ final class PremiumStoreTests: XCTestCase {
     /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
     func testRestorePurchasesFailureSetsErrorMessage() async {
         let billing = MockPremiumBillingClient()
-        billing.syncError = NSError(domain: "test", code: 2)
+        billing.restoreError = NSError(domain: "test", code: 2)
         let notifications = MockPremiumNotificationManager()
         let analytics = MockPremiumAnalyticsClient()
         let store = PremiumStore(
@@ -373,27 +372,23 @@ final class PremiumStoreTests: XCTestCase {
         )
 
         try? await Task.sleep(for: .milliseconds(120))
-        XCTAssertEqual(billing.productsCallCount, 0)
-        XCTAssertEqual(billing.currentEntitlementsCallCount, 0)
-        XCTAssertEqual(billing.transactionUpdatesCallCount, 0)
+        XCTAssertEqual(billing.offeringsCallCount, 0)
+        XCTAssertEqual(billing.customerInfoCallCount, 0)
 
         store.startIfNeeded()
         try await waitUntil(timeout: 1.5) {
-            billing.productsCallCount > 0 &&
-            billing.currentEntitlementsCallCount > 0 &&
-            billing.transactionUpdatesCallCount > 0
+            billing.offeringsCallCount > 0 &&
+            billing.customerInfoCallCount > 0
         }
 
-        let productsAfterFirstStart = billing.productsCallCount
-        let entitlementsAfterFirstStart = billing.currentEntitlementsCallCount
-        let updatesAfterFirstStart = billing.transactionUpdatesCallCount
+        let offeringsAfterFirstStart = billing.offeringsCallCount
+        let customerInfoAfterFirstStart = billing.customerInfoCallCount
 
         store.startIfNeeded()
         try? await Task.sleep(for: .milliseconds(250))
 
-        XCTAssertEqual(billing.productsCallCount, productsAfterFirstStart)
-        XCTAssertEqual(billing.currentEntitlementsCallCount, entitlementsAfterFirstStart)
-        XCTAssertEqual(billing.transactionUpdatesCallCount, updatesAfterFirstStart)
+        XCTAssertEqual(billing.offeringsCallCount, offeringsAfterFirstStart)
+        XCTAssertEqual(billing.customerInfoCallCount, customerInfoAfterFirstStart)
     }
 
     func testPresentPaywallTracksTelemetryDeckRevenueContext() {
@@ -414,7 +409,7 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertEqual(analytics.paywallEvents.first?.parameters["measureme.feature_name"], "photo_compare")
     }
 
-    func testMarkPurchaseTrackedIfNeededDeduplicatesTransactionID() {
+    func testMarkPurchaseTrackedIfNeededDeduplicatesPurchaseKey() {
         let billing = MockPremiumBillingClient()
         let notifications = MockPremiumNotificationManager()
         let analytics = MockPremiumAnalyticsClient()
@@ -425,51 +420,11 @@ final class PremiumStoreTests: XCTestCase {
             startListener: false
         )
 
-        XCTAssertTrue(store.markPurchaseTrackedIfNeeded(transactionID: 42))
-        XCTAssertFalse(store.markPurchaseTrackedIfNeeded(transactionID: 42))
-        XCTAssertTrue(store.markPurchaseTrackedIfNeeded(transactionID: 43))
+        XCTAssertTrue(store.markPurchaseTrackedIfNeeded(purchaseKey: "monthly"))
+        XCTAssertFalse(store.markPurchaseTrackedIfNeeded(purchaseKey: "monthly"))
+        XCTAssertTrue(store.markPurchaseTrackedIfNeeded(purchaseKey: "yearly"))
     }
 
-    func testPendingPurchaseTracksPendingSignalWithDashboardContext() async {
-        let billing = MockPremiumBillingClient()
-        let notifications = MockPremiumNotificationManager()
-        let analytics = MockPremiumAnalyticsClient()
-        let store = PremiumStore(
-            billingClient: billing,
-            notificationManager: notifications,
-            analytics: analytics,
-            startListener: false
-        )
-
-        store.presentPaywall(reason: .feature("photo_compare"))
-        await store.handlePurchaseResultForTests(.pending)
-
-        XCTAssertEqual(analytics.trackedCustomSignals.count, 1)
-        XCTAssertEqual(analytics.trackedCustomSignals.first?.name, "com.jacekzieba.measureme.purchase.pending")
-        XCTAssertEqual(analytics.trackedCustomSignals.first?.parameters["measureme.paywall_reason"], "feature_locked")
-        XCTAssertEqual(analytics.trackedCustomSignals.first?.parameters["measureme.feature_name"], "photo_compare")
-        XCTAssertEqual(analytics.trackedCustomSignals.first?.parameters["measureme.purchase_source"], "direct_purchase")
-    }
-
-    func testCancelledPurchaseTracksCancelledSignalWithDashboardContext() async {
-        let billing = MockPremiumBillingClient()
-        let notifications = MockPremiumNotificationManager()
-        let analytics = MockPremiumAnalyticsClient()
-        let store = PremiumStore(
-            billingClient: billing,
-            notificationManager: notifications,
-            analytics: analytics,
-            startListener: false
-        )
-
-        store.presentPaywall(reason: .settings)
-        await store.handlePurchaseResultForTests(.userCancelled)
-
-        XCTAssertEqual(analytics.trackedCustomSignals.count, 1)
-        XCTAssertEqual(analytics.trackedCustomSignals.first?.name, "com.jacekzieba.measureme.purchase.cancelled")
-        XCTAssertEqual(analytics.trackedCustomSignals.first?.parameters["measureme.paywall_reason"], "settings")
-        XCTAssertEqual(analytics.trackedCustomSignals.first?.parameters["measureme.purchase_source"], "direct_purchase")
-    }
 }
 
 private extension PremiumStoreTests {

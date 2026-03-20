@@ -37,8 +37,9 @@ struct PhotoGridCell: View {
                 photoID: photoID,
                 hasStoredThumbnail: hasStoredThumbnail
             )
-            if !hasStoredThumbnail {
-                Task(priority: .utility) {
+            let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+            if !hasStoredThumbnail && !isUITestMode {
+                Task {
                     await PhotoThumbnailBackfillService.shared.enqueueIfNeeded(
                         photoID: photo.persistentModelID,
                         originalImageData: photo.imageData,

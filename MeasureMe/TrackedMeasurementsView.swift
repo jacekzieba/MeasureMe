@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TrackedMeasurementsView: View {
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
+    private let theme = FeatureTheme.settings
 
     @State private var isEditingActive = false
     @State private var showKeyMetricsLimitAlert = false
@@ -16,7 +17,7 @@ struct TrackedMeasurementsView: View {
         ZStack(alignment: .top) {
             AppScreenBackground(
                 topHeight: 380,
-                tint: Color.cyan.opacity(0.22)
+                tint: theme.strongTint
             )
 
             ScrollViewReader { proxy in
@@ -52,7 +53,7 @@ struct TrackedMeasurementsView: View {
                         title: AppLocalization.string("Custom metrics"),
                         subtitle: AppLocalization.string("tracked.section.custom.subtitle"),
                         systemImage: "slider.horizontal.3",
-                        iconTint: Color.appAccent,
+                        iconTint: theme.accent,
                         rows: metricsStore.upperBody
                             + metricsStore.arms
                             + metricsStore.lowerBody,
@@ -114,7 +115,7 @@ struct TrackedMeasurementsView: View {
                     } label: {
                         Text(AppLocalization.string("tracked.snackbar.undo"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(Color.appAccent)
+                            .foregroundStyle(theme.accent)
                     }
                     .buttonStyle(.plain)
                 }

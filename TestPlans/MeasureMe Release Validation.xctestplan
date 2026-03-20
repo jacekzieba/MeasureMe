@@ -1,0 +1,75 @@
+{
+  "configurations" : [
+    {
+      "id" : "AD4C2B8C-73F7-4A1F-8C95-9D0C98B8A501",
+      "name" : "Debug-Device",
+      "options" : {
+        "codeCoverage" : {
+          "targets" : [
+            {
+              "containerPath" : "container:MeasureMe.xcodeproj",
+              "identifier" : "A3BAF7BB2F27B74C00269A9A",
+              "name" : "MeasureMe"
+            }
+          ]
+        },
+        "maximumTestExecutionTimeAllowance" : 180,
+        "testTimeoutsEnabled" : true
+      }
+    },
+    {
+      "id" : "B86E582B-C3FD-46AB-81CE-F27D60C9E502",
+      "name" : "Debug-Checkers",
+      "options" : {
+        "codeCoverage" : false,
+        "maximumTestExecutionTimeAllowance" : 240,
+        "maximumTestRepetitions" : 2,
+        "testExecutionOrdering" : "random",
+        "testRepetitionMode" : "retryOnFailure",
+        "testTimeoutsEnabled" : true
+      }
+    },
+    {
+      "id" : "C3042B95-4DF8-4270-8B41-98D0FC87E503",
+      "name" : "Release-Profile",
+      "options" : {
+        "codeCoverage" : false,
+        "maximumTestExecutionTimeAllowance" : 180,
+        "testTimeoutsEnabled" : true
+      }
+    },
+    {
+      "id" : "D2D6681F-67B1-46B3-9044-03A1D201E504",
+      "name" : "Release-Manual",
+      "options" : {
+        "codeCoverage" : false,
+        "maximumTestExecutionTimeAllowance" : 180,
+        "testTimeoutsEnabled" : true
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:MeasureMe.xcodeproj",
+      "identifier" : "A3BAF7BB2F27B74C00269A9A",
+      "name" : "MeasureMe"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:MeasureMe.xcodeproj",
+        "identifier" : "B10000012F28000100000020",
+        "name" : "MeasureMeTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:MeasureMe.xcodeproj",
+        "identifier" : "B10000012F28000100000021",
+        "name" : "MeasureMeUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

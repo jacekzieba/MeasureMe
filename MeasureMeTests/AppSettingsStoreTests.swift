@@ -22,6 +22,10 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertTrue(store.snapshot.experience.animationsEnabled)
         XCTAssertTrue(store.snapshot.notifications.photoRemindersEnabled)
         XCTAssertTrue(store.snapshot.health.healthkitSyncWeight)
+        XCTAssertFalse(store.snapshot.iCloudBackup.isEnabled)
+        XCTAssertFalse(store.snapshot.iCloudBackup.autoRestoreCompleted)
+        XCTAssertFalse(store.snapshot.onboarding.onboardingViewedICloudBackupOffer)
+        XCTAssertFalse(store.snapshot.onboarding.onboardingSkippedICloudBackup)
     }
 
     func testSetAndReloadUpdatesSnapshot() async {
@@ -180,6 +184,38 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertFalse(store.snapshot.health.healthkitInitialHistoricalImport)
         XCTAssertNil(store.healthKitAnchor(for: .weight))
         XCTAssertNil(store.lastProcessedHealthDate(for: .weight))
+    }
+
+    func testSyncIntentSettingsMirrorsUnitsAndMetricFlagsToAppGroup() async {
+        let appGroupSuite = "group.com.jacek.measureme"
+        let appGroupDefaults = UserDefaults(suiteName: appGroupSuite)!
+        // Clean slate for App Group keys
+        appGroupDefaults.removeObject(forKey: AppSettingsKeys.Profile.unitsSystem)
+        for key in AppSettingsKeys.Metrics.allEnabledKeys {
+            appGroupDefaults.removeObject(forKey: key)
+        }
+        defer {
+            appGroupDefaults.removeObject(forKey: AppSettingsKeys.Profile.unitsSystem)
+            for key in AppSettingsKeys.Metrics.allEnabledKeys {
+                appGroupDefaults.removeObject(forKey: key)
+            }
+        }
+
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+
+        // Act: change units and enable a metric
+        store.set(\.profile.unitsSystem, "imperial")
+        defaults.set(true, forKey: AppSettingsKeys.Metrics.weightEnabled)
+        defaults.set(true, forKey: AppSettingsKeys.Metrics.waistEnabled)
+        // Trigger persist which calls syncIntentSettings
+        store.set(\.profile.unitsSystem, "imperial")
+
+        // Assert: App Group suite should mirror the values
+        XCTAssertEqual(appGroupDefaults.string(forKey: AppSettingsKeys.Profile.unitsSystem), "imperial")
+        XCTAssertTrue(appGroupDefaults.bool(forKey: AppSettingsKeys.Metrics.weightEnabled))
+        XCTAssertTrue(appGroupDefaults.bool(forKey: AppSettingsKeys.Metrics.waistEnabled))
+        XCTAssertFalse(appGroupDefaults.bool(forKey: AppSettingsKeys.Metrics.neckEnabled))
     }
 
     func testClearUserDataDefaultsClearsProfileAndNotificationState() async {

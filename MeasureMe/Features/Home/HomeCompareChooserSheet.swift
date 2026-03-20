@@ -1,17 +1,44 @@
 import SwiftUI
 import SwiftData
 
+struct HomeCompareChooserOnDemandSheet: View {
+    let initialOlderPhoto: PhotoEntry?
+    let initialNewerPhoto: PhotoEntry?
+    let onCompareSelected: (PhotoEntry, PhotoEntry) -> Void
+
+    @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)])
+    private var photos: [PhotoEntry]
+
+    var body: some View {
+        HomeCompareChooserSheet(
+            photos: photos,
+            initialOlderPhoto: initialOlderPhoto,
+            initialNewerPhoto: initialNewerPhoto,
+            onCompareSelected: onCompareSelected
+        )
+    }
+}
+
 struct HomeCompareChooserSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     let photos: [PhotoEntry]
+    let initialOlderPhoto: PhotoEntry?
+    let initialNewerPhoto: PhotoEntry?
+    let preferredSlot: CompareChooserSlot
+    let onSelectionChanged: ((PhotoEntry, PhotoEntry) -> Void)?
     let onCompareSelected: (PhotoEntry, PhotoEntry) -> Void
 
-    @State private var selectedPhotos: [PhotoEntry] = []
+    @State private var selectedOlderPhoto: PhotoEntry?
+    @State private var selectedNewerPhoto: PhotoEntry?
+    @State private var focusedSlot: CompareChooserSlot
     @State private var selectedRange: DateRange = .all
     @State private var customStartDate: Date = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? AppClock.now
     @State private var customEndDate: Date = AppClock.now
+    @State private var selectedTags: Set<PhotoTag> = []
+    @State private var hasUserModifiedSelection = false
 
+    private let photosTheme = FeatureTheme.photos
     private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
 
     private var availableRanges: [DateRange] {
@@ -22,106 +49,90 @@ struct HomeCompareChooserSheet: View {
         photos.filter { photo in
             guard let start = selectedRange.startDate(customStart: customStartDate),
                   let end = selectedRange.endDate(customEnd: customEndDate) else {
-                return true
+                return matchesTags(photo)
             }
-            return photo.date >= start && photo.date <= end
+            return photo.date >= start && photo.date <= end && matchesTags(photo)
         }
+    }
+
+    private var availableTags: [PhotoTag] {
+        let tags = Set(photos.flatMap(\.tags))
+        return PhotoTag.allCases.filter { tags.contains($0) }
+    }
+
+    private var suggestedPair: PhotoComparePairSuggestion? {
+        suggestedPhotoComparePair(from: filteredPhotos)
+    }
+
+    private var compareEnabled: Bool {
+        selectedOlderPhoto != nil && selectedNewerPhoto != nil
+    }
+
+    private var selectionSummary: String {
+        guard let older = selectedOlderPhoto, let newer = selectedNewerPhoto else {
+            return AppLocalization.string("Photos make progress easier to notice.")
+        }
+        let days = max(Calendar.current.dateComponents([.day], from: older.date, to: newer.date).day ?? 0, 0)
+        return AppLocalization.plural("compare.days.apart", days)
+    }
+
+    init(
+        photos: [PhotoEntry],
+        initialOlderPhoto: PhotoEntry? = nil,
+        initialNewerPhoto: PhotoEntry? = nil,
+        preferredSlot: CompareChooserSlot = .newer,
+        onSelectionChanged: ((PhotoEntry, PhotoEntry) -> Void)? = nil,
+        onCompareSelected: @escaping (PhotoEntry, PhotoEntry) -> Void
+    ) {
+        self.photos = photos
+        self.initialOlderPhoto = initialOlderPhoto
+        self.initialNewerPhoto = initialNewerPhoto
+        self.preferredSlot = preferredSlot
+        self.onSelectionChanged = onSelectionChanged
+        self.onCompareSelected = onCompareSelected
+        _focusedSlot = State(initialValue: preferredSlot)
     }
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                filterSection
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Text("\(filteredPhotos.count)")
+                        .font(.system(size: 1))
+                        .accessibilityIdentifier("home.compare.filteredCount")
+                        .frame(width: 1, height: 1)
+                        .opacity(0.001)
 
-                Text("\(filteredPhotos.count)")
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .accessibilityIdentifier("home.compare.filteredCount")
-                    .frame(width: 1, height: 1)
-                    .clipped()
-
-                if isUITestMode {
-                    Button(AppLocalization.string("home.compare.chooser.uihook")) {
-                        guard filteredPhotos.count >= 2 else { return }
-                        openCompare(using: Array(filteredPhotos.prefix(2)))
-                    }
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .frame(width: 1, height: 1)
-                    .clipped()
-                    .accessibilityIdentifier("home.compare.selectTwoHook")
-                }
-
-                if filteredPhotos.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(AppLocalization.string("home.compare.filter.empty"))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                        Text(AppLocalization.string("home.compare.filter.empty.detail"))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.68))
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                } else {
-                    ScrollView {
-                        LazyVGrid(
-                            columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3),
-                            spacing: 10
-                        ) {
-                            ForEach(Array(filteredPhotos.enumerated()), id: \.element.persistentModelID) { index, photo in
-                                Button {
-                                    toggleSelection(for: photo)
-                                } label: {
-                                    ZStack(alignment: .topTrailing) {
-                                        PhotoGridThumb(
-                                            photo: photo,
-                                            size: 104,
-                                            cacheID: String(describing: photo.persistentModelID)
-                                        )
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                                .stroke(
-                                                    selectedPhotos.contains(photo)
-                                                    ? Color.appAccent
-                                                    : Color.white.opacity(0.08),
-                                                    lineWidth: selectedPhotos.contains(photo) ? 2 : 1
-                                                )
-                                        }
-
-                                        if let selectionIndex = selectedPhotos.firstIndex(of: photo) {
-                                            Text("\(selectionIndex + 1)")
-                                                .font(AppTypography.microEmphasis.monospacedDigit())
-                                                .foregroundStyle(.black)
-                                                .frame(width: 22, height: 22)
-                                                .background(Color.appAccent)
-                                                .clipShape(Circle())
-                                                .padding(6)
-                                        }
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityIdentifier("home.compare.photo.\(index)")
-                            }
+                    if isUITestMode {
+                        Button(AppLocalization.string("home.compare.chooser.uihook")) {
+                            guard let suggestedPair else { return }
+                            onCompareSelected(suggestedPair.older, suggestedPair.newer)
+                            dismiss()
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 24)
+                        .font(.system(size: 1))
+                        .foregroundStyle(.clear)
+                        .frame(width: 1, height: 1)
+                        .clipped()
+                        .accessibilityIdentifier("home.compare.selectTwoHook")
                     }
-                }
 
-                Button {
-                    openCompare(using: selectedPhotos)
-                } label: {
-                    Text(AppLocalization.string("Compare"))
-                        .frame(maxWidth: .infinity)
+                    pairHeader
+
+                    Button {
+                        confirmCompare()
+                    } label: {
+                        Text(AppLocalization.string("Compare"))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                    .disabled(!compareEnabled)
+                    .accessibilityIdentifier("home.compare.confirm")
+
+                    filterSection
+                    photoGrid
                 }
-                .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-                .disabled(selectedPhotos.count != 2)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
-                .accessibilityIdentifier("home.compare.confirm")
+                .padding(16)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(Color.black.ignoresSafeArea())
             .navigationTitle(AppLocalization.string("home.compare.chooser.title"))
             .navigationBarTitleDisplayMode(.inline)
@@ -135,6 +146,15 @@ struct HomeCompareChooserSheet: View {
                     }
                 }
             }
+            .onAppear {
+                if let initialOlderPhoto, let initialNewerPhoto {
+                    selectedOlderPhoto = initialOlderPhoto
+                    selectedNewerPhoto = initialNewerPhoto
+                } else if let suggestedPair {
+                    selectedOlderPhoto = suggestedPair.older
+                    selectedNewerPhoto = suggestedPair.newer
+                }
+            }
             .onChange(of: selectedRange) { _, _ in
                 sanitizeSelection()
             }
@@ -144,6 +164,64 @@ struct HomeCompareChooserSheet: View {
             .onChange(of: customEndDate) { _, _ in
                 sanitizeSelection()
             }
+            .onChange(of: selectedTags) { _, _ in
+                sanitizeSelection()
+            }
+            .onChange(of: selectedOlderPhoto?.persistentModelID) { _, _ in
+                publishSelectionChange()
+            }
+            .onChange(of: selectedNewerPhoto?.persistentModelID) { _, _ in
+                publishSelectionChange()
+            }
+        }
+    }
+
+    private var pairHeader: some View {
+        AppGlassCard(
+            depth: .floating,
+            cornerRadius: 24,
+            tint: photosTheme.strongTint,
+            contentPadding: 18
+        ) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(AppLocalization.string("Compare photos"))
+                            .font(AppTypography.displaySection)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+                        Text(selectionSummary)
+                            .font(AppTypography.body)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                    }
+                    Spacer()
+                    if let suggestedPair {
+                        Button(AppLocalization.string("Compare")) {
+                            selectedOlderPhoto = suggestedPair.older
+                            selectedNewerPhoto = suggestedPair.newer
+                        }
+                        .buttonStyle(.plain)
+                        .font(AppTypography.sectionAction)
+                        .foregroundStyle(photosTheme.accent)
+                    }
+                }
+
+                HStack(spacing: 12) {
+                    selectionSlot(
+                        title: AppLocalization.string("Earlier"),
+                        photo: selectedOlderPhoto,
+                        fallbackSymbol: "clock.arrow.trianglehead.counterclockwise.rotate.90",
+                        isFocused: focusedSlot == .older,
+                        action: { focusedSlot = .older }
+                    )
+                    selectionSlot(
+                        title: AppLocalization.string("Now"),
+                        photo: selectedNewerPhoto,
+                        fallbackSymbol: "sparkles",
+                        isFocused: focusedSlot == .newer,
+                        action: { focusedSlot = .newer }
+                    )
+                }
+            }
         }
     }
 
@@ -152,13 +230,12 @@ struct HomeCompareChooserSheet: View {
             HStack {
                 Text(AppLocalization.string("home.compare.filter.title"))
                     .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color.appAccent)
+                    .foregroundStyle(photosTheme.accent)
                 Spacer()
                 Text(AppLocalization.string("home.compare.filter.count", filteredPhotos.count))
                     .font(AppTypography.micro)
                     .foregroundStyle(.white.opacity(0.68))
             }
-            .padding(.horizontal, 16)
 
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: 110), spacing: 8, alignment: .leading)],
@@ -176,7 +253,7 @@ struct HomeCompareChooserSheet: View {
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .frame(maxWidth: .infinity, alignment: .center)
-                            .background(selectedRange == range ? Color.appAccent : Color.white.opacity(0.06))
+                            .background(selectedRange == range ? photosTheme.accent : Color.white.opacity(0.06))
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -193,6 +270,9 @@ struct HomeCompareChooserSheet: View {
                         displayedComponents: [.date]
                     )
                     .labelsHidden()
+                    .accessibilityLabel(AppLocalization.string("From"))
+                    .accessibilityHint(AppLocalization.string("Select the first date for photo comparison."))
+                    .accessibilityIdentifier("home.compare.custom.from")
 
                     DatePicker(
                         AppLocalization.string("To"),
@@ -200,35 +280,262 @@ struct HomeCompareChooserSheet: View {
                         displayedComponents: [.date]
                     )
                     .labelsHidden()
+                    .accessibilityLabel(AppLocalization.string("To"))
+                    .accessibilityHint(AppLocalization.string("Select the last date for photo comparison."))
+                    .accessibilityIdentifier("home.compare.custom.to")
                 }
-                .padding(.horizontal, 16)
+            }
+
+            if !availableTags.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text(AppLocalization.string("Tags"))
+                            .font(AppTypography.microEmphasis)
+                            .foregroundStyle(photosTheme.accent)
+                        Spacer()
+                        if !selectedTags.isEmpty {
+                            Button(AppLocalization.string("Show Less")) {
+                                selectedTags.removeAll()
+                            }
+                            .buttonStyle(.plain)
+                            .font(AppTypography.microEmphasis)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                        }
+                    }
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(availableTags, id: \.self) { tag in
+                                Button {
+                                    toggleTag(tag)
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        if selectedTags.contains(tag) {
+                                            Image(systemName: "checkmark")
+                                                .font(AppTypography.micro)
+                                        }
+                                        Text(tag.title)
+                                    }
+                                    .font(AppTypography.captionEmphasis)
+                                    .foregroundStyle(selectedTags.contains(tag) ? .black : .white.opacity(0.82))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(selectedTags.contains(tag) ? photosTheme.accent : Color.white.opacity(0.06))
+                                    .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
+    @ViewBuilder
+    private var photoGrid: some View {
+        if filteredPhotos.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(AppLocalization.string("home.compare.filter.empty"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(.white)
+                Text(AppLocalization.string("home.compare.filter.empty.detail"))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(.white.opacity(0.68))
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.white.opacity(0.05))
+            )
+        } else {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3),
+                spacing: 12
+            ) {
+                ForEach(Array(filteredPhotos.enumerated()), id: \.element.persistentModelID) { index, photo in
+                    Button {
+                        toggleSelection(for: photo)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ZStack(alignment: .topTrailing) {
+                                PhotoGridThumb(
+                                    photo: photo,
+                                    size: 104,
+                                    cacheID: String(describing: photo.persistentModelID)
+                                )
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .stroke(selectionBorderColor(for: photo), lineWidth: selectionBorderWidth(for: photo))
+                                }
+
+                                if markerText(for: photo) != nil {
+                                    Text(markerText(for: photo) ?? "")
+                                        .font(AppTypography.microEmphasis.monospacedDigit())
+                                        .foregroundStyle(.black)
+                                        .frame(width: 22, height: 22)
+                                        .background(photosTheme.accent)
+                                        .clipShape(Circle())
+                                        .padding(6)
+                                }
+                            }
+
+                            Text(photo.date.formatted(date: .abbreviated, time: .omitted))
+                                .font(AppTypography.captionEmphasis)
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                                .lineLimit(1)
+
+                            if !photo.tags.isEmpty {
+                                Text(photo.tags.prefix(2).map(\.title).joined(separator: " • "))
+                                    .font(AppTypography.micro)
+                                    .foregroundStyle(AppColorRoles.textSecondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("home.compare.photo.\(index)")
+                }
+            }
+        }
+    }
+
+    private func selectionSlot(
+        title: String,
+        photo: PhotoEntry?,
+        fallbackSymbol: String,
+        isFocused: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title)
+                    .font(AppTypography.microEmphasis)
+                    .foregroundStyle(AppColorRoles.textTertiary)
+
+                if let photo {
+                    PhotoGridThumb(
+                        photo: photo,
+                        size: 120,
+                        cacheID: String(describing: photo.persistentModelID)
+                    )
+                } else {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color.white.opacity(0.06))
+                        .frame(width: 120, height: 120)
+                        .overlay {
+                            Image(systemName: fallbackSymbol)
+                                .font(.title3)
+                                .foregroundStyle(AppColorRoles.textTertiary)
+                        }
+                }
+
+                Text(photo?.date.formatted(date: .abbreviated, time: .omitted) ?? AppLocalization.string("Select Date"))
+                    .font(AppTypography.captionEmphasis)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(AppColorRoles.surfaceInteractive)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(isFocused ? photosTheme.accent.opacity(0.5) : Color.clear, lineWidth: 1.5)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     private func sanitizeSelection() {
         let visibleIDs = Set(filteredPhotos.map(\.persistentModelID))
-        selectedPhotos = selectedPhotos.filter { visibleIDs.contains($0.persistentModelID) }
+
+        if let selectedOlderPhoto, !visibleIDs.contains(selectedOlderPhoto.persistentModelID) {
+            self.selectedOlderPhoto = nil
+        }
+
+        if let selectedNewerPhoto, !visibleIDs.contains(selectedNewerPhoto.persistentModelID) {
+            self.selectedNewerPhoto = nil
+        }
+
+        if selectedOlderPhoto == nil || selectedNewerPhoto == nil {
+            if let initialOlderPhoto, let initialNewerPhoto,
+               visibleIDs.contains(initialOlderPhoto.persistentModelID),
+               visibleIDs.contains(initialNewerPhoto.persistentModelID) {
+                selectedOlderPhoto = initialOlderPhoto
+                selectedNewerPhoto = initialNewerPhoto
+            } else if let suggestedPair {
+                selectedOlderPhoto = suggestedPair.older
+                selectedNewerPhoto = suggestedPair.newer
+            }
+        }
     }
 
     private func toggleSelection(for photo: PhotoEntry) {
         Haptics.selection()
-        if let existingIndex = selectedPhotos.firstIndex(of: photo) {
-            selectedPhotos.remove(at: existingIndex)
-            return
-        }
+        hasUserModifiedSelection = true
 
-        if selectedPhotos.count == 2 {
-            selectedPhotos = [selectedPhotos[1], photo]
-        } else {
-            selectedPhotos.append(photo)
+        switch focusedSlot {
+        case .older:
+            selectedOlderPhoto = photo
+            if let selectedNewerPhoto, photo.date > selectedNewerPhoto.date {
+                self.selectedNewerPhoto = photo
+                self.selectedOlderPhoto = selectedNewerPhoto
+            }
+            focusedSlot = .newer
+        case .newer:
+            selectedNewerPhoto = photo
+            if let selectedOlderPhoto, photo.date < selectedOlderPhoto.date {
+                self.selectedOlderPhoto = photo
+                self.selectedNewerPhoto = selectedOlderPhoto
+            }
+            focusedSlot = .older
         }
     }
 
-    private func openCompare(using photos: [PhotoEntry]) {
-        guard photos.count == 2 else { return }
-        let sorted = photos.sorted { $0.date < $1.date }
+    private func markerText(for photo: PhotoEntry) -> String? {
+        if selectedOlderPhoto?.persistentModelID == photo.persistentModelID {
+            return "1"
+        }
+        if selectedNewerPhoto?.persistentModelID == photo.persistentModelID {
+            return "2"
+        }
+        return nil
+    }
+
+    private func selectionBorderColor(for photo: PhotoEntry) -> Color {
+        markerText(for: photo) == nil ? Color.white.opacity(0.08) : photosTheme.accent
+    }
+
+    private func selectionBorderWidth(for photo: PhotoEntry) -> CGFloat {
+        markerText(for: photo) == nil ? 1 : 2
+    }
+
+    private func confirmCompare() {
+        guard let selectedOlderPhoto, let selectedNewerPhoto else { return }
+        let sorted = [selectedOlderPhoto, selectedNewerPhoto].sorted { $0.date < $1.date }
         onCompareSelected(sorted[0], sorted[1])
         dismiss()
+    }
+
+    private func toggleTag(_ tag: PhotoTag) {
+        if selectedTags.contains(tag) {
+            selectedTags.remove(tag)
+        } else {
+            selectedTags.insert(tag)
+        }
+    }
+
+    private func matchesTags(_ photo: PhotoEntry) -> Bool {
+        guard !selectedTags.isEmpty else { return true }
+        return !Set(photo.tags).isDisjoint(with: selectedTags)
+    }
+
+    private func publishSelectionChange() {
+        guard hasUserModifiedSelection else { return }
+        guard let selectedOlderPhoto, let selectedNewerPhoto else { return }
+        let sorted = [selectedOlderPhoto, selectedNewerPhoto].sorted { $0.date < $1.date }
+        onSelectionChanged?(sorted[0], sorted[1])
     }
 }

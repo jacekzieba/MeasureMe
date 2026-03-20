@@ -16,6 +16,7 @@ private extension Notification.Name {
 /// - Sekcja "Last Photos" z maksymalnie 6 ostatnimi zdjęciami (2 rzędy po 3)
 /// - Kolorystyka: wzrost = zielony, spadek = czerwony
 struct HomeView: View {
+    private static let homePhotoWindowDays = 3650
     @ObservedObject private var settingsStore = AppSettingsStore.shared
 
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
@@ -29,6 +30,7 @@ struct HomeView: View {
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
     @AppSetting(\.profile.userAge) private var userAgeValue: Int = 0
+    @AppSetting(\.profile.userGender) private var userGenderRaw: String = "notSpecified"
     @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
     @AppSetting(\.health.isSyncEnabled) var isSyncEnabled: Bool = false
@@ -56,8 +58,7 @@ struct HomeView: View {
     
     @Query private var goals: [MetricGoal]
     
-    @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)])
-    private var allPhotos: [PhotoEntry]
+    @Query private var recentPhotos: [PhotoEntry]
     
     @State private var showQuickAddSheet = false
     @State private var showHomeSettingsSheet = false
@@ -78,6 +79,8 @@ struct HomeView: View {
     @State private var didRunStartupPhases = false
     @State private var didEmitHomeInitialRender = false
     @State private var isPhotoMetricSyncInFlight = false
+    @State private var hasAnySavedPhotosInStore = false
+    @State private var hasEnoughSavedPhotosForCompareInStore = false
     @State private var isLastPhotosSectionMounted = false
     @State private var isHealthSectionMounted = false
     @State private var deferredPhaseBTask: Task<Void, Never>?
@@ -93,6 +96,7 @@ struct HomeView: View {
     @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
     @State private var cachedLatestByKind: [MetricKind: MetricSample] = [:]
     @State private var cachedGoalsByKind: [MetricKind: MetricGoal] = [:]
+    @State private var cachedDashboardItems: [HomeModuleLayoutItem] = []
 
     private let maxVisibleMetrics = 3
     private let maxVisiblePhotos = 6
@@ -115,6 +119,10 @@ struct HomeView: View {
         userAgeValue > 0 ? userAgeValue : nil
     }
 
+    private var userGender: Gender {
+        Gender(rawValue: userGenderRaw) ?? .notSpecified
+    }
+
     // Designated initializer that accepts an explicit streakManager to avoid touching MainActor in default params (Swift 6 safe)
     init(
         autoCheckPaywallPrompt: Bool = true,
@@ -127,6 +135,15 @@ struct HomeView: View {
         let recentWindowStart = Calendar.current.date(byAdding: .day, value: -120, to: AppClock.now) ?? .distantPast
         _recentSamples = Query(
             filter: #Predicate<MetricSample> { $0.date >= recentWindowStart },
+            sort: [SortDescriptor(\.date, order: .reverse)]
+        )
+        let homePhotoWindowStart = Calendar.current.date(
+            byAdding: .day,
+            value: -Self.homePhotoWindowDays,
+            to: AppClock.now
+        ) ?? .distantPast
+        _recentPhotos = Query(
+            filter: #Predicate<PhotoEntry> { $0.date >= homePhotoWindowStart },
             sort: [SortDescriptor(\.date, order: .reverse)]
         )
     }
@@ -196,6 +213,17 @@ struct HomeView: View {
         let score: Double
     }
 
+    private struct PhotoSyncSnapshotPayload: Sendable {
+        let kindRaw: String
+        let value: Double
+        let date: Date
+    }
+
+    private struct PhotoSyncCandidatePayload: Sendable {
+        let date: Date
+        let linkedMetrics: [PhotoSyncSnapshotPayload]
+    }
+
     private enum HomePhotoTile: Identifiable {
         case persisted(PhotoEntry)
         case pending(PendingPhotoSaveItem)
@@ -244,7 +272,7 @@ struct HomeView: View {
     /// Widoczne kafelki zdjęć (persisted + pending, maksymalnie 6)
     private var visiblePhotoTiles: [HomePhotoTile] {
         let persistedCandidateLimit = maxVisiblePhotos * 3
-        let persistedTiles = allPhotos.prefix(persistedCandidateLimit).map { HomePhotoTile.persisted($0) }
+        let persistedTiles = recentPhotos.prefix(persistedCandidateLimit).map { HomePhotoTile.persisted($0) }
         let pendingTiles = pendingPhotoSaveStore.pendingItems.map { HomePhotoTile.pending($0) }
         return (persistedTiles + pendingTiles)
             .sorted { lhs, rhs in lhs.date > rhs.date }
@@ -257,15 +285,15 @@ struct HomeView: View {
     }
 
     private var homeCompareCandidates: [PhotoEntry] {
-        allPhotos
+        recentPhotos
     }
 
     private var hasEnoughSavedPhotosForCompare: Bool {
-        homeCompareCandidates.count >= 2
+        hasEnoughSavedPhotosForCompareInStore
     }
 
     private var hasAnyPhotoContent: Bool {
-        !allPhotos.isEmpty || !pendingPhotoSaveStore.pendingItems.isEmpty
+        hasAnySavedPhotosInStore || !pendingPhotoSaveStore.pendingItems.isEmpty
     }
     
     /// Słownik próbek dla każdego rodzaju metryki
@@ -286,12 +314,75 @@ struct HomeView: View {
         cachedLatestByKind[.weight]?.value
     }
 
+    private var latestShoulders: Double? {
+        cachedLatestByKind[.shoulders]?.value
+    }
+
+    private var latestChest: Double? {
+        cachedLatestByKind[.chest]?.value
+    }
+
+    private var latestBust: Double? {
+        cachedLatestByKind[.bust]?.value
+    }
+
+    private var latestHips: Double? {
+        cachedLatestByKind[.hips]?.value
+    }
+
     private var weightDelta7dText: String? {
         metricDeltaTextFromCache(kind: .weight, days: 7)
     }
 
     private var waistDelta7dText: String? {
         metricDeltaTextFromCache(kind: .waist, days: 7)
+    }
+
+    private var homeMetricsSummaryInput: SectionInsightInput? {
+        AISectionSummaryInputBuilder.metricsInput(
+            userName: userName,
+            activeKinds: metricsStore.activeKinds,
+            latestByKind: cachedLatestByKind,
+            samplesByKind: cachedSamplesByKind,
+            unitsSystem: unitsSystem
+        )
+    }
+
+    private var homeHealthSummaryInput: SectionInsightInput? {
+        AISectionSummaryInputBuilder.healthInput(
+            userName: userName,
+            userGender: userGender,
+            latestWaist: latestWaist,
+            latestHeight: manualHeight > 0 ? manualHeight : latestHeight,
+            latestWeight: latestWeight,
+            latestHips: latestHips,
+            latestBodyFat: latestBodyFat,
+            latestLeanMass: latestLeanMass,
+            unitsSystem: unitsSystem
+        )
+    }
+
+    private var homePhysiqueSummaryInput: SectionInsightInput? {
+        AISectionSummaryInputBuilder.physiqueInput(
+            userName: userName,
+            userGender: userGender,
+            latestWaist: latestWaist,
+            latestHeight: manualHeight > 0 ? manualHeight : latestHeight,
+            latestBodyFat: latestBodyFat,
+            latestShoulders: latestShoulders,
+            latestChest: latestChest,
+            latestBust: latestBust,
+            latestHips: latestHips
+        )
+    }
+
+    private var homeBottomSummaryInput: SectionInsightInput? {
+        AISectionSummaryInputBuilder.homeCombinedInput(
+            userName: userName,
+            metricsInput: homeMetricsSummaryInput,
+            healthInput: homeHealthSummaryInput,
+            physiqueInput: homePhysiqueSummaryInput
+        )
     }
 
     // MARK: - Cache Rebuild Helpers
@@ -346,6 +437,16 @@ struct HomeView: View {
         (cachedSamplesByKind[kind] ?? []).deltaText(days: days, kind: kind, unitsSystem: unitsSystem)
     }
 
+    private func refreshPhotoStoreState() {
+        var descriptor = FetchDescriptor<PhotoEntry>(
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        descriptor.fetchLimit = 2
+        let newestPhotos = (try? modelContext.fetch(descriptor)) ?? []
+        hasAnySavedPhotosInStore = !newestPhotos.isEmpty
+        hasEnoughSavedPhotosForCompareInStore = newestPhotos.count >= 2
+    }
+
     private enum PhotoSyncMode {
         case full
         case incremental
@@ -382,6 +483,21 @@ struct HomeView: View {
         photoMetricSyncLastID = cursor.id
     }
 
+    private nonisolated static func latestPhotoSyncSnapshotByKey(
+        from candidates: [PhotoSyncCandidatePayload]
+    ) -> [String: PhotoSyncSnapshotPayload] {
+        let calendar = Calendar.current
+        var latestByKey: [String: PhotoSyncSnapshotPayload] = [:]
+        for candidate in candidates {
+            let dayStart = calendar.startOfDay(for: candidate.date).timeIntervalSince1970
+            for snapshot in candidate.linkedMetrics {
+                let key = "\(snapshot.kindRaw)|\(dayStart)"
+                latestByKey[key] = snapshot
+            }
+        }
+        return latestByKey
+    }
+
     private func fetchSyncCandidatePhotos(mode: PhotoSyncMode) throws -> [PhotoEntry] {
         let descriptor: FetchDescriptor<PhotoEntry>
         switch mode {
@@ -407,7 +523,7 @@ struct HomeView: View {
     ///   - Jesli probka dla (kind,date) istnieje, aktualizuje jej wartosc do wartosci snapshotu.
     ///   - If none exists, insert a new MetricSample.
     ///   - Nigdy nie usuwa MetricSample po usunieciu zdjecia; funkcja wykonuje tylko upsert.
-    private func syncMeasurementsFromPhotosIfNeeded(force: Bool = false) {
+    private func syncMeasurementsFromPhotosIfNeeded(force: Bool = false) async {
         guard !isPhotoMetricSyncInFlight else { return }
         let mode = syncMode(force: force)
         let isIncrementalMode = mode == .incremental
@@ -450,11 +566,33 @@ struct HomeView: View {
             return
         }
 
-        let syncedKindsRaw = Set(
-            photosWithMetrics
-                .flatMap(\.linkedMetrics)
-                .compactMap { $0.kind?.rawValue }
-        )
+        let syncCandidates: [PhotoSyncCandidatePayload] = photosWithMetrics.map { photo in
+            PhotoSyncCandidatePayload(
+                date: photo.date,
+                linkedMetrics: photo.linkedMetrics.compactMap { snapshot in
+                    guard let kindRaw = snapshot.kind?.rawValue else { return nil }
+                    return PhotoSyncSnapshotPayload(kindRaw: kindRaw, value: snapshot.value, date: photo.date)
+                }
+            )
+        }
+
+        let latestSnapshotByKey = await Task.detached(priority: .utility) {
+            HomeView.latestPhotoSyncSnapshotByKey(from: syncCandidates)
+        }.value
+
+        guard !latestSnapshotByKey.isEmpty else {
+            updatePhotoSyncCursor(using: candidatePhotos)
+            return
+        }
+
+        let syncedKindsRaw = Set(latestSnapshotByKey.values.map(\.kindRaw))
+        let dayStarts = latestSnapshotByKey.keys.compactMap { key -> Double? in
+            let components = key.split(separator: "|")
+            guard components.count == 2 else { return nil }
+            return Double(components[1])
+        }
+        let minDayStart = dayStarts.min()
+        let maxDayStart = dayStarts.max()
 
         // Buduje cache istniejacych probek po (kindRaw, dayStart)
         var existingByKey: [String: MetricSample] = [:]
@@ -462,6 +600,22 @@ struct HomeView: View {
             let descriptor: FetchDescriptor<MetricSample>
             if syncedKindsRaw.isEmpty {
                 descriptor = FetchDescriptor<MetricSample>(
+                    sortBy: [SortDescriptor(\.date, order: .reverse)]
+                )
+            } else if let minDayStart, let maxDayStart {
+                let kinds = Array(syncedKindsRaw)
+                let minDate = Date(timeIntervalSince1970: minDayStart)
+                let maxDateExclusive = Calendar.current.date(
+                    byAdding: .day,
+                    value: 1,
+                    to: Date(timeIntervalSince1970: maxDayStart)
+                ) ?? Date(timeIntervalSince1970: maxDayStart)
+                descriptor = FetchDescriptor<MetricSample>(
+                    predicate: #Predicate<MetricSample> { sample in
+                        kinds.contains(sample.kindRaw)
+                        && sample.date >= minDate
+                        && sample.date < maxDateExclusive
+                    },
                     sortBy: [SortDescriptor(\.date, order: .reverse)]
                 )
             } else {
@@ -475,33 +629,23 @@ struct HomeView: View {
             }
             let existing = try modelContext.fetch(descriptor)
             let cal = Calendar.current
-            for s in existing {
-                let startOfDay = cal.startOfDay(for: s.date)
-                let key = "\(s.kindRaw)|\(startOfDay.timeIntervalSince1970)"
-                if existingByKey[key] == nil { existingByKey[key] = s }
+            for sample in existing {
+                let startOfDay = cal.startOfDay(for: sample.date)
+                let key = "\(sample.kindRaw)|\(startOfDay.timeIntervalSince1970)"
+                if existingByKey[key] == nil { existingByKey[key] = sample }
             }
         } catch {
             AppLog.debug("⚠️ Failed to build existing samples index: \(error)")
         }
 
-        // Iteruje po zdjeciach i wykonuje upsert probek dla kazdego snapshotu
-        let calendar = Calendar.current
-        for photo in photosWithMetrics {
-            let photoDate = photo.date
-            let dayStart = calendar.startOfDay(for: photoDate)
-            for snapshot in photo.linkedMetrics {
-                guard let kind = snapshot.kind else { continue }
-                let kindRaw = kind.rawValue
-                let key = "\(kindRaw)|\(dayStart.timeIntervalSince1970)"
-                if let sample = existingByKey[key] {
-                    // Aktualizuje istniejaca probke do wartosci snapshotu i daty zdjecia (dokladny czas)
-                    sample.value = snapshot.value
-                    sample.date = photoDate
-                } else {
-                    let sample = MetricSample(kind: kind, value: snapshot.value, date: photoDate)
-                    modelContext.insert(sample)
-                    existingByKey[key] = sample
-                }
+        for (key, payload) in latestSnapshotByKey {
+            if let sample = existingByKey[key] {
+                sample.value = payload.value
+                sample.date = payload.date
+            } else if let kind = MetricKind(rawValue: payload.kindRaw) {
+                let sample = MetricSample(kind: kind, value: payload.value, date: payload.date)
+                modelContext.insert(sample)
+                existingByKey[key] = sample
             }
         }
 
@@ -532,7 +676,7 @@ struct HomeView: View {
 
     private func scheduleDeferredStartupPhaseB() {
         deferredPhaseBTask?.cancel()
-        deferredPhaseBTask = Task(priority: .utility) { @MainActor in
+        deferredPhaseBTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(900))
             guard !Task.isCancelled else { return }
             refreshMeasurementCaches()
@@ -548,13 +692,13 @@ struct HomeView: View {
         forceSync: Bool = false
     ) {
         deferredPhaseCTask?.cancel()
-        deferredPhaseCTask = Task(priority: .background) { @MainActor in
+        deferredPhaseCTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(delayMilliseconds))
             guard !Task.isCancelled else { return }
 
             let deferredSyncState = StartupInstrumentation.begin("HomeDeferredSync")
             StartupInstrumentation.event("HomeDeferredSyncStart")
-            syncMeasurementsFromPhotosIfNeeded(force: forceSync)
+            await syncMeasurementsFromPhotosIfNeeded(force: forceSync)
             StartupInstrumentation.event("HomeDeferredSyncEnd")
             StartupInstrumentation.end("HomeDeferredSync", state: deferredSyncState)
         }
@@ -562,7 +706,7 @@ struct HomeView: View {
 
     private func scheduleDeferredSectionMounts() {
         deferredSectionMountTask?.cancel()
-        deferredSectionMountTask = Task(priority: .utility) { @MainActor in
+        deferredSectionMountTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(450))
             guard !Task.isCancelled else { return }
             StartupInstrumentation.event("HomeLastPhotosMountStart")
@@ -592,18 +736,18 @@ struct HomeView: View {
         UIDevice.current.userInterfaceIdiom == .pad || horizontalSizeClass == .regular ? 4 : 2
     }
 
-    private var normalizedHomeLayout: HomeLayoutSnapshot {
-        let layout = settingsStore.homeLayoutSnapshot()
-        return HomeLayoutNormalizer.normalize(layout, using: settingsStore.snapshot)
+    private var renderedDashboardItems: [HomeModuleLayoutItem] {
+        cachedDashboardItems
     }
 
-    private var renderedDashboardItems: [HomeModuleLayoutItem] {
-        let runtimeVisibleItems = normalizedHomeLayout.items.map { item in
+    private func rebuildDashboardItemsCache() {
+        let layout = settingsStore.homeLayoutSnapshot()
+        let runtimeVisibleItems = layout.items.map { item in
             var next = item
             next.isVisible = item.isVisible && shouldRenderModule(item.kind)
             return next
         }
-        return HomeLayoutCompactor.compact(runtimeVisibleItems, columns: dashboardColumns)
+        cachedDashboardItems = HomeLayoutCompactor.compact(runtimeVisibleItems, columns: dashboardColumns)
     }
 
     var body: some View {
@@ -762,6 +906,14 @@ struct HomeView: View {
                     .frame(height: 0)
 
                     dashboardBoard
+
+                    AISectionSummaryCard(
+                        input: homeBottomSummaryInput,
+                        missingDataMessage: AppLocalization.string("AI summary needs data from Metrics, Health Indicators, or Physique Indicators."),
+                        tint: homeTheme.softTint,
+                        accessibilityIdentifier: "home.bottom.ai.summary"
+                    )
+                    .padding(.top, 14)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
@@ -805,7 +957,10 @@ struct HomeView: View {
                 PhotoDetailView(photo: photo)
             }
             .sheet(isPresented: $showHomeCompareChooser) {
-                HomeCompareChooserSheet(photos: homeCompareCandidates) { olderPhoto, newerPhoto in
+                HomeCompareChooserOnDemandSheet(
+                    initialOlderPhoto: secondLatestSavedPhoto,
+                    initialNewerPhoto: latestSavedPhoto
+                ) { olderPhoto, newerPhoto in
                     selectedHomeComparePair = HomeComparePair(olderPhoto: olderPhoto, newerPhoto: newerPhoto)
                 }
                 .presentationBackground(Color.black)
@@ -836,6 +991,8 @@ struct HomeView: View {
         content
             .onAppear {
                 Task { @MainActor in
+                    refreshPhotoStoreState()
+                    rebuildDashboardItemsCache()
                     if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
                         didCheckSevenDayPaywallPrompt = true
                         premiumStore.checkSevenDayPromptIfNeeded()
@@ -858,7 +1015,7 @@ struct HomeView: View {
     }
 
     private func refreshingHomeRoot<Content: View>(_ content: Content) -> some View {
-        content
+        let contentWithMeasurementObservers = content
             .onChange(of: recentSamplesSignature) { _, _ in
                 refreshMeasurementCaches()
             }
@@ -868,11 +1025,20 @@ struct HomeView: View {
             .onChange(of: goals.count) { _, _ in
                 rebuildGoalsCache()
             }
+
+        let contentWithChecklistObservers = contentWithMeasurementObservers
+            .onChange(of: settingsStore.snapshot.homeLayout.layoutData) { _, _ in
+                rebuildDashboardItemsCache()
+            }
+            .onChange(of: horizontalSizeClass) { _, _ in
+                rebuildDashboardItemsCache()
+            }
             .onChange(of: isSyncEnabled) { _, _ in
                 refreshChecklistState()
                 fetchHealthKitData()
             }
-            .onChange(of: allPhotos.count) { _, _ in
+            .onChange(of: recentPhotos.count) { _, _ in
+                refreshPhotoStoreState()
                 refreshChecklistState()
                 if didRunStartupPhases {
                     scheduleDeferredStartupPhaseC(delayMilliseconds: 900)
@@ -890,18 +1056,41 @@ struct HomeView: View {
             .onChange(of: onboardingSkippedReminders) { _, _ in
                 refreshChecklistState()
             }
+
+        let observedContent = contentWithChecklistObservers
             .onChange(of: activeChecklistItems.count) { _, newCount in
+                rebuildDashboardItemsCache()
                 if newCount <= collapsedChecklistItems.count {
                     showMoreChecklistItems = false
                 }
             }
-            .refreshable {
-                syncMeasurementsFromPhotosIfNeeded(force: true)
-                refreshMeasurementCaches()
-                rebuildGoalsCache()
-                fetchHealthKitData()
-                refreshChecklistState()
+            .onChange(of: showMeasurementsOnHome) { _, _ in
+                rebuildDashboardItemsCache()
             }
+            .onChange(of: showLastPhotosOnHome) { _, _ in
+                rebuildDashboardItemsCache()
+            }
+            .onChange(of: showHealthMetricsOnHome) { _, _ in
+                rebuildDashboardItemsCache()
+            }
+            .onChange(of: showOnboardingChecklistOnHome) { _, _ in
+                rebuildDashboardItemsCache()
+            }
+
+        return Group {
+            if showStreakDetail {
+                observedContent
+            } else {
+                observedContent
+                    .refreshable {
+                        await syncMeasurementsFromPhotosIfNeeded(force: true)
+                        refreshMeasurementCaches()
+                        rebuildGoalsCache()
+                        fetchHealthKitData()
+                        refreshChecklistState()
+                    }
+            }
+        }
     }
 
     private func shouldRenderModule(_ kind: HomeModuleKind) -> Bool {
@@ -1714,7 +1903,7 @@ struct HomeView: View {
                     Haptics.selection()
                     showMoreChecklistItems = true
                 } label: {
-                            Text(AppLocalization.string("Show %d more", activeChecklistItems.count - collapsedChecklistItems.count))
+                            Text(AppLocalization.plural("Show %d more", activeChecklistItems.count - collapsedChecklistItems.count))
                                 .font(AppTypography.captionEmphasis)
                                 .foregroundStyle(Color.appAccent)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1902,7 +2091,7 @@ struct HomeView: View {
         case 1:
             return AppLocalization.string("home.thisweek.single")
         default:
-            return AppLocalization.string("home.thisweek.multiple", currentWeekCheckInDays)
+            return AppLocalization.plural("home.thisweek.multiple", currentWeekCheckInDays)
         }
     }
 
@@ -2167,11 +2356,16 @@ struct HomeView: View {
             )
         )
 
+        let activeMetricCount = metricsStore.activeKinds.count
+        let totalMetricCount = metricsStore.allKindsInOrder.count
+        let inactiveMetricCount = totalMetricCount - activeMetricCount
         items.append(
             SetupChecklistItem(
                 id: "choose_metrics",
                 title: AppLocalization.string("Choose metrics"),
-                detail: AppLocalization.string("Track only what matters to you."),
+                detail: inactiveMetricCount > 0
+                    ? AppLocalization.string("checklist.choosemetrics.detail.dynamic", activeMetricCount, inactiveMetricCount)
+                    : AppLocalization.string("Track only what matters to you."),
                 icon: "slider.horizontal.3",
                 isCompleted: onboardingChecklistMetricsCompleted,
                 isLoading: false
@@ -2329,7 +2523,7 @@ struct HomeView: View {
                             Haptics.selection()
                             showMoreChecklistItems = true
                         } label: {
-                            Text(AppLocalization.string("Show %d more", activeChecklistItems.count - collapsedChecklistItems.count))
+                            Text(AppLocalization.plural("Show %d more", activeChecklistItems.count - collapsedChecklistItems.count))
                                 .font(AppTypography.captionEmphasis)
                                 .foregroundStyle(Color.appAccent)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -3060,7 +3254,7 @@ struct HomeView: View {
                     
                     Spacer()
                     
-                    if (allPhotos.count + pendingPhotoSaveStore.pendingItems.count) > maxVisiblePhotos {
+                    if (recentPhotos.count + pendingPhotoSaveStore.pendingItems.count) > maxVisiblePhotos {
                         Button {
                             router.selectedTab = .photos
                         } label: {

@@ -24,6 +24,7 @@ struct HeightSettingsView: View {
     private var samples: [MetricSample]
     @State private var isImportingHeight = false
     @State private var healthImportMessage: String?
+    private let theme = FeatureTheme.settings
     
     
     // Pobierz najnowszy wzrost ze śledzonych metryk
@@ -40,40 +41,36 @@ struct HeightSettingsView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-
-            ScrollView {
-                VStack(spacing: 16) {
+        SettingsScrollDetailScaffold(title: AppLocalization.string("Height"), theme: .settings) {
                     // MARK: - Current Height hero card
                     AppGlassCard(
                         depth: .floating,
-                        tint: Color.cyan.opacity(0.12),
+                        tint: theme.softTint,
                         contentPadding: 24
                     ) {
                         if manualHeight > 0 {
                             VStack(spacing: 8) {
                                 HStack {
                                     Image(systemName: "pencil.circle.fill")
-                                        .foregroundStyle(Color(hex: "#FCA311"))
+                                        .foregroundStyle(theme.accent)
                                     Text(AppLocalization.string("Manual height"))
                                         .font(AppTypography.caption)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(AppColorRoles.textSecondary)
                                 }
 
                                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                                     Text(formattedHeight(manualHeight))
-                                        .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
-                                        .foregroundStyle(Color(hex: "#FCA311"))
+                                        .font(AppTypography.dataPrimary)
+                                        .foregroundStyle(theme.accent)
 
                                     Text(heightUnit)
-                                        .font(.title.weight(.medium))
-                                        .foregroundStyle(.secondary)
+                                        .font(AppTypography.headline)
+                                        .foregroundStyle(AppColorRoles.textSecondary)
                                 }
 
                                 Text(AppLocalization.string("You've set your height manually. Health metrics will use this value."))
                                     .font(AppTypography.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppColorRoles.textSecondary)
                                     .multilineTextAlignment(.center)
                             }
                             .frame(maxWidth: .infinity)
@@ -82,25 +79,25 @@ struct HeightSettingsView: View {
                             VStack(spacing: 8) {
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.green)
+                                        .foregroundStyle(AppColorRoles.stateSuccess)
                                     Text(AppLocalization.string("Latest height"))
                                         .font(AppTypography.caption)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(AppColorRoles.textSecondary)
                                 }
 
                                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                                     Text(formattedHeight(tracked.value))
-                                        .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
-                                        .foregroundStyle(Color(hex: "#FCA311"))
+                                        .font(AppTypography.dataPrimary)
+                                        .foregroundStyle(theme.accent)
 
                                     Text(heightUnit)
-                                        .font(.title.weight(.medium))
-                                        .foregroundStyle(.secondary)
+                                        .font(AppTypography.headline)
+                                        .foregroundStyle(AppColorRoles.textSecondary)
                                 }
 
                                 Text(AppLocalization.string("height.last.updated", tracked.date.formatted(date: .abbreviated, time: .shortened)))
                                     .font(AppTypography.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppColorRoles.textSecondary)
                             }
                             .frame(maxWidth: .infinity)
                             .frame(minHeight: 120)
@@ -108,12 +105,12 @@ struct HeightSettingsView: View {
                             VStack(spacing: 10) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.title)
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(AppColorRoles.stateWarning)
                                 Text(AppLocalization.string("No height set"))
                                     .font(AppTypography.bodyEmphasis)
                                 Text(AppLocalization.string("Set your height to calculate health metrics like WHtR (Waist-to-Height Ratio)."))
                                     .font(AppTypography.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppColorRoles.textSecondary)
                                     .multilineTextAlignment(.center)
                             }
                             .frame(maxWidth: .infinity)
@@ -124,7 +121,7 @@ struct HeightSettingsView: View {
                     // MARK: - Options card
                     AppGlassCard(
                         depth: .elevated,
-                        tint: Color.cyan.opacity(0.08),
+                        tint: AppColorRoles.surfacePrimary,
                         contentPadding: 16
                     ) {
                         VStack(alignment: .leading, spacing: 14) {
@@ -136,15 +133,16 @@ struct HeightSettingsView: View {
                             } label: {
                                 HStack(spacing: 12) {
                                     GlassPillIcon(systemName: "pencil")
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(AppLocalization.string("Set height manually"))
-                                            .font(AppTypography.bodyEmphasis)
-                                        Text(AppLocalization.string("Used for health metrics"))
-                                            .font(AppTypography.caption)
-                                            .foregroundStyle(.secondary)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(AppLocalization.string("Set height manually"))
+                                                .font(AppTypography.bodyEmphasis)
+                                                .foregroundStyle(AppColorRoles.textPrimary)
+                                            Text(AppLocalization.string("Used for health metrics"))
+                                                .font(AppTypography.caption)
+                                                .foregroundStyle(AppColorRoles.textSecondary)
+                                        }
                                     }
                                 }
-                            }
 
                             if isSyncEnabled {
                                 Divider().overlay(Color.white.opacity(0.12))
@@ -164,9 +162,10 @@ struct HeightSettingsView: View {
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(AppLocalization.string("Import latest from Health"))
                                                 .font(AppTypography.bodyEmphasis)
+                                                .foregroundStyle(AppColorRoles.textPrimary)
                                             Text(AppLocalization.string("Sync height for calculations"))
                                                 .font(AppTypography.caption)
-                                                .foregroundStyle(.secondary)
+                                                .foregroundStyle(AppColorRoles.textSecondary)
                                         }
                                     }
                                 }
@@ -175,7 +174,7 @@ struct HeightSettingsView: View {
                                 if let healthImportMessage {
                                     Text(healthImportMessage)
                                         .font(AppTypography.caption)
-                                        .foregroundStyle(Color.red.opacity(0.9))
+                                        .foregroundStyle(AppColorRoles.stateError)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
@@ -186,7 +185,7 @@ struct HeightSettingsView: View {
                     AppGlassCard(depth: .base) {
                         Text(AppLocalization.string("Height is stored in Settings and used to calculate health indicators like WHtR and BMI."))
                             .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
 
                     // MARK: - Info card
@@ -197,7 +196,7 @@ struct HeightSettingsView: View {
 
                             Text(AppLocalization.string("Height is used to calculate important health metrics:"))
                                 .font(AppTypography.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppColorRoles.textSecondary)
 
                             VStack(alignment: .leading, spacing: 8) {
                                 InfoRow(
@@ -214,14 +213,7 @@ struct HeightSettingsView: View {
                             }
                         }
                     }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-            }
         }
-        .navigationTitle(AppLocalization.string("Height"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
     }
     
     // MARK: - Helpers
@@ -274,6 +266,7 @@ struct ManualHeightInputView: View {
     @State private var feetInput: String = ""
     @State private var inchesInput: String = ""
     @FocusState private var focusedField: Field?
+    private let theme = FeatureTheme.settings
     
     enum Field {
         case height, feet, inches
@@ -297,21 +290,17 @@ struct ManualHeightInputView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-
-            ScrollView {
-                VStack(spacing: 16) {
+        SettingsScrollDetailScaffold(title: AppLocalization.string("Set Height"), theme: .settings) {
                     // MARK: - Height input card
                     AppGlassCard(
                         depth: .floating,
-                        tint: Color.cyan.opacity(0.12),
+                        tint: theme.softTint,
                         contentPadding: 24
                     ) {
                         VStack(spacing: 12) {
                             Text(AppLocalization.string("Enter your height"))
                                 .font(AppTypography.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppColorRoles.textSecondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
                             if unitsSystem == "imperial" {
@@ -321,35 +310,35 @@ struct ManualHeightInputView: View {
                                         TextField("0", text: $feetInput)
                                             .keyboardType(.numberPad)
                                             .multilineTextAlignment(.center)
-                                            .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
+                                            .font(AppTypography.dataPrimary)
                                             .fixedSize()
                                             .focused($focusedField, equals: .feet)
 
                                         Text(AppLocalization.string("Feet"))
                                             .font(AppTypography.caption)
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(AppColorRoles.textSecondary)
                                     }
 
                                     Text("'")
-                                        .font(.system(size: 36, weight: .medium, design: .rounded))
-                                        .foregroundStyle(.secondary)
+                                        .font(AppTypography.displaySection)
+                                        .foregroundStyle(AppColorRoles.textSecondary)
 
                                     VStack(spacing: 4) {
                                         TextField("0", text: $inchesInput)
                                             .keyboardType(.numberPad)
                                             .multilineTextAlignment(.center)
-                                            .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
+                                            .font(AppTypography.dataPrimary)
                                             .fixedSize()
                                             .focused($focusedField, equals: .inches)
 
                                         Text(AppLocalization.string("Inches"))
                                             .font(AppTypography.caption)
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(AppColorRoles.textSecondary)
                                     }
 
                                     Text("\"")
-                                        .font(.system(size: 36, weight: .medium, design: .rounded))
-                                        .foregroundStyle(.secondary)
+                                        .font(AppTypography.displaySection)
+                                        .foregroundStyle(AppColorRoles.textSecondary)
                                 }
                             } else {
                                 // Metric: Centimeters hero value
@@ -357,20 +346,20 @@ struct ManualHeightInputView: View {
                                     TextField("0", text: $heightInput)
                                         .keyboardType(.decimalPad)
                                         .multilineTextAlignment(.trailing)
-                                        .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
+                                        .font(AppTypography.dataPrimary)
                                         .fixedSize()
                                         .focused($focusedField, equals: .height)
 
                                     Text("cm")
-                                        .font(.title.weight(.medium))
-                                        .foregroundStyle(.secondary)
+                                        .font(AppTypography.headline)
+                                        .foregroundStyle(AppColorRoles.textSecondary)
                                 }
                             }
 
                             if focusedField == nil {
                                 Text(AppLocalization.string("metric.input.tap_to_edit"))
                                     .font(AppTypography.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppColorRoles.textSecondary)
                             }
                         }
                         .frame(maxWidth: .infinity)
@@ -389,7 +378,7 @@ struct ManualHeightInputView: View {
                     if shouldShowValidationError, !heightValidation.isValid, let message = heightValidation.message {
                         Text(message)
                             .font(AppTypography.micro)
-                            .foregroundStyle(Color.red.opacity(0.9))
+                            .foregroundStyle(AppColorRoles.stateError)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
@@ -398,7 +387,7 @@ struct ManualHeightInputView: View {
                         saveHeight()
                     } label: {
                         Text(AppLocalization.string("Save"))
-                            .font(.system(.headline, design: .rounded).weight(.semibold))
+                            .font(AppTypography.buttonLabel)
                     }
                     .buttonStyle(LiquidCapsuleButtonStyle())
                     .disabled(!isValidInput)
@@ -407,16 +396,9 @@ struct ManualHeightInputView: View {
                     AppGlassCard(depth: .base) {
                         Text(AppLocalization.string("This height will be used for health metric calculations like WHtR."))
                             .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-            }
         }
-        .navigationTitle(AppLocalization.string("Set Height"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .keyboard) {
                 Button(AppLocalization.string("Done")) {
@@ -487,7 +469,7 @@ private struct InfoRow: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundStyle(Color(hex: "#FCA311"))
+                .foregroundStyle(AppColorRoles.accentPrimary)
                 .frame(width: 32)
             
             VStack(alignment: .leading, spacing: 2) {
@@ -495,7 +477,7 @@ private struct InfoRow: View {
                     .font(.subheadline.weight(.medium))
                 Text(description)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColorRoles.textSecondary)
             }
         }
     }

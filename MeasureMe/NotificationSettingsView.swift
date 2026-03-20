@@ -18,12 +18,13 @@ struct NotificationSettingsView: View {
     @State private var smartTime: Date = NotificationManager.shared.smartTime
     
     @State private var showSavedToast: Bool = false
+    private let theme = FeatureTheme.settings
     
     var body: some View {
         ZStack(alignment: .top) {
             AppScreenBackground(
                 topHeight: 380,
-                tint: Color.cyan.opacity(0.22)
+                tint: theme.strongTint
             )
 
             List {
@@ -61,7 +62,7 @@ struct NotificationSettingsView: View {
             if showSavedToast {
                 Text(AppLocalization.string("Saved"))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(
@@ -100,10 +101,10 @@ struct NotificationSettingsView: View {
         GlassCard {
             VStack(alignment: .leading, spacing: 8) {
                 Label(AppLocalization.string("Notification error"), systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(Color.red.opacity(0.9))
+                    .foregroundStyle(AppColorRoles.stateError)
                 Text(message)
                     .font(AppTypography.caption)
-                    .foregroundStyle(Color.red.opacity(0.9))
+                    .foregroundStyle(AppColorRoles.stateError)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -114,8 +115,8 @@ struct NotificationSettingsView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(AppTypography.sectionTitle)
-            .foregroundStyle(.white.opacity(0.78))
+            .font(AppTypography.displaySection)
+            .foregroundStyle(AppColorRoles.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
             .listRowBackground(Color.clear)
@@ -125,7 +126,7 @@ struct NotificationSettingsView: View {
     private func sectionFooter(_ text: String) -> some View {
         Text(text)
             .font(AppTypography.caption)
-            .foregroundStyle(.white.opacity(0.74))
+            .foregroundStyle(AppColorRoles.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
             .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 8, trailing: 16))
@@ -137,7 +138,7 @@ struct NotificationSettingsView: View {
         Group {
             if store.reminders.isEmpty {
                 Text(AppLocalization.string("No reminders yet"))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColorRoles.textSecondary)
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -146,13 +147,13 @@ struct NotificationSettingsView: View {
                     GlassCard {
                         HStack {
                             Image(systemName: "calendar")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppColorRoles.textTertiary)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(reminder.date.formatted(date: .abbreviated, time: .shortened))
                                     .font(AppTypography.bodyEmphasis)
                                 Text(reminder.repeatRule.title)
                                     .font(AppTypography.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppColorRoles.textSecondary)
                             }
                             Spacer()
                         }
@@ -247,7 +248,7 @@ struct NotificationSettingsView: View {
                 }
 
                 Divider()
-                    .overlay(Color.white.opacity(0.12))
+                    .overlay(AppColorRoles.borderSubtle)
 
                 HStack(spacing: 12) {
                     Text(AppLocalization.plural("notification.smart.after.days", smartDays))
@@ -265,7 +266,7 @@ struct NotificationSettingsView: View {
                 }
 
                 Divider()
-                    .overlay(Color.white.opacity(0.12))
+                    .overlay(AppColorRoles.borderSubtle)
 
                 HStack(spacing: 12) {
                     Text(AppLocalization.string("Time of day"))
@@ -369,6 +370,7 @@ private final class ReminderStore: ObservableObject {
 private struct AddReminderSheet: View {
     @Environment(\.dismiss) private var dismiss
     let onAdd: (Date, ReminderRepeat) -> Void
+    private let theme = FeatureTheme.settings
     
     @State private var date: Date = .now.addingTimeInterval(3600)
     @State private var repeatRule: ReminderRepeat = .once
@@ -376,13 +378,13 @@ private struct AddReminderSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppScreenBackground(topHeight: 180, tint: Color.cyan.opacity(0.16))
+                AppScreenBackground(topHeight: 180, tint: theme.softTint)
 
                 ScrollView {
                     VStack(spacing: 16) {
                         AppGlassCard(
                             depth: .floating,
-                            tint: Color.cyan.opacity(0.12),
+                            tint: theme.softTint,
                             contentPadding: 20
                         ) {
                             DatePicker(
@@ -429,7 +431,7 @@ private struct _NotificationGlassCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        AppGlassCard(depth: .base, contentPadding: 16) {
+        AppGlassCard(depth: .base, tint: AppColorRoles.surfacePrimary, contentPadding: 16) {
             content
         }
     }

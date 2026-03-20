@@ -12,27 +12,29 @@ struct PhotoPreviewSection: View {
     }
     
     var body: some View {
-        VStack(spacing: 8) {
-            DownsampledImageView(
-                imageData: imageData,
-                targetSize: CGSize(width: 600, height: 600),
-                contentMode: .fill,
-                cornerRadius: 12,
-                cacheID: cacheID
-            )
-            .aspectRatio(imageAspectRatio, contentMode: .fit)
-            .frame(maxWidth: .infinity)
-            .shadow(radius: 5)
-            .onTapGesture {
-                onTapFullScreen()
-            }
-            
-            Button {
-                onTapFullScreen()
-            } label: {
-                Label(AppLocalization.string("View Full Screen"), systemImage: "arrow.up.left.and.arrow.down.right")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(.secondary)
+        AppGlassCard(depth: .floating, cornerRadius: 24, tint: FeatureTheme.photos.strongTint, contentPadding: 12) {
+            VStack(spacing: 10) {
+                DownsampledImageView(
+                    imageData: imageData,
+                    targetSize: CGSize(width: 600, height: 600),
+                    contentMode: .fill,
+                    cornerRadius: 20,
+                    cacheID: cacheID
+                )
+                .aspectRatio(imageAspectRatio, contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .shadow(radius: 5)
+                .onTapGesture {
+                    onTapFullScreen()
+                }
+
+                Button {
+                    onTapFullScreen()
+                } label: {
+                    Label(AppLocalization.string("View Full Screen"), systemImage: "arrow.up.left.and.arrow.down.right")
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(FeatureTheme.photos.accent)
+                }
             }
         }
     }
@@ -45,7 +47,8 @@ struct PhotoDateSection: View {
     let isEditing: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        AppGlassCard(depth: .base, cornerRadius: 20, tint: FeatureTheme.photos.softTint, contentPadding: 16) {
+            VStack(alignment: .leading, spacing: 12) {
             Label(AppLocalization.string("Date"), systemImage: "calendar")
                 .font(AppTypography.bodyEmphasis)
                 .foregroundStyle(.primary)
@@ -64,9 +67,10 @@ struct PhotoDateSection: View {
                     Spacer()
                 }
                 .padding()
-                .background(Color(.systemGray6))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .background(AppColorRoles.surfaceInteractive)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+        }
         }
     }
 }
@@ -78,7 +82,8 @@ struct PhotoTagsSection: View {
     let isEditing: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        AppGlassCard(depth: .base, cornerRadius: 20, tint: FeatureTheme.photos.softTint, contentPadding: 16) {
+            VStack(alignment: .leading, spacing: 12) {
             Label(AppLocalization.string("Tags"), systemImage: "tag.fill")
                 .font(AppTypography.bodyEmphasis)
                 .foregroundStyle(.primary)
@@ -93,6 +98,7 @@ struct PhotoTagsSection: View {
                 }
             }
         }
+        }
     }
     
     private var emptyStateView: some View {
@@ -100,8 +106,8 @@ struct PhotoTagsSection: View {
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            .background(Color(.systemGray6))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .background(AppColorRoles.surfaceInteractive)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
     }
     
     private var tagsFlowLayout: some View {
@@ -121,7 +127,8 @@ struct PhotoMetricsSection: View {
     let isEditing: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        AppGlassCard(depth: .base, cornerRadius: 20, tint: FeatureTheme.photos.softTint, contentPadding: 16) {
+            VStack(alignment: .leading, spacing: 12) {
             Label(AppLocalization.string("Metric Snapshots"), systemImage: "chart.bar.fill")
                 .font(AppTypography.bodyEmphasis)
                 .foregroundStyle(.primary)
@@ -139,6 +146,7 @@ struct PhotoMetricsSection: View {
                 }
             }
         }
+        }
     }
     
     private var emptyStateView: some View {
@@ -146,8 +154,8 @@ struct PhotoMetricsSection: View {
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            .background(Color(.systemGray6))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .background(AppColorRoles.surfaceInteractive)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
     }
     
     private var metricsListView: some View {

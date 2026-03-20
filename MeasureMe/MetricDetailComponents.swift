@@ -11,7 +11,7 @@ extension MetricDetailView {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "MMM d"
 
-        let points: [(String, Double)] = chartSamples.map { sample in
+        let points: [(String, Double)] = chartRenderSamples.map { sample in
             let label = dateFormatter.string(from: sample.date)
             return (label, displayValue(sample.value))
         }
@@ -93,15 +93,20 @@ extension MetricDetailView {
     }
 
     var insightInput: MetricInsightInput? {
-        guard supportsAppleIntelligence, let latest = chartSamples.last else { return nil }
+        guard supportsAppleIntelligence, let latest = sortedSamplesAscending.last else { return nil }
+        let recent14 = sortedSamplesAscending.filterInLast(days: 14)
+        let recent30 = sortedSamplesAscending.filterInLast(days: 30)
+        let recent90 = sortedSamplesAscending.filterInLast(days: 90)
         return MetricInsightInput(
             userName: userName.isEmpty ? nil : userName,
             metricTitle: kind.englishTitle,
             latestValueText: valueString(latest.value),
-            timeframeLabel: timeframeLabel,
-            sampleCount: chartSamples.count,
-            delta7DaysText: chartSamples.deltaText(days: 7, kind: kind, unitsSystem: unitsSystem),
-            delta30DaysText: chartSamples.deltaText(days: 30, kind: kind, unitsSystem: unitsSystem),
+            timeframeLabel: AppLocalization.string("Last 90 days"),
+            sampleCount: recent90.count,
+            delta7DaysText: nil,
+            delta14DaysText: recent14.deltaText(days: 14, kind: kind, unitsSystem: unitsSystem),
+            delta30DaysText: recent30.deltaText(days: 30, kind: kind, unitsSystem: unitsSystem),
+            delta90DaysText: recent90.deltaText(days: 90, kind: kind, unitsSystem: unitsSystem),
             goalStatusText: goalStatusText,
             goalDirectionText: currentGoal?.direction.rawValue,
             defaultFavorableDirectionText: kind.defaultFavorableDirectionWhenNoGoal.rawValue
@@ -120,8 +125,8 @@ extension MetricDetailView {
 
     var goalForecastText: String? {
         guard let goal = currentGoal,
-              let latest = chartSamples.last,
-              let trend = trendlineSegment else { return nil }
+              let latest = sortedSamplesAscending.last,
+              let trend = insightTrendlineSegment else { return nil }
 
         if goal.isAchieved(currentValue: latest.value) {
             return AppLocalization.string("Goal already achieved.")
@@ -158,6 +163,34 @@ extension MetricDetailView {
         return AppLocalization.string("metric.goal.projected.date", formatted)
     }
 
+    var insightTrendlineSegment: (startDate: Date, startValue: Double, endDate: Date, endValue: Double)? {
+        let recent90 = sortedSamplesAscending.filterInLast(days: 90)
+        guard recent90.count >= 2 else { return nil }
+
+        let times = recent90.map { $0.date.timeIntervalSinceReferenceDate }
+        let values = recent90.map { displayValue($0.value) }
+        let count = Double(values.count)
+        let sumX = times.reduce(0, +)
+        let sumY = values.reduce(0, +)
+        let sumXY = zip(times, values).reduce(0) { $0 + ($1.0 * $1.1) }
+        let sumXX = times.reduce(0) { $0 + ($1 * $1) }
+
+        let denominator = (count * sumXX - sumX * sumX)
+        guard denominator != 0 else { return nil }
+
+        let slope = (count * sumXY - sumX * sumY) / denominator
+        let intercept = (sumY - slope * sumX) / count
+
+        guard let startTime = times.first, let endTime = times.last,
+              let firstSample = recent90.first, let lastSample = recent90.last else { return nil }
+        return (
+            startDate: firstSample.date,
+            startValue: slope * startTime + intercept,
+            endDate: lastSample.date,
+            endValue: slope * endTime + intercept
+        )
+    }
+
     func baselineValue(for goal: MetricGoal) -> Double {
         // Priorytet: użytkownik podał jawny punkt startowy
         if let sv = goal.startValue { return sv }
@@ -186,13 +219,30 @@ extension MetricDetailView {
     }
 
     @MainActor
+    func refreshInsight() async {
+        guard let input = insightInput else { return }
+        await MetricInsightService.shared.invalidate(for: input.metricTitle)
+        await loadInsightIfNeeded()
+    }
+
+    @MainActor
     func loadInsightIfNeeded() async {
-        guard let input = insightInput else {
-            detailedInsight = nil
+        guard supportsAppleIntelligence else {
             isLoadingInsight = false
             return
         }
 
+        guard let input = insightInput else {
+            insightState = .fallback(AppLocalization.string("Not enough data to generate insights yet."))
+            isLoadingInsight = false
+            return
+        }
+
+        if case .ready = insightState {
+            // stale-while-revalidate: keep previous insight visible while refreshing
+        } else {
+            insightState = .loading
+        }
         isLoadingInsight = true
         let generated = await MetricInsightService.shared.generateInsight(for: input)
         let baseText = generated?.detailedText ?? ""
@@ -200,9 +250,14 @@ extension MetricDetailView {
             let combined = [baseText, forecast]
                 .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
                 .joined(separator: " ")
-            detailedInsight = combined.isEmpty ? forecast : combined
+            insightState = .ready(combined.isEmpty ? forecast : combined)
         } else {
-            detailedInsight = baseText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : baseText
+            let trimmed = baseText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                insightState = .fallback(AppLocalization.string("Couldn't generate an insight right now. Please try again in a moment."))
+            } else {
+                insightState = .ready(trimmed)
+            }
         }
         isLoadingInsight = false
     }
@@ -247,28 +302,16 @@ extension MetricDetailView {
     ///   - startDate:  Opcjonalna data startowa — zapisywana razem z startValue jako MetricSample.
     func setGoal(targetValue: Double, direction: MetricGoal.Direction,
                  startValue: Double? = nil, startDate: Date? = nil) {
-        if let existing = currentGoal {
-            // Aktualizuj istniejący cel
-            existing.targetValue = targetValue
-            existing.direction = direction
-            existing.startValue = startValue
-            existing.startDate = startDate
-            existing.createdDate = .now
-        } else {
-            // Utwórz nowy cel
-            let goal = MetricGoal(kind: kind, targetValue: targetValue, direction: direction,
-                                  startValue: startValue, startDate: startDate)
-            context.insert(goal)
-        }
-        // Zapisz wartość startową jako MetricSample (jeśli podana i nie istnieje już bliźniacza próbka)
-        if let sv = startValue, let sd = startDate {
-            let alreadyExists = samples.contains {
-                abs($0.date.timeIntervalSince(sd)) < 60 && abs($0.value - sv) < 0.001
-            }
-            if !alreadyExists {
-                context.insert(MetricSample(kind: kind, value: sv, date: sd))
-            }
-        }
+        MetricGoalStore.upsertGoal(
+            kind: kind,
+            targetValue: targetValue,
+            direction: direction,
+            startValue: startValue,
+            startDate: startDate,
+            in: context,
+            existingGoal: currentGoal,
+            existingSamples: samples
+        )
         WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
     }
     
@@ -278,6 +321,13 @@ extension MetricDetailView {
             context.delete(goal)
             WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
         }
+    }
+}
+
+private extension Array where Element == MetricSample {
+    func filterInLast(days: Int, now: Date = AppClock.now) -> [MetricSample] {
+        guard let start = Calendar.current.date(byAdding: .day, value: -days, to: now) else { return self }
+        return filter { $0.date >= start }
     }
 }
 
@@ -322,7 +372,8 @@ struct MetricPhotosRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .onAppear {
                     guard photo.thumbnailData == nil else { return }
-                    Task(priority: .utility) {
+                    guard !ProcessInfo.processInfo.arguments.contains("-uiTestMode") else { return }
+                    Task {
                         await PhotoThumbnailBackfillService.shared.enqueueIfNeeded(
                             photoID: photo.persistentModelID,
                             originalImageData: photo.imageData,
@@ -399,6 +450,7 @@ struct GoalProgressView: View {
 }
 
 struct ProgressViewCard: View {
+    private let measurementsTheme = FeatureTheme.measurements
     let isAchieved: Bool
     let progress: Double
     let percentage: Int
@@ -411,28 +463,28 @@ struct ProgressViewCard: View {
             HStack {
                 Text(AppLocalization.string("Progress"))
                     .font(AppTypography.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColorRoles.textSecondary)
                 Spacer()
                 Text("\(percentage)%")
-                    .font(AppTypography.bodyEmphasis)
+                    .font(AppTypography.dataCompact)
                     .monospacedDigit()
-                    .foregroundStyle(isAchieved ? Color(hex: "#22C55E") : Color(hex: "#FCA311"))
+                    .foregroundStyle(isAchieved ? AppColorRoles.stateSuccess : measurementsTheme.accent)
             }
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
+                        .fill(AppColorRoles.surfaceInteractive)
 
                     RoundedRectangle(cornerRadius: 4)
                         .fill(
                             LinearGradient(
                                 colors: isAchieved ? [
-                                    Color(hex: "#22C55E"),
-                                    Color(hex: "#22C55E").opacity(0.8)
+                                    AppColorRoles.stateSuccess,
+                                    AppColorRoles.stateSuccess.opacity(0.8)
                                 ] : [
-                                    Color(hex: "#FCA311"),
-                                    Color(hex: "#FCA311").opacity(0.8)
+                                    measurementsTheme.accent,
+                                    measurementsTheme.accent.opacity(0.8)
                                 ],
                                 startPoint: .leading,
                                 endPoint: .trailing
@@ -447,27 +499,29 @@ struct ProgressViewCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(AppLocalization.string("Current"))
                         .font(AppTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColorRoles.textSecondary)
                     Text(currentValueString)
                         .font(AppTypography.captionEmphasis)
                         .monospacedDigit()
+                        .foregroundStyle(AppColorRoles.textPrimary)
                 }
 
                 Spacer()
 
                 Image(systemName: directionUp ? "arrow.up" : "arrow.down")
                     .font(AppTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColorRoles.textTertiary)
 
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(AppLocalization.string("Goal"))
                         .font(AppTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColorRoles.textSecondary)
                     Text(goalValueString)
                         .font(AppTypography.captionEmphasis)
                         .monospacedDigit()
+                        .foregroundStyle(AppColorRoles.textPrimary)
                 }
             }
         }
@@ -544,6 +598,9 @@ struct AddMetricSampleView: View {
                                         .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
                                         .fixedSize()
                                         .focused($isValueFocused)
+                                        .accessibilityLabel(AppLocalization.string("Goal value"))
+                                        .accessibilityIdentifier("goal.input.value")
+                                        .accessibilityIdentifier("goal.input.value")
 
                                     Text(kind.unitSymbol(unitsSystem: unitsSystem))
                                         .font(.title.weight(.medium))
@@ -671,6 +728,8 @@ struct EditMetricSampleView: View {
                                         .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
                                         .fixedSize()
                                         .focused($isValueFocused)
+                                        .accessibilityLabel(AppLocalization.string("Goal value"))
+                                        .accessibilityIdentifier("goal.input.value")
 
                                     Text(kind.unitSymbol(unitsSystem: unitsSystem))
                                         .font(.title.weight(.medium))
@@ -685,6 +744,7 @@ struct EditMetricSampleView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .frame(minHeight: 140)
+                            .accessibilityIdentifier("goal.input.card")
                             .contentShape(Rectangle())
                             .onTapGesture { isValueFocused = true }
                         }
@@ -850,6 +910,23 @@ struct SetGoalView: View {
         }
     }
 
+    private var isUITestMode: Bool {
+        ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+    }
+
+    private var goalInputTextBinding: Binding<String> {
+        Binding(
+            get: {
+                if displayValue == 0 { return "" }
+                return String(displayValue)
+            },
+            set: { newValue in
+                let normalized = newValue.replacingOccurrences(of: ",", with: ".")
+                displayValue = Double(normalized) ?? 0
+            }
+        )
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -896,6 +973,8 @@ struct SetGoalView: View {
                                         .font(.system(size: 52, weight: .bold, design: .rounded).monospacedDigit())
                                         .fixedSize()
                                         .focused($isValueFocused)
+                                        .accessibilityLabel(AppLocalization.string("Goal value"))
+                                        .accessibilityIdentifier("goal.input.value")
 
                                     Text(kind.unitSymbol(unitsSystem: unitsSystem))
                                         .font(.title.weight(.medium))
@@ -910,8 +989,19 @@ struct SetGoalView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .frame(minHeight: 140)
+                            .accessibilityIdentifier("goal.input.card")
                             .contentShape(Rectangle())
                             .onTapGesture { isValueFocused = true }
+                        }
+
+                        if isUITestMode {
+                            TextField("Goal value", text: goalInputTextBinding)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .keyboardType(.decimalPad)
+                                .textFieldStyle(.roundedBorder)
+                                .accessibilityLabel(AppLocalization.string("Goal value"))
+                                .accessibilityIdentifier("goal.input.value")
                         }
 
                         // Walidacja pod kartą
@@ -1017,6 +1107,7 @@ struct SetGoalView: View {
             .navigationTitle(currentGoal == nil ? AppLocalization.string("Set Goal") : AppLocalization.string("Update Goal"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .accessibilityIdentifier("goal.sheet")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Cancel")) { dismiss() }
@@ -1033,6 +1124,7 @@ struct SetGoalView: View {
                         dismiss()
                     }
                     .disabled(!isFormValid)
+                    .accessibilityIdentifier("goal.save")
                 }
             }
             .alert(AppLocalization.string("Delete Goal"), isPresented: $showDeleteConfirmation) {

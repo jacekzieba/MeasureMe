@@ -19,7 +19,7 @@
 import Foundation
 import SwiftUI
 
-enum MetricKind: String, CaseIterable, Hashable, Identifiable {
+enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
     var id: String { rawValue }
 
     // MARK: - Body Composition & Size
@@ -237,7 +237,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable {
     }
 
     /// Zwraca kategorię jednostek dla tej metryki
-    var unitCategory: UnitCategory {
+    nonisolated var unitCategory: UnitCategory {
         switch self {
         case .weight, .leanBodyMass:
             return .weight
@@ -253,7 +253,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable {
     /// Zwraca symbol jednostki dla wybranego systemu ("metric" lub "imperial")
     /// - Parameter unitsSystem: "metric" dla kg/cm, "imperial" dla lb/in
     /// - Returns: String z symbolem jednostki
-    func unitSymbol(unitsSystem: String) -> String {
+    nonisolated func unitSymbol(unitsSystem: String) -> String {
         switch unitCategory {
         case .weight:
             return unitsSystem == "imperial" ? "lb" : "kg"
@@ -267,7 +267,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable {
     /// Zwraca symbol jednostki dla wybranego systemu (Bool version)
     /// - Parameter isMetric: true dla kg/cm, false dla lb/in
     /// - Returns: String z symbolem jednostki
-    func unit(isMetric: Bool) -> String {
+    nonisolated func unit(isMetric: Bool) -> String {
         unitSymbol(unitsSystem: isMetric ? "metric" : "imperial")
     }
 
@@ -278,7 +278,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable {
     ///   - value: Wartość w jednostkach metrycznych (kg, cm, %)
     ///   - unitsSystem: "metric" lub "imperial"
     /// - Returns: Wartość w odpowiednich jednostkach dla wyświetlenia
-    func valueForDisplay(fromMetric value: Double, unitsSystem: String) -> Double {
+    nonisolated func valueForDisplay(fromMetric value: Double, unitsSystem: String) -> Double {
         switch unitCategory {
         case .weight:
             // Baza: kg → imperial: lb (1 kg = 2.20462 lb)

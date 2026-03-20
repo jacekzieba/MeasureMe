@@ -4,25 +4,31 @@ import SwiftUI
 /// Pokazuje trend za ostatnie 30 dni z kolorystyką: wzrost = zielony, spadek = czerwony
 /// Zoptymalizowany dla kompaktowych kafelków zgodnie z Apple Design Guidelines
 struct MiniSparklineChart: View {
-    let samples: [MetricSample]
     let kind: MetricKind
-    let goal: MetricGoal?
-    
-    private var last30Days: [MetricSample] {
-        let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
-        return samples
+    private let recentSamples: [MetricSample]
+    private let cachedTrendOutcome: MetricKind.TrendOutcome?
+
+    init(samples: [MetricSample], kind: MetricKind, goal: MetricGoal?) {
+        self.kind = kind
+        let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? AppClock.now
+        let filtered = samples
             .filter { $0.date >= thirtyDaysAgo }
             .sorted { $0.date < $1.date }
+        self.recentSamples = filtered
+
+        if filtered.count >= 2, let first = filtered.first?.value, let last = filtered.last?.value {
+            self.cachedTrendOutcome = kind.trendOutcome(from: first, to: last, goal: goal)
+        } else {
+            self.cachedTrendOutcome = nil
+        }
     }
-    
+
     private var trendColor: Color {
-        guard last30Days.count >= 2,
-              let first = last30Days.first?.value,
-              let last = last30Days.last?.value else {
+        guard let cachedTrendOutcome else {
             return Color.gray.opacity(0.5)
         }
 
-        switch kind.trendOutcome(from: first, to: last, goal: goal) {
+        switch cachedTrendOutcome {
         case .positive:
             return Color(hex: "#22C55E").opacity(0.85)
         case .negative:
@@ -33,12 +39,10 @@ struct MiniSparklineChart: View {
     }
     
     private var trendAccessibilityValue: String {
-        guard last30Days.count >= 2,
-              let first = last30Days.first?.value,
-              let last = last30Days.last?.value else {
+        guard let cachedTrendOutcome else {
             return AppLocalization.string("No data")
         }
-        switch kind.trendOutcome(from: first, to: last, goal: goal) {
+        switch cachedTrendOutcome {
         case .positive: return AppLocalization.string("trend.up")
         case .negative: return AppLocalization.string("trend.down")
         case .neutral: return AppLocalization.string("trend.steady")
@@ -47,7 +51,10 @@ struct MiniSparklineChart: View {
 
     var body: some View {
         GeometryReader { geometry in
-            if last30Days.isEmpty {
+            let points = normalizedPoints(in: geometry.size)
+            let color = trendColor
+
+            if points.isEmpty {
                 // Brak danych - bardziej subtelny placeholder
                 Path { path in
                     let midY = geometry.size.height / 2
@@ -60,7 +67,6 @@ struct MiniSparklineChart: View {
                 ZStack(alignment: .bottom) {
                     // Gradient fill pod linią (opcjonalny - subtelny)
                     Path { path in
-                        let points = normalizedPoints(in: geometry.size)
                         guard let firstPoint = points.first else { return }
                         
                         path.move(to: CGPoint(x: firstPoint.x, y: geometry.size.height))
@@ -78,7 +84,7 @@ struct MiniSparklineChart: View {
                     }
                     .fill(
                         LinearGradient(
-                            colors: [trendColor.opacity(0.15), trendColor.opacity(0.0)],
+                            colors: [color.opacity(0.15), color.opacity(0.0)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -86,8 +92,6 @@ struct MiniSparklineChart: View {
                     
                     // Główna linia trendu
                     Path { path in
-                        let points = normalizedPoints(in: geometry.size)
-                        
                         guard let firstPoint = points.first else { return }
                         
                         path.move(to: firstPoint)
@@ -96,7 +100,7 @@ struct MiniSparklineChart: View {
                             path.addLine(to: point)
                         }
                     }
-                    .stroke(trendColor, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+                    .stroke(color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
                 }
             }
         }
@@ -107,9 +111,9 @@ struct MiniSparklineChart: View {
     
     /// Normalizuje punkty danych do wymiarów widoku
     private func normalizedPoints(in size: CGSize) -> [CGPoint] {
-        guard !last30Days.isEmpty else { return [] }
+        guard !recentSamples.isEmpty else { return [] }
         
-        let values = last30Days.map { $0.value }
+        let values = recentSamples.map { $0.value }
         let minValue = values.min() ?? 0
         let maxValue = values.max() ?? 0
         let range = maxValue - minValue
@@ -121,9 +125,9 @@ struct MiniSparklineChart: View {
         let padding: CGFloat = 0.1
         let adjustedHeight = size.height * (1 - 2 * padding)
         
-        return last30Days.enumerated().map { index, sample in
-            let x = last30Days.count > 1 
-                ? size.width * CGFloat(index) / CGFloat(last30Days.count - 1)
+        return recentSamples.enumerated().map { index, sample in
+            let x = recentSamples.count > 1
+                ? size.width * CGFloat(index) / CGFloat(recentSamples.count - 1)
                 : size.width / 2
             
             // Odwróć oś Y (0 na górze, height na dole) + padding

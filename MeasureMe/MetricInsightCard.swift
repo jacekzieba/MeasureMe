@@ -4,31 +4,59 @@ struct MetricInsightCard: View {
     let text: String
     let compact: Bool
     let isLoading: Bool
+    var onRefresh: (() -> Void)? = nil
+
+    @State private var shimmerPhase: CGFloat = 0
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "sparkles")
                 .font(compact ? AppTypography.iconSmall : AppTypography.iconSmall)
-                .foregroundStyle(Color(hex: "#FCA311"))
+                .foregroundStyle(AppColorRoles.accentPrimary)
                 .padding(8)
-                .background(Color.white.opacity(0.08))
+                .background(AppColorRoles.accentPrimary.opacity(0.12))
                 .clipShape(Circle())
+                .symbolEffect(.pulse, isActive: isLoading)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(text)
-                    .font(compact ? AppTypography.microEmphasis : .subheadline)
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .layoutPriority(1)
-                    .redacted(reason: isLoading ? .placeholder : [])
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityIdentifier(compact ? "insight.card.text.compact" : "insight.card.text.detail")
+                if isLoading {
+                    shimmerBlock(width: .infinity, height: compact ? 12 : 14)
+                    shimmerBlock(width: 180, height: compact ? 12 : 14)
+                    if !compact {
+                        shimmerBlock(width: 140, height: 14)
+                    }
+                } else {
+                    Text(text)
+                        .font(compact ? AppTypography.microEmphasis : AppTypography.body)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .layoutPriority(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityIdentifier(compact ? "insight.card.text.compact" : "insight.card.text.detail")
+                }
 
-                Text(AppLocalization.string("AI generated"))
-                    .font(AppTypography.micro)
-                    .foregroundStyle(.secondary)
+                HStack {
+                    Text(isLoading
+                         ? AppLocalization.string("Generating insight...")
+                         : AppLocalization.string("AI generated"))
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+
+                    if let onRefresh, !isLoading {
+                        Spacer()
+                        Button {
+                            onRefresh()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColorRoles.textSecondary)
+                        }
+                        .accessibilityLabel(AppLocalization.string("Refresh insight"))
+                        .accessibilityIdentifier("insight.card.refresh")
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -37,15 +65,15 @@ struct MetricInsightCard: View {
         .padding(compact ? 10 : 14)
         .background(
             RoundedRectangle(cornerRadius: compact ? 12 : 14, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(AppColorRoles.surfaceGlass)
         )
         .overlay(
             RoundedRectangle(cornerRadius: compact ? 12 : 14, style: .continuous)
                 .stroke(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.35),
-                            Color.white.opacity(0.08)
+                            AppColorRoles.borderStrong,
+                            AppColorRoles.borderSubtle
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -54,5 +82,29 @@ struct MetricInsightCard: View {
                 )
         )
         .shadow(color: Color.black.opacity(0.16), radius: 10, x: 0, y: 4)
+        .onChange(of: isLoading) {
+            if isLoading {
+                withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                    shimmerPhase = 1
+                }
+            } else {
+                shimmerPhase = 0
+            }
+        }
+        .onAppear {
+            if isLoading {
+                withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                    shimmerPhase = 1
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func shimmerBlock(width: CGFloat, height: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: 4, style: .continuous)
+            .fill(AppColorRoles.textSecondary.opacity(0.08 + 0.08 * shimmerPhase))
+            .frame(maxWidth: width == .infinity ? .infinity : width, alignment: .leading)
+            .frame(height: height)
     }
 }

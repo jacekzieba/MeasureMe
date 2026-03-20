@@ -53,7 +53,7 @@ final class TextTruncationUITests: XCTestCase {
         for step in 1...4 {
             scanCurrentScreenForTruncatedText(context: "Onboarding.Step\(step)", maxSwipes: 2)
 
-            let nextButton = app.buttons["onboarding.next"].firstMatch
+            let nextButton = onboardingNextButton()
             if nextButton.waitForExistence(timeout: 2), nextButton.isHittable {
                 nextButton.tap()
             } else {
@@ -62,27 +62,79 @@ final class TextTruncationUITests: XCTestCase {
         }
     }
 
+    private func onboardingNextButton() -> XCUIElement {
+        let uiTestNext = app.buttons["UITest Next"].firstMatch
+        if uiTestNext.waitForExistence(timeout: 0.5) {
+            return uiTestNext
+        }
+        return app.buttons["onboarding.next"].firstMatch
+    }
+
     private func tapTab(_ identifier: String, fallbackLabels: [String]) {
-        for _ in 0..<6 {
-            let tab = app.buttons[identifier].firstMatch
-            if tab.exists && tab.isHittable {
-                tab.tap()
+        // Swipe down first — home screen hides the tab bar while scrolling.
+        app.swipeDown()
+
+        let tabBar = app.tabBars.firstMatch
+        guard tabBar.waitForExistence(timeout: 8) else {
+            XCTFail("Could not find tab bar when tapping tab: \(identifier)")
+            return
+        }
+
+        // 1. Try accessibilityIdentifier directly on the tab bar.
+        let byID = tabBar.buttons[identifier].firstMatch
+        if byID.exists && byID.isHittable {
+            byID.tap(); return
+        }
+
+        // 2. Try exact label match on the tab bar.
+        for label in fallbackLabels {
+            let byLabel = tabBar.buttons[label].firstMatch
+            if byLabel.exists && byLabel.isHittable {
+                byLabel.tap(); return
+            }
+        }
+
+        // 3. Try CONTAINS predicate on the tab bar.
+        for label in fallbackLabels {
+            let pred = NSPredicate(format: "label CONTAINS[c] %@", label)
+            let containsMatch = tabBar.buttons.matching(pred).firstMatch
+            if containsMatch.exists && containsMatch.isHittable {
+                containsMatch.tap(); return
+            }
+        }
+
+        // 4. Index-based fallback (robust against localization and large text).
+        if let tabIndex = fallbackTabIndex(forIdentifier: identifier, labels: fallbackLabels) {
+            let buttons = tabBar.buttons.allElementsBoundByIndex
+            if buttons.indices.contains(tabIndex) && buttons[tabIndex].isHittable {
+                buttons[tabIndex].tap(); return
+            }
+            if let normalizedX = fallbackTabNormalizedX(for: tabIndex) {
+                tabBar.coordinate(withNormalizedOffset: CGVector(dx: normalizedX, dy: 0.5)).tap()
                 return
             }
-
-            for label in fallbackLabels {
-                let candidate = app.buttons[label].firstMatch
-                if candidate.exists && candidate.isHittable {
-                    candidate.tap()
-                    return
-                }
-            }
-
-            // Home can hide the tab bar while scrolling; swipe down to reveal it again.
-            app.swipeDown()
         }
 
         XCTFail("Could not find tab: \(identifier)")
+    }
+
+    private func fallbackTabIndex(forIdentifier identifier: String, labels: [String]) -> Int? {
+        let all = ([identifier] + labels).map { $0.lowercased() }
+        if all.contains(where: { $0.contains("home") || $0 == "start" || $0 == "dom" }) { return 0 }
+        if all.contains(where: { $0.contains("measurement") || $0 == "pomiary" }) { return 1 }
+        if all.contains(where: { $0.contains("photo") || $0.contains("zdj") }) { return 3 }
+        if all.contains(where: { $0.contains("setting") || $0 == "ustawienia" }) { return 4 }
+        return nil
+    }
+
+    private func fallbackTabNormalizedX(for tabIndex: Int) -> CGFloat? {
+        switch tabIndex {
+        case 0: return 0.10 // Home
+        case 1: return 0.30 // Measurements
+        case 3: return 0.70 // Photos
+        case 4: return 0.90 // Settings
+        default: return nil
+        }
     }
 
     private func tapIfExists(_ element: XCUIElement) {

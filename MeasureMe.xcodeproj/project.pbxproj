@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A31A14302F672B60004CA5F4 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = A31A142E2F672B60004CA5F4 /* RevenueCat */; };
+		A31A14312F672B60004CA5F4 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = A31A142F2F672B60004CA5F4 /* RevenueCatUI */; };
 		A31FCE332F295FBB00E3253D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A31FCE322F295FBB00E3253D /* Assets.xcassets */; };
 		A345A4F92F475DFF0068BE76 /* Premium.storekit in Resources */ = {isa = PBXBuildFile; fileRef = A345A4F82F475DFF0068BE76 /* Premium.storekit */; };
 		A38326A02F4F7EEA00545E2C /* TelemetryDeck in Frameworks */ = {isa = PBXBuildFile; productRef = A383269F2F4F7EEA00545E2C /* TelemetryDeck */; };
@@ -89,6 +91,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A31A14302F672B60004CA5F4 /* RevenueCat in Frameworks */,
+				A31A14312F672B60004CA5F4 /* RevenueCatUI in Frameworks */,
 				A38326A02F4F7EEA00545E2C /* TelemetryDeck in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -172,6 +176,8 @@
 			);
 			name = MeasureMe;
 			packageProductDependencies = (
+				A31A142E2F672B60004CA5F4 /* RevenueCat */,
+				A31A142F2F672B60004CA5F4 /* RevenueCatUI */,
 				A383269F2F4F7EEA00545E2C /* TelemetryDeck */,
 			);
 			productName = MeasureMe;
@@ -286,6 +292,7 @@
 			packageReferences = (
 				A3B1D5F72F45C90800DA3275 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
 				A383269E2F4F7EEA00545E2C /* XCRemoteSwiftPackageReference "SwiftSDK" */,
+				A31A142C2F672AD3004CA5F4 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A3BAF7BD2F27B74C00269A9A /* Products */;
@@ -515,7 +522,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MeasureMe/MeasureMe.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 12;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					.gitattributes,
@@ -526,11 +533,6 @@
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MeasureMe;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
-				INFOPLIST_KEY_NSCameraUsageDescription = "MeasureMe uses the camera to take progress photos you choose to save.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "MeasureMe reads your Health data (weight, body fat, height, lean mass, and waist) to import history, keep measurements in sync, and calculate health indicators.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "MeasureMe writes measurements you add in the app to Health so your records stay consistent.";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "MeasureMe saves exported comparison images to your photo library.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "MeasureMe accesses your photo library so you can choose progress photos and compare them.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -540,7 +542,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -564,7 +566,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MeasureMe/MeasureMe.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 12;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					.gitattributes,
@@ -575,11 +577,6 @@
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MeasureMe;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
-				INFOPLIST_KEY_NSCameraUsageDescription = "MeasureMe uses the camera to take progress photos you choose to save.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "MeasureMe reads your Health data (weight, body fat, height, lean mass, and waist) to import history, keep measurements in sync, and calculate health indicators.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "MeasureMe writes measurements you add in the app to Health so your records stay consistent.";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "MeasureMe saves exported comparison images to your photo library.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "MeasureMe accesses your photo library so you can choose progress photos and compare them.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -589,7 +586,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -612,7 +609,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
-				EXCLUDED_SOURCE_FILE_NAMES = ICloudBackupServiceTests.swift;
+				EXCLUDED_SOURCE_FILE_NAMES = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -637,7 +634,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
-				EXCLUDED_SOURCE_FILE_NAMES = ICloudBackupServiceTests.swift;
+				EXCLUDED_SOURCE_FILE_NAMES = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -697,7 +694,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = MeasureMeWidget/MeasureMeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 12;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					Info.plist,
 					"*.entitlements",
@@ -710,7 +707,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme.MeasureMeWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -729,7 +726,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = MeasureMeWidget/MeasureMeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 12;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					Info.plist,
 					"*.entitlements",
@@ -742,7 +739,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme.MeasureMeWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -807,6 +804,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		A31A142C2F672AD3004CA5F4 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.64.0;
+			};
+		};
 		A383269E2F4F7EEA00545E2C /* XCRemoteSwiftPackageReference "SwiftSDK" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/TelemetryDeck/SwiftSDK";
@@ -826,6 +831,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		A31A142E2F672B60004CA5F4 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A31A142C2F672AD3004CA5F4 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCat;
+		};
+		A31A142F2F672B60004CA5F4 /* RevenueCatUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A31A142C2F672AD3004CA5F4 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCatUI;
+		};
 		A383269F2F4F7EEA00545E2C /* TelemetryDeck */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = A383269E2F4F7EEA00545E2C /* XCRemoteSwiftPackageReference "SwiftSDK" */;

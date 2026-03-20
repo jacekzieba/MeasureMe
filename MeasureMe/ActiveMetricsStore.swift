@@ -234,11 +234,16 @@ final class ActiveMetricsStore: ObservableObject {
     func setEnabled(_ enabled: Bool, for kind: MetricKind) {
         let k = key(for: kind)
         let current = defaults.bool(forKey: k)
-        
+
         // Nic nie rób jeśli stan się nie zmienił
         guard current != enabled else { return }
-        
+
         defaults.set(enabled, forKey: k)
+
+        // Oznacz, że użytkownik zmienił konfigurację metryk
+        if !defaults.bool(forKey: AppSettingsKeys.Experience.hasCustomizedMetrics) {
+            defaults.set(true, forKey: AppSettingsKeys.Experience.hasCustomizedMetrics)
+        }
 
         // Aktualizuj kolejność
         var order = loadActiveOrderKinds()

@@ -1,5 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.jacek.measureme.icloud-backup</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>MeasureMe uses the camera to take progress photos you choose to save.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>MeasureMe reads your Health data (weight, body fat, height, lean mass, and waist) to import history, keep measurements in sync, and calculate health indicators.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>MeasureMe writes measurements you add in the app to Health so your records stay consistent.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>MeasureMe saves exported comparison images to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>MeasureMe accesses your photo library so you can choose progress photos and compare them.</string>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.jacek.measureme.quickAdd</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>SHORTCUT_QUICK_ADD_TITLE</string>
+			<key>UIApplicationShortcutItemSubtitle</key>
+			<string>SHORTCUT_QUICK_ADD_SUBTITLE</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>plus.circle.fill</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.jacek.measureme.addPhoto</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>SHORTCUT_ADD_PHOTO_TITLE</string>
+			<key>UIApplicationShortcutItemSubtitle</key>
+			<string>SHORTCUT_ADD_PHOTO_SUBTITLE</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>camera.fill</string>
+		</dict>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>processing</string>
+	</array>
+</dict>
 </plist>

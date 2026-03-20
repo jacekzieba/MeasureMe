@@ -55,41 +55,35 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
                     defaults.removeObject(forKey: key)
                 }
             }
+            AppSettingsStore.shared.forceReloadSnapshot()
+            AppLocalization.settings = .shared
             AppLocalization.reloadLanguage()
             settingsStore.reload()
             UIView.setAnimationsEnabled(wereAnimationsEnabled)
         }
 
-        settingsStore.set(\.experience.appLanguage, "en")
-        AppLocalization.reloadLanguage()
-        settingsStore.set(\.profile.userGender, "male")
-        settingsStore.set(\.profile.manualHeight, 180.0)
-        settingsStore.set(\.profile.unitsSystem, "metric")
+        defaults.set("en", forKey: "appLanguage")
+        defaults.set("male", forKey: "userGender")
+        defaults.set(180.0, forKey: "manualHeight")
+        defaults.set("metric", forKey: "unitsSystem")
 
-        settingsStore.set(\.indicators.showWHtROnHome, true)
-        settingsStore.set(\.indicators.showRFMOnHome, true)
-        settingsStore.set(\.indicators.showBMIOnHome, true)
-        settingsStore.set(\.indicators.showBodyFatOnHome, true)
-        settingsStore.set(\.indicators.showLeanMassOnHome, true)
-        settingsStore.set(\.indicators.showWHROnHome, true)
-        settingsStore.set(\.indicators.showWaistRiskOnHome, true)
-        settingsStore.set(\.indicators.showABSIOnHome, true)
-        settingsStore.set(\.indicators.showBodyShapeScoreOnHome, true)
-        settingsStore.set(\.indicators.showCentralFatRiskOnHome, true)
-        settingsStore.set(\.indicators.showConicityOnHome, true)
-        settingsStore.set(\.health.healthIndicatorsV2Migrated, true)
-        settingsStore.set(\.indicators.showPhysiqueSWR, true)
-        settingsStore.set(\.indicators.showPhysiqueCWR, true)
-        settingsStore.set(\.indicators.showPhysiqueSHR, true)
-        settingsStore.set(\.indicators.showPhysiqueHWR, true)
-        settingsStore.set(\.indicators.showPhysiqueBWR, true)
-        settingsStore.set(\.indicators.showPhysiqueWHtR, true)
-        settingsStore.set(\.indicators.showPhysiqueBodyFat, true)
-        settingsStore.set(\.indicators.showPhysiqueRFM, true)
-        settingsStore.reload()
+        let visibilityKeys = keys.filter { $0.hasPrefix("show") }
+        for key in visibilityKeys {
+            defaults.set(true, forKey: key)
+        }
+        defaults.set(true, forKey: "health_indicators_v2_migrated")
+
+        // Force-sync AppSettingsStore.shared snapshot so @AppSetting wrappers reflect test values
+        // immediately, without waiting for the normal async 10 ms debounce refresh.
+        AppSettingsStore.shared.forceReloadSnapshot()
+
+        // Same sync-load fix for AppLocalization so language is English during render.
+        AppLocalization.settings = AppSettingsStore(defaults: defaults)
+        AppLocalization.reloadLanguage()
+
         UIView.setAnimationsEnabled(false)
 
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         let container = try ModelContainer(
             for: MetricGoal.self, MetricSample.self, PhotoEntry.self,
             configurations: config

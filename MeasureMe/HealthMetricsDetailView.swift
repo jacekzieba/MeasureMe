@@ -16,14 +16,10 @@ struct HealthMetricsDetailView: View {
     let whrResult: HealthMetricsCalculator.WHRResult?
     let missingMetrics: [String]
     let userGender: Gender
+    private let theme = FeatureTheme.health
     
     var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground()
-            
-            // Zawartość
-            ScrollView {
-                VStack(spacing: 32) {
+        SettingsScrollDetailScaffold(title: AppLocalization.string("Health Metrics"), theme: .health) {
                     // Brakujące dane (jeśli są)
                     if !missingMetrics.isEmpty {
                         missingDataBanner
@@ -34,13 +30,7 @@ struct HealthMetricsDetailView: View {
                     
                     // WHR Section
                     whrSection
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 24)
-            }
         }
-        .navigationTitle(AppLocalization.string("Health Metrics"))
-        .navigationBarTitleDisplayMode(.large)
     }
     
     // MARK: - Missing Data Banner
@@ -50,7 +40,7 @@ struct HealthMetricsDetailView: View {
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.title2)
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(AppColorRoles.accentPrimary)
                 
                 Text(AppLocalization.string("Missing measurements"))
                     .font(AppTypography.bodyEmphasis)
@@ -66,7 +56,7 @@ struct HealthMetricsDetailView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "circle.fill")
                             .font(.system(size: 6))
-                            .foregroundStyle(Color(hex: "#FCA311"))
+                            .foregroundStyle(AppColorRoles.accentPrimary)
                         
                         Text(metric)
                             .font(AppTypography.body)
@@ -82,7 +72,7 @@ struct HealthMetricsDetailView: View {
             LinearGradient(
                 colors: [
                     Color(hex: "#FCA311").opacity(0.15),
-                    Color(hex: "#FCA311").opacity(0.05)
+                    AppColorRoles.accentPrimary.opacity(0.05)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -91,7 +81,7 @@ struct HealthMetricsDetailView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(hex: "#FCA311").opacity(0.4), lineWidth: 1.5)
+                .stroke(AppColorRoles.accentPrimary.opacity(0.4), lineWidth: 1.5)
         )
     }
     
@@ -107,7 +97,7 @@ struct HealthMetricsDetailView: View {
                 
                 Text(AppLocalization.string("WHtR"))
                     .font(AppTypography.body)
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(theme.accent)
                     .textCase(.uppercase)
             }
             
@@ -146,7 +136,7 @@ struct HealthMetricsDetailView: View {
                 
                 Text(AppLocalization.string("WHR"))
                     .font(AppTypography.body)
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(theme.accent)
                     .textCase(.uppercase)
             }
             
@@ -217,7 +207,7 @@ struct HealthMetricsDetailView: View {
             LinearGradient(
                 colors: [
                     Color(hex: "#14213D").opacity(0.5),
-                    Color(hex: "#000000").opacity(0.3)
+                    Color.appInk.opacity(0.3)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -252,7 +242,7 @@ struct HealthMetricsDetailView: View {
             LinearGradient(
                 colors: [
                     Color(hex: "#14213D").opacity(0.3),
-                    Color(hex: "#000000").opacity(0.2)
+                    Color.appInk.opacity(0.2)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing

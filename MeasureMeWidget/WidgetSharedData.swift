@@ -27,7 +27,8 @@ struct WidgetMetricData: Codable {
 
     var last30DaySamples: [SampleDTO] {
         let cutoff = Date().addingTimeInterval(-30 * 24 * 3600)
-        return samples.filter { $0.date >= cutoff }.sorted { $0.date < $1.date }
+        // `samples` are already persisted as oldest-first, so avoid re-sorting on every access.
+        return samples.filter { $0.date >= cutoff }
     }
 
     var latestSample: SampleDTO? {
@@ -40,8 +41,8 @@ struct WidgetMetricData: Codable {
     }
 
     /// Returns formatted delta string like "+1.2 kg" or nil if not enough data.
-    func deltaText(for kind: WidgetMetricKind) -> String? {
-        let recent = last30DaySamples
+    func deltaText(for kind: WidgetMetricKind, recentSamples: [SampleDTO]? = nil) -> String? {
+        let recent = recentSamples ?? last30DaySamples
         guard let oldest = recent.first, let newest = recent.last,
               oldest.date != newest.date else { return nil }
         let newVal = kind.valueForDisplay(fromMetric: newest.value, isMetric: isMetric)
@@ -52,8 +53,8 @@ struct WidgetMetricData: Codable {
         return String(format: fmt, delta, unit)
     }
 
-    func trendOutcome(for kind: WidgetMetricKind) -> WidgetMetricKind.TrendOutcome {
-        let recent = last30DaySamples
+    func trendOutcome(for kind: WidgetMetricKind, recentSamples: [SampleDTO]? = nil) -> WidgetMetricKind.TrendOutcome {
+        let recent = recentSamples ?? last30DaySamples
         guard let first = recent.first?.value, let last = recent.last?.value else { return .neutral }
         return kind.trendOutcome(
             from: first, to: last,

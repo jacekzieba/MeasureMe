@@ -1,16 +1,16 @@
 import SwiftUI
-import StoreKit
+import RevenueCat
 import UIKit
 import Combine
 import UserNotifications
 import Foundation
 
 protocol PremiumBillingClient {
-    func products(for identifiers: [String]) async throws -> [Product]
-    func purchase(_ product: Product) async throws -> Product.PurchaseResult
-    func syncPurchases() async throws
-    func currentEntitlements() -> AsyncStream<VerificationResult<StoreKit.Transaction>>
-    func transactionUpdates() -> AsyncStream<VerificationResult<StoreKit.Transaction>>
+    func offerings() async throws -> Offerings
+    func purchase(_ package: Package) async throws -> PurchaseResultData
+    func restorePurchases() async throws -> CustomerInfo
+    func customerInfo() async throws -> CustomerInfo
+    var customerInfoStream: AsyncStream<CustomerInfo> { get }
 }
 
 protocol PremiumNotificationManaging: AnyObject {
@@ -30,45 +30,57 @@ private enum PremiumStoreTimeoutError: LocalizedError {
     }
 }
 
-struct StoreKitBillingClient: PremiumBillingClient {
-    func products(for identifiers: [String]) async throws -> [Product] {
-        try await Product.products(for: identifiers)
+struct PremiumProduct: Identifiable {
+    let package: Package
+
+    var id: String {
+        package.identifier
     }
 
-    func purchase(_ product: Product) async throws -> Product.PurchaseResult {
-        try await product.purchase()
+    var productIdentifier: String {
+        package.storeProduct.productIdentifier
     }
 
-    func syncPurchases() async throws {
-        try await AppStore.sync()
+    var displayName: String {
+        package.storeProduct.localizedTitle
     }
 
-    func currentEntitlements() -> AsyncStream<VerificationResult<StoreKit.Transaction>> {
-        AsyncStream { continuation in
-            let task = Task {
-                for await result in StoreKit.Transaction.currentEntitlements {
-                    continuation.yield(result)
-                }
-                continuation.finish()
-            }
-            continuation.onTermination = { _ in
-                task.cancel()
-            }
-        }
+    var displayPrice: String {
+        package.storeProduct.localizedPriceString
     }
 
-    func transactionUpdates() -> AsyncStream<VerificationResult<StoreKit.Transaction>> {
-        AsyncStream { continuation in
-            let task = Task {
-                for await result in StoreKit.Transaction.updates {
-                    continuation.yield(result)
-                }
-                continuation.finish()
-            }
-            continuation.onTermination = { _ in
-                task.cancel()
-            }
-        }
+    var price: Decimal {
+        package.storeProduct.price
+    }
+
+    var priceFormatter: NumberFormatter? {
+        package.storeProduct.priceFormatter
+    }
+
+    var subscriptionPeriod: SubscriptionPeriod? {
+        package.storeProduct.subscriptionPeriod
+    }
+}
+
+struct RevenueCatBillingClient: PremiumBillingClient {
+    func offerings() async throws -> Offerings {
+        try await Purchases.shared.offerings()
+    }
+
+    func purchase(_ package: Package) async throws -> PurchaseResultData {
+        try await Purchases.shared.purchase(package: package)
+    }
+
+    func restorePurchases() async throws -> CustomerInfo {
+        try await Purchases.shared.restorePurchases()
+    }
+
+    func customerInfo() async throws -> CustomerInfo {
+        try await Purchases.shared.customerInfo()
+    }
+
+    var customerInfoStream: AsyncStream<CustomerInfo> {
+        Purchases.shared.customerInfoStream
     }
 }
 
@@ -81,7 +93,7 @@ final class PremiumStore: ObservableObject {
         case onboarding
     }
 
-    @Published var products: [Product] = []
+    @Published var products: [PremiumProduct] = []
     @Published var productsLoadError: String? = nil
     @Published var actionMessage: String? = nil
     @Published var actionMessageIsError: Bool = false
@@ -94,6 +106,8 @@ final class PremiumStore: ObservableObject {
     @Published var paywallReason: PaywallReason = .settings
 
     private let productIDs = [
+        PremiumConstants.legacyMonthlyProductID,
+        PremiumConstants.legacyYearlyProductID,
         PremiumConstants.monthlyProductID,
         PremiumConstants.yearlyProductID
     ]
@@ -107,9 +121,12 @@ final class PremiumStore: ObservableObject {
     private let forceNonPremiumForUITests: Bool
     #endif
     private var hasStarted = false
+    @Published var currentOffering: Offering?
+    @Published var customerInfo: CustomerInfo?
+
     private var updateListenerTask: Task<Void, Never>?
     private var foregroundObserver: NSObjectProtocol?
-    private var trackedPurchaseTransactionIDs: Set<UInt64> = []
+    private var trackedPurchaseKeys: Set<String> = []
 
     init(
         billingClient: PremiumBillingClient? = nil,
@@ -118,21 +135,26 @@ final class PremiumStore: ObservableObject {
         analytics: AnalyticsClient? = nil,
         startListener: Bool = true
     ) {
-        self.billingClient = billingClient ?? StoreKitBillingClient()
+        self.billingClient = billingClient ?? RevenueCatBillingClient()
         self.notificationManager = notificationManager ?? NotificationManager.shared
         self.settings = settings
         self.analytics = analytics ?? Analytics.shared
+        self.isPremium = settings.snapshot.premium.premiumEntitlement
         #if DEBUG
         self.forcePremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForcePremium")
         self.forceNonPremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForceNonPremium")
         #endif
         if settings.snapshot.premium.premiumFirstLaunchDate == 0 {
-            settings.set(\.premium.premiumFirstLaunchDate, AppClock.now.timeIntervalSince1970)
+            Task { @MainActor in
+                settings.set(\.premium.premiumFirstLaunchDate, AppClock.now.timeIntervalSince1970)
+            }
         }
         #if DEBUG
         if forcePremiumForUITests {
-            _isPremium = Published(wrappedValue: true)
-            settings.set(\.premium.premiumEntitlement, true)
+            Task { @MainActor in
+                self.isPremium = true
+                settings.set(\.premium.premiumEntitlement, true)
+            }
         }
         #endif
 
@@ -172,6 +194,10 @@ final class PremiumStore: ObservableObject {
         isPaywallPresented = true
     }
 
+    func setPurchaseContext(reason: PaywallReason) {
+        paywallReason = reason
+    }
+
     func dismissPaywall() {
         isPaywallPresented = false
     }
@@ -201,7 +227,13 @@ final class PremiumStore: ObservableObject {
         updateListenerTask = Task {
             await loadProducts()
             await refreshEntitlements()
-            await listenForUpdates()
+            // Listen for real-time entitlement changes (renewals, expirations, refunds)
+            #if DEBUG
+            guard !forcePremiumForUITests, !forceNonPremiumForUITests else { return }
+            #endif
+            for await info in billingClient.customerInfoStream {
+                applyCustomerInfo(info)
+            }
         }
     }
 
@@ -237,38 +269,53 @@ final class PremiumStore: ObservableObject {
         isLoading = true
         productsLoadError = nil
         do {
-            let fetched = try await productsWithTimeout()
-            products = fetched.sorted { $0.price < $1.price }
+            let fetched = try await offeringsWithTimeout()
+            currentOffering = fetched.current
+
+            let candidatePackages = fetched.current?.availablePackages ?? []
+            let filteredPackages = candidatePackages.filter { package in
+                let isKnownPackage = PremiumConstants.allowedPackageIDs.contains(package.identifier)
+                let isKnownProduct = productIDs.contains(package.storeProduct.productIdentifier)
+                return isKnownPackage || isKnownProduct
+            }
+
+            let packagesToDisplay = filteredPackages.isEmpty ? candidatePackages : filteredPackages
+            products = packagesToDisplay
+                .map { PremiumProduct(package: $0) }
+                .sorted { $0.price < $1.price }
             if products.isEmpty {
-                productsLoadError = AppLocalization.string("No products returned by StoreKit.")
+                productsLoadError = AppLocalization.string("No products returned by RevenueCat.")
             }
         } catch {
+            currentOffering = nil
             products = []
             productsLoadError = error.localizedDescription
         }
         isLoading = false
     }
 
-    private func productsWithTimeout(seconds: Double = 8) async throws -> [Product] {
-        try await withThrowingTaskGroup(of: [Product].self) { group in
+    private func offeringsWithTimeout(seconds: Double = 8) async throws -> Offerings {
+        try await withThrowingTaskGroup(of: Offerings.self) { group in
             group.addTask {
-                try await self.billingClient.products(for: self.productIDs)
+                try await self.billingClient.offerings()
             }
             group.addTask {
                 let nanos = UInt64(max(seconds, 1) * 1_000_000_000)
                 try await Task.sleep(nanoseconds: nanos)
                 throw PremiumStoreTimeoutError.operationTimedOut
             }
-            let result = try await group.next() ?? []
+            guard let result = try await group.next() else {
+                throw PremiumStoreTimeoutError.operationTimedOut
+            }
             group.cancelAll()
             return result
         }
     }
 
-    func purchase(_ product: Product) async {
+    func purchase(_ product: PremiumProduct) async {
         do {
-            let result = try await billingClient.purchase(product)
-            await handlePurchaseResult(result)
+            let result = try await billingClient.purchase(product.package)
+            await handlePurchaseResult(result, purchasedProduct: product)
         } catch {
             actionMessage = AppLocalization.string("premium.purchase.failed", error.localizedDescription)
             actionMessageIsError = true
@@ -337,8 +384,8 @@ final class PremiumStore: ObservableObject {
     func restorePurchases() async {
         let wasPremium = isPremium
         do {
-            try await billingClient.syncPurchases()
-            await refreshEntitlements()
+            let info = try await billingClient.restorePurchases()
+            applyCustomerInfo(info)
             if isPremium {
                 actionMessage = wasPremium
                     ? AppLocalization.string("premium.restore.already.active")
@@ -355,7 +402,7 @@ final class PremiumStore: ObservableObject {
     }
 
     func openManageSubscriptions() {
-        if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+        if let url = customerInfo?.managementURL ?? URL(string: "https://apps.apple.com/account/subscriptions") {
             UIApplication.shared.open(url)
         }
     }
@@ -394,131 +441,44 @@ final class PremiumStore: ObservableObject {
             return
         }
         #endif
-
-        var active = false
-        var sawVerifiedEntitlement = false
-        var sawUnverifiedEntitlement = false
-        let allowedProductIDs = Set(productIDs)
-        let now = AppClock.now
-
-        if await hasActiveSubscriptionStatus(allowedProductIDs: allowedProductIDs, now: now) {
-            active = true
-        } else {
-            // Zapasowe rozwiazanie dla przypadkow brzegowych, gdy pobranie statusu jest niedostepne.
-            for await result in billingClient.currentEntitlements() {
-                switch result {
-                case .verified(let transaction):
-                    sawVerifiedEntitlement = true
-                    if Self.isEntitlementActive(
-                        productID: transaction.productID,
-                        revocationDate: transaction.revocationDate,
-                        expirationDate: transaction.expirationDate,
-                        isInBillingGracePeriod: false,
-                        allowedProductIDs: allowedProductIDs,
-                        now: now
-                    ) {
-                        active = true
-                        break
-                    }
-                case .unverified:
-                    // Nie zaniżaj stanu premium na podstawie nieweryfikowalnych danych.
-                    sawUnverifiedEntitlement = true
-                }
-            }
-        }
-
-        if !active && !sawVerifiedEntitlement && sawUnverifiedEntitlement {
-            return
-        }
-
-        isPremium = active
-        settings.set(\.premium.premiumEntitlement, active)
-    }
-
-    private func hasActiveSubscriptionStatus(allowedProductIDs: Set<String>, now: Date) async -> Bool {
-        guard !products.isEmpty else { return false }
-        let entitlementProducts = products
-
-        for product in entitlementProducts where allowedProductIDs.contains(product.id) {
-            guard let subscription = product.subscription else { continue }
-            guard let statuses = try? await subscription.status else { continue }
-            for status in statuses {
-                guard case .verified(let transaction) = status.transaction else { continue }
-                guard case .verified(let renewalInfo) = status.renewalInfo else { continue }
-
-                let inGraceByState = status.state == .inGracePeriod
-                let inGraceByDate = (renewalInfo.gracePeriodExpirationDate ?? .distantPast) > now
-                let isInGracePeriod = inGraceByState || inGraceByDate
-
-                if Self.isEntitlementActive(
-                    productID: transaction.productID,
-                    revocationDate: transaction.revocationDate,
-                    expirationDate: transaction.expirationDate,
-                    isInBillingGracePeriod: isInGracePeriod,
-                    allowedProductIDs: allowedProductIDs,
-                    now: now
-                ) {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
-    private func listenForUpdates() async {
-        for await result in billingClient.transactionUpdates() {
-            guard case .verified(let transaction) = result else { continue }
-            if productIDs.contains(transaction.productID) {
-                trackPurchaseIfNeeded(
-                    transaction,
-                    parameters: ["measureme.purchase_source": "transaction_update"]
-                )
-                await transaction.finish()
-                await refreshEntitlements()
-            }
+        do {
+            let info = try await billingClient.customerInfo()
+            applyCustomerInfo(info)
+        } catch {
+            actionMessage = AppLocalization.string("premium.purchase.failed", error.localizedDescription)
+            actionMessageIsError = true
         }
     }
 
-    private func handlePurchaseResult(_ result: Product.PurchaseResult) async {
-        switch result {
-        case .success(let verification):
-            do {
-                let transaction = try verification.payloadValue
-                let startedIntroTrial = transaction.offer?.type == .introductory
-                // Natychmiast odblokuj premium po zweryfikowanym zakupie.
-                isPremium = true
-                settings.set(\.premium.premiumEntitlement, true)
-                var analyticsParameters = paywallReason.analyticsParameters
-                analyticsParameters["measureme.purchase_source"] = "direct_purchase"
-                analyticsParameters["measureme.paywall_reason"] = paywallReason.analyticsReason
-                trackPurchaseIfNeeded(transaction, parameters: analyticsParameters)
-                await transaction.finish()
-                await refreshEntitlements()
-                if startedIntroTrial {
-                    await handleTrialActivated()
-                } else {
-                    actionMessage = AppLocalization.string("premium.purchase.success")
-                    actionMessageIsError = false
-                }
-            } catch {
-                actionMessage = AppLocalization.string("premium.purchase.failed", error.localizedDescription)
-                actionMessageIsError = true
-            }
-        case .userCancelled:
+    private func handlePurchaseResult(_ result: PurchaseResultData, purchasedProduct: PremiumProduct) async {
+        if result.userCancelled {
             analytics.track(
                 signalName: PremiumTelemetrySignal.purchaseCancelled,
                 parameters: purchaseContextParameters(source: "direct_purchase")
             )
             actionMessage = AppLocalization.string("premium.purchase.cancelled")
             actionMessageIsError = false
-        case .pending:
-            analytics.track(
-                signalName: PremiumTelemetrySignal.purchasePending,
-                parameters: purchaseContextParameters(source: "direct_purchase")
+            return
+        }
+
+        applyCustomerInfo(result.customerInfo)
+        if isPremium {
+            var analyticsParameters = paywallReason.analyticsParameters
+            analyticsParameters["measureme.purchase_source"] = "direct_purchase"
+            analyticsParameters["measureme.paywall_reason"] = paywallReason.analyticsReason
+            trackPurchaseIfNeeded(
+                purchaseKey: purchasedProduct.productIdentifier,
+                parameters: analyticsParameters
             )
-            actionMessage = AppLocalization.string("premium.purchase.pending")
-            actionMessageIsError = false
-        @unknown default:
+
+            let startedIntroTrial = result.customerInfo.entitlements[PremiumConstants.entitlementID]?.periodType == .trial
+            if startedIntroTrial {
+                await handleTrialActivated()
+            } else {
+                actionMessage = AppLocalization.string("premium.purchase.success")
+                actionMessageIsError = false
+            }
+        } else {
             analytics.track(
                 signalName: PremiumTelemetrySignal.purchasePending,
                 parameters: purchaseContextParameters(source: "direct_purchase")
@@ -529,21 +489,34 @@ final class PremiumStore: ObservableObject {
     }
 
     #if DEBUG
-    func handlePurchaseResultForTests(_ result: Product.PurchaseResult) async {
-        await handlePurchaseResult(result)
+    func handlePurchaseResultForTests(_ result: PurchaseResultData, purchasedProduct: PremiumProduct) async {
+        await handlePurchaseResult(result, purchasedProduct: purchasedProduct)
     }
     #endif
 
-    func markPurchaseTrackedIfNeeded(transactionID: UInt64) -> Bool {
-        trackedPurchaseTransactionIDs.insert(transactionID).inserted
+    private func applyCustomerInfo(_ info: CustomerInfo) {
+        customerInfo = info
+        let isEntitled = info.entitlements
+            .activeInCurrentEnvironment
+            .keys
+            .contains(PremiumConstants.entitlementID)
+        isPremium = isEntitled
+        settings.set(\.premium.premiumEntitlement, isEntitled)
+    }
+
+    func markPurchaseTrackedIfNeeded(purchaseKey: String) -> Bool {
+        trackedPurchaseKeys.insert(purchaseKey).inserted
     }
 
     private func trackPurchaseIfNeeded(
-        _ transaction: StoreKit.Transaction,
+        purchaseKey: String,
         parameters: [String: String]
     ) {
-        guard markPurchaseTrackedIfNeeded(transactionID: transaction.id) else { return }
-        analytics.trackPurchaseCompleted(transaction, parameters: parameters)
+        guard markPurchaseTrackedIfNeeded(purchaseKey: purchaseKey) else { return }
+        analytics.track(
+            signalName: PremiumTelemetrySignal.purchaseCompleted,
+            parameters: parameters
+        )
     }
 
     private func purchaseContextParameters(source: String) -> [String: String] {
@@ -555,11 +528,25 @@ final class PremiumStore: ObservableObject {
 }
 
 enum PremiumConstants {
+    static let entitlementID = "MeasureMe Pro"
+    static let monthlyPackageID = "monthly"
+    static let yearlyPackageID = "yearly"
+    static let revenueCatMonthlyPackageID = "$rc_monthly"
+    static let revenueCatYearlyPackageID = "$rc_annual"
+    static let allowedPackageIDs: Set<String> = [
+        monthlyPackageID,
+        yearlyPackageID,
+        revenueCatMonthlyPackageID,
+        revenueCatYearlyPackageID
+    ]
+    static let legacyMonthlyProductID = "monthly"
+    static let legacyYearlyProductID = "yearly"
     static let monthlyProductID = "com.measureme.premium.monthly"
     static let yearlyProductID = "com.measureme.premium.yearly"
 }
 
 private enum PremiumTelemetrySignal {
+    static let purchaseCompleted = "com.jacekzieba.measureme.purchase.completed"
     static let purchaseCancelled = "com.jacekzieba.measureme.purchase.cancelled"
     static let purchasePending = "com.jacekzieba.measureme.purchase.pending"
 }

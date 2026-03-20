@@ -15,7 +15,7 @@ final class WidgetDataWriterDebounceTests: XCTestCase {
         try super.setUpWithError()
 
         let schema = Schema([MetricSample.self, MetricGoal.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         container = try ModelContainer(for: schema, configurations: [config])
         context = ModelContext(container)
 
@@ -82,6 +82,19 @@ final class WidgetDataWriterDebounceTests: XCTestCase {
         XCTAssertNotNil(defaults.data(forKey: "widget_data_weight"))
         XCTAssertNotNil(defaults.data(forKey: "widget_data_bodyFat"))
         XCTAssertEqual(unitsSystem(forKey: "widget_data_weight"), "imperial")
+    }
+
+    func testWriteAndReload_WritesOnlyRequestedKinds() throws {
+        context.insert(MetricSample(kind: .weight, value: 80.1, date: Date(timeIntervalSince1970: 1_736_130_000)))
+        context.insert(MetricSample(kind: .waist, value: 91.0, date: Date(timeIntervalSince1970: 1_736_130_100)))
+        try context.save()
+
+        WidgetDataWriter.writeAndReload(kinds: [.weight], context: context, unitsSystem: "metric")
+        WidgetDataWriter.flushPendingWrites()
+
+        XCTAssertEqual(reloadCount, 1)
+        XCTAssertNotNil(defaults.data(forKey: "widget_data_weight"))
+        XCTAssertNil(defaults.data(forKey: "widget_data_waist"))
     }
 }
 

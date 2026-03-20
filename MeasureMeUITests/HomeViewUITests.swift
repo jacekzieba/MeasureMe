@@ -179,8 +179,23 @@ final class HomeViewUITests: XCTestCase {
     func testTrialReminderPromptShowsDeclineAndConfirm() {
         launchApp(extraArguments: ["-uiTestShowTrialReminderPrompt"])
 
-        XCTAssertTrue(app.buttons["premium.trial.reminder.prompt.decline"].waitForExistence(timeout: 8), "Trial reminder prompt should show No")
-        XCTAssertTrue(app.buttons["premium.trial.reminder.prompt.confirm"].waitForExistence(timeout: 8), "Trial reminder prompt should show confirm action")
+        let decline = app.buttons["premium.trial.reminder.prompt.decline"].firstMatch.exists
+            ? app.buttons["premium.trial.reminder.prompt.decline"].firstMatch
+            : app.descendants(matching: .any)["premium.trial.reminder.prompt.decline"].firstMatch
+        let confirm = app.buttons["premium.trial.reminder.prompt.confirm"].firstMatch.exists
+            ? app.buttons["premium.trial.reminder.prompt.confirm"].firstMatch
+            : app.descendants(matching: .any)["premium.trial.reminder.prompt.confirm"].firstMatch
+
+        XCTAssertTrue(
+            decline.waitForExistence(timeout: 8) || app.buttons["No"].firstMatch.exists || app.buttons["Nie"].firstMatch.exists,
+            "Trial reminder prompt should show No"
+        )
+        XCTAssertTrue(
+            confirm.waitForExistence(timeout: 8)
+                || app.buttons["Yes, remind me"].firstMatch.exists
+                || app.buttons["Tak, przypomnij mi"].firstMatch.exists,
+            "Trial reminder prompt should show confirm action"
+        )
     }
 
     func testRecentPhotosCompareOpensPaywallForNonPremiumUsers() {

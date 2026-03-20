@@ -1,5 +1,6 @@
 import XCTest
 import SwiftData
+import CryptoKit
 @testable import MeasureMe
 
 @MainActor
@@ -13,10 +14,13 @@ final class ICloudBackupServiceTests: XCTestCase {
         ICloudBackupService.testBackupRootURLOverride = backupRootURL
         ICloudBackupService.testNowOverride = nil
         ICloudBackupService.testEncryptionKeyOverride = SymmetricKey(size: .bits256)
+        AppSettingsStore.shared.set(\.premium.premiumEntitlement, true)
         AppSettingsStore.shared.set(\.iCloudBackup.isEnabled, true)
         AppSettingsStore.shared.set(\.iCloudBackup.lastSuccessTimestamp, 0)
         AppSettingsStore.shared.set(\.iCloudBackup.lastErrorMessage, "")
         AppSettingsStore.shared.set(\.iCloudBackup.autoRestoreCompleted, false)
+        AppSettingsStore.shared.set(\.onboarding.onboardingViewedICloudBackupOffer, true)
+        AppSettingsStore.shared.set(\.onboarding.onboardingSkippedICloudBackup, false)
     }
 
     override func tearDownWithError() throws {
@@ -56,17 +60,28 @@ final class ICloudBackupServiceTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: package.appendingPathComponent("settings.json").path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: package.appendingPathComponent("photos").path))
 
-        // Manifest must be readable as plaintext (not encrypted).
+        // Manifest must be readable as plaintext, but only expose minimal metadata.
         let manifestData = try Data(contentsOf: package.appendingPathComponent("manifest.json"))
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let storedManifest = try decoder.decode(ICloudBackupManifest.self, from: manifestData)
-        XCTAssertEqual(storedManifest.schemaVersion, 1)
-        XCTAssertEqual(storedManifest.createdAt, fixedDate)
+        let manifestObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: manifestData) as? [String: Any]
+        )
+        XCTAssertEqual(manifestObject["schemaVersion"] as? Int, 1)
+        XCTAssertNotNil(manifestObject["createdAt"])
+        XCTAssertEqual(manifestObject["isEncrypted"] as? Bool, true)
+        XCTAssertNil(manifestObject["metricsCount"])
+        XCTAssertNil(manifestObject["goalsCount"])
+        XCTAssertNil(manifestObject["photosCount"])
+        XCTAssertNil(manifestObject["settingsCount"])
+        XCTAssertNil(manifestObject["sizeBytes"])
 
         // Data files must NOT be readable as plaintext JSON (they are encrypted).
         let metricsRaw = try Data(contentsOf: package.appendingPathComponent("metrics.json"))
         XCTAssertNil(try? JSONSerialization.jsonObject(with: metricsRaw))
+
+        let encryptedPhotoFile = try XCTUnwrap(try firstPhotoDataFile(in: package))
+        let encryptedPhotoBytes = try Data(contentsOf: encryptedPhotoFile)
+        XCTAssertNotEqual(encryptedPhotoBytes, Data([1, 2, 3, 4, 5]))
+        XCTAssertNotEqual(encryptedPhotoBytes, Data([9, 8, 7]))
     }
 
     func testCreateBackupFailsForNonPremiumUser() async throws {
@@ -96,6 +111,7 @@ final class ICloudBackupServiceTests: XCTestCase {
 
         XCTAssertEqual(error, .backupDisabled)
         XCTAssertEqual(try backupPackages().count, 0)
+        XCTAssertFalse(AppSettingsStore.shared.snapshot.iCloudBackup.isEnabled)
     }
 
     func testRestoreLatestBackupManuallyRestoresDataAndSettings() async throws {
@@ -122,12 +138,32 @@ final class ICloudBackupServiceTests: XCTestCase {
         XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<MetricSample>()), 1)
         XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<MetricGoal>()), 1)
         XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<PhotoEntry>()), 1)
+        let restoredPhoto = try XCTUnwrap(try targetContext.fetch(FetchDescriptor<PhotoEntry>()).first)
+        XCTAssertEqual(restoredPhoto.imageData, Data([1, 2, 3, 4, 5]))
+        XCTAssertEqual(restoredPhoto.thumbnailData, Data([9, 8, 7]))
 
         for _ in 0..<50 where AppSettingsStore.shared.snapshot.profile.userName != "Backup User" {
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
         XCTAssertEqual(AppSettingsStore.shared.snapshot.profile.userName, "Backup User")
         XCTAssertEqual(AppSettingsStore.shared.snapshot.profile.unitsSystem, "imperial")
+    }
+
+    func testRestoreLatestBackupManuallyFailsForNonPremiumUser() async throws {
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_000_101) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        let targetContext = ModelContext(try makeContainer())
+        let restoreResult = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: false)
+        guard case .failure(let error) = restoreResult else {
+            return XCTFail("Expected premium-required failure")
+        }
+
+        XCTAssertEqual(error, .premiumRequired)
     }
 
     func testRetentionKeepsSevenLatestBackups() async throws {
@@ -186,6 +222,108 @@ final class ICloudBackupServiceTests: XCTestCase {
         XCTAssertEqual(try emptyContext.fetchCount(FetchDescriptor<MetricSample>()), 1)
     }
 
+    func testAutoRestoreSkipsWithoutPremiumEntitlement() async throws {
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_003_100) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        AppSettingsStore.shared.set(\.premium.premiumEntitlement, false)
+        let emptyContext = ModelContext(try makeContainer())
+        let didRestore = await ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: emptyContext)
+
+        XCTAssertFalse(didRestore)
+        XCTAssertEqual(try emptyContext.fetchCount(FetchDescriptor<MetricSample>()), 0)
+    }
+
+    func testAutoRestoreSkipsWithoutBackupOptIn() async throws {
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_003_200) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        AppSettingsStore.shared.set(\.onboarding.onboardingViewedICloudBackupOffer, false)
+        let emptyContext = ModelContext(try makeContainer())
+        let didRestore = await ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: emptyContext)
+
+        XCTAssertFalse(didRestore)
+        XCTAssertEqual(try emptyContext.fetchCount(FetchDescriptor<MetricSample>()), 0)
+    }
+
+    func testAutoRestoreSkipsWhenStoreContainsOnlyPhotoEntries() async throws {
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_003_300) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        let targetContext = ModelContext(try makeContainer())
+        targetContext.insert(
+            PhotoEntry(
+                imageData: Data([5, 4, 3]),
+                thumbnailData: nil,
+                date: Date(timeIntervalSince1970: 1_700_003_301),
+                tags: [.wholeBody],
+                linkedMetrics: []
+            )
+        )
+        try targetContext.save()
+
+        let didRestore = await ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: targetContext)
+        XCTAssertFalse(didRestore)
+        XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<PhotoEntry>()), 1)
+    }
+
+    func testAutoRestoreSkipsWhenStoreContainsOnlyGoals() async throws {
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_003_400) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        let targetContext = ModelContext(try makeContainer())
+        targetContext.insert(
+            MetricGoal(
+                kind: .waist,
+                targetValue: 80,
+                direction: .decrease,
+                createdDate: Date(timeIntervalSince1970: 1_700_003_401)
+            )
+        )
+        try targetContext.save()
+
+        let didRestore = await ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: targetContext)
+        XCTAssertFalse(didRestore)
+        XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<MetricGoal>()), 1)
+    }
+
+    func testConcurrentAutoRestorePerformsOnlyOneRestore() async throws {
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_003_500) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        let sharedContainer = try makeContainer()
+        let context = ModelContext(sharedContainer)
+        AppSettingsStore.shared.set(\.iCloudBackup.autoRestoreCompleted, false)
+
+        async let first = ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: context)
+        async let second = ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: context)
+        let results = await [first, second]
+
+        XCTAssertEqual(results.filter { $0 }.count, 1)
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<MetricSample>()), 1)
+        XCTAssertTrue(AppSettingsStore.shared.snapshot.iCloudBackup.autoRestoreCompleted)
+    }
+
     func testAutoRestoreSkipsWhenAlreadyCompleted() async throws {
         let sourceContext = ModelContext(try makeContainer())
         seedSampleData(in: sourceContext)
@@ -241,11 +379,203 @@ final class ICloudBackupServiceTests: XCTestCase {
         XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<MetricSample>()), 0)
     }
 
+    func testRestoreRejectsPayloadWithAllInvalidRawValues() async throws {
+        // Create a valid backup first.
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_005_100) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        // Tamper: replace metrics.json with encrypted data containing invalid kindRaw.
+        let package = try XCTUnwrap(try backupPackages().first)
+        let key = try XCTUnwrap(ICloudBackupService.testEncryptionKeyOverride)
+
+        let iso8601Encoder = JSONEncoder()
+        iso8601Encoder.dateEncodingStrategy = .iso8601
+
+        let corruptMetrics = [
+            CodableMetricSampleStub(kindRaw: "invalid_metric_999", value: 80, date: Date())
+        ]
+        let encoded = try iso8601Encoder.encode(corruptMetrics)
+        let sealed = try ChaChaPoly.seal(encoded, using: key)
+        try sealed.combined.write(to: package.appendingPathComponent("metrics.json"))
+
+        // Also corrupt goals.
+        let corruptGoals = [
+            CodableMetricGoalStub(kindRaw: "invalid_goal_999", targetValue: 70, directionRaw: "invalid_dir", createdDate: Date(), startValue: 80, startDate: Date())
+        ]
+        let goalEncoded = try iso8601Encoder.encode(corruptGoals)
+        let goalSealed = try ChaChaPoly.seal(goalEncoded, using: key)
+        try goalSealed.combined.write(to: package.appendingPathComponent("goals.json"))
+
+        // Remove photos from the backup so totalRestorableItems == 0.
+        let photosDir = package.appendingPathComponent("photos", isDirectory: true)
+        try? FileManager.default.removeItem(at: photosDir)
+        try FileManager.default.createDirectory(at: photosDir, withIntermediateDirectories: true)
+        let emptyPhotos: [CodablePhotoEntryStub] = []
+        let photosEncoded = try iso8601Encoder.encode(emptyPhotos)
+        let photosSealed = try ChaChaPoly.seal(photosEncoded, using: key)
+        try photosSealed.combined.write(to: package.appendingPathComponent("photos_index.json"))
+
+        // Attempt restore — should fail with invalidBackupSchema.
+        let targetContext = ModelContext(try makeContainer())
+        targetContext.insert(MetricSample(kind: .waist, value: 88, date: Date(timeIntervalSince1970: 200)))
+        try targetContext.save()
+
+        let result = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: true)
+        guard case .failure(let error) = result else {
+            return XCTFail("Expected invalidBackupSchema failure for all-invalid payload")
+        }
+        XCTAssertEqual(error, .invalidBackupSchema)
+
+        // Existing data must NOT have been deleted.
+        XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<MetricSample>()), 1)
+    }
+
+    // MARK: - Preflight restore
+
+    func testPreflightRestoreReturnsManifestWithoutModifyingData() async throws {
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_006_000) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        let targetContext = ModelContext(try makeContainer())
+        targetContext.insert(MetricSample(kind: .waist, value: 88, date: Date(timeIntervalSince1970: 200)))
+        try targetContext.save()
+
+        let result = await ICloudBackupService.preflightRestore(context: targetContext, isPremium: true)
+        guard case .success(let manifest) = result else {
+            return XCTFail("Expected successful preflight result")
+        }
+
+        XCTAssertEqual(manifest.metricsCount, 1)
+        XCTAssertEqual(manifest.goalsCount, 1)
+        XCTAssertEqual(manifest.photosCount, 1)
+        XCTAssertGreaterThan(manifest.settingsCount, 0)
+        XCTAssertEqual(manifest.schemaVersion, 1)
+
+        // Target data must remain untouched.
+        XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<MetricSample>()), 1)
+    }
+
+    func testPreflightRestoreReturnsNoBackupFoundWhenEmpty() async throws {
+        let context = ModelContext(try makeContainer())
+        let result = await ICloudBackupService.preflightRestore(context: context, isPremium: true)
+        guard case .failure(let error) = result else {
+            return XCTFail("Expected no-backup failure")
+        }
+        XCTAssertEqual(error, .noBackupFound)
+    }
+
+    // MARK: - Backup size
+
+    func testCreateBackupStoresPositiveSizeBytes() async throws {
+        let context = ModelContext(try makeContainer())
+        seedSampleData(in: context)
+        try context.save()
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_007_000) }
+        let result = await ICloudBackupService.createBackupNow(context: context, isPremium: true)
+        guard case .success(let manifest) = result else {
+            return XCTFail("Expected successful backup result")
+        }
+
+        // Manifest should carry size.
+        XCTAssertNotNil(manifest.sizeBytes)
+        XCTAssertGreaterThan(manifest.sizeBytes ?? 0, 0)
+
+        // AppSettings should be updated.
+        let storedSize = AppSettingsStore.shared.snapshot.iCloudBackup.lastBackupSizeBytes
+        XCTAssertGreaterThan(storedSize, 0)
+    }
+
+    // MARK: - Localized error messages
+
+    func testAllBackupErrorCasesReturnNonEmptyLocalizedMessage() {
+        let cases: [ICloudBackupService.BackupError] = [
+            .premiumRequired,
+            .backupDisabled,
+            .noBackupFound,
+            .invalidBackupSchema,
+            .encryptionError,
+            .fileSystemError("test detail"),
+            .fileSystemError("iCloud container unavailable")
+        ]
+        for error in cases {
+            XCTAssertFalse(error.localizedMessage.isEmpty, "localizedMessage empty for \(error)")
+        }
+    }
+
+    // MARK: - Manifest backward compatibility
+
+    func testManifestDecodesWithoutSizeBytes() throws {
+        // Simulates a manifest written by an older app version (no sizeBytes field).
+        let json = """
+        {
+            "schemaVersion": 1,
+            "createdAt": "2024-01-01T00:00:00Z",
+            "metricsCount": 5,
+            "goalsCount": 2,
+            "photosCount": 1,
+            "settingsCount": 3,
+            "isEncrypted": true
+        }
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let manifest = try decoder.decode(ICloudBackupManifest.self, from: Data(json.utf8))
+
+        XCTAssertNil(manifest.sizeBytes)
+        XCTAssertEqual(manifest.metricsCount, 5)
+    }
+
+    func testManifestDecodesWithSizeBytes() throws {
+        let json = """
+        {
+            "schemaVersion": 1,
+            "createdAt": "2024-01-01T00:00:00Z",
+            "metricsCount": 5,
+            "goalsCount": 2,
+            "photosCount": 1,
+            "settingsCount": 3,
+            "isEncrypted": true,
+            "sizeBytes": 123456
+        }
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let manifest = try decoder.decode(ICloudBackupManifest.self, from: Data(json.utf8))
+
+        XCTAssertEqual(manifest.sizeBytes, 123456)
+    }
+
+    func testPlaintextManifestOmitsSensitiveCountsAndSize() async throws {
+        let context = ModelContext(try makeContainer())
+        seedSampleData(in: context)
+        try context.save()
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_008_000) }
+        _ = await ICloudBackupService.createBackupNow(context: context, isPremium: true)
+
+        let package = try XCTUnwrap(try backupPackages().first)
+        let manifestURL = package.appendingPathComponent("manifest.json")
+        let manifestObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: Data(contentsOf: manifestURL)) as? [String: Any]
+        )
+
+        XCTAssertEqual(Set(manifestObject.keys), ["schemaVersion", "createdAt", "isEncrypted"])
+    }
+
     // MARK: - Helpers
 
     private func makeContainer() throws -> ModelContainer {
         let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         return try ModelContainer(for: schema, configurations: [config])
     }
 
@@ -280,4 +610,45 @@ final class ICloudBackupServiceTests: XCTestCase {
         )
         .filter { $0.pathExtension == "measuremebackup" }
     }
+
+    private func firstPhotoDataFile(in package: URL) throws -> URL? {
+        let photosDir = package.appendingPathComponent("photos", isDirectory: true)
+        return try FileManager.default.contentsOfDirectory(
+            at: photosDir,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )
+        .first(where: { $0.lastPathComponent.hasSuffix(".dat") && !$0.lastPathComponent.contains("_thumb") })
+    }
+}
+
+// MARK: - Test-only stubs matching the Codable shape used by ICloudBackupService
+
+private struct CodableMetricSampleStub: Encodable {
+    let kindRaw: String
+    let value: Double
+    let date: Date
+}
+
+private struct CodableMetricGoalStub: Encodable {
+    let kindRaw: String
+    let targetValue: Double
+    let directionRaw: String
+    let createdDate: Date
+    let startValue: Double?
+    let startDate: Date?
+}
+
+private struct CodablePhotoEntryStub: Encodable {
+    let fileID: String
+    let date: Date
+    let tags: [String]
+    let linkedMetrics: [CodableLinkedMetricStub]
+    let hasThumbnail: Bool
+}
+
+private struct CodableLinkedMetricStub: Encodable {
+    let metricRawValue: String
+    let value: Double
+    let unit: String
 }

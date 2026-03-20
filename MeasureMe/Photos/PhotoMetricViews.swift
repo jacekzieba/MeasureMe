@@ -3,10 +3,11 @@ import SwiftUI
 /// Rząd z pojedynczym snapshotem metryki (tryb wyświetlania)
 struct MetricSnapshotRow: View {
     let snapshot: MetricValueSnapshot
+    var compact: Bool = false
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
     
     var body: some View {
-        HStack {
+        HStack(spacing: compact ? 10 : 12) {
             Image(systemName: "chart.line.uptrend.xyaxis")
                 .foregroundStyle(.secondary)
             
@@ -24,12 +25,12 @@ struct MetricSnapshotRow: View {
             Spacer()
             
             Text("\(displayValue.formatted(.number.precision(.fractionLength(1)))) \(displayUnit)")
-                .font(AppTypography.bodyEmphasis)
+                .font(compact ? AppTypography.captionEmphasis : AppTypography.bodyEmphasis)
                 .foregroundStyle(.secondary)
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(compact ? 10 : 14)
+        .background(compact ? AppColorRoles.surfaceInteractive : Color(.systemGray6))
+        .clipShape(RoundedRectangle(cornerRadius: compact ? 14 : 8))
     }
 
     private var isMetricStored: Bool {

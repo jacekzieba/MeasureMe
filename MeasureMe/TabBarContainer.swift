@@ -8,7 +8,9 @@ struct TabBarContainer: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var premiumStore: PremiumStore
     @State private var didApplyAuditRoute = false
-    @State private var mountedTabs: Set<AppTab> = [.home]
+    @State private var mountedTabs: Set<AppTab> = TabBarContainer.initialMountedTabs()
+    @State private var didSchedulePendingEntryRetry = false
+    @State private var didConsumeUITestPendingEntryFallback = false
 
     var body: some View {
         let isUITest = CommandLine.arguments.contains("-uiTestMode") || CommandLine.arguments.contains("-uiTestOnboardingMode")
@@ -148,12 +150,27 @@ struct TabBarContainer: View {
             Task { @MainActor in
                 applyAuditRouteIfNeeded()
                 mountTabIfNeeded(router.selectedTab)
+                consumePendingAppEntryActionIfNeeded()
+                schedulePendingAppEntryRetryIfNeeded()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppEntryActionDispatcher.didEnqueueNotification)) { notification in
+            guard let action = notification.object as? AppEntryAction else { return }
+            Task { @MainActor in
+                let effectiveAction = AppEntryActionDispatcher.consumePendingAction() ?? action
+                handleAppEntryAction(effectiveAction)
             }
         }
         .preferredColorScheme(.dark)
     }
 
     private func applyAuditRouteIfNeeded() {
+        if ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab") {
+            router.selectedTab = .settings
+            mountTabIfNeeded(.settings)
+            return
+        }
+
         guard AuditConfig.current.isEnabled else { return }
         guard !didApplyAuditRoute else { return }
         didApplyAuditRoute = true
@@ -192,6 +209,52 @@ struct TabBarContainer: View {
         guard tab != .compose else { return }
         mountedTabs.insert(tab)
     }
+
+    private func consumePendingAppEntryActionIfNeeded() {
+        if let action = AppEntryActionDispatcher.consumePendingAction() {
+            handleAppEntryAction(action)
+            return
+        }
+
+        #if DEBUG
+        guard !didConsumeUITestPendingEntryFallback else { return }
+        guard let fallbackAction = requestedUITestPendingEntryAction(from: ProcessInfo.processInfo.arguments) else { return }
+        didConsumeUITestPendingEntryFallback = true
+        handleAppEntryAction(fallbackAction)
+        #endif
+    }
+
+    private func schedulePendingAppEntryRetryIfNeeded() {
+        guard !didSchedulePendingEntryRetry else { return }
+        didSchedulePendingEntryRetry = true
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(750))
+            consumePendingAppEntryActionIfNeeded()
+        }
+    }
+
+    #if DEBUG
+    private func requestedUITestPendingEntryAction(from args: [String]) -> AppEntryAction? {
+        guard let flagIndex = args.firstIndex(of: "-uiTestPendingAppEntryAction") else { return nil }
+        let nextIndex = args.index(after: flagIndex)
+        guard nextIndex < args.endIndex else { return nil }
+        return AppEntryAction(rawValue: args[nextIndex])
+    }
+    #endif
+
+    private func handleAppEntryAction(_ action: AppEntryAction) {
+        switch action {
+        case .openQuickAdd:
+            router.presentedSheet = .composer(mode: .newPost)
+        case .openAddPhoto:
+            if router.selectedTab != .photos {
+                router.selectedTab = .photos
+            }
+            mountTabIfNeeded(.photos)
+            router.requestPhotoComposer()
+        }
+    }
 }
 
 private extension View {
@@ -202,6 +265,15 @@ private extension View {
         } else {
             self
         }
+    }
+}
+
+private extension TabBarContainer {
+    static func initialMountedTabs() -> Set<AppTab> {
+        if ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab") {
+            return [.settings]
+        }
+        return [.home]
     }
 }
 

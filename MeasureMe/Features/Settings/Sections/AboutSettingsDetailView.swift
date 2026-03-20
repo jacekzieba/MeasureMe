@@ -3,15 +3,14 @@ import SwiftUI
 struct AboutSettingsDetailView: View {
     @AppSetting(\.diagnostics.diagnosticsLoggingEnabled) private var diagnosticsLoggingEnabled: Bool = true
     @Environment(\.openURL) private var openURL
+    private let theme = FeatureTheme.settings
     let onReportBug: () -> Void
 
     var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 380, tint: Color.cyan.opacity(0.22))
-            List {
-                Section {
-                    SettingsCard(tint: Color.white.opacity(0.07)) {
-                        SettingsCardHeader(title: AppLocalization.string("About"), systemImage: "info.circle")
+        SettingsDetailScaffold(title: AppLocalization.string("About"), theme: .settings) {
+            Section {
+                SettingsCard(tint: AppColorRoles.surfacePrimary) {
+                    SettingsCardHeader(title: AppLocalization.string("About"), systemImage: "info.circle")
 
                         Button {
                             openURL(LegalLinks.about)
@@ -19,9 +18,11 @@ struct AboutSettingsDetailView: View {
                             HStack(spacing: 12) {
                                 GlassPillIcon(systemName: "safari")
                                 Text(AppLocalization.string("Website"))
+                                    .font(AppTypography.body)
+                                    .foregroundStyle(AppColorRoles.textPrimary)
                                 Spacer()
                                 Image(systemName: "arrow.up.right.square")
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppColorRoles.textTertiary)
                             }
                             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                             .contentShape(Rectangle())
@@ -36,9 +37,11 @@ struct AboutSettingsDetailView: View {
                             HStack(spacing: 12) {
                                 GlassPillIcon(systemName: "lightbulb")
                                 Text(AppLocalization.string("Feature request"))
+                                    .font(AppTypography.body)
+                                    .foregroundStyle(AppColorRoles.textPrimary)
                                 Spacer()
                                 Image(systemName: "arrow.up.right.square")
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppColorRoles.textTertiary)
                             }
                             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                             .contentShape(Rectangle())
@@ -53,22 +56,24 @@ struct AboutSettingsDetailView: View {
                             HStack(spacing: 12) {
                                 GlassPillIcon(systemName: "ladybug")
                                 Text(AppLocalization.string("Report a bug"))
+                                    .font(AppTypography.body)
+                                    .foregroundStyle(AppColorRoles.textPrimary)
                                 Spacer()
                             }
                             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                    }
                 }
-                .listRowSeparator(.hidden)
-                .listSectionSeparator(.hidden)
-                .listRowInsets(settingsComponentsRowInsets)
-                .listRowBackground(Color.clear)
+            }
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+            .listRowInsets(settingsComponentsRowInsets)
+            .listRowBackground(Color.clear)
 
-                Section {
-                    SettingsCard(tint: Color.appAccent.opacity(0.10)) {
-                        SettingsCardHeader(title: AppLocalization.string("Diagnostics"), systemImage: "exclamationmark.bubble")
+            Section {
+                SettingsCard(tint: AppColorRoles.surfacePrimary) {
+                    SettingsCardHeader(title: AppLocalization.string("Diagnostics"), systemImage: "exclamationmark.bubble")
 
                         NavigationLink {
                             CrashReportView()
@@ -76,6 +81,8 @@ struct AboutSettingsDetailView: View {
                             HStack(spacing: 12) {
                                 GlassPillIcon(systemName: "exclamationmark.bubble")
                                 Text(AppLocalization.string("Crash Reports"))
+                                    .font(AppTypography.body)
+                                    .foregroundStyle(AppColorRoles.textPrimary)
                             }
                             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                             .contentShape(Rectangle())
@@ -89,9 +96,11 @@ struct AboutSettingsDetailView: View {
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(AppLocalization.string("Include diagnostic logs in crash reports"))
+                                    .font(AppTypography.body)
+                                    .foregroundStyle(AppColorRoles.textPrimary)
                                 Text(AppLocalization.string("When enabled, recent app logs may be attached to reports you share."))
                                     .font(AppTypography.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppColorRoles.textSecondary)
                             }
 
                             Spacer(minLength: 12)
@@ -100,22 +109,20 @@ struct AboutSettingsDetailView: View {
                                 .labelsHidden()
                                 .frame(width: 52, alignment: .trailing)
                         }
-                        .tint(Color.appAccent)
-                        .onChange(of: diagnosticsLoggingEnabled) { _, _ in
-                            Haptics.selection()
-                        }
+                        .tint(theme.accent)
+                        .onChange(of: diagnosticsLoggingEnabled) { _, _ in Haptics.selection() }
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                         .accessibilityIdentifier("settings.data.diagnostics.logging.toggle")
-                    }
                 }
-                .listRowSeparator(.hidden)
-                .listSectionSeparator(.hidden)
-                .listRowInsets(settingsComponentsRowInsets)
-                .listRowBackground(Color.clear)
+            }
+            .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
+            .listRowInsets(settingsComponentsRowInsets)
+            .listRowBackground(Color.clear)
 
-                Section {
-                    SettingsCard(tint: Color.white.opacity(0.04)) {
-                        SettingsCardHeader(title: AppLocalization.string("Credits"), systemImage: "heart")
+            Section {
+                SettingsCard(tint: AppColorRoles.surfaceInteractive) {
+                    SettingsCardHeader(title: AppLocalization.string("Credits"), systemImage: "heart")
 
                         Button {
                             openURL(URL(string: "https://icons8.com")!)
@@ -123,30 +130,22 @@ struct AboutSettingsDetailView: View {
                             HStack(spacing: 12) {
                                 GlassPillIcon(systemName: "paintbrush")
                                 Text(AppLocalization.string("Icons by Icons8"))
+                                    .font(AppTypography.body)
+                                    .foregroundStyle(AppColorRoles.textPrimary)
                                 Spacer()
                                 Image(systemName: "arrow.up.right.square")
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppColorRoles.textTertiary)
                             }
                             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                    }
                 }
-                .listRowSeparator(.hidden)
-                .listSectionSeparator(.hidden)
-                .listRowInsets(settingsComponentsRowInsets)
-                .listRowBackground(Color.clear)
             }
-            .scrollContentBackground(.hidden)
-            .listStyle(.plain)
-            .listSectionSpacing(24)
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
-            .padding(.top, 8)
+            .listRowInsets(settingsComponentsRowInsets)
+            .listRowBackground(Color.clear)
         }
-        .navigationTitle(AppLocalization.string("About"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
     }
 }

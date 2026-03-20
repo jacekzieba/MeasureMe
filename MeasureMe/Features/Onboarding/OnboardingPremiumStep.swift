@@ -1,5 +1,4 @@
 import SwiftUI
-import StoreKit
 
 /// Krok 3 onboardingu — oferta Premium (bundle benefits + plan picker + CTA).
 struct OnboardingPremiumStep: View {
@@ -8,25 +7,25 @@ struct OnboardingPremiumStep: View {
 
     @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
 
-    @State private var selectedProductID: String? = PremiumConstants.yearlyProductID
+    @State private var selectedProductID: String? = nil
 
     // MARK: - Computed: products
 
-    private var yearlyProduct: Product? {
-        premiumStore.products.first { $0.id == PremiumConstants.yearlyProductID }
+    private var yearlyProduct: PremiumProduct? {
+        premiumStore.products.first { isYearlyPlan($0) }
     }
 
-    private var monthlyProduct: Product? {
-        premiumStore.products.first { $0.id == PremiumConstants.monthlyProductID }
+    private var monthlyProduct: PremiumProduct? {
+        premiumStore.products.first { isMonthlyPlan($0) }
     }
 
-    private var onboardingPremiumProducts: [Product] {
+    private var onboardingPremiumProducts: [PremiumProduct] {
         premiumStore.products
-            .filter { $0.id == PremiumConstants.monthlyProductID || $0.id == PremiumConstants.yearlyProductID }
+            .filter { isMonthlyPlan($0) || isYearlyPlan($0) }
             .sorted { $0.price < $1.price }
     }
 
-    private var selectedProduct: Product? {
+    private var selectedProduct: PremiumProduct? {
         if let selectedProductID {
             return onboardingPremiumProducts.first { $0.id == selectedProductID }
         }
@@ -45,10 +44,10 @@ struct OnboardingPremiumStep: View {
             Button {
                 onboardingChecklistPremiumExplored = true
                 Haptics.light()
-                if let product = selectedProduct {
-                    Task { await premiumStore.purchase(product) }
-                } else {
-                    premiumStore.presentPaywall(reason: .onboarding)
+                guard let product = selectedProduct else { return }
+                Task {
+                    premiumStore.setPurchaseContext(reason: .onboarding)
+                    await premiumStore.purchase(product)
                 }
             } label: {
                 Text(AppLocalization.systemString("Start my 14-day free trial"))
@@ -58,6 +57,7 @@ struct OnboardingPremiumStep: View {
             }
             .buttonStyle(.bordered)
             .tint(Color.appAccent)
+            .disabled(selectedProduct == nil || premiumStore.isLoading)
             .appHitTarget()
             .accessibilityIdentifier("onboarding.premium.trial")
             .accessibilitySortPriority(3)
@@ -74,6 +74,10 @@ struct OnboardingPremiumStep: View {
             if premiumStore.products.isEmpty {
                 await premiumStore.loadProducts()
             }
+            preselectProductIfNeeded()
+        }
+        .onChange(of: premiumStore.products.map(\.id)) { _, _ in
+            preselectProductIfNeeded()
         }
     }
 
@@ -158,7 +162,7 @@ struct OnboardingPremiumStep: View {
         }
     }
 
-    private func planRow(product: Product) -> some View {
+    private func planRow(product: PremiumProduct) -> some View {
         let isSelected = product.id == selectedProductID
         let secondaryPrice = secondaryPriceLine(for: product)
 
@@ -239,33 +243,29 @@ struct OnboardingPremiumStep: View {
 
     // MARK: - Price helpers
 
-    private func planTitle(for product: Product) -> String {
-        switch product.id {
-        case PremiumConstants.monthlyProductID: return AppLocalization.string("premium.plan.monthly")
-        case PremiumConstants.yearlyProductID:  return AppLocalization.string("premium.plan.yearly")
-        default:                                return product.displayName
-        }
+    private func planTitle(for product: PremiumProduct) -> String {
+        if isMonthlyPlan(product) { return AppLocalization.string("premium.plan.monthly") }
+        if isYearlyPlan(product) { return AppLocalization.string("premium.plan.yearly") }
+        return product.displayName
     }
 
-    private func planSubtitle(for product: Product) -> String {
-        switch product.id {
-        case PremiumConstants.monthlyProductID: return AppLocalization.string("premium.plan.billing.monthly")
-        case PremiumConstants.yearlyProductID:  return AppLocalization.string("premium.plan.billing.yearly")
-        default:                                return AppLocalization.string("premium.plan.billing.default")
-        }
+    private func planSubtitle(for product: PremiumProduct) -> String {
+        if isMonthlyPlan(product) { return AppLocalization.string("premium.plan.billing.monthly") }
+        if isYearlyPlan(product) { return AppLocalization.string("premium.plan.billing.yearly") }
+        return AppLocalization.string("premium.plan.billing.default")
     }
 
-    private func primaryPriceLine(for product: Product) -> String {
-        let periodLabel = product.id == PremiumConstants.yearlyProductID
+    private func primaryPriceLine(for product: PremiumProduct) -> String {
+        let periodLabel = isYearlyPlan(product)
             ? AppLocalization.string("premium.plan.period.year")
             : AppLocalization.string("premium.plan.period.month")
         return "\(product.displayPrice)/\(periodLabel)"
     }
 
-    private func secondaryPriceLine(for product: Product) -> String? {
-        guard product.id == PremiumConstants.yearlyProductID else { return nil }
+    private func secondaryPriceLine(for product: PremiumProduct) -> String? {
+        guard isYearlyPlan(product) else { return nil }
         let monthlyEquivalent = product.price / Decimal(12)
-        let monthlyEquivalentDisplay = monthlyEquivalent.formatted(product.priceFormatStyle)
+        let monthlyEquivalentDisplay = formatPrice(monthlyEquivalent, formatter: product.priceFormatter) ?? product.displayPrice
         return AppLocalization.string("premium.plan.equivalent.monthly.dynamic", monthlyEquivalentDisplay)
     }
 
@@ -277,7 +277,7 @@ struct OnboardingPremiumStep: View {
             return Text(AppLocalization.string("premium.cta.billed.after.trial.fallback"))
         }
 
-        let periodLabel = product.id == PremiumConstants.yearlyProductID
+        let periodLabel = isYearlyPlan(product)
             ? AppLocalization.string("premium.plan.period.year")
             : AppLocalization.string("premium.plan.period.month")
 
@@ -290,6 +290,34 @@ struct OnboardingPremiumStep: View {
             attributed[emphasizedRange].inlinePresentationIntent = .stronglyEmphasized
         }
         return Text(attributed)
+    }
+
+    private func isMonthlyPlan(_ product: PremiumProduct) -> Bool {
+        product.id == PremiumConstants.monthlyPackageID
+            || product.id == PremiumConstants.revenueCatMonthlyPackageID
+            || product.productIdentifier == PremiumConstants.monthlyProductID
+            || product.productIdentifier == PremiumConstants.legacyMonthlyProductID
+    }
+
+    private func isYearlyPlan(_ product: PremiumProduct) -> Bool {
+        product.id == PremiumConstants.yearlyPackageID
+            || product.id == PremiumConstants.revenueCatYearlyPackageID
+            || product.productIdentifier == PremiumConstants.yearlyProductID
+            || product.productIdentifier == PremiumConstants.legacyYearlyProductID
+    }
+
+    private func formatPrice(_ amount: Decimal, formatter: NumberFormatter?) -> String? {
+        guard let formatter else { return nil }
+        return formatter.string(from: amount as NSDecimalNumber)
+    }
+
+    private func preselectProductIfNeeded() {
+        let availableIDs = Set(onboardingPremiumProducts.map(\.id))
+        if let selectedProductID, availableIDs.contains(selectedProductID) {
+            return
+        }
+
+        selectedProductID = yearlyProduct?.id ?? monthlyProduct?.id
     }
 
     private var legalBlock: some View {

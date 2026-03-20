@@ -3,6 +3,11 @@ import Foundation
 enum AppSettingsKeys {
     static let settingsSchemaVersion = "settings_schema_version"
 
+    enum Entry {
+        static let pendingAppEntryAction = "pending_app_entry_action"
+        static let pendingHealthKitSyncFromIntent = "pending_healthkit_sync_from_intent"
+    }
+
     enum Profile {
         static let userName = "userName"
         static let userAge = "userAge"
@@ -32,6 +37,8 @@ enum AppSettingsKeys {
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let onboardingSkippedHealthKit = "onboarding_skipped_healthkit"
         static let onboardingSkippedReminders = "onboarding_skipped_reminders"
+        static let onboardingViewedICloudBackupOffer = "onboarding_viewed_icloud_backup_offer"
+        static let onboardingSkippedICloudBackup = "onboarding_skipped_icloud_backup"
         static let onboardingChecklistShow = "onboarding_checklist_show"
         static let onboardingChecklistCollapsed = "onboarding_checklist_collapsed"
         static let onboardingChecklistHideCompleted = "onboarding_checklist_hide_completed"
@@ -83,6 +90,7 @@ enum AppSettingsKeys {
         static let quickAddHintDismissed = "quickAddHintDismissed"
         static let photosFilterTag = "photos_filter_tag"
         static let saveUnchangedQuickAdd = "save_unchanged_quick_add"
+        static let hasCustomizedMetrics = "has_customized_metrics"
     }
 
     enum Premium {
@@ -109,6 +117,14 @@ enum AppSettingsKeys {
         static let goalAchievedEnabled = "measurement_goal_achieved_enabled"
         static let importNotificationsEnabled = "measurement_import_notifications_enabled"
         static let goalAchievementPrefix = "goal_achieved_"
+    }
+
+    enum ICloudBackup {
+        static let isEnabled = "icloud_backup_enabled"
+        static let lastSuccessTimestamp = "icloud_backup_last_success_timestamp"
+        static let lastErrorMessage = "icloud_backup_last_error_message"
+        static let autoRestoreCompleted = "icloud_backup_auto_restore_completed"
+        static let lastBackupSizeBytes = "icloud_backup_last_size_bytes"
     }
 
     enum Analytics {

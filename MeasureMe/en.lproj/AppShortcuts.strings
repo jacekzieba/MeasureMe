@@ -1,0 +1,9 @@
+/* App Shortcut phrases — English */
+
+"Open Quick Add in ${applicationName}" = "Open Quick Add in ${applicationName}";
+"Quick Add in ${applicationName}" = "Quick Add in ${applicationName}";
+
+"Open Add Photo in ${applicationName}" = "Open Add Photo in ${applicationName}";
+"Add Photo in ${applicationName}" = "Add Photo in ${applicationName}";
+
+"Add measurement in ${applicationName}" = "Add measurement in ${applicationName}";
