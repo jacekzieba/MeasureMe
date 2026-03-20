@@ -39,7 +39,6 @@ final class RootViewSnapshotTests: XCTestCase {
     ]
     let baselineDefaults = Dictionary(uniqueKeysWithValues: managedKeys.map { ($0, defaults.object(forKey: $0)) })
     let wereAnimationsEnabled = UIView.areAnimationsEnabled
-    let fixedNow = Date(timeIntervalSince1970: 1_770_000_000)
     defer {
       for (key, value) in baselineDefaults {
         if let value {
