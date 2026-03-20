@@ -105,9 +105,11 @@ final class SanityCheckerTests: XCTestCase {
     /// Change exactly at the allowed threshold — strict `>` means no warning.
     func testExactlyAtThreshold_noWarning() {
         // 3 kg over exactly 1 week. Allowed = 3 * 1 = 3.0. Change = 3.0 → not > 3.0.
+        let now = Date()
+        let oneWeekAgo = Calendar.current.date(byAdding: .day, value: -7, to: now)!
         let result = SanityChecker.check(
-            entries: [(.weight, 78.0, Date())],
-            previousValues: [.weight: (value: 75.0, date: date(daysAgo: 7))]
+            entries: [(.weight, 78.0, now)],
+            previousValues: [.weight: (value: 75.0, date: oneWeekAgo)]
         )
         XCTAssertTrue(result.isEmpty, "Change exactly at threshold should not trigger")
     }

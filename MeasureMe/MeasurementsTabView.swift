@@ -5,6 +5,7 @@ import Foundation
 import Accessibility
 
 struct MeasurementsTabView: View {
+    private static let queryWindowDays = 1825
     private let measurementsTheme = FeatureTheme.measurements
     private let healthTheme = FeatureTheme.health
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
@@ -21,14 +22,25 @@ struct MeasurementsTabView: View {
     @AppSetting(\.experience.hasCustomizedMetrics) private var hasCustomizedMetrics: Bool = false
     @State private var scrollOffset: CGFloat = 0
     @State private var refreshToken = UUID()
-    @Query(sort: [SortDescriptor(\MetricSample.date, order: .reverse)])
-    private var samples: [MetricSample]
+    @Query private var samples: [MetricSample]
     @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
     @State private var cachedLatestByKind: [MetricKind: MetricSample] = [:]
 
     @State private var selectedTab: MeasurementsTab = .metrics
 
     private let healthAccent = HealthIndicatorPalette.accent
+
+    init() {
+        let startDate = Calendar.current.date(
+            byAdding: .day,
+            value: -Self.queryWindowDays,
+            to: AppClock.now
+        ) ?? .distantPast
+        _samples = Query(
+            filter: #Predicate<MetricSample> { $0.date >= startDate },
+            sort: [SortDescriptor(\.date, order: .reverse)]
+        )
+    }
 
     enum MeasurementsTab: String, CaseIterable, Identifiable {
         case metrics = "Metrics"

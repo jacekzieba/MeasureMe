@@ -66,15 +66,12 @@ enum WidgetDataWriter {
         flushTask?.cancel()
         flushTask = Task {
             try? await Task.sleep(for: debounceInterval)
-            await MainActor.run {
-                flushPendingWrites()
-            }
+            flushPendingWrites()
         }
         stateLock.unlock()
     }
 
     /// Immediately flushes pending debounced writes (if any).
-    @MainActor
     static func flushPendingWrites() {
         guard let pending = consumePendingSnapshot() else { return }
         let context = ModelContext(pending.container)
@@ -137,35 +134,41 @@ enum WidgetDataWriter {
         let cutoff = AppClock.now.addingTimeInterval(-90 * 24 * 3600)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .secondsSince1970
+        let kindRawValues = Set(kindsSet.map(\.rawValue))
+
+        let samplesDescriptor = FetchDescriptor<MetricSample>(
+            predicate: #Predicate<MetricSample> { sample in
+                sample.date >= cutoff
+            },
+            sortBy: [SortDescriptor(\.date)]
+        )
+        let fetchedSamples = (try? context.fetch(samplesDescriptor)) ?? []
+        var samplesByKindRaw: [String: [MetricSample]] = [:]
+        for sample in fetchedSamples where kindRawValues.contains(sample.kindRaw) {
+            samplesByKindRaw[sample.kindRaw, default: []].append(sample)
+        }
+
+        let goalsDescriptor = FetchDescriptor<MetricGoal>()
+        let fetchedGoals = (try? context.fetch(goalsDescriptor)) ?? []
+        var goalsByKindRaw: [String: MetricGoal] = [:]
+        for goal in fetchedGoals where kindRawValues.contains(goal.kindRaw) {
+            guard goalsByKindRaw[goal.kindRaw] == nil else { continue }
+            goalsByKindRaw[goal.kindRaw] = goal
+        }
 
         for kind in kindsSet {
             let kindRawValue = kind.rawValue
-
-            // Fetch samples for this metric
-            let descriptor = FetchDescriptor<MetricSample>(
-                predicate: #Predicate<MetricSample> { sample in
-                    sample.kindRaw == kindRawValue && sample.date >= cutoff
-                },
-                sortBy: [SortDescriptor(\.date)]
-            )
-            let samples = (try? context.fetch(descriptor)) ?? []
-
-            // Fetch goal for this metric
-            let goalDescriptor = FetchDescriptor<MetricGoal>(
-                predicate: #Predicate<MetricGoal> { goal in
-                    goal.kindRaw == kindRawValue
-                }
-            )
-            let goal = (try? context.fetch(goalDescriptor))?.first
+            let samples = samplesByKindRaw[kindRawValue] ?? []
+            let goal = goalsByKindRaw[kindRawValue]
 
             let sampleDTOs = samples.map { SamplePayload(value: $0.value, date: $0.date) }
-            let goalDTO: GoalPayload? = goal.map {
+            let goalDTO = goal.map {
                 GoalPayload(targetValue: $0.targetValue, startValue: $0.startValue, direction: $0.directionRaw)
             }
-            let payload = MetricPayload(kind: kind.rawValue, samples: sampleDTOs, goal: goalDTO, unitsSystem: unitsSystem)
+            let payload = MetricPayload(kind: kindRawValue, samples: sampleDTOs, goal: goalDTO, unitsSystem: unitsSystem)
 
             if let data = try? encoder.encode(payload) {
-                defaults.set(data, forKey: "widget_data_\(kind.rawValue)")
+                defaults.set(data, forKey: "widget_data_\(kindRawValue)")
             }
         }
 

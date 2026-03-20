@@ -59,6 +59,8 @@ enum HealthKitAuthorizationError: LocalizedError, Equatable {
 
 final class RealHealthStore: HealthStore {
     let store = HKHealthStore()  // Zmieniono na 'let' zamiast 'private let'
+    private nonisolated static let waistHistoryLookbackDays = 365 * 5
+    private nonisolated static let waistFetchLimit = 2_000
 
     private enum HealthStoreError: LocalizedError {
         case deleteFailed
@@ -171,14 +173,20 @@ final class RealHealthStore: HealthStore {
 
     func fetchWaistMeasurements() async throws -> [(value: Double, date: Date)] {
         let waistType = try quantityType(for: .waistCircumference)
-        let predicate = HKQuery.predicateForSamples(withStart: .distantPast, end: AppClock.now)
+        let now = AppClock.now
+        let lookbackStart = Calendar.current.date(
+            byAdding: .day,
+            value: -Self.waistHistoryLookbackDays,
+            to: now
+        ) ?? .distantPast
+        let predicate = HKQuery.predicateForSamples(withStart: lookbackStart, end: now)
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
 
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: waistType,
                 predicate: predicate,
-                limit: HKObjectQueryNoLimit,
+                limit: Self.waistFetchLimit,
                 sortDescriptors: [sort]
             ) { _, samples, error in
                 if let error {

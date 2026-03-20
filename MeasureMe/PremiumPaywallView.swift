@@ -1031,7 +1031,7 @@ struct PremiumPaywallView: View {
             Button(AppLocalization.string("Restore purchases")) {
                 Task { await premium.restorePurchases() }
             }
-            Button("Customer Center") {
+            Button(AppLocalization.string("Customer Center")) {
                 isCustomerCenterPresented = true
             }
             Link(AppLocalization.string("Terms of Use"), destination: LegalLinks.termsOfUse)

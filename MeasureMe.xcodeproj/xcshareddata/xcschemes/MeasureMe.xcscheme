@@ -113,8 +113,8 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-uiTestForcePremium  "
-            isEnabled = "YES">
+            argument = "-uiTestForcePremium"
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>

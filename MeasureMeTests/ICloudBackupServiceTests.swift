@@ -379,6 +379,61 @@ final class ICloudBackupServiceTests: XCTestCase {
         XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<MetricSample>()), 0)
     }
 
+    func testRestoreRejectsPayloadWithAllInvalidRawValues() async throws {
+        // Create a valid backup first.
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_005_100) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        // Tamper: replace metrics.json with encrypted data containing invalid kindRaw.
+        let package = try XCTUnwrap(try backupPackages().first)
+        let key = try XCTUnwrap(ICloudBackupService.testEncryptionKeyOverride)
+
+        let iso8601Encoder = JSONEncoder()
+        iso8601Encoder.dateEncodingStrategy = .iso8601
+
+        let corruptMetrics = [
+            CodableMetricSampleStub(kindRaw: "invalid_metric_999", value: 80, date: Date())
+        ]
+        let encoded = try iso8601Encoder.encode(corruptMetrics)
+        let sealed = try ChaChaPoly.seal(encoded, using: key)
+        try sealed.combined.write(to: package.appendingPathComponent("metrics.json"))
+
+        // Also corrupt goals.
+        let corruptGoals = [
+            CodableMetricGoalStub(kindRaw: "invalid_goal_999", targetValue: 70, directionRaw: "invalid_dir", createdDate: Date(), startValue: 80, startDate: Date())
+        ]
+        let goalEncoded = try iso8601Encoder.encode(corruptGoals)
+        let goalSealed = try ChaChaPoly.seal(goalEncoded, using: key)
+        try goalSealed.combined.write(to: package.appendingPathComponent("goals.json"))
+
+        // Remove photos from the backup so totalRestorableItems == 0.
+        let photosDir = package.appendingPathComponent("photos", isDirectory: true)
+        try? FileManager.default.removeItem(at: photosDir)
+        try FileManager.default.createDirectory(at: photosDir, withIntermediateDirectories: true)
+        let emptyPhotos: [CodablePhotoEntryStub] = []
+        let photosEncoded = try iso8601Encoder.encode(emptyPhotos)
+        let photosSealed = try ChaChaPoly.seal(photosEncoded, using: key)
+        try photosSealed.combined.write(to: package.appendingPathComponent("photos_index.json"))
+
+        // Attempt restore — should fail with invalidBackupSchema.
+        let targetContext = ModelContext(try makeContainer())
+        targetContext.insert(MetricSample(kind: .waist, value: 88, date: Date(timeIntervalSince1970: 200)))
+        try targetContext.save()
+
+        let result = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: true)
+        guard case .failure(let error) = result else {
+            return XCTFail("Expected invalidBackupSchema failure for all-invalid payload")
+        }
+        XCTAssertEqual(error, .invalidBackupSchema)
+
+        // Existing data must NOT have been deleted.
+        XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<MetricSample>()), 1)
+    }
+
     // MARK: - Preflight restore
 
     func testPreflightRestoreReturnsManifestWithoutModifyingData() async throws {
@@ -565,4 +620,35 @@ final class ICloudBackupServiceTests: XCTestCase {
         )
         .first(where: { $0.lastPathComponent.hasSuffix(".dat") && !$0.lastPathComponent.contains("_thumb") })
     }
+}
+
+// MARK: - Test-only stubs matching the Codable shape used by ICloudBackupService
+
+private struct CodableMetricSampleStub: Encodable {
+    let kindRaw: String
+    let value: Double
+    let date: Date
+}
+
+private struct CodableMetricGoalStub: Encodable {
+    let kindRaw: String
+    let targetValue: Double
+    let directionRaw: String
+    let createdDate: Date
+    let startValue: Double?
+    let startDate: Date?
+}
+
+private struct CodablePhotoEntryStub: Encodable {
+    let fileID: String
+    let date: Date
+    let tags: [String]
+    let linkedMetrics: [CodableLinkedMetricStub]
+    let hasThumbnail: Bool
+}
+
+private struct CodableLinkedMetricStub: Encodable {
+    let metricRawValue: String
+    let value: Double
+    let unit: String
 }

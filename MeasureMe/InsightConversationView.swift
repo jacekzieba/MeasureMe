@@ -53,7 +53,7 @@ struct InsightConversationView: View {
                 inputBar
             }
             .background(AppColorRoles.surfaceCanvas)
-            .navigationTitle(AppLocalization.string("Ask about") + " " + metricTitle)
+            .navigationTitle(AppLocalization.string("insight.ask.about") + " " + metricTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -144,7 +144,7 @@ struct InsightConversationView: View {
                 .background(AppColorRoles.accentPrimary.opacity(0.12))
                 .clipShape(Circle())
 
-            Text("Thinking...")
+            Text(AppLocalization.string("insight.thinking"))
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textSecondary)
                 .redacted(reason: .placeholder)
@@ -166,14 +166,14 @@ struct InsightConversationView: View {
     @ViewBuilder
     private var inputBar: some View {
         if followUpCount >= maxFollowUps {
-            Text(AppLocalization.string("You've reached the follow-up limit"))
+            Text(AppLocalization.string("insight.followup.limit"))
                 .font(AppTypography.micro)
                 .foregroundStyle(AppColorRoles.textSecondary)
                 .padding(.vertical, 14)
                 .frame(maxWidth: .infinity)
         } else {
             HStack(spacing: 8) {
-                TextField(AppLocalization.string("Ask a question..."), text: $questionText, axis: .vertical)
+                TextField(AppLocalization.string("insight.ask.placeholder"), text: $questionText, axis: .vertical)
                     .font(AppTypography.body)
                     .lineLimit(1...4)
                     .focused($isInputFocused)
@@ -227,7 +227,7 @@ struct InsightConversationView: View {
                 messages.append(InsightMessage(role: .assistant, text: response))
                 followUpCount += 1
             } catch {
-                messages.append(InsightMessage(role: .assistant, text: AppLocalization.string("Sorry, I couldn't generate a response. Please try again.")))
+                messages.append(InsightMessage(role: .assistant, text: AppLocalization.string("insight.error.response")))
             }
             isLoading = false
         }

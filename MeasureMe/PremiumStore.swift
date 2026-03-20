@@ -471,7 +471,7 @@ final class PremiumStore: ObservableObject {
                 parameters: analyticsParameters
             )
 
-            let startedIntroTrial = purchasedProduct.package.storeProduct.introductoryDiscount != nil
+            let startedIntroTrial = result.customerInfo.entitlements[PremiumConstants.entitlementID]?.periodType == .trial
             if startedIntroTrial {
                 await handleTrialActivated()
             } else {

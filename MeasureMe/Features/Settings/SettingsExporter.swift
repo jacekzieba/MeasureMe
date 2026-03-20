@@ -606,12 +606,15 @@ enum SettingsExporter {
             guard let kind = MetricKind(rawValue: kindRaw), !rows.isEmpty else { continue }
             let values = rows.map { $0.displayValue }
             let sorted = rows.sorted { $0.date < $1.date }
+            guard let latest = sorted.last,
+                  let minValue = values.min(),
+                  let maxValue = values.max() else { continue }
             summaries.append(PDFMetricSummary(
                 kind: kind,
-                latestValue: sorted.last!.displayValue,
-                latestDate: sorted.last!.date,
-                minValue: values.min()!,
-                maxValue: values.max()!,
+                latestValue: latest.displayValue,
+                latestDate: latest.date,
+                minValue: minValue,
+                maxValue: maxValue,
                 avgValue: values.reduce(0, +) / Double(values.count),
                 count: values.count
             ))

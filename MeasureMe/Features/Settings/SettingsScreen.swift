@@ -224,7 +224,7 @@ struct SettingsView: View {
 
     private func refreshHomeModuleSummary() {
         let visibleCount = settingsStore.homeLayoutSnapshot().items.filter(\.isVisible).count
-        homeModuleSummary = AppLocalization.string("settings.summary.home.modules", visibleCount)
+        homeModuleSummary = AppLocalization.plural("settings.summary.home.modules", visibleCount)
     }
 
     private func refreshNotificationsSummary() {

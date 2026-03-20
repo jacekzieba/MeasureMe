@@ -73,12 +73,17 @@ struct MeasureMeApp: App {
     }
 
     private enum RevenueCatConfig {
+        #if DEBUG
         static let testStoreAPIKey = "test_IqhDylvTOfSwcULqzOlKpGIXmEa"
+        #endif
         static let appStoreAPIKey = "appl_wTCpVzaoTfaUEHWONdHdqWyBnsr"
 
         static var apiKey: String {
+            #if DEBUG
             let useTestStore = ProcessInfo.processInfo.environment["MEASUREME_RC_TEST_STORE"] == "1"
-            return useTestStore ? testStoreAPIKey : appStoreAPIKey
+            if useTestStore { return testStoreAPIKey }
+            #endif
+            return appStoreAPIKey
         }
     }
 
@@ -715,6 +720,7 @@ struct MeasureMeApp: App {
         let isAuditMockMode = AuditConfig.current.isEnabled && AuditConfig.current.useMockData
         let shouldSkipMeasurementSeed = args.contains("-uiTestSkipMeasurementSeeding")
         let forceNoActiveMetrics = args.contains("-uiTestNoActiveMetrics")
+        let shouldSeedPhotoMetrics = args.contains("-uiTestSeedPhotoMetrics")
         let shouldSeedMeasurements = (args.contains("-uiTestSeedMeasurements") || isAuditMockMode)
             && !shouldSkipMeasurementSeed
             && !forceNoActiveMetrics
@@ -736,7 +742,11 @@ struct MeasureMeApp: App {
         if effectivePhotoCount > 0 {
             let existingPhotos = try context.fetchCount(FetchDescriptor<PhotoEntry>())
             if existingPhotos == 0 {
-                seedUITestPhotos(count: effectivePhotoCount, into: context)
+                seedUITestPhotos(
+                    count: effectivePhotoCount,
+                    into: context,
+                    withLinkedMetrics: shouldSeedPhotoMetrics
+                )
             }
         }
 
@@ -774,7 +784,7 @@ struct MeasureMeApp: App {
         return AppEntryAction(rawValue: args[nextIndex])
     }
 
-    private func seedUITestPhotos(count: Int, into context: ModelContext) {
+    private func seedUITestPhotos(count: Int, into context: ModelContext, withLinkedMetrics: Bool = false) {
         let safeCount = max(0, min(count, 300))
         let now = AppClock.now
         for idx in 0..<safeCount {
@@ -782,7 +792,18 @@ struct MeasureMeApp: App {
             let size = CGSize(width: 1280, height: 1706)
             guard let imageData = makeUITestImageData(index: idx, size: size) else { continue }
             let tags: [PhotoTag] = idx.isMultiple(of: 2) ? [.wholeBody] : [.waist]
-            context.insert(PhotoEntry(imageData: imageData, date: date, tags: tags, linkedMetrics: []))
+            let linkedMetrics: [MetricValueSnapshot]
+            if withLinkedMetrics {
+                let weight = max(55, 82.0 - (Double(idx) * 0.08))
+                let waist = max(60, 92.0 - (Double(idx) * 0.05))
+                linkedMetrics = [
+                    MetricValueSnapshot(kind: .weight, value: weight, unit: "kg"),
+                    MetricValueSnapshot(kind: .waist, value: waist, unit: "cm")
+                ]
+            } else {
+                linkedMetrics = []
+            }
+            context.insert(PhotoEntry(imageData: imageData, date: date, tags: tags, linkedMetrics: linkedMetrics))
         }
     }
 

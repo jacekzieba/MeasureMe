@@ -2,3 +2,8 @@
 "SHORTCUT_QUICK_ADD_SUBTITLE" = "Szybko dodaj pomiary";
 "SHORTCUT_ADD_PHOTO_TITLE" = "Dodaj zdjęcie";
 "SHORTCUT_ADD_PHOTO_SUBTITLE" = "Otwórz dodawanie zdjęć";
+"NSCameraUsageDescription" = "MeasureMe używa aparatu do robienia zdjęć postępów, które zdecydujesz się zapisać.";
+"NSHealthShareUsageDescription" = "MeasureMe odczytuje dane z aplikacji Zdrowie (waga, tkanka tłuszczowa, wzrost, beztłuszczowa masa ciała i talia), aby importować historię, utrzymywać synchronizację pomiarów i obliczać wskaźniki zdrowotne.";
+"NSHealthUpdateUsageDescription" = "MeasureMe zapisuje pomiary dodane w aplikacji do Zdrowia, aby Twoje dane były spójne.";
+"NSPhotoLibraryAddUsageDescription" = "MeasureMe zapisuje wyeksportowane obrazy porównań w Twojej bibliotece zdjęć.";
+"NSPhotoLibraryUsageDescription" = "MeasureMe uzyskuje dostęp do biblioteki zdjęć, aby wybierać zdjęcia postępów i je porównywać.";

@@ -83,6 +83,19 @@ final class WidgetDataWriterDebounceTests: XCTestCase {
         XCTAssertNotNil(defaults.data(forKey: "widget_data_bodyFat"))
         XCTAssertEqual(unitsSystem(forKey: "widget_data_weight"), "imperial")
     }
+
+    func testWriteAndReload_WritesOnlyRequestedKinds() throws {
+        context.insert(MetricSample(kind: .weight, value: 80.1, date: Date(timeIntervalSince1970: 1_736_130_000)))
+        context.insert(MetricSample(kind: .waist, value: 91.0, date: Date(timeIntervalSince1970: 1_736_130_100)))
+        try context.save()
+
+        WidgetDataWriter.writeAndReload(kinds: [.weight], context: context, unitsSystem: "metric")
+        WidgetDataWriter.flushPendingWrites()
+
+        XCTAssertEqual(reloadCount, 1)
+        XCTAssertNotNil(defaults.data(forKey: "widget_data_weight"))
+        XCTAssertNil(defaults.data(forKey: "widget_data_waist"))
+    }
 }
 
 private extension WidgetDataWriterDebounceTests {

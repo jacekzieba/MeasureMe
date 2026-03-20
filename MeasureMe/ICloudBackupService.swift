@@ -72,6 +72,7 @@ enum ICloudBackupService {
     private nonisolated static let maxRetainedBackups = 7
     private nonisolated static let scheduledBackupInterval: TimeInterval = 86_400 // 24 hours
     private nonisolated static let backupExtension = "measuremebackup"
+    private nonisolated static let photoBackupBatchSize = 100
     private static let restoreCoordinator = RestoreCoordinator()
 
     // MARK: - Public API
@@ -92,10 +93,12 @@ enum ICloudBackupService {
             return .failure(.encryptionError)
         }
 
+        let tempPhotosDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("measureme-backup-\(UUID().uuidString)", isDirectory: true)
+
         do {
             let metrics = try context.fetch(FetchDescriptor<MetricSample>())
             let goals = try context.fetch(FetchDescriptor<MetricGoal>())
-            let photos = try context.fetch(FetchDescriptor<PhotoEntry>())
             let codableMetrics = metrics.map {
                 CodableMetricSample(kindRaw: $0.kindRaw, value: $0.value, date: $0.date)
             }
@@ -109,20 +112,42 @@ enum ICloudBackupService {
                     startDate: $0.startDate
                 )
             }
+
+            // Stream-write photos to a temp directory one at a time to avoid OOM.
+            // Only one photo's imageData is in memory at any point.
+            try FileManager.default.createDirectory(at: tempPhotosDir, withIntermediateDirectories: true)
+
             var codablePhotos: [CodablePhotoEntry] = []
-            var encryptedPhotoFiles: [(fileID: String, imageData: Data, thumbnailData: Data?)] = []
-            for photo in photos {
-                let fileID = UUID().uuidString
-                codablePhotos.append(CodablePhotoEntry(
-                    fileID: fileID,
-                    date: photo.date,
-                    tags: photo.tags.map(\.rawValue),
-                    linkedMetrics: photo.linkedMetrics.map {
-                        CodableLinkedMetric(metricRawValue: $0.metricRawValue, value: $0.value, unit: $0.unit)
-                    },
-                    hasThumbnail: photo.thumbnailData != nil
-                ))
-                encryptedPhotoFiles.append((fileID: fileID, imageData: photo.imageData, thumbnailData: photo.thumbnailData))
+            var photosCount = 0
+            var photosOffset = 0
+
+            while true {
+                var photoDescriptor = FetchDescriptor<PhotoEntry>(
+                    sortBy: [SortDescriptor(\.date, order: .forward)]
+                )
+                photoDescriptor.fetchLimit = Self.photoBackupBatchSize
+                photoDescriptor.fetchOffset = photosOffset
+                let photosBatch = try context.fetch(photoDescriptor)
+                guard !photosBatch.isEmpty else { break }
+
+                for photo in photosBatch {
+                    let fileID = UUID().uuidString
+                    codablePhotos.append(CodablePhotoEntry(
+                        fileID: fileID,
+                        date: photo.date,
+                        tags: photo.tags.map(\.rawValue),
+                        linkedMetrics: photo.linkedMetrics.map {
+                            CodableLinkedMetric(metricRawValue: $0.metricRawValue, value: $0.value, unit: $0.unit)
+                        },
+                        hasThumbnail: photo.thumbnailData != nil
+                    ))
+                    try Self.writeEncryptedData(photo.imageData, to: tempPhotosDir.appendingPathComponent("\(fileID).dat"), key: key)
+                    if let thumb = photo.thumbnailData {
+                        try Self.writeEncryptedData(thumb, to: tempPhotosDir.appendingPathComponent("\(fileID)_thumb.dat"), key: key)
+                    }
+                }
+                photosCount += photosBatch.count
+                photosOffset += photosBatch.count
             }
             let settingsEntries = await MainActor.run { captureSettings() }
             let manifest = ICloudBackupManifest(
@@ -130,7 +155,7 @@ enum ICloudBackupService {
                 createdAt: now(),
                 metricsCount: metrics.count,
                 goalsCount: goals.count,
-                photosCount: photos.count,
+                photosCount: photosCount,
                 settingsCount: settingsEntries.count,
                 isEncrypted: true
             )
@@ -155,20 +180,14 @@ enum ICloudBackupService {
                 let packageURL = rootURL.appendingPathComponent(wipName, isDirectory: true)
                 try fm.createDirectory(at: packageURL, withIntermediateDirectories: true)
 
+                // Move pre-written encrypted photos into the WIP package
                 let photosDir = packageURL.appendingPathComponent("photos", isDirectory: true)
-                try fm.createDirectory(at: photosDir, withIntermediateDirectories: true)
+                try fm.moveItem(at: tempPhotosDir, to: photosDir)
 
                 try Self.writeEncrypted(codableMetrics, to: packageURL.appendingPathComponent("metrics.json"), key: key)
                 try Self.writeEncrypted(codableGoals, to: packageURL.appendingPathComponent("goals.json"), key: key)
                 try Self.writeEncrypted(codablePhotos, to: packageURL.appendingPathComponent("photos_index.json"), key: key)
                 try Self.writeEncrypted(settingsEntries, to: packageURL.appendingPathComponent("settings.json"), key: key)
-
-                for file in encryptedPhotoFiles {
-                    try Self.writeEncryptedData(file.imageData, to: photosDir.appendingPathComponent("\(file.fileID).dat"), key: key)
-                    if let thumbnailData = file.thumbnailData {
-                        try Self.writeEncryptedData(thumbnailData, to: photosDir.appendingPathComponent("\(file.fileID)_thumb.dat"), key: key)
-                    }
-                }
 
                 try manifestData.write(to: packageURL.appendingPathComponent("manifest.json"))
 
@@ -192,7 +211,7 @@ enum ICloudBackupService {
                 createdAt: timestamp,
                 metricsCount: metrics.count,
                 goalsCount: goals.count,
-                photosCount: photos.count,
+                photosCount: photosCount,
                 settingsCount: settingsEntries.count,
                 isEncrypted: true,
                 sizeBytes: backupSize
@@ -200,6 +219,8 @@ enum ICloudBackupService {
 
             return .success(manifestWithSize)
         } catch {
+            // Clean up temp photos dir if it was created but backup failed
+            try? FileManager.default.removeItem(at: tempPhotosDir)
             let message = userFacingErrorMessage(for: error)
             await MainActor.run {
                 AppSettingsStore.shared.set(\.iCloudBackup.lastErrorMessage, message)
@@ -343,38 +364,29 @@ enum ICloudBackupService {
                     from: packageURL.appendingPathComponent("settings.json"), key: key
                 )
 
-                let photosDir = packageURL.appendingPathComponent("photos", isDirectory: true)
-                let restoredPhotos = try photoEntries.map { entry in
-                    let imageURL = photosDir.appendingPathComponent("\(entry.fileID).dat")
-                    let imageData = try Self.readEncryptedData(from: imageURL, key: key)
-
-                    var thumbnailData: Data?
-                    if entry.hasThumbnail {
-                        let thumbURL = photosDir.appendingPathComponent("\(entry.fileID)_thumb.dat")
-                        thumbnailData = try Self.readEncryptedData(from: thumbURL, key: key)
-                    }
-
-                    return RestoredPhotoEntry(
-                        imageData: imageData,
-                        thumbnailData: thumbnailData,
-                        date: entry.date,
-                        tagRawValues: entry.tags,
-                        linkedMetrics: entry.linkedMetrics
-                    )
-                }
-
                 return RestorePayload(
                     metrics: metrics,
                     goals: goals,
-                    photos: restoredPhotos,
+                    photoEntries: photoEntries,
                     settingsEntries: settingsEntries
                 )
             }.value
 
-            // Snapshot existing data for rollback in case save fails
+            // Validate payload before deleting existing data — reject fully corrupt backups
+            let validMetricCount = payload.metrics.filter { MetricKind(rawValue: $0.kindRaw) != nil }.count
+            let validGoalCount = payload.goals.filter {
+                MetricKind(rawValue: $0.kindRaw) != nil && MetricGoal.Direction(rawValue: $0.directionRaw) != nil
+            }.count
+            let totalRestorableItems = validMetricCount + validGoalCount + payload.photoEntries.count
+            let totalPayloadItems = payload.metrics.count + payload.goals.count + payload.photoEntries.count
+
+            if totalRestorableItems == 0 && totalPayloadItems > 0 {
+                return .failure(.invalidBackupSchema)
+            }
+
+            // Snapshot existing metrics & goals for rollback (lightweight — no image data)
             let existingMetrics = try context.fetch(FetchDescriptor<MetricSample>())
             let existingGoals = try context.fetch(FetchDescriptor<MetricGoal>())
-            let existingPhotos = try context.fetch(FetchDescriptor<PhotoEntry>())
 
             let snapshotMetrics = existingMetrics.map {
                 CodableMetricSample(kindRaw: $0.kindRaw, value: $0.value, date: $0.date)
@@ -389,18 +401,8 @@ enum ICloudBackupService {
                     startDate: $0.startDate
                 )
             }
-            let snapshotPhotos = existingPhotos.map { photo in
-                RestoredPhotoEntry(
-                    imageData: photo.imageData,
-                    thumbnailData: photo.thumbnailData,
-                    date: photo.date,
-                    tagRawValues: photo.tags.map(\.rawValue),
-                    linkedMetrics: photo.linkedMetrics.map {
-                        CodableLinkedMetric(metricRawValue: $0.metricRawValue, value: $0.value, unit: $0.unit)
-                    }
-                )
-            }
 
+            // Phase 1: Restore metrics & goals (small data, supports rollback)
             try deleteAll(MetricSample.self, from: context)
             try deleteAll(MetricGoal.self, from: context)
             try deleteAll(PhotoEntry.self, from: context)
@@ -423,25 +425,12 @@ enum ICloudBackupService {
                 ))
             }
 
-            for photo in payload.photos {
-                context.insert(PhotoEntry(
-                    imageData: photo.imageData,
-                    thumbnailData: photo.thumbnailData,
-                    date: photo.date,
-                    tags: photo.tagRawValues.compactMap(PhotoTag.init(rawValue:)),
-                    linkedMetrics: photo.linkedMetrics.map {
-                        MetricValueSnapshot(metricRawValue: $0.metricRawValue, value: $0.value, unit: $0.unit)
-                    }
-                ))
-            }
-
             do {
                 try context.save()
             } catch {
-                // Rollback: re-insert original data
+                // Rollback metrics & goals only
                 try? deleteAll(MetricSample.self, from: context)
                 try? deleteAll(MetricGoal.self, from: context)
-                try? deleteAll(PhotoEntry.self, from: context)
                 for m in snapshotMetrics {
                     if let kind = MetricKind(rawValue: m.kindRaw) {
                         context.insert(MetricSample(kind: kind, value: m.value, date: m.date))
@@ -460,19 +449,52 @@ enum ICloudBackupService {
                         ))
                     }
                 }
-                for photo in snapshotPhotos {
-                    context.insert(PhotoEntry(
-                        imageData: photo.imageData,
-                        thumbnailData: photo.thumbnailData,
-                        date: photo.date,
-                        tags: photo.tagRawValues.compactMap(PhotoTag.init(rawValue:)),
-                        linkedMetrics: photo.linkedMetrics.map {
-                            MetricValueSnapshot(metricRawValue: $0.metricRawValue, value: $0.value, unit: $0.unit)
-                        }
-                    ))
-                }
                 try? context.save()
                 throw error
+            }
+
+            // Phase 2: Restore photos in batches to limit memory usage
+            let photosDir = packageURL.appendingPathComponent("photos", isDirectory: true)
+            let photoBatchSize = 10
+            let photoChunks = stride(from: 0, to: payload.photoEntries.count, by: photoBatchSize).map {
+                Array(payload.photoEntries[$0 ..< min($0 + photoBatchSize, payload.photoEntries.count)])
+            }
+
+            for batch in photoChunks {
+                try autoreleasepool {
+                    let restoredBatch: [RestoredPhotoEntry] = try batch.map { entry in
+                        let imageURL = photosDir.appendingPathComponent("\(entry.fileID).dat")
+                        let imageData = try Self.readEncryptedData(from: imageURL, key: key)
+
+                        var thumbnailData: Data?
+                        if entry.hasThumbnail {
+                            let thumbURL = photosDir.appendingPathComponent("\(entry.fileID)_thumb.dat")
+                            thumbnailData = try Self.readEncryptedData(from: thumbURL, key: key)
+                        }
+
+                        return RestoredPhotoEntry(
+                            imageData: imageData,
+                            thumbnailData: thumbnailData,
+                            date: entry.date,
+                            tagRawValues: entry.tags,
+                            linkedMetrics: entry.linkedMetrics
+                        )
+                    }
+
+                    for photo in restoredBatch {
+                        context.insert(PhotoEntry(
+                            imageData: photo.imageData,
+                            thumbnailData: photo.thumbnailData,
+                            date: photo.date,
+                            tags: photo.tagRawValues.compactMap(PhotoTag.init(rawValue:)),
+                            linkedMetrics: photo.linkedMetrics.map {
+                                MetricValueSnapshot(metricRawValue: $0.metricRawValue, value: $0.value, unit: $0.unit)
+                            }
+                        ))
+                    }
+
+                    try context.save()
+                }
             }
 
             await MainActor.run { restoreSettings(payload.settingsEntries) }
@@ -565,7 +587,12 @@ enum ICloudBackupService {
         return loadOrCreateKeychainKey()
     }
 
+    private static let keychainLock = NSLock()
+
     private static func loadOrCreateKeychainKey() -> SymmetricKey? {
+        keychainLock.lock()
+        defer { keychainLock.unlock() }
+
         // Try to read existing key
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -792,7 +819,7 @@ enum ICloudBackupService {
     private struct RestorePayload: Sendable {
         let metrics: [CodableMetricSample]
         let goals: [CodableMetricGoal]
-        let photos: [RestoredPhotoEntry]
+        let photoEntries: [CodablePhotoEntry]
         let settingsEntries: [SettingsEntry]
     }
 

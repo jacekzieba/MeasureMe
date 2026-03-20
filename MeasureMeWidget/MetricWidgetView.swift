@@ -63,10 +63,11 @@ struct MetricWidgetView: View {
     private var kind: WidgetMetricKind { entry.configuration.metric }
     private var data: WidgetMetricData? { entry.data }
 
+    private var primaryRecentSamples: [WidgetMetricData.SampleDTO] { data?.last30DaySamples ?? [] }
     private var latestValueText: String { valueTextFor(kind: kind, data: data) }
-    private var deltaText: String? { data?.deltaText(for: kind) }
-    private var trendColor: Color { colorFor(kind: kind, data: data) }
-    private var sparklineSamples: [WidgetMetricData.SampleDTO] { data?.last30DaySamples ?? [] }
+    private var deltaText: String? { data?.deltaText(for: kind, recentSamples: primaryRecentSamples) }
+    private var trendColor: Color { colorFor(kind: kind, data: data, recentSamples: primaryRecentSamples) }
+    private var sparklineSamples: [WidgetMetricData.SampleDTO] { primaryRecentSamples }
 
     var body: some View {
         Group {
@@ -108,7 +109,7 @@ struct MetricWidgetView: View {
                 if let delta = deltaText {
                     DeltaPill(text: delta, color: trendColor, compact: false)
                 } else {
-                    Text("30d")
+                    Text("widget.period.30d")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.25))
                 }
@@ -147,7 +148,8 @@ struct MetricWidgetView: View {
 
     @ViewBuilder
     private func metricColumn(kind: WidgetMetricKind, data: WidgetMetricData?) -> some View {
-        let trend = colorFor(kind: kind, data: data)
+        let recent = data?.last30DaySamples ?? []
+        let trend = colorFor(kind: kind, data: data, recentSamples: recent)
         VStack(alignment: .leading, spacing: 0) {
             // Header: icon badge + name
             HStack(spacing: 4) {
@@ -170,10 +172,10 @@ struct MetricWidgetView: View {
 
             // Delta pill
             Group {
-                if let delta = data?.deltaText(for: kind) {
+                if let delta = data?.deltaText(for: kind, recentSamples: recent) {
                     DeltaPill(text: delta, color: trend, compact: true)
                 } else {
-                    Text("30d")
+                    Text("widget.period.30d")
                         .font(.system(size: 9))
                         .foregroundStyle(.white.opacity(0.20))
                 }
@@ -183,7 +185,7 @@ struct MetricWidgetView: View {
             Spacer(minLength: 0)
 
             // Sparkline
-            WidgetSparklineView(samples: data?.last30DaySamples ?? [], trendColor: trend)
+            WidgetSparklineView(samples: recent, trendColor: trend)
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
         }
@@ -200,9 +202,13 @@ struct MetricWidgetView: View {
         return String(format: fmt, val, unit)
     }
 
-    private func colorFor(kind: WidgetMetricKind, data: WidgetMetricData?) -> Color {
+    private func colorFor(
+        kind: WidgetMetricKind,
+        data: WidgetMetricData?,
+        recentSamples: [WidgetMetricData.SampleDTO]
+    ) -> Color {
         guard let data else { return .white.opacity(0.3) }
-        switch data.trendOutcome(for: kind) {
+        switch data.trendOutcome(for: kind, recentSamples: recentSamples) {
         case .positive: return .widgetGreen
         case .negative: return .widgetRed
         case .neutral:  return .white.opacity(0.4)

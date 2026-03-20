@@ -1,6 +1,24 @@
 import SwiftUI
 import SwiftData
 
+struct HomeCompareChooserOnDemandSheet: View {
+    let initialOlderPhoto: PhotoEntry?
+    let initialNewerPhoto: PhotoEntry?
+    let onCompareSelected: (PhotoEntry, PhotoEntry) -> Void
+
+    @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)])
+    private var photos: [PhotoEntry]
+
+    var body: some View {
+        HomeCompareChooserSheet(
+            photos: photos,
+            initialOlderPhoto: initialOlderPhoto,
+            initialNewerPhoto: initialNewerPhoto,
+            onCompareSelected: onCompareSelected
+        )
+    }
+}
+
 struct HomeCompareChooserSheet: View {
     @Environment(\.dismiss) private var dismiss
 

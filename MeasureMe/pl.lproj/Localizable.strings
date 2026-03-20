@@ -122,6 +122,14 @@
 "home.thisweek.empty" = "Brak wpisów";
 "home.thisweek.single" = "Aktywne dni: 1";
 "home.thisweek.multiple" = "Aktywne dni: %d";
+"home.thisweek.multiple.one" = "%d wpis";
+"home.thisweek.multiple.few" = "%d wpisy";
+"home.thisweek.multiple.many" = "%d wpisów";
+"insight.thinking" = "Myślę...";
+"insight.ask.about" = "Zapytaj o";
+"insight.ask.placeholder" = "Zadaj pytanie...";
+"insight.followup.limit" = "Wykorzystałeś limit pytań uzupełniających";
+"insight.error.response" = "Przepraszam, nie udało się wygenerować odpowiedzi. Spróbuj ponownie.";
 "home.thisweek.detail.empty" = "Dodaj pierwszy pomiar w tym tygodniu.";
 "home.thisweek.detail.logged" = "Ostatni wpis: %@.";
 "home.goalstatus.ontrack" = "Jesteś na dobrej, zrównoważonej ścieżce.";
@@ -1327,6 +1335,10 @@
 "settings.action.explorePremium" = "Poznaj Premium";
 "settings.summary.subscription.manage" = "Rozliczenia, odnowienie i szczegóły okresu próbnego";
 "settings.summary.home.modules" = "Widoczne moduły: %d";
+"settings.summary.home.modules.one" = "Widoczny %d moduł";
+"settings.summary.home.modules.few" = "Widoczne %d moduły";
+"settings.summary.home.modules.many" = "Widocznych %d modułów";
+"Customer Center" = "Centrum klienta";
 "settings.summary.notifications.off" = "Przypomnienia wyłączone";
 "settings.summary.notifications.none" = "Przypomnienia włączone, ale brak harmonogramu";
 "settings.summary.notifications.count" = "Zaplanowane przypomnienia: %d";
@@ -1358,6 +1370,9 @@
 "onboarding.example.data" = "Dane przykładowe";
 "You can skip and fill this later." = "Możesz pominąć i uzupełnić to później.";
 "Show %d more" = "Pokaż %d więcej";
+"Show %d more.one" = "Pokaż jeszcze %d pozycję";
+"Show %d more.few" = "Pokaż jeszcze %d pozycje";
+"Show %d more.many" = "Pokaż jeszcze %d pozycji";
 "trend.steady" = "stabilnie";
 "trend.up" = "trend wzrostowy";
 "trend.down" = "trend spadkowy";
@@ -1641,8 +1656,6 @@
 "Last month" = "Ostatni miesiąc";
 "Last 3 months" = "Ostatnie 3 miesiące";
 "Last 6 months" = "Ostatnie 6 miesięcy";
-"Last year" = "Ostatni rok";
-"All time" = "Cały okres";
 
 /* PDF content */
 "MeasureMe Report" = "Raport MeasureMe";

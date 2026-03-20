@@ -5,6 +5,8 @@ final class PerformanceUITests: XCTestCase {
         var metrics: [String: Double] = [:]
     }
 
+    private static let appBundleID = "com.jacek.measureme"
+    private static let launchTrendSampleCount = 6
     private var app: XCUIApplication!
 
     override func setUp() {
@@ -16,8 +18,8 @@ final class PerformanceUITests: XCTestCase {
 
     @MainActor
     func testAppLaunchDurationPerformance() throws {
-        let manualAverageMs = averageColdLaunchDurationMs(sampleCount: 2)
-        logTrend(metric: "app_launch_ms", currentMs: manualAverageMs)
+        let manualMedianMs = robustColdLaunchDurationMs(sampleCount: Self.launchTrendSampleCount)
+        logTrend(metric: "app_launch_ms", currentMs: manualMedianMs)
         #if targetEnvironment(simulator)
         measure(metrics: [
             XCTApplicationLaunchMetric()
@@ -28,14 +30,14 @@ final class PerformanceUITests: XCTestCase {
         }
         #else
         // Physical-device fallback: rely on manual launch timings gathered above.
-        XCTAssertGreaterThan(manualAverageMs, 0)
+        XCTAssertGreaterThan(manualMedianMs, 0)
         #endif
     }
 
     @MainActor
     func testAppStartupResourcePerformance() {
-        let manualAverageMs = averageColdLaunchDurationMs(sampleCount: 2)
-        logTrend(metric: "startup_clock_ms", currentMs: manualAverageMs)
+        let manualMedianMs = robustColdLaunchDurationMs(sampleCount: Self.launchTrendSampleCount)
+        logTrend(metric: "startup_clock_ms", currentMs: manualMedianMs)
         measure(metrics: [
             XCTClockMetric(),
             XCTCPUMetric(application: app),
@@ -61,6 +63,34 @@ final class PerformanceUITests: XCTestCase {
             tapTab(named: "tab.photos")
             tapTab(named: "tab.settings")
             tapTab(named: "tab.home")
+        }
+    }
+
+    @MainActor
+    func testHomeDeferredSyncSignpostPerformance() {
+        app.launchArguments = [
+            "-uiTestMode",
+            "-uiTestSeedMeasurements",
+            "-uiTestSeedPhotos", "120",
+            "-uiTestSeedPhotoMetrics"
+        ]
+        let deferredSyncMetric = XCTOSSignpostMetric(
+            subsystem: Self.appBundleID,
+            category: "Startup",
+            name: "HomeDeferredSync"
+        )
+
+        measure(metrics: [
+            deferredSyncMetric,
+            XCTClockMetric()
+        ]) {
+            app.terminate()
+            app.launch()
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 8))
+            XCTAssertTrue(ensureTabBarExists(timeout: 20), "Expected tab bar to exist before deferred sync measurement.")
+
+            // `HomeDeferredSync` is scheduled after startup delay; keep app alive long enough for interval capture.
+            RunLoop.current.run(until: Date().addingTimeInterval(3.0))
         }
     }
 
@@ -162,20 +192,41 @@ final class PerformanceUITests: XCTestCase {
         return app.buttons["onboarding.next"].firstMatch
     }
 
-    private func averageColdLaunchDurationMs(sampleCount: Int) -> Double {
+    private func robustColdLaunchDurationMs(sampleCount: Int) -> Double {
         guard sampleCount > 0 else { return 0 }
-        var samples: [Double] = []
-        samples.reserveCapacity(sampleCount)
+
+        // Warm-up run: first UI automation launch is often an outlier.
+        app.terminate()
+        app.launch()
+        _ = app.wait(for: .runningForeground, timeout: 8)
+
+        var rawSamples: [Double] = []
+        rawSamples.reserveCapacity(sampleCount)
         for _ in 0..<sampleCount {
             app.terminate()
             let start = Date()
             app.launch()
             XCTAssertTrue(app.wait(for: .runningForeground, timeout: 8))
-            samples.append(Date().timeIntervalSince(start) * 1_000)
+            rawSamples.append(Date().timeIntervalSince(start) * 1_000)
         }
-        let averageMs = samples.reduce(0, +) / Double(samples.count)
-        print("📊 PERF baseline samplesMs=\(samples.map { String(format: "%.0f", $0) }.joined(separator: ",")) avgMs=\(String(format: "%.1f", averageMs))")
-        return averageMs
+
+        let stabilizedSamples = Array(rawSamples.dropFirst())
+        let samplesForMedian = stabilizedSamples.isEmpty ? rawSamples : stabilizedSamples
+        let sorted = samplesForMedian.sorted()
+        let middle = sorted.count / 2
+        let medianMs: Double
+        if sorted.count.isMultiple(of: 2), sorted.count > 1 {
+            medianMs = (sorted[middle - 1] + sorted[middle]) / 2
+        } else {
+            medianMs = sorted[middle]
+        }
+
+        print(
+            "📊 PERF baseline rawSamplesMs=\(rawSamples.map { String(format: "%.0f", $0) }.joined(separator: ",")) " +
+            "stableSamplesMs=\(samplesForMedian.map { String(format: "%.0f", $0) }.joined(separator: ",")) " +
+            "medianMs=\(String(format: "%.1f", medianMs))"
+        )
+        return medianMs
     }
 
     private func logTrend(metric: String, currentMs: Double) {

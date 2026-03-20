@@ -61,6 +61,17 @@ nonisolated enum InsightTextProcessor {
         return output
     }
 
+    // MARK: - Question Input
+
+    /// Sanitize a follow-up question before passing it to the language model.
+    /// Limits length and strips control characters to reduce prompt-injection surface.
+    static func sanitizeQuestion(_ question: String) -> String {
+        let stripped = question
+            .components(separatedBy: .controlCharacters).joined()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return String(stripped.prefix(500))
+    }
+
     // MARK: - User Name
 
     static func sanitizeUserName(_ name: String) -> String {
