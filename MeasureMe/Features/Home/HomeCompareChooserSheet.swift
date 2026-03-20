@@ -260,6 +260,7 @@ struct HomeCompareChooserSheet: View {
                     .accessibilityIdentifier("home.compare.filter.\(range.rawValue)")
                 }
             }
+            .padding(.horizontal, 16)
 
             if selectedRange == .custom {
                 HStack(spacing: 12) {

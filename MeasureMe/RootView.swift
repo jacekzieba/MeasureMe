@@ -10,6 +10,7 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @AppSetting(\.onboarding.hasCompletedOnboarding) private var hasCompletedOnboarding: Bool = false
     private let autoCheckPaywallPrompt: Bool
+    private let runDeferredStartupWork: Bool
     private let isAuditCaptureEnabled = AuditConfig.current.isEnabled
     private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
     private let isOnboardingUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestOnboardingMode")
@@ -19,11 +20,13 @@ struct RootView: View {
     init(
         premiumStore: PremiumStore? = nil,
         metricsStore: ActiveMetricsStore? = nil,
-        autoCheckPaywallPrompt: Bool = true
+        autoCheckPaywallPrompt: Bool = true,
+        runDeferredStartupWork: Bool = true
     ) {
         _premiumStore = StateObject(wrappedValue: premiumStore ?? PremiumStore(startListener: false))
         _metricsStore = StateObject(wrappedValue: metricsStore ?? ActiveMetricsStore())
         self.autoCheckPaywallPrompt = autoCheckPaywallPrompt
+        self.runDeferredStartupWork = runDeferredStartupWork
     }
 
     var body: some View {
@@ -228,6 +231,7 @@ struct RootView: View {
     }
 
     private func scheduleDeferredStartupWorkIfNeeded() {
+        guard runDeferredStartupWork else { return }
         guard !didScheduleDeferredStartupWork else { return }
         didScheduleDeferredStartupWork = true
 

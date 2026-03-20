@@ -225,8 +225,8 @@
 "home.health.pill.preview" = "Podgląd";
 "home.health.pill.ready" = "Gotowe";
 "home.health.empty.disconnected.title" = "Połącz aplikację Zdrowie, jeśli chcesz mniej ręcznej pracy";
-"home.health.empty.disconnected.detail" = "Dociągnij wagę, talię albo skład ciała, aby Strona główna pokazywała wzorce, a nie pustkę.";
-"home.health.empty.disconnected.detail.preview" = "Dociągnij jedną metrykę z aplikacji Zdrowie, aby podejrzeć Zdrowie na Stronie głównej. Pełne podsumowanie i sylwetka są w Premium.";
+"home.health.empty.disconnected.detail" = "Połącz MeasureME z aplikacją Zdrowie, aby widzieć metryki.";
+"home.health.empty.disconnected.detail.preview" = "Pobierz dane z aplikacji Zdrowie, aby podejrzeć metryki na Stronie głównej. Pełne podsumowanie jest dostępne Premium.";
 "home.health.empty.synced.title" = "Dane z aplikacji Zdrowie są pobierane, ale brakuje nam kilku danych.";
 "home.health.empty.synced.detail" = "Dodaj kilka pomiarów, aby ta karta stała się użyteczna.";
 "home.health.empty.synced.detail.preview" = "Tutaj zobaczysz podgląd jednej zsynchronizowanej metryki. Więcej metryk zdrowia, sylwetka i pełne podsumowanie są w Premium.";

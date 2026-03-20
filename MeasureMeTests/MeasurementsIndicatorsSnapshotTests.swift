@@ -11,13 +11,14 @@ import SwiftData
 
 final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
     @MainActor
-    func testHealthAndPhysiqueSections_snapshot_darkDefault() throws {
+    func testHealthAndPhysiqueSections_snapshot_darkDefault() async throws {
         #if !targetEnvironment(simulator)
         XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
         return
         #endif
 
         let defaults = UserDefaults.standard
+        let settingsStore = AppSettingsStore.shared
         let keys = [
             "appLanguage",
             "userGender",
@@ -57,6 +58,7 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
             AppSettingsStore.shared.forceReloadSnapshot()
             AppLocalization.settings = .shared
             AppLocalization.reloadLanguage()
+            settingsStore.reload()
             UIView.setAnimationsEnabled(wereAnimationsEnabled)
         }
 
@@ -104,7 +106,7 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
         premiumStore.isPremium = true
         let router = AppRouter()
 
-        let view = ScrollView {
+        let view = NavigationStack {
             VStack(spacing: 12) {
                 HealthMetricsSection(
                     latestWaist: 80.0,
@@ -114,7 +116,8 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
                     latestBodyFat: 16.0,
                     latestLeanMass: 63.0,
                     displayMode: .indicatorsOnly,
-                    title: ""
+                    title: "",
+                    runSideEffects: false
                 )
 
                 PhysiqueIndicatorsSection(
@@ -130,6 +133,7 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
+            .toolbar(.hidden, for: .navigationBar)
         }
         .modelContainer(container)
         .environmentObject(premiumStore)
@@ -137,9 +141,13 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
         .preferredColorScheme(.dark)
 
         let vc = UIHostingController(rootView: view)
-        vc.view.frame = CGRect(x: 0, y: 0, width: 390, height: 1800)
+        vc.view.frame = CGRect(x: 0, y: 0, width: 390, height: 1200)
+        let window = UIWindow(frame: vc.view.frame)
+        window.rootViewController = vc
+        window.makeKeyAndVisible()
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(100))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
         assertSnapshot(of: vc, as: .image, record: shouldRecord)

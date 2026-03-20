@@ -39,6 +39,7 @@ final class RootViewSnapshotTests: XCTestCase {
     ]
     let baselineDefaults = Dictionary(uniqueKeysWithValues: managedKeys.map { ($0, defaults.object(forKey: $0)) })
     let wereAnimationsEnabled = UIView.areAnimationsEnabled
+    let fixedNow = Date(timeIntervalSince1970: 1_770_000_000)
     defer {
       for (key, value) in baselineDefaults {
         if let value {
@@ -77,7 +78,8 @@ final class RootViewSnapshotTests: XCTestCase {
     // Widok + wstrzyknięcie kontenera
     let view = RootView(
       premiumStore: premiumStore,
-      autoCheckPaywallPrompt: false
+      autoCheckPaywallPrompt: false,
+      runDeferredStartupWork: false
     )
       .modelContainer(container)
       .environment(\.colorScheme, .dark) // opcjonalnie; możesz zmienić na .light
@@ -96,7 +98,7 @@ final class RootViewSnapshotTests: XCTestCase {
     vc.view.layoutIfNeeded()
 
     // Pozwól onAppear Task uruchomić się i zakończyć zanim zrobimy snapshot.
-    try await Task.sleep(for: .milliseconds(50))
+    try await Task.sleep(for: .milliseconds(100))
 
     // Obrazkowy snapshot jest stabilniejszy niż recursiveDescription dla tego widoku
     // na iOS 26 simulator i lepiej odzwierciedla faktyczną regresję wizualną.
