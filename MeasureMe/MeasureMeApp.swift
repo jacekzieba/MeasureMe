@@ -627,13 +627,6 @@ struct MeasureMeApp: App {
             UIScrollView.appearance().delaysContentTouches = false
         }
 
-        if shouldPrepareUITestTouchHandling {
-            // SwiftUI buttons inside onboarding/home scroll views can miss XCTest taps
-            // unless the default UIScrollView touch delay is disabled for UI tests.
-            UIScrollView.swizzleDelaysContentTouchesForUITesting()
-            UIScrollView.appearance().delaysContentTouches = false
-        }
-
         guard args.contains("-uiTestMode") else { return }
         defaults.removeObject(forKey: AppSettingsKeys.Home.homeLayoutData)
         defaults.set(\.homeLayout.layoutSchemaVersion, HomeLayoutSnapshot.currentSchemaVersion)
