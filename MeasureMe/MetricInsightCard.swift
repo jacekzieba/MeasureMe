@@ -7,6 +7,13 @@ struct MetricInsightCard: View {
     var onRefresh: (() -> Void)? = nil
 
     @State private var shimmerPhase: CGFloat = 0
+    @State private var isExpanded = false
+
+    private let collapsedLineLimit = 4
+
+    private var canExpand: Bool {
+        !compact && !isLoading && text.count > 220
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -30,11 +37,25 @@ struct MetricInsightCard: View {
                         .font(compact ? AppTypography.microEmphasis : AppTypography.body)
                         .foregroundStyle(AppColorRoles.textPrimary)
                         .multilineTextAlignment(.leading)
-                        .lineLimit(nil)
+                        .lineLimit(canExpand && !isExpanded ? collapsedLineLimit : nil)
                         .fixedSize(horizontal: false, vertical: true)
                         .layoutPriority(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityIdentifier(compact ? "insight.card.text.compact" : "insight.card.text.detail")
+
+                    if canExpand {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isExpanded.toggle()
+                            }
+                        } label: {
+                            Text(AppLocalization.string(isExpanded ? "Show less" : "Show more"))
+                                .font(AppTypography.microEmphasis)
+                                .foregroundStyle(AppColorRoles.accentPrimary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("insight.card.expand")
+                    }
                 }
 
                 HStack {
@@ -97,6 +118,9 @@ struct MetricInsightCard: View {
                     shimmerPhase = 1
                 }
             }
+        }
+        .onChange(of: text) { _, _ in
+            isExpanded = false
         }
     }
 

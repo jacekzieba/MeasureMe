@@ -868,6 +868,8 @@
 "Enable AI Insights" = "Enable AI Insights";
 "AI Insights" = "AI Insights";
 "AI Insights aren’t available right now." = "AI Insights aren’t available right now.";
+"Show more" = "Show more";
+"Show less" = "Show less";
 "Not enough data to generate insights yet." = "Not enough data to generate insights yet.";
 "Not enough data in the selected range to generate insights yet." = "Not enough data in the selected range to generate insights yet.";
 "Couldn't generate an insight right now. Please try again in a moment." = "Couldn't generate an insight right now. Please try again in a moment.";

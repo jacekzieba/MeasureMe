@@ -1271,6 +1271,8 @@
 "Enable AI Insights" = "Włącz Analizy AI";
 "AI Insights" = "Analizy AI";
 "AI Insights aren’t available right now." = "Analizy AI są teraz niedostępne.";
+"Show more" = "Pokaż więcej";
+"Show less" = "Pokaż mniej";
 "Not enough data to generate insights yet." = "Za mało danych, aby wygenerować podsumowanie.";
 "Not enough data in the selected range to generate insights yet." = "Za mało danych w wybranym zakresie, aby wygenerować podsumowanie.";
 "Couldn't generate an insight right now. Please try again in a moment." = "Nie udało się teraz wygenerować podsumowania. Spróbuj ponownie za chwilę.";
