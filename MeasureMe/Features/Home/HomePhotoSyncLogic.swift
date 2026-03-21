@@ -9,7 +9,7 @@ struct PhotoGridThumb: View {
 
     var body: some View {
         DownsampledImageView(
-            imageData: photo.thumbnailOrImageData,
+            imageData: photo.preferredGridImageData,
             targetSize: CGSize(width: size, height: size),
             contentMode: .fill,
             cornerRadius: 12,

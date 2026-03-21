@@ -32,7 +32,7 @@ struct PhotoGridCell: View {
         .offset(y: isVisible ? 0 : 8)
         .scaleEffect(isVisible ? 1 : 0.985)
         .onAppear {
-            let hasStoredThumbnail = photo.thumbnailData != nil
+            let hasStoredThumbnail = PhotoUtilities.matchesGridThumbnailSpec(photo.thumbnailData)
             PhotoThumbnailTelemetry.recordPhotosTileAppearance(
                 photoID: photoID,
                 hasStoredThumbnail: hasStoredThumbnail
@@ -108,7 +108,7 @@ private extension PhotoGridCell {
 
     var photoImage: some View {
         DownsampledImageView(
-            imageData: photo.thumbnailOrImageData,
+            imageData: photo.preferredGridImageData,
             targetSize: CGSize(width: 110, height: 110),
             contentMode: .fill,
             cornerRadius: 12,

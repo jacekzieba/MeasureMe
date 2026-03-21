@@ -255,6 +255,7 @@
 "accessibility.open.photo.details" = "Open photo details";
 "accessibility.compare.mode.side" = "Switch to side by side mode";
 "accessibility.compare.mode.slider" = "Switch to slider mode";
+"accessibility.compare.mode.ghost" = "Switch to ghost overlay mode";
 "accessibility.compare.ghost.opacity" = "After image opacity";
 "compare.mode.slider" = "Slider";
 "compare.mode.sideBySide" = "Side by Side";

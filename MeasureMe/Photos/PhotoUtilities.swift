@@ -11,7 +11,7 @@ enum PhotoUtilities {
         let quality: CGFloat
     }
 
-    nonisolated static let gridThumbnailSize = CGSize(width: 220, height: 240)
+    nonisolated static let gridThumbnailSize = CGSize(width: 220, height: 220)
     nonisolated static let gridThumbnailTargetBytes = 40_000
     nonisolated static let gridThumbnailMaxBytes = 60_000
     
@@ -143,10 +143,39 @@ enum PhotoUtilities {
     ///   - size: Rozmiar miniatury
     /// - Returns: Miniatura obrazu
     nonisolated static func thumbnail(from image: UIImage, size: CGSize = CGSize(width: 200, height: 200)) -> UIImage {
-        let renderer = UIGraphicsImageRenderer(size: size)
-        return renderer.image { _ in
-            image.draw(in: CGRect(origin: .zero, size: size))
+        let sourceSize = image.size
+        guard sourceSize.width > 0, sourceSize.height > 0, size.width > 0, size.height > 0 else {
+            return image
         }
+
+        let scale = max(size.width / sourceSize.width, size.height / sourceSize.height)
+        let scaledSize = CGSize(width: sourceSize.width * scale, height: sourceSize.height * scale)
+        let origin = CGPoint(
+            x: (size.width - scaledSize.width) / 2,
+            y: (size.height - scaledSize.height) / 2
+        )
+        let drawRect = CGRect(origin: origin, size: scaledSize)
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        return renderer.image { _ in
+            image.draw(in: drawRect)
+        }
+    }
+
+    nonisolated static func matchesGridThumbnailSpec(_ data: Data?) -> Bool {
+        guard let data,
+              let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
+              let height = properties[kCGImagePropertyPixelHeight] as? CGFloat else {
+            return false
+        }
+
+        return Int(width.rounded()) == Int(gridThumbnailSize.width.rounded())
+            && Int(height.rounded()) == Int(gridThumbnailSize.height.rounded())
     }
 
     nonisolated static func makeGridThumbnailData(

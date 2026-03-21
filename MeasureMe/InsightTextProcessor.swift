@@ -5,14 +5,22 @@ nonisolated enum InsightTextProcessor {
     // MARK: - Parse
 
     static func parse(_ raw: String) -> MetricInsightPair {
-        let trimmed = sanitize(raw).trimmingCharacters(in: .whitespacesAndNewlines)
-        let parts = trimmed.components(separatedBy: "\n<SEP>\n")
+        let normalized = raw
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let rawParts = normalized.contains("<SEP>")
+            ? normalized.components(separatedBy: "<SEP>")
+            : [normalized]
 
-        var short = parts.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        var detail = parts.dropFirst().joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        var short = sanitize(rawParts.first ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        var detail = rawParts.dropFirst()
+            .map { sanitize($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .joined(separator: "\n\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let sanitizedWhole = sanitize(normalized).trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if short.isEmpty { short = trimmed }
-        if detail.isEmpty { detail = trimmed }
+        if short.isEmpty { short = sanitizedWhole }
+        if detail.isEmpty { detail = sanitizedWhole }
 
         if short.isEmpty {
             short = "Your trend is being analyzed."
@@ -40,6 +48,7 @@ nonisolated enum InsightTextProcessor {
         output = output.replacingOccurrences(of: "\n• ", with: "\n")
         output = output.replacingOccurrences(of: "SHORT:", with: "", options: .caseInsensitive)
         output = output.replacingOccurrences(of: "DETAIL:", with: "", options: .caseInsensitive)
+        output = output.replacingOccurrences(of: "<SEP>", with: " ")
         output = output.replacingOccurrences(of: "As an AI", with: "", options: .caseInsensitive)
         output = output.replacingOccurrences(of: "Certainly,", with: "", options: .caseInsensitive)
         output = output.replacingOccurrences(of: "Here is", with: "", options: .caseInsensitive)

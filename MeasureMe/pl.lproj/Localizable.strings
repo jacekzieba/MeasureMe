@@ -292,6 +292,7 @@
 "accessibility.open.photo.details" = "Otwórz szczegóły zdjęcia";
 "accessibility.compare.mode.side" = "Przełącz na tryb obok siebie";
 "accessibility.compare.mode.slider" = "Przełącz na tryb suwaka";
+"accessibility.compare.mode.ghost" = "Przełącz na tryb nakładki";
 "accessibility.compare.ghost.opacity" = "Przezroczystość zdjęcia po";
 "compare.mode.slider" = "Suwak";
 "compare.mode.sideBySide" = "Obok siebie";

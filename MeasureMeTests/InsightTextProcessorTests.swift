@@ -43,6 +43,8 @@ final class InsightTextProcessorTests: XCTestCase {
         XCTAssertEqual(result.shortText, "Headline.")
         XCTAssertTrue(result.detailedText.contains("Part one."))
         XCTAssertTrue(result.detailedText.contains("Part two."))
+        XCTAssertFalse(result.shortText.contains("<SEP>"))
+        XCTAssertFalse(result.detailedText.contains("<SEP>"))
     }
 
     // MARK: - sanitize()
@@ -134,6 +136,15 @@ final class InsightTextProcessorTests: XCTestCase {
         XCTAssertFalse(result.contains("DETAIL:"))
         XCTAssertTrue(result.contains("trending up"))
         XCTAssertTrue(result.contains("more info here"))
+    }
+
+    /// Co sprawdza: Usuwanie separatora <SEP> z tekstu pokazywanego użytkownikowi
+    func testSanitize_removesSEPMarker() {
+        let input = "Headline <SEP> details"
+        let result = InsightTextProcessor.sanitize(input)
+        XCTAssertFalse(result.contains("<SEP>"))
+        XCTAssertTrue(result.contains("Headline"))
+        XCTAssertTrue(result.contains("details"))
     }
 
     // MARK: - sanitizeUserName()

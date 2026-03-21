@@ -17,6 +17,13 @@ final class PhotoEntry {
         thumbnailData ?? imageData
     }
 
+    var preferredGridImageData: Data {
+        if PhotoUtilities.matchesGridThumbnailSpec(thumbnailData) {
+            return thumbnailData ?? imageData
+        }
+        return imageData
+    }
+
     init(
         imageData: Data,
         thumbnailData: Data? = nil,

@@ -81,8 +81,9 @@ actor PhotoThumbnailBackfillService {
         modelContainer: ModelContainer?,
         source: String
     ) {
-        guard existingThumbnailData == nil else { return }
         guard let modelContainer else { return }
+        let needsRefresh = !PhotoUtilities.matchesGridThumbnailSpec(existingThumbnailData)
+        guard needsRefresh else { return }
         guard !queuedIDs.contains(photoID), !inFlightIDs.contains(photoID) else { return }
 
         let job = BackfillJob(
@@ -169,7 +170,7 @@ actor PhotoThumbnailBackfillService {
         guard let photo = context.model(for: photoID) as? PhotoEntry else {
             return false
         }
-        guard photo.thumbnailData == nil else {
+        guard !PhotoUtilities.matchesGridThumbnailSpec(photo.thumbnailData) else {
             return true
         }
 

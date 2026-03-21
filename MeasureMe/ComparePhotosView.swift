@@ -28,6 +28,17 @@ private enum CompareMode: String, CaseIterable, Identifiable {
         case .ghost:     return "person.2.crop.square.stack"
         }
     }
+
+    var accessibilityLabel: String {
+        switch self {
+        case .slider:
+            return AppLocalization.string("accessibility.compare.mode.slider")
+        case .sideBySide:
+            return AppLocalization.string("accessibility.compare.mode.side")
+        case .ghost:
+            return AppLocalization.string("accessibility.compare.mode.ghost")
+        }
+    }
 }
 
 /// Widok porównujący dwa zdjęcia obok siebie
@@ -35,6 +46,7 @@ struct ComparePhotosView: View {
     private let photosTheme = FeatureTheme.photos
     private let measurementsTheme = FeatureTheme.measurements
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let olderPhoto: PhotoEntry
     let newerPhoto: PhotoEntry
@@ -46,6 +58,7 @@ struct ComparePhotosView: View {
     @State private var showShareSheet = false
     @State private var shareItems: [Any] = []
     @State private var showTransformationSheet = false
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
     // Ghost overlay state
@@ -63,37 +76,28 @@ struct ComparePhotosView: View {
     private var newerCompareCacheID: String {
         compareCacheID(for: newerPhoto)
     }
+
+    private var shouldAnimate: Bool {
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+    }
     
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .top) {
+            ZStack {
                 Color.black.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    Picker("Compare Mode", selection: $compareMode) {
-                        ForEach(CompareMode.allCases) { mode in
-                            Label(mode.label, systemImage: mode.icon)
-                                .tag(mode)
-                        }
+                GeometryReader { geometry in
+                    ZStack {
+                        compareModeContent(in: geometry)
+                            .id(compareMode)
+                            .transition(compareModeTransition)
                     }
-                    .pickerStyle(.segmented)
-                    .glassSegmentedControl(tint: photosTheme.accent)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .padding(.bottom, 4)
-                    .accessibilityIdentifier("photos.compare.modePicker")
-
-                    GeometryReader { geometry in
-                        switch compareMode {
-                        case .slider:
-                            sliderComparisonView(in: geometry)
-                        case .sideBySide:
-                            sideBySideView(in: geometry)
-                        case .ghost:
-                            ghostOverlayView(in: geometry)
-                        }
-                    }
+                    .animation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate), value: compareMode)
                 }
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                compareModeSelector
+                    .background(Color.black.opacity(0.92))
             }
             .navigationTitle(AppLocalization.string("Compare"))
             .navigationBarTitleDisplayMode(.inline)
@@ -146,6 +150,85 @@ struct ComparePhotosView: View {
                 )
             }
         }
+    }
+
+    private var compareModeSelector: some View {
+        HStack(spacing: 6) {
+            ForEach(CompareMode.allCases) { mode in
+                compareModeButton(for: mode)
+            }
+        }
+        .padding(4)
+        .background(
+            Capsule(style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(Capsule().fill(photosTheme.accent.opacity(0.10)))
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                )
+                .overlay(
+                    Capsule(style: .continuous)
+                        .inset(by: 0.5)
+                        .stroke(Color.black.opacity(0.22), lineWidth: 0.6)
+                )
+        )
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+        .zIndex(10)
+        .allowsHitTesting(true)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("photos.compare.modePicker")
+    }
+
+    private func compareModeButton(for mode: CompareMode) -> some View {
+        let isSelected = compareMode == mode
+
+        return Button {
+            withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+                compareMode = mode
+            }
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: mode.icon)
+                    .font(.system(size: 14, weight: .semibold))
+                Text(mode.label)
+                    .font(AppTypography.captionEmphasis)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .foregroundStyle(isSelected ? Color.white : AppColorRoles.textSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 10)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(isSelected ? photosTheme.accent : Color.clear)
+                    .shadow(color: photosTheme.accent.opacity(isSelected ? 0.25 : 0), radius: 8, x: 0, y: 4)
+            )
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(mode.accessibilityLabel)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityIdentifier("photos.compare.mode.\(mode.rawValue)")
+    }
+
+    @ViewBuilder
+    private func compareModeContent(in geometry: GeometryProxy) -> some View {
+        switch compareMode {
+        case .slider:
+            sliderComparisonView(in: geometry)
+        case .sideBySide:
+            sideBySideView(in: geometry)
+        case .ghost:
+            ghostOverlayView(in: geometry)
+        }
+    }
+
+    private var compareModeTransition: AnyTransition {
+        .opacity.combined(with: .move(edge: .bottom))
     }
     
     // MARK: - Slider Comparison (date labels)

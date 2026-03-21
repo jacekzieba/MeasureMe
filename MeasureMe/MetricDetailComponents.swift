@@ -362,7 +362,7 @@ struct MetricPhotosRow: View {
         ) {
             ForEach(photos) { photo in
                 DownsampledImageView(
-                    imageData: photo.thumbnailOrImageData,
+                    imageData: photo.preferredGridImageData,
                     targetSize: CGSize(width: side, height: side),
                     contentMode: .fill,
                     cornerRadius: 12,
