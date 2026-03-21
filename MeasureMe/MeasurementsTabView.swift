@@ -286,9 +286,9 @@ struct MeasurementsTabView: View {
                                     depth: .base,
                                     cornerRadius: AppRadius.md,
                                     tint: measurementsTheme.softTint,
-                                    contentPadding: AppSpacing.sm
+                                    contentPadding: AppSpacing.xs
                                 ) {
-                                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                    HStack(alignment: .center, spacing: AppSpacing.xs) {
                                         HStack(spacing: AppSpacing.xs) {
                                             Image(systemName: "sparkles")
                                                 .font(.body)
@@ -297,14 +297,18 @@ struct MeasurementsTabView: View {
                                             Text(AppLocalization.string("measurements.discovery.hint", metricsStore.activeKinds.count, metricsStore.allKindsInOrder.count))
                                                 .font(AppTypography.caption)
                                                 .foregroundStyle(AppColorRoles.textSecondary)
+                                                .lineLimit(2)
+                                                .fixedSize(horizontal: false, vertical: true)
                                         }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
 
+                                        Spacer(minLength: AppSpacing.xxs)
                                         Button {
                                             Haptics.selection()
                                             settingsOpenTrackedMeasurements = true
                                             router.selectedTab = .settings
                                         } label: {
-                                            HStack(spacing: 6) {
+                                            HStack(spacing: 4) {
                                                 Text(AppLocalization.string("measurements.discovery.cta"))
                                                 Image(systemName: "chevron.right")
                                                     .font(.caption.weight(.semibold))
