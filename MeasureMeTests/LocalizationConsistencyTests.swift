@@ -27,8 +27,33 @@ final class LocalizationConsistencyTests: XCTestCase {
     }
 
     private func parseStringsFile(named languageCode: String) throws -> ParsedStrings {
-        let path = "/Users/jacek/Desktop/MeasureMe/MeasureMe/\(languageCode).lproj/Localizable.strings"
-        let contents = try String(contentsOfFile: path, encoding: .utf8)
+        if let sourceURL = sourceStringsFileURL(for: languageCode),
+           let sourceContents = try? String(contentsOf: sourceURL, encoding: .utf8) {
+            return try parseTextualStrings(sourceContents)
+        }
+
+        let stringsURL = try bundledStringsFileURL(for: languageCode)
+        let data = try Data(contentsOf: stringsURL)
+        if let textualContents = String(data: data, encoding: .utf8) {
+            return try parseTextualStrings(textualContents)
+        }
+
+        // On physical devices, Localizable.strings in app bundle may be compiled as a binary plist.
+        let plist = try PropertyListSerialization.propertyList(from: data, format: nil)
+        guard let dictionary = plist as? [String: Any] else {
+            throw NSError(
+                domain: "LocalizationConsistencyTests",
+                code: 260,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Unsupported Localizable.strings format for language '\(languageCode)' at \(stringsURL.path)"
+                ]
+            )
+        }
+        let values = Dictionary(uniqueKeysWithValues: dictionary.keys.map { ($0, $0) })
+        return ParsedStrings(values: values, duplicates: [])
+    }
+
+    private func parseTextualStrings(_ contents: String) throws -> ParsedStrings {
         let regex = try XCTUnwrap(
             NSRegularExpression(pattern: "^\"((?:\\\\.|[^\"\\\\])*)\"\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\";", options: [])
         )
@@ -51,6 +76,52 @@ final class LocalizationConsistencyTests: XCTestCase {
         }.sorted()
 
         return ParsedStrings(values: values, duplicates: duplicates)
+    }
+
+    private func sourceStringsFileURL(for languageCode: String) -> URL? {
+        let fm = FileManager.default
+        let sourceFileURL = URL(fileURLWithPath: #filePath)
+        let inferredProjectRoot = sourceFileURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+
+        let candidateURLs = [
+            inferredProjectRoot.appendingPathComponent("MeasureMe/\(languageCode).lproj/Localizable.strings"),
+            URL(fileURLWithPath: fm.currentDirectoryPath, isDirectory: true)
+                .appendingPathComponent("MeasureMe/\(languageCode).lproj/Localizable.strings")
+        ]
+
+        return candidateURLs.first(where: { fm.fileExists(atPath: $0.path) })
+    }
+
+    private func bundledStringsFileURL(for languageCode: String) throws -> URL {
+        let subdirectory = "\(languageCode).lproj"
+        var checkedBundlePaths: [String] = []
+        var seenBundlePaths = Set<String>()
+        let bundlesToCheck: [Bundle] = [Bundle.main, Bundle(for: Self.self)] + Bundle.allBundles + Bundle.allFrameworks
+
+        for bundle in bundlesToCheck {
+            let bundlePath = bundle.bundlePath
+            guard seenBundlePaths.insert(bundlePath).inserted else { continue }
+            checkedBundlePaths.append(bundlePath)
+
+            if let resourceURL = bundle.url(
+                forResource: "Localizable",
+                withExtension: "strings",
+                subdirectory: subdirectory
+            ) {
+                return resourceURL
+            }
+        }
+
+        let preview = checkedBundlePaths.prefix(10).joined(separator: " | ")
+        throw NSError(
+            domain: "LocalizationConsistencyTests",
+            code: 404,
+            userInfo: [
+                NSLocalizedDescriptionKey: "Could not find \(subdirectory)/Localizable.strings in loaded bundles. Checked: \(preview)"
+            ]
+        )
     }
 
     private struct ParsedStrings {

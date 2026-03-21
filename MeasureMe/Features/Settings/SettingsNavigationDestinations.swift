@@ -20,9 +20,17 @@ struct PremiumBenefitsInfoView: View {
                     SettingsRowDivider()
                     benefitRow(icon: "photo.on.rectangle.angled", textKey: "premium.carousel.unlock.item.compare")
                     SettingsRowDivider()
+                    benefitRow(icon: "person.2.crop.square.stack", textKey: "premium.carousel.unlock.item.overlay")
+                    SettingsRowDivider()
                     benefitRow(icon: "heart.text.square.fill", textKey: "premium.carousel.unlock.item.health")
                     SettingsRowDivider()
                     benefitRow(icon: "doc.text.fill", textKey: "premium.carousel.unlock.item.export")
+                    SettingsRowDivider()
+                    benefitRow(icon: "sparkles.rectangle.stack", textKey: "premium.carousel.unlock.item.social")
+                    SettingsRowDivider()
+                    benefitRow(icon: "icloud.and.arrow.up", textKey: "premium.carousel.unlock.item.icloud")
+                    SettingsRowDivider()
+                    benefitRow(icon: "square.grid.2x2", textKey: "premium.carousel.unlock.item.widgets")
                     SettingsRowDivider()
                     benefitRow(icon: "flag.fill", textKey: "premium.carousel.unlock.item.support")
                 }
@@ -42,7 +50,7 @@ struct PremiumBenefitsInfoView: View {
                 .frame(width: 22, alignment: .leading)
 
             Text(AppLocalization.string(textKey))
-                .font(AppTypography.body)
+                .font(AppTypography.bodyStrong)
                 .foregroundStyle(AppColorRoles.textPrimary)
         }
         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)

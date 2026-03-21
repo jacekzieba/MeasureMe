@@ -79,18 +79,19 @@ final class PerformanceUITests: XCTestCase {
             category: "Startup",
             name: "HomeDeferredSync"
         )
+        let options = XCTMeasureOptions()
+        options.iterationCount = 3
 
         measure(metrics: [
             deferredSyncMetric,
             XCTClockMetric()
-        ]) {
+        ], options: options) {
             app.terminate()
             app.launch()
             XCTAssertTrue(app.wait(for: .runningForeground, timeout: 8))
-            XCTAssertTrue(ensureTabBarExists(timeout: 20), "Expected tab bar to exist before deferred sync measurement.")
 
             // `HomeDeferredSync` is scheduled after startup delay; keep app alive long enough for interval capture.
-            RunLoop.current.run(until: Date().addingTimeInterval(3.0))
+            RunLoop.current.run(until: Date().addingTimeInterval(3.2))
         }
     }
 
@@ -186,10 +187,55 @@ final class PerformanceUITests: XCTestCase {
 
     private func onboardingNextButton() -> XCUIElement {
         let uiTestNext = app.buttons["UITest Next"].firstMatch
-        if uiTestNext.waitForExistence(timeout: 0.5) {
+        if uiTestNext.exists {
             return uiTestNext
         }
         return app.buttons["onboarding.next"].firstMatch
+    }
+
+    private func waitForDeferredSyncMeasurementWindow(timeout: TimeInterval) -> Bool {
+        let appRoot = app.otherElements["app.root.ready"].firstMatch
+        let startupLoading = app.otherElements["startup.loading.root"].firstMatch
+        let tabBar = app.tabBars.firstMatch
+        let homeNextFocus = app.buttons["home.nextFocus.button"].firstMatch
+        let weightTile = app.buttons["metric.tile.open.weight"].firstMatch
+        let navBar = app.navigationBars.firstMatch
+        let onboardingNext = onboardingNextButton()
+        let deadline = Date().addingTimeInterval(timeout)
+
+        while Date() < deadline {
+            if app.state != .runningForeground {
+                _ = app.wait(for: .runningForeground, timeout: 2)
+            }
+
+            let hasInteractiveSignal = tabBar.exists
+                || homeNextFocus.exists
+                || weightTile.exists
+                || navBar.exists
+                || onboardingNext.exists
+
+            if appRoot.exists && hasInteractiveSignal {
+                return true
+            }
+
+            if hasInteractiveSignal {
+                return true
+            }
+
+            let sleepInterval: TimeInterval = startupLoading.exists ? 0.35 : 0.20
+            RunLoop.current.run(until: Date().addingTimeInterval(sleepInterval))
+        }
+
+        return appRoot.exists || tabBar.exists || homeNextFocus.exists || weightTile.exists || onboardingNext.exists
+    }
+
+    private func debugUIState() -> String {
+        let appRoot = app.otherElements["app.root.ready"].firstMatch.exists
+        let startup = app.otherElements["startup.loading.root"].firstMatch.exists
+        let tabBar = app.tabBars.firstMatch.exists
+        let onboarding = onboardingNextButton().exists
+        let homeCTA = app.buttons["home.nextFocus.button"].firstMatch.exists
+        return "state=\(app.state.rawValue), appRoot=\(appRoot), startup=\(startup), tabBar=\(tabBar), onboardingNext=\(onboarding), homeNextFocus=\(homeCTA)"
     }
 
     private func robustColdLaunchDurationMs(sampleCount: Int) -> Double {

@@ -142,6 +142,7 @@ struct MeasurementsTabView: View {
             latestHips: latestHips,
             latestBodyFat: latestBodyFat,
             latestLeanMass: latestLeanMass,
+            samplesByKind: samplesByKind,
             unitsSystem: unitsSystem
         )
     }
@@ -156,7 +157,9 @@ struct MeasurementsTabView: View {
             latestShoulders: latestShoulders,
             latestChest: latestChest,
             latestBust: latestBust,
-            latestHips: latestHips
+            latestHips: latestHips,
+            samplesByKind: samplesByKind,
+            unitsSystem: unitsSystem
         )
     }
 
@@ -392,12 +395,14 @@ struct MeasurementsTabView: View {
                         }
                     }
                     .padding(.top, AppSpacing.sm)
-                    .padding(.bottom, AppSpacing.xl)
+                    .padding(.bottom, 100)
                 }
                 .id(refreshToken)
                 .coordinateSpace(name: "measurementsScroll")
                 .onPreferenceChange(MeasurementsScrollOffsetKey.self) { value in
-                    scrollOffset = value
+                    DispatchQueue.main.async {
+                        scrollOffset = value
+                    }
                 }
                 .accessibilityIdentifier("measurements.scroll")
                 .refreshable {
@@ -1000,8 +1005,9 @@ struct MetricChartTile: View {
         return MetricInsightInput(
             userName: userName.isEmpty ? nil : userName,
             metricTitle: kind.englishTitle,
+            measurementContext: kind.insightMeasurementContext,
             latestValueText: valueString(metricValue: latest.value),
-            timeframeLabel: AppLocalization.string("Last 30 days"),
+            timeframeLabel: "Last 30 days",
             sampleCount: recentSamples.count,
             delta7DaysText: recentSamples.deltaText(days: 7, kind: kind, unitsSystem: unitsSystem),
             delta14DaysText: nil,
@@ -1016,11 +1022,11 @@ struct MetricChartTile: View {
     private var goalStatusText: String? {
         guard let goal = currentGoal, let latest else { return nil }
         if goal.isAchieved(currentValue: latest.value) {
-            return AppLocalization.string("Goal reached")
+            return "Goal reached"
         }
         let remaining = displayValue(abs(goal.remainingToGoal(currentValue: latest.value)))
         let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-        return AppLocalization.string("goal.away", remaining, unit)
+        return "\(remaining) \(unit) away from goal"
     }
 
     private var accessibilitySummary: String {

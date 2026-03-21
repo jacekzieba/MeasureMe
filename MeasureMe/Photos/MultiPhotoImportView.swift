@@ -18,6 +18,7 @@ struct MultiPhotoImportView: View {
     @State private var loadedThumbnails: [UUID: UIImage] = [:]
     @State private var loadingThumbnailIDs: Set<UUID> = []
     @State private var singlePhotoPayload: MultiPhotoImportPayload.Item? = nil
+    @AppStorage("multiImport.editHintDismissed") private var editHintDismissed: Bool = false
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
     init(images: [UIImage]) {
@@ -35,6 +36,9 @@ struct MultiPhotoImportView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     thumbnailStrip
+                    if payload.items.count > 1 && !editHintDismissed {
+                        editHintBanner
+                    }
                     dateCard
                     tagsCard
                 }
@@ -97,6 +101,34 @@ private extension MultiPhotoImportView {
         return AppLocalization.string("import.photos.title", photosCount)
     }
 
+    var editHintBanner: some View {
+        Button {
+            editHintDismissed = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "hand.tap")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.cyan)
+                Text(AppLocalization.string("multiImport.editHint"))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                Spacer()
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color.secondary.opacity(0.5))
+            }
+            .padding(12)
+            .background(Color.cyan.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.cyan.opacity(0.2), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     var thumbnailStrip: some View {
         AppGlassCard(depth: .elevated, tint: Color.cyan.opacity(0.08), contentPadding: 12) {
             VStack(alignment: .leading, spacing: 8) {
@@ -109,6 +141,7 @@ private extension MultiPhotoImportView {
                         ForEach(Array(payload.items.enumerated()), id: \.element.id) { index, item in
                             Button {
                                 singlePhotoPayload = item
+                                editHintDismissed = true
                             } label: {
                                 ZStack {
                                     if let image = thumbnailImage(for: item) {

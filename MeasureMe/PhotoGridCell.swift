@@ -109,13 +109,13 @@ private extension PhotoGridCell {
     var photoImage: some View {
         DownsampledImageView(
             imageData: photo.thumbnailOrImageData,
-            targetSize: CGSize(width: 110, height: 120),
+            targetSize: CGSize(width: 110, height: 110),
             contentMode: .fill,
             cornerRadius: 12,
             showsProgress: false,
             cacheID: String(describing: photo.id)
         )
-        .frame(width: 110, height: 120)
+        .frame(width: 110, height: 110)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }

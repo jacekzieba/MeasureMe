@@ -4,6 +4,7 @@ struct DataSettingsDetailView: View {
     @AppSetting(\.analytics.analyticsEnabled) private var analyticsEnabled: Bool = true
     @AppSetting(\.iCloudBackup.lastBackupSizeBytes) private var lastBackupSizeBytes: Int64 = 0
     @Binding var iCloudBackupEnabled: Bool
+    @Binding var isBackingUp: Bool
     let isPremium: Bool
     let iCloudBackupLastSuccessText: String
     let iCloudBackupLastErrorText: String?
@@ -112,10 +113,23 @@ struct DataSettingsDetailView: View {
                     SettingsRowDivider()
 
                     Button(action: onBackupNow) {
-                        rowLabel(systemName: "arrow.clockwise.icloud", title: AppLocalization.string("Back up now"))
+                        HStack(spacing: 12) {
+                            if isBackingUp {
+                                ProgressView()
+                                    .frame(width: 22, height: 22)
+                            } else {
+                                GlassPillIcon(systemName: "arrow.clockwise.icloud")
+                            }
+                            Text(AppLocalization.string("Back up now"))
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .disabled(isPremium && !isICloudAvailable)
+                    .disabled(isBackingUp || (isPremium && !isICloudAvailable))
                     .accessibilityIdentifier("settings.data.icloud.backupNow")
 
                     SettingsRowDivider()

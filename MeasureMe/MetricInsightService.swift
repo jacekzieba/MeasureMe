@@ -8,6 +8,8 @@ import FoundationModels
 nonisolated struct MetricInsightInput: Sendable, Hashable {
     let userName: String?
     let metricTitle: String
+    /// Typ pomiaru: "body weight", "height (linear, vertical)", "body circumference", itp.
+    let measurementContext: String
     let latestValueText: String
     let timeframeLabel: String
     let sampleCount: Int
@@ -135,6 +137,14 @@ nonisolated struct InsightDiskCache {
         let shortText: String
         let detailedText: String
         let timestamp: Date
+    }
+
+    /// Stable cache key that survives app restarts.
+    /// Includes today's date so the cache naturally expires daily,
+    /// and the latest value so it regenerates when new data arrives.
+    static func stableKey(metricTitle: String, latestValueText: String) -> String {
+        let today = ISO8601DateFormatter().string(from: Date()).prefix(10) // YYYY-MM-DD
+        return "\(metricTitle)_\(latestValueText)_\(today)"
     }
 
     static func read(forKey key: String) -> MetricInsightPair? {
@@ -272,6 +282,7 @@ actor MetricInsightService {
                 Answer follow-up questions about the insight you provided.
                 Keep answers concise, 1-3 sentences, max 280 characters.
                 Stay focused on the metric data provided. Do not speculate beyond the data.
+                If asked about correlation or hidden patterns, explain whether the data suggests alignment, divergence, or insufficient signal.
 
                 Safety rules:
                 Do not provide medical diagnosis or medical advice.
@@ -349,8 +360,8 @@ actor MetricInsightService {
             return cached
         }
 
-        // Check persistent disk cache
-        let diskKey = "\(input.metricTitle)_\(input.hashValue)"
+        // Check persistent disk cache — use stable key (no hashValue, which changes each launch)
+        let diskKey = InsightDiskCache.stableKey(metricTitle: input.metricTitle, latestValueText: input.latestValueText)
         if let diskCached = InsightDiskCache.read(forKey: diskKey) {
             cache[input] = diskCached
             return diskCached
@@ -383,7 +394,7 @@ actor MetricInsightService {
         }
         cache[input] = insight
 
-        let diskKey = "\(input.metricTitle)_\(input.hashValue)"
+        let diskKey = InsightDiskCache.stableKey(metricTitle: input.metricTitle, latestValueText: input.latestValueText)
         InsightDiskCache.write(insight, forKey: diskKey)
     }
 
@@ -496,7 +507,7 @@ actor MetricInsightService {
                 instructions: """
                 You are a calm, supportive health-tracking coach.
                 Write in clear, plain English.
-                Keep tone non-judgmental, practical, and concise.
+                Keep tone non-judgmental, practical, concise, and quietly motivating.
                 Address the user directly using "you" and "your".
                 Never write in third person about the user.
 
@@ -514,13 +525,21 @@ actor MetricInsightService {
                 Do not include any other line breaks.
 
                 Content rules:
-                Use the provided goal direction if present; otherwise use the default favorable direction hint.
-                Paragraph 1: 1 very short sentence, around 40-60 characters, summarizing the overall trend. This is shown as a headline on a compact card — keep it punchy.
+                The prompt includes a "Measurement type" field. Use it to select appropriate language:
+                - "body circumference" → describe size, girth, or measurements — NEVER use "tall" or height-related language.
+                - "height (linear, vertical)" → only here may you use "tall" or similar.
+                - "body weight" → describe weight in kg or lbs.
+                Use the provided goal direction if present; otherwise use the default favorable direction hint as a weak hint, not a certainty.
+                Lead with the strongest supported signal, not a generic summary.
+                If short-term and longer-term windows differ, explain whether momentum is picking up, slowing, reversing, or just noisy.
+                If changes are small, frame stability as a meaningful consistency signal instead of fake urgency.
+                Never claim muscle gain, fat loss, or a plateau unless the provided data directly supports that wording.
+                Paragraph 1: 1 very short sentence, around 35-70 characters, summarizing the most important trend. This is shown as a headline on a compact card — keep it punchy and specific.
                 Paragraph 2: 2-4 short sentences, around 150-250 characters total.
                 Paragraph 2 must include:
-                - one comparison across available trend windows (14/30/90 days),
+                - one comparison across available trend windows (7/14/30/90 when available),
                 - one concrete recommendation for the next 7 days,
-                - if a goal is present: mention progress so far, current momentum, and whether the pace needs adjusting. Go beyond just an estimated completion date — highlight what is working and what could improve.
+                - if a goal is present: mention progress so far, current momentum, and whether the pace looks aligned, too slow, or off-track. Go beyond just an estimated completion date — highlight what is working and what may need adjusting.
 
                 Example output:
                 Weight trending down steadily.
@@ -572,11 +591,13 @@ actor MetricInsightService {
                 Write in plain English.
                 Address the user directly using "you" and "your".
                 Never write in third person about the user.
-                Summarize current state, recent changes, and trend direction.
+                Summarize current state, recent changes, and trend direction by connecting the signals instead of listing them.
+                Prefer body-composition interpretations such as weight vs waist, body fat vs lean mass, or scale weight vs waist-based indicators when the data supports that.
+                If the data is broadly stable, explain why that stability is still useful.
                 Include one concrete focus area and one practical next-step instruction.
-                Keep it warm, encouraging, and non-alarming.
-                Use positive framing and gentle reassurance.
-                Avoid judgmental labels.
+                Keep it warm, factual, and non-alarming.
+                Use positive framing without sounding generic.
+                Avoid judgmental labels or appearance shaming.
 
                 Safety rules:
                 Do not provide medical diagnosis or medical advice.
@@ -588,7 +609,7 @@ actor MetricInsightService {
                 Format rules:
                 Do not use markdown, hashtags, bullets, quotes, or bold markers.
                 Do not add greetings, preambles, framing phrases, or meta text (e.g., "As an AI...").
-                Output 3-4 short sentences in one paragraph, max 360 characters.
+                Output 3-4 short sentences in one paragraph, max 420 characters.
 
                 Example output:
                 Your weight is holding steady at 82 kg with body fat down slightly over the past week. Your waist-to-height ratio sits in a healthy range and your lean mass is well maintained. Focus on hitting three strength sessions this week and keeping daily steps above 8,000.
@@ -641,7 +662,11 @@ actor MetricInsightService {
                 Address the user directly using "you" and "your".
                 Never write in third person about the user.
                 Summarize the current state from the provided section data.
-                Mention one clear trend and one practical next step for the next 7 days.
+                Connect related metrics instead of reciting them one by one.
+                Lead with the strongest supported pattern.
+                If the data shows a subtle relation, mismatch, or hidden signal, mention it briefly.
+                If the data is broadly stable, treat that as a meaningful consistency signal.
+                Mention one practical next step for the next 7 days.
 
                 Safety rules:
                 Do not provide medical diagnosis or medical advice.
@@ -652,7 +677,7 @@ actor MetricInsightService {
                 Format rules:
                 Do not use markdown, bullets, quotes, or headings.
                 Do not add greetings or meta text.
-                Output 2-3 short sentences in one paragraph, max 380 characters.
+                Output 2-4 short sentences in one paragraph, max 420 characters.
                 """
             )
 

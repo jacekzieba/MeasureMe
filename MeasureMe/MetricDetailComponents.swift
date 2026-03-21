@@ -100,8 +100,9 @@ extension MetricDetailView {
         return MetricInsightInput(
             userName: userName.isEmpty ? nil : userName,
             metricTitle: kind.englishTitle,
+            measurementContext: kind.insightMeasurementContext,
             latestValueText: valueString(latest.value),
-            timeframeLabel: AppLocalization.string("Last 90 days"),
+            timeframeLabel: "Last 90 days",
             sampleCount: recent90.count,
             delta7DaysText: nil,
             delta14DaysText: recent14.deltaText(days: 14, kind: kind, unitsSystem: unitsSystem),
@@ -116,11 +117,11 @@ extension MetricDetailView {
     var goalStatusText: String? {
         guard let goal = currentGoal, let latest = samples.last else { return nil }
         if goal.isAchieved(currentValue: latest.value) {
-            return AppLocalization.string("Goal reached")
+            return "Goal reached"
         }
         let remaining = displayValue(abs(goal.remainingToGoal(currentValue: latest.value)))
         let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-        return AppLocalization.string("goal.away", remaining, unit)
+        return "\(remaining) \(unit) away from goal"
     }
 
     var goalForecastText: String? {

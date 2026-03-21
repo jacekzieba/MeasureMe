@@ -200,6 +200,12 @@ struct RootView: View {
         } message: {
             Text(AppLocalization.string("premium.trial.thankyou.message"))
         }
+        .sheet(isPresented: $premiumStore.showPostPurchaseSetup) {
+            PostPurchaseSetupView()
+                .presentationDetents([.fraction(0.72)])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(.ultraThinMaterial)
+        }
     }
 
     private var trialReminderPromptBinding: Binding<Bool> {

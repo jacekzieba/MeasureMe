@@ -87,6 +87,7 @@ nonisolated enum InsightTextProcessor {
     static func buildPrompt(for input: MetricInsightInput) -> String {
         var lines: [String] = [
             "Metric: \(input.metricTitle)",
+            "Measurement type: \(input.measurementContext)",
             "Latest value: \(input.latestValueText)",
             "Aggregated analysis window: \(input.timeframeLabel)",
             "Number of samples in analysis window: \(input.sampleCount)"
@@ -113,7 +114,12 @@ nonisolated enum InsightTextProcessor {
         lines.append("Default favorable direction (if no goal): \(input.defaultFavorableDirectionText)")
         lines.append("")
         lines.append("Ignore any UI chart range and write the insight from these aggregated windows only.")
-        lines.append("Write the two-paragraph insight using second person.")
+        lines.append("Identify the strongest trend signal first.")
+        lines.append("If short-term and longer-term windows differ, mention whether momentum is accelerating, slowing, or just noisy.")
+        lines.append("Treat stable data as a meaningful consistency signal when changes are small.")
+        lines.append("Do not infer causes that are not supported by the data.")
+        lines.append("Write the insight using second person. Use 2 to 5 sentences total.")
+        lines.append("Respond in English.")
 
         return lines.joined(separator: "\n")
     }
@@ -163,6 +169,15 @@ nonisolated enum InsightTextProcessor {
             lines.append(contentsOf: core)
         }
 
+        lines.append("")
+        lines.append("Task:")
+        lines.append("Connect the signals instead of listing them one by one.")
+        lines.append("If weight, waist, body fat, and lean mass suggest body recomposition, say it clearly.")
+        lines.append("If weight-based and waist-based indicators tell a different story, call that out as a subtle signal.")
+        lines.append("If the pattern is mostly stable, explain why that stability is still useful.")
+        lines.append("Finish with one concrete focus for the next 7 days.")
+        lines.append("Use 2 to 5 sentences total.")
+        lines.append("Respond in English.")
         return lines.joined(separator: "\n")
     }
 
@@ -179,7 +194,31 @@ nonisolated enum InsightTextProcessor {
         lines.append("")
         lines.append("Section data:")
         lines.append(contentsOf: input.contextLines)
+        lines.append("")
+        lines.append("Task:")
+        lines.append("Lead with the strongest signal in this section.")
+        lines.append("Mention one non-obvious pattern, relation, or mismatch only if the data supports it.")
+        lines.append(sectionTaskHint(for: input.sectionID))
+        lines.append("If the section is broadly stable, frame that stability as useful consistency rather than empty progress.")
+        lines.append("Keep the tone motivating, factual, and compact.")
+        lines.append("Use 2 to 5 sentences total.")
+        lines.append("Respond in English.")
 
         return lines.joined(separator: "\n")
+    }
+
+    private static func sectionTaskHint(for sectionID: String) -> String {
+        switch sectionID {
+        case "measurements.metrics":
+            return "Prefer cross-metric links such as weight vs waist, body fat vs lean mass, or short-term vs 30-day momentum."
+        case "measurements.health":
+            return "Prefer body-composition and health-marker links, and keep wording non-alarming."
+        case "measurements.physique":
+            return "Describe proportions, silhouette, or visual composition neutrally and without appearance shaming."
+        case "home.bottom.summary":
+            return "Synthesize across sections and pick one main takeaway plus one next focus."
+        default:
+            return "Focus on the clearest supported pattern."
+        }
     }
 }

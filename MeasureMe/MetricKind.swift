@@ -74,6 +74,20 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         }
     }
 
+    /// Kontekst pomiaru do promptow AI — unika mylenia obwodow ciala z wysokoscia
+    var insightMeasurementContext: String {
+        switch self {
+        case .weight: return "body weight"
+        case .bodyFat: return "body fat percentage"
+        case .height: return "height (linear, vertical)"
+        case .leanBodyMass: return "lean body mass"
+        case .waist, .neck, .shoulders, .bust, .chest,
+             .leftBicep, .rightBicep, .leftForearm, .rightForearm,
+             .hips, .leftThigh, .rightThigh, .leftCalf, .rightCalf:
+            return "body circumference"
+        }
+    }
+
     /// Angielski tytul do promptow AI i logiki wewnetrznej
     var englishTitle: String {
         switch self {

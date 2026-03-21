@@ -122,6 +122,7 @@ struct SettingsView: View {
     @State private var selectedSettingsRoute: SettingsSearchRoute?
     @State private var showExportFormatPicker = false
     @State private var showPDFRangeSheet = false
+    @State private var isBackingUp = false
     
     private var lastImportText: String? {
         guard lastHealthImportTimestamp > 0 else { return nil }
@@ -825,6 +826,7 @@ struct SettingsView: View {
             .listSectionSeparator(.hidden)
             .listRowSeparatorTint(.clear)
             .listSectionSeparatorTint(.clear)
+            .scrollDismissesKeyboard(.interactively)
             .applyNoScrollContentInsetsIfAvailable()
                 .navigationTitle("")
                 .navigationBarTitleDisplayMode(.inline)
@@ -989,8 +991,10 @@ struct SettingsView: View {
     }
 
     private func openSettingsRoute(_ route: SettingsSearchRoute) {
-        settingsSearchQuery = ""
         selectedSettingsRoute = route
+        DispatchQueue.main.async {
+            settingsSearchQuery = ""
+        }
     }
 
     private func handlePendingDeepLinks() {
@@ -1040,6 +1044,8 @@ struct SettingsView: View {
                 activeAlert = .backupResult(AppLocalization.string("Enable automatic iCloud backup first."))
                 return
             }
+            isBackingUp = true
+            defer { isBackingUp = false }
             let result = await ICloudBackupService.createBackupNow(context: modelContext, isPremium: premiumStore.isPremium)
             switch result {
             case .success(let manifest):
@@ -1324,6 +1330,7 @@ struct SettingsView: View {
         case .data:
             DataSettingsDetailView(
                 iCloudBackupEnabled: $iCloudBackupEnabled,
+                isBackingUp: $isBackingUp,
                 isPremium: premiumStore.isPremium,
                 iCloudBackupLastSuccessText: iCloudBackupLastSuccessText,
                 iCloudBackupLastErrorText: iCloudBackupErrorText,

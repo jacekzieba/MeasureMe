@@ -25,6 +25,7 @@ final class MetricInsightServiceCacheTests: XCTestCase {
         MetricInsightInput(
             userName: nil,
             metricTitle: title,
+            measurementContext: "body weight",
             latestValueText: "80 kg",
             timeframeLabel: "30 days",
             sampleCount: 10,

@@ -31,7 +31,7 @@ enum ImagePipeline {
 
     private static let inFlightTasks = InFlightDownsampleTasks()
     private static let prewarmSizes: [CGSize] = [
-        CGSize(width: 110, height: 120), // Photos grid
+        CGSize(width: 110, height: 110), // Photos grid (square cells)
         CGSize(width: 128, height: 128)  // Home "Last Photos" (typowy zakres)
     ]
 

@@ -298,7 +298,8 @@ struct NotificationSettingsView: View {
                 acknowledgeSaved()
             }
 
-            Spacer().frame(height: 4)
+            Divider()
+                .overlay(AppColorRoles.borderSubtle)
 
             Toggle(isOn: $photoRemindersEnabled) {
                 Label(AppLocalization.string("Photo reminders"), systemImage: "camera.fill")
@@ -314,7 +315,8 @@ struct NotificationSettingsView: View {
                 acknowledgeSaved()
             }
 
-            Spacer().frame(height: 4)
+            Divider()
+                .overlay(AppColorRoles.borderSubtle)
 
             Toggle(isOn: $goalAchievedEnabled) {
                 Label(AppLocalization.string("Goal achieved"), systemImage: "checkmark.seal.fill")

@@ -129,6 +129,18 @@ struct FAQView: View {
                             faqItem(
                                 question: "Can I disable animations or haptics?",
                                 answer: "Yes. In Settings → Animations and haptics you can turn off animations and haptics."
+                            ),
+                            faqItem(
+                                question: "faq.usage.photocomparison.q",
+                                answer: "faq.usage.photocomparison.a"
+                            ),
+                            faqItem(
+                                question: "faq.usage.ghostoverlay.q",
+                                answer: "faq.usage.ghostoverlay.a"
+                            ),
+                            faqItem(
+                                question: "faq.usage.sharetransformation.q",
+                                answer: "faq.usage.sharetransformation.a"
                             )
                         ]
                     )
@@ -155,6 +167,18 @@ struct FAQView: View {
                             faqItem(
                                 question: "What happens if I cancel Premium?",
                                 answer: "You keep all your data. Premium-only features become locked, but your measurements and photos remain safe on device."
+                            ),
+                            faqItem(
+                                question: "faq.premium.widgets.q",
+                                answer: "faq.premium.widgets.a"
+                            ),
+                            faqItem(
+                                question: "faq.premium.aiinsights.q",
+                                answer: "faq.premium.aiinsights.a"
+                            ),
+                            faqItem(
+                                question: "faq.premium.icloudbackup.q",
+                                answer: "faq.premium.icloudbackup.a"
                             )
                         ]
                     )

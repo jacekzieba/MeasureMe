@@ -50,6 +50,7 @@ struct HomeView: View {
     @AppSetting(\.home.settingsOpenHomeSettings) private var settingsOpenHomeSettings: Bool = false
     @AppSetting(\.home.homePhotoMetricSyncLastDate) private var photoMetricSyncLastDate: Double = 0
     @AppSetting(\.home.homePhotoMetricSyncLastID) private var photoMetricSyncLastID: String = ""
+    @AppStorage("home.comparePhotosCardDismissed") private var comparePhotosCardDismissed: Bool = false
     
     @EnvironmentObject private var router: AppRouter
     @ObservedObject private var streakManager: StreakManager
@@ -358,6 +359,7 @@ struct HomeView: View {
             latestHips: latestHips,
             latestBodyFat: latestBodyFat,
             latestLeanMass: latestLeanMass,
+            samplesByKind: cachedSamplesByKind,
             unitsSystem: unitsSystem
         )
     }
@@ -372,7 +374,9 @@ struct HomeView: View {
             latestShoulders: latestShoulders,
             latestChest: latestChest,
             latestBust: latestBust,
-            latestHips: latestHips
+            latestHips: latestHips,
+            samplesByKind: cachedSamplesByKind,
+            unitsSystem: unitsSystem
         )
     }
 
@@ -2120,6 +2124,7 @@ struct HomeView: View {
     }
 
     private var recentPhotosInsightDetail: String {
+        if comparePhotosCardDismissed { return "" }
         if hasEnoughSavedPhotosForCompare {
             return premiumStore.isPremium
                 ? AppLocalization.string("home.photos.compare.detail.home")
@@ -2129,6 +2134,7 @@ struct HomeView: View {
     }
 
     private var recentPhotosInsightNote: String? {
+        if comparePhotosCardDismissed { return nil }
         guard hasEnoughSavedPhotosForCompare, !premiumStore.isPremium else { return nil }
         return AppLocalization.string("home.photos.compare.note.premium")
     }
@@ -2651,6 +2657,7 @@ struct HomeView: View {
     private func relativeDescription(since date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
+        formatter.locale = AppLocalization.currentLanguage.locale
         return formatter.localizedString(for: date, relativeTo: AppClock.now)
     }
 
@@ -2911,10 +2918,12 @@ struct HomeView: View {
                 .font(AppTypography.titleCompact)
                 .foregroundStyle(AppColorRoles.textPrimary)
 
-            Text(detail)
-                .font(AppTypography.micro)
-                .foregroundStyle(AppColorRoles.textSecondary)
-                .lineLimit(2)
+            if !detail.isEmpty {
+                Text(detail)
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .lineLimit(2)
+            }
 
             if let note {
                 Text(note)
@@ -3012,6 +3021,7 @@ struct HomeView: View {
     private func handleRecentPhotosCompareTap() {
         guard hasEnoughSavedPhotosForCompare else { return }
         Haptics.selection()
+        comparePhotosCardDismissed = true
         if premiumStore.isPremium {
             showHomeCompareChooser = true
         } else {

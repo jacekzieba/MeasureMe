@@ -101,6 +101,7 @@ final class PremiumStore: ObservableObject {
     @Published var showTrialThankYouAlert: Bool = false
     @Published var showTrialReminderOptInPrompt: Bool = false
     @Published var showTrialNotificationPermissionPrompt: Bool = false
+    @Published var showPostPurchaseSetup: Bool = false
     @Published var isLoading: Bool = false
     @Published var isPaywallPresented: Bool = false
     @Published var paywallReason: PaywallReason = .settings
@@ -324,7 +325,8 @@ final class PremiumStore: ObservableObject {
 
     func handleTrialActivated() async {
         showTrialNotificationPermissionPrompt = false
-        showTrialReminderOptInPrompt = true
+        showTrialReminderOptInPrompt = false
+        showPostPurchaseSetup = true
     }
 
     func confirmTrialReminderOptIn() async {
@@ -477,6 +479,7 @@ final class PremiumStore: ObservableObject {
             } else {
                 actionMessage = AppLocalization.string("premium.purchase.success")
                 actionMessageIsError = false
+                showPostPurchaseSetup = true
             }
         } else {
             analytics.track(

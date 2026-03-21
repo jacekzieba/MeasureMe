@@ -1,24 +1,24 @@
 # MeasureMe
 
 MeasureMe is an iOS app for tracking body measurements, health trends, and progress photos in one place.
-The app is designed for quick daily/weekly check-ins and long-term progress monitoring with privacy-first defaults.
+It is built for fast daily/weekly check-ins and long-term progress monitoring with privacy-first defaults.
 
-## What It Includes
+## Features
 
-- Metric tracking (weight, waist, body fat, lean mass, and additional body measurements)
+- Tracking core metrics: weight, waist, body fat, lean mass, and additional body measurements
 - Quick Add flow for fast logging
-- Goals and progress visualization
-- Photo tracking, tags, and side-by-side comparison
-- Optional HealthKit integration
+- Goals and trend visualization
+- Photo timeline with tags and side-by-side comparison
+- Optional HealthKit sync
 - Reminder notifications
-- Premium features (AI insights, advanced indicators, export, and comparison tools)
+- Premium tools: AI insights, advanced indicators, export, comparison tools
 - English and Polish localization
 - Home screen widget target (`MeasureMeWidget`)
 
-## Platform Support
+## Platform
 
 - Deployment target: iOS `17.2`
-- Recommended: latest iOS available for your device
+- Recommended runtime: latest iOS available on your device/simulator
 - AI insights: iOS `26+` on Apple Intelligence-capable devices
 
 ## Tech Stack
@@ -30,25 +30,25 @@ The app is designed for quick daily/weekly check-ins and long-term progress moni
 - WidgetKit
 - XCTest / XCUITest
 
-## Project Layout
+## Repository Structure
 
-- `MeasureMe` - app source code
+- `MeasureMe` - application source code
 - `MeasureMeWidget` - widget extension
-- `MeasureMeTests` - unit and snapshot tests
+- `MeasureMeTests` - unit tests and snapshots
 - `MeasureMeUITests` - UI tests
 - `TestPlans` - shared Xcode test plans for release validation
-- `scripts` - local automation helpers for validation and QA runs
-- `docs` - release-validation checklist and result templates
+- `scripts` - local automation helpers for validation and QA
+- `docs` - release-validation docs and templates
 - `MeasureMe.xcodeproj` - Xcode project and schemes
 - `.github/workflows/ios-ci.yml` - CI pipeline
 
-## Getting Started
+## Quick Start
 
 ### Requirements
 
-- macOS with Xcode (project CI uses Xcode `26.2`)
+- macOS with Xcode (CI uses Xcode `26.2`)
 - iOS Simulator or physical iPhone
-- Apple Developer account (only required for running on a physical device with your own signing)
+- Apple Developer account (only needed for physical-device signing)
 
 ### Open In Xcode
 
@@ -62,15 +62,15 @@ Then:
 2. Select a simulator or device.
 3. Build and run (`Cmd + R`).
 
-## Command Line Build And Test
+## Build And Test (CLI)
 
-List available simulator destinations first:
+Show available destinations:
 
 ```bash
 xcodebuild -project MeasureMe.xcodeproj -scheme MeasureMe -showdestinations
 ```
 
-Build (replace destination with one from your machine):
+Build:
 
 ```bash
 xcodebuild \
@@ -94,19 +94,6 @@ xcodebuild \
   test
 ```
 
-Release validation helpers:
-
-```bash
-scripts/release_validation.sh show-test-plans
-scripts/release_validation.sh analyze
-scripts/release_validation.sh sim-regression
-scripts/release_validation.sh device-ui 'platform=iOS,id=<device-id>' build/release-validation/session 1
-scripts/release_validation.sh checkers-sim
-scripts/release_validation.sh archive-rc
-```
-
-Dedicated release-validation docs live in `docs/release-validation.md`.
-
 Run static analysis (non-blocking in CI):
 
 ```bash
@@ -119,11 +106,24 @@ xcodebuild \
   analyze
 ```
 
-Lint:
+Run lint:
 
 ```bash
 swiftlint lint --config .swiftlint.yml
 ```
+
+## Release Validation
+
+```bash
+scripts/release_validation.sh show-test-plans
+scripts/release_validation.sh analyze
+scripts/release_validation.sh sim-regression
+scripts/release_validation.sh device-ui 'platform=iOS,id=<device-id>' build/release-validation/session 1
+scripts/release_validation.sh checkers-sim
+scripts/release_validation.sh archive-rc
+```
+
+Detailed guide: `docs/release-validation.md`.
 
 ## Premium / StoreKit
 
@@ -132,23 +132,20 @@ Product identifiers:
 - `com.measureme.premium.monthly`
 - `com.measureme.premium.yearly`
 
-Local StoreKit configuration used by the shared scheme:
+StoreKit config files:
 
 - `MeasureMe/Premium_local.storekit`
-
-Additional local config file in repository:
-
 - `Premium.storekit`
 
-## CI
+## CI (GitHub Actions)
 
-GitHub Actions workflow (`.github/workflows/ios-ci.yml`) runs:
+Workflow: `.github/workflows/ios-ci.yml`
 
-- SwiftLint (changed files blocking, full run non-blocking report)
+- SwiftLint (changed-files check is blocking, full lint is non-blocking report)
 - Build
 - Analyze (non-blocking)
 - Tests
-- Matrix lanes for iOS runtimes `18.0` and `26.1`, with runtime fallback/skip logic when unavailable
+- Matrix lanes for iOS `18.0` and `26.1` with runtime fallback/skip logic
 
 ## Privacy
 
@@ -159,4 +156,4 @@ GitHub Actions workflow (`.github/workflows/ios-ci.yml`) runs:
 
 ## License
 
-This repository does not currently include a `LICENSE` file.
+This repository currently does not include a `LICENSE` file.

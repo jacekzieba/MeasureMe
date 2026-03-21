@@ -18,6 +18,7 @@ struct StreakDetailView: View {
     @State private var selectedYear: Int = 0
     @State private var availableYears: [Int] = []
     @State private var heatmapRevealed = false
+    @State private var actualFirstUseDate: Date? = nil
 
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -163,7 +164,7 @@ struct StreakDetailView: View {
 
                 statColumn(
                     title: AppLocalization.string("streak.detail.memberSince"),
-                    value: formattedDate(streakManager.firstActiveDate)
+                    value: formattedDate(actualFirstUseDate ?? streakManager.firstActiveDate)
                 )
 
                 Rectangle()
@@ -436,6 +437,12 @@ struct StreakDetailView: View {
     private func loadHeatmapData() {
         let calendar = Calendar(identifier: .iso8601)
         let now = AppClock.now
+
+        // Use the app's first launch date (stored when PremiumStore initializes)
+        let firstLaunchTimestamp = UserDefaults.standard.double(forKey: AppSettingsKeys.Premium.firstLaunchDate)
+        if firstLaunchTimestamp > 0 {
+            actualFirstUseDate = Date(timeIntervalSince1970: firstLaunchTimestamp)
+        }
 
         guard let firstDate = streakManager.firstActiveDate else {
             totalEntries = (try? modelContext.fetchCount(FetchDescriptor<MetricSample>())) ?? 0

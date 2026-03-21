@@ -252,7 +252,9 @@ struct PhotoView: View {
             }
             .sheet(isPresented: $showSourceChooserSheet) {
                 sourceChooserSheet
-                    .presentationDetents([.medium])
+                    .presentationDetents([.height(240)])
+                    .presentationDragIndicator(.visible)
+                    .presentationBackground(.ultraThinMaterial)
             }
             .sheet(isPresented: $showFilters) {
                 PhotoFilterView(filters: filters)
@@ -1410,51 +1412,82 @@ private extension PhotoView {
     }
 
     private var sourceChooserSheet: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(AppLocalization.string("Add Photo"))
-                    .font(AppTypography.displaySection)
-                    .foregroundStyle(AppColorRoles.textPrimary)
+        VStack(spacing: 0) {
+            // Handle indicator space
+            Capsule()
+                .fill(Color.secondary.opacity(0.4))
+                .frame(width: 36, height: 4)
+                .padding(.top, 8)
+                .padding(.bottom, 16)
 
-                Button {
-                    openCameraFlow(fromSourceChooserSheet: true)
-                } label: {
-                    HStack(spacing: 12) {
-                        GlassPillIcon(systemName: "camera.fill")
+            Text(AppLocalization.string("Add Photo"))
+                .font(AppTypography.displaySection)
+                .foregroundStyle(AppColorRoles.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
+
+            Button {
+                openCameraFlow(fromSourceChooserSheet: true)
+            } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(photosTheme.accent)
+                        .frame(width: 44, height: 44)
+                        .background(photosTheme.accent.opacity(0.12))
+                        .clipShape(Circle())
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(AppLocalization.string("Take Photo"))
                             .font(AppTypography.bodyEmphasis)
                             .foregroundStyle(AppColorRoles.textPrimary)
-                        Spacer()
+                        Text(AppLocalization.string("photos.add.camera.subtitle"))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary.opacity(0.5))
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("photos.add.menu.camera")
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("photos.add.menu.camera")
 
-                Button {
-                    openLibraryFlow(fromSourceChooserSheet: true)
-                } label: {
-                    HStack(spacing: 12) {
-                        GlassPillIcon(systemName: "photo.on.rectangle")
+            Divider().padding(.leading, 78)
+
+            Button {
+                openLibraryFlow(fromSourceChooserSheet: true)
+            } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "photo.on.rectangle")
+                        .font(.system(size: 20))
+                        .foregroundStyle(photosTheme.accent)
+                        .frame(width: 44, height: 44)
+                        .background(photosTheme.accent.opacity(0.12))
+                        .clipShape(Circle())
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(AppLocalization.string("Choose from Library"))
                             .font(AppTypography.bodyEmphasis)
                             .foregroundStyle(AppColorRoles.textPrimary)
-                        Spacer()
+                        Text(AppLocalization.string("photos.add.library.subtitle"))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary.opacity(0.5))
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("photos.add.menu.library")
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("photos.add.menu.library")
 
-                Spacer(minLength: 0)
-            }
-            .padding(16)
-            .background(Color.black.ignoresSafeArea())
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(AppLocalization.string("Cancel")) {
-                        showSourceChooserSheet = false
-                    }
-                }
-            }
+            Spacer(minLength: 0)
         }
         .accessibilityIdentifier("photos.sourceChooser.visible")
     }

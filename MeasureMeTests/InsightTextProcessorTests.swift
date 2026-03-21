@@ -178,6 +178,7 @@ final class InsightTextProcessorTests: XCTestCase {
         let input = MetricInsightInput(
             userName: "Jacek",
             metricTitle: "Weight",
+            measurementContext: "body weight",
             latestValueText: "80 kg",
             timeframeLabel: "30 days",
             sampleCount: 15,
@@ -198,6 +199,8 @@ final class InsightTextProcessorTests: XCTestCase {
         XCTAssertTrue(prompt.contains("90-day change: -3.0 kg"))
         XCTAssertTrue(prompt.contains("Goal status: 77 kg target"))
         XCTAssertTrue(prompt.contains("Goal direction: decrease"))
+        XCTAssertTrue(prompt.contains("Identify the strongest trend signal first."))
+        XCTAssertTrue(prompt.contains("Treat stable data as a meaningful consistency signal"))
     }
 
     /// Co sprawdza: Prompt z opcjonalnymi polami nil
@@ -207,6 +210,7 @@ final class InsightTextProcessorTests: XCTestCase {
         let input = MetricInsightInput(
             userName: nil,
             metricTitle: "Waist",
+            measurementContext: "body circumference",
             latestValueText: "85 cm",
             timeframeLabel: "14 days",
             sampleCount: 5,
@@ -220,6 +224,7 @@ final class InsightTextProcessorTests: XCTestCase {
         )
         let prompt = InsightTextProcessor.buildPrompt(for: input)
         XCTAssertTrue(prompt.contains("Metric: Waist"))
+        XCTAssertTrue(prompt.contains("Measurement type: body circumference"))
         XCTAssertFalse(prompt.contains("User name:"))
         XCTAssertFalse(prompt.contains("14-day change:"))
         XCTAssertFalse(prompt.contains("Goal status:"))
@@ -232,6 +237,7 @@ final class InsightTextProcessorTests: XCTestCase {
         let input = MetricInsightInput(
             userName: nil,
             metricTitle: "Weight",
+            measurementContext: "body weight",
             latestValueText: "80 kg",
             timeframeLabel: "7 days",
             sampleCount: 3,
@@ -270,6 +276,8 @@ final class InsightTextProcessorTests: XCTestCase {
         XCTAssertTrue(prompt.contains("Age: 35"))
         XCTAssertTrue(prompt.contains("Weight: 82 kg"))
         XCTAssertTrue(prompt.contains("WHtR: 0.47"))
+        XCTAssertTrue(prompt.contains("Connect the signals instead of listing them one by one."))
+        XCTAssertTrue(prompt.contains("If weight-based and waist-based indicators tell a different story"))
     }
 
     /// Co sprawdza: Health prompt z czesciowymi danymi
@@ -312,5 +320,7 @@ final class InsightTextProcessorTests: XCTestCase {
         XCTAssertTrue(prompt.contains("User name: Jacek"))
         XCTAssertTrue(prompt.contains("Waist: 85 cm (-1 cm)"))
         XCTAssertTrue(prompt.contains("Hips: 95 cm (stable)"))
+        XCTAssertTrue(prompt.contains("Lead with the strongest signal in this section."))
+        XCTAssertTrue(prompt.contains("Mention one non-obvious pattern, relation, or mismatch"))
     }
 }

@@ -375,7 +375,7 @@ nonisolated enum TransformationCardRenderer {
         let textBounds = CTLineGetBoundsWithOptions(line, .useOpticalBounds)
 
         // Measure subtitle if present
-        let subFont = CTFontCreateWithName("SFProRounded-Medium" as CFString, fontSize * 0.7, nil)
+        let subFont = CTFontCreateWithName("SFProRounded-Medium" as CFString, fontSize * 0.9, nil)
         let subAttrs: [NSAttributedString.Key: Any] = [
             .font: subFont,
             .foregroundColor: UIColor(white: 1, alpha: 0.8)
@@ -535,11 +535,26 @@ nonisolated enum TransformationCardRenderer {
         return formatted
     }
 
+    /// Resolves the localization bundle without touching any MainActor-isolated state.
+    /// Mirrors AppLanguage.bundle logic inline so this nonisolated enum can call it freely.
+    private static var currentBundle: Bundle {
+        let raw = UserDefaults.standard.string(forKey: "appLanguage") ?? "system"
+        if raw == "en" || raw == "pl",
+           let path = Bundle.main.path(forResource: raw, ofType: "lproj"),
+           let bundle = Bundle(path: path) {
+            return bundle
+        }
+        return .main
+    }
+
     private static func localizedString(_ key: String) -> String {
-        NSLocalizedString(key, comment: "")
+        let bundle = currentBundle
+        return bundle.localizedString(forKey: key, value: key, table: nil)
     }
 
     private static func localizedPlural(_ key: String, _ count: Int) -> String {
-        String.localizedStringWithFormat(NSLocalizedString(key, comment: ""), count)
+        let bundle = currentBundle
+        let format = bundle.localizedString(forKey: key, value: key, table: nil)
+        return String.localizedStringWithFormat(format, count)
     }
 }

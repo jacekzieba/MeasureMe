@@ -16,3 +16,7 @@ build/
 
 # SwiftPM
 .swiftpm/
+
+# Test snapshots
+**/__Snapshots__/
+**/__snapshots__/

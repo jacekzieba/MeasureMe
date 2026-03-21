@@ -54,6 +54,7 @@ struct ComparePhotosView: View {
     @State private var ghostScale: CGFloat = 1.0
     @GestureState private var ghostDragOffset: CGSize = .zero
     @GestureState private var ghostPinchScale: CGFloat = 1.0
+    @AppStorage("compare.ghostHintDismissed") private var ghostHintDismissed: Bool = false
 
     private var olderCompareCacheID: String {
         compareCacheID(for: olderPhoto)
@@ -311,6 +312,29 @@ struct ComparePhotosView: View {
             contentPadding: 12
         ) {
             VStack(spacing: 10) {
+                if !ghostHintDismissed {
+                    Button {
+                        ghostHintDismissed = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "hand.draw")
+                                .font(.caption)
+                                .foregroundStyle(photosTheme.accent)
+                            Text(AppLocalization.string("compare.ghost.hint"))
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColorRoles.textSecondary)
+                                .multilineTextAlignment(.leading)
+                            Spacer()
+                            Image(systemName: "xmark")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(AppColorRoles.textSecondary.opacity(0.6))
+                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider().overlay(AppColorRoles.borderSubtle)
+                }
+
                 HStack(spacing: 10) {
                     Image(systemName: "eye.slash")
                         .font(.caption)
@@ -376,6 +400,7 @@ struct ComparePhotosView: View {
             .onEnded { value in
                 ghostOffset.width += value.translation.width
                 ghostOffset.height += value.translation.height
+                ghostHintDismissed = true
             }
     }
 
@@ -386,6 +411,7 @@ struct ComparePhotosView: View {
             }
             .onEnded { value in
                 ghostScale = MetricChange.clampedGhostScale(ghostScale, magnification: value.magnification)
+                ghostHintDismissed = true
             }
     }
 
@@ -431,13 +457,24 @@ struct ComparePhotosView: View {
                                 .font(AppTypography.headlineEmphasis)
                                 .foregroundStyle(AppColorRoles.textPrimary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            
+
                             ForEach(metricChanges, id: \.kind) { change in
                                 MetricChangeRow(change: change)
                             }
                         }
                     }
                 }
+
+                // Prominent share transformation button
+                Button {
+                    showTransformationSheet = true
+                } label: {
+                    Label(AppLocalization.string("transformation.card.share"), systemImage: "sparkles.rectangle.stack")
+                        .font(AppTypography.bodyEmphasis)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(AppAccentButtonStyle())
+                .accessibilityIdentifier("photos.compare.transformation.prominent")
             }
         }
         .padding(.horizontal, 2)
