@@ -25,7 +25,9 @@ struct AISectionSummaryCard: View {
 
                 content
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .task(id: input) {
             await loadInsightIfNeeded()
         }

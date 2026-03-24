@@ -24,7 +24,7 @@ struct MetricSnapshotRow: View {
             
             Spacer()
             
-            Text("\(displayValue.formatted(.number.precision(.fractionLength(1)))) \(displayUnit)")
+            Text(formattedValue)
                 .font(compact ? AppTypography.captionEmphasis : AppTypography.bodyEmphasis)
                 .foregroundStyle(.secondary)
         }
@@ -46,6 +46,13 @@ struct MetricSnapshotRow: View {
     private var displayUnit: String {
         guard let kind = snapshot.kind, isMetricStored else { return snapshot.unit }
         return kind.unitSymbol(unitsSystem: unitsSystem)
+    }
+
+    private var formattedValue: String {
+        guard let kind = snapshot.kind, isMetricStored else {
+            return String(format: "%.2f %@", displayValue, displayUnit)
+        }
+        return kind.formattedDisplayValue(displayValue, unitsSystem: unitsSystem)
     }
 }
 
@@ -139,7 +146,7 @@ struct EditableMetricRow: View {
         self.snapshot = snapshot
         self.onDelete = onDelete
         self.onUpdate = onUpdate
-        _editedValue = State(initialValue: String(format: "%.1f", snapshot.value))
+        _editedValue = State(initialValue: String(format: "%.2f", snapshot.value))
     }
     
     var body: some View {

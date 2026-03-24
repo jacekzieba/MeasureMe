@@ -241,6 +241,11 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         return delta > 0 ? .positive : .negative
     }
 
+    /// Czy metryka używa "gained/lost" (waga, procent) zamiast "increased/decreased" (długość).
+    var usesGainedLostVerb: Bool {
+        unitCategory == .weight || unitCategory == .percent
+    }
+
     // MARK: - Unit System
     
     /// Kategoria jednostek dla metryki - używana do konwersji i formatowania
@@ -304,6 +309,41 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
             // Procenty zawsze bez konwersji
             return value
         }
+    }
+
+    nonisolated func formattedDisplayValue(
+        _ displayValue: Double,
+        unitsSystem: String,
+        includeUnit: Bool = true,
+        alwaysShowSign: Bool = false
+    ) -> String {
+        let valueFormat = alwaysShowSign ? "%+.2f" : "%.2f"
+
+        switch unitCategory {
+        case .percent:
+            return includeUnit
+                ? String(format: "\(valueFormat)%%", displayValue)
+                : String(format: valueFormat, displayValue)
+        case .weight, .length:
+            if includeUnit {
+                return String(format: "\(valueFormat) %@", displayValue, unitSymbol(unitsSystem: unitsSystem))
+            }
+            return String(format: valueFormat, displayValue)
+        }
+    }
+
+    nonisolated func formattedMetricValue(
+        fromMetric metricValue: Double,
+        unitsSystem: String,
+        includeUnit: Bool = true,
+        alwaysShowSign: Bool = false
+    ) -> String {
+        formattedDisplayValue(
+            valueForDisplay(fromMetric: metricValue, unitsSystem: unitsSystem),
+            unitsSystem: unitsSystem,
+            includeUnit: includeUnit,
+            alwaysShowSign: alwaysShowSign
+        )
     }
 
     /// Konwertuje wartość wprowadzoną przez użytkownika na jednostki bazowe (metryczne)

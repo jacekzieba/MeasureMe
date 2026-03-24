@@ -353,6 +353,7 @@ struct MeasureMeApp: App {
         scheduleDeferredAutoRestore(container: container)
         scheduleDeferredWidgetRefresh(container: container)
         scheduleDeferredBackupMaintenance(container: container)
+        scheduleDeferredWatchConnectivity(container: container)
     }
 
     private func scheduleDeferredStorageProtection() {
@@ -395,6 +396,9 @@ struct MeasureMeApp: App {
             let context = ModelContext(container)
             let units = settingsStore.snapshot.profile.unitsSystem
             WidgetDataWriter.writeAllAndReload(context: context, unitsSystem: units)
+            await MainActor.run {
+                WatchSessionManager.shared.sendApplicationContext()
+            }
         }
     }
 
@@ -407,6 +411,17 @@ struct MeasureMeApp: App {
             if isPremium, AppSettingsStore.shared.snapshot.iCloudBackup.isEnabled {
                 Self.scheduleBackgroundBackup()
             }
+        }
+    }
+
+    private func scheduleDeferredWatchConnectivity(container: ModelContainer) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            WatchSessionManager.shared.configure(
+                container: container,
+                healthKit: HealthKitManager.shared
+            )
+            WatchSessionManager.shared.activate()
         }
     }
 
@@ -460,7 +475,7 @@ struct MeasureMeApp: App {
         }
         try fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
 
-        let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self])
+        let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self, CustomMetricDefinition.self])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
         return try ModelContainer(for: schema, configurations: [configuration])
     }
@@ -474,20 +489,21 @@ struct MeasureMeApp: App {
                 for: MetricSample.self,
                 MetricGoal.self,
                 PhotoEntry.self,
+                CustomMetricDefinition.self,
                 configurations: configuration
             )
         }
 
         if isUITestMode {
             if isSettingsUITestMode {
-                let schema = Schema([MetricSample.self, MetricGoal.self])
+                let schema = Schema([MetricSample.self, MetricGoal.self, CustomMetricDefinition.self])
                 let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
                 return try ModelContainer(
                     for: schema,
                     configurations: [configuration]
                 )
             }
-            let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self])
+            let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self, CustomMetricDefinition.self])
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
             return try ModelContainer(
                 for: schema,
@@ -504,7 +520,8 @@ struct MeasureMeApp: App {
         let schema = Schema([
             MetricSample.self,
             MetricGoal.self,
-            PhotoEntry.self
+            PhotoEntry.self,
+            CustomMetricDefinition.self
         ])
         // App uses custom iCloud backup flow; disable SwiftData CloudKit sync to avoid
         // CloudKit schema constraints on local-only models.

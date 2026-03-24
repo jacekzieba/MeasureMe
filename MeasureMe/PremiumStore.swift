@@ -103,6 +103,7 @@ final class PremiumStore: ObservableObject {
     @Published var showTrialNotificationPermissionPrompt: Bool = false
     @Published var showPostPurchaseSetup: Bool = false
     @Published var isLoading: Bool = false
+    @Published var isPurchasing: Bool = false
     @Published var isPaywallPresented: Bool = false
     @Published var paywallReason: PaywallReason = .settings
 
@@ -120,6 +121,7 @@ final class PremiumStore: ObservableObject {
     #if DEBUG
     private let forcePremiumForUITests: Bool
     private let forceNonPremiumForUITests: Bool
+    private let forcePremiumOnSimulator: Bool
     #endif
     private var hasStarted = false
     @Published var currentOffering: Offering?
@@ -144,6 +146,10 @@ final class PremiumStore: ObservableObject {
         #if DEBUG
         self.forcePremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForcePremium")
         self.forceNonPremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForceNonPremium")
+        self.forcePremiumOnSimulator = Self.shouldForcePremiumOnSimulator(
+            arguments: ProcessInfo.processInfo.arguments,
+            environment: ProcessInfo.processInfo.environment
+        )
         #endif
         if settings.snapshot.premium.premiumFirstLaunchDate == 0 {
             Task { @MainActor in
@@ -152,6 +158,11 @@ final class PremiumStore: ObservableObject {
         }
         #if DEBUG
         if forcePremiumForUITests {
+            Task { @MainActor in
+                self.isPremium = true
+                settings.set(\.premium.premiumEntitlement, true)
+            }
+        } else if forcePremiumOnSimulator {
             Task { @MainActor in
                 self.isPremium = true
                 settings.set(\.premium.premiumEntitlement, true)
@@ -230,7 +241,7 @@ final class PremiumStore: ObservableObject {
             await refreshEntitlements()
             // Listen for real-time entitlement changes (renewals, expirations, refunds)
             #if DEBUG
-            guard !forcePremiumForUITests, !forceNonPremiumForUITests else { return }
+            guard !forcePremiumForUITests, !forceNonPremiumForUITests, !forcePremiumOnSimulator else { return }
             #endif
             for await info in billingClient.customerInfoStream {
                 applyCustomerInfo(info)
@@ -260,6 +271,8 @@ final class PremiumStore: ObservableObject {
     }
 
     func loadProducts() async {
+        guard !isLoading else { return }
+
         if AuditConfig.current.disablePaywallNetwork || AuditConfig.current.isEnabled {
             isLoading = false
             products = []
@@ -314,6 +327,11 @@ final class PremiumStore: ObservableObject {
     }
 
     func purchase(_ product: PremiumProduct) async {
+        guard !isPurchasing else { return }
+
+        isPurchasing = true
+        defer { isPurchasing = false }
+
         do {
             let result = try await billingClient.purchase(product.package)
             await handlePurchaseResult(result, purchasedProduct: product)
@@ -321,6 +339,33 @@ final class PremiumStore: ObservableObject {
             actionMessage = AppLocalization.string("premium.purchase.failed", error.localizedDescription)
             actionMessageIsError = true
         }
+    }
+
+    var canSimulateTrialActivationForUITests: Bool {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        let isUITest = args.contains("-uiTestMode") || args.contains("-uiTestOnboardingMode")
+        return isUITest && args.contains("-uiTestSimulateTrialActivation")
+        #else
+        false
+        #endif
+    }
+
+    func activateTrialForUITestsIfNeeded() async -> Bool {
+        guard canSimulateTrialActivationForUITests else { return false }
+        guard !isPurchasing else { return true }
+
+        isPurchasing = true
+        defer { isPurchasing = false }
+
+        isPremium = true
+        settings.set(\.premium.premiumEntitlement, true)
+        currentOffering = nil
+        productsLoadError = nil
+        actionMessage = nil
+        actionMessageIsError = false
+        await handleTrialActivated()
+        return true
     }
 
     func handleTrialActivated() async {
@@ -442,6 +487,11 @@ final class PremiumStore: ObservableObject {
             settings.set(\.premium.premiumEntitlement, false)
             return
         }
+        if forcePremiumOnSimulator {
+            isPremium = true
+            settings.set(\.premium.premiumEntitlement, true)
+            return
+        }
         #endif
         do {
             let info = try await billingClient.customerInfo()
@@ -528,6 +578,21 @@ final class PremiumStore: ObservableObject {
         parameters["measureme.paywall_reason"] = paywallReason.analyticsReason
         return parameters
     }
+
+    #if DEBUG
+    static func shouldForcePremiumOnSimulator(
+        arguments: [String],
+        environment: [String: String]
+    ) -> Bool {
+        let _ = arguments
+        #if targetEnvironment(simulator)
+        let isRunningTests = environment["XCTestConfigurationFilePath"] != nil
+        return !isRunningTests
+        #else
+        return false
+        #endif
+    }
+    #endif
 }
 
 enum PremiumConstants {

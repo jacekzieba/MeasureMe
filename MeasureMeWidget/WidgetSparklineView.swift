@@ -47,6 +47,7 @@ struct WidgetSparklineView: View {
                 }
             }
         }
+        .accessibilityHidden(true)
     }
 
     private func normalizedPoints(in size: CGSize) -> [CGPoint] {

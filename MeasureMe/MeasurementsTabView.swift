@@ -26,6 +26,10 @@ struct MeasurementsTabView: View {
     @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
     @State private var cachedLatestByKind: [MetricKind: MetricSample] = [:]
 
+    @Query(sort: \CustomMetricDefinition.sortOrder) private var customDefinitions: [CustomMetricDefinition]
+    @State private var cachedCustomSamples: [String: [MetricSample]] = [:]
+    @State private var cachedCustomLatest: [String: MetricSample] = [:]
+
     @State private var selectedTab: MeasurementsTab = .metrics
 
     private let healthAccent = HealthIndicatorPalette.accent
@@ -62,6 +66,13 @@ struct MeasurementsTabView: View {
                 return "measurements.tab.physique"
             }
         }
+    }
+
+    private var activeCustomDefinitions: [CustomMetricDefinition] {
+        let activeIds = metricsStore.activeCustomIdentifiers(from: customDefinitions)
+        let idSet = Set(activeIds)
+        let lookup = Dictionary(uniqueKeysWithValues: customDefinitions.map { ($0.identifier, $0) })
+        return activeIds.compactMap { lookup[$0] }
     }
 
     private var samplesByKind: [MetricKind: [MetricSample]] { cachedSamplesByKind }
@@ -332,6 +343,14 @@ struct MeasurementsTabView: View {
                                 .padding(.horizontal, AppSpacing.md)
                             }
 
+                            ForEach(activeCustomDefinitions) { def in
+                                CustomMetricChartTile(
+                                    definition: def,
+                                    theme: measurementsTheme
+                                )
+                                .padding(.horizontal, AppSpacing.md)
+                            }
+
                             trackedMetricsFooter
                                 .padding(.horizontal, AppSpacing.md)
                         } else if selectedTab == .health {
@@ -476,7 +495,16 @@ struct MeasurementsTabView: View {
     private func rebuildSamplesCache() {
         var grouped: [MetricKind: [MetricSample]] = [:]
         var latest: [MetricKind: MetricSample] = [:]
+        var customGrouped: [String: [MetricSample]] = [:]
+        var customLatest: [String: MetricSample] = [:]
         for sample in samples {
+            if sample.isCustomMetric {
+                customGrouped[sample.kindRaw, default: []].append(sample)
+                if customLatest[sample.kindRaw] == nil {
+                    customLatest[sample.kindRaw] = sample
+                }
+                continue
+            }
             guard let kind = MetricKind(rawValue: sample.kindRaw) else {
                 AppLog.debug("⚠️ Ignoring MetricSample with invalid kindRaw: \(sample.kindRaw)")
                 continue
@@ -488,6 +516,8 @@ struct MeasurementsTabView: View {
         }
         cachedSamplesByKind = grouped
         cachedLatestByKind = latest
+        cachedCustomSamples = customGrouped
+        cachedCustomLatest = customLatest
     }
 }
 
@@ -778,13 +808,7 @@ struct MetricChartTile: View {
                     if let trendInfo {
                         HStack(spacing: 6) {
                             Image(systemName: trendInfo.delta >= 0 ? "arrow.up.right" : "arrow.down.right")
-                            Text(
-                                String(
-                                    format: "%.1f %@",
-                                    abs(trendInfo.delta),
-                                    kind.unitSymbol(unitsSystem: unitsSystem)
-                                )
-                            )
+                            Text(kind.formattedDisplayValue(abs(trendInfo.delta), unitsSystem: unitsSystem))
                             .monospacedDigit()
                             Text(AppLocalization.string("trend.vs.relative", trendInfo.relativeText))
                         }
@@ -974,9 +998,7 @@ struct MetricChartTile: View {
     }
 
     private func valueString(metricValue: Double) -> String {
-        let shown = displayValue(metricValue)
-        let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-        return String(format: "%.1f %@", shown, unit)
+        kind.formattedMetricValue(fromMetric: metricValue, unitsSystem: unitsSystem)
     }
 
     private var yDomain: ClosedRange<Double> {
@@ -1037,7 +1059,7 @@ struct MetricChartTile: View {
         if let latest {
             let value = valueString(metricValue: latest.value)
             if let trendInfo {
-                let deltaText = String(format: "%.1f %@", abs(trendInfo.delta), kind.unitSymbol(unitsSystem: unitsSystem))
+                let deltaText = kind.formattedDisplayValue(abs(trendInfo.delta), unitsSystem: unitsSystem)
                 return AppLocalization.string("accessibility.metric.summary.trend", kind.title, value, deltaText, trendInfo.relativeText)
             }
             return AppLocalization.string("accessibility.metric.summary.value", kind.title, value)
@@ -1083,7 +1105,7 @@ struct MetricChartTile: View {
             range: minValue...maxValue,
             gridlinePositions: [],
             valueDescriptionProvider: { value in
-                String(format: "%.1f %@", value, unit)
+                kind.formattedDisplayValue(value, unitsSystem: unitsSystem)
             }
         )
 
@@ -1102,8 +1124,8 @@ struct MetricChartTile: View {
                 "chart.summary.metric",
                 kind.title,
                 AppLocalization.string("Last 30 days").lowercased(),
-                String(format: "%.1f", first),
-                String(format: "%.1f", last),
+                kind.formattedDisplayValue(first, unitsSystem: unitsSystem, includeUnit: false),
+                kind.formattedDisplayValue(last, unitsSystem: unitsSystem, includeUnit: false),
                 trend
             )
         } else {

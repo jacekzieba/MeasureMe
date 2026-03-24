@@ -48,9 +48,7 @@ struct WidgetMetricData: Codable {
         let newVal = kind.valueForDisplay(fromMetric: newest.value, isMetric: isMetric)
         let oldVal = kind.valueForDisplay(fromMetric: oldest.value, isMetric: isMetric)
         let delta = newVal - oldVal
-        let unit = kind.unitSymbol(isMetric: isMetric)
-        let fmt = kind.unitCategory == .percent ? "%+.1f%@" : "%+.1f\u{202F}%@"
-        return String(format: fmt, delta, unit)
+        return kind.formattedDisplayValue(delta, isMetric: isMetric, alwaysShowSign: true)
     }
 
     func trendOutcome(for kind: WidgetMetricKind, recentSamples: [SampleDTO]? = nil) -> WidgetMetricKind.TrendOutcome {
@@ -63,11 +61,80 @@ struct WidgetMetricData: Codable {
         )
     }
 
+    func trendStatusText(for kind: WidgetMetricKind, recentSamples: [SampleDTO]? = nil) -> String {
+        let recent = recentSamples ?? last30DaySamples
+        guard let oldest = recent.first, let newest = recent.last,
+              oldest.date != newest.date else {
+            return widgetLocalized("Not enough data", "Brak danych")
+        }
+
+        switch trendOutcome(for: kind, recentSamples: recent) {
+        case .positive:
+            return widgetLocalized("Improving", "Poprawa")
+        case .negative:
+            return widgetLocalized("Worsening", "Pogorszenie")
+        case .neutral:
+            return widgetLocalized("Stable", "Stabilnie")
+        }
+    }
+
+    func accessibilityTrendDescription(for kind: WidgetMetricKind, recentSamples: [SampleDTO]? = nil) -> String {
+        let recent = recentSamples ?? last30DaySamples
+        guard let oldest = recent.first, let newest = recent.last,
+              oldest.date != newest.date else {
+            return widgetLocalized("Not enough data for trend", "Za mało danych, aby ocenić trend")
+        }
+
+        let newVal = kind.valueForDisplay(fromMetric: newest.value, isMetric: isMetric)
+        let oldVal = kind.valueForDisplay(fromMetric: oldest.value, isMetric: isMetric)
+        let delta = newVal - oldVal
+        let magnitude = kind.formattedDisplayValue(abs(delta), isMetric: isMetric, alwaysShowSign: false)
+        let direction: String
+        if delta > 0 {
+            direction = widgetLocalized("up", "w górę")
+        } else if delta < 0 {
+            direction = widgetLocalized("down", "w dół")
+        } else {
+            direction = widgetLocalized("unchanged", "bez zmian")
+        }
+
+        switch trendOutcome(for: kind, recentSamples: recent) {
+        case .positive:
+            if delta == 0 {
+                return widgetLocalized("Improving, stable over 30 days", "Poprawa, stabilnie w ostatnich 30 dniach")
+            }
+            return String(format: widgetLocalized("Improving, %@ %@ over 30 days", "Poprawa, %@ %@ w ostatnich 30 dniach"), direction, magnitude)
+        case .negative:
+            if delta == 0 {
+                return widgetLocalized("Worsening, stable over 30 days", "Pogorszenie, stabilnie w ostatnich 30 dniach")
+            }
+            return String(format: widgetLocalized("Worsening, %@ %@ over 30 days", "Pogorszenie, %@ %@ w ostatnich 30 dniach"), direction, magnitude)
+        case .neutral:
+            if delta == 0 {
+                return widgetLocalized("Stable over 30 days", "Stabilnie w ostatnich 30 dniach")
+            }
+            return String(format: widgetLocalized("Stable, %@ %@ over 30 days", "Stabilnie, %@ %@ w ostatnich 30 dniach"), direction, magnitude)
+        }
+    }
+
+    func accessibilityGoalDescription(for kind: WidgetMetricKind) -> String? {
+        guard let goal else { return nil }
+        let targetDisplay = kind.valueForDisplay(fromMetric: goal.targetValue, isMetric: isMetric)
+        let targetText = kind.formattedDisplayValue(targetDisplay, isMetric: isMetric)
+        return String(format: widgetLocalized("Goal %@", "Cel %@"), targetText)
+    }
+
     // MARK: - App Group I/O
 
     static func load(for kind: WidgetMetricKind) -> WidgetMetricData? {
         guard let defaults = UserDefaults(suiteName: widgetAppGroupID) else { return nil }
         guard let data = defaults.data(forKey: "widget_data_\(kind.rawValue)") else { return nil }
-        return try? JSONDecoder().decode(WidgetMetricData.self, from: data)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+        return try? decoder.decode(WidgetMetricData.self, from: data)
     }
+}
+
+func widgetLocalized(_ english: String, _ polish: String) -> String {
+    Locale.current.language.languageCode?.identifier == "pl" ? polish : english
 }

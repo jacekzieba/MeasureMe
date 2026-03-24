@@ -15,7 +15,7 @@
 "notification.goal.title" = "Goal achievement notification%@";
 "notification.goal.body" = "You hit your %@ goal. Nice work.";
 "notification.smart.after.days" = "After %d days of inactivity";
-"validation.metric.range" = "Enter a value between %.1f and %.1f %@.";
+"validation.metric.range" = "Enter a value between %.2f and %.2f %@.";
 "Enter a valid number." = "Enter a valid number.";
 "Age must be between 5 and 120." = "Age must be between 5 and 120.";
 "Height must be between 50 and 300 cm." = "Height must be between 50 and 300 cm.";
@@ -87,6 +87,33 @@
 "goal.start.toggle.label" = "Customize starting point";
 "goal.start.value.label" = "Starting value";
 "goal.start.date.label" = "Starting date";
+
+// Goal Prediction
+"metric.goal.prediction.title" = "Goal Prediction";
+"metric.goal.trend.opposite" = "Your recent trend is moving away from your goal. Small changes to your routine can help get back on track.";
+"metric.goal.trend.flat" = "Your trend is currently stable. Once progress begins, we'll estimate your goal date.";
+"metric.goal.trend.too_far" = "At your current pace, the goal is more than 5 years away. Consider adjusting your target.";
+"metric.goal.premium.locked.title" = "Goal Prediction";
+"metric.goal.premium.locked.message" = "Upgrade to Premium to see when you'll reach your goal.";
+
+// Prediction Rates (expandable card)
+"prediction.commitment" = "Commitment";
+"prediction.current_rate" = "Current Rate";
+"prediction.overall_rate" = "Overall Rate";
+"prediction.description" = "At %@ %@/week, you will reach";
+"prediction.commitment.edit_title" = "Weekly Commitment";
+"prediction.commitment.edit_message" = "Enter your target weekly rate (%@/week)";
+"prediction.in_days" = "in %d days";
+"prediction.in_days.one" = "in 1 day";
+"prediction.in_days.few" = "in %d days";
+"prediction.in_days.many" = "in %d days";
+"prediction.in_weeks" = "in %d weeks";
+"prediction.in_weeks.one" = "in 1 week";
+"prediction.in_weeks.few" = "in %d weeks";
+"prediction.in_weeks.many" = "in %d weeks";
+"prediction.expand" = "Expand";
+"prediction.collapse" = "Collapse";
+
 "goal.start.help.default" = "Progress is calculated from this value. Defaults to your most recent measurement.";
 "goal.start.help.first" = "No measurements yet — this value will be saved as your first entry.";
 "quickadd.first.value.hint" = "Enter your first value";
@@ -116,6 +143,23 @@
 "home.goalstatus.slightlyoff" = "Small steps still count. Keep going.";
 "home.goalstatus.needsattention" = "You’ve got this. One check‑in at a time.";
 "home.goalstatus.nogoals" = "Set a goal whenever you’re ready.";
+"home.goalstatus.accessibility.hint.legend" = "Tap to learn what this status means.";
+"home.goalstatus.accessibility.hint.nogoals" = "Tap to go to measurements and set a goal.";
+"home.goalstatus.legend.navtitle" = "Goal status";
+"home.goalstatus.legend.title" = "What the colors mean";
+"home.goalstatus.legend.subtitle" = "This color is a quick signal showing how your latest result relates to your goal.";
+"home.goalstatus.legend.ontrack.title" = "On track";
+"home.goalstatus.legend.ontrack.description" = "Your latest value is moving in the right direction or has already reached the goal.";
+"home.goalstatus.legend.slightlyoff.title" = "Close, but worth watching";
+"home.goalstatus.legend.slightlyoff.description" = "You’re still relatively close to your goal, but this trend is worth keeping an eye on.";
+"home.goalstatus.legend.needsattention.title" = "Worth a closer look";
+"home.goalstatus.legend.needsattention.description" = "Your latest result is more clearly away from the goal right now. One new check-in can help you reassess.";
+"home.goalstatus.legend.nogoals.description" = "Set a goal for a metric to start seeing a color-based progress status here.";
+"home.goalstatus.legend.current.title" = "Current status";
+"home.goalstatus.legend.current.ontrack" = "You’re on track right now";
+"home.goalstatus.legend.current.slightlyoff" = "You’re close to your goal";
+"home.goalstatus.legend.current.needsattention" = "This metric needs a closer look";
+"home.goalstatus.legend.current.nogoals" = "You haven’t set a goal yet";
 "home.hero.fresh.title" = "Start with one useful signal";
 "home.hero.fresh.detail" = "One measurement or one photo is enough to make Home feel alive.";
 "home.hero.fresh.cta" = "Start now";
@@ -534,7 +578,8 @@
 "premium.carousel.unlock.item.ai" = "Unlimited AI Body Insights";
 "premium.carousel.unlock.item.compare" = "Photo Comparison Tool";
 "premium.carousel.unlock.item.health" = "Health & Trends Analysis";
-"premium.carousel.unlock.item.export" = "Data Export (CSV)";
+"premium.carousel.unlock.item.export" = "Data Export (CSV, JSON, PDF)";
+"premium.carousel.unlock.item.prediction" = "Goal Prediction";
 "premium.carousel.unlock.item.icloud" = "iCloud sync & backup restore";
 "premium.carousel.unlock.item.overlay" = "Ghost Overlay Photo Comparison";
 "premium.carousel.unlock.item.social" = "Transformation Card for Social Media";
@@ -784,8 +829,8 @@
 "Generating insight..." = "Generating insight...";
 "Last 30 days" = "Last 30 days";
 "Goal reached" = "Goal reached";
-"goal.remaining" = "%.1f %@ to goal";
-"goal.away" = "%.1f %@ away from goal";
+"goal.remaining" = "%.2f %@ to goal";
+"goal.away" = "%.2f %@ away from goal";
 "Importing Health data in background. You can continue." = "Importing Health data in background. You can continue.";
 "Your first check-in" = "Your first check-in";
 "A few details (optional)" = "A few details (optional)";
@@ -878,7 +923,7 @@
 "AI Insights: unavailable (Premium Edition required)" = "AI Insights: unavailable (Premium Edition required)";
 "What if AI Insights are unavailable?" = "What if AI Insights are unavailable?";
 "AI Insights in MeasureMe use Apple Intelligence. You need a supported device and language, plus Apple Intelligence enabled in system settings." = "AI Insights in MeasureMe use Apple Intelligence. You need a supported device and language, plus Apple Intelligence enabled in system settings.";
-"Premium unlocks AI Insights, Health Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled." = "Premium unlocks AI Insights, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled.";
+"Premium unlocks AI Insights, Goal Prediction, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled." = "Premium unlocks AI Insights, Goal Prediction, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled.";
 "premium.carousel.indicators.more" = "And 5 more";
 "premium.compare.benefit.visual" = "Visual proof";
 "premium.compare.benefit.timeline" = "Timeline context";
@@ -1013,7 +1058,7 @@
 "What's your goal?" = "What's your goal?";
 "You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week.";
 "onboarding.trend.delta" = "-0.3 kg/week";
-"onboarding.goal.badge" = "Goal %.1f kg";
+"onboarding.goal.badge" = "Goal %.2f kg";
 "onboarding.week.label" = "W%d";
 "onboarding.example.label" = "Sample data";
 "onboarding.example.data" = "Sample data";
@@ -1029,6 +1074,19 @@
 "chart.summary.metric" = "%1$@, %2$@, from %3$@ to %4$@, %5$@.";
 "chart.summary.empty" = "%@, no chart data yet.";
 "chart.title.metric" = "%@ trend";
+
+// MARK: - Trends Card
+"trends.title" = "%@ Trends";
+"trends.gained_in" = "Gained\nin %@";
+"trends.lost_in" = "Lost\nin %@";
+"trends.increased_in" = "Increased\nin %@";
+"trends.decreased_in" = "Decreased\nin %@";
+"trends.no_change_in" = "No change\nin %@";
+"trends.period.7d" = "7 days";
+"trends.period.30d" = "30 days";
+"trends.period.90d" = "90 days";
+"trends.period.alltime" = "all time";
+
 "Set Goal" = "Set Goal";
 "Update Goal" = "Update Goal";
 "Set" = "Set";
@@ -1203,6 +1261,12 @@
 "streak.detail.motivational.3.body" = "A quarter-year of continuous tracking. That's rare dedication — your data tells a powerful story.";
 "streak.detail.motivational.4.title" = "Unstoppable";
 "streak.detail.motivational.4.body" = "Half a year or more of tracking — you're in elite company. Keep going and the data speaks for itself.";
+"alllogs.title" = "All logs";
+"alllogs.filter.source" = "Source";
+"alllogs.filter.all" = "All";
+"alllogs.filter.manual" = "Manual";
+"alllogs.filter.healthkit" = "HealthKit";
+"alllogs.empty" = "No logs in selected range.";
 "Automatic iCloud backup" = "Automatic iCloud backup";
 "Back up now" = "Back up now";
 "Restore latest backup" = "Restore latest backup";
@@ -1683,8 +1747,32 @@
 "postpurchase.getstarted" = "Get Started";
 
 /* FAQ — Usage */
+"faq.usage.goalstatuscolors.q" = "What do the goal status colors mean?";
+"faq.usage.goalstatuscolors.a" = "The color next to your goal status is a quick progress signal based on your latest value. Green means you’re on track, yellow means you’re still close but it’s worth watching, and red means the latest result is more clearly away from the goal. It’s meant to help you scan progress quickly, not judge your health.";
 "faq.usage.photocomparison.q" = "How does photo comparison work?";
 "faq.usage.photocomparison.a" = "Open the Photos tab and tap Compare. Select a Before and After photo, then choose Side by Side or Slider mode to see the difference. Swipe to switch views.";
+"metric.compare.title" = "Compare";
+"metric.compare.button" = "Compare metrics";
+"metric.compare.button.hint" = "Opens a sheet to overlay a second metric on the same chart";
+"metric.compare.cta.idle" = "Choose a second metric";
+"metric.compare.cta.empty" = "Track another metric to compare it here";
+"metric.compare.clear" = "Stop comparing";
+"metric.compare.clear.current" = "Stop comparing %@";
+"metric.compare.description.dual_axis" = "Both trends share the same timeline. The second metric uses the right axis.";
+"metric.compare.description.shared_axis" = "Both metrics share the same unit scale, so they stay on one axis.";
+"metric.compare.axis.trailing" = "Right axis";
+"metric.compare.sheet.title" = "Compare on one chart";
+"metric.compare.sheet.subtitle" = "Choose a second metric to compare with %@.";
+"metric.compare.sheet.selector" = "Second metric";
+"metric.compare.sheet.section" = "Available metrics";
+"metric.compare.chart.empty" = "Choose a second metric to see the comparison chart.";
+"metric.compare.empty.title" = "Nothing else to compare yet";
+"metric.compare.empty.message" = "Add at least one other tracked metric and it will appear here.";
+"metric.compare.badge.recommended" = "Best match";
+"metric.compare.badge.second_axis" = "Second axis";
+"metric.compare.option.meta.dual" = "%d entries · latest %@ · right axis";
+"metric.compare.option.meta.shared" = "%d entries · latest %@ · shared axis";
+"metric.compare.chart.summary" = "%@ compared with %@ over %@. Primary range %@ to %@, trend %@. Latest %@.";
 "faq.usage.ghostoverlay.q" = "How do I use ghost overlay?";
 "faq.usage.ghostoverlay.a" = "In photo comparison, tap the overlay icon to switch to Ghost mode. Drag to reposition the overlay, pinch to scale it, and use the slider to adjust opacity.";
 "faq.usage.sharetransformation.q" = "How do I share my transformation?";
@@ -1697,7 +1785,49 @@
 "faq.premium.aiinsights.a" = "AI Insights uses Apple Intelligence to analyse your recent trend and generate a short, personalised summary. It runs on device, requires a supported device with Apple Intelligence enabled, and refreshes once per day or when a new value is logged.";
 "faq.premium.icloudbackup.q" = "What does iCloud backup include?";
 "faq.premium.icloudbackup.a" = "iCloud backup stores all your measurements, goals, and photos in encrypted form in your personal iCloud account. It runs automatically when the app is in the background and can be restored from Settings → Data → Restore from backup.";
+"faq.premium.goalprediction.q" = "How does Goal Prediction work?";
+"faq.premium.goalprediction.a" = "When you set a goal, Goal Prediction uses Double Exponential Smoothing to analyse your recent trend and estimate when you will reach your target. It needs at least 7 measurements over 7 days. If your trend is moving away from the goal or is flat, a helpful message is shown instead of a date.";
 
 /* Settings search catalog */
 "App version and legal" = "App version and legal";
 "Export, backup and delete" = "Export, backup and delete";
+
+/* Custom Metrics */
+"custom.metric.section.title" = "Your custom metrics";
+"custom.metric.section.subtitle" = "Create and track your own measurements.";
+"custom.metric.add" = "Add custom metric";
+"custom.metric.empty" = "No custom metrics yet. Tap + to create one.";
+"custom.metric.create.title" = "New Custom Metric";
+"custom.metric.edit.title" = "Edit Custom Metric";
+"custom.metric.name.placeholder" = "Metric name";
+"custom.metric.unit.placeholder" = "Unit (e.g. cm, reps, ml)";
+"custom.metric.section.basic" = "Basic Info";
+"custom.metric.section.icon" = "Icon";
+"custom.metric.icon.label" = "Icon";
+"custom.metric.icon.title" = "Choose Icon";
+"custom.metric.icon.search" = "Search symbols";
+"custom.metric.section.trend" = "Trend Direction";
+"custom.metric.trend.label" = "Favorable direction";
+"custom.metric.trend.increase" = "Increase is better";
+"custom.metric.trend.decrease" = "Decrease is better";
+"custom.metric.trend.neutral" = "Neutral";
+"custom.metric.trend.footer" = "Determines how trends are colored — green for favorable, red for unfavorable.";
+"custom.metric.section.range" = "Value Range";
+"custom.metric.range.label" = "Value bounds (optional)";
+"custom.metric.range.min" = "Minimum";
+"custom.metric.range.max" = "Maximum";
+"custom.metric.range.footer" = "Optional bounds for input validation.";
+"custom.metric.delete" = "Delete Custom Metric";
+"custom.metric.goal.target" = "Target value";
+"Target value" = "Target value";
+"Direction" = "Direction";
+"Remove goal" = "Remove goal";
+"No goal set" = "No goal set";
+"Goal:" = "Goal:";
+"Value" = "Value";
+"Delete measurement" = "Delete measurement";
+"Edit measurement" = "Edit measurement";
+"Show all" = "Show all";
+"Set" = "Set";
+"History" = "History";
+"Goal" = "Goal";

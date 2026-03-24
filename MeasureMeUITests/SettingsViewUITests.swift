@@ -96,6 +96,33 @@ final class SettingsViewUITests: XCTestCase {
     }
 
     @MainActor
+    func testPremiumActivationFromSettingsPaywallShowsPostPurchaseSetupAndPremiumState() {
+        app.launchArguments = ["-uiTestMode", "-uiTestOpenSettingsTab", "-uiTestForceNonPremium", "-uiTestSimulateTrialActivation"]
+        app.launch()
+        waitForAppShell()
+        tapSettingsTab()
+
+        let explorePremiumButton = app.buttons["settings.action.explorePremium"].firstMatch
+        XCTAssertTrue(explorePremiumButton.waitForExistence(timeout: 5), "Non-premium settings should expose the Premium CTA")
+        explorePremiumButton.tap()
+
+        let subscribeButton = app.buttons["premium.paywall.subscribe"].firstMatch
+        XCTAssertTrue(subscribeButton.waitForExistence(timeout: 5), "Paywall subscribe CTA should be visible from Settings")
+        XCTAssertTrue(subscribeButton.isEnabled, "Paywall subscribe CTA should be enabled for simulated activation")
+        subscribeButton.tap()
+
+        let postPurchaseSheet = app.otherElements["postpurchase.sheet"].firstMatch
+        XCTAssertTrue(postPurchaseSheet.waitForExistence(timeout: 5), "Aktywacja z Settings powinna pokazac ekran post-purchase setup")
+
+        let getStartedButton = app.buttons["postpurchase.getstarted"].firstMatch
+        XCTAssertTrue(getStartedButton.waitForExistence(timeout: 5), "Post-purchase setup should expose the dismiss CTA")
+        getStartedButton.tap()
+
+        let manageSubscriptionRow = app.descendants(matching: .any)["settings.row.manageSubscription"].firstMatch
+        XCTAssertTrue(manageSubscriptionRow.waitForExistence(timeout: 5), "Po aktywacji konto powinno pokazac stan Premium w Settings")
+    }
+
+    @MainActor
     func testSettingsSearchOpensDetailAndBackReturnsToOverview() {
         app.launch()
         waitForAppShell()

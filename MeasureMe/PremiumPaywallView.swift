@@ -719,6 +719,7 @@ struct PremiumPaywallView: View {
                 unlockBenefitRow(icon: "sparkles", tint: Color(hex: "#4ADE80"), textKey: "premium.carousel.unlock.item.ai")
                 unlockBenefitRow(icon: "photo.on.rectangle.angled", tint: Color(hex: "#60A5FA"), textKey: "premium.carousel.unlock.item.compare")
                 unlockBenefitRow(icon: "heart.text.square.fill", tint: Color(hex: "#34D399"), textKey: "premium.carousel.unlock.item.health")
+                unlockBenefitRow(icon: "chart.line.uptrend.xyaxis", tint: Color(hex: "#F472B6"), textKey: "premium.carousel.unlock.item.prediction")
                 unlockBenefitRow(icon: "doc.text.fill", tint: Color(hex: "#FBBF24"), textKey: "premium.carousel.unlock.item.export")
                 unlockBenefitRow(
                     icon: "icloud.and.arrow.up",
@@ -959,13 +960,19 @@ struct PremiumPaywallView: View {
                 premium.dismissPaywall()
                 return
             }
-            guard let product = selectedProduct else { return }
-            Task { await premium.purchase(product) }
+            Task {
+                if await premium.activateTrialForUITestsIfNeeded() {
+                    return
+                }
+                guard let product = selectedProduct else { return }
+                await premium.purchase(product)
+            }
         } label: {
             Text(AppLocalization.string("premium.cta.trial"))
         }
         .buttonStyle(AppAccentButtonStyle(cornerRadius: 30))
-        .disabled(!premium.isPremium && selectedProduct == nil)
+        .disabled(!premium.isPremium && selectedProduct == nil && !premium.canSimulateTrialActivationForUITests)
+        .accessibilityIdentifier("premium.paywall.subscribe")
         .scaleEffect(shouldAnimateCTA ? (isCTAPulsing ? 1.0 : 0.975) : 1.0)
         .shadow(
             color: Color.appAccent.opacity(shouldAnimateCTA ? (isCTAPulsing ? 0.48 : 0.24) : 0.18),

@@ -242,7 +242,9 @@ struct RootView: View {
         didScheduleDeferredStartupWork = true
 
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(1200))
+            if hasCompletedOnboarding {
+                try? await Task.sleep(for: .milliseconds(1200))
+            }
 
             premiumStore.startIfNeeded()
 

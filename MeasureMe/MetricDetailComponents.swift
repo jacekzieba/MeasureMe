@@ -30,7 +30,7 @@ extension MetricDetailView {
             range: minValue...maxValue,
             gridlinePositions: [],
             valueDescriptionProvider: { value in
-                String(format: "%.1f %@", value, unit)
+                kind.formattedDisplayValue(value, unitsSystem: unitsSystem)
             }
         )
 
@@ -40,8 +40,8 @@ extension MetricDetailView {
             dataPoints: points.map { AXDataPoint(x: $0.0, y: $0.1) }
         )
 
-        let minText = String(format: "%.1f %@", minValue, unit)
-        let maxText = String(format: "%.1f %@", maxValue, unit)
+        let minText = kind.formattedDisplayValue(minValue, unitsSystem: unitsSystem)
+        let maxText = kind.formattedDisplayValue(maxValue, unitsSystem: unitsSystem)
         let trendText = trendlineSegment?.endValue == trendlineSegment?.startValue
             ? AppLocalization.string("trend.steady")
             : ((trendlineSegment?.endValue ?? 0) > (trendlineSegment?.startValue ?? 0)
@@ -78,6 +78,10 @@ extension MetricDetailView {
 
     /// Minimalny span dla osi Y - zapewnia czytelność gdy dane są bardzo zbliżone
     func minimalSpan(for kind: MetricKind) -> Double {
+        Self.minimalSpan(for: kind)
+    }
+
+    static func minimalSpan(for kind: MetricKind) -> Double {
         switch kind.unitCategory {
         case .percent: return 1.0
         case .weight, .length: return 1.0
@@ -86,6 +90,10 @@ extension MetricDetailView {
 
     /// Minimalny padding dla osi Y - zapewnia margines wokół danych
     func minimalPadding(for kind: MetricKind) -> Double {
+        Self.minimalPadding(for: kind)
+    }
+
+    static func minimalPadding(for kind: MetricKind) -> Double {
         switch kind.unitCategory {
         case .percent: return 1.0
         case .weight, .length: return 0.5
@@ -124,44 +132,47 @@ extension MetricDetailView {
         return "\(remaining) \(unit) away from goal"
     }
 
+    var goalPredictionResult: GoalPredictionResult? {
+        guard let goal = currentGoal else { return nil }
+        return GoalPredictionEngine.predict(samples: samples, goal: goal)
+    }
+
     var goalForecastText: String? {
-        guard let goal = currentGoal,
-              let latest = sortedSamplesAscending.last,
-              let trend = insightTrendlineSegment else { return nil }
-
-        if goal.isAchieved(currentValue: latest.value) {
+        guard let result = goalPredictionResult else { return nil }
+        switch result {
+        case .achieved:
             return AppLocalization.string("Goal already achieved.")
-        }
-
-        let slope = (trend.endValue - trend.startValue) / trend.endDate.timeIntervalSince(trend.startDate)
-        guard slope.isFinite, slope != 0 else { return nil }
-
-        let latestValue = displayValue(latest.value)
-        let targetValue = displayValue(goal.targetValue)
-
-        let movingTowardGoal: Bool
-        let remaining: Double
-        switch goal.direction {
-        case .increase:
-            movingTowardGoal = slope > 0
-            remaining = targetValue - latestValue
-        case .decrease:
-            movingTowardGoal = slope < 0
-            remaining = latestValue - targetValue
-        }
-
-        guard movingTowardGoal, remaining > 0 else { return nil }
-
-        let seconds = remaining / abs(slope)
-        guard seconds.isFinite, seconds > 0 else { return nil }
-
-        let predictedDate = latest.date.addingTimeInterval(seconds)
-        if predictedDate.timeIntervalSince(latest.date) > 60 * 60 * 24 * 365 * 5 {
+        case .onTrack(let date):
+            let formatted = date.formatted(date: .abbreviated, time: .omitted)
+            return AppLocalization.string("metric.goal.projected.date", formatted)
+        case .trendOpposite:
+            return AppLocalization.string("metric.goal.trend.opposite")
+        case .flatTrend:
+            return AppLocalization.string("metric.goal.trend.flat")
+        case .tooFarOut:
+            return AppLocalization.string("metric.goal.trend.too_far")
+        case .insufficientData:
             return nil
         }
+    }
 
-        let formatted = predictedDate.formatted(date: .abbreviated, time: .omitted)
-        return AppLocalization.string("metric.goal.projected.date", formatted)
+    // MARK: - Weight Prediction Rates
+
+    var weightPredictionRates: GoalPredictionEngine.WeightPredictionRates? {
+        guard kind == .weight, let goal = currentGoal else { return nil }
+        return GoalPredictionEngine.calculateWeightRates(samples: samples, goal: goal)
+    }
+
+    func formattedWeeklyRate(_ metricRatePerWeek: Double) -> String {
+        let displayRate = displayValue(metricRatePerWeek)
+        let formatted = kind.formattedDisplayValue(displayRate, unitsSystem: unitsSystem)
+        return formatted
+    }
+
+    func updateCommitmentRate(_ displayRate: Double) {
+        guard let goal = currentGoal else { return }
+        let metricRate = kind.valueToMetric(fromDisplay: displayRate, unitsSystem: unitsSystem)
+        goal.commitmentWeeklyRate = abs(metricRate)
     }
 
     var insightTrendlineSegment: (startDate: Date, startValue: Double, endDate: Date, endValue: Double)? {
@@ -247,18 +258,11 @@ extension MetricDetailView {
         isLoadingInsight = true
         let generated = await MetricInsightService.shared.generateInsight(for: input)
         let baseText = generated?.detailedText ?? ""
-        if let forecast = goalForecastText, !forecast.isEmpty {
-            let combined = [baseText, forecast]
-                .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-                .joined(separator: " ")
-            insightState = .ready(combined.isEmpty ? forecast : combined)
+        let trimmed = baseText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            insightState = .fallback(AppLocalization.string("Couldn't generate an insight right now. Please try again in a moment."))
         } else {
-            let trimmed = baseText.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.isEmpty {
-                insightState = .fallback(AppLocalization.string("Couldn't generate an insight right now. Please try again in a moment."))
-            } else {
-                insightState = .ready(trimmed)
-            }
+            insightState = .ready(trimmed)
         }
         isLoadingInsight = false
     }
@@ -338,6 +342,574 @@ struct MetricChartAXDescriptor: AXChartDescriptorRepresentable {
 
     func makeChartDescriptor() -> AXChartDescriptor {
         descriptor
+    }
+}
+
+struct MetricComparisonOption: Identifiable, Equatable {
+    let kind: MetricKind
+    let latestSample: MetricSample?
+    let sampleCount: Int
+    let usesSecondaryAxis: Bool
+    let isRecommended: Bool
+
+    var id: String { kind.rawValue }
+}
+
+struct MetricCompareSheet: View {
+    let currentKind: MetricKind
+    let selectedKind: MetricKind?
+    let options: [MetricComparisonOption]
+    @Binding var timeframe: MetricDetailView.Timeframe
+    let unitsSystem: String
+    let primarySamples: [MetricSample]
+    let comparisonSamples: [MetricSample]
+    let primaryColor: Color
+    let comparisonColor: Color
+    let usesSecondaryAxis: Bool
+    let primaryAxisDomain: ClosedRange<Double>
+    let secondaryAxisValues: [Double]
+    let primaryDisplayValue: (Double) -> Double
+    let comparisonDisplayValue: (Double) -> Double
+    let onSelect: (MetricKind) -> Void
+    let onClear: (() -> Void)?
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var isPickerExpanded: Bool
+    @State private var scrubbedDate: Date?
+
+    init(
+        currentKind: MetricKind,
+        selectedKind: MetricKind?,
+        options: [MetricComparisonOption],
+        timeframe: Binding<MetricDetailView.Timeframe>,
+        unitsSystem: String,
+        primarySamples: [MetricSample],
+        comparisonSamples: [MetricSample],
+        primaryColor: Color,
+        comparisonColor: Color,
+        usesSecondaryAxis: Bool,
+        primaryAxisDomain: ClosedRange<Double>,
+        secondaryAxisValues: [Double],
+        primaryDisplayValue: @escaping (Double) -> Double,
+        comparisonDisplayValue: @escaping (Double) -> Double,
+        onSelect: @escaping (MetricKind) -> Void,
+        onClear: (() -> Void)?
+    ) {
+        self.currentKind = currentKind
+        self.selectedKind = selectedKind
+        self.options = options
+        self._timeframe = timeframe
+        self.unitsSystem = unitsSystem
+        self.primarySamples = primarySamples
+        self.comparisonSamples = comparisonSamples
+        self.primaryColor = primaryColor
+        self.comparisonColor = comparisonColor
+        self.usesSecondaryAxis = usesSecondaryAxis
+        self.primaryAxisDomain = primaryAxisDomain
+        self.secondaryAxisValues = secondaryAxisValues
+        self.primaryDisplayValue = primaryDisplayValue
+        self.comparisonDisplayValue = comparisonDisplayValue
+        self.onSelect = onSelect
+        self.onClear = onClear
+        _isPickerExpanded = State(initialValue: selectedKind == nil)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(AppLocalization.string("metric.compare.sheet.title"))
+                            .font(AppTypography.displaySection)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(AppLocalization.string("metric.compare.sheet.subtitle", currentKind.title))
+                            .font(AppTypography.body)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                    }
+
+                    Button {
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
+                            isPickerExpanded.toggle()
+                        }
+                    } label: {
+                        selectionRow
+                    }
+                    .buttonStyle(.plain)
+
+                    timeframeSelector
+
+                    if isPickerExpanded || selectedKind == nil {
+                        if options.isEmpty {
+                            EmptyStateCard(
+                                title: AppLocalization.string("metric.compare.empty.title"),
+                                message: AppLocalization.string("metric.compare.empty.message"),
+                                systemImage: "chart.line.uptrend.xyaxis"
+                            )
+                        } else {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text(AppLocalization.string("metric.compare.sheet.section"))
+                                    .font(AppTypography.eyebrow)
+                                    .foregroundStyle(AppColorRoles.textSecondary)
+
+                                ForEach(options) { option in
+                                    Button {
+                                        withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
+                                            onSelect(option.kind)
+                                            isPickerExpanded = false
+                                        }
+                                    } label: {
+                                        compareOptionRow(option)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityIdentifier("metric.compare.option.\(option.kind.rawValue)")
+                                }
+                            }
+                        }
+                    }
+
+                    if let selectedKind, !comparisonSamples.isEmpty {
+                        comparisonChartCard(selectedKind: selectedKind)
+                    } else {
+                        comparePlaceholderCard
+                    }
+
+                    if let selectedKind, let onClear {
+                        Button {
+                            onClear()
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(AppColorRoles.textSecondary)
+                                Text(AppLocalization.string("metric.compare.clear.current", selectedKind.title))
+                                    .font(AppTypography.bodyEmphasis)
+                                    .foregroundStyle(AppColorRoles.textPrimary)
+                                Spacer()
+                            }
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(AppColorRoles.surfaceInteractive)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 28)
+            }
+            .scrollIndicators(.hidden)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(AppLocalization.string("Done")) {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func compareOptionRow(_ option: MetricComparisonOption) -> some View {
+        let isSelected = option.kind == selectedKind
+
+        return HStack(spacing: 12) {
+            option.kind.iconView(font: AppTypography.iconMedium, size: 20, tint: AppColorRoles.compareAfter)
+                .frame(width: 34, height: 34)
+                .background(
+                    Circle()
+                        .fill(AppColorRoles.compareAfter.opacity(0.12))
+                )
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 8) {
+                    Text(option.kind.title)
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                    if option.isRecommended {
+                        compareBadge(AppLocalization.string("metric.compare.badge.recommended"))
+                    } else if option.usesSecondaryAxis {
+                        compareBadge(AppLocalization.string("metric.compare.badge.second_axis"))
+                    }
+                }
+
+                if let latestSample = option.latestSample {
+                    Text(option.kind.formattedMetricValue(fromMetric: latestSample.value, unitsSystem: unitsSystem))
+                        .font(AppTypography.captionEmphasis.monospacedDigit())
+                        .foregroundStyle(AppColorRoles.compareAfter)
+
+                    Text(optionRowMeta(option: option, date: latestSample.date))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: isSelected ? "checkmark.circle.fill" : "chevron.right")
+                .font(AppTypography.iconMedium)
+                .foregroundStyle(isSelected ? AppColorRoles.stateSuccess : AppColorRoles.textTertiary)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+        )
+    }
+
+    private func compareBadge(_ text: String) -> some View {
+        Text(text)
+            .font(AppTypography.microEmphasis)
+            .foregroundStyle(AppColorRoles.textPrimary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(AppColorRoles.surfaceAccentSoft)
+            )
+    }
+
+    private var selectionRow: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(AppLocalization.string("metric.compare.sheet.selector"))
+                    .font(AppTypography.eyebrow)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+
+                Text(selectedKind?.title ?? AppLocalization.string("metric.compare.cta.idle"))
+                    .font(AppTypography.bodyStrong)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+
+            Spacer()
+
+            Image(systemName: isPickerExpanded ? "chevron.up" : "chevron.down")
+                .font(AppTypography.iconMedium)
+                .foregroundStyle(AppColorRoles.textTertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+        )
+    }
+
+    private var comparePlaceholderCard: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "square.stack.3d.up")
+                .font(AppTypography.iconMedium)
+                .foregroundStyle(AppColorRoles.compareAfter)
+            Text(AppLocalization.string("metric.compare.chart.empty"))
+                .font(AppTypography.body)
+                .foregroundStyle(AppColorRoles.textSecondary)
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+        )
+    }
+
+    private var timeframeSelector: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(MetricDetailView.Timeframe.allCases) { option in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            timeframe = option
+                            scrubbedDate = nil
+                        }
+                    } label: {
+                        Text(option.rawValue)
+                            .font(AppTypography.microEmphasis)
+                            .foregroundStyle(timeframe == option ? AppColorRoles.textPrimary : AppColorRoles.textSecondary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(timeframe == option ? AppColorRoles.surfaceAccentSoft.opacity(1.2) : AppColorRoles.surfaceInteractive)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var scrubbedPrimarySample: MetricSample? {
+        nearestSample(to: scrubbedDate, in: primarySamples)
+    }
+
+    private var scrubbedComparisonSample: MetricSample? {
+        nearestSample(to: scrubbedDate, in: comparisonSamples)
+    }
+
+    private var isChartScrubbingEnabled: Bool {
+        !primarySamples.isEmpty || !comparisonSamples.isEmpty
+    }
+
+    private func comparisonChartCard(selectedKind: MetricKind) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                chartLegendItem(title: currentKind.title, color: primaryColor)
+                chartLegendItem(title: selectedKind.title, color: comparisonColor)
+                Spacer(minLength: 0)
+            }
+
+            Chart {
+                ForEach(primarySamples, id: \.persistentModelID) { sample in
+                    LineMark(
+                        x: .value("Date", sample.date),
+                        y: .value("Value", primaryDisplayValue(sample.value))
+                    )
+                    .interpolationMethod(.monotone)
+                    .lineStyle(.init(lineWidth: 2.75, lineCap: .round, lineJoin: .round))
+                    .foregroundStyle(by: .value("Series", currentKind.title))
+
+                    PointMark(
+                        x: .value("Primary Point Date", sample.date),
+                        y: .value("Primary Point Value", primaryDisplayValue(sample.value))
+                    )
+                    .symbol(Circle())
+                    .symbolSize(18)
+                    .foregroundStyle(primaryColor)
+                }
+
+                ForEach(comparisonSamples, id: \.persistentModelID) { sample in
+                    LineMark(
+                        x: .value("Date", sample.date),
+                        y: .value("Value", comparisonDisplayValue(sample.value))
+                    )
+                    .interpolationMethod(.monotone)
+                    .lineStyle(.init(lineWidth: 2.75, lineCap: .round, lineJoin: .round))
+                    .foregroundStyle(by: .value("Series", selectedKind.title))
+
+                    PointMark(
+                        x: .value("Comparison Point Date", sample.date),
+                        y: .value("Comparison Point Value", comparisonDisplayValue(sample.value))
+                    )
+                    .symbol(Circle())
+                    .symbolSize(18)
+                    .foregroundStyle(comparisonColor)
+                }
+
+                if let scrubbedDate {
+                    RuleMark(x: .value("Selected Date", scrubbedDate))
+                        .foregroundStyle(AppColorRoles.textSecondary.opacity(0.7))
+                        .lineStyle(StrokeStyle(lineWidth: 1))
+
+                    if let scrubbedPrimarySample {
+                        PointMark(
+                            x: .value("Primary Selected Date", scrubbedPrimarySample.date),
+                            y: .value("Primary Selected Value", primaryDisplayValue(scrubbedPrimarySample.value))
+                        )
+                        .symbol(Circle())
+                        .symbolSize(48)
+                        .foregroundStyle(primaryColor)
+                    }
+
+                    if let scrubbedComparisonSample {
+                        PointMark(
+                            x: .value("Comparison Selected Date", scrubbedComparisonSample.date),
+                            y: .value("Comparison Selected Value", comparisonDisplayValue(scrubbedComparisonSample.value))
+                        )
+                        .symbol(Circle())
+                        .symbolSize(48)
+                        .foregroundStyle(comparisonColor)
+                    }
+                }
+            }
+            .chartForegroundStyleScale([
+                currentKind.title: primaryColor,
+                selectedKind.title: comparisonColor
+            ])
+            .chartLegend(.hidden)
+            .chartYScale(domain: primaryAxisDomain)
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 3)) { _ in
+                    AxisGridLine().foregroundStyle(AppColorRoles.borderSubtle)
+                    AxisTick().foregroundStyle(AppColorRoles.borderStrong)
+                    AxisValueLabel(format: .dateTime.month(.abbreviated))
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColorRoles.textTertiary)
+                }
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
+                    AxisGridLine().foregroundStyle(AppColorRoles.borderSubtle)
+                    AxisTick().foregroundStyle(AppColorRoles.borderStrong)
+                    AxisValueLabel {
+                        if let number = value.as(Double.self) {
+                            Text(currentKind.formattedDisplayValue(number, unitsSystem: unitsSystem))
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColorRoles.textTertiary)
+                        }
+                    }
+                }
+            }
+            .frame(height: 240)
+            .chartPlotStyle { plot in
+                plot.clipped()
+            }
+            .chartOverlay { proxy in
+                GeometryReader { geometry in
+                    Rectangle()
+                        .fill(.clear)
+                        .contentShape(Rectangle())
+                        .simultaneousGesture(
+                            SpatialTapGesture()
+                                .onEnded { value in
+                                    updateScrubbedDate(at: value.location, proxy: proxy, geometry: geometry)
+                                }
+                        )
+                        .simultaneousGesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { value in
+                                    updateScrubbedDate(at: value.location, proxy: proxy, geometry: geometry)
+                                }
+                                .onEnded { _ in
+                                    scrubbedDate = nil
+                                }
+                        )
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                if let scrubbedDate {
+                    scrubbedOverlay(for: scrubbedDate, selectedKind: selectedKind)
+                        .padding(.top, 6)
+                        .padding(.leading, 6)
+                }
+            }
+            .overlay(alignment: .trailing) {
+                if usesSecondaryAxis {
+                    secondaryAxisColumn
+                        .padding(.trailing, 4)
+                        .padding(.vertical, 10)
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+        )
+    }
+
+    @ViewBuilder
+    private func scrubbedOverlay(for date: Date, selectedKind: MetricKind) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(date.formatted(date: .abbreviated, time: .omitted))
+                .font(AppTypography.micro)
+                .foregroundStyle(AppColorRoles.textSecondary)
+
+            HStack(spacing: 10) {
+                if let scrubbedPrimarySample {
+                    scrubbedValueChip(
+                        title: currentKind.title,
+                        value: currentKind.formattedMetricValue(fromMetric: scrubbedPrimarySample.value, unitsSystem: unitsSystem),
+                        color: primaryColor
+                    )
+                }
+
+                if let scrubbedComparisonSample {
+                    scrubbedValueChip(
+                        title: selectedKind.title,
+                        value: selectedKind.formattedMetricValue(fromMetric: scrubbedComparisonSample.value, unitsSystem: unitsSystem),
+                        color: comparisonColor
+                    )
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(AppColorRoles.surfaceCanvas.opacity(0.72))
+        )
+    }
+
+    private func scrubbedValueChip(title: String, value: String, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                Text(value)
+                    .font(AppTypography.microEmphasis.monospacedDigit())
+                    .foregroundStyle(AppColorRoles.textPrimary)
+            }
+        }
+    }
+
+    private func chartLegendItem(title: String, color: Color) -> some View {
+        HStack(spacing: 8) {
+            Capsule()
+                .fill(color)
+                .frame(width: 18, height: 4)
+            Text(title)
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(AppColorRoles.textPrimary)
+                .lineLimit(1)
+        }
+    }
+
+    private func optionRowMeta(option: MetricComparisonOption, date: Date) -> String {
+        let axisKey = option.usesSecondaryAxis
+            ? "metric.compare.option.meta.dual"
+            : "metric.compare.option.meta.shared"
+        return AppLocalization.string(
+            axisKey,
+            option.sampleCount,
+            date.formatted(date: .abbreviated, time: .omitted)
+        )
+    }
+
+    @ViewBuilder
+    private var secondaryAxisColumn: some View {
+        if let selectedKind, !secondaryAxisValues.isEmpty {
+            VStack(alignment: .trailing, spacing: 0) {
+                ForEach(Array(secondaryAxisValues.enumerated()), id: \.offset) { index, value in
+                    Text(selectedKind.formattedDisplayValue(value, unitsSystem: unitsSystem))
+                        .font(AppTypography.micro)
+                        .foregroundStyle(comparisonColor)
+                    if index < secondaryAxisValues.count - 1 {
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+            .frame(maxHeight: .infinity, alignment: .trailing)
+            .accessibilityHidden(true)
+        }
+    }
+
+    private func updateScrubbedDate(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
+        guard isChartScrubbingEnabled, let plotFrame = proxy.plotFrame else {
+            scrubbedDate = nil
+            return
+        }
+
+        let plotOrigin = geometry[plotFrame].origin
+        let xPosition = location.x - plotOrigin.x
+        guard xPosition >= 0, xPosition <= proxy.plotSize.width else {
+            scrubbedDate = nil
+            return
+        }
+
+        scrubbedDate = proxy.value(atX: xPosition, as: Date.self)
+    }
+
+    private func nearestSample(to date: Date?, in samples: [MetricSample]) -> MetricSample? {
+        guard let date, !samples.isEmpty else { return nil }
+        return samples.min {
+            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
+        }
     }
 }
 

@@ -399,7 +399,7 @@ private struct MetricValueField: View {
                 TextField(
                     AppLocalization.string("Value"),
                     value: $value,
-                    format: .number.precision(.fractionLength(1))
+                    format: .number.precision(.fractionLength(2))
                 )
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)

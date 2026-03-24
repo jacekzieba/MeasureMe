@@ -734,7 +734,8 @@ final class HealthKitManager {
             let sample = MetricSample(
                 kind: .height,
                 value: latest.value,
-                date: latest.date
+                date: latest.date,
+                source: .healthKit
             )
             context.insert(sample)
             try context.save()
@@ -876,7 +877,7 @@ final class HealthKitManager {
                 continue
             }
 
-            context.insert(MetricSample(kind: kind, value: sample.value, date: sample.date))
+            context.insert(MetricSample(kind: kind, value: sample.value, date: sample.date, source: .healthKit))
             indexByTimeBucket[bucket, default: []].append(
                 ImportComparisonSample(date: sample.date, value: sample.value)
             )

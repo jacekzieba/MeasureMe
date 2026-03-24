@@ -44,20 +44,30 @@ struct OnboardingPremiumStep: View {
             Button {
                 onboardingChecklistPremiumExplored = true
                 Haptics.light()
-                guard let product = selectedProduct else { return }
-                Task {
+                Task(priority: .userInitiated) {
                     premiumStore.setPurchaseContext(reason: .onboarding)
+                    if await premiumStore.activateTrialForUITestsIfNeeded() {
+                        return
+                    }
+                    guard let product = selectedProduct else { return }
                     await premiumStore.purchase(product)
                 }
             } label: {
-                Text(AppLocalization.systemString("Start my 14-day free trial"))
-                    .font(.system(.subheadline, design: .rounded).weight(.medium))
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 44)
+                HStack(spacing: 10) {
+                    if premiumStore.isPurchasing {
+                        ProgressView()
+                            .tint(.white)
+                    }
+
+                    Text(AppLocalization.systemString("Start my 14-day free trial"))
+                        .font(.system(.subheadline, design: .rounded).weight(.medium))
+                }
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 44)
             }
             .buttonStyle(.bordered)
             .tint(Color.appAccent)
-            .disabled(selectedProduct == nil || premiumStore.isLoading)
+            .disabled((selectedProduct == nil && !premiumStore.canSimulateTrialActivationForUITests) || premiumStore.isPurchasing)
             .appHitTarget()
             .accessibilityIdentifier("onboarding.premium.trial")
             .accessibilitySortPriority(3)
@@ -71,7 +81,8 @@ struct OnboardingPremiumStep: View {
             legalBlock
         }
         .task {
-            if premiumStore.products.isEmpty {
+            premiumStore.startIfNeeded()
+            if premiumStore.products.isEmpty && !premiumStore.isLoading {
                 await premiumStore.loadProducts()
             }
             preselectProductIfNeeded()
@@ -103,6 +114,7 @@ struct OnboardingPremiumStep: View {
             premiumUnlockBenefitRow(icon: "sparkles",                     tint: Color(hex: "#4ADE80"), textKey: "premium.carousel.unlock.item.ai")
             premiumUnlockBenefitRow(icon: "photo.on.rectangle.angled",    tint: Color(hex: "#60A5FA"), textKey: "premium.carousel.unlock.item.compare")
             premiumUnlockBenefitRow(icon: "heart.text.square.fill",       tint: Color(hex: "#34D399"), textKey: "premium.carousel.unlock.item.health")
+            premiumUnlockBenefitRow(icon: "chart.line.uptrend.xyaxis",    tint: Color(hex: "#F472B6"), textKey: "premium.carousel.unlock.item.prediction")
             premiumUnlockBenefitRow(icon: "doc.text.fill",                tint: Color(hex: "#FBBF24"), textKey: "premium.carousel.unlock.item.export")
         }
         .padding(dynamicTypeSize.isAccessibilitySize ? AppSpacing.sm : AppSpacing.xs)

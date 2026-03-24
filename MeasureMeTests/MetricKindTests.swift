@@ -78,4 +78,51 @@ final class MetricKindTests: XCTestCase {
             }
         }
     }
+
+    func testAllLogsFilterBySourceReturnsOnlyHealthKitSamples() {
+        let manualSample = MetricSample(kind: .weight, value: 80, date: Date(timeIntervalSince1970: 1_700_000_000), source: .manual)
+        let healthKitSample = MetricSample(kind: .weight, value: 79.8, date: Date(timeIntervalSince1970: 1_700_000_100), source: .healthKit)
+        let customManualSample = MetricSample(kindRaw: "custom_demo", value: 10, date: Date(timeIntervalSince1970: 1_700_000_200), source: .manual)
+
+        let filtered = AllLogsFilterEngine.filter(
+            samples: [manualSample, healthKitSample, customManualSample],
+            sourceFilter: .healthKit,
+            dateFilter: .all
+        )
+
+        XCTAssertEqual(filtered.count, 1)
+        XCTAssertEqual(filtered.first?.source, .healthKit)
+    }
+
+    func testAllLogsCustomRangeIncludesWholeEndDay() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
+
+        let rangeStart = calendar.date(from: DateComponents(year: 2023, month: 11, day: 14, hour: 8, minute: 0))!
+        let rangeEnd = calendar.date(from: DateComponents(year: 2023, month: 11, day: 15, hour: 10, minute: 0))!
+        let endOfRangeDay = calendar.date(from: DateComponents(year: 2023, month: 11, day: 15, hour: 23, minute: 59, second: 59))!
+        let nextDayStart = calendar.date(from: DateComponents(year: 2023, month: 11, day: 16, hour: 0, minute: 0, second: 0))!
+
+        let inRangeAtStart = MetricSample(kind: .weight, value: 80, date: rangeStart)
+        let inRangeAtEnd = MetricSample(kind: .weight, value: 79.9, date: endOfRangeDay)
+        let outOfRange = MetricSample(kind: .weight, value: 79.8, date: nextDayStart)
+
+        let filtered = AllLogsFilterEngine.filter(
+            samples: [inRangeAtStart, inRangeAtEnd, outOfRange],
+            sourceFilter: .all,
+            dateFilter: .custom(start: rangeStart, end: rangeEnd),
+            calendar: calendar
+        )
+
+        XCTAssertEqual(filtered.count, 2)
+        XCTAssertTrue(filtered.contains { $0.date == rangeStart })
+        XCTAssertTrue(filtered.contains { $0.date == endOfRangeDay })
+    }
+
+    func testMetricSampleSourceFallsBackToManualForLegacyUnknownRawValue() {
+        let sample = MetricSample(kind: .weight, value: 80, date: .now)
+        sample.sourceRaw = ""
+
+        XCTAssertEqual(sample.source, .manual)
+    }
 }

@@ -41,6 +41,14 @@ enum SettingsImporter {
         let kindRaw: String
         let value: Double   // value_metric — wartość bazowa (kg/cm/%)
         let date: Date
+        let source: MetricSampleSource
+
+        nonisolated init(kindRaw: String, value: Double, date: Date, source: MetricSampleSource = .manual) {
+            self.kindRaw = kindRaw
+            self.value = value
+            self.date = date
+            self.source = source
+        }
     }
 
     struct MetricsParseResult {
@@ -84,6 +92,7 @@ enum SettingsImporter {
         "unit_metric",
         "value",
         "unit",
+        "source",
         "timestamp",
         "direction",
         "target_value_metric",
@@ -202,6 +211,7 @@ enum SettingsImporter {
               let idxVal = cols.firstIndex(of: "value_metric"),
               let idxTs  = cols.firstIndex(of: "timestamp")
         else { return result }
+        let idxSource = cols.firstIndex(of: "source")
 
         let isoFull  = ISO8601DateFormatter()
         isoFull.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -218,7 +228,11 @@ enum SettingsImporter {
             let tsString = fields[idxTs]
             guard let date = isoFull.date(from: tsString) ?? isoBasic.date(from: tsString)
             else { result.skipped += 1; continue }
-            result.rows.append(ParsedSampleRow(kindRaw: kindRaw, value: value, date: date))
+            let sourceValue = idxSource.flatMap { index in
+                index < fields.count ? fields[index] : nil
+            }
+            let source = MetricSampleSource(rawValue: sourceValue ?? "") ?? .manual
+            result.rows.append(ParsedSampleRow(kindRaw: kindRaw, value: value, date: date, source: source))
         }
         return result
     }
@@ -382,7 +396,7 @@ enum SettingsImporter {
                 existingKeys.insert(key)
             }
             guard let kind = MetricKind(rawValue: row.kindRaw) else { continue }
-            context.insert(MetricSample(kind: kind, value: row.value, date: row.date))
+            context.insert(MetricSample(kind: kind, value: row.value, date: row.date, source: row.source))
             result.samplesInserted += 1
         }
     }

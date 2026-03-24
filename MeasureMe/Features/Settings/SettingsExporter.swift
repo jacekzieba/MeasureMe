@@ -26,6 +26,19 @@ enum SettingsExporter {
         let kindRaw: String
         let value: Double
         let date: Date
+        let sourceRaw: String
+
+        init(
+            kindRaw: String,
+            value: Double,
+            date: Date,
+            sourceRaw: String = MetricSampleSource.manual.rawValue
+        ) {
+            self.kindRaw = kindRaw
+            self.value = value
+            self.date = date
+            self.sourceRaw = sourceRaw
+        }
     }
 
     struct MetricCSVRowSnapshot: Sendable {
@@ -35,7 +48,28 @@ enum SettingsExporter {
         let metricUnit: String        // jednostka bazowa (kg/cm/%)
         let displayValue: Double      // wartość w jednostkach display
         let unit: String              // jednostka display
+        let sourceRaw: String
         let date: Date
+
+        init(
+            kindRaw: String,
+            metricTitle: String,
+            metricValue: Double,
+            metricUnit: String,
+            displayValue: Double,
+            unit: String,
+            sourceRaw: String = MetricSampleSource.manual.rawValue,
+            date: Date
+        ) {
+            self.kindRaw = kindRaw
+            self.metricTitle = metricTitle
+            self.metricValue = metricValue
+            self.metricUnit = metricUnit
+            self.displayValue = displayValue
+            self.unit = unit
+            self.sourceRaw = sourceRaw
+            self.date = date
+        }
     }
 
     struct MetricGoalSnapshot: Sendable {
@@ -88,6 +122,7 @@ enum SettingsExporter {
                 metricUnit: metricUnit,
                 displayValue: kind.valueForDisplay(fromMetric: sample.value, unitsSystem: unitsSystem),
                 unit: kind.unitSymbol(unitsSystem: unitsSystem),
+                sourceRaw: sample.sourceRaw,
                 date: sample.date
             )
         }
@@ -173,7 +208,7 @@ enum SettingsExporter {
         )
         let samples = (try? context.fetch(descriptor)) ?? []
         return samples.map {
-            MetricSampleSnapshot(kindRaw: $0.kindRaw, value: $0.value, date: $0.date)
+            MetricSampleSnapshot(kindRaw: $0.kindRaw, value: $0.value, date: $0.date, sourceRaw: $0.sourceRaw)
         }
     }
 
@@ -211,7 +246,7 @@ enum SettingsExporter {
         // metric_id — stały klucz do importu (MetricKind.rawValue, language-agnostic)
         // value_metric / unit_metric — wartości bazowe (kg/cm/%) — determinizm przy imporcie
         // value / unit — wartości display (lb/in gdy imperial) — wygoda w Excelu
-        var lines: [String] = ["metric_id,metric,value_metric,unit_metric,value,unit,timestamp"]
+        var lines: [String] = ["metric_id,metric,value_metric,unit_metric,value,unit,source,timestamp"]
         for row in rows {
             let metricValueStr = String(format: "%.4f", locale: posixLocale, row.metricValue)
             let displayValueStr = String(format: "%.2f", locale: posixLocale, row.displayValue)
@@ -223,6 +258,7 @@ enum SettingsExporter {
                 csvField(row.metricUnit),
                 displayValueStr,
                 csvField(row.unit),
+                csvField(row.sourceRaw),
                 dateString
             ].joined(separator: ","))
         }
@@ -364,6 +400,7 @@ enum SettingsExporter {
                 metricUnit: metricUnit,
                 displayValue: kind.valueForDisplay(fromMetric: sample.value, unitsSystem: unitsSystem),
                 unit: kind.unitSymbol(unitsSystem: unitsSystem),
+                sourceRaw: sample.sourceRaw,
                 date: sample.date
             )
         }
@@ -423,6 +460,7 @@ enum SettingsExporter {
                 "unitMetric": row.metricUnit,
                 "value": Double(String(format: "%.2f", locale: posixLocale, row.displayValue))!,
                 "unit": row.unit,
+                "source": row.sourceRaw,
                 "timestamp": iso.string(from: row.date)
             ]
         }
@@ -513,6 +551,7 @@ enum SettingsExporter {
                 metricUnit: metricUnit,
                 displayValue: kind.valueForDisplay(fromMetric: sample.value, unitsSystem: unitsSystem),
                 unit: kind.unitSymbol(unitsSystem: unitsSystem),
+                sourceRaw: sample.sourceRaw,
                 date: sample.date
             )
         }

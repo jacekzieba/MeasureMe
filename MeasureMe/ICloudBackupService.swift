@@ -100,7 +100,7 @@ enum ICloudBackupService {
             let metrics = try context.fetch(FetchDescriptor<MetricSample>())
             let goals = try context.fetch(FetchDescriptor<MetricGoal>())
             let codableMetrics = metrics.map {
-                CodableMetricSample(kindRaw: $0.kindRaw, value: $0.value, date: $0.date)
+                CodableMetricSample(kindRaw: $0.kindRaw, value: $0.value, date: $0.date, sourceRaw: $0.sourceRaw)
             }
             let codableGoals = goals.map {
                 CodableMetricGoal(
@@ -389,7 +389,7 @@ enum ICloudBackupService {
             let existingGoals = try context.fetch(FetchDescriptor<MetricGoal>())
 
             let snapshotMetrics = existingMetrics.map {
-                CodableMetricSample(kindRaw: $0.kindRaw, value: $0.value, date: $0.date)
+                CodableMetricSample(kindRaw: $0.kindRaw, value: $0.value, date: $0.date, sourceRaw: $0.sourceRaw)
             }
             let snapshotGoals = existingGoals.map {
                 CodableMetricGoal(
@@ -409,7 +409,8 @@ enum ICloudBackupService {
 
             for m in payload.metrics {
                 guard let kind = MetricKind(rawValue: m.kindRaw) else { continue }
-                context.insert(MetricSample(kind: kind, value: m.value, date: m.date))
+                let source = MetricSampleSource(rawValue: m.sourceRaw ?? "") ?? .manual
+                context.insert(MetricSample(kind: kind, value: m.value, date: m.date, source: source))
             }
 
             for g in payload.goals {
@@ -433,7 +434,8 @@ enum ICloudBackupService {
                 try? deleteAll(MetricGoal.self, from: context)
                 for m in snapshotMetrics {
                     if let kind = MetricKind(rawValue: m.kindRaw) {
-                        context.insert(MetricSample(kind: kind, value: m.value, date: m.date))
+                        let source = MetricSampleSource(rawValue: m.sourceRaw ?? "") ?? .manual
+                        context.insert(MetricSample(kind: kind, value: m.value, date: m.date, source: source))
                     }
                 }
                 for g in snapshotGoals {
@@ -783,6 +785,7 @@ enum ICloudBackupService {
         let kindRaw: String
         let value: Double
         let date: Date
+        let sourceRaw: String?
     }
 
     private struct CodableMetricGoal: Codable, Sendable {

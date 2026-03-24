@@ -105,6 +105,41 @@ enum WidgetMetricKind: String, AppEnum, CaseIterable {
         }
     }
 
+    func formattedDisplayValue(
+        _ displayValue: Double,
+        isMetric: Bool,
+        includeUnit: Bool = true,
+        alwaysShowSign: Bool = false
+    ) -> String {
+        let valueFormat = alwaysShowSign ? "%+.2f" : "%.2f"
+
+        switch unitCategory {
+        case .percent:
+            return includeUnit
+                ? String(format: "\(valueFormat)%%", displayValue)
+                : String(format: valueFormat, displayValue)
+        case .weight, .length:
+            if includeUnit {
+                return String(format: "\(valueFormat)\u{202F}%@", displayValue, unitSymbol(isMetric: isMetric))
+            }
+            return String(format: valueFormat, displayValue)
+        }
+    }
+
+    func formattedMetricValue(
+        fromMetric metricValue: Double,
+        isMetric: Bool,
+        includeUnit: Bool = true,
+        alwaysShowSign: Bool = false
+    ) -> String {
+        formattedDisplayValue(
+            valueForDisplay(fromMetric: metricValue, isMetric: isMetric),
+            isMetric: isMetric,
+            includeUnit: includeUnit,
+            alwaysShowSign: alwaysShowSign
+        )
+    }
+
     // MARK: - Trend
 
     var favorsDecrease: Bool {

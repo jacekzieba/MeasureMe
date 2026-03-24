@@ -56,15 +56,18 @@ struct HomeView: View {
     @ObservedObject private var streakManager: StreakManager
 
     @Query private var recentSamples: [MetricSample]
-    
+
     @Query private var goals: [MetricGoal]
-    
+
     @Query private var recentPhotos: [PhotoEntry]
+
+    @Query private var customDefinitions: [CustomMetricDefinition]
     
     @State private var showQuickAddSheet = false
     @State private var showHomeSettingsSheet = false
     @State private var showHomeCompareChooser = false
     @State private var showStreakDetail = false
+    @State private var showGoalStatusLegendSheet = false
     @State private var selectedPhotoForFullScreen: PhotoEntry?
     @State private var selectedHomeComparePair: HomeComparePair?
     @State private var scrollOffset: CGFloat = 0
@@ -97,6 +100,9 @@ struct HomeView: View {
     @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
     @State private var cachedLatestByKind: [MetricKind: MetricSample] = [:]
     @State private var cachedGoalsByKind: [MetricKind: MetricGoal] = [:]
+    @State private var cachedCustomSamplesByIdentifier: [String: [MetricSample]] = [:]
+    @State private var cachedCustomLatestByIdentifier: [String: MetricSample] = [:]
+    @State private var cachedCustomGoalsByIdentifier: [String: MetricGoal] = [:]
     @State private var cachedDashboardItems: [HomeModuleLayoutItem] = []
 
     private let maxVisibleMetrics = 3
@@ -268,6 +274,15 @@ struct HomeView: View {
     private var dashboardVisibleMetrics: [MetricKind] {
         Array(visibleMetrics.prefix(3))
     }
+
+    /// Unified key metric identifiers (built-in + custom) for Home dashboard.
+    private var dashboardKeyIdentifiers: [String] {
+        metricsStore.keyMetricIdentifiers
+    }
+
+    private var customDefinitionsMap: [String: CustomMetricDefinition] {
+        Dictionary(uniqueKeysWithValues: customDefinitions.map { ($0.identifier, $0) })
+    }
     
     
     /// Widoczne kafelki zdjęć (persisted + pending, maksymalnie 6)
@@ -408,11 +423,18 @@ struct HomeView: View {
         var latest: [MetricKind: MetricSample] = [:]
         let kindsToKeep = Set(metricsStore.activeKinds).union([.waist, .height, .weight, .bodyFat, .leanBodyMass, .hips])
 
+        var customGrouped: [String: [MetricSample]] = [:]
+        var customLatest: [String: MetricSample] = [:]
+
         for sample in recentSamples {
-            guard let kind = MetricKind(rawValue: sample.kindRaw) else {
-                AppLog.debug("⚠️ Ignoring MetricSample with invalid kindRaw: \(sample.kindRaw)")
+            if sample.kindRaw.hasPrefix("custom_") {
+                customGrouped[sample.kindRaw, default: []].append(sample)
+                if customLatest[sample.kindRaw] == nil {
+                    customLatest[sample.kindRaw] = sample
+                }
                 continue
             }
+            guard let kind = MetricKind(rawValue: sample.kindRaw) else { continue }
             grouped[kind, default: []].append(sample)
             if kindsToKeep.contains(kind), latest[kind] == nil {
                 latest[kind] = sample
@@ -421,6 +443,17 @@ struct HomeView: View {
 
         cachedSamplesByKind = grouped
         cachedLatestByKind = latest
+        cachedCustomSamplesByIdentifier = customGrouped
+        cachedCustomLatestByIdentifier = customLatest
+
+        // Cache custom goals
+        var customGoals: [String: MetricGoal] = [:]
+        for goal in goals where goal.kindRaw.hasPrefix("custom_") {
+            if customGoals[goal.kindRaw] == nil {
+                customGoals[goal.kindRaw] = goal
+            }
+        }
+        cachedCustomGoalsByIdentifier = customGoals
 
         if !recentSamples.isEmpty {
             hasAnyMeasurements = true
@@ -975,6 +1008,11 @@ struct HomeView: View {
             .sheet(isPresented: $showStreakDetail) {
                 StreakDetailView(streakManager: streakManager)
             }
+            .sheet(isPresented: $showGoalStatusLegendSheet) {
+                GoalStatusLegendSheet(currentStatus: goalStatus, currentStatusColor: goalStatusColor)
+                    .presentationDetents([.fraction(0.42), .medium])
+                    .presentationDragIndicator(.visible)
+            }
             .alert(
                 AppLocalization.string("Open iOS Settings now?"),
                 isPresented: $shouldPromptToOpenHealthSettings
@@ -1225,20 +1263,25 @@ struct HomeView: View {
     }
 
     private var heroGoalStatusRow: some View {
-        Group {
+        Button {
+            Haptics.selection()
             if goalStatus == .noGoals {
-                Button {
-                    Haptics.selection()
-                    router.selectedTab = .measurements
-                } label: {
-                    heroGoalStatusContent
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("home.goalStatus.button")
+                router.selectedTab = .measurements
             } else {
-                heroGoalStatusContent
+                showGoalStatusLegendSheet = true
             }
+        } label: {
+            heroGoalStatusContent
         }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("home.goalStatus.button")
+        .accessibilityHint(
+            AppLocalization.string(
+                goalStatus == .noGoals
+                    ? "home.goalstatus.accessibility.hint.nogoals"
+                    : "home.goalstatus.accessibility.hint.legend"
+            )
+        )
     }
 
     private var heroGoalStatusContent: some View {
@@ -1501,11 +1544,21 @@ struct HomeView: View {
                     subtitle: keyMetricsSubtitle,
                     accent: moduleAccentText,
                     accessibilityIdentifier: "home.module.keyMetrics.title",
-                    action: { router.selectedTab = .measurements },
-                    actionAccessibilityLabel: AppLocalization.string("accessibility.open.measurements")
+                    actions: [
+                        .init(
+                            systemImage: "plus",
+                            accessibilityLabel: AppLocalization.string("Add measurement"),
+                            action: { showQuickAddSheet = true }
+                        ),
+                        .init(
+                            systemImage: "arrow.up.right",
+                            accessibilityLabel: AppLocalization.string("accessibility.open.measurements"),
+                            action: { router.selectedTab = .measurements }
+                        )
+                    ]
                 )
 
-                if !hasAnyMeasurements && cachedLatestByKind.isEmpty {
+                if !hasAnyMeasurements && cachedLatestByKind.isEmpty && cachedCustomLatestByIdentifier.isEmpty {
                     editorialEmptyStateCard(
                         eyebrow: AppLocalization.string("home.empty.eyebrow"),
                         title: AppLocalization.string("home.keymetrics.empty.title"),
@@ -1515,7 +1568,7 @@ struct HomeView: View {
                     ) {
                         showQuickAddSheet = true
                     }
-                } else if dashboardVisibleMetrics.isEmpty {
+                } else if dashboardKeyIdentifiers.isEmpty {
                     editorialEmptyStateCard(
                         eyebrow: AppLocalization.string("home.empty.eyebrow"),
                         title: AppLocalization.string("home.keymetrics.empty.selection.title"),
@@ -1526,26 +1579,46 @@ struct HomeView: View {
                         router.selectedTab = .measurements
                     }
                 } else {
+                    let ids = dashboardKeyIdentifiers
+                    let defMap = customDefinitionsMap
                     VStack(alignment: .leading, spacing: 10) {
-                        if let leadMetric = dashboardVisibleMetrics.first {
-                            NavigationLink {
-                                MetricDetailView(kind: leadMetric)
-                            } label: {
-                                HomeKeyMetricRow(
-                                    kind: leadMetric,
-                                    latest: cachedLatestByKind[leadMetric],
-                                    goal: cachedGoalsByKind[leadMetric],
-                                    samples: samplesForKind(leadMetric),
-                                    unitsSystem: unitsSystem
-                                )
+                        if let leadId = ids.first {
+                            if let kind = MetricKind(rawValue: leadId) {
+                                NavigationLink {
+                                    MetricDetailView(kind: kind)
+                                } label: {
+                                    HomeKeyMetricRow(
+                                        kind: kind,
+                                        latest: cachedLatestByKind[kind],
+                                        goal: cachedGoalsByKind[kind],
+                                        samples: samplesForKind(kind),
+                                        unitsSystem: unitsSystem
+                                    )
+                                }
+                                .buttonStyle(PressableTileStyle())
+                                .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
+                                .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
+                            } else if let def = defMap[leadId] {
+                                NavigationLink {
+                                    CustomMetricDetailView(definition: def)
+                                } label: {
+                                    HomeCustomKeyMetricRow(
+                                        definition: def,
+                                        latest: cachedCustomLatestByIdentifier[leadId],
+                                        goal: cachedCustomGoalsByIdentifier[leadId],
+                                        samples: cachedCustomSamplesByIdentifier[leadId] ?? []
+                                    )
+                                }
+                                .buttonStyle(PressableTileStyle())
                             }
-                            .buttonStyle(PressableTileStyle())
-                            .accessibilityLabel(homeMetricAccessibilityLabel(kind: leadMetric))
-                            .accessibilityHint(AppLocalization.string("accessibility.opens.details", leadMetric.title))
                         }
 
-                        ForEach(Array(dashboardVisibleMetrics.dropFirst()), id: \.self) { kind in
-                            secondaryMetricCard(for: kind)
+                        ForEach(Array(ids.dropFirst()), id: \.self) { id in
+                            if let kind = MetricKind(rawValue: id) {
+                                secondaryMetricCard(for: kind)
+                            } else if let def = defMap[id] {
+                                customSecondaryMetricCard(for: def)
+                            }
                         }
                     }
                 }
@@ -1582,8 +1655,13 @@ struct HomeView: View {
                     subtitle: recentPhotosSubtitle,
                     accent: Color.cyan,
                     accessibilityIdentifier: "home.module.recentPhotos.title",
-                    action: { router.selectedTab = .photos },
-                    actionAccessibilityLabel: AppLocalization.string("accessibility.open.photos")
+                    actions: [
+                        .init(
+                            systemImage: "arrow.up.right",
+                            accessibilityLabel: AppLocalization.string("accessibility.open.photos"),
+                            action: { router.selectedTab = .photos }
+                        )
+                    ]
                 )
 
                 Text(String(dashboardRecentPhotoTiles.count))
@@ -2037,7 +2115,7 @@ struct HomeView: View {
         let directionKey = delta >= 0
             ? "home.nextfocus.insight.trend.up.summary"
             : "home.nextfocus.insight.trend.down.summary"
-        let deltaText = String(format: "%.1f %@", absoluteDelta, kind.unitSymbol(unitsSystem: unitsSystem))
+        let deltaText = kind.formattedDisplayValue(absoluteDelta, unitsSystem: unitsSystem)
         let periodKey = days >= 30 ? "home.nextfocus.period.30d" : "home.nextfocus.period.7d"
         let periodChipKey = days >= 30 ? "home.nextfocus.periodchip.30d" : "home.nextfocus.periodchip.7d"
 
@@ -2107,13 +2185,14 @@ struct HomeView: View {
     }
 
     private var keyMetricsSubtitle: String {
-        if !hasAnyMeasurements && cachedLatestByKind.isEmpty {
+        if !hasAnyMeasurements && cachedLatestByKind.isEmpty && cachedCustomLatestByIdentifier.isEmpty {
             return AppLocalization.string("home.keymetrics.empty.subtitle")
         }
-        if dashboardVisibleMetrics.isEmpty {
+        let ids = dashboardKeyIdentifiers
+        if ids.isEmpty {
             return AppLocalization.string("home.keymetrics.empty.selection.subtitle")
         }
-        return AppLocalization.string("home.keymetrics.ready.subtitle", dashboardVisibleMetrics.count)
+        return AppLocalization.string("home.keymetrics.ready.subtitle", ids.count)
     }
 
     private var recentPhotosInsightTitle: String {
@@ -2183,7 +2262,7 @@ struct HomeView: View {
             items.append(HomeHealthStatItem(label: MetricKind.waist.title, value: formattedMetricValue(for: .waist, metricValue: latestWaist)))
         }
         if let latestBodyFat, latestBodyFat > 0 {
-            items.append(HomeHealthStatItem(label: MetricKind.bodyFat.title, value: String(format: "%.1f %%", latestBodyFat)))
+            items.append(HomeHealthStatItem(label: MetricKind.bodyFat.title, value: MetricKind.bodyFat.formattedDisplayValue(latestBodyFat, unitsSystem: unitsSystem)))
         }
         if let latestLeanMass, latestLeanMass > 0 {
             items.append(HomeHealthStatItem(label: MetricKind.leanBodyMass.title, value: formattedMetricValue(for: .leanBodyMass, metricValue: latestLeanMass)))
@@ -2214,7 +2293,7 @@ struct HomeView: View {
 
     private var homeHealthSummaryTitle: String {
         if let bodyFat = latestBodyFat, bodyFat > 0 {
-            return AppLocalization.string("home.health.summary.bodyfat", String(format: "%.1f %%", bodyFat))
+            return AppLocalization.string("home.health.summary.bodyfat", MetricKind.bodyFat.formattedDisplayValue(bodyFat, unitsSystem: unitsSystem))
         }
         if let leanMass = latestLeanMass, leanMass > 0 {
             return AppLocalization.string("home.health.summary.leanmass", formattedMetricValue(for: .leanBodyMass, metricValue: leanMass))
@@ -2616,7 +2695,7 @@ struct HomeView: View {
         return latestCheckInThisWeek.date.formatted(.dateTime.weekday(.wide))
     }
 
-    private enum GoalStatusLevel {
+    fileprivate enum GoalStatusLevel {
         case onTrack
         case slightlyOff
         case needsAttention
@@ -2649,9 +2728,7 @@ struct HomeView: View {
     }
 
     private func formattedMetricValue(for kind: MetricKind, metricValue: Double) -> String {
-        let shown = kind.valueForDisplay(fromMetric: metricValue, unitsSystem: unitsSystem)
-        let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-        return String(format: "%.1f %@", shown, unit)
+        kind.formattedMetricValue(fromMetric: metricValue, unitsSystem: unitsSystem)
     }
 
     private func relativeDescription(since date: Date) -> String {
@@ -2666,6 +2743,7 @@ struct HomeView: View {
             if expandedSecondaryMetrics.contains(kind) {
                 expandedSecondaryMetricCard(for: kind)
                     .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).expanded")
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             } else {
                 Button {
                     Haptics.selection()
@@ -2679,8 +2757,10 @@ struct HomeView: View {
                 .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).toggle")
                 .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
                 .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .clipped()
     }
 
     private func compactMetricRow(for kind: MetricKind) -> some View {
@@ -2775,14 +2855,58 @@ struct HomeView: View {
         }
     }
 
+    private func customSecondaryMetricCard(for definition: CustomMetricDefinition) -> some View {
+        let id = definition.identifier
+        let latestText = cachedCustomLatestByIdentifier[id].map {
+            String(format: "%.1f %@", $0.value, definition.unitLabel)
+        } ?? AppLocalization.string("No data yet")
+
+        return NavigationLink {
+            CustomMetricDetailView(definition: definition)
+        } label: {
+            HStack(spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: definition.sfSymbolName)
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(Color.appAccent)
+                        .frame(width: 14, height: 14)
+                    Text(definition.name)
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(latestText)
+                    .font(AppTypography.captionEmphasis.monospacedDigit())
+                    .foregroundStyle(.white)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.44))
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.white.opacity(0.04))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     private func moduleHeader(
         eyebrow: String,
         title: String,
         subtitle: String,
         accent: Color,
         accessibilityIdentifier: String? = nil,
-        action: (() -> Void)? = nil,
-        actionAccessibilityLabel: String? = nil
+        actions: [ModuleHeaderAction] = []
     ) -> some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
@@ -2803,19 +2927,30 @@ struct HomeView: View {
 
             Spacer(minLength: 8)
 
-            if let action {
-                Button(action: action) {
-                    Image(systemName: "arrow.up.right")
-                        .font(AppTypography.iconMedium)
-                        .foregroundStyle(accent)
-                        .frame(width: 36, height: 36)
-                        .background(AppColorRoles.surfaceInteractive)
-                        .clipShape(Circle())
+            if !actions.isEmpty {
+                HStack(spacing: 8) {
+                    ForEach(actions) { action in
+                        Button(action: action.action) {
+                            Image(systemName: action.systemImage)
+                                .font(AppTypography.iconMedium)
+                                .foregroundStyle(accent)
+                                .frame(width: 36, height: 36)
+                                .background(AppColorRoles.surfaceInteractive)
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(action.accessibilityLabel)
+                    }
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(actionAccessibilityLabel ?? "")
             }
         }
+    }
+
+    private struct ModuleHeaderAction: Identifiable {
+        let id = UUID()
+        let systemImage: String
+        let accessibilityLabel: String
+        let action: () -> Void
     }
 
     private func editorialEmptyStateCard(
@@ -3031,9 +3166,7 @@ struct HomeView: View {
 
     private func homeMetricAccessibilityLabel(kind: MetricKind) -> String {
         if let latest = cachedLatestByKind[kind] {
-            let shown = kind.valueForDisplay(fromMetric: latest.value, unitsSystem: unitsSystem)
-            let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-            let valueText = String(format: "%.1f %@", shown, unit)
+            let valueText = kind.formattedMetricValue(fromMetric: latest.value, unitsSystem: unitsSystem)
             return AppLocalization.string("home.metric.accessibility.value", kind.title, valueText)
         }
         return AppLocalization.string("home.metric.accessibility.nodata", kind.title)
@@ -3375,5 +3508,129 @@ struct HomeView: View {
                 .tint(Color.appAccent)
             }
         }
+    }
+}
+
+private struct GoalStatusLegendSheet: View {
+    let currentStatus: HomeView.GoalStatusLevel
+    let currentStatusColor: Color
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(AppLocalization.string("home.goalstatus.legend.title"))
+                            .font(AppTypography.sectionTitle)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+
+                        Text(AppLocalization.string("home.goalstatus.legend.subtitle"))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    SettingsCard(tint: AppColorRoles.surfacePrimary) {
+                        goalLegendRow(
+                            color: AppColorRoles.stateSuccess,
+                            titleKey: "home.goalstatus.legend.ontrack.title",
+                            descriptionKey: "home.goalstatus.legend.ontrack.description"
+                        )
+                        SettingsRowDivider()
+                        goalLegendRow(
+                            color: AppColorRoles.stateWarning,
+                            titleKey: "home.goalstatus.legend.slightlyoff.title",
+                            descriptionKey: "home.goalstatus.legend.slightlyoff.description"
+                        )
+                        SettingsRowDivider()
+                        goalLegendRow(
+                            color: AppColorRoles.stateError,
+                            titleKey: "home.goalstatus.legend.needsattention.title",
+                            descriptionKey: "home.goalstatus.legend.needsattention.description"
+                        )
+                    }
+
+                    SettingsCard(tint: currentStatusColor.opacity(0.18)) {
+                        Text(AppLocalization.string("home.goalstatus.legend.current.title"))
+                            .font(AppTypography.eyebrow)
+                            .foregroundStyle(AppColorRoles.textTertiary)
+
+                        HStack(alignment: .top, spacing: 10) {
+                            Circle()
+                                .fill(currentStatusColor)
+                                .frame(width: 10, height: 10)
+                                .padding(.top, 5)
+                                .accessibilityHidden(true)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(currentStatusTitle)
+                                    .font(AppTypography.bodyStrong)
+                                    .foregroundStyle(AppColorRoles.textPrimary)
+
+                                Text(currentStatusDescription)
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(AppColorRoles.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.top, AppSpacing.md)
+                .padding(.bottom, AppSpacing.lg)
+            }
+            .background(AppColorRoles.surfaceCanvas.ignoresSafeArea())
+            .navigationTitle(AppLocalization.string("home.goalstatus.legend.navtitle"))
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private var currentStatusTitle: String {
+        switch currentStatus {
+        case .onTrack:
+            return AppLocalization.string("home.goalstatus.legend.current.ontrack")
+        case .slightlyOff:
+            return AppLocalization.string("home.goalstatus.legend.current.slightlyoff")
+        case .needsAttention:
+            return AppLocalization.string("home.goalstatus.legend.current.needsattention")
+        case .noGoals:
+            return AppLocalization.string("home.goalstatus.legend.current.nogoals")
+        }
+    }
+
+    private var currentStatusDescription: String {
+        switch currentStatus {
+        case .onTrack:
+            return AppLocalization.string("home.goalstatus.legend.ontrack.description")
+        case .slightlyOff:
+            return AppLocalization.string("home.goalstatus.legend.slightlyoff.description")
+        case .needsAttention:
+            return AppLocalization.string("home.goalstatus.legend.needsattention.description")
+        case .noGoals:
+            return AppLocalization.string("home.goalstatus.legend.nogoals.description")
+        }
+    }
+
+    private func goalLegendRow(color: Color, titleKey: String, descriptionKey: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Circle()
+                .fill(color)
+                .frame(width: 10, height: 10)
+                .padding(.top, 5)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(AppLocalization.string(titleKey))
+                    .font(AppTypography.bodyStrong)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+
+                Text(AppLocalization.string(descriptionKey))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }

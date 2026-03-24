@@ -23,7 +23,7 @@
 "notification.smart.after.days.one" = "Po %d dniu braku aktywności";
 "notification.smart.after.days.few" = "Po %d dniach braku aktywności";
 "notification.smart.after.days.many" = "Po %d dniach braku aktywności";
-"validation.metric.range" = "Wprowadź wartość od %.1f do %.1f %@.";
+"validation.metric.range" = "Wprowadź wartość od %.2f do %.2f %@.";
 "Enter a valid number." = "Wprowadź poprawną liczbę.";
 "Age must be between 5 and 120." = "Wiek musi mieścić się w zakresie 5–120 lat.";
 "Height must be between 50 and 300 cm." = "Wzrost musi mieścić się w zakresie 50–300 cm.";
@@ -109,6 +109,33 @@
 "goal.start.date.label" = "Data startowa";
 "goal.start.help.default" = "Postęp jest liczony od tej wartości. Domyślnie: ostatni pomiar.";
 "goal.start.help.first" = "Brak pomiarów — ta wartość zostanie zapisana jako pierwszy wpis.";
+
+// Goal Prediction
+"metric.goal.prediction.title" = "Prognoza celu";
+"metric.goal.trend.opposite" = "Twój ostatni trend oddala się od celu. Drobne zmiany w codziennej rutynie mogą pomóc w powrocie na właściwy tor.";
+"metric.goal.trend.flat" = "Twój trend jest obecnie stabilny. Gdy pojawi się postęp, oszacujemy datę osiągnięcia celu.";
+"metric.goal.trend.too_far" = "W obecnym tempie cel jest oddalony o ponad 5 lat. Rozważ dostosowanie celu.";
+"metric.goal.premium.locked.title" = "Prognoza celu";
+"metric.goal.premium.locked.message" = "Przejdź na Premium, aby zobaczyć, kiedy osiągniesz swój cel.";
+
+// Prediction Rates (expandable card)
+"prediction.commitment" = "Założenie";
+"prediction.current_rate" = "Obecne tempo";
+"prediction.overall_rate" = "Ogólne tempo";
+"prediction.description" = "Przy %@ %@/tydzień osiągniesz cel";
+"prediction.commitment.edit_title" = "Tygodniowe założenie";
+"prediction.commitment.edit_message" = "Podaj docelowe tygodniowe tempo (%@/tydzień)";
+"prediction.in_days" = "za %d dni";
+"prediction.in_days.one" = "za 1 dzień";
+"prediction.in_days.few" = "za %d dni";
+"prediction.in_days.many" = "za %d dni";
+"prediction.in_weeks" = "za %d tygodni";
+"prediction.in_weeks.one" = "za 1 tydzień";
+"prediction.in_weeks.few" = "za %d tygodnie";
+"prediction.in_weeks.many" = "za %d tygodni";
+"prediction.expand" = "Rozwiń";
+"prediction.collapse" = "Zwiń";
+
 "quickadd.first.value.hint" = "Wpisz swoją pierwszą wartość";
 "metric.add.title" = "Dodaj %@";
 "metric.edit.title" = "Edytuj %@";
@@ -136,6 +163,23 @@
 "home.goalstatus.slightlyoff" = "Małe kroki też się liczą. Działaj dalej.";
 "home.goalstatus.needsattention" = "Dasz radę. Jeden wpis na raz.";
 "home.goalstatus.nogoals" = "Ustaw cel, gdy będziesz gotowy.";
+"home.goalstatus.accessibility.hint.legend" = "Dotknij, aby zobaczyć, co oznacza ten status.";
+"home.goalstatus.accessibility.hint.nogoals" = "Dotknij, aby przejść do pomiarów i ustawić cel.";
+"home.goalstatus.legend.navtitle" = "Status celu";
+"home.goalstatus.legend.title" = "Co oznaczają kolory";
+"home.goalstatus.legend.subtitle" = "Kolor to szybki sygnał pokazujący, jak ostatni wynik ma się do Twojego celu.";
+"home.goalstatus.legend.ontrack.title" = "Dobry kierunek";
+"home.goalstatus.legend.ontrack.description" = "Twój ostatni wynik idzie w dobrą stronę albo już osiągnął cel.";
+"home.goalstatus.legend.slightlyoff.title" = "Blisko celu";
+"home.goalstatus.legend.slightlyoff.description" = "Wciąż jesteś relatywnie blisko celu, ale warto obserwować ten kierunek.";
+"home.goalstatus.legend.needsattention.title" = "Warto przyjrzeć się bliżej";
+"home.goalstatus.legend.needsattention.description" = "Twój ostatni wynik jest teraz wyraźniej oddalony od celu. Kolejny wpis pomoże lepiej ocenić sytuację.";
+"home.goalstatus.legend.nogoals.description" = "Ustaw cel dla metryki, aby tutaj zobaczyć kolorowy status postępu.";
+"home.goalstatus.legend.current.title" = "Aktualny status";
+"home.goalstatus.legend.current.ontrack" = "Jesteś teraz na dobrej drodze";
+"home.goalstatus.legend.current.slightlyoff" = "Jesteś blisko celu";
+"home.goalstatus.legend.current.needsattention" = "Ta metryka wymaga uwagi";
+"home.goalstatus.legend.current.nogoals" = "Nie masz jeszcze ustawionego celu";
 "home.hero.fresh.title" = "Zacznij od pierwszego kroku";
 "home.hero.fresh.detail" = "Jeden pomiar albo zdjęcie wystarczy, aby zacząć.";
 "home.hero.fresh.cta" = "Zacznij teraz";
@@ -770,6 +814,28 @@
 "Only if you enable reminders in Settings → Notifications." = "Tylko jeśli włączysz przypomnienia w Ustawienia → Powiadomienia.";
 "Can I compare photos?" = "Czy mogę porównywać zdjęcia?";
 "Yes. Use Compare in the Photos tab and select two photos to view them side by side." = "Tak. Użyj Porównaj w zakładce Zdjęcia i wybierz dwa zdjęcia, aby zobaczyć je obok siebie.";
+"metric.compare.title" = "Porównaj";
+"metric.compare.button" = "Porównaj metryki";
+"metric.compare.button.hint" = "Otwiera arkusz i nakłada drugą metrykę na ten sam wykres";
+"metric.compare.cta.idle" = "Wybierz drugą metrykę";
+"metric.compare.cta.empty" = "Śledź inną metrykę, aby porównać ją tutaj";
+"metric.compare.clear" = "Wyłącz porównanie";
+"metric.compare.clear.current" = "Wyłącz porównanie %@";
+"metric.compare.description.dual_axis" = "Oba trendy są na tej samej osi czasu. Druga metryka korzysta z prawej osi.";
+"metric.compare.description.shared_axis" = "Obie metryki mają tę samą skalę jednostek, więc pozostają na jednej osi.";
+"metric.compare.axis.trailing" = "Prawa oś";
+"metric.compare.sheet.title" = "Porównaj na jednym wykresie";
+"metric.compare.sheet.subtitle" = "Wybierz drugą metrykę do porównania z %@.";
+"metric.compare.sheet.selector" = "Druga metryka";
+"metric.compare.sheet.section" = "Dostępne metryki";
+"metric.compare.chart.empty" = "Wybierz drugą metrykę, aby zobaczyć wykres porównania.";
+"metric.compare.empty.title" = "Nie ma jeszcze czego porównać";
+"metric.compare.empty.message" = "Dodaj co najmniej jedną inną śledzoną metrykę, a pojawi się tutaj.";
+"metric.compare.badge.recommended" = "Najlepszy wybór";
+"metric.compare.badge.second_axis" = "Druga oś";
+"metric.compare.option.meta.dual" = "%d wpisów · ostatni %@ · prawa oś";
+"metric.compare.option.meta.shared" = "%d wpisów · ostatni %@ · wspólna oś";
+"metric.compare.chart.summary" = "%@ porównano z %@ dla zakresu %@. Główna skala od %@ do %@, trend %@. Ostatnia wartość porównania %@.";
 "How do I choose which metrics to track?" = "Jak wybrać metryki, które chcę mierzyć?";
 "Go to Settings → Tracked Measurements and select the metrics you want to follow." = "Przejdź do Ustawienia → Śledzone pomiary i wybierz metryki, które chcesz śledzić.";
 "Can I disable animations or haptics?" = "Czy mogę wyłączyć animacje albo haptykę?";
@@ -1010,7 +1076,8 @@
 "premium.carousel.unlock.item.ai" = "Nielimitowane analizy AI";
 "premium.carousel.unlock.item.compare" = "Narzędzie porównywania zdjęć";
 "premium.carousel.unlock.item.health" = "Analiza zdrowia i trendów";
-"premium.carousel.unlock.item.export" = "Eksport danych (CSV)";
+"premium.carousel.unlock.item.export" = "Eksport danych (CSV, JSON, PDF)";
+"premium.carousel.unlock.item.prediction" = "Prognoza celu";
 "premium.carousel.unlock.item.icloud" = "Synchronizacja i kopia zapasowa w iCloud";
 "premium.carousel.unlock.item.overlay" = "Porównywanie zdjęć z nakładką ghost";
 "premium.carousel.unlock.item.social" = "Karta przemiany na media społecznościowe";
@@ -1146,8 +1213,8 @@
 "Generating insight..." = "Generowanie wglądu...";
 "Last 30 days" = "Ostatnie 30 dni";
 "Goal reached" = "Cel osiągnięty";
-"goal.remaining" = "%.1f %@ do celu";
-"goal.away" = "%.1f %@ od celu";
+"goal.remaining" = "%.2f %@ do celu";
+"goal.away" = "%.2f %@ od celu";
 "Importing Health data in background. You can continue." = "Import danych z aplikacji Zdrowie trwa w tle. Możesz przejść dalej.";
 "Your first check-in" = "Twój pierwszy wpis";
 "A few details (optional)" = "Kilka danych (opcjonalnie)";
@@ -1281,7 +1348,7 @@
 "AI Insights: unavailable (Premium Edition required)" = "Analizy AI: niedostępne (wymagana jest wersja Premium)";
 "What if AI Insights are unavailable?" = "Co jeśli Analizy AI są niedostępne?";
 "AI Insights in MeasureMe use Apple Intelligence. You need a supported device and language, plus Apple Intelligence enabled in system settings." = "Analizy AI w MeasureMe korzystają z Apple Intelligence. Potrzebujesz obsługiwanego urządzenia i języka oraz włączonego Apple Intelligence w ustawieniach systemu.";
-"Premium unlocks AI Insights, Health Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled." = "Premium odblokowuje Analizy AI, wskaźniki zdrowia, wskaźniki sylwetki, eksport danych i porównanie zdjęć. Analizy AI w MeasureMe korzystają z Apple Intelligence, więc Apple Intelligence musi być dostępne i włączone.";
+"Premium unlocks AI Insights, Goal Prediction, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled." = "Premium odblokowuje Analizy AI, Prognozę celu, wskaźniki zdrowia, wskaźniki sylwetki, eksport danych i porównanie zdjęć. Analizy AI w MeasureMe korzystają z Apple Intelligence, więc Apple Intelligence musi być dostępne i włączone.";
 "premium.carousel.indicators.more" = "I 5 więcej";
 "premium.compare.benefit.visual" = "Wizualny dowód";
 "premium.compare.benefit.timeline" = "Kontekst czasu";
@@ -1374,7 +1441,7 @@
 "What's your goal?" = "Jaki jest Twój cel?";
 "You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Trend spadkowy jest stabilny. W tym tygodniu utrzymaj 3 treningi siłowe i ponad 8 tys. kroków.";
 "onboarding.trend.delta" = "-0,3 kg/tydz.";
-"onboarding.goal.badge" = "Cel %.1f kg";
+"onboarding.goal.badge" = "Cel %.2f kg";
 "onboarding.week.label" = "T%d";
 "onboarding.example.label" = "Dane przykładowe";
 "onboarding.example.data" = "Dane przykładowe";
@@ -1389,6 +1456,19 @@
 "chart.summary.metric" = "%1$@, %2$@, od %3$@ do %4$@, %5$@.";
 "chart.summary.empty" = "%@, brak danych wykresu.";
 "chart.title.metric" = "Trend %@";
+
+// MARK: - Trends Card
+"trends.title" = "Trendy: %@";
+"trends.gained_in" = "Przybyło\nw %@";
+"trends.lost_in" = "Ubyło\nw %@";
+"trends.increased_in" = "Wzrost\nw %@";
+"trends.decreased_in" = "Spadek\nw %@";
+"trends.no_change_in" = "Bez zmian\nw %@";
+"trends.period.7d" = "7 dni";
+"trends.period.30d" = "30 dni";
+"trends.period.90d" = "90 dni";
+"trends.period.alltime" = "od początku";
+
 "Set Goal" = "Ustaw cel";
 "Update Goal" = "Zaktualizuj cel";
 "Set" = "Ustaw";
@@ -1608,6 +1688,12 @@
 "streak.detail.motivational.3.body" = "Kwartał ciągłego śledzenia. To rzadka wytrwałość — Twoje dane opowiadają potężną historię.";
 "streak.detail.motivational.4.title" = "Nie do zatrzymania";
 "streak.detail.motivational.4.body" = "Pół roku lub więcej śledzenia — jesteś w elitarnym gronie. Kontynuuj, a dane mówią same za siebie.";
+"alllogs.title" = "Wszystkie wpisy";
+"alllogs.filter.source" = "Źródło";
+"alllogs.filter.all" = "Wszystkie";
+"alllogs.filter.manual" = "Ręczne";
+"alllogs.filter.healthkit" = "Zdrowie";
+"alllogs.empty" = "Brak wpisów w wybranym zakresie.";
 "Automatic iCloud backup" = "Automatyczna kopia zapasowa w iCloud";
 "Back up now" = "Utwórz kopię zapasową teraz";
 "Restore latest backup" = "Przywróć najnowszą kopię zapasową";
@@ -1683,6 +1769,8 @@
 "postpurchase.getstarted" = "Zaczynamy";
 
 /* FAQ — Użytkowanie */
+"faq.usage.goalstatuscolors.q" = "Co oznaczają kolory statusu celu?";
+"faq.usage.goalstatuscolors.a" = "Kolor obok statusu celu to szybki sygnał postępu oparty na Twoim ostatnim wyniku. Zielony oznacza, że jesteś na dobrej drodze, żółty że nadal jesteś blisko celu, ale warto to obserwować, a czerwony że ostatni wynik wyraźniej oddala się od celu. To ma pomagać szybko ocenić postęp, a nie oceniać Twoje zdrowie.";
 "faq.usage.photocomparison.q" = "Jak działa porównanie zdjęć?";
 "faq.usage.photocomparison.a" = "Przejdź do zakładki Zdjęcia i dotknij Porównaj. Wybierz zdjęcie Przed i Po, a następnie wybierz tryb obok siebie lub suwaka. Przesuń, aby przełączyć widoki.";
 "faq.usage.ghostoverlay.q" = "Jak używać nakładki duchów?";
@@ -1697,7 +1785,49 @@
 "faq.premium.aiinsights.a" = "Spostrzeżenia AI używają Apple Intelligence do analizy ostatniego trendu i generowania krótkiego, spersonalizowanego podsumowania. Działa na urządzeniu, wymaga obsługiwanego urządzenia z włączonym Apple Intelligence i odświeża się raz dziennie lub po zapisaniu nowej wartości.";
 "faq.premium.icloudbackup.q" = "Co obejmuje kopia zapasowa iCloud?";
 "faq.premium.icloudbackup.a" = "Kopia zapasowa iCloud przechowuje wszystkie Twoje pomiary, cele i zdjęcia w zaszyfrowanej formie na Twoim osobistym koncie iCloud. Działa automatycznie, gdy aplikacja jest w tle, i można ją przywrócić z Ustawienia → Dane → Przywróć z kopii zapasowej.";
+"faq.premium.goalprediction.q" = "Jak działa Prognoza celu?";
+"faq.premium.goalprediction.a" = "Po ustawieniu celu Prognoza celu wykorzystuje podwójne wygładzanie wykładnicze do analizy ostatniego trendu i oszacowania, kiedy osiągniesz cel. Wymaga co najmniej 7 pomiarów w ciągu 7 dni. Jeśli trend oddala się od celu lub jest płaski, zamiast daty wyświetlany jest pomocny komunikat.";
 
 /* Settings search catalog */
 "App version and legal" = "Wersja aplikacji i regulaminy";
 "Export, backup and delete" = "Eksport, kopia zapasowa i usuwanie";
+
+/* Custom Metrics */
+"custom.metric.section.title" = "Twoje metryki";
+"custom.metric.section.subtitle" = "Twórz i śledź własne pomiary.";
+"custom.metric.add" = "Dodaj metrykę";
+"custom.metric.empty" = "Brak metryk. Dotknij +, aby utworzyć.";
+"custom.metric.create.title" = "Nowa metryka";
+"custom.metric.edit.title" = "Edytuj metrykę";
+"custom.metric.name.placeholder" = "Nazwa metryki";
+"custom.metric.unit.placeholder" = "Jednostka (np. cm, powt., ml)";
+"custom.metric.section.basic" = "Podstawowe";
+"custom.metric.section.icon" = "Ikona";
+"custom.metric.icon.label" = "Ikona";
+"custom.metric.icon.title" = "Wybierz ikonę";
+"custom.metric.icon.search" = "Szukaj symboli";
+"custom.metric.section.trend" = "Kierunek trendu";
+"custom.metric.trend.label" = "Korzystny kierunek";
+"custom.metric.trend.increase" = "Wzrost jest lepszy";
+"custom.metric.trend.decrease" = "Spadek jest lepszy";
+"custom.metric.trend.neutral" = "Neutralny";
+"custom.metric.trend.footer" = "Określa kolorowanie trendów — zielony dla korzystnego, czerwony dla niekorzystnego.";
+"custom.metric.section.range" = "Zakres wartości";
+"custom.metric.range.label" = "Granice wartości (opcjonalne)";
+"custom.metric.range.min" = "Minimum";
+"custom.metric.range.max" = "Maksimum";
+"custom.metric.range.footer" = "Opcjonalne granice do walidacji danych wejściowych.";
+"custom.metric.delete" = "Usuń metrykę";
+"custom.metric.goal.target" = "Wartość docelowa";
+"Target value" = "Wartość docelowa";
+"Direction" = "Kierunek";
+"Remove goal" = "Usuń cel";
+"No goal set" = "Brak ustawionego celu";
+"Goal:" = "Cel:";
+"Value" = "Wartość";
+"Delete measurement" = "Usuń pomiar";
+"Edit measurement" = "Edytuj pomiar";
+"Show all" = "Pokaż wszystko";
+"Set" = "Ustaw";
+"History" = "Historia";
+"Goal" = "Cel";

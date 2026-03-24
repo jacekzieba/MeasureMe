@@ -44,6 +44,23 @@ final class QuickAddSaveService {
         AnalyticsFirstEventTracker.trackFirstMetricIfNeeded(previousMetricCount: previousMetricCount)
         streak.recordMetricSaved(date: date)
         widgetWriter.writeAndReload(kinds: entries.map(\.kind), context: context, unitsSystem: unitsSystem)
+        WatchSessionManager.shared.sendApplicationContext()
+    }
+
+    struct CustomEntry {
+        let identifier: String
+        let value: Double
+    }
+
+    /// Zapisuje pomiary custom metryk do SwiftData. Pomija HealthKit i widgety.
+    func saveCustom(entries: [CustomEntry], date: Date) throws {
+        guard !entries.isEmpty else { return }
+
+        for entry in entries {
+            context.insert(MetricSample(kindRaw: entry.identifier, value: entry.value, date: date))
+        }
+        try context.save()
+        streak.recordMetricSaved(date: date)
     }
 
     /// Synchronizacja HealthKit w trybie najlepszej starannosci — failures are logged but never thrown.

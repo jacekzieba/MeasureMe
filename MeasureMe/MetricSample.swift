@@ -20,6 +20,11 @@
 import SwiftData
 import Foundation
 
+enum MetricSampleSource: String, CaseIterable, Sendable {
+    case manual
+    case healthKit
+}
+
 @Model
 final class MetricSample {
     /// Rodzaj metryki jako String (rawValue z MetricKind enum)
@@ -35,19 +40,42 @@ final class MetricSample {
     /// Data i czas pomiaru
     var date: Date
 
-    init(kind: MetricKind, value: Double, date: Date) {
+    /// Zrodlo probki: manual / HealthKit
+    var sourceRaw: String = MetricSampleSource.manual.rawValue
+
+    init(kind: MetricKind, value: Double, date: Date, source: MetricSampleSource = .manual) {
         self.kindRaw = kind.rawValue
         self.value = value
         self.date = date
+        self.sourceRaw = source.rawValue
+    }
+
+    /// Inicjalizator dla custom metryk — przyjmuje surowy identyfikator (np. "custom_<UUID>")
+    init(kindRaw: String, value: Double, date: Date, source: MetricSampleSource = .manual) {
+        self.kindRaw = kindRaw
+        self.value = value
+        self.date = date
+        self.sourceRaw = source.rawValue
+    }
+
+    /// Czy próbka pochodzi z custom metryki użytkownika
+    var isCustomMetric: Bool {
+        kindRaw.hasPrefix("custom_")
     }
 
     /// Wygodny accessor do konwersji String -> MetricKind.
-    /// Zwraca nil dla uszkodzonych rekordów zamiast cichego fallbacku.
+    /// Zwraca nil dla uszkodzonych rekordów i custom metryk.
     var kind: MetricKind? {
         get { MetricKind(rawValue: kindRaw) }
         set {
             guard let newValue else { return }
             kindRaw = newValue.rawValue
         }
+    }
+
+    /// Legacy fallback: brak / nieznana wartosc traktujemy jako wpis reczny.
+    var source: MetricSampleSource {
+        get { MetricSampleSource(rawValue: sourceRaw) ?? .manual }
+        set { sourceRaw = newValue.rawValue }
     }
 }

@@ -11,12 +11,48 @@
 		A31A14312F672B60004CA5F4 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = A31A142F2F672B60004CA5F4 /* RevenueCatUI */; };
 		A31FCE332F295FBB00E3253D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A31FCE322F295FBB00E3253D /* Assets.xcassets */; };
 		A345A4F92F475DFF0068BE76 /* Premium.storekit in Resources */ = {isa = PBXBuildFile; fileRef = A345A4F82F475DFF0068BE76 /* Premium.storekit */; };
+		A36108732F6FE5E400DD7BF0 /* MeasureMeWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = A36108532F6FE5E300DD7BF0 /* MeasureMeWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A38326A02F4F7EEA00545E2C /* TelemetryDeck in Frameworks */ = {isa = PBXBuildFile; productRef = A383269F2F4F7EEA00545E2C /* TelemetryDeck */; };
 		A3B1D6022F45CB4A00DA3275 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = A3B1D6012F45CB4A00DA3275 /* SnapshotTesting */; };
+		A3E6B7D82F6FE89A008A7C46 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3E6B7D72F6FE89A008A7C46 /* HealthKit.framework */; };
+		A3E6B7DA2F6FE8C0008A7C46 /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3E6B7D92F6FE8C0008A7C46 /* WatchConnectivity.framework */; };
+		A3E6B7DC2F6FE8CF008A7C46 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3E6B7DB2F6FE8CF008A7C46 /* WidgetKit.framework */; };
+		A3E6B7DE2F6FE8EA008A7C46 /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3E6B7DD2F6FE8EA008A7C46 /* WatchConnectivity.framework */; };
+		A3E6B7EA2F701C6F008A7C46 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3E6B7DB2F6FE8CF008A7C46 /* WidgetKit.framework */; };
+		A3E6B7EC2F701C6F008A7C46 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3E6B7EB2F701C6F008A7C46 /* SwiftUI.framework */; };
+		A3E6B7FB2F701C70008A7C46 /* MeasureMeWatchComplicationsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A3E6B7E92F701C6F008A7C46 /* MeasureMeWatchComplicationsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C10000012F28000100000004 /* MeasureMeWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C10000012F28000100000001 /* MeasureMeWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		A36108602F6FE5E400DD7BF0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A3BAF7B42F27B74C00269A9A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A36108522F6FE5E300DD7BF0;
+			remoteInfo = "MeasureMeWatch Watch App";
+		};
+		A361086A2F6FE5E400DD7BF0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A3BAF7B42F27B74C00269A9A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A36108522F6FE5E300DD7BF0;
+			remoteInfo = "MeasureMeWatch Watch App";
+		};
+		A36108712F6FE5E400DD7BF0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A3BAF7B42F27B74C00269A9A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A36108522F6FE5E300DD7BF0;
+			remoteInfo = "MeasureMeWatch Watch App";
+		};
+		A3E6B7F92F701C70008A7C46 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A3BAF7B42F27B74C00269A9A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A3E6B7E82F701C6F008A7C46;
+			remoteInfo = MeasureMeWatchComplicationsExtension;
+		};
 		B10000012F28000100000030 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A3BAF7B42F27B74C00269A9A /* Project object */;
@@ -41,6 +77,28 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		A36108742F6FE5E400DD7BF0 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				A36108732F6FE5E400DD7BF0 /* MeasureMeWatch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A3E6B8002F701C70008A7C46 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A3E6B7FB2F701C70008A7C46 /* MeasureMeWatchComplicationsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C10000012F28000100000003 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -57,16 +115,59 @@
 /* Begin PBXFileReference section */
 		A31FCE322F295FBB00E3253D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A345A4F82F475DFF0068BE76 /* Premium.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Premium.storekit; sourceTree = "<group>"; };
+		A36108532F6FE5E300DD7BF0 /* MeasureMeWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MeasureMeWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A361085F2F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "MeasureMeWatch Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A36108692F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "MeasureMeWatch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3BAF7BC2F27B74C00269A9A /* MeasureMe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MeasureMe.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A3E6B7D72F6FE89A008A7C46 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS26.2.sdk/System/Library/Frameworks/HealthKit.framework; sourceTree = DEVELOPER_DIR; };
+		A3E6B7D92F6FE8C0008A7C46 /* WatchConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WatchConnectivity.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS26.2.sdk/System/Library/Frameworks/WatchConnectivity.framework; sourceTree = DEVELOPER_DIR; };
+		A3E6B7DB2F6FE8CF008A7C46 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS26.2.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
+		A3E6B7DD2F6FE8EA008A7C46 /* WatchConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WatchConnectivity.framework; path = System/Library/Frameworks/WatchConnectivity.framework; sourceTree = SDKROOT; };
+		A3E6B7E92F701C6F008A7C46 /* MeasureMeWatchComplicationsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MeasureMeWatchComplicationsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A3E6B7EB2F701C6F008A7C46 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		A3E6B80E2F701D99008A7C46 /* MeasureMeWatchComplicationsExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MeasureMeWatchComplicationsExtension.entitlements; sourceTree = "<group>"; };
 		B10000012F28000100000001 /* MeasureMeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeasureMeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000012F28000100000002 /* MeasureMeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeasureMeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C10000012F28000100000001 /* MeasureMeWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MeasureMeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A3E6B7FC2F701C70008A7C46 /* Exceptions for "MeasureMeWatchComplications" folder in "MeasureMeWatchComplicationsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A3E6B7E82F701C6F008A7C46 /* MeasureMeWatchComplicationsExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		A36108542F6FE5E300DD7BF0 /* MeasureMeWatch Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "MeasureMeWatch Watch App";
+			sourceTree = "<group>";
+		};
+		A36108622F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "MeasureMeWatch Watch AppTests";
+			sourceTree = "<group>";
+		};
+		A361086C2F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "MeasureMeWatch Watch AppUITests";
+			sourceTree = "<group>";
+		};
 		A3BAF7BE2F27B74C00269A9A /* MeasureMe */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = MeasureMe;
+			sourceTree = "<group>";
+		};
+		A3E6B7ED2F701C6F008A7C46 /* MeasureMeWatchComplications */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A3E6B7FC2F701C70008A7C46 /* Exceptions for "MeasureMeWatchComplications" folder in "MeasureMeWatchComplicationsExtension" target */,
+			);
+			path = MeasureMeWatchComplications;
 			sourceTree = "<group>";
 		};
 		B10000012F28000100000003 /* MeasureMeTests */ = {
@@ -87,13 +188,47 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		A36108502F6FE5E300DD7BF0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A3E6B7D82F6FE89A008A7C46 /* HealthKit.framework in Frameworks */,
+				A3E6B7DA2F6FE8C0008A7C46 /* WatchConnectivity.framework in Frameworks */,
+				A3E6B7DC2F6FE8CF008A7C46 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A361085C2F6FE5E400DD7BF0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A36108662F6FE5E400DD7BF0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A3BAF7B92F27B74C00269A9A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				A31A14302F672B60004CA5F4 /* RevenueCat in Frameworks */,
+				A3E6B7DE2F6FE8EA008A7C46 /* WatchConnectivity.framework in Frameworks */,
 				A31A14312F672B60004CA5F4 /* RevenueCatUI in Frameworks */,
 				A38326A02F4F7EEA00545E2C /* TelemetryDeck in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A3E6B7E62F701C6F008A7C46 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A3E6B7EC2F701C6F008A7C46 /* SwiftUI.framework in Frameworks */,
+				A3E6B7EA2F701C6F008A7C46 /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +260,11 @@
 		A3B1D6002F45CB3D00DA3275 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				A3E6B7DD2F6FE8EA008A7C46 /* WatchConnectivity.framework */,
+				A3E6B7DB2F6FE8CF008A7C46 /* WidgetKit.framework */,
+				A3E6B7D92F6FE8C0008A7C46 /* WatchConnectivity.framework */,
+				A3E6B7D72F6FE89A008A7C46 /* HealthKit.framework */,
+				A3E6B7EB2F701C6F008A7C46 /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -132,11 +272,16 @@
 		A3BAF7B32F27B74C00269A9A = {
 			isa = PBXGroup;
 			children = (
+				A3E6B80E2F701D99008A7C46 /* MeasureMeWatchComplicationsExtension.entitlements */,
 				A31FCE322F295FBB00E3253D /* Assets.xcassets */,
 				A3BAF7BE2F27B74C00269A9A /* MeasureMe */,
 				B10000012F28000100000003 /* MeasureMeTests */,
 				B10000012F28000100000004 /* MeasureMeUITests */,
 				C10000012F28000100000002 /* MeasureMeWidget */,
+				A36108542F6FE5E300DD7BF0 /* MeasureMeWatch Watch App */,
+				A36108622F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppTests */,
+				A361086C2F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppUITests */,
+				A3E6B7ED2F701C6F008A7C46 /* MeasureMeWatchComplications */,
 				A3B1D6002F45CB3D00DA3275 /* Frameworks */,
 				A3BAF7BD2F27B74C00269A9A /* Products */,
 				A345A4F82F475DFF0068BE76 /* Premium.storekit */,
@@ -150,6 +295,10 @@
 				B10000012F28000100000001 /* MeasureMeTests.xctest */,
 				B10000012F28000100000002 /* MeasureMeUITests.xctest */,
 				C10000012F28000100000001 /* MeasureMeWidget.appex */,
+				A36108532F6FE5E300DD7BF0 /* MeasureMeWatch Watch App.app */,
+				A361085F2F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppTests.xctest */,
+				A36108692F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppUITests.xctest */,
+				A3E6B7E92F701C6F008A7C46 /* MeasureMeWatchComplicationsExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -157,6 +306,76 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		A36108522F6FE5E300DD7BF0 /* MeasureMeWatch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A361087B2F6FE5E400DD7BF0 /* Build configuration list for PBXNativeTarget "MeasureMeWatch Watch App" */;
+			buildPhases = (
+				A361084F2F6FE5E300DD7BF0 /* Sources */,
+				A36108502F6FE5E300DD7BF0 /* Frameworks */,
+				A36108512F6FE5E300DD7BF0 /* Resources */,
+				A3E6B8002F701C70008A7C46 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A3E6B7FA2F701C70008A7C46 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A36108542F6FE5E300DD7BF0 /* MeasureMeWatch Watch App */,
+			);
+			name = "MeasureMeWatch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "MeasureMeWatch Watch App";
+			productReference = A36108532F6FE5E300DD7BF0 /* MeasureMeWatch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A361085E2F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A361087C2F6FE5E400DD7BF0 /* Build configuration list for PBXNativeTarget "MeasureMeWatch Watch AppTests" */;
+			buildPhases = (
+				A361085B2F6FE5E400DD7BF0 /* Sources */,
+				A361085C2F6FE5E400DD7BF0 /* Frameworks */,
+				A361085D2F6FE5E400DD7BF0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A36108612F6FE5E400DD7BF0 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A36108622F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppTests */,
+			);
+			name = "MeasureMeWatch Watch AppTests";
+			packageProductDependencies = (
+			);
+			productName = "MeasureMeWatch Watch AppTests";
+			productReference = A361085F2F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		A36108682F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A361087D2F6FE5E400DD7BF0 /* Build configuration list for PBXNativeTarget "MeasureMeWatch Watch AppUITests" */;
+			buildPhases = (
+				A36108652F6FE5E400DD7BF0 /* Sources */,
+				A36108662F6FE5E400DD7BF0 /* Frameworks */,
+				A36108672F6FE5E400DD7BF0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A361086B2F6FE5E400DD7BF0 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A361086C2F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppUITests */,
+			);
+			name = "MeasureMeWatch Watch AppUITests";
+			packageProductDependencies = (
+			);
+			productName = "MeasureMeWatch Watch AppUITests";
+			productReference = A36108692F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		A3BAF7BB2F27B74C00269A9A /* MeasureMe */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A3BAF7C92F27B74D00269A9A /* Build configuration list for PBXNativeTarget "MeasureMe" */;
@@ -165,11 +384,13 @@
 				A3BAF7B92F27B74C00269A9A /* Frameworks */,
 				A3BAF7BA2F27B74C00269A9A /* Resources */,
 				C10000012F28000100000003 /* Embed Foundation Extensions */,
+				A36108742F6FE5E400DD7BF0 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				C10000012F28000100000040 /* PBXTargetDependency */,
+				A36108722F6FE5E400DD7BF0 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				A3BAF7BE2F27B74C00269A9A /* MeasureMe */,
@@ -183,6 +404,28 @@
 			productName = MeasureMe;
 			productReference = A3BAF7BC2F27B74C00269A9A /* MeasureMe.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A3E6B7E82F701C6F008A7C46 /* MeasureMeWatchComplicationsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A3E6B7FD2F701C70008A7C46 /* Build configuration list for PBXNativeTarget "MeasureMeWatchComplicationsExtension" */;
+			buildPhases = (
+				A3E6B7E52F701C6F008A7C46 /* Sources */,
+				A3E6B7E62F701C6F008A7C46 /* Frameworks */,
+				A3E6B7E72F701C6F008A7C46 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A3E6B7ED2F701C6F008A7C46 /* MeasureMeWatchComplications */,
+			);
+			name = MeasureMeWatchComplicationsExtension;
+			packageProductDependencies = (
+			);
+			productName = MeasureMeWatchComplicationsExtension;
+			productReference = A3E6B7E92F701C6F008A7C46 /* MeasureMeWatchComplicationsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		B10000012F28000100000020 /* MeasureMeTests */ = {
 			isa = PBXNativeTarget;
@@ -260,11 +503,25 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2620;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
+					A36108522F6FE5E300DD7BF0 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					A361085E2F6FE5E400DD7BF0 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = A36108522F6FE5E300DD7BF0;
+					};
+					A36108682F6FE5E400DD7BF0 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = A36108522F6FE5E300DD7BF0;
+					};
 					A3BAF7BB2F27B74C00269A9A = {
 						CreatedOnToolsVersion = 26.2;
+					};
+					A3E6B7E82F701C6F008A7C46 = {
+						CreatedOnToolsVersion = 26.3;
 					};
 					B10000012F28000100000020 = {
 						CreatedOnToolsVersion = 26.2;
@@ -303,17 +560,49 @@
 				B10000012F28000100000020 /* MeasureMeTests */,
 				B10000012F28000100000021 /* MeasureMeUITests */,
 				C10000012F28000100000020 /* MeasureMeWidget */,
+				A36108522F6FE5E300DD7BF0 /* MeasureMeWatch Watch App */,
+				A361085E2F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppTests */,
+				A36108682F6FE5E400DD7BF0 /* MeasureMeWatch Watch AppUITests */,
+				A3E6B7E82F701C6F008A7C46 /* MeasureMeWatchComplicationsExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		A36108512F6FE5E300DD7BF0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A361085D2F6FE5E400DD7BF0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A36108672F6FE5E400DD7BF0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A3BAF7BA2F27B74C00269A9A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				A345A4F92F475DFF0068BE76 /* Premium.storekit in Resources */,
 				A31FCE332F295FBB00E3253D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A3E6B7E72F701C6F008A7C46 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -341,7 +630,35 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		A361084F2F6FE5E300DD7BF0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A361085B2F6FE5E400DD7BF0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A36108652F6FE5E400DD7BF0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A3BAF7B82F27B74C00269A9A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A3E6B7E52F701C6F008A7C46 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -372,6 +689,26 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		A36108612F6FE5E400DD7BF0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A36108522F6FE5E300DD7BF0 /* MeasureMeWatch Watch App */;
+			targetProxy = A36108602F6FE5E400DD7BF0 /* PBXContainerItemProxy */;
+		};
+		A361086B2F6FE5E400DD7BF0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A36108522F6FE5E300DD7BF0 /* MeasureMeWatch Watch App */;
+			targetProxy = A361086A2F6FE5E400DD7BF0 /* PBXContainerItemProxy */;
+		};
+		A36108722F6FE5E400DD7BF0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A36108522F6FE5E300DD7BF0 /* MeasureMeWatch Watch App */;
+			targetProxy = A36108712F6FE5E400DD7BF0 /* PBXContainerItemProxy */;
+		};
+		A3E6B7FA2F701C70008A7C46 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A3E6B7E82F701C6F008A7C46 /* MeasureMeWatchComplicationsExtension */;
+			targetProxy = A3E6B7F92F701C70008A7C46 /* PBXContainerItemProxy */;
+		};
 		B10000012F28000100000040 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = A3BAF7BB2F27B74C00269A9A /* MeasureMe */;
@@ -390,6 +727,164 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		A36108752F6FE5E400DD7BF0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "MeasureMeWatch Watch App/MeasureMeWatch.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 14;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MeasureMeWatch;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "MeasureMe reads your weight, body fat, height, lean body mass, and waist measurements to display trends and track progress.\n\n";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jacek.measureme;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.4;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		A36108762F6FE5E400DD7BF0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "MeasureMeWatch Watch App/MeasureMeWatch.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 14;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MeasureMeWatch;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "MeasureMe reads your weight, body fat, height, lean body mass, and waist measurements to display trends and track progress.\n\n";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jacek.measureme;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.4;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
+		A36108772F6FE5E400DD7BF0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = K447N5AR8W;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jacek.MeasureMeWatch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MeasureMeWatch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MeasureMeWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		A36108782F6FE5E400DD7BF0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = K447N5AR8W;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jacek.MeasureMeWatch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MeasureMeWatch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MeasureMeWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
+		A36108792F6FE5E400DD7BF0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = K447N5AR8W;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jacek.MeasureMeWatch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "MeasureMeWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		A361087A2F6FE5E400DD7BF0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = K447N5AR8W;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jacek.MeasureMeWatch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "MeasureMeWatch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
 		A3BAF7C72F27B74D00269A9A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -522,7 +1017,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MeasureMe/MeasureMe.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					.gitattributes,
@@ -542,7 +1037,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -566,7 +1061,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MeasureMe/MeasureMe.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					.gitattributes,
@@ -586,7 +1081,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -600,6 +1095,72 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		A3E6B7FE2F701C70008A7C46 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = MeasureMeWatchComplications/MeasureMeWatchComplications.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 14;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MeasureMeWatchComplications/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MeasureMeWatchComplications;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.4;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme.watchkitapp.MeasureMeWatchComplications;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		A3E6B7FF2F701C70008A7C46 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = MeasureMeWatchComplications/MeasureMeWatchComplications.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 14;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MeasureMeWatchComplications/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MeasureMeWatchComplications;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.4;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme.watchkitapp.MeasureMeWatchComplications;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
 			};
 			name = Release;
 		};
@@ -694,7 +1255,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = MeasureMeWidget/MeasureMeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					Info.plist,
 					"*.entitlements",
@@ -707,7 +1268,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme.MeasureMeWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -726,7 +1287,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = MeasureMeWidget/MeasureMeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					Info.plist,
 					"*.entitlements",
@@ -739,7 +1300,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme.MeasureMeWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -756,6 +1317,33 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		A361087B2F6FE5E400DD7BF0 /* Build configuration list for PBXNativeTarget "MeasureMeWatch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A36108752F6FE5E400DD7BF0 /* Debug */,
+				A36108762F6FE5E400DD7BF0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A361087C2F6FE5E400DD7BF0 /* Build configuration list for PBXNativeTarget "MeasureMeWatch Watch AppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A36108772F6FE5E400DD7BF0 /* Debug */,
+				A36108782F6FE5E400DD7BF0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A361087D2F6FE5E400DD7BF0 /* Build configuration list for PBXNativeTarget "MeasureMeWatch Watch AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A36108792F6FE5E400DD7BF0 /* Debug */,
+				A361087A2F6FE5E400DD7BF0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A3BAF7B72F27B74C00269A9A /* Build configuration list for PBXProject "MeasureMe" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -770,6 +1358,15 @@
 			buildConfigurations = (
 				A3BAF7CA2F27B74D00269A9A /* Debug */,
 				A3BAF7CB2F27B74D00269A9A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A3E6B7FD2F701C70008A7C46 /* Build configuration list for PBXNativeTarget "MeasureMeWatchComplicationsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A3E6B7FE2F701C70008A7C46 /* Debug */,
+				A3E6B7FF2F701C70008A7C46 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

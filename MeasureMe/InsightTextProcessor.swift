@@ -127,6 +127,7 @@ nonisolated enum InsightTextProcessor {
         lines.append("If short-term and longer-term windows differ, mention whether momentum is accelerating, slowing, or just noisy.")
         lines.append("Treat stable data as a meaningful consistency signal when changes are small.")
         lines.append("Do not infer causes that are not supported by the data.")
+        lines.append("Do not predict or mention a projected goal date. Goal prediction is handled separately.")
         lines.append("Write the insight using second person. Use 2 to 5 sentences total.")
         lines.append("Respond in English.")
 

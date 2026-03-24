@@ -5,6 +5,8 @@ struct QuickAddSheetView: View {
     let kinds: [MetricKind]
     let latest: [MetricKind: (value: Double, date: Date)]
     let unitsSystem: String
+    var customDefinitions: [CustomMetricDefinition] = []
+    var customLatest: [String: (value: Double, date: Date)] = [:]
     var onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -21,8 +23,11 @@ struct QuickAddSheetView: View {
     @State private var date: Date = AppClock.now
     // User inputs in display units; nil means “skip”
     @State private var inputs: [MetricKind: Double?] = [:]
+    // Custom metric inputs keyed by identifier
+    @State private var customInputs: [String: Double?] = [:]
     // Sledzi, ktore metryki uzytkownik rzeczywiscie edytowal
     @State private var editedKinds: Set<MetricKind> = []
+    @State private var editedCustomIds: Set<String> = []
     @State private var isSaving = false
     @State private var showNoChangesAlert = false
     @State private var saveErrorMessage: String?
@@ -30,6 +35,7 @@ struct QuickAddSheetView: View {
     @State private var suspiciousEntries: [SanityChecker.SuspiciousEntry] = []
     @State private var pendingSaveEntries: [QuickAddSaveService.Entry]? = nil
     @FocusState private var focusedKind: MetricKind?
+    @FocusState private var focusedCustomId: String?
     @State private var rulerBaseValues: [MetricKind: Double] = [:]
     private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
 
@@ -37,11 +43,15 @@ struct QuickAddSheetView: View {
         kinds: [MetricKind],
         latest: [MetricKind: (value: Double, date: Date)],
         unitsSystem: String,
+        customDefinitions: [CustomMetricDefinition] = [],
+        customLatest: [String: (value: Double, date: Date)] = [:],
         onSaved: @escaping () -> Void
     ) {
         self.kinds = kinds
         self.latest = latest
         self.unitsSystem = unitsSystem
+        self.customDefinitions = customDefinitions
+        self.customLatest = customLatest
         self.onSaved = onSaved
 
         var initial: [MetricKind: Double?] = [:]
@@ -53,6 +63,12 @@ struct QuickAddSheetView: View {
             }
         }
         _inputs = State(initialValue: initial)
+
+        var customInitial: [String: Double?] = [:]
+        for def in customDefinitions {
+            customInitial[def.identifier] = customLatest[def.identifier]?.value
+        }
+        _customInputs = State(initialValue: customInitial)
     }
 
     var body: some View {
@@ -60,7 +76,7 @@ struct QuickAddSheetView: View {
             ZStack(alignment: .top) {
                 AppScreenBackground(topHeight: 240)
 
-                if kinds.isEmpty {
+                if kinds.isEmpty && customDefinitions.isEmpty {
                     EmptyStateCard(
                         title: AppLocalization.string("No active measurements"),
                         message: AppLocalization.string("Enable metrics in the Measurements tab to add values quickly."),
@@ -76,6 +92,10 @@ struct QuickAddSheetView: View {
 
                             ForEach(kinds, id: \.self) { kind in
                                 row(for: kind)
+                            }
+
+                            ForEach(customDefinitions) { def in
+                                customRow(for: def)
                             }
 
                             dateCard
@@ -97,7 +117,7 @@ struct QuickAddSheetView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .accessibilityIdentifier("quickadd.sheet")
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !kinds.isEmpty && !useInlineSaveBar {
+                if (!kinds.isEmpty || !customDefinitions.isEmpty) && !useInlineSaveBar {
                     saveBar
                 }
             }
@@ -142,6 +162,7 @@ struct QuickAddSheetView: View {
                     Spacer()
                     Button(AppLocalization.string("Done")) {
                         focusedKind = nil
+                        focusedCustomId = nil
                     }
                 }
             }
@@ -219,6 +240,139 @@ struct QuickAddSheetView: View {
                 rulerBaseValues[kind] = baseValue(for: kind)
             }
         }
+    }
+
+    // MARK: - Custom Metric Row
+
+    @ViewBuilder
+    private func customRow(for definition: CustomMetricDefinition) -> some View {
+        let id = definition.identifier
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack(spacing: AppSpacing.xs) {
+                Image(systemName: definition.sfSymbolName)
+                    .font(.body)
+                    .foregroundStyle(Color.appAccent)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        Circle()
+                            .fill(Color.appAccent.opacity(0.14))
+                    )
+
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                    Text(definition.name)
+                        .font(AppTypography.headline)
+                        .foregroundStyle(.white)
+
+                    if let last = customLatest[id] {
+                        Text(customLastSummary(value: last.value, unit: definition.unitLabel, date: last.date))
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.68))
+                    }
+                }
+
+                Spacer()
+
+                if let current = customInputs[id] ?? nil {
+                    Text(String(format: "%.1f %@", current, definition.unitLabel))
+                        .font(.caption.monospacedDigit().weight(.semibold))
+                        .contentTransition(.numericText())
+                        .foregroundStyle(Color.appAccent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(Color.appAccent.opacity(0.14))
+                        )
+                }
+            }
+
+            customValueInputField(for: definition)
+                .appInputContainer(focused: focusedCustomId == id)
+        }
+        .padding(AppSpacing.sm)
+        .background(cardBackground(cornerRadius: AppRadius.md))
+    }
+
+    @ViewBuilder
+    private func customValueInputField(for definition: CustomMetricDefinition) -> some View {
+        ViewThatFits(in: .horizontal) {
+            customInputRowHorizontal(for: definition)
+            customInputRowVertical(for: definition)
+        }
+    }
+
+    private func customInputRowHorizontal(for definition: CustomMetricDefinition) -> some View {
+        let id = definition.identifier
+        return HStack(spacing: 8) {
+            Text(AppLocalization.string("Enter value"))
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.white.opacity(0.7))
+                .lineLimit(2)
+
+            Spacer(minLength: 0)
+
+            TextField(
+                "0.0",
+                value: Binding(
+                    get: { customInputs[id] ?? nil },
+                    set: { newVal in
+                        customInputs[id] = newVal
+                        editedCustomIds.insert(id)
+                    }
+                ),
+                format: .number.precision(.fractionLength(2))
+            )
+            .focused($focusedCustomId, equals: id)
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.trailing)
+            .font(.title3.monospacedDigit().weight(.semibold))
+            .frame(minWidth: 88)
+            .accessibilityIdentifier("quickadd.input.custom.\(id)")
+
+            Text(definition.unitLabel)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.white.opacity(0.72))
+        }
+    }
+
+    private func customInputRowVertical(for definition: CustomMetricDefinition) -> some View {
+        let id = definition.identifier
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(AppLocalization.string("Enter value"))
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.white.opacity(0.7))
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                TextField(
+                    "0.0",
+                    value: Binding(
+                        get: { customInputs[id] ?? nil },
+                        set: { newVal in
+                            customInputs[id] = newVal
+                            editedCustomIds.insert(id)
+                        }
+                    ),
+                    format: .number.precision(.fractionLength(2))
+                )
+                .focused($focusedCustomId, equals: id)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.leading)
+                .font(.title3.monospacedDigit().weight(.semibold))
+                .accessibilityIdentifier("quickadd.input.custom.\(id)")
+
+                Text(definition.unitLabel)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.72))
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private func customLastSummary(value: Double, unit: String, date: Date) -> String {
+        let formatted = String(format: "%.1f %@", value, unit)
+        let relative = date.formatted(.relative(presentation: .named))
+        return "\(formatted) · \(relative)"
     }
 
     private var saveUnchangedCard: some View {
@@ -378,7 +532,7 @@ struct QuickAddSheetView: View {
             TextField(
                 "0.0",
                 value: binding(for: kind),
-                format: .number.precision(.fractionLength(1))
+                format: .number.precision(.fractionLength(2))
             )
             .focused($focusedKind, equals: kind)
             .keyboardType(.decimalPad)
@@ -409,7 +563,7 @@ struct QuickAddSheetView: View {
                 TextField(
                     "0.0",
                     value: binding(for: kind),
-                    format: .number.precision(.fractionLength(1))
+                    format: .number.precision(.fractionLength(2))
                 )
                 .focused($focusedKind, equals: kind)
                 .keyboardType(.decimalPad)
@@ -514,18 +668,14 @@ struct QuickAddSheetView: View {
     }
 
     private func formatted(_ value: Double, for kind: MetricKind) -> String {
-        switch kind.unitCategory {
-        case .percent:
-            return String(format: "%.1f%%", value)
-        case .weight, .length:
-            return String(format: "%.1f %@", value, kind.unitSymbol(unitsSystem: unitsSystem))
-        }
+        kind.formattedDisplayValue(value, unitsSystem: unitsSystem)
     }
 
     private var cannotSave: Bool {
         let values = preparedEntries(includeUnchanged: saveUnchangedValues)
+        let customValues = preparedCustomEntries(includeUnchanged: saveUnchangedValues)
 
-        guard !values.isEmpty else { return true }
+        guard !values.isEmpty || !customValues.isEmpty else { return true }
 
         return values.contains { kind, value in
             !MetricInputValidator
@@ -588,12 +738,22 @@ struct QuickAddSheetView: View {
         }
     }
 
+    private func preparedCustomEntries(includeUnchanged: Bool) -> [(String, Double)] {
+        customDefinitions.compactMap { def -> (String, Double)? in
+            guard let value = customInputs[def.identifier] ?? nil else { return nil }
+            if includeUnchanged {
+                return (def.identifier, value)
+            }
+            guard editedCustomIds.contains(def.identifier) else { return nil }
+            return (def.identifier, value)
+        }
+    }
+
     private var sanityWarningMessage: String {
         suspiciousEntries.map { entry in
-            let prev = entry.kind.valueForDisplay(fromMetric: entry.previousValue, unitsSystem: unitsSystem)
-            let new = entry.kind.valueForDisplay(fromMetric: entry.newValue, unitsSystem: unitsSystem)
-            let unit = entry.kind.unitSymbol(unitsSystem: unitsSystem)
-            return String(format: "%@: %.1f \u{2192} %.1f %@", entry.kind.title, prev, new, unit)
+            let previousText = entry.kind.formattedMetricValue(fromMetric: entry.previousValue, unitsSystem: unitsSystem)
+            let newText = entry.kind.formattedMetricValue(fromMetric: entry.newValue, unitsSystem: unitsSystem)
+            return "\(entry.kind.title): \(previousText) \u{2192} \(newText)"
         }.joined(separator: "\n")
     }
 
@@ -623,6 +783,15 @@ struct QuickAddSheetView: View {
 
         do {
             try service.save(entries: entries, date: date, unitsSystem: unitsSystem)
+
+            // Save custom metric entries
+            let customEntries = preparedCustomEntries(includeUnchanged: saveUnchangedValues)
+            if !customEntries.isEmpty {
+                try service.saveCustom(
+                    entries: customEntries.map { QuickAddSaveService.CustomEntry(identifier: $0.0, value: $0.1) },
+                    date: date
+                )
+            }
         } catch {
             await MainActor.run {
                 isSaving = false
@@ -636,8 +805,9 @@ struct QuickAddSheetView: View {
         // Synchronizacja HealthKit w trybie najlepszej starannosci
         await service.syncHealthKit(entries: entries, date: date)
 
+        let totalCount = entries.count + preparedCustomEntries(includeUnchanged: saveUnchangedValues).count
         await MainActor.run {
-            ReviewRequestManager.recordMetricEntryAdded(count: entries.count)
+            ReviewRequestManager.recordMetricEntryAdded(count: totalCount)
             isSaving = false
             Haptics.success()
             onSaved()

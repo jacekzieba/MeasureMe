@@ -103,6 +103,25 @@ final class OnboardingUITests: XCTestCase {
     }
 
     @MainActor
+    func testPremiumTrialActivationFromOnboardingShowsPostPurchaseSetup() {
+        launchApp(arguments: ["-uiTestOnboardingMode", "-uiTestSimulateTrialActivation"])
+
+        for _ in 0..<3 {
+            let next = nextButton
+            XCTAssertTrue(next.waitForExistence(timeout: 10), "Przycisk Dalej powinien istniec")
+            next.tap()
+        }
+
+        let trialButton = app.buttons["onboarding.premium.trial"].firstMatch
+        XCTAssertTrue(trialButton.waitForExistence(timeout: 5), "CTA triala powinno byc widoczne na kroku premium")
+        XCTAssertTrue(trialButton.isEnabled, "CTA triala powinno byc aktywne na kroku premium")
+        trialButton.tap()
+
+        let postPurchaseSheet = app.otherElements["postpurchase.sheet"].firstMatch
+        XCTAssertTrue(postPurchaseSheet.waitForExistence(timeout: 5), "Aktywacja z onboardingu powinna pokazac ekran post-purchase setup")
+    }
+
+    @MainActor
     /// Co sprawdza: Sprawdza, ze RemindersButtonOpensSheet dziala poprawnie (otwarcie i podstawowe warunki).
     /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
     /// Kryteria: Asercje na elementach UI przechodza (m.in. `onboarding.next`, `onboarding.booster.reminders`, `onboarding.reminder.cancel`).

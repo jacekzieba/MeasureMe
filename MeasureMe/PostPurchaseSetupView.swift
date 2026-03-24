@@ -39,10 +39,12 @@ struct PostPurchaseSetupView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(AppAccentButtonStyle())
+                .accessibilityIdentifier("postpurchase.getstarted")
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)
             }
         }
+        .accessibilityIdentifier("postpurchase.sheet")
         .onAppear {
             notificationsToggle = NotificationManager.shared.notificationsEnabled
             backupToggle = iCloudBackupEnabled

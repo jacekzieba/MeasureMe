@@ -262,7 +262,7 @@ final class ActiveMetricsStore: ObservableObject {
     }
 
     // MARK: - UserDefaults Keys
-    
+
     /// Zwraca klucz UserDefaults dla danej metryki
     private func key(for kind: MetricKind) -> String {
         switch kind {
@@ -285,5 +285,148 @@ final class ActiveMetricsStore: ObservableObject {
         case .leftCalf: return "metric_leftCalf_enabled"
         case .rightCalf: return "metric_rightCalf_enabled"
         }
+    }
+
+    // MARK: - Custom Metrics
+
+    private let customOrderKey = "custom_metrics_order"
+
+    /// Zwraca klucz UserDefaults dla custom metryki
+    private func customKey(for identifier: String) -> String {
+        "custom_metric_\(identifier)_enabled"
+    }
+
+    /// Sprawdza czy custom metryka jest włączona
+    func isCustomEnabled(_ identifier: String) -> Bool {
+        defaults.bool(forKey: customKey(for: identifier))
+    }
+
+    /// Włącza lub wyłącza custom metrykę
+    func setCustomEnabled(_ enabled: Bool, for identifier: String) {
+        let k = customKey(for: identifier)
+        let current = defaults.bool(forKey: k)
+        guard current != enabled else { return }
+
+        defaults.set(enabled, forKey: k)
+
+        if !defaults.bool(forKey: AppSettingsKeys.Experience.hasCustomizedMetrics) {
+            defaults.set(true, forKey: AppSettingsKeys.Experience.hasCustomizedMetrics)
+        }
+
+        var order = loadCustomOrderRaw()
+        if enabled {
+            if !order.contains(identifier) {
+                order.append(identifier)
+            }
+        }
+        saveCustomOrderRaw(order)
+        objectWillChange.send()
+    }
+
+    /// Tworzy Binding dla Toggle custom metryki w UI
+    func customBinding(for identifier: String) -> Binding<Bool> {
+        Binding(
+            get: { self.isCustomEnabled(identifier) },
+            set: { self.setCustomEnabled($0, for: identifier) }
+        )
+    }
+
+    /// Zwraca aktywne (włączone) custom metryki identifiers w kolejności usera
+    func activeCustomIdentifiers(from definitions: [CustomMetricDefinition]) -> [String] {
+        let enabledSet = Set(definitions.map(\.identifier).filter { isCustomEnabled($0) })
+
+        var seen = Set<String>()
+        let saved = loadCustomOrderRaw().filter { enabledSet.contains($0) && seen.insert($0).inserted }
+        let missing = definitions.map(\.identifier).filter { enabledSet.contains($0) && !seen.contains($0) }
+
+        return saved + missing
+    }
+
+    /// Sprawdza czy custom metryka jest kluczowa (Home) — dzieli limit z built-in key metrics
+    func isCustomKeyMetric(_ identifier: String) -> Bool {
+        loadKeyMetricsRaw().contains(identifier)
+    }
+
+    /// Włącza/wyłącza custom metrykę jako kluczową. Dzieli limit maxKeyMetrics z built-in.
+    @discardableResult
+    func setCustomKeyMetric(_ enabled: Bool, for identifier: String) -> Bool {
+        var current = loadKeyMetricsRaw()
+        // Filtruj do aktywnych built-in + aktywnych custom
+        let activeBuiltIn = Set(activeKinds.map(\.rawValue))
+        current = current.filter { activeBuiltIn.contains($0) || (isCustomEnabled($0) && $0.hasPrefix("custom_")) }
+
+        if enabled {
+            guard !current.contains(identifier) else { return true }
+            guard current.count < maxKeyMetrics else { return false }
+            current.append(identifier)
+        } else {
+            current.removeAll { $0 == identifier }
+        }
+        defaults.set(current, forKey: keyMetricsKey)
+        debouncedPublish()
+        return true
+    }
+
+    /// Łączna liczba key metrics (built-in + custom)
+    var totalKeyMetricsCount: Int {
+        let raw = loadKeyMetricsRaw()
+        let activeBuiltIn = Set(activeKinds.map(\.rawValue))
+        return raw.filter { activeBuiltIn.contains($0) || (isCustomEnabled($0) && $0.hasPrefix("custom_")) }.count
+    }
+
+    /// Ordered key metric identifiers (both built-in rawValues and custom_ identifiers),
+    /// filtered to active metrics only, limited to maxKeyMetrics.
+    /// Returns the same order as stored in UserDefaults.
+    var keyMetricIdentifiers: [String] {
+        let raw = loadKeyMetricsRaw()
+        let activeBuiltIn = Set(activeKinds.map(\.rawValue))
+
+        // First session: key not set → auto-assign defaults (built-in only, same as keyMetrics)
+        if defaults.object(forKey: keyMetricsKey) == nil {
+            return Array(activeKinds.prefix(maxKeyMetrics)).map(\.rawValue)
+        }
+
+        let filtered = raw.filter { id in
+            if id.hasPrefix("custom_") {
+                return isCustomEnabled(id)
+            }
+            return activeBuiltIn.contains(id)
+        }
+        return Array(filtered.prefix(maxKeyMetrics))
+    }
+
+    // MARK: - Custom Order Persistence
+
+    private func loadCustomOrderRaw() -> [String] {
+        defaults.stringArray(forKey: customOrderKey) ?? []
+    }
+
+    private func saveCustomOrderRaw(_ identifiers: [String]) {
+        defaults.set(identifiers, forKey: customOrderKey)
+    }
+
+    /// Przestawia kolejność custom metryk (drag & drop)
+    func moveCustomIdentifiers(fromOffsets: IndexSet, toOffset: Int, definitions: [CustomMetricDefinition]) {
+        var current = activeCustomIdentifiers(from: definitions)
+        current.move(fromOffsets: fromOffsets, toOffset: toOffset)
+        saveCustomOrderRaw(current)
+        debouncedPublish()
+    }
+
+    /// Usuwa custom metrykę — czyści klucze enabled i order
+    func removeCustomMetric(_ identifier: String) {
+        defaults.removeObject(forKey: customKey(for: identifier))
+        var order = loadCustomOrderRaw()
+        order.removeAll { $0 == identifier }
+        saveCustomOrderRaw(order)
+
+        // Usuń z key metrics jeśli była
+        var keyRaw = loadKeyMetricsRaw()
+        if keyRaw.contains(identifier) {
+            keyRaw.removeAll { $0 == identifier }
+            defaults.set(keyRaw, forKey: keyMetricsKey)
+        }
+
+        objectWillChange.send()
     }
 }

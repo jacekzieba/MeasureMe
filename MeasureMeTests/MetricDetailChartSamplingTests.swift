@@ -56,6 +56,20 @@ final class MetricDetailChartSamplingTests: XCTestCase {
         XCTAssertLessThanOrEqual(narrow, wide)
     }
 
+    func testRemapPreservesSourceEndpoints() {
+        let mappedLower = MetricDetailView.remap(10, from: 10...20, to: 100...200)
+        let mappedUpper = MetricDetailView.remap(20, from: 10...20, to: 100...200)
+
+        XCTAssertEqual(mappedLower, 100, accuracy: 0.0001)
+        XCTAssertEqual(mappedUpper, 200, accuracy: 0.0001)
+    }
+
+    func testRemapMapsMidpointLinearly() {
+        let mapped = MetricDetailView.remap(15, from: 10...20, to: 100...200)
+
+        XCTAssertEqual(mapped, 150, accuracy: 0.0001)
+    }
+
     private func makeSamples(count: Int) -> [MetricSample] {
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         return (0..<count).map { index in

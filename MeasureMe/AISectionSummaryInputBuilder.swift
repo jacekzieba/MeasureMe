@@ -247,9 +247,7 @@ enum AISectionSummaryInputBuilder {
     }
 
     private static func formattedMetric(kind: MetricKind, value: Double, unitsSystem: String) -> String {
-        let display = kind.valueForDisplay(fromMetric: value, unitsSystem: unitsSystem)
-        let unit = kind.unitSymbol(unitsSystem: unitsSystem)
-        return String(format: "%.1f %@", display, unit)
+        kind.formattedMetricValue(fromMetric: value, unitsSystem: unitsSystem)
     }
 
     private struct TrendSnapshot {

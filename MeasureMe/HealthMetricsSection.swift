@@ -658,8 +658,7 @@ struct HealthMetricsSection: View {
     }
 
     private func formatLength(_ cm: Double, kind: MetricKind) -> String {
-        let display = kind.valueForDisplay(fromMetric: cm, unitsSystem: unitsSystem)
-        return String(format: "%.1f %@", display, kind.unitSymbol(unitsSystem: unitsSystem))
+        kind.formattedMetricValue(fromMetric: cm, unitsSystem: unitsSystem)
     }
 
     @ViewBuilder

@@ -100,6 +100,28 @@ private final class MockPremiumAnalyticsClient: AnalyticsClient {
 
 @MainActor
 final class PremiumStoreTests: XCTestCase {
+    func testShouldForcePremiumOnSimulatorReturnsFalseWhenRunningTests() {
+        let shouldForce = PremiumStore.shouldForcePremiumOnSimulator(
+            arguments: [],
+            environment: ["XCTestConfigurationFilePath": "/tmp/test.xctestconfiguration"]
+        )
+
+        XCTAssertFalse(shouldForce)
+    }
+
+    func testShouldForcePremiumOnSimulatorMatchesRuntimePlatform() {
+        let shouldForce = PremiumStore.shouldForcePremiumOnSimulator(
+            arguments: [],
+            environment: [:]
+        )
+
+        #if targetEnvironment(simulator)
+        XCTAssertTrue(shouldForce)
+        #else
+        XCTAssertFalse(shouldForce)
+        #endif
+    }
+
     /// Co sprawdza: Sprawdza, ze IsEntitlementActive zwraca false w oczekiwanym scenariuszu.
     /// Dlaczego: Zapewnia stabilny gating premium i poprawne odblokowanie funkcji.
     /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.

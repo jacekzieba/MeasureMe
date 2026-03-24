@@ -12,6 +12,9 @@ private extension Color {
     static let widgetGreen  = Color(red: 0.133, green: 0.773, blue: 0.369)
     /// Negative trend: #EF4444
     static let widgetRed    = Color(red: 0.937, green: 0.267, blue: 0.267)
+    static let widgetSecondaryText = Color.white.opacity(0.82)
+    static let widgetTertiaryText = Color.white.opacity(0.68)
+    static let widgetSubtleText = Color.white.opacity(0.56)
 }
 
 // MARK: - Shared sub-views
@@ -53,6 +56,19 @@ private struct DeltaPill: View {
     }
 }
 
+private struct TrendStatusLabel: View {
+    let text: String
+    let compact: Bool
+
+    var body: some View {
+        Text(text)
+            .font(compact ? .system(size: 9, weight: .medium) : .caption2.weight(.medium))
+            .foregroundStyle(Color.widgetSubtleText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+    }
+}
+
 // MARK: - MetricWidgetView
 
 struct MetricWidgetView: View {
@@ -91,7 +107,7 @@ struct MetricWidgetView: View {
                 MetricIconBadge(systemImage: kind.systemImage, size: .regular)
                 Text(kind.displayName)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(Color.widgetSecondaryText)
                     .lineLimit(1)
             }
 
@@ -111,9 +127,16 @@ struct MetricWidgetView: View {
                 } else {
                     Text("widget.period.30d")
                         .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.25))
+                        .foregroundStyle(Color.widgetSubtleText)
                 }
             }
+            .padding(.top, 3)
+
+            TrendStatusLabel(
+                text: data?.trendStatusText(for: kind, recentSamples: primaryRecentSamples)
+                    ?? widgetLocalized("Not enough data", "Brak danych"),
+                compact: false
+            )
             .padding(.top, 3)
 
             Spacer(minLength: 6)
@@ -121,8 +144,12 @@ struct MetricWidgetView: View {
             // Sparkline
             WidgetSparklineView(samples: sparklineSamples, trendColor: trendColor)
                 .frame(height: 38)
+                .accessibilityHidden(true)
         }
         .padding(16)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(kind.displayName)
+        .accessibilityValue(widgetAccessibilityValue(kind: kind, data: data, recentSamples: primaryRecentSamples))
     }
 
     // MARK: - Medium (4×2): 3 metric columns
@@ -156,7 +183,7 @@ struct MetricWidgetView: View {
                 MetricIconBadge(systemImage: kind.systemImage, size: .compact)
                 Text(kind.displayName)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(Color.widgetTertiaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
@@ -177,9 +204,16 @@ struct MetricWidgetView: View {
                 } else {
                     Text("widget.period.30d")
                         .font(.system(size: 9))
-                        .foregroundStyle(.white.opacity(0.20))
+                        .foregroundStyle(Color.widgetSubtleText)
                 }
             }
+            .padding(.top, 2)
+
+            TrendStatusLabel(
+                text: data?.trendStatusText(for: kind, recentSamples: recent)
+                    ?? widgetLocalized("Not enough data", "Brak danych"),
+                compact: true
+            )
             .padding(.top, 2)
 
             Spacer(minLength: 0)
@@ -188,18 +222,20 @@ struct MetricWidgetView: View {
             WidgetSparklineView(samples: recent, trendColor: trend)
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
+                .accessibilityHidden(true)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 5)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(kind.displayName)
+        .accessibilityValue(widgetAccessibilityValue(kind: kind, data: data, recentSamples: recent))
     }
 
     // MARK: - Helpers
 
     private func valueTextFor(kind: WidgetMetricKind, data: WidgetMetricData?) -> String {
         guard let val = data?.latestDisplayValue(for: kind) else { return "—" }
-        let unit = kind.unitSymbol(isMetric: data?.isMetric ?? true)
-        let fmt = kind.unitCategory == .percent ? "%.1f%@" : "%.1f\u{202F}%@"
-        return String(format: fmt, val, unit)
+        return kind.formattedDisplayValue(val, isMetric: data?.isMetric ?? true)
     }
 
     private func colorFor(
@@ -213,5 +249,19 @@ struct MetricWidgetView: View {
         case .negative: return .widgetRed
         case .neutral:  return .white.opacity(0.4)
         }
+    }
+
+    private func widgetAccessibilityValue(
+        kind: WidgetMetricKind,
+        data: WidgetMetricData?,
+        recentSamples: [WidgetMetricData.SampleDTO]
+    ) -> String {
+        let value = valueTextFor(kind: kind, data: data)
+        let trend = data?.accessibilityTrendDescription(for: kind, recentSamples: recentSamples)
+            ?? widgetLocalized("Not enough data for trend", "Za mało danych, aby ocenić trend")
+        if let goal = data?.accessibilityGoalDescription(for: kind) {
+            return "\(value). \(trend). \(goal)"
+        }
+        return "\(value). \(trend)"
     }
 }

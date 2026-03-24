@@ -107,6 +107,10 @@ struct FAQView: View {
                                 answer: "No problem—go to the metric and update or delete the goal at any time."
                             ),
                             faqItem(
+                                question: "faq.usage.goalstatuscolors.q",
+                                answer: "faq.usage.goalstatuscolors.a"
+                            ),
+                            faqItem(
                                 question: "Can I use the app offline?",
                                 answer: "Yes. The app works fully offline; HealthKit sync is optional."
                             ),
@@ -150,7 +154,7 @@ struct FAQView: View {
                         items: [
                             faqItem(
                                 question: "What is Premium Edition?",
-                                answer: "Premium unlocks AI Insights, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled."
+                                answer: "Premium unlocks AI Insights, Goal Prediction, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled."
                             ),
                             faqItem(
                                 question: "Is there a free trial?",
@@ -179,6 +183,10 @@ struct FAQView: View {
                             faqItem(
                                 question: "faq.premium.icloudbackup.q",
                                 answer: "faq.premium.icloudbackup.a"
+                            ),
+                            faqItem(
+                                question: "faq.premium.goalprediction.q",
+                                answer: "faq.premium.goalprediction.a"
                             )
                         ]
                     )

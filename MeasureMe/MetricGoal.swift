@@ -48,18 +48,42 @@ final class MetricGoal {
     /// Gdy nil, baseline pochodzi z próbek ≤ createdDate (stare zachowanie).
     var startDate: Date?
 
+    /// Zamierzone tygodniowe tempo zmiany w jednostkach bazowych (kg/tydzień dla wagi).
+    /// Wartość dodatnia — np. 0.5 oznacza 0.5 kg/tydzień (niezależnie od kierunku).
+    var commitmentWeeklyRate: Double?
+
     init(kind: MetricKind, targetValue: Double, direction: Direction = .decrease,
-         createdDate: Date = .now, startValue: Double? = nil, startDate: Date? = nil) {
+         createdDate: Date = .now, startValue: Double? = nil, startDate: Date? = nil,
+         commitmentWeeklyRate: Double? = nil) {
         self.kindRaw = kind.rawValue
         self.targetValue = targetValue
         self.directionRaw = direction.rawValue
         self.createdDate = createdDate
         self.startValue = startValue
         self.startDate = startDate
+        self.commitmentWeeklyRate = commitmentWeeklyRate
     }
-    
+
+    /// Inicjalizator dla custom metryk — przyjmuje surowy identyfikator (np. "custom_<UUID>")
+    init(kindRaw: String, targetValue: Double, direction: Direction = .decrease,
+         createdDate: Date = .now, startValue: Double? = nil, startDate: Date? = nil,
+         commitmentWeeklyRate: Double? = nil) {
+        self.kindRaw = kindRaw
+        self.targetValue = targetValue
+        self.directionRaw = direction.rawValue
+        self.createdDate = createdDate
+        self.startValue = startValue
+        self.startDate = startDate
+        self.commitmentWeeklyRate = commitmentWeeklyRate
+    }
+
+    /// Czy cel dotyczy custom metryki użytkownika
+    var isCustomMetric: Bool {
+        kindRaw.hasPrefix("custom_")
+    }
+
     /// Wygodny accessor do konwersji String -> MetricKind.
-    /// Zwraca nil dla uszkodzonych rekordów zamiast cichego fallbacku.
+    /// Zwraca nil dla uszkodzonych rekordów i custom metryk.
     var kind: MetricKind? {
         get { MetricKind(rawValue: kindRaw) }
         set {
@@ -104,6 +128,7 @@ enum MetricGoalStore {
         direction: MetricGoal.Direction,
         startValue: Double? = nil,
         startDate: Date? = nil,
+        commitmentWeeklyRate: Double? = nil,
         in context: ModelContext,
         existingGoal: MetricGoal?,
         existingSamples: [MetricSample],
@@ -115,6 +140,7 @@ enum MetricGoalStore {
             existingGoal.direction = direction
             existingGoal.startValue = startValue
             existingGoal.startDate = startDate
+            existingGoal.commitmentWeeklyRate = commitmentWeeklyRate
             existingGoal.createdDate = now
             goal = existingGoal
         } else {
@@ -124,7 +150,8 @@ enum MetricGoalStore {
                 direction: direction,
                 createdDate: now,
                 startValue: startValue,
-                startDate: startDate
+                startDate: startDate,
+                commitmentWeeklyRate: commitmentWeeklyRate
             )
             context.insert(newGoal)
             goal = newGoal
@@ -136,6 +163,55 @@ enum MetricGoalStore {
             }
             if !matchingStartSampleExists {
                 context.insert(MetricSample(kind: kind, value: startValue, date: startDate))
+            }
+        }
+
+        return goal
+    }
+
+    /// Upsert celu dla custom metryki (identyfikator jako surowy String).
+    @discardableResult
+    static func upsertCustomGoal(
+        kindRaw: String,
+        targetValue: Double,
+        direction: MetricGoal.Direction,
+        startValue: Double? = nil,
+        startDate: Date? = nil,
+        commitmentWeeklyRate: Double? = nil,
+        in context: ModelContext,
+        existingGoal: MetricGoal?,
+        existingSamples: [MetricSample],
+        now: Date = .now
+    ) -> MetricGoal {
+        let goal: MetricGoal
+        if let existingGoal {
+            existingGoal.targetValue = targetValue
+            existingGoal.direction = direction
+            existingGoal.startValue = startValue
+            existingGoal.startDate = startDate
+            existingGoal.commitmentWeeklyRate = commitmentWeeklyRate
+            existingGoal.createdDate = now
+            goal = existingGoal
+        } else {
+            let newGoal = MetricGoal(
+                kindRaw: kindRaw,
+                targetValue: targetValue,
+                direction: direction,
+                createdDate: now,
+                startValue: startValue,
+                startDate: startDate,
+                commitmentWeeklyRate: commitmentWeeklyRate
+            )
+            context.insert(newGoal)
+            goal = newGoal
+        }
+
+        if let startValue, let startDate {
+            let matchingStartSampleExists = existingSamples.contains {
+                abs($0.date.timeIntervalSince(startDate)) < 60 && abs($0.value - startValue) < 0.001
+            }
+            if !matchingStartSampleExists {
+                context.insert(MetricSample(kindRaw: kindRaw, value: startValue, date: startDate))
             }
         }
 

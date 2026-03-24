@@ -1,11 +1,15 @@
 import SwiftUI
+import SwiftData
 
 struct TrackedMeasurementsView: View {
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
+    @Query(sort: \CustomMetricDefinition.sortOrder) private var customDefinitions: [CustomMetricDefinition]
     private let theme = FeatureTheme.settings
 
     @State private var isEditingActive = false
     @State private var showKeyMetricsLimitAlert = false
+    @State private var showCustomMetricEditor = false
+    @State private var editingCustomMetric: CustomMetricDefinition?
 
     // MARK: - Snackbar state
     @State private var snackbarMessage: String = ""
@@ -62,6 +66,9 @@ struct TrackedMeasurementsView: View {
                             handleToggleChanged(kind: kind, isEnabled: isEnabled)
                         }
                     )
+
+                    // MARK: - User Custom Metrics
+                    customMetricsSection
                 }
                 .environment(\.editMode, .constant(isEditingActive ? .active : .inactive))
                 .scrollContentBackground(.hidden)
@@ -83,6 +90,78 @@ struct TrackedMeasurementsView: View {
         } message: {
             Text(AppLocalization.string("You can choose up to 3 key metrics for Home."))
         }
+        .sheet(isPresented: $showCustomMetricEditor) {
+            CustomMetricEditorView()
+        }
+        .sheet(item: $editingCustomMetric) { definition in
+            CustomMetricEditorView(existingDefinition: definition)
+        }
+    }
+
+    // MARK: - Custom Metrics Section
+
+    @ViewBuilder
+    private var customMetricsSection: some View {
+        Section {
+            // Header
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.square.fill")
+                        .foregroundStyle(theme.accent)
+                    Text(AppLocalization.string("custom.metric.section.title"))
+                        .font(AppTypography.headlineEmphasis)
+                    Spacer()
+                    Button {
+                        showCustomMetricEditor = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(theme.accent)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(AppLocalization.string("custom.metric.add"))
+                }
+
+                Text(AppLocalization.string("custom.metric.section.subtitle"))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 4, trailing: 16))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+
+            // Rows
+            ForEach(customDefinitions) { definition in
+                CustomMetricRowView(
+                    definition: definition,
+                    isOn: metricsStore.customBinding(for: definition.identifier)
+                )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    editingCustomMetric = definition
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button {
+                        editingCustomMetric = definition
+                    } label: {
+                        Label(AppLocalization.string("Edit"), systemImage: "pencil")
+                    }
+                    .tint(.orange)
+                }
+            }
+
+            if customDefinitions.isEmpty {
+                Text(AppLocalization.string("custom.metric.empty"))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 8)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
+        }
+        .textCase(nil)
     }
 
     // MARK: - Toggle callback
