@@ -80,12 +80,7 @@ struct OnboardingView: View {
     }
 
     private var nextButtonTitle: String {
-        switch currentStep {
-        case .premium:
-            return AppLocalization.systemString("Continue free")
-        default:
-            return AppLocalization.systemString("Continue")
-        }
+        AppLocalization.systemString("Continue")
     }
 
     private var sortedWelcomeGoals: [WelcomeGoal] {
@@ -157,12 +152,6 @@ struct OnboardingView: View {
                             }
                             .containerRelativeFrame(.horizontal)
                             .id(Step.boosters.rawValue)
-
-                            slideCard {
-                                OnboardingPremiumStep()
-                            }
-                            .containerRelativeFrame(.horizontal)
-                            .id(Step.premium.rawValue)
                         }
                         .scrollTargetLayout()
                     }
@@ -431,9 +420,6 @@ struct OnboardingView: View {
             persistProfile()
         case .boosters:
             persistBoostersOutcome()
-        case .premium:
-            finishOnboarding()
-            return
         }
 
         let next = min(currentStepIndex + 1, totalSteps - 1)
@@ -449,11 +435,6 @@ struct OnboardingView: View {
         dismissKeyboard()
         if currentStep == .boosters {
             persistBoostersOutcome()
-        }
-
-        if currentStep == .premium {
-            finishOnboarding()
-            return
         }
 
         let next = min(currentStepIndex + 1, totalSteps - 1)

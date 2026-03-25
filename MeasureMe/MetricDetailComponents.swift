@@ -275,7 +275,7 @@ extension MetricDetailView {
         let sample = MetricSample(kind: kind, value: value, date: date)
         context.insert(sample)
         AnalyticsFirstEventTracker.trackFirstMetricIfNeeded(previousMetricCount: previousMetricCount)
-        NotificationManager.shared.recordMeasurement(date: date)
+        NotificationManager.shared.recordMeasurement(kinds: [kind], date: date)
         if let goal = currentGoal, goal.isAchieved(currentValue: value) {
             NotificationManager.shared.sendGoalAchievedNotification(
                 kind: kind,

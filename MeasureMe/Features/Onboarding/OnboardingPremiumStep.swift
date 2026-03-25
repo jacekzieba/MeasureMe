@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Krok 3 onboardingu — oferta Premium (bundle benefits + plan picker + CTA).
+/// Samodzielny ekran oferty Premium uzywany poza onboardingiem.
 struct OnboardingPremiumStep: View {
     @EnvironmentObject private var premiumStore: PremiumStore
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -36,7 +36,10 @@ struct OnboardingPremiumStep: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            onboardingSlideHeader(title: OnboardingView.Step.premium.title, subtitle: OnboardingView.Step.premium.subtitle)
+            onboardingSlideHeader(
+                title: AppLocalization.systemString("Premium Edition"),
+                subtitle: ""
+            )
 
             premiumUnlockBundleTile
             onboardingPlanPicker

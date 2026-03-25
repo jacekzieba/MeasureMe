@@ -16,6 +16,7 @@ struct NotificationSettingsView: View {
     @State private var goalAchievedEnabled: Bool = NotificationManager.shared.goalAchievedEnabled
     @State private var smartDays: Int = max(NotificationManager.shared.smartDays, 5)
     @State private var smartTime: Date = NotificationManager.shared.smartTime
+    @State private var perMetricSmartEnabled: Bool = NotificationManager.shared.perMetricSmartEnabled
     
     @State private var showSavedToast: Bool = false
     private let theme = FeatureTheme.settings
@@ -279,6 +280,25 @@ struct NotificationSettingsView: View {
                     NotificationManager.shared.smartTime = newValue
                     NotificationManager.shared.scheduleSmartIfNeeded()
                     acknowledgeSaved()
+                }
+
+                if smartEnabled {
+                    Divider()
+                        .overlay(AppColorRoles.borderSubtle)
+
+                    Toggle(isOn: $perMetricSmartEnabled) {
+                        Label(AppLocalization.string("notification.smart.permetric.toggle"), systemImage: "list.bullet.clipboard")
+                    }
+                    .frame(minHeight: 44)
+                    .onChange(of: perMetricSmartEnabled) { _, newValue in
+                        NotificationManager.shared.perMetricSmartEnabled = newValue
+                        NotificationManager.shared.scheduleSmartIfNeeded()
+                        acknowledgeSaved()
+                    }
+
+                    Text(AppLocalization.string("notification.smart.permetric.footer"))
+                        .font(.footnote)
+                        .foregroundStyle(AppColorRoles.textTertiary)
                 }
             }
         }

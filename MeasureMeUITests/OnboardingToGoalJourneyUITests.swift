@@ -36,8 +36,8 @@ final class OnboardingToGoalJourneyUITests: XCTestCase {
     }
 
     private func completeOnboardingFlow() {
-        // powitanie -> profil -> boostery -> premium -> zakonczenie
-        for _ in 0..<4 {
+        // powitanie -> profil -> boostery -> zakonczenie
+        for _ in 0..<3 {
             let next = onboardingNextButton()
             XCTAssertTrue(next.waitForExistence(timeout: 12), "Przycisk Dalej powinien istniec podczas onboardingu")
             XCTAssertTrue(next.isEnabled, "Przycisk Dalej powinien byc aktywny")

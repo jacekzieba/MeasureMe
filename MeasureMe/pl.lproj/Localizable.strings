@@ -1831,3 +1831,11 @@
 "Set" = "Ustaw";
 "History" = "Historia";
 "Goal" = "Cel";
+
+// MARK: - Smart per-metric notifications
+"notification.smart.stale.title" = "Czas na aktualizację";
+"notification.smart.stale.body" = "Nie podawałeś %@ od %d dni. Czas na update?";
+"notification.smart.pattern.title" = "Pominąłeś swoją rutynę?";
+"notification.smart.pattern.body" = "Zwykle w %2$@ o tej porze podajesz %1$@. Chcesz dodać?";
+"notification.smart.permetric.toggle" = "Powiadomienia per-metryka";
+"notification.smart.permetric.footer" = "Otrzymuj przypomnienia o konkretnych pomiarach, których dawno nie podawałeś, lub gdy pominiesz swoją rutynę.";

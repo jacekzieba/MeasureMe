@@ -109,6 +109,7 @@ struct AppSettingsSnapshot: Sendable {
         var photoRemindersEnabled: Bool
         var goalAchievedEnabled: Bool
         var importNotificationsEnabled: Bool
+        var perMetricSmartEnabled: Bool
     }
 
     struct Analytics: Sendable {
@@ -159,6 +160,7 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.Notifications.photoRemindersEnabled: true,
         AppSettingsKeys.Notifications.goalAchievedEnabled: true,
         AppSettingsKeys.Notifications.importNotificationsEnabled: true,
+        AppSettingsKeys.Notifications.perMetricSmartEnabled: true,
         AppSettingsKeys.Onboarding.onboardingSkippedHealthKit: false,
         AppSettingsKeys.Onboarding.onboardingSkippedReminders: false,
         AppSettingsKeys.Onboarding.onboardingViewedICloudBackupOffer: false,
@@ -288,7 +290,8 @@ struct AppSettingsSnapshot: Sendable {
                 lastPhotoDate: defaults.double(forKey: AppSettingsKeys.Notifications.lastPhotoDate),
                 photoRemindersEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.photoRemindersEnabled) as? Bool ?? true,
                 goalAchievedEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.goalAchievedEnabled) as? Bool ?? true,
-                importNotificationsEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.importNotificationsEnabled) as? Bool ?? true
+                importNotificationsEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.importNotificationsEnabled) as? Bool ?? true,
+                perMetricSmartEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.perMetricSmartEnabled) as? Bool ?? true
             ),
             analytics: .init(
                 analyticsEnabled: defaults.object(forKey: AppSettingsKeys.Analytics.analyticsEnabled) as? Bool ?? true,

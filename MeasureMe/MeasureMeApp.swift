@@ -368,7 +368,7 @@ struct MeasureMeApp: App {
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(200))
             let healthSetupState = StartupInstrumentation.begin("DeferredHealthKitSetup")
-            NotificationManager.shared.scheduleSmartIfNeeded()
+            NotificationManager.shared.scheduleSmartIfNeeded(context: container.mainContext)
             HealthKitManager.shared.configure(modelContainer: container)
             _ = HealthKitManager.shared.reconcileStoredSyncState()
             HealthKitManager.shared.startObservingHealthKitUpdates()

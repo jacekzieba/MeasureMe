@@ -164,10 +164,6 @@ final class AuditCaptureUITests: XCTestCase {
         onboardingNextButton(in: app).tap()
         XCTAssertTrue(app.buttons["onboarding.booster.reminders"].waitForExistence(timeout: 8))
         saveScreenshot(screen: "onboarding_boosters")
-
-        onboardingNextButton(in: app).tap()
-        XCTAssertTrue(app.buttons["onboarding.premium.restore"].waitForExistence(timeout: 8))
-        saveScreenshot(screen: "paywall_onboarding")
     }
 
     @MainActor
@@ -228,23 +224,17 @@ final class AuditCaptureUITests: XCTestCase {
 
         XCTAssertTrue(onboardingApp.wait(for: .runningForeground, timeout: 10))
         XCTAssertTrue(onboardingNextButton(in: onboardingApp).waitForExistence(timeout: 15))
-        for _ in 0..<3 {
+        for _ in 0..<2 {
             onboardingNextButton(in: onboardingApp).tap()
         }
 
         let onboardingBack = onboardingBackButton(in: onboardingApp)
-        let onboardingTrial = onboardingApp.buttons["onboarding.premium.trial"]
-        let onboardingRestore = onboardingApp.buttons["onboarding.premium.restore"]
         XCTAssertTrue(onboardingBack.waitForExistence(timeout: 8))
         XCTAssertTrue(onboardingBack.isHittable)
-
-        let hasTrial = waitForExistenceWithScroll(onboardingTrial, in: onboardingApp, timeout: 10, maxSwipes: 8)
-        let hasRestore = waitForExistenceWithScroll(onboardingRestore, in: onboardingApp, timeout: 10, maxSwipes: 8)
-        XCTAssertTrue(hasTrial || hasRestore)
-
-        let paywallCTA = hasTrial ? onboardingTrial : onboardingRestore
-        scrollToReveal(paywallCTA, in: onboardingApp, maxSwipes: 6)
-        if !paywallCTA.isHittable {
+        let reminders = onboardingApp.buttons["onboarding.booster.reminders"].firstMatch
+        XCTAssertTrue(waitForExistenceWithScroll(reminders, in: onboardingApp, timeout: 10, maxSwipes: 8))
+        scrollToReveal(reminders, in: onboardingApp, maxSwipes: 6)
+        if !reminders.isHittable {
             _ = onboardingApp.wait(for: .runningForeground, timeout: 3)
         }
     }
@@ -314,15 +304,15 @@ final class AuditCaptureUITests: XCTestCase {
         assertMinHitTarget(onboardingNext, minSize: 44, name: "onboarding.next")
         assertMinHitTarget(onboardingBack, minSize: 44, name: "onboarding.back")
 
-        for _ in 0..<3 {
+        for _ in 0..<2 {
             onboardingNextButton(in: onboardingApp).tap()
         }
 
-        let trial = onboardingApp.buttons["onboarding.premium.trial"]
-        XCTAssertTrue(waitForExistenceWithScroll(trial, in: onboardingApp, timeout: 10, maxSwipes: 8))
-        scrollToReveal(trial, in: onboardingApp, maxSwipes: 6)
-        XCTAssertTrue(trial.isHittable)
-        assertMinHitTarget(trial, minSize: 44, name: "onboarding.premium.trial")
+        let reminders = onboardingApp.buttons["onboarding.booster.reminders"]
+        XCTAssertTrue(waitForExistenceWithScroll(reminders, in: onboardingApp, timeout: 10, maxSwipes: 8))
+        scrollToReveal(reminders, in: onboardingApp, maxSwipes: 6)
+        XCTAssertTrue(reminders.isHittable)
+        assertMinHitTarget(reminders, minSize: 44, name: "onboarding.booster.reminders")
     }
 
     private func openTab(_ app: XCUIApplication, candidates: [String]) {

@@ -42,7 +42,6 @@ extension OnboardingView {
         case welcome
         case profile
         case boosters
-        case premium
 
         var title: String {
             switch self {
@@ -52,8 +51,6 @@ extension OnboardingView {
                 return AppLocalization.systemString("A few details")
             case .boosters:
                 return AppLocalization.systemString("Boosters")
-            case .premium:
-                return AppLocalization.systemString("Premium Edition")
             }
         }
 
@@ -65,8 +62,6 @@ extension OnboardingView {
                 return AppLocalization.systemString("Optional details for more accurate health indicators.")
             case .boosters:
                 return AppLocalization.systemString("Optional automations to keep momentum.")
-            case .premium:
-                return ""
             }
         }
     }

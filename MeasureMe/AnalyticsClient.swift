@@ -44,8 +44,6 @@ enum AnalyticsSignal: String, CaseIterable {
             return .onboardingStepProfileViewed
         case 2:
             return .onboardingStepBoostersViewed
-        case 3:
-            return .onboardingStepPremiumViewed
         default:
             return nil
         }

@@ -1623,7 +1623,6 @@ struct HomeView: View {
                     }
                 }
             }
-            .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: expandedSecondaryMetrics)
         }
     }
 
@@ -2739,31 +2738,58 @@ struct HomeView: View {
     }
 
     private func secondaryMetricCard(for kind: MetricKind) -> some View {
-        Group {
-            if expandedSecondaryMetrics.contains(kind) {
-                expandedSecondaryMetricCard(for: kind)
-                    .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).expanded")
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            } else {
-                Button {
-                    Haptics.selection()
-                    withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+        let isExpanded = expandedSecondaryMetrics.contains(kind)
+        return VStack(spacing: 0) {
+            Button {
+                Haptics.selection()
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    if isExpanded {
+                        _ = expandedSecondaryMetrics.remove(kind)
+                    } else {
                         _ = expandedSecondaryMetrics.insert(kind)
                     }
-                } label: {
-                    compactMetricRow(for: kind)
+                }
+            } label: {
+                compactMetricRow(for: kind, chevronUp: isExpanded)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).toggle")
+            .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
+            .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
+
+            NavigationLink {
+                MetricDetailView(kind: kind)
+            } label: {
+                HomeKeyMetricRow(
+                    kind: kind,
+                    latest: cachedLatestByKind[kind],
+                    goal: cachedGoalsByKind[kind],
+                    samples: samplesForKind(kind),
+                    unitsSystem: unitsSystem
+                )
+            }
+            .buttonStyle(PressableTileStyle())
+            .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).openDetail")
+            .frame(maxHeight: isExpanded ? .none : 0, alignment: .top)
+            .clipped()
+            .opacity(isExpanded ? 1 : 0)
+            .allowsHitTesting(isExpanded)
+
+            if isUITestMode && isExpanded {
+                Button("collapse") {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        _ = expandedSecondaryMetrics.remove(kind)
+                    }
                 }
                 .buttonStyle(.plain)
-                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).toggle")
-                .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
-                .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .frame(width: 1, height: 1)
+                .opacity(0.01)
+                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).collapseHook")
             }
         }
-        .clipped()
     }
 
-    private func compactMetricRow(for kind: MetricKind) -> some View {
+    private func compactMetricRow(for kind: MetricKind, chevronUp: Bool = false) -> some View {
         let latestText = cachedLatestByKind[kind].map { formattedMetricValue(for: kind, metricValue: $0.value) } ?? AppLocalization.string("No data yet")
         let detailText = metricDeltaTextFromCache(kind: kind, days: 7)
             ?? secondaryMetricGoalSummary(for: kind)
@@ -2790,9 +2816,10 @@ struct HomeView: View {
                     .lineLimit(1)
             }
 
-            Image(systemName: "chevron.down")
+            Image(systemName: chevronUp ? "chevron.up" : "chevron.down")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(.white.opacity(0.44))
+                .contentTransition(.symbolEffect(.replace))
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -2806,54 +2833,6 @@ struct HomeView: View {
         )
     }
 
-    private func expandedSecondaryMetricCard(for kind: MetricKind) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Spacer()
-                Button {
-                    Haptics.selection()
-                    withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-                        _ = expandedSecondaryMetrics.remove(kind)
-                    }
-                } label: {
-                    Image(systemName: "chevron.up")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.66))
-                        .frame(width: 28, height: 28)
-                        .background(Color.black.opacity(0.18))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).collapse")
-            }
-
-            if isUITestMode {
-                Button("collapse") {
-                    withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-                        _ = expandedSecondaryMetrics.remove(kind)
-                    }
-                }
-                .buttonStyle(.plain)
-                .frame(width: 1, height: 1)
-                .opacity(0.01)
-                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).collapseHook")
-            }
-
-            NavigationLink {
-                MetricDetailView(kind: kind)
-            } label: {
-                HomeKeyMetricRow(
-                    kind: kind,
-                    latest: cachedLatestByKind[kind],
-                    goal: cachedGoalsByKind[kind],
-                    samples: samplesForKind(kind),
-                    unitsSystem: unitsSystem
-                )
-            }
-            .buttonStyle(PressableTileStyle())
-            .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).openDetail")
-        }
-    }
 
     private func customSecondaryMetricCard(for definition: CustomMetricDefinition) -> some View {
         let id = definition.identifier

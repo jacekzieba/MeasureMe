@@ -67,58 +67,15 @@ final class OnboardingUITests: XCTestCase {
     /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
     /// Kryteria: Asercje na elementach UI przechodza (m.in. `onboarding.next`).
     func testNavigateThroughAllStepsSequentially() {
-        // powitanie -> profil -> boostery -> premium
-        for _ in 0..<3 {
+        // powitanie -> profil -> boostery
+        for _ in 0..<2 {
             let next = nextButton
             XCTAssertTrue(next.waitForExistence(timeout: 10), "Przycisk Dalej powinien istniec")
             XCTAssertTrue(next.isEnabled, "Przycisk Dalej powinien byc aktywny")
             next.tap()
         }
 
-        let nextOnPremium = nextButton
-        XCTAssertTrue(nextOnPremium.waitForExistence(timeout: 5), "Przycisk Dalej powinien istniec na kroku premium")
-        XCTAssertTrue(nextOnPremium.isEnabled, "Przycisk Dalej powinien byc aktywny na kroku premium")
-    }
-
-    @MainActor
-    /// Co sprawdza: Sprawdza scenariusz: PremiumStepShowsLegalLinksAndRestoreAction.
-    /// Dlaczego: Zapewnia stabilny gating premium i poprawne odblokowanie funkcji.
-    /// Kryteria: Asercje na elementach UI przechodza (m.in. `onboarding.next`, `onboarding.premium.restore`, `onboarding.premium.privacy`).
-    func testPremiumStepShowsLegalLinksAndRestoreAction() {
-        // powitanie -> profil -> boostery -> premium
-        for _ in 0..<3 {
-            let next = nextButton
-            XCTAssertTrue(next.waitForExistence(timeout: 10), "Przycisk Dalej powinien istniec")
-            next.tap()
-        }
-
-        let restore = app.buttons["onboarding.premium.restore"]
-        XCTAssertTrue(restore.waitForExistence(timeout: 5), "Akcja przywrocenia zakupow powinna byc widoczna na kroku premium")
-
-        let privacyLink = app.descendants(matching: .any)["onboarding.premium.privacy"]
-        XCTAssertTrue(privacyLink.waitForExistence(timeout: 5), "Link do polityki prywatnosci powinien byc widoczny na kroku premium")
-
-        let termsLink = app.descendants(matching: .any)["onboarding.premium.terms"]
-        XCTAssertTrue(termsLink.waitForExistence(timeout: 5), "Link do warunkow uzycia powinien byc widoczny na kroku premium")
-    }
-
-    @MainActor
-    func testPremiumTrialActivationFromOnboardingShowsPostPurchaseSetup() {
-        launchApp(arguments: ["-uiTestOnboardingMode", "-uiTestSimulateTrialActivation"])
-
-        for _ in 0..<3 {
-            let next = nextButton
-            XCTAssertTrue(next.waitForExistence(timeout: 10), "Przycisk Dalej powinien istniec")
-            next.tap()
-        }
-
-        let trialButton = app.buttons["onboarding.premium.trial"].firstMatch
-        XCTAssertTrue(trialButton.waitForExistence(timeout: 5), "CTA triala powinno byc widoczne na kroku premium")
-        XCTAssertTrue(trialButton.isEnabled, "CTA triala powinno byc aktywne na kroku premium")
-        trialButton.tap()
-
-        let postPurchaseSheet = app.otherElements["postpurchase.sheet"].firstMatch
-        XCTAssertTrue(postPurchaseSheet.waitForExistence(timeout: 5), "Aktywacja z onboardingu powinna pokazac ekran post-purchase setup")
+        XCTAssertTrue(app.buttons["onboarding.booster.reminders"].waitForExistence(timeout: 5), "Po dwoch krokach onboarding powinien zatrzymac sie na boosterach")
     }
 
     @MainActor
@@ -182,7 +139,7 @@ final class OnboardingUITests: XCTestCase {
     }
 
     @MainActor
-    func testSkipOnBoostersPersistsICloudDecisionAndMovesToPremiumStep() {
+    func testSkipOnBoostersPersistsICloudDecisionAndFinishesOnboarding() {
         for _ in 0..<2 {
             let next = nextButton
             XCTAssertTrue(next.waitForExistence(timeout: 10))
@@ -192,10 +149,10 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertTrue(skipButton.waitForExistence(timeout: 5))
         skipButton.tap()
 
-        XCTAssertTrue(app.staticTexts["step:3"].firstMatch.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["icloudViewed:true"].firstMatch.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["icloudSkipped:true"].firstMatch.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["icloudEnabled:false"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8), "Skip na boosterach powinien zakonczyc onboarding")
     }
 
     @MainActor

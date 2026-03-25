@@ -656,9 +656,11 @@ struct MetricDetailView: View {
                                     .foregroundStyle(AppColorRoles.textSecondary)
 
                                 // Expanded content (weight only)
-                                if isPredictionExpanded, kind == .weight,
-                                   let rates = weightPredictionRates {
+                                if kind == .weight, let rates = weightPredictionRates {
                                     weightPredictionExpandedContent(rates: rates)
+                                        .frame(maxHeight: isPredictionExpanded ? .none : 0, alignment: .top)
+                                        .clipped()
+                                        .opacity(isPredictionExpanded ? 1 : 0)
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -764,7 +766,6 @@ struct MetricDetailView: View {
                 }
             }
         }
-        .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
     @ViewBuilder

@@ -181,6 +181,11 @@ final class AppSettingsStore: ObservableObject {
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.photoRemindersEnabled)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.goalAchievedEnabled)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.importNotificationsEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.perMetricSmartEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.perMetricLastDates)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.detectedPatterns)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.smartLastNotificationDate)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.smartLastNotifiedMetric)
         }
     }
 
@@ -388,6 +393,7 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(notifications.photoRemindersEnabled, forKey: AppSettingsKeys.Notifications.photoRemindersEnabled)
             defaults.set(notifications.goalAchievedEnabled, forKey: AppSettingsKeys.Notifications.goalAchievedEnabled)
             defaults.set(notifications.importNotificationsEnabled, forKey: AppSettingsKeys.Notifications.importNotificationsEnabled)
+            defaults.set(notifications.perMetricSmartEnabled, forKey: AppSettingsKeys.Notifications.perMetricSmartEnabled)
 
             let analytics = snapshot.analytics
             defaults.set(analytics.analyticsEnabled, forKey: AppSettingsKeys.Analytics.analyticsEnabled)

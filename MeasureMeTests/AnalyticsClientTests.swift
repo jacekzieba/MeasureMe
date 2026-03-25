@@ -147,7 +147,7 @@ final class AnalyticsClientTests: XCTestCase {
         XCTAssertEqual(AnalyticsSignal.onboardingStepViewed(stepIndex: 0), .onboardingStepWelcomeViewed)
         XCTAssertEqual(AnalyticsSignal.onboardingStepViewed(stepIndex: 1), .onboardingStepProfileViewed)
         XCTAssertEqual(AnalyticsSignal.onboardingStepViewed(stepIndex: 2), .onboardingStepBoostersViewed)
-        XCTAssertEqual(AnalyticsSignal.onboardingStepViewed(stepIndex: 3), .onboardingStepPremiumViewed)
+        XCTAssertNil(AnalyticsSignal.onboardingStepViewed(stepIndex: 3))
         XCTAssertNil(AnalyticsSignal.onboardingStepViewed(stepIndex: -1))
         XCTAssertNil(AnalyticsSignal.onboardingStepViewed(stepIndex: 99))
     }

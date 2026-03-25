@@ -1831,3 +1831,11 @@
 "Set" = "Set";
 "History" = "History";
 "Goal" = "Goal";
+
+// MARK: - Smart per-metric notifications
+"notification.smart.stale.title" = "Time for an update";
+"notification.smart.stale.body" = "You haven't logged your %@ in %d days. Ready to check in?";
+"notification.smart.pattern.title" = "Missed your routine?";
+"notification.smart.pattern.body" = "You usually log %1$@ around this time on %2$@. Want to add it?";
+"notification.smart.permetric.toggle" = "Per-metric reminders";
+"notification.smart.permetric.footer" = "Get reminders for specific measurements you haven't logged in a while, or when you miss your usual routine.";

@@ -190,4 +190,117 @@ final class NotificationManagerTests: XCTestCase {
         XCTAssertEqual(settings.snapshot.notifications.smartDays, 0)
         XCTAssertNil(settings.snapshot.notifications.measurementRemindersData)
     }
+
+    // MARK: - Per-Metric recordMeasurement
+
+    func testRecordMeasurementWithKinds_UpdatesLastLogDate() {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        let testDate = Date(timeIntervalSince1970: 1_700_000_000)
+        manager.recordMeasurement(kinds: [.weight, .waist], date: testDate)
+
+        XCTAssertEqual(manager.lastLogDate, testDate)
+    }
+
+    func testRecordMeasurementWithKinds_PersistsPerMetricDates() {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        let testDate = Date(timeIntervalSince1970: 1_700_000_000)
+        manager.recordMeasurement(kinds: [.weight, .waist], date: testDate)
+
+        // Read back per-metric dates from settings
+        guard let data = settings.data(forKey: AppSettingsKeys.Notifications.perMetricLastDates),
+              let dict = try? JSONDecoder().decode([String: Double].self, from: data) else {
+            XCTFail("Per-metric last dates not persisted")
+            return
+        }
+
+        XCTAssertEqual(dict["weight"], testDate.timeIntervalSince1970)
+        XCTAssertEqual(dict["waist"], testDate.timeIntervalSince1970)
+        XCTAssertNil(dict["bodyFat"])
+    }
+
+    func testRecordMeasurementWithKinds_DoesNotOverwriteNewerDate() {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        let newerDate = Date(timeIntervalSince1970: 1_700_100_000)
+        let olderDate = Date(timeIntervalSince1970: 1_700_000_000)
+
+        manager.recordMeasurement(kinds: [.weight], date: newerDate)
+        manager.recordMeasurement(kinds: [.weight], date: olderDate)
+
+        guard let data = settings.data(forKey: AppSettingsKeys.Notifications.perMetricLastDates),
+              let dict = try? JSONDecoder().decode([String: Double].self, from: data) else {
+            XCTFail("Per-metric last dates not persisted")
+            return
+        }
+
+        XCTAssertEqual(dict["weight"], newerDate.timeIntervalSince1970)
+    }
+
+    func testRecordMeasurementWithKinds_CancelsSmartNotification() {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        manager.recordMeasurement(kinds: [.weight], date: .now)
+
+        XCTAssertTrue(center.removedIdentifiers.contains("measurement_smart_reminder"))
+    }
+
+    // MARK: - perMetricSmartEnabled
+
+    func testPerMetricSmartEnabled_DefaultsToTrue() {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        XCTAssertTrue(manager.perMetricSmartEnabled)
+    }
+
+    func testPerMetricSmartEnabled_PersistsToggle() {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        manager.perMetricSmartEnabled = false
+        XCTAssertFalse(manager.perMetricSmartEnabled)
+        XCTAssertFalse(settings.snapshot.notifications.perMetricSmartEnabled)
+    }
+
+    // MARK: - resetAllData: Smart Metric Notifications
+
+    func testResetAllData_RemovesSmartMetricNotifications() async {
+        let center = MockNotificationCenterClient()
+        center.pendingIdentifiers = [
+            "smart_metric_stale_weight",
+            "smart_metric_pattern_waist",
+            "measurement_smart_reminder",
+            "some_other_notification"
+        ]
+        let manager = makeManager(center: center)
+
+        await manager.resetAllData()
+
+        XCTAssertTrue(center.removedIdentifiers.contains("smart_metric_stale_weight"))
+        XCTAssertTrue(center.removedIdentifiers.contains("smart_metric_pattern_waist"))
+        XCTAssertTrue(center.removedIdentifiers.contains("measurement_smart_reminder"))
+        XCTAssertFalse(center.removedIdentifiers.contains("some_other_notification"))
+    }
+
+    func testResetAllData_ClearsPerMetricSettingsKeys() async {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        // Set some per-metric state
+        manager.recordMeasurement(kinds: [.weight], date: .now)
+        settings.set("weight", forKey: AppSettingsKeys.Notifications.smartLastNotifiedMetric)
+        settings.set(Date.now.timeIntervalSince1970, forKey: AppSettingsKeys.Notifications.smartLastNotificationDate)
+
+        await manager.resetAllData()
+
+        XCTAssertNil(settings.data(forKey: AppSettingsKeys.Notifications.perMetricLastDates))
+        XCTAssertNil(settings.string(forKey: AppSettingsKeys.Notifications.smartLastNotifiedMetric))
+        XCTAssertEqual(settings.double(forKey: AppSettingsKeys.Notifications.smartLastNotificationDate), 0)
+    }
 }

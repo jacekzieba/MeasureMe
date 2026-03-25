@@ -141,6 +141,7 @@ struct TabBarContainer: View {
                 AddMetricSampleView(kind: kind) { date, metricValue in
                     let sample = MetricSample(kind: kind, value: metricValue, date: date)
                     modelContext.insert(sample)
+                    ReviewRequestManager.recordMetricEntryAdded(count: 1)
                     router.presentedSheet = nil
                 }
             }

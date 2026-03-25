@@ -763,8 +763,8 @@ struct QuickAddSheetView: View {
 
         // Powiadomienia (zapis pomiaru + osiagniecie celu)
         await MainActor.run {
+            NotificationManager.shared.recordMeasurement(kinds: entries.map(\.kind), date: date)
             for entry in entries {
-                NotificationManager.shared.recordMeasurement(date: date)
                 if let goal = fetchGoal(for: entry.kind), goal.isAchieved(currentValue: entry.metricValue) {
                     NotificationManager.shared.sendGoalAchievedNotification(
                         kind: entry.kind,

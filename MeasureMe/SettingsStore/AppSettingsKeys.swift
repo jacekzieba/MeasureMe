@@ -117,6 +117,11 @@ enum AppSettingsKeys {
         static let goalAchievedEnabled = "measurement_goal_achieved_enabled"
         static let importNotificationsEnabled = "measurement_import_notifications_enabled"
         static let goalAchievementPrefix = "goal_achieved_"
+        static let perMetricSmartEnabled = "smart_per_metric_enabled"
+        static let perMetricLastDates = "smart_per_metric_last_dates"
+        static let detectedPatterns = "smart_detected_patterns"
+        static let smartLastNotificationDate = "smart_last_notification_date"
+        static let smartLastNotifiedMetric = "smart_last_notified_metric"
     }
 
     enum ICloudBackup {

@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import Combine
+import SwiftData
 
 protocol NotificationCenterClient {
     func requestAuthorization() async throws -> Bool
@@ -89,6 +90,8 @@ final class NotificationManager: ObservableObject {
     private let importSummaryNotificationId = "measurement_import_summary"
     private let importNotificationBufferSeconds: TimeInterval = 15
     private let trialEndingReminderId = "premium_trial_ending_reminder"
+    private let smartMetricStalePrefix = "smart_metric_stale_"
+    private let smartMetricPatternPrefix = "smart_metric_pattern_"
     private var pendingImportKinds: [MetricKind] = []
     private var pendingImportKindsSet: Set<MetricKind> = []
     private var pendingImportTask: Task<Void, Never>?
@@ -163,6 +166,14 @@ final class NotificationManager: ObservableObject {
     var goalAchievedEnabled: Bool {
         get { settings.snapshot.notifications.goalAchievedEnabled }
         set { settings.set(\.notifications.goalAchievedEnabled, newValue) }
+    }
+
+    var perMetricSmartEnabled: Bool {
+        get { settings.snapshot.notifications.perMetricSmartEnabled }
+        set {
+            settings.set(\.notifications.perMetricSmartEnabled, newValue)
+            notifyStateChanged()
+        }
     }
 
     var importNotificationsEnabled: Bool {
@@ -281,20 +292,72 @@ final class NotificationManager: ObservableObject {
         lastLogDate = date
         cancelSmartNotification()
     }
+
+    func recordMeasurement(kinds: [MetricKind], date: Date = .now) {
+        lastLogDate = date
+        cancelSmartNotification()
+        updatePerMetricLastDates(kinds: kinds, date: date)
+    }
+
+    private func updatePerMetricLastDates(kinds: [MetricKind], date: Date) {
+        var dates = loadPerMetricLastDates()
+        for kind in kinds {
+            let existing = dates[kind.rawValue]
+            if existing == nil || date > existing! {
+                dates[kind.rawValue] = date
+            }
+        }
+        savePerMetricLastDates(dates)
+    }
+
+    private func loadPerMetricLastDates() -> [String: Date] {
+        guard let data = settings.data(forKey: AppSettingsKeys.Notifications.perMetricLastDates),
+              let dict = try? JSONDecoder().decode([String: Double].self, from: data) else {
+            return [:]
+        }
+        return dict.mapValues { Date(timeIntervalSince1970: $0) }
+    }
+
+    private func savePerMetricLastDates(_ dates: [String: Date]) {
+        let dict = dates.mapValues { $0.timeIntervalSince1970 }
+        if let data = try? JSONEncoder().encode(dict) {
+            settings.set(data, forKey: AppSettingsKeys.Notifications.perMetricLastDates)
+        }
+    }
     
-    func scheduleSmartIfNeeded() {
+    func scheduleSmartIfNeeded(context: ModelContext? = nil) {
         guard notificationsEnabled else {
             cancelSmartNotification()
+            cancelAllSmartMetricNotifications()
             cancelPhotoReminder()
             return
         }
 
         guard smartEnabled else {
             cancelSmartNotification()
+            cancelAllSmartMetricNotifications()
             schedulePhotoReminderIfNeeded()
             return
         }
-        
+
+        // Try per-metric smart notifications first
+        if perMetricSmartEnabled, let context {
+            let scheduler = SmartNotificationScheduler(context: context, settings: settings)
+            if let candidate = scheduler.bestCandidate(
+                smartDays: max(smartDays, 1),
+                smartTime: smartTime
+            ) {
+                cancelSmartNotification() // cancel generic one
+                scheduleSmartMetricNotification(candidate: candidate)
+                scheduler.recordNotificationScheduled(candidate: candidate)
+                schedulePhotoReminderIfNeeded()
+                return
+            }
+            // No per-metric candidate — fall through to generic smart reminder
+            cancelAllSmartMetricNotifications()
+        }
+
+        // Generic smart reminder (existing behavior)
         let days = max(smartDays, 1)
         let now = AppClock.now
         if let last = lastLogDate {
@@ -305,11 +368,11 @@ final class NotificationManager: ObservableObject {
                 return
             }
         }
-        
+
         let nextFire = nextSmartFireDate(from: now)
         let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: nextFire)
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-        
+
         let content = UNMutableNotificationContent()
         let name = settings.snapshot.profile.userName.trimmingCharacters(in: .whitespacesAndNewlines)
         let prefix = name.isEmpty ? "" : "\(name), "
@@ -317,7 +380,7 @@ final class NotificationManager: ObservableObject {
         let daysSince = lastLogDate.map { max(1, Int(ceil(now.timeIntervalSince($0) / 86400.0))) } ?? days
         content.body = AppLocalization.plural("notification.smart.body", daysSince)
         content.sound = .default
-        
+
         let request = UNNotificationRequest(
             identifier: smartNotificationId,
             content: content,
@@ -336,6 +399,59 @@ final class NotificationManager: ObservableObject {
         }
 
         schedulePhotoReminderIfNeeded()
+    }
+
+    private func scheduleSmartMetricNotification(candidate: SmartNotificationScheduler.Candidate) {
+        let prefix: String
+        switch candidate.reason {
+        case .missedPattern:
+            prefix = smartMetricPatternPrefix
+        case .staleness:
+            prefix = smartMetricStalePrefix
+        }
+
+        // Cancel any existing smart metric notifications
+        cancelAllSmartMetricNotifications()
+
+        let content = UNMutableNotificationContent()
+        content.title = candidate.title
+        content.body = candidate.body
+        content.sound = .default
+
+        let components = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: candidate.fireDate
+        )
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+
+        let request = UNNotificationRequest(
+            identifier: prefix + candidate.kindRaw,
+            content: content,
+            trigger: trigger
+        )
+
+        center.add(request) { [weak self] error in
+            guard let self else { return }
+            Task { @MainActor in
+                if let error {
+                    self.recordSchedulingError(error)
+                } else {
+                    self.clearLastSchedulingError()
+                }
+            }
+        }
+    }
+
+    func cancelAllSmartMetricNotifications() {
+        Task {
+            let pending = await center.pendingRequestIdentifiers()
+            let toRemove = pending.filter {
+                $0.hasPrefix(smartMetricStalePrefix) || $0.hasPrefix(smartMetricPatternPrefix)
+            }
+            if !toRemove.isEmpty {
+                center.removePendingNotificationRequests(withIdentifiers: toRemove)
+            }
+        }
     }
     
     func cancelSmartNotification() {
@@ -566,6 +682,8 @@ final class NotificationManager: ObservableObject {
             || identifier == importSummaryNotificationId
             || identifier.hasPrefix(reminderPrefix)
             || identifier.hasPrefix(goalAchievementPrefix)
+            || identifier.hasPrefix(smartMetricStalePrefix)
+            || identifier.hasPrefix(smartMetricPatternPrefix)
         }
 
         if !appOwnedPendingIdentifiers.isEmpty {
