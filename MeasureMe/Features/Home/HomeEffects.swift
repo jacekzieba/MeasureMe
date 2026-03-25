@@ -30,7 +30,7 @@ struct HomeEffects {
     }
 
     func reminderChecklistCompleted() -> Bool {
-        if ProcessInfo.processInfo.arguments.contains("-uiTestChecklistNeedsReminders") {
+        if UITestArgument.isPresent(.checklistNeedsReminders) {
             return false
         }
         let reminders = notifications.loadReminders()

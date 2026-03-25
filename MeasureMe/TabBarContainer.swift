@@ -13,7 +13,7 @@ struct TabBarContainer: View {
     @State private var didConsumeUITestPendingEntryFallback = false
 
     var body: some View {
-        let isUITest = CommandLine.arguments.contains("-uiTestMode") || CommandLine.arguments.contains("-uiTestOnboardingMode")
+        let isUITest = UITestArgument.isAnyTestMode
         let tabBarShouldBeVisible = isUITest || router.selectedTab != .home || homeTabScrollOffset < -14
 
         ZStack {
@@ -166,7 +166,7 @@ struct TabBarContainer: View {
     }
 
     private func applyAuditRouteIfNeeded() {
-        if ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab") {
+        if UITestArgument.isPresent(.openSettingsTab) {
             router.selectedTab = .settings
             mountTabIfNeeded(.settings)
             return
@@ -237,10 +237,8 @@ struct TabBarContainer: View {
 
     #if DEBUG
     private func requestedUITestPendingEntryAction(from args: [String]) -> AppEntryAction? {
-        guard let flagIndex = args.firstIndex(of: "-uiTestPendingAppEntryAction") else { return nil }
-        let nextIndex = args.index(after: flagIndex)
-        guard nextIndex < args.endIndex else { return nil }
-        return AppEntryAction(rawValue: args[nextIndex])
+        guard let value = UITestArgument.value(for: .pendingAppEntryAction, in: args) else { return nil }
+        return AppEntryAction(rawValue: value)
     }
     #endif
 
@@ -271,7 +269,7 @@ private extension View {
 
 private extension TabBarContainer {
     static func initialMountedTabs() -> Set<AppTab> {
-        if ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab") {
+        if UITestArgument.isPresent(.openSettingsTab) {
             return [.settings]
         }
         return [.home]

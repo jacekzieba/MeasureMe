@@ -86,15 +86,11 @@ final class NotificationManager: ObservableObject {
     private let smartNotificationId = "measurement_smart_reminder"
     private let reminderPrefix = "measurement_reminder_"
     private let photoReminderId = "photo_smart_reminder"
-    private let goalAchievementPrefix = AppSettingsKeys.Notifications.goalAchievementPrefix
-    private let importSummaryNotificationId = "measurement_import_summary"
-    private let importNotificationBufferSeconds: TimeInterval = 15
     private let trialEndingReminderId = "premium_trial_ending_reminder"
     private let smartMetricStalePrefix = "smart_metric_stale_"
     private let smartMetricPatternPrefix = "smart_metric_pattern_"
-    private var pendingImportKinds: [MetricKind] = []
-    private var pendingImportKindsSet: Set<MetricKind> = []
-    private var pendingImportTask: Task<Void, Never>?
+    private lazy var importBatcher = ImportNotificationBatcher(center: center, settings: settings)
+    private lazy var goalSender = GoalNotificationSender(center: center, settings: settings)
     @Published private(set) var lastSchedulingError: String?
     
     init(center: NotificationCenterClient? = nil, settings: AppSettingsStore) {
@@ -104,6 +100,8 @@ final class NotificationManager: ObservableObject {
         } else {
             self.center = RealNotificationCenterClient()
         }
+        importBatcher.onSchedulingError = { [weak self] error in self?.recordSchedulingError(error) }
+        importBatcher.onSchedulingSuccess = { [weak self] in self?.clearLastSchedulingError() }
     }
 
     convenience init(center: NotificationCenterClient? = nil) {
@@ -266,18 +264,9 @@ final class NotificationManager: ObservableObject {
             trigger: trigger
         )
 
-        center.add(request) { [weak self] error in
-            guard let self else { return }
-            Task { @MainActor in
-                if let error {
-                    self.recordSchedulingError(error)
-                } else {
-                    self.clearLastSchedulingError()
-                }
-            }
-        }
+        addNotificationRequest(request)
     }
-    
+
     func removeReminder(id: String) {
         center.removePendingNotificationRequests(withIdentifiers: [reminderPrefix + id])
     }
@@ -343,13 +332,20 @@ final class NotificationManager: ObservableObject {
         // Try per-metric smart notifications first
         if perMetricSmartEnabled, let context {
             let scheduler = SmartNotificationScheduler(context: context, settings: settings)
+            let lastNotifTS = settings.double(forKey: AppSettingsKeys.Notifications.smartLastNotificationDate)
+            let lastNotifDate = lastNotifTS > 0 ? Date(timeIntervalSince1970: lastNotifTS) : nil
+            let lastNotifMetric = settings.string(forKey: AppSettingsKeys.Notifications.smartLastNotifiedMetric)
             if let candidate = scheduler.bestCandidate(
                 smartDays: max(smartDays, 1),
-                smartTime: smartTime
+                smartTime: smartTime,
+                lastNotificationDate: lastNotifDate,
+                lastNotifiedMetric: lastNotifMetric
             ) {
                 cancelSmartNotification() // cancel generic one
                 scheduleSmartMetricNotification(candidate: candidate)
-                scheduler.recordNotificationScheduled(candidate: candidate)
+                // Record that we scheduled — previously done inside the scheduler
+                settings.set(AppClock.now.timeIntervalSince1970, forKey: AppSettingsKeys.Notifications.smartLastNotificationDate)
+                settings.set(candidate.kindRaw, forKey: AppSettingsKeys.Notifications.smartLastNotifiedMetric)
                 schedulePhotoReminderIfNeeded()
                 return
             }
@@ -387,16 +383,7 @@ final class NotificationManager: ObservableObject {
             trigger: trigger
         )
 
-        center.add(request) { [weak self] error in
-            guard let self else { return }
-            Task { @MainActor in
-                if let error {
-                    self.recordSchedulingError(error)
-                } else {
-                    self.clearLastSchedulingError()
-                }
-            }
-        }
+        addNotificationRequest(request)
 
         schedulePhotoReminderIfNeeded()
     }
@@ -430,16 +417,7 @@ final class NotificationManager: ObservableObject {
             trigger: trigger
         )
 
-        center.add(request) { [weak self] error in
-            guard let self else { return }
-            Task { @MainActor in
-                if let error {
-                    self.recordSchedulingError(error)
-                } else {
-                    self.clearLastSchedulingError()
-                }
-            }
-        }
+        addNotificationRequest(request)
     }
 
     func cancelAllSmartMetricNotifications() {
@@ -501,16 +479,7 @@ final class NotificationManager: ObservableObject {
             content: content,
             trigger: trigger
         )
-        center.add(request) { [weak self] error in
-            guard let self else { return }
-            Task { @MainActor in
-                if let error {
-                    self.recordSchedulingError(error)
-                } else {
-                    self.clearLastSchedulingError()
-                }
-            }
-        }
+        addNotificationRequest(request)
     }
 
     func cancelPhotoReminder() {
@@ -534,136 +503,25 @@ final class NotificationManager: ObservableObject {
             content: content,
             trigger: trigger
         )
-        center.add(request) { [weak self] error in
-            guard let self else { return }
-            Task { @MainActor in
-                if let error {
-                    self.recordSchedulingError(error)
-                } else {
-                    self.clearLastSchedulingError()
-                }
-            }
-        }
+        addNotificationRequest(request)
     }
 
     func queueImportNotification(kind: MetricKind) {
-        guard notificationsEnabled else { return }
-        guard importNotificationsEnabled else { return }
-
-        if pendingImportKindsSet.insert(kind).inserted {
-            pendingImportKinds.append(kind)
-        }
-
-        guard pendingImportTask == nil else { return }
-        let bufferSeconds = importNotificationBufferSeconds
-        pendingImportTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(bufferSeconds))
-            await self?.flushQueuedImportNotification()
-        }
+        importBatcher.queue(kind: kind)
     }
 
     func cancelImportNotifications() {
-        pendingImportTask?.cancel()
-        pendingImportTask = nil
-        clearPendingImportBuffer()
-        center.removePendingNotificationRequests(withIdentifiers: [importSummaryNotificationId])
-    }
-
-    private func flushQueuedImportNotification() async {
-        defer { pendingImportTask = nil }
-
-        let kinds = pendingImportKinds
-        clearPendingImportBuffer()
-
-        guard notificationsEnabled else { return }
-        guard importNotificationsEnabled else { return }
-        guard !kinds.isEmpty else { return }
-
-        let status = await center.authorizationStatus()
-        guard status == .authorized || status == .provisional else {
-            return
-        }
-
-        let content = UNMutableNotificationContent()
-        content.title = AppLocalization.string("notification.import.summary.title")
-        content.body = importSummaryBody(for: kinds)
-        content.sound = .default
-
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-        let request = UNNotificationRequest(
-            identifier: importSummaryNotificationId,
-            content: content,
-            trigger: trigger
-        )
-
-        do {
-            try await center.add(request)
-            clearLastSchedulingError()
-        } catch {
-            recordSchedulingError(error)
-        }
-    }
-
-    private func clearPendingImportBuffer() {
-        pendingImportKinds.removeAll(keepingCapacity: true)
-        pendingImportKindsSet.removeAll(keepingCapacity: true)
-    }
-
-    private func importSummaryBody(for kinds: [MetricKind]) -> String {
-        let titles = kinds.map(\.title)
-        guard let first = titles.first else {
-            return AppLocalization.string("notification.import.body")
-        }
-
-        if titles.count == 1 {
-            return AppLocalization.string("notification.import.summary.body.single", first)
-        }
-
-        let second = titles[1]
-        if titles.count == 2 {
-            return AppLocalization.string("notification.import.summary.body.double", first, second)
-        }
-
-        return AppLocalization.string("notification.import.summary.body.multiple", first, second)
+        importBatcher.cancel()
     }
 
     func sendGoalAchievedNotification(kind: MetricKind, goalCreatedDate: Date, goalValue: Double) {
-        Task {
-            let status = await center.authorizationStatus()
-            guard status == .authorized || status == .provisional else {
-                return
-            }
-            guard goalAchievedEnabled else { return }
-
-            let key = "\(goalAchievementPrefix)\(kind.rawValue)_\(goalCreatedDate.timeIntervalSince1970)"
-            let goalID = "\(kind.rawValue)_\(goalCreatedDate.timeIntervalSince1970)"
-            if settings.goalAchievedFlag(for: goalID) {
-                return
-            }
-
-            let name = settings.snapshot.profile.userName.trimmingCharacters(in: .whitespacesAndNewlines)
-            let suffix = name.isEmpty ? "" : ", \(name)"
-            let content = UNMutableNotificationContent()
-            content.title = AppLocalization.string("notification.goal.title", suffix)
-            content.body = AppLocalization.string("notification.goal.body", kind.title)
-            content.sound = .default
-
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-            let request = UNNotificationRequest(
-                identifier: "\(key)_notification",
-                content: content,
-                trigger: trigger
-            )
-
-            do {
-                try await center.add(request)
-                clearLastSchedulingError()
-            } catch {
-                recordSchedulingError(error)
-                return
-            }
-            settings.setGoalAchievedFlag(true, for: goalID)
-        }
+        goalSender.send(
+            kind: kind,
+            goalCreatedDate: goalCreatedDate,
+            goalValue: goalValue,
+            onError: { [weak self] error in self?.recordSchedulingError(error) },
+            onSuccess: { [weak self] in self?.clearLastSchedulingError() }
+        )
     }
 
     func clearLastSchedulingError() {
@@ -671,17 +529,17 @@ final class NotificationManager: ObservableObject {
     }
 
     func resetAllData() async {
-        pendingImportTask?.cancel()
-        pendingImportTask = nil
-        clearPendingImportBuffer()
+        importBatcher.cancel()
 
+        let goalPrefix = goalSender.ownedPrefix
+        let importIds = Set(importBatcher.ownedIdentifiers)
         let appOwnedPendingIdentifiers = await center.pendingRequestIdentifiers().filter { identifier in
             identifier == smartNotificationId
             || identifier == photoReminderId
             || identifier == trialEndingReminderId
-            || identifier == importSummaryNotificationId
+            || importIds.contains(identifier)
             || identifier.hasPrefix(reminderPrefix)
-            || identifier.hasPrefix(goalAchievementPrefix)
+            || identifier.hasPrefix(goalPrefix)
             || identifier.hasPrefix(smartMetricStalePrefix)
             || identifier.hasPrefix(smartMetricPatternPrefix)
         }
@@ -717,6 +575,19 @@ final class NotificationManager: ObservableObject {
         comps.hour = 7
         comps.minute = 0
         return cal.date(from: comps) ?? AppClock.now
+    }
+
+    private func addNotificationRequest(_ request: UNNotificationRequest) {
+        center.add(request) { [weak self] error in
+            guard let self else { return }
+            Task { @MainActor in
+                if let error {
+                    self.recordSchedulingError(error)
+                } else {
+                    self.clearLastSchedulingError()
+                }
+            }
+        }
     }
 
     private func recordSchedulingError(_ error: Error) {

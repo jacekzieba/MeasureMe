@@ -415,26 +415,45 @@ final class SmartNotificationSchedulerTests: XCTestCase {
         XCTAssertEqual(fireDay, nowDay + 1)
     }
 
-    // MARK: - recordNotificationScheduled
+    // MARK: - bestCandidate: Explicit Parameters
 
-    func testRecordNotificationScheduled_PersistsState() {
+    func testBestCandidate_RespectsExplicitLastNotificationDate() {
+        insertSample(kind: .weight, date: date("2026-01-01 10:00"))
+        insertSample(kind: .weight, date: date("2026-01-08 10:00"))
+        insertSample(kind: .weight, date: date("2026-01-15 10:00"))
+
         let now = date("2026-03-20 12:00")
         let scheduler = makeScheduler(now: now)
 
-        let candidate = SmartNotificationScheduler.Candidate(
-            kindRaw: "weight",
-            reason: .staleness,
-            title: "Test",
-            body: "Test body",
-            fireDate: now
+        // Passing explicit cooldown date within 24h → nil
+        let result = scheduler.bestCandidate(
+            smartDays: 5,
+            smartTime: smartTime(hour: 18),
+            lastNotificationDate: now.addingTimeInterval(-12 * 3600)
         )
-        scheduler.recordNotificationScheduled(candidate: candidate)
+        XCTAssertNil(result)
+    }
 
-        let storedDate = settings.double(forKey: AppSettingsKeys.Notifications.smartLastNotificationDate)
-        let storedMetric = settings.string(forKey: AppSettingsKeys.Notifications.smartLastNotifiedMetric)
+    func testBestCandidate_RespectsExplicitLastNotifiedMetric() {
+        // Two stale metrics
+        insertSample(kind: .weight, date: date("2026-01-01 10:00"))
+        insertSample(kind: .weight, date: date("2026-01-08 10:00"))
+        insertSample(kind: .weight, date: date("2026-01-15 10:00"))
+        insertSample(kind: .waist, date: date("2026-01-01 10:00"))
+        insertSample(kind: .waist, date: date("2026-01-08 10:00"))
+        insertSample(kind: .waist, date: date("2026-01-15 10:00"))
 
-        XCTAssertEqual(storedDate, now.timeIntervalSince1970, accuracy: 1.0)
-        XCTAssertEqual(storedMetric, "weight")
+        let now = date("2026-03-20 12:00")
+        let scheduler = makeScheduler(now: now)
+
+        // Passing explicit last notified metric → rotation picks the other
+        let result = scheduler.bestCandidate(
+            smartDays: 5,
+            smartTime: smartTime(hour: 18),
+            lastNotifiedMetric: "weight"
+        )
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.kindRaw, "waist")
     }
 
     // MARK: - bestCandidate: No Data

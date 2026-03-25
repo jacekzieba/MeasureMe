@@ -37,7 +37,7 @@ struct QuickAddSheetView: View {
     @FocusState private var focusedKind: MetricKind?
     @FocusState private var focusedCustomId: String?
     @State private var rulerBaseValues: [MetricKind: Double] = [:]
-    private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+    private let isUITestMode = UITestArgument.isPresent(.mode)
 
     init(
         kinds: [MetricKind],
@@ -593,9 +593,12 @@ struct QuickAddSheetView: View {
 
     private func lastSummary(for kind: MetricKind) -> String? {
         guard let last = latest[kind] else { return nil }
-        let shown = kind.valueForDisplay(fromMetric: last.value, unitsSystem: unitsSystem)
-        let dateText = last.date.formatted(date: .abbreviated, time: .omitted)
-        return AppLocalization.string("quickadd.last.summary", formatted(shown, for: kind), dateText)
+        return QuickAddMetricLogic.lastSummary(
+            for: kind,
+            latestValue: last.value,
+            latestDate: last.date,
+            unitsSystem: unitsSystem
+        )
     }
 
     private func binding(for kind: MetricKind) -> Binding<Double?> {
@@ -622,45 +625,26 @@ struct QuickAddSheetView: View {
     }
 
     private func baseValue(for kind: MetricKind) -> Double {
-        if let current = inputs[kind] ?? nil {
-            return current
-        }
-        if let last = latest[kind]?.value {
-            return kind.valueForDisplay(fromMetric: last, unitsSystem: unitsSystem)
-        }
-
-        switch kind.unitCategory {
-        case .percent:
-            return 20
-        case .weight:
-            return unitsSystem == "imperial" ? 170 : 75
-        case .length:
-            return unitsSystem == "imperial" ? 35 : 90
-        }
+        QuickAddMetricLogic.baseValue(
+            for: kind,
+            currentInput: inputs[kind] ?? nil,
+            latestMetricValue: latest[kind]?.value,
+            unitsSystem: unitsSystem
+        )
     }
 
     private func rulerRange(for kind: MetricKind) -> ClosedRange<Double> {
-        let base = rulerBaseValues[kind] ?? baseValue(for: kind)
-        let span: Double
-        switch kind.unitCategory {
-        case .percent:
-            span = 20
-        case .weight:
-            span = unitsSystem == "imperial" ? 66 : 30
-        case .length:
-            span = unitsSystem == "imperial" ? 20 : 40
-        }
-
-        return QuickAddMath.rulerRange(base: base, span: span, validRange: validRange(for: kind))
+        QuickAddMetricLogic.rulerRange(
+            for: kind,
+            rulerBaseValue: rulerBaseValues[kind],
+            currentInput: inputs[kind] ?? nil,
+            latestMetricValue: latest[kind]?.value,
+            unitsSystem: unitsSystem
+        )
     }
 
     private func rulerStep(for kind: MetricKind) -> Double {
-        switch kind.unitCategory {
-        case .percent:
-            return 0.1
-        case .weight, .length:
-            return 0.1
-        }
+        QuickAddMetricLogic.rulerStep(for: kind)
     }
 
     private func validRange(for kind: MetricKind) -> ClosedRange<Double> {
@@ -668,7 +652,7 @@ struct QuickAddSheetView: View {
     }
 
     private func formatted(_ value: Double, for kind: MetricKind) -> String {
-        kind.formattedDisplayValue(value, unitsSystem: unitsSystem)
+        QuickAddMetricLogic.formatted(value, for: kind, unitsSystem: unitsSystem)
     }
 
     private var cannotSave: Bool {
@@ -701,16 +685,11 @@ struct QuickAddSheetView: View {
     }
 
     private func validationMessage(for kind: MetricKind) -> String? {
-        guard let value = inputs[kind] ?? nil else { return nil }
-        let result = MetricInputValidator.validateOptionalMetricDisplayValue(
-            value,
+        QuickAddMetricLogic.validationMessage(
+            value: inputs[kind] ?? nil,
             kind: kind,
             unitsSystem: unitsSystem
         )
-        if result.isValid {
-            return nil
-        }
-        return result.message
     }
 
     private func metricValue(for kind: MetricKind, displayValue: Double) -> Double {

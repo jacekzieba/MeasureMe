@@ -47,7 +47,7 @@ struct OnboardingView: View {
     @State private var selectedWelcomeGoals: Set<WelcomeGoal> = []
 
     @State private var animateBackdrop: Bool = false
-    private let isUITestOnboardingMode = ProcessInfo.processInfo.arguments.contains("-uiTestOnboardingMode")
+    private let isUITestOnboardingMode = UITestArgument.isPresent(.onboardingMode)
 
     init(
         initialStepIndex: Int = 0,

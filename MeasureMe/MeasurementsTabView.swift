@@ -70,7 +70,6 @@ struct MeasurementsTabView: View {
 
     private var activeCustomDefinitions: [CustomMetricDefinition] {
         let activeIds = metricsStore.activeCustomIdentifiers(from: customDefinitions)
-        let idSet = Set(activeIds)
         let lookup = Dictionary(uniqueKeysWithValues: customDefinitions.map { ($0.identifier, $0) })
         return activeIds.compactMap { lookup[$0] }
     }

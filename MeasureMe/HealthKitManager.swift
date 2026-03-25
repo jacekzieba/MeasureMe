@@ -330,10 +330,10 @@ final class HealthKitManager {
     func requestAuthorization() async throws {
         #if DEBUG
         let launchArgs = ProcessInfo.processInfo.arguments
-        if launchArgs.contains("-uiTestHealthAuthDenied") {
+        if launchArgs.contains(UITestArgument.healthAuthDenied.rawValue) {
             throw HealthKitAuthorizationError.denied
         }
-        if launchArgs.contains("-uiTestHealthAuthUnavailable") {
+        if launchArgs.contains(UITestArgument.healthAuthUnavailable.rawValue) {
             throw HealthKitAuthorizationError.notAvailable
         }
         #endif

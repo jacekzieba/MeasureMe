@@ -108,7 +108,7 @@ struct HomeView: View {
     private let maxVisibleMetrics = 3
     private let maxVisiblePhotos = 6
     private let autoCheckPaywallPrompt: Bool
-    private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+    private let isUITestMode = UITestArgument.isPresent(.mode)
     let effects: HomeEffects
     private var shouldAnimate: Bool {
         AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
@@ -1039,7 +1039,7 @@ struct HomeView: View {
                         didCheckSevenDayPaywallPrompt = true
                         premiumStore.checkSevenDayPromptIfNeeded()
                     }
-                    if ProcessInfo.processInfo.arguments.contains("-uiTestExpandChecklist") {
+                    if UITestArgument.isPresent(.expandChecklist) {
                         showMoreChecklistItems = true
                     }
                     emitHomeInitialRenderIfNeeded()
@@ -2037,7 +2037,7 @@ struct HomeView: View {
     }
 
     private var nextFocusInsight: HomeNextFocusInsight {
-        if isUITestMode && ProcessInfo.processInfo.arguments.contains("-uiTestLongNextFocusInsight") {
+        if isUITestMode && UITestArgument.isPresent(.longNextFocusInsight) {
             return HomeNextFocusInsight(
                 headline: nil,
                 primaryValue: AppLocalization.string("home.nextfocus.uitest.long.primary"),

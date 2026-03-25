@@ -39,7 +39,7 @@ struct HomeCompareChooserSheet: View {
     @State private var hasUserModifiedSelection = false
 
     private let photosTheme = FeatureTheme.photos
-    private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+    private let isUITestMode = UITestArgument.isPresent(.mode)
 
     private var availableRanges: [DateRange] {
         [.all, .last30Days, .last90Days, .custom]

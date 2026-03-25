@@ -23,7 +23,7 @@ struct AddPhotoView: View {
 
     private var shouldStartExpandedForUITests: Bool {
         #if DEBUG
-        ProcessInfo.processInfo.arguments.contains("-uiTestExpandMeasurements")
+        UITestArgument.isPresent(.expandMeasurements)
         #else
         false
         #endif
@@ -47,7 +47,7 @@ struct AddPhotoView: View {
                     dateCard
                     measurementsCard
                     #if DEBUG
-                    if ProcessInfo.processInfo.arguments.contains("-uiTestMode") {
+                    if UITestArgument.isPresent(.mode) {
                         // 1×1 pt fixer view: on appear it traverses the full UIKit window
                         // tree and sets delaysContentTouches = false on every UIScrollView,
                         // letting XCTest synthesised taps reach SwiftUI buttons immediately.

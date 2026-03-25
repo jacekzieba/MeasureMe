@@ -12,8 +12,8 @@ struct RootView: View {
     private let autoCheckPaywallPrompt: Bool
     private let runDeferredStartupWork: Bool
     private let isAuditCaptureEnabled = AuditConfig.current.isEnabled
-    private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode")
-    private let isOnboardingUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestOnboardingMode")
+    private let isUITestMode = UITestArgument.isPresent(.mode)
+    private let isOnboardingUITestMode = UITestArgument.isPresent(.onboardingMode)
     @State private var didConfigurePendingStore = false
     @State private var didScheduleDeferredStartupWork = false
 
@@ -108,8 +108,8 @@ struct RootView: View {
                 .zIndex(3)
             }
 
-            if ProcessInfo.processInfo.arguments.contains("-uiTestShowTrialReminderPrompt")
-                || (ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+            if UITestArgument.isPresent(.showTrialReminderPrompt)
+                || (UITestArgument.isPresent(.mode)
                     && premiumStore.showTrialReminderOptInPrompt) {
                 HStack(spacing: 8) {
                     Text("Trial prompt")
@@ -158,7 +158,7 @@ struct RootView: View {
             Task { @MainActor in
                 configurePendingStoreIfNeeded()
                 scheduleDeferredStartupWorkIfNeeded()
-                if ProcessInfo.processInfo.arguments.contains("-uiTestShowTrialReminderPrompt") {
+                if UITestArgument.isPresent(.showTrialReminderPrompt) {
                     premiumStore.showTrialReminderOptInPrompt = true
                 }
             }

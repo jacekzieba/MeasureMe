@@ -89,7 +89,7 @@ enum AnalyticsPolicy {
             return false
         }
 
-        if arguments.contains("-uiTestMode") || arguments.contains("-uiTestOnboardingMode") {
+        if arguments.contains(UITestArgument.mode.rawValue) || arguments.contains(UITestArgument.onboardingMode.rawValue) {
             return false
         }
 

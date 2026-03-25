@@ -35,8 +35,8 @@ struct HealthMetricsSection: View {
     @AppSetting(\.health.healthIndicatorsV2Migrated) private var hasMigratedHealthIndicatorsV2: Bool = false
 
     #if DEBUG
-    private var uiTestForcePremium: Bool { ProcessInfo.processInfo.arguments.contains("-uiTestForcePremium") }
-    private var uiTestBypassHealthSummaryGuards: Bool { ProcessInfo.processInfo.arguments.contains("-uiTestBypassHealthSummaryGuards") }
+    private var uiTestForcePremium: Bool { UITestArgument.isPresent(.forcePremium) }
+    private var uiTestBypassHealthSummaryGuards: Bool { UITestArgument.isPresent(.bypassHealthSummaryGuards) }
     #endif
 
     let latestWaist: Double?

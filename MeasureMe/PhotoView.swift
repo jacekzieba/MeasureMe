@@ -56,7 +56,7 @@ struct PhotoView: View {
     }
 
     private var uiTestModeEnabled: Bool {
-        ProcessInfo.processInfo.arguments.contains("-uiTestMode")
+        UITestArgument.isPresent(.mode)
     }
 
     private var canUsePremiumCompare: Bool {
@@ -70,9 +70,8 @@ struct PhotoView: View {
     /// Aktywowana przez launch argument: -uiTestOpenMultiImport {count}
     private var uiTestMultiImportCount: Int? {
         let args = ProcessInfo.processInfo.arguments
-        guard let idx = args.firstIndex(of: "-uiTestOpenMultiImport"),
-              args.indices.contains(idx + 1),
-              let count = Int(args[idx + 1]),
+        guard let raw = UITestArgument.value(for: .openMultiImport, in: args),
+              let count = Int(raw),
               count > 0 else { return nil }
         return count
     }
@@ -80,7 +79,7 @@ struct PhotoView: View {
     /// Otwiera AddPhotoView z wygenerowanym zdjęciem testowym.
     /// Aktywowane przez launch argument: -uiTestOpenSingleAdd
     private var uiTestShouldOpenSingleAdd: Bool {
-        ProcessInfo.processInfo.arguments.contains("-uiTestOpenSingleAdd")
+        UITestArgument.isPresent(.openSingleAdd)
     }
     #endif
 

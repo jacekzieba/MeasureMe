@@ -19,8 +19,8 @@ struct MeasureMeApp: App {
     @State private var showCrashAlert = false
     @State private var autoRestoreMessage: String?
     private let isRunningXCTest = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
-    private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestMode") || ProcessInfo.processInfo.arguments.contains("-uiTestOnboardingMode")
-    private let isSettingsUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab")
+    private let isUITestMode = UITestArgument.isAnyTestMode
+    private let isSettingsUITestMode = UITestArgument.isPresent(.openSettingsTab)
     private var isUnitTestHostMode: Bool { isRunningXCTest && !isUITestMode && !isSettingsUITestMode }
 
     private enum StartupState {
@@ -481,7 +481,7 @@ struct MeasureMeApp: App {
     }
 
     private func createPersistentModelContainer() throws -> ModelContainer {
-        let isSettingsUITestMode = ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab")
+        let isSettingsUITestMode = UITestArgument.isPresent(.openSettingsTab)
 
         if isUnitTestHostMode {
             let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -583,7 +583,7 @@ struct MeasureMeApp: App {
         let defaults = AppSettingsStore.shared
         let uiTestLanguage = requestedUITestLanguage(from: args) ?? "en"
         let metricKeys = AppSettingsKeys.Metrics.allEnabledKeys
-        let shouldPrepareUITestTouchHandling = args.contains("-uiTestMode") || args.contains("-uiTestOnboardingMode")
+        let shouldPrepareUITestTouchHandling = args.contains(UITestArgument.mode.rawValue) || args.contains(UITestArgument.onboardingMode.rawValue)
         let enabledByDefault: Set<String> = [
             AppSettingsKeys.Metrics.weightEnabled,
             AppSettingsKeys.Metrics.bodyFatEnabled,
@@ -611,7 +611,7 @@ struct MeasureMeApp: App {
             \.indicators.showPhysiqueRFM
         ]
 
-        if args.contains("-uiTestOnboardingMode") {
+        if args.contains(UITestArgument.onboardingMode.rawValue) {
             defaults.set(\.onboarding.hasCompletedOnboarding, false)
             defaults.set(\.experience.appLanguage, uiTestLanguage)
             defaults.set(\.premium.premiumEntitlement, false)
@@ -627,10 +627,10 @@ struct MeasureMeApp: App {
             for keyPath in indicatorKeysEnabledByDefault {
                 defaults.set(keyPath, true)
             }
-            if args.contains("-uiTestForcePremium") {
+            if args.contains(UITestArgument.forcePremium.rawValue) {
                 defaults.set(\.premium.premiumEntitlement, true)
             }
-            if args.contains("-uiTestEnableICloudBackup") {
+            if args.contains(UITestArgument.enableICloudBackup.rawValue) {
                 defaults.set(\.iCloudBackup.isEnabled, true)
                 defaults.set(\.onboarding.onboardingViewedICloudBackupOffer, true)
                 defaults.set(\.onboarding.onboardingSkippedICloudBackup, false)
@@ -644,7 +644,7 @@ struct MeasureMeApp: App {
             UIScrollView.appearance().delaysContentTouches = false
         }
 
-        guard args.contains("-uiTestMode") else { return }
+        guard args.contains(UITestArgument.mode.rawValue) else { return }
         defaults.removeObject(forKey: AppSettingsKeys.Home.homeLayoutData)
         defaults.set(\.homeLayout.layoutSchemaVersion, HomeLayoutSnapshot.currentSchemaVersion)
         defaults.set(\.onboarding.hasCompletedOnboarding, true)
@@ -668,7 +668,7 @@ struct MeasureMeApp: App {
         defaults.removeObject(forKey: AppSettingsKeys.Entry.pendingHealthKitSyncFromIntent)
         defaults.set(\.profile.manualHeight, 180.0)
 
-        if args.contains("-uiTestNoActiveMetrics") {
+        if args.contains(UITestArgument.noActiveMetrics.rawValue) {
             for key in metricKeys { defaults.set(false, forKey: key) }
         } else {
             for key in metricKeys {
@@ -678,18 +678,18 @@ struct MeasureMeApp: App {
         for keyPath in indicatorKeysEnabledByDefault {
             defaults.set(keyPath, true)
         }
-        if args.contains("-uiTestForceNonPremium") {
+        if args.contains(UITestArgument.forceNonPremium.rawValue) {
             defaults.set(\.premium.premiumEntitlement, false)
         }
-        if args.contains("-uiTestEnableICloudBackup") {
+        if args.contains(UITestArgument.enableICloudBackup.rawValue) {
             defaults.set(\.iCloudBackup.isEnabled, true)
             defaults.set(\.onboarding.onboardingViewedICloudBackupOffer, true)
             defaults.set(\.onboarding.onboardingSkippedICloudBackup, false)
         }
-        if args.contains("-uiTestShowChecklist") {
+        if args.contains(UITestArgument.showChecklist.rawValue) {
             defaults.set(\.onboarding.onboardingChecklistShow, true)
         }
-        if args.contains("-uiTestChecklistNeedsReminders") {
+        if args.contains(UITestArgument.checklistNeedsReminders.rawValue) {
             defaults.set(\.onboarding.onboardingSkippedReminders, true)
         }
         if let pinnedAction = requestedHomePinnedAction(from: args) {
@@ -698,14 +698,14 @@ struct MeasureMeApp: App {
         if let pendingAction = requestedPendingAppEntryAction(from: args) {
             defaults.set(pendingAction.rawValue, forKey: AppSettingsKeys.Entry.pendingAppEntryAction)
         }
-        if args.contains("-uiTestPhysiqueSWROff") {
+        if args.contains(UITestArgument.physiqueSWROff.rawValue) {
             defaults.set(\.indicators.showPhysiqueSWR, false)
         }
-        if args.contains("-uiTestGenderNotSpecified") {
+        if args.contains(UITestArgument.genderNotSpecified.rawValue) {
             defaults.set(\.profile.userGender, "notSpecified")
-        } else if args.contains("-uiTestGenderMale") {
+        } else if args.contains(UITestArgument.genderMale.rawValue) {
             defaults.set(\.profile.userGender, "male")
-        } else if args.contains("-uiTestGenderFemale") {
+        } else if args.contains(UITestArgument.genderFemale.rawValue) {
             defaults.set(\.profile.userGender, "female")
         }
         #endif
@@ -715,8 +715,8 @@ struct MeasureMeApp: App {
     private func cleanUITestDataIfNeeded(container: ModelContainer) throws {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        let shouldClean = args.contains("-uiTestMode")
-            || args.contains("-uiTestOnboardingMode")
+        let shouldClean = args.contains(UITestArgument.mode.rawValue)
+            || args.contains(UITestArgument.onboardingMode.rawValue)
             || (AuditConfig.current.isEnabled && AuditConfig.current.useMockData)
         guard shouldClean else { return }
         if isUITestMode {
@@ -735,10 +735,10 @@ struct MeasureMeApp: App {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
         let isAuditMockMode = AuditConfig.current.isEnabled && AuditConfig.current.useMockData
-        let shouldSkipMeasurementSeed = args.contains("-uiTestSkipMeasurementSeeding")
-        let forceNoActiveMetrics = args.contains("-uiTestNoActiveMetrics")
-        let shouldSeedPhotoMetrics = args.contains("-uiTestSeedPhotoMetrics")
-        let shouldSeedMeasurements = (args.contains("-uiTestSeedMeasurements") || isAuditMockMode)
+        let shouldSkipMeasurementSeed = args.contains(UITestArgument.skipMeasurementSeeding.rawValue)
+        let forceNoActiveMetrics = args.contains(UITestArgument.noActiveMetrics.rawValue)
+        let shouldSeedPhotoMetrics = args.contains(UITestArgument.seedPhotoMetrics.rawValue)
+        let shouldSeedMeasurements = (args.contains(UITestArgument.seedMeasurements.rawValue) || isAuditMockMode)
             && !shouldSkipMeasurementSeed
             && !forceNoActiveMetrics
         let requestedPhotoCount = requestedUITestPhotoSeedCount(from: args)
@@ -772,7 +772,7 @@ struct MeasureMeApp: App {
     }
 
     private func requestedUITestPhotoSeedCount(from args: [String]) -> Int {
-        guard let seedFlagIndex = args.firstIndex(of: "-uiTestSeedPhotos") else { return 0 }
+        guard let seedFlagIndex = args.firstIndex(of: UITestArgument.seedPhotos.rawValue) else { return 0 }
         let nextIndex = args.index(after: seedFlagIndex)
         guard nextIndex < args.endIndex, let parsed = Int(args[nextIndex]), parsed > 0 else {
             return 12
@@ -781,24 +781,20 @@ struct MeasureMeApp: App {
     }
 
     private func requestedUITestLanguage(from args: [String]) -> String? {
-        if args.contains("-uiTestLanguagePL") { return "pl" }
-        if args.contains("-uiTestLanguageEN") { return "en" }
-        if args.contains("-uiTestLanguageSystem") { return "system" }
+        if args.contains(UITestArgument.languagePL.rawValue) { return "pl" }
+        if args.contains(UITestArgument.languageEN.rawValue) { return "en" }
+        if args.contains(UITestArgument.languageSystem.rawValue) { return "system" }
         return nil
     }
 
     private func requestedHomePinnedAction(from args: [String]) -> HomePinnedAction? {
-        guard let flagIndex = args.firstIndex(of: "-uiTestHomePinnedAction") else { return nil }
-        let nextIndex = args.index(after: flagIndex)
-        guard nextIndex < args.endIndex else { return nil }
-        return HomePinnedAction(rawValue: args[nextIndex])
+        guard let value = UITestArgument.value(for: .homePinnedAction, in: args) else { return nil }
+        return HomePinnedAction(rawValue: value)
     }
 
     private func requestedPendingAppEntryAction(from args: [String]) -> AppEntryAction? {
-        guard let flagIndex = args.firstIndex(of: "-uiTestPendingAppEntryAction") else { return nil }
-        let nextIndex = args.index(after: flagIndex)
-        guard nextIndex < args.endIndex else { return nil }
-        return AppEntryAction(rawValue: args[nextIndex])
+        guard let value = UITestArgument.value(for: .pendingAppEntryAction, in: args) else { return nil }
+        return AppEntryAction(rawValue: value)
     }
 
     private func seedUITestPhotos(count: Int, into context: ModelContext, withLinkedMetrics: Bool = false) {

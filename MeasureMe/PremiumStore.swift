@@ -144,8 +144,8 @@ final class PremiumStore: ObservableObject {
         self.analytics = analytics ?? Analytics.shared
         self.isPremium = settings.snapshot.premium.premiumEntitlement
         #if DEBUG
-        self.forcePremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForcePremium")
-        self.forceNonPremiumForUITests = ProcessInfo.processInfo.arguments.contains("-uiTestForceNonPremium")
+        self.forcePremiumForUITests = UITestArgument.isPresent(.forcePremium)
+        self.forceNonPremiumForUITests = UITestArgument.isPresent(.forceNonPremium)
         self.forcePremiumOnSimulator = Self.shouldForcePremiumOnSimulator(
             arguments: ProcessInfo.processInfo.arguments,
             environment: ProcessInfo.processInfo.environment
@@ -344,8 +344,8 @@ final class PremiumStore: ObservableObject {
     var canSimulateTrialActivationForUITests: Bool {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        let isUITest = args.contains("-uiTestMode") || args.contains("-uiTestOnboardingMode")
-        return isUITest && args.contains("-uiTestSimulateTrialActivation")
+        let isUITest = args.contains(UITestArgument.mode.rawValue) || args.contains(UITestArgument.onboardingMode.rawValue)
+        return isUITest && args.contains(UITestArgument.simulateTrialActivation.rawValue)
         #else
         false
         #endif

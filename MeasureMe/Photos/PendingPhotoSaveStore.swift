@@ -800,7 +800,7 @@ final class PendingPhotoSaveStore: ObservableObject {
 
     private var shouldInjectUITestDelay: Bool {
         #if DEBUG
-        ProcessInfo.processInfo.arguments.contains("-uiTestPendingSlow")
+        UITestArgument.isPresent(.pendingSlow)
         #else
         false
         #endif
@@ -808,7 +808,7 @@ final class PendingPhotoSaveStore: ObservableObject {
 
     private var shouldInjectUITestFailure: Bool {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-uiTestPendingForceFailure") && !didInjectUITestFailure {
+        if UITestArgument.isPresent(.pendingForceFailure) && !didInjectUITestFailure {
             didInjectUITestFailure = true
             return true
         }

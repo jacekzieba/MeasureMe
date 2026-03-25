@@ -11,7 +11,7 @@ final class AppRouter: ObservableObject {
     }
 
     private static func defaultSelectedTab() -> AppTab {
-        if ProcessInfo.processInfo.arguments.contains("-uiTestOpenSettingsTab") {
+        if UITestArgument.isPresent(.openSettingsTab) {
             return .settings
         }
         return .home

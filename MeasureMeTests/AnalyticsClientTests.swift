@@ -95,7 +95,7 @@ final class AnalyticsClientTests: XCTestCase {
 
         let modeDisabled = AnalyticsPolicy.isEnabled(
             auditConfig: config,
-            arguments: ["MeasureMe", "-uiTestMode"],
+            arguments: ["MeasureMe", UITestArgument.mode.rawValue],
             userDefaults: settings,
             isDebugBuild: false
         )

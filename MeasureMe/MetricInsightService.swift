@@ -61,7 +61,7 @@ nonisolated struct SectionInsightInput: Sendable, Hashable {
 enum AppleIntelligenceSupport {
     static func isAvailable() -> Bool {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-uiTestForceAIAvailable") {
+        if UITestArgument.isPresent(.forceAIAvailable) {
             return true
         }
         #endif
@@ -347,7 +347,7 @@ actor MetricInsightService {
 
     func generateInsight(for input: MetricInsightInput) async -> MetricInsightPair? {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-uiTestLongInsight") {
+        if UITestArgument.isPresent(.longInsight) {
             return MetricInsightPair(
                 shortText: "UI_TEST_LONG_INSIGHT_MARKER You are moving in a positive direction with stable momentum across recent entries and better consistency.",
                 detailedText: "UI_TEST_LONG_INSIGHT_MARKER Keep this pace for the next 7 days by logging at the same time every day and adding one more structured check-in before the week ends."
@@ -400,7 +400,7 @@ actor MetricInsightService {
 
     func generateHealthInsight(for input: HealthInsightInput) async -> String? {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-uiTestLongHealthInsight") {
+        if UITestArgument.isPresent(.longHealthInsight) {
             return "UI_TEST_LONG_HEALTH_INSIGHT_MARKER You're trending in a steady direction with consistent entries and balanced changes across your core indicators. Keep momentum by logging at the same time, aiming for three strength sessions, and a daily 8–10k step target this week. Focus on regular meals and hydration to support recovery and energy."
         }
         #endif
@@ -436,7 +436,7 @@ actor MetricInsightService {
 
     func generateSectionInsight(for input: SectionInsightInput) async -> String? {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-uiTestLongHealthInsight") {
+        if UITestArgument.isPresent(.longHealthInsight) {
             return "UI_TEST_LONG_SECTION_INSIGHT_MARKER You have enough signal across measurements, health indicators, and physique ratios to keep a clear direction this week. Stay consistent with logging and focus on one priority lever to keep momentum."
         }
         #endif
