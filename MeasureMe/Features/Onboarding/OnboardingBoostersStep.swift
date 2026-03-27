@@ -83,7 +83,7 @@ struct OnboardingBoostersStep: View {
 
             Text(why)
                 .font(AppTypography.caption)
-                .foregroundStyle(Color.appGray)
+                .foregroundStyle(AppColorRoles.textSecondary)
 
             Button {
                 action()
@@ -104,11 +104,11 @@ struct OnboardingBoostersStep: View {
             .accessibilityIdentifier(buttonIdentifier ?? "")
         }
         .padding(12)
-        .background(Color.white.opacity(0.04))
+        .background(AppColorRoles.surfaceInteractive)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
         )
     }
 }

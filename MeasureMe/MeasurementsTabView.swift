@@ -12,6 +12,7 @@ struct MeasurementsTabView: View {
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var router: AppRouter
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
     @AppSetting(\.profile.userGender) private var userGenderRaw: String = "notSpecified"
@@ -124,11 +125,11 @@ struct MeasurementsTabView: View {
     private var sectionTint: Color {
         switch selectedTab {
         case .metrics:
-            return measurementsTheme.softTint
+            return measurementsTheme.strongTint
         case .health:
-            return healthTheme.softTint
+            return healthTheme.strongTint
         case .physique:
-            return AppColorRoles.accentPhysique.opacity(0.18)
+            return AppColorRoles.accentPhysique.opacity(0.24)
         }
     }
 
@@ -436,7 +437,6 @@ struct MeasurementsTabView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
         }
-        .preferredColorScheme(.dark)
         .onAppear {
             rebuildSamplesCache()
         }
@@ -522,6 +522,7 @@ struct MeasurementsTabView: View {
 
 private struct MeasurementsCategoryTabs: View {
     @Namespace private var selectedPillNamespace
+    @Environment(\.colorScheme) private var colorScheme
     @Binding var selectedTab: MeasurementsTabView.MeasurementsTab
     let tabs: [MeasurementsTabView.MeasurementsTab]
     let activeTint: Color
@@ -542,7 +543,16 @@ private struct MeasurementsCategoryTabs: View {
                     ZStack {
                         if selectedTab == tab {
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(activeTint)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            activeTint.opacity(colorScheme == .dark ? 0.92 : 0.94),
+                                            activeTint.opacity(colorScheme == .dark ? 0.74 : 0.82)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
                                 .matchedGeometryEffect(id: "measurements-selected-pill", in: selectedPillNamespace)
                         } else {
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -570,7 +580,20 @@ private struct MeasurementsCategoryTabs: View {
         .padding(6)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(AppColorRoles.surfaceChrome)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    activeTint.opacity(colorScheme == .dark ? 0.08 : 0.10),
+                                    .clear
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
                 .overlay(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .stroke(AppColorRoles.borderStrong, lineWidth: 1)
@@ -593,6 +616,7 @@ struct MetricChartTile: View {
     private let measurementsTheme = FeatureTheme.measurements
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var router: AppRouter
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let kind: MetricKind
     let unitsSystem: String
@@ -875,7 +899,20 @@ struct MetricChartTile: View {
                     ZStack {
                         // Tło wykresu
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.black.opacity(0))
+                            .fill(AppColorRoles.surfaceInteractive)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                measurementsTheme.softTint.opacity(colorScheme == .dark ? 0.32 : 0.28),
+                                                .clear
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                            )
 
                         Chart {
 
@@ -934,7 +971,7 @@ struct MetricChartTile: View {
                                         .padding(.horizontal, 4)
                                         .padding(.vertical, 2)
                                         .background(
-                                            Capsule().fill(AppColorRoles.surfaceCanvas.opacity(0.82))
+                                            Capsule().fill(AppColorRoles.surfaceChrome)
                                         )
                                         .offset(x: 6)
                                 }

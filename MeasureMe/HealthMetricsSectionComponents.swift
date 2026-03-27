@@ -16,7 +16,7 @@ struct HealthMetricsSectionCard<Content: View>: View {
                 
                 Text(title)
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
             }
             
             // Metryki
@@ -26,11 +26,21 @@ struct HealthMetricsSectionCard<Content: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(HealthIndicatorPalette.cardBackground)
+                .fill(AppColorRoles.surfacePrimary)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [healthAccent.opacity(0.20), .clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(healthAccent.opacity(0.34), lineWidth: 1)
+                .stroke(healthAccent.opacity(0.24), lineWidth: 1)
         )
     }
 }
@@ -49,18 +59,18 @@ struct HealthMetricRow<Destination: View>: View {
         NavigationLink(destination: destination) {
             HStack(spacing: 12) {
                 // Lewa strona - tytuł
-                VStack(alignment: .leading, spacing: 4) {
-                    ViewThatFits(in: .vertical) {
-                        Text(title)
-                            .font(AppTypography.body)
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                        Text(title)
-                            .font(AppTypography.body)
-                            .foregroundStyle(.white)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        ViewThatFits(in: .vertical) {
+                            Text(title)
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                                .lineLimit(1)
+                            Text(title)
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     
                     Text(category)
                         .font(AppTypography.micro)
@@ -77,18 +87,22 @@ struct HealthMetricRow<Destination: View>: View {
                     Text(value)
                         .font(AppTypography.metricValue)
                         .monospacedDigit()
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                     
                     Image(systemName: "chevron.right")
                         .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(AppColorRoles.textTertiary)
                 }
             }
             .frame(minHeight: 44)
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(rowFill.opacity(0.88))
+                    .fill(AppColorRoles.surfaceInteractive)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                    )
             )
         }
         .contentShape(Rectangle())

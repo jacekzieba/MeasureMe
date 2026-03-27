@@ -66,28 +66,136 @@ struct AppGlassBackground: View {
     var depth: AppGlassDepth = .base
     var cornerRadius: CGFloat = 16
     var tint: Color = .clear
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var backgroundFill: AnyShapeStyle {
+        colorScheme == .dark
+            ? AnyShapeStyle(.ultraThinMaterial)
+            : AnyShapeStyle(Color(hex: "#E5E5E5"))
+    }
+
+    private var fillOverlayGradient: LinearGradient {
+        LinearGradient(
+            colors: colorScheme == .dark
+                ? [
+                    Color.white.opacity(0.48),
+                    Color.white.opacity(0.20)
+                ]
+                : [
+                    Color.white.opacity(0.18),
+                    Color(hex: "#E5E5E5").opacity(0.98),
+                    Color(hex: "#DEDEDE").opacity(0.96)
+                ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var highlightStrokeGradient: LinearGradient {
+        LinearGradient(
+            colors: colorScheme == .dark
+                ? [
+                    Color.white.opacity(0.68),
+                    AppColorRoles.borderStrong.opacity(0.50)
+                ]
+                : [
+                    Color.white.opacity(0.90),
+                    AppColorRoles.borderStrong.opacity(0.72)
+                ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var innerStrokeColor: Color {
+        colorScheme == .dark
+            ? Color.black.opacity(depth.innerEdgeOpacity)
+            : Color.white.opacity(0.55)
+    }
+
+    private var shadowColor: Color {
+        (colorScheme == .dark ? AppColorRoles.shadowStrong : AppColorRoles.shadowSoft)
+            .opacity(depth.shadowOpacity)
+    }
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    }
+
+    private var tintedOverlay: some View {
+        shape.fill(
+            LinearGradient(
+                colors: colorScheme == .dark
+                    ? [
+                        tint.opacity(depth.tintStrength),
+                        tint.opacity(depth.tintStrength * 0.42),
+                        tint.opacity(depth.tintStrength * 0.16)
+                    ]
+                    : [
+                        Color.white.opacity(0.04),
+                        Color(hex: "#E5E5E5").opacity(0.36),
+                        .clear
+                    ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+    }
+
+    @ViewBuilder
+    private var fillOverlay: some View {
+        if colorScheme == .dark {
+            shape.fill(Color.black.opacity(depth.darkness))
+        } else {
+            shape.fill(fillOverlayGradient)
+            shape.fill(
+                RadialGradient(
+                    colors: [
+                        Color.white.opacity(0.12),
+                        .clear
+                    ],
+                    center: .topLeading,
+                    startRadius: 8,
+                    endRadius: cornerRadius * 7
+                )
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var highlightStroke: some View {
+        if colorScheme == .dark {
+            shape.stroke(Color.white.opacity(depth.highlightOpacity), lineWidth: 1)
+        } else {
+            shape.stroke(highlightStrokeGradient, lineWidth: 1)
+        }
+    }
+
+    private var innerStroke: some View {
+        shape
+            .inset(by: 0.5)
+            .stroke(innerStrokeColor, lineWidth: 0.7)
+    }
 
     var body: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(.ultraThinMaterial)
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(tint.opacity(depth.tintStrength))
+        shape
+            .fill(backgroundFill)
+            .overlay(tintedOverlay)
+            .overlay(fillOverlay)
+            .overlay(highlightStroke)
+            .overlay(innerStroke)
+            .shadow(
+                color: .clear,
+                radius: 0,
+                x: 0,
+                y: 0
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color.black.opacity(depth.darkness))
+            .shadow(
+                color: shadowColor,
+                radius: depth.shadowRadius * (colorScheme == .dark ? 1.0 : 1.3),
+                x: 0,
+                y: depth.shadowY * (colorScheme == .dark ? 1.0 : 1.2)
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(Color.white.opacity(depth.highlightOpacity), lineWidth: 1)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .inset(by: 0.5)
-                    .stroke(Color.black.opacity(depth.innerEdgeOpacity), lineWidth: 0.7)
-            )
-            .shadow(color: .black.opacity(depth.shadowOpacity), radius: depth.shadowRadius, x: 0, y: depth.shadowY)
     }
 }
 
@@ -127,9 +235,10 @@ struct AppGlassCard<Content: View>: View {
 
 struct LiquidCapsuleButtonStyle: ButtonStyle {
     var tint: Color = .appAccent
-    var textColor: Color = .white
+    var textColor: Color = AppColorRoles.textPrimary
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     func makeBody(configuration: Configuration) -> some View {
         let shouldAnimate = animationsEnabled && !reduceMotion
@@ -140,16 +249,26 @@ struct LiquidCapsuleButtonStyle: ButtonStyle {
             .padding(.vertical, 10)
             .background(
                 Capsule(style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay(Capsule().fill(tint.opacity(configuration.isPressed ? 0.22 : 0.16)))
+                    .fill(colorScheme == .dark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.thinMaterial))
+                    .overlay(Capsule().fill(tint.opacity(configuration.isPressed ? 0.28 : 0.22)))
                     .overlay(
                         Capsule(style: .continuous)
-                            .stroke(Color.white.opacity(configuration.isPressed ? 0.32 : 0.22), lineWidth: 1)
+                            .stroke(
+                                colorScheme == .dark
+                                    ? Color.white.opacity(configuration.isPressed ? 0.32 : 0.22)
+                                    : AppColorRoles.borderStrong.opacity(configuration.isPressed ? 1 : 0.84),
+                                lineWidth: 1
+                            )
                     )
                     .overlay(
                         Capsule(style: .continuous)
                             .inset(by: 0.5)
-                            .stroke(Color.black.opacity(0.24), lineWidth: 0.6)
+                            .stroke(
+                                colorScheme == .dark
+                                    ? Color.black.opacity(0.24)
+                                    : Color.white.opacity(0.55),
+                                lineWidth: 0.6
+                            )
                     )
             )
             .scaleEffect(configuration.isPressed && shouldAnimate ? 0.98 : 1)
@@ -158,6 +277,7 @@ struct LiquidCapsuleButtonStyle: ButtonStyle {
 
 struct LiquidSwitchToggleStyle: ToggleStyle {
     var tint: Color = .appAccent
+    @Environment(\.colorScheme) private var colorScheme
 
     func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: 10) {
@@ -168,24 +288,34 @@ struct LiquidSwitchToggleStyle: ToggleStyle {
             } label: {
                 ZStack(alignment: configuration.isOn ? .trailing : .leading) {
                     Capsule(style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .overlay(Capsule().fill(tint.opacity(configuration.isOn ? 0.24 : 0.08)))
+                        .fill(colorScheme == .dark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.thinMaterial))
+                        .overlay(Capsule().fill(tint.opacity(configuration.isOn ? 0.32 : 0.14)))
                         .overlay(
                             Capsule(style: .continuous)
-                                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                                .stroke(
+                                    colorScheme == .dark
+                                        ? Color.white.opacity(0.18)
+                                        : AppColorRoles.borderStrong.opacity(0.8),
+                                    lineWidth: 1
+                                )
                         )
                         .overlay(
                             Capsule(style: .continuous)
                                 .inset(by: 0.5)
-                                .stroke(Color.black.opacity(0.24), lineWidth: 0.6)
+                                .stroke(
+                                    colorScheme == .dark
+                                        ? Color.black.opacity(0.24)
+                                        : Color.white.opacity(0.55),
+                                    lineWidth: 0.6
+                                )
                         )
                         .frame(width: 52, height: 32)
 
                     Circle()
-                        .fill(Color.white.opacity(0.95))
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.95) : Color.white)
                         .frame(width: 26, height: 26)
                         .padding(3)
-                        .shadow(color: .black.opacity(0.22), radius: 2.5, x: 0, y: 1.5)
+                        .shadow(color: AppColorRoles.shadowSoft.opacity(0.9), radius: 2.5, x: 0, y: 1.5)
                 }
             }
             .buttonStyle(.plain)
@@ -198,10 +328,11 @@ struct PhotoTagChipToggleStyle: ToggleStyle {
     var tint: Color = .appAccent
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     func makeBody(configuration: Configuration) -> some View {
         let shouldAnimate = animationsEnabled && !reduceMotion
-        let foregroundColor = configuration.isOn ? Color.black.opacity(0.92) : AppColorRoles.textPrimary
+        let foregroundColor = configuration.isOn ? AppColorRoles.textOnAccent : AppColorRoles.textPrimary
 
         Button {
             configuration.isOn.toggle()
@@ -221,19 +352,29 @@ struct PhotoTagChipToggleStyle: ToggleStyle {
             .padding(.vertical, 7)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fill(colorScheme == .dark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.thinMaterial))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                            .fill(tint.opacity(configuration.isOn ? 0.88 : 0.08))
+                            .fill(tint.opacity(configuration.isOn ? 0.88 : 0.14))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                            .stroke(Color.white.opacity(configuration.isOn ? 0.34 : 0.18), lineWidth: 1)
+                            .stroke(
+                                colorScheme == .dark
+                                    ? Color.white.opacity(configuration.isOn ? 0.34 : 0.18)
+                                    : AppColorRoles.borderStrong.opacity(configuration.isOn ? 1 : 0.78),
+                                lineWidth: 1
+                            )
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .inset(by: 0.5)
-                            .stroke(Color.black.opacity(configuration.isOn ? 0.12 : 0.24), lineWidth: 0.6)
+                            .stroke(
+                                colorScheme == .dark
+                                    ? Color.black.opacity(configuration.isOn ? 0.12 : 0.24)
+                                    : Color.white.opacity(0.55),
+                                lineWidth: 0.6
+                            )
                     )
             )
             .shadow(
@@ -250,22 +391,33 @@ struct PhotoTagChipToggleStyle: ToggleStyle {
 
 struct GlassSegmentedControlModifier: ViewModifier {
     var tint: Color = .appAccent
+    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
         content
             .padding(4)
             .background(
                 Capsule(style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay(Capsule().fill(tint.opacity(0.10)))
+                    .fill(colorScheme == .dark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.thinMaterial))
+                    .overlay(Capsule().fill(tint.opacity(colorScheme == .dark ? 0.10 : 0.18)))
                     .overlay(
                         Capsule(style: .continuous)
-                            .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                            .stroke(
+                                colorScheme == .dark
+                                    ? Color.white.opacity(0.16)
+                                    : AppColorRoles.borderStrong.opacity(0.78),
+                                lineWidth: 1
+                            )
                     )
                     .overlay(
                         Capsule(style: .continuous)
                             .inset(by: 0.5)
-                            .stroke(Color.black.opacity(0.22), lineWidth: 0.6)
+                            .stroke(
+                                colorScheme == .dark
+                                    ? Color.black.opacity(0.22)
+                                    : Color.white.opacity(0.55),
+                                lineWidth: 0.6
+                            )
                     )
             )
     }

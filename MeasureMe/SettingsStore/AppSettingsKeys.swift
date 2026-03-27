@@ -84,6 +84,7 @@ enum AppSettingsKeys {
     }
 
     enum Experience {
+        static let appAppearance = "appAppearance"
         static let animationsEnabled = "animationsEnabled"
         static let hapticsEnabled = "hapticsEnabled"
         static let appLanguage = "appLanguage"

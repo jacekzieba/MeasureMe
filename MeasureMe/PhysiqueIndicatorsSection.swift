@@ -480,19 +480,19 @@ struct PhysiqueIndicatorsSection: View {
                     .foregroundStyle(Color(hex: "#14B8A6"))
                 Text(AppLocalization.string("No indicators selected"))
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
             }
 
             Text(AppLocalization.string("Enable physique indicators in Settings to see results here."))
                 .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(AppColorRoles.textSecondary)
 
             NavigationLink {
                 SettingsView()
             } label: {
                 Text(AppLocalization.string("Go to Settings"))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(AppColorRoles.textOnAccent)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(Color(hex: "#14B8A6"), in: RoundedRectangle(cornerRadius: 8))
@@ -503,7 +503,17 @@ struct PhysiqueIndicatorsSection: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(hex: "#0B1220"))
+                .fill(AppColorRoles.surfacePrimary)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "#14B8A6").opacity(0.12), .clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(Color(hex: "#14B8A6").opacity(0.35), lineWidth: 1)
@@ -513,6 +523,7 @@ struct PhysiqueIndicatorsSection: View {
 }
 
 private struct PhysiqueSectionCard<Content: View>: View {
+    private let physiqueAccent = Color(hex: "#14B8A6")
     let title: String
     let icon: String
     @ViewBuilder let content: Content
@@ -521,10 +532,10 @@ private struct PhysiqueSectionCard<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .foregroundStyle(Color(hex: "#14B8A6"))
+                    .foregroundStyle(physiqueAccent)
                 Text(title)
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
             }
 
             content
@@ -533,10 +544,20 @@ private struct PhysiqueSectionCard<Content: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(hex: "#0B1220"))
+                .fill(AppColorRoles.surfacePrimary)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color(hex: "#14B8A6").opacity(0.3), lineWidth: 1)
+                        .fill(
+                            LinearGradient(
+                                colors: [physiqueAccent.opacity(0.12), .clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(physiqueAccent.opacity(0.3), lineWidth: 1)
                 )
         )
     }
@@ -555,7 +576,7 @@ private struct PhysiqueMetricRow<Destination: View>: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(AppTypography.body)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
 
@@ -573,17 +594,21 @@ private struct PhysiqueMetricRow<Destination: View>: View {
                     Text(value)
                         .font(AppTypography.metricValue)
                         .monospacedDigit()
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                     Image(systemName: "chevron.right")
                         .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(AppColorRoles.textTertiary)
                 }
             }
             .frame(minHeight: 44)
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.white.opacity(0.05))
+                    .fill(AppColorRoles.surfaceInteractive)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                    )
             )
         }
         .buttonStyle(.plain)
@@ -598,20 +623,20 @@ private struct PhysiqueRequiresGenderCard: View {
                     .foregroundStyle(Color(hex: "#FCA311"))
                 Text(AppLocalization.string("Set gender to unlock these indicators"))
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                     .accessibilityIdentifier("physique.requires.gender.title")
             }
 
             Text(AppLocalization.string("Physique ratio interpretation in this section is sex-specific. Set your profile gender to view values and ranges."))
                 .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.82))
+                .foregroundStyle(AppColorRoles.textSecondary)
 
             NavigationLink {
                 SettingsView()
             } label: {
                 Text(AppLocalization.string("Open profile settings"))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(AppColorRoles.textOnAccent)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(Color(hex: "#FCA311"), in: RoundedRectangle(cornerRadius: 8))
@@ -623,7 +648,11 @@ private struct PhysiqueRequiresGenderCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(AppColorRoles.surfaceInteractive)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                )
         )
     }
 }
@@ -654,7 +683,7 @@ private struct PhysiqueRatioDetailView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(title)
                             .font(AppTypography.sectionTitle)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
                         Text(shortCode)
                             .font(AppTypography.captionEmphasis)
                             .foregroundStyle(Color(hex: "#14B8A6"))
@@ -663,7 +692,7 @@ private struct PhysiqueRatioDetailView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(valueText)
                             .font(AppTypography.displayLarge)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
                         Text(categoryName)
                             .font(AppTypography.captionEmphasis)
                             .foregroundStyle(Color.bestAccessibleTextColor(onHex: categoryColor))
@@ -675,7 +704,7 @@ private struct PhysiqueRatioDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.white.opacity(0.06))
+                            .fill(AppColorRoles.surfacePrimary)
                     )
 
                     infoCard(title: AppLocalization.string("Formula"), body: formula)
@@ -685,7 +714,7 @@ private struct PhysiqueRatioDetailView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(AppLocalization.string("Reference ranges"))
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
 
                         ForEach(Array(ranges.enumerated()), id: \.offset) { _, range in
                             HStack(spacing: 10) {
@@ -694,11 +723,11 @@ private struct PhysiqueRatioDetailView: View {
                                     .frame(width: 10, height: 10)
                                 Text(range.title)
                                     .font(AppTypography.bodyEmphasis)
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(AppColorRoles.textPrimary)
                                 Spacer(minLength: 8)
                                 Text(range.value)
                                     .font(AppTypography.caption)
-                                    .foregroundStyle(.white.opacity(0.8))
+                                    .foregroundStyle(AppColorRoles.textSecondary)
                             }
                         }
                     }
@@ -706,7 +735,7 @@ private struct PhysiqueRatioDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.white.opacity(0.05))
+                            .fill(AppColorRoles.surfaceInteractive)
                     )
                 }
                 .padding(.horizontal, 16)
@@ -721,17 +750,17 @@ private struct PhysiqueRatioDetailView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(.white)
+                .foregroundStyle(AppColorRoles.textPrimary)
             Text(body)
                 .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.86))
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(AppColorRoles.surfaceInteractive)
         )
     }
 }
@@ -748,16 +777,16 @@ private struct PhysiqueMissingDataDetailView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(metricName)
                         .font(AppTypography.sectionTitle)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
 
                     Text(AppLocalization.string("To calculate this indicator, add:"))
                         .font(AppTypography.body)
-                        .foregroundStyle(.white.opacity(0.82))
+                        .foregroundStyle(AppColorRoles.textSecondary)
 
                     ForEach(requirements, id: \.self) { requirement in
                         Text("• \(requirement)")
                             .font(AppTypography.body)
-                            .foregroundStyle(.white.opacity(0.88))
+                            .foregroundStyle(AppColorRoles.textPrimary)
                     }
 
                     Button {
@@ -766,7 +795,7 @@ private struct PhysiqueMissingDataDetailView: View {
                     } label: {
                         Text(AppLocalization.string("Add measurement"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(AppColorRoles.textOnAccent)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(Color(hex: "#14B8A6"), in: RoundedRectangle(cornerRadius: 8))
@@ -791,11 +820,11 @@ private struct GenderRequiredMetricView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(metricName)
                         .font(AppTypography.sectionTitle)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
 
                     Text(AppLocalization.string("Set your gender in Profile to unlock this indicator and its ranges."))
                         .font(AppTypography.body)
-                        .foregroundStyle(.white.opacity(0.86))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     NavigationLink {
@@ -803,7 +832,7 @@ private struct GenderRequiredMetricView: View {
                     } label: {
                         Text(AppLocalization.string("Open profile settings"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(AppColorRoles.textOnAccent)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(Color(hex: "#FCA311"), in: RoundedRectangle(cornerRadius: 8))
@@ -822,6 +851,5 @@ private extension View {
     func physiqueIndicatorDetailNavigationStyle() -> some View {
         navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
     }
 }

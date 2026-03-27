@@ -230,6 +230,7 @@ struct HomeQuickActionButton: View {
     let systemImage: String
     let tint: Color
     let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(action: action) {
@@ -238,8 +239,34 @@ struct HomeQuickActionButton: View {
                     .font(AppTypography.iconLarge)
                     .foregroundStyle(tint)
                     .frame(width: 36, height: 36)
-                    .background(tint.opacity(0.16))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: colorScheme == .dark
+                                        ? [
+                                            tint.opacity(0.24),
+                                            tint.opacity(0.12)
+                                        ]
+                                        : [
+                                            Color(hex: "#F2F5F7").opacity(0.98),
+                                            Color(hex: "#EAEFF3").opacity(0.96),
+                                            Color(hex: "#E1E7EC").opacity(0.92)
+                                        ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(
+                                        colorScheme == .dark
+                                            ? Color.white.opacity(0.14)
+                                            : AppColorRoles.borderSubtle,
+                                        lineWidth: 1
+                                    )
+                            )
+                    )
 
                 Text(title)
                     .font(AppTypography.buttonLabel)
@@ -251,7 +278,37 @@ struct HomeQuickActionButton: View {
             .frame(maxWidth: .infinity, minHeight: 88, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(AppColorRoles.surfaceInteractive)
+                    .fill(
+                        colorScheme == .dark
+                            ? AnyShapeStyle(AppColorRoles.surfaceInteractive)
+                            : AnyShapeStyle(
+                                LinearGradient(
+                                    colors: [
+                                        Color(hex: "#F1F4F7").opacity(0.98),
+                                        AppColorRoles.surfaceWarmHighlight.opacity(0.94),
+                                        AppColorRoles.surfaceCoolHighlight.opacity(0.98)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(
+                                RadialGradient(
+                                    colors: [
+                                        colorScheme == .dark
+                                            ? tint.opacity(0.10)
+                                            : Color.white.opacity(0.42),
+                                        .clear
+                                    ],
+                                    center: .topLeading,
+                                    startRadius: 8,
+                                    endRadius: 110
+                                )
+                            )
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .stroke(AppColorRoles.borderSubtle, lineWidth: 1)

@@ -74,12 +74,12 @@ struct OnboardingProfileStep: View {
                 reasonRow(icon: "calendar", text: AppLocalization.systemString("Age and sex tune ranges for selected indicators."))
             }
             .padding(12)
-            .background(Color.white.opacity(0.05))
+            .background(AppColorRoles.surfaceInteractive)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
             Text(AppLocalization.systemString("You can skip and fill this later."))
                 .font(AppTypography.caption)
-                .foregroundStyle(Color.appGray)
+                .foregroundStyle(AppColorRoles.textSecondary)
         }
     }
 
@@ -89,7 +89,7 @@ struct OnboardingProfileStep: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(AppTypography.captionEmphasis)
-                .foregroundStyle(Color.appWhite)
+                .foregroundStyle(AppColorRoles.textPrimary)
             content()
         }
     }
@@ -102,7 +102,7 @@ struct OnboardingProfileStep: View {
                 .frame(width: 16)
             Text(text)
                 .font(AppTypography.caption)
-                .foregroundStyle(Color.appGray)
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

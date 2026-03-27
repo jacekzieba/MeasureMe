@@ -47,6 +47,7 @@ struct ComparePhotosView: View {
     private let measurementsTheme = FeatureTheme.measurements
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     let olderPhoto: PhotoEntry
     let newerPhoto: PhotoEntry
@@ -84,7 +85,11 @@ struct ComparePhotosView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                AppScreenBackground(
+                    topHeight: 280,
+                    tint: photosTheme.strongTint,
+                    showsSpotlight: true
+                )
 
                 GeometryReader { geometry in
                     ZStack {
@@ -97,12 +102,13 @@ struct ComparePhotosView: View {
             }
             .safeAreaInset(edge: .top, spacing: 0) {
                 compareModeSelector
-                    .background(Color.black.opacity(0.92))
+                    .padding(.top, 6)
+                    .padding(.bottom, 4)
             }
             .navigationTitle(AppLocalization.string("Compare"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(Color.black, for: .navigationBar)
+            .toolbarBackground(AppColorRoles.surfaceChrome, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Done")) {
@@ -161,16 +167,29 @@ struct ComparePhotosView: View {
         .padding(4)
         .background(
             Capsule(style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(Capsule().fill(photosTheme.accent.opacity(0.10)))
+                .fill(AppColorRoles.surfaceChrome)
                 .overlay(
                     Capsule(style: .continuous)
-                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    photosTheme.softTint.opacity(colorScheme == .dark ? 0.40 : 0.60),
+                                    measurementsTheme.softTint.opacity(colorScheme == .dark ? 0.18 : 0.12),
+                                    .clear
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(AppColorRoles.borderStrong, lineWidth: 1)
                 )
                 .overlay(
                     Capsule(style: .continuous)
                         .inset(by: 0.5)
-                        .stroke(Color.black.opacity(0.22), lineWidth: 0.6)
+                        .stroke(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.70), lineWidth: 0.6)
                 )
         )
         .padding(.horizontal, 16)
@@ -198,13 +217,26 @@ struct ComparePhotosView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
-            .foregroundStyle(isSelected ? Color.white : AppColorRoles.textSecondary)
+            .foregroundStyle(isSelected ? AppColorRoles.textOnAccent : AppColorRoles.textPrimary)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 8)
             .padding(.vertical, 10)
             .background(
                 Capsule(style: .continuous)
-                    .fill(isSelected ? photosTheme.accent : Color.clear)
+                    .fill(
+                        isSelected
+                            ? AnyShapeStyle(
+                                LinearGradient(
+                                    colors: [
+                                        photosTheme.accent.opacity(0.96),
+                                        photosTheme.accent.opacity(0.78)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            : AnyShapeStyle(Color.clear)
+                    )
                     .shadow(color: photosTheme.accent.opacity(isSelected ? 0.25 : 0), radius: 8, x: 0, y: 4)
             )
             .contentShape(Capsule(style: .continuous))
@@ -469,10 +501,15 @@ struct ComparePhotosView: View {
             .fontWeight(.bold)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
-            .foregroundStyle(.white)
+            .foregroundStyle(AppColorRoles.textPrimary)
             .padding(8)
-            .background(.black.opacity(0.6))
+            .background(AppColorRoles.surfaceChrome.opacity(0.94))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+            )
             .clipShape(RoundedRectangle(cornerRadius: 6))
+            .shadow(color: AppColorRoles.shadowSoft.opacity(0.45), radius: 10, x: 0, y: 4)
     }
 
     private var ghostDragGesture: some Gesture {
@@ -972,23 +1009,27 @@ private struct BeforeAfterSlider: View {
                     ZStack {
                         // Vertical line
                         Rectangle()
-                            .fill(.white)
+                            .fill(AppColorRoles.surfaceChrome)
                             .frame(width: isDragging ? 4 : 3)
-                            .shadow(radius: isDragging ? 8 : 5)
+                            .shadow(color: AppColorRoles.shadowSoft.opacity(0.4), radius: isDragging ? 8 : 5)
 
                         // Handle circle
                         Circle()
-                            .fill(.white)
+                            .fill(AppColorRoles.surfaceChrome)
                             .frame(width: isDragging ? 50 : 44, height: isDragging ? 50 : 44)
-                            .shadow(radius: isDragging ? 8 : 5)
+                            .shadow(color: AppColorRoles.shadowSoft.opacity(0.45), radius: isDragging ? 8 : 5)
+                            .overlay(
+                                Circle()
+                                    .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                            )
                             .overlay {
                                 HStack(spacing: isDragging ? 5 : 4) {
                                     Image(systemName: "chevron.left")
                                         .font(isDragging ? .caption : .caption2)
-                                        .foregroundStyle(.gray)
+                                        .foregroundStyle(AppColorRoles.textTertiary)
                                     Image(systemName: "chevron.right")
                                         .font(isDragging ? .caption : .caption2)
-                                        .foregroundStyle(.gray)
+                                        .foregroundStyle(AppColorRoles.textTertiary)
                                 }
                             }
                     }
@@ -1023,9 +1064,13 @@ private struct BeforeAfterSlider: View {
                         .fontWeight(.bold)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                         .padding(8)
-                        .background(.black.opacity(0.6))
+                        .background(AppColorRoles.surfaceChrome.opacity(0.94))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                        )
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                         .padding()
                         .opacity(clampedSlider > 0.2 ? 1 : 0.3)
@@ -1037,9 +1082,13 @@ private struct BeforeAfterSlider: View {
                         .fontWeight(.bold)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                         .padding(8)
-                        .background(.black.opacity(0.6))
+                        .background(AppColorRoles.surfaceChrome.opacity(0.94))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                        )
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                         .padding()
                         .opacity(clampedSlider < 0.8 ? 1 : 0.3)
@@ -1048,11 +1097,11 @@ private struct BeforeAfterSlider: View {
             } else {
                 // Placeholder while loading
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemGray5))
+                    .fill(AppColorRoles.surfaceInteractive)
                     .frame(width: validSize.width, height: validSize.height)
                     .overlay {
                         ProgressView()
-                            .tint(.gray)
+                            .tint(AppColorRoles.textSecondary)
                     }
             }
         }

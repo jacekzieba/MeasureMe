@@ -7,6 +7,12 @@ enum HealthIndicatorPalette {
     static let rowBackgroundHex = "#1B2B24"
 
     static let accent = Color(hex: accentHex)
-    static let cardBackground = Color(hex: cardBackgroundHex)
-    static let rowBackground = Color(hex: rowBackgroundHex)
+    static let cardBackground = Color.dynamic(
+        light: AppColorRoles.surfacePrimary,
+        dark: Color(hex: cardBackgroundHex)
+    )
+    static let rowBackground = Color.dynamic(
+        light: AppColorRoles.surfaceInteractive,
+        dark: Color(hex: rowBackgroundHex)
+    )
 }

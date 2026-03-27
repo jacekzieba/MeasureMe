@@ -305,7 +305,6 @@ struct PhotoView: View {
                 Text(AppLocalization.plural("photos.delete.confirmation", selectedPhotos.count))
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func consumePendingPhotoComposerRequestIfNeeded() {

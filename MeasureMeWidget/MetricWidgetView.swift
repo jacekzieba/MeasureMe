@@ -6,15 +6,66 @@ import WidgetKit
 private extension Color {
     /// App accent: #FCA311
     static let widgetAccent = Color(red: 0.988, green: 0.639, blue: 0.067)
-    /// Background navy: #14213D
-    static let widgetNavy   = Color(red: 0.078, green: 0.129, blue: 0.239)
     /// Positive trend: #22C55E
     static let widgetGreen  = Color(red: 0.133, green: 0.773, blue: 0.369)
     /// Negative trend: #EF4444
     static let widgetRed    = Color(red: 0.937, green: 0.267, blue: 0.267)
-    static let widgetSecondaryText = Color.white.opacity(0.82)
-    static let widgetTertiaryText = Color.white.opacity(0.68)
-    static let widgetSubtleText = Color.white.opacity(0.56)
+    static let widgetInk = Color(red: 0.020, green: 0.031, blue: 0.086)
+    static let widgetPaper = Color(red: 0.969, green: 0.973, blue: 0.984)
+    static let widgetDayBlue = Color(red: 0.933, green: 0.957, blue: 1.000)
+    static let widgetNightNavy = Color(red: 0.078, green: 0.129, blue: 0.239)
+}
+
+private enum WidgetAppearance {
+    case system
+    case light
+    case dark
+
+    init(rawValue: String?) {
+        switch rawValue {
+        case "light":
+            self = .light
+        case "dark":
+            self = .dark
+        default:
+            self = .system
+        }
+    }
+
+    static func current() -> WidgetAppearance {
+        let defaults = UserDefaults(suiteName: widgetAppGroupID)
+        return WidgetAppearance(rawValue: defaults?.string(forKey: "appAppearance"))
+    }
+}
+
+private struct WidgetPalette {
+    let canvas: Color
+    let textPrimary: Color
+    let textSecondary: Color
+    let textTertiary: Color
+    let textSubtle: Color
+    let divider: Color
+    let badgeBackground: Color
+
+    init(scheme: ColorScheme) {
+        if scheme == .dark {
+            canvas = .widgetNightNavy
+            textPrimary = .white
+            textSecondary = Color.white.opacity(0.82)
+            textTertiary = Color.white.opacity(0.68)
+            textSubtle = Color.white.opacity(0.56)
+            divider = Color.white.opacity(0.10)
+            badgeBackground = Color.widgetAccent.opacity(0.14)
+        } else {
+            canvas = Color.widgetDayBlue
+            textPrimary = .widgetInk
+            textSecondary = Color.widgetInk.opacity(0.80)
+            textTertiary = Color.widgetInk.opacity(0.64)
+            textSubtle = Color.widgetInk.opacity(0.50)
+            divider = Color.widgetInk.opacity(0.10)
+            badgeBackground = Color.widgetAccent.opacity(0.18)
+        }
+    }
 }
 
 // MARK: - Shared sub-views
@@ -23,6 +74,7 @@ private extension Color {
 private struct MetricIconBadge: View {
     let systemImage: String
     let size: BadgeSize
+    let palette: WidgetPalette
 
     enum BadgeSize {
         case regular   // small widget header
@@ -34,7 +86,7 @@ private struct MetricIconBadge: View {
             .font(size == .regular ? .caption.weight(.semibold) : .system(size: 9, weight: .semibold))
             .foregroundStyle(Color.widgetAccent)
             .padding(size == .regular ? 5 : 3.5)
-            .background(Color.widgetAccent.opacity(0.14), in: Circle())
+            .background(palette.badgeBackground, in: Circle())
     }
 }
 
@@ -59,11 +111,12 @@ private struct DeltaPill: View {
 private struct TrendStatusLabel: View {
     let text: String
     let compact: Bool
+    let palette: WidgetPalette
 
     var body: some View {
         Text(text)
             .font(compact ? .system(size: 9, weight: .medium) : .caption2.weight(.medium))
-            .foregroundStyle(Color.widgetSubtleText)
+            .foregroundStyle(palette.textSubtle)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
     }
@@ -73,6 +126,7 @@ private struct TrendStatusLabel: View {
 
 struct MetricWidgetView: View {
     @Environment(\.widgetFamily) private var family
+    @Environment(\.colorScheme) private var colorScheme
     let entry: MetricEntry
 
     // Primary metric (small widget)
@@ -84,6 +138,18 @@ struct MetricWidgetView: View {
     private var deltaText: String? { data?.deltaText(for: kind, recentSamples: primaryRecentSamples) }
     private var trendColor: Color { colorFor(kind: kind, data: data, recentSamples: primaryRecentSamples) }
     private var sparklineSamples: [WidgetMetricData.SampleDTO] { primaryRecentSamples }
+    private var palette: WidgetPalette { WidgetPalette(scheme: effectiveColorScheme) }
+
+    private var effectiveColorScheme: ColorScheme {
+        switch WidgetAppearance.current() {
+        case .system:
+            return colorScheme
+        case .light:
+            return .light
+        case .dark:
+            return .dark
+        }
+    }
 
     var body: some View {
         Group {
@@ -94,7 +160,7 @@ struct MetricWidgetView: View {
             }
         }
         .containerBackground(for: .widget) {
-            Color.widgetNavy
+            palette.canvas
         }
     }
 
@@ -104,10 +170,10 @@ struct MetricWidgetView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header: icon badge + name
             HStack(spacing: 6) {
-                MetricIconBadge(systemImage: kind.systemImage, size: .regular)
+                MetricIconBadge(systemImage: kind.systemImage, size: .regular, palette: palette)
                 Text(kind.displayName)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.widgetSecondaryText)
+                    .foregroundStyle(palette.textSecondary)
                     .lineLimit(1)
             }
 
@@ -116,7 +182,7 @@ struct MetricWidgetView: View {
             // Value
             Text(latestValueText)
                 .font(.system(.title3, design: .rounded).weight(.bold).monospacedDigit())
-                .foregroundStyle(.white)
+                .foregroundStyle(palette.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
@@ -127,7 +193,7 @@ struct MetricWidgetView: View {
                 } else {
                     Text("widget.period.30d")
                         .font(.caption2)
-                        .foregroundStyle(Color.widgetSubtleText)
+                        .foregroundStyle(palette.textSubtle)
                 }
             }
             .padding(.top, 3)
@@ -135,7 +201,8 @@ struct MetricWidgetView: View {
             TrendStatusLabel(
                 text: data?.trendStatusText(for: kind, recentSamples: primaryRecentSamples)
                     ?? widgetLocalized("Not enough data", "Brak danych"),
-                compact: false
+                compact: false,
+                palette: palette
             )
             .padding(.top, 3)
 
@@ -168,7 +235,7 @@ struct MetricWidgetView: View {
 
     private var columnDivider: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.10))
+            .fill(palette.divider)
             .frame(width: 0.5)
             .padding(.vertical, 6)
     }
@@ -180,10 +247,10 @@ struct MetricWidgetView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header: icon badge + name
             HStack(spacing: 4) {
-                MetricIconBadge(systemImage: kind.systemImage, size: .compact)
+                MetricIconBadge(systemImage: kind.systemImage, size: .compact, palette: palette)
                 Text(kind.displayName)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.widgetTertiaryText)
+                    .foregroundStyle(palette.textTertiary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
@@ -193,7 +260,7 @@ struct MetricWidgetView: View {
             // Value
             Text(valueTextFor(kind: kind, data: data))
                 .font(.system(.title3, design: .rounded).weight(.bold).monospacedDigit())
-                .foregroundStyle(.white)
+                .foregroundStyle(palette.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
 
@@ -204,7 +271,7 @@ struct MetricWidgetView: View {
                 } else {
                     Text("widget.period.30d")
                         .font(.system(size: 9))
-                        .foregroundStyle(Color.widgetSubtleText)
+                        .foregroundStyle(palette.textSubtle)
                 }
             }
             .padding(.top, 2)
@@ -212,7 +279,8 @@ struct MetricWidgetView: View {
             TrendStatusLabel(
                 text: data?.trendStatusText(for: kind, recentSamples: recent)
                     ?? widgetLocalized("Not enough data", "Brak danych"),
-                compact: true
+                compact: true,
+                palette: palette
             )
             .padding(.top, 2)
 

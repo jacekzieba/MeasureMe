@@ -12,6 +12,12 @@ enum SettingsExperienceSummaryState: Equatable {
     case mixed
 }
 
+enum SettingsAppearanceSummaryState: Equatable {
+    case system
+    case light
+    case dark
+}
+
 enum SettingsProfileSummaryState: Equatable {
     case empty
     case incomplete
@@ -52,6 +58,17 @@ enum SettingsOverviewSummaryBuilder {
             return .reduced
         default:
             return .mixed
+        }
+    }
+
+    static func appearanceState(appAppearanceRaw: String) -> SettingsAppearanceSummaryState {
+        switch AppAppearance(rawValue: appAppearanceRaw) ?? .system {
+        case .system:
+            return .system
+        case .light:
+            return .light
+        case .dark:
+            return .dark
         }
     }
 

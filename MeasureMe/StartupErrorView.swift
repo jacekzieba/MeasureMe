@@ -12,7 +12,7 @@ struct StartupErrorView: View {
                 Label {
                     Text(AppLocalization.string("Startup failed"))
                         .font(AppTypography.sectionTitle)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                 } icon: {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(Color.red.opacity(0.9))
@@ -20,7 +20,7 @@ struct StartupErrorView: View {
 
                 Text(message)
                     .font(AppTypography.body)
-                    .foregroundStyle(.white.opacity(0.82))
+                    .foregroundStyle(AppColorRoles.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Button {
@@ -37,11 +37,10 @@ struct StartupErrorView: View {
                 AppGlassBackground(
                     depth: .elevated,
                     cornerRadius: 20,
-                    tint: Color.white.opacity(0.09)
+                    tint: AppColorRoles.surfaceAccentSoft
                 )
             )
             .padding(.horizontal, 20)
         }
-        .preferredColorScheme(.dark)
     }
 }

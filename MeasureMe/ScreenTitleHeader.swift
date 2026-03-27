@@ -9,7 +9,7 @@ struct ScreenTitleHeader: View {
     var body: some View {
         Text(title)
             .font(AppTypography.screenTitle)
-            .foregroundStyle(.white)
+            .foregroundStyle(AppColorRoles.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, horizontalPadding)
             .padding(.top, topPadding)

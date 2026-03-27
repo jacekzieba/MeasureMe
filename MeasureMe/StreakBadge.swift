@@ -11,6 +11,7 @@ struct StreakBadge: View {
 
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var glowOpacity: Double = 0
     @State private var displayedCount: Int = 0
@@ -32,21 +33,21 @@ struct StreakBadge: View {
 
             Text("\(displayedCount)")
                 .font(AppTypography.captionEmphasis.monospacedDigit())
-                .foregroundStyle(.white)
+                .foregroundStyle(colorScheme == .dark ? .white : AppColorRoles.textPrimary)
                 .contentTransition(.numericText())
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(
             Capsule()
-                .fill(.ultraThinMaterial)
+                .fill(colorScheme == .dark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.thinMaterial))
                 .overlay(
                     Capsule()
-                        .fill(Color.orange.opacity(0.15))
+                        .fill(Color.orange.opacity(colorScheme == .dark ? 0.15 : 0.18))
                 )
                 .overlay(
                     Capsule()
-                        .strokeBorder(Color.orange.opacity(0.3), lineWidth: 1)
+                        .strokeBorder(Color.orange.opacity(colorScheme == .dark ? 0.3 : 0.4), lineWidth: 1)
                 )
         )
         .accessibilityElement(children: .ignore)

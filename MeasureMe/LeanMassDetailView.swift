@@ -14,209 +14,162 @@ struct LeanMassDetailView: View {
     let unitsSystem: String
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // Karta naglowka
+        SettingsScrollDetailScaffold(title: AppLocalization.string("Lean Body Mass"), theme: .health) {
+            HealthInsightHeroCard(accent: Color(hex: category.color)) {
                 VStack(alignment: .leading, spacing: 16) {
                     Text(AppLocalization.string("Lean Body Mass"))
                         .font(AppTypography.sectionTitle)
-                        .foregroundStyle(.white)
-                    
-                    // Główna wartość - procent LBM (jeśli dostępny)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+
                     if let percentage = percentage {
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Text(String(format: "%.1f", percentage))
                                 .font(AppTypography.displayLarge)
-                                .foregroundStyle(.white)
-                            
+                                .foregroundStyle(AppColorRoles.textPrimary)
+
                             Text(AppLocalization.string("%"))
                                 .font(AppTypography.bodyEmphasis)
-                                .foregroundStyle(.white.opacity(0.7))
+                                .foregroundStyle(AppColorRoles.textSecondary)
                         }
-                        
-                        // Kategoria
+
                         Text(AppLocalization.string(category.name))
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Color.bestAccessibleTextColor(onHex: category.color))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                             .background(Color(hex: category.color), in: RoundedRectangle(cornerRadius: 8))
-                        
-                        // Masa w kg/lb jako info dodatkowe
+
                         Text(AppLocalization.string("leanmass.value", formattedValue.value, formattedValue.unit))
                             .font(AppTypography.body)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                             .padding(.top, 4)
                     } else {
-                        // Jeśli nie ma procentu, pokaż tylko masę
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Text(formattedValue.value)
                                 .font(AppTypography.displayLarge)
-                                .foregroundStyle(.white)
-                            
+                                .foregroundStyle(AppColorRoles.textPrimary)
+
                             Text(formattedValue.unit)
                                 .font(AppTypography.bodyEmphasis)
-                                .foregroundStyle(.white.opacity(0.7))
+                                .foregroundStyle(AppColorRoles.textSecondary)
                         }
-                        
+
                         Text(AppLocalization.string("From HealthKit"))
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Color.bestAccessibleTextColor(onHex: "#3B82F6"))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                             .background(Color(hex: "#3B82F6"), in: RoundedRectangle(cornerRadius: 8))
                     }
-                    
+
                     HStack(spacing: 4) {
                         Image(systemName: "heart.fill")
                             .font(AppTypography.caption)
                         Text(AppLocalization.string("Synced from Health app"))
                             .font(AppTypography.caption)
                     }
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(AppColorRoles.textTertiary)
                     .padding(.top, 4)
                 }
-                .padding(20)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    LinearGradient(
-                        colors: [
-                            Color(hex: "#14213D").opacity(0.6),
-                            Color(hex: "#000000")
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Color(hex: "#FCA311").opacity(0.3), lineWidth: 1)
-                )
-                
-                // Czym jest Lean Body Mass?
+            }
+
+            HealthInsightCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(AppLocalization.string("What is Lean Body Mass?"))
                         .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(.white)
-                    
+                        .foregroundStyle(AppColorRoles.textPrimary)
+
                     Text(AppLocalization.string("Lean body mass is your total body weight minus body fat. It includes muscle, bone, organs, and water - everything except fat tissue."))
                         .font(AppTypography.body)
-                        .foregroundStyle(.white.opacity(0.9))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    
+
                     if percentage != nil {
                         Text(AppLocalization.string("LBM percentage represents how much of your total body weight is lean mass. Higher percentages generally indicate better muscle mass and metabolic health."))
                             .font(AppTypography.body)
-                            .foregroundStyle(.white.opacity(0.9))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 4)
                     }
                 }
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
-                
-                // Reference Ranges (jeśli mamy procent)
-                if percentage != nil {
+            }
+
+            if percentage != nil {
+                HealthInsightCard(tint: Color(hex: category.color).opacity(0.10)) {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(AppLocalization.string("reference.ranges.with.age", ageGroupText))
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
-                        
+                            .foregroundStyle(AppColorRoles.textPrimary)
+
                         VStack(spacing: 8) {
                             ForEach(referenceRanges, id: \.title) { range in
                                 HStack {
                                     Circle()
                                         .fill(Color(hex: range.color))
                                         .frame(width: 12, height: 12)
-                                    
+
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(AppLocalization.string(range.title))
                                             .font(AppTypography.bodyEmphasis)
-                                            .foregroundStyle(.white)
-                                        
+                                            .foregroundStyle(AppColorRoles.textPrimary)
+
                                         Text(range.range)
                                             .font(AppTypography.caption)
-                                            .foregroundStyle(.white.opacity(0.7))
+                                            .foregroundStyle(AppColorRoles.textSecondary)
                                     }
-                                    
+
                                     Spacer()
                                 }
                                 .padding(.vertical, 4)
                             }
                         }
                     }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
                 }
-                
-                // Why it matters
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(AppLocalization.string("Why It Matters"))
-                        .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(.white)
-                    
-                    VStack(alignment: .leading, spacing: 12) {
-                        BenefitRow(
-                            icon: "flame.fill",
-                            title: "Metabolic Health",
-                            description: "Lean mass burns more calories at rest, supporting a healthy metabolism."
-                        )
-                        
-                        BenefitRow(
-                            icon: "figure.strengthtraining.traditional",
-                            title: "Strength & Function",
-                            description: "Muscle mass supports physical performance and daily activities."
-                        )
-                        
-                        BenefitRow(
-                            icon: "heart.fill",
-                            title: "Overall Health",
-                            description: "Higher lean mass is associated with better long-term health outcomes."
-                        )
-                    }
-                }
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
-                
-                // Important Note
+            }
+
+            WhyItMattersCard(items: [
+                WhyItMattersItem(
+                    icon: "flame.fill",
+                    title: AppLocalization.string("Metabolic Health"),
+                    description: AppLocalization.string("Lean mass burns more calories at rest, supporting a healthy metabolism.")
+                ),
+                WhyItMattersItem(
+                    icon: "figure.strengthtraining.traditional",
+                    title: AppLocalization.string("Strength & Function"),
+                    description: AppLocalization.string("Muscle mass supports physical performance and daily activities.")
+                ),
+                WhyItMattersItem(
+                    icon: "heart.fill",
+                    title: AppLocalization.string("Overall Health"),
+                    description: AppLocalization.string("Higher lean mass is associated with better long-term health outcomes.")
+                )
+            ])
+
+            HealthInsightNoteCard(accent: Color(hex: "#3B82F6")) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
                         Image(systemName: "info.circle.fill")
                             .foregroundStyle(Color(hex: "#3B82F6"))
-                        
+
                         Text(AppLocalization.string("Data Source"))
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
                     }
-                    
+
                     if percentage == nil, totalWeight == nil {
                         Text(AppLocalization.string("To see your LBM percentage, please add your weight measurements. This helps provide more accurate health insights."))
                             .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
                         Text(AppLocalization.string("This data comes from the Health app. Lean body mass measurements can vary based on the device and method used. For tracking progress, use the same measurement method consistently."))
                             .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    Color(hex: "#3B82F6").opacity(0.15),
-                    in: RoundedRectangle(cornerRadius: 10)
-                )
             }
-            .padding()
         }
-        .background(Color.black.ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
     }
     
     private var formattedValue: (value: String, unit: String) {

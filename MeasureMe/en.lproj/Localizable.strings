@@ -1014,6 +1014,10 @@
 "Sync and synced data" = "Sync and synced data";
 "Home sections visibility" = "Home sections visibility";
 "Metric or imperial" = "Metric or imperial";
+"Appearance" = "Appearance";
+"Appearance, animations and haptics" = "Appearance, animations and haptics";
+"Light" = "Light";
+"Dark" = "Dark";
 "Export and delete" = "Export and delete";
 "Search Settings" = "Search Settings";
 "No matching settings" = "No matching settings";
@@ -1039,6 +1043,9 @@
 "settings.summary.experience.full" = "Animations and haptics on";
 "settings.summary.experience.reduced" = "Animations and haptics off";
 "settings.summary.experience.mixed" = "One feedback layer is off";
+"settings.summary.appearance.system" = "System appearance";
+"settings.summary.appearance.light" = "Light appearance";
+"settings.summary.appearance.dark" = "Dark appearance";
 "settings.summary.profile.empty" = "Add your details";
 "settings.summary.profile.incomplete" = "Profile partially completed";
 "settings.summary.metrics.count" = "%d tracked measurements";

@@ -24,6 +24,7 @@ struct HomeView: View {
     @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.modelContext) private var modelContext
@@ -1000,7 +1001,7 @@ struct HomeView: View {
                 ) { olderPhoto, newerPhoto in
                     selectedHomeComparePair = HomeComparePair(olderPhoto: olderPhoto, newerPhoto: newerPhoto)
                 }
-                .presentationBackground(Color.black)
+                .presentationBackground(AppColorRoles.surfaceCanvas)
             }
             .sheet(item: $selectedHomeComparePair) { pair in
                 ComparePhotosView(olderPhoto: pair.olderPhoto, newerPhoto: pair.newerPhoto)
@@ -1171,7 +1172,23 @@ struct HomeView: View {
     }
 
     private var moduleAccentText: Color {
-        FeatureTheme.home.accent
+        colorScheme == .dark ? FeatureTheme.home.accent : AppColorRoles.textSecondary
+    }
+
+    private var homeHeroTint: Color {
+        colorScheme == .dark ? homeTheme.strongTint : .clear
+    }
+
+    private var neutralRowFill: Color {
+        AppColorRoles.surfaceInteractive
+    }
+
+    private var neutralRowStroke: Color {
+        AppColorRoles.borderSubtle
+    }
+
+    private var checklistIconSurface: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : AppColorRoles.surfaceAccentSoft
     }
 
     private var homeTheme: FeatureTheme {
@@ -1196,7 +1213,7 @@ struct HomeView: View {
 
     private var summaryHeroModule: some View {
         HomeWidgetCard(
-            tint: homeTheme.strongTint,
+            tint: homeHeroTint,
             depth: .floating,
             contentPadding: 18,
             accessibilityIdentifier: "home.module.summaryHero"
@@ -1292,17 +1309,17 @@ struct HomeView: View {
 
             Text(goalStatusText)
                 .font(AppTypography.captionEmphasis)
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .lineLimit(2)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(
             Capsule(style: .continuous)
-                .fill(Color.white.opacity(0.06))
+                .fill(AppColorRoles.surfaceInteractive)
                 .overlay(
                     Capsule(style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                 )
         )
     }
@@ -1338,7 +1355,7 @@ struct HomeView: View {
                             if let supportingLabel = nextFocusInsight.supportingLabel {
                                 Text(supportingLabel)
                                     .font(heroSummaryCardBadgeFont)
-                                    .foregroundStyle(homeTheme.accent)
+                                    .foregroundStyle(colorScheme == .dark ? homeTheme.accent : AppColorRoles.textPrimary)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.82)
                                     .padding(.horizontal, heroSummaryCardBadgeHorizontalPadding)
@@ -1518,12 +1535,13 @@ struct HomeView: View {
         HStack(spacing: 6) {
             Image(systemName: icon)
                 .font(dynamicTypeSize.isAccessibilitySize ? AppTypography.microEmphasis : AppTypography.iconSmall)
+                .foregroundStyle(accent)
             Text(title)
                 .font(dynamicTypeSize.isAccessibilitySize ? AppTypography.microEmphasis : AppTypography.eyebrow)
+                .foregroundStyle(colorScheme == .dark ? accent : AppColorRoles.textSecondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
         }
-        .foregroundStyle(accent)
     }
 
     private var quickActionsModule: some View {
@@ -1670,48 +1688,50 @@ struct HomeView: View {
                     .frame(width: 1, height: 1)
                     .clipped()
 
-                GeometryReader { proxy in
-                    let spacing: CGFloat = 8
-                    let side = max(min((proxy.size.width - (spacing * 2)) / 3, 112), 0)
-                    HStack(spacing: spacing) {
-                        ForEach(Array(dashboardRecentPhotoTiles.enumerated()), id: \.element.id) { index, tile in
-                            switch tile {
-                            case .persisted(let photo):
-                                Button {
-                                    selectedPhotoForFullScreen = photo
-                                } label: {
-                                    PhotoGridThumb(
-                                        photo: photo,
-                                        size: side,
-                                        cacheID: String(describing: photo.id)
+                if !dashboardRecentPhotoTiles.isEmpty {
+                    GeometryReader { proxy in
+                        let spacing: CGFloat = 8
+                        let side = max(min((proxy.size.width - (spacing * 2)) / 3, 112), 0)
+                        HStack(spacing: spacing) {
+                            ForEach(Array(dashboardRecentPhotoTiles.enumerated()), id: \.element.id) { index, tile in
+                                switch tile {
+                                case .persisted(let photo):
+                                    Button {
+                                        selectedPhotoForFullScreen = photo
+                                    } label: {
+                                        PhotoGridThumb(
+                                            photo: photo,
+                                            size: side,
+                                            cacheID: String(describing: photo.id)
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityIdentifier("home.recentPhotos.item.\(index)")
+                                case .pending(let pending):
+                                    PendingPhotoGridCell(
+                                        thumbnailData: pending.thumbnailData,
+                                        progress: pending.progress,
+                                        status: pending.status,
+                                        targetSize: CGSize(width: side, height: side),
+                                        cornerRadius: 12,
+                                        cacheID: pending.id.uuidString,
+                                        showsStatusLabel: false,
+                                        accessibilityIdentifier: "home.recentPhotos.item.\(index)"
                                     )
+                                    .frame(width: side, height: side)
                                 }
-                                .buttonStyle(.plain)
-                                .accessibilityIdentifier("home.recentPhotos.item.\(index)")
-                            case .pending(let pending):
-                                PendingPhotoGridCell(
-                                    thumbnailData: pending.thumbnailData,
-                                    progress: pending.progress,
-                                    status: pending.status,
-                                    targetSize: CGSize(width: side, height: side),
-                                    cornerRadius: 12,
-                                    cacheID: pending.id.uuidString,
-                                    showsStatusLabel: false,
-                                    accessibilityIdentifier: "home.recentPhotos.item.\(index)"
-                                )
-                                .frame(width: side, height: side)
+                            }
+
+                            ForEach(0..<max(0, 3 - dashboardRecentPhotoTiles.count), id: \.self) { _ in
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(AppColorRoles.surfaceInteractive)
+                                    .frame(width: side, height: side)
+                                    .hidden()
                             }
                         }
-
-                        ForEach(0..<max(0, 3 - dashboardRecentPhotoTiles.count), id: \.self) { _ in
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.white.opacity(0.03))
-                                .frame(width: side, height: side)
-                                .hidden()
-                        }
                     }
+                    .frame(maxWidth: .infinity, minHeight: 112, maxHeight: 112)
                 }
-                .frame(maxWidth: .infinity, minHeight: 112, maxHeight: 112)
 
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 8) {
@@ -1898,10 +1918,10 @@ struct HomeView: View {
                             .foregroundStyle(Color.appAccent)
                         Text(AppLocalization.string("Finish setup"))
                             .font(AppTypography.sectionTitle)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
                         Text(AppLocalization.plural("home.module.setup.subtitle", activeChecklistItems.count))
                             .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.68))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
 
                     Spacer()
@@ -1924,7 +1944,7 @@ struct HomeView: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.72))
+                            .foregroundStyle(AppColorRoles.textTertiary)
                             .frame(width: 36, height: 36)
                     }
                     .buttonStyle(.plain)
@@ -1933,7 +1953,7 @@ struct HomeView: View {
                 if onboardingChecklistCollapsed {
                     Text(AppLocalization.string("Checklist collapsed. Open menu to expand."))
                         .font(AppTypography.caption)
-                        .foregroundStyle(.white.opacity(0.72))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 } else {
                     ForEach(shownChecklistItems) { item in
                         Button {
@@ -1944,17 +1964,17 @@ struct HomeView: View {
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundStyle(Color.appAccent)
                                     .frame(width: 28, height: 28)
-                                    .background(Color.white.opacity(0.08))
+                                    .background(checklistIconSurface)
                                     .clipShape(Circle())
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(item.title)
                                         .font(AppTypography.captionEmphasis)
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(AppColorRoles.textPrimary)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                     Text(item.detail)
                                         .font(AppTypography.micro)
-                                        .foregroundStyle(.white.opacity(0.68))
+                                        .foregroundStyle(AppColorRoles.textSecondary)
                                         .lineLimit(3)
                                         .minimumScaleFactor(0.85)
                                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1962,16 +1982,16 @@ struct HomeView: View {
 
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 12, weight: .bold))
-                                    .foregroundStyle(.white.opacity(0.4))
+                                    .foregroundStyle(AppColorRoles.textTertiary)
                             }
                             .padding(12)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(Color.white.opacity(0.05))
+                                    .fill(neutralRowFill)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                            .stroke(neutralRowStroke, lineWidth: 1)
                                     )
                             )
                         }
@@ -2374,7 +2394,7 @@ struct HomeView: View {
                         .accessibilityHidden(true)
                     Text("MeasureMe")
                         .font(AppTypography.captionEmphasis)
-                        .foregroundStyle(.white.opacity(0.75))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                     Spacer()
                     if showStreakOnHome && streakManager.currentStreak > 0 {
                         Button { showStreakDetail = true } label: {
@@ -2391,18 +2411,18 @@ struct HomeView: View {
 
                 Text(greetingTitle)
                     .font(.system(.title2, design: .rounded).weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
 
                 if hasAnyMeasurements {
                     Text(encouragementText)
                         .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.72))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 }
 
                 if goalStatus != .noGoals {
                     Text(goalStatusText)
                         .font(AppTypography.captionEmphasis)
-                        .foregroundStyle(Color.white.opacity(0.8))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -2514,7 +2534,7 @@ struct HomeView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(AppLocalization.string("Finish setup"))
                             .font(AppTypography.sectionTitle)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
                     }
                     Spacer()
                     Menu {
@@ -2529,7 +2549,7 @@ struct HomeView: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel(AppLocalization.string("accessibility.setup.checklist.options"))
@@ -2539,7 +2559,7 @@ struct HomeView: View {
                 if onboardingChecklistCollapsed {
                     Text(AppLocalization.string("Checklist collapsed. Open menu to expand."))
                         .font(AppTypography.caption)
-                        .foregroundStyle(.white.opacity(0.72))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 } else {
                     ForEach(shownChecklistItems) { item in
                         Button {
@@ -2550,16 +2570,16 @@ struct HomeView: View {
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundStyle(item.isCompleted ? Color(hex: "#22C55E") : Color.appAccent)
                                     .frame(width: 28, height: 28)
-                                    .background(Color.white.opacity(0.08))
+                                    .background(AppColorRoles.surfaceAccentSoft)
                                     .clipShape(Circle())
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(item.title)
                                         .font(AppTypography.bodyEmphasis)
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(AppColorRoles.textPrimary)
                                     Text(item.detail)
                                         .font(AppTypography.micro)
-                                        .foregroundStyle(.white.opacity(0.68))
+                                        .foregroundStyle(AppColorRoles.textSecondary)
                                         .lineLimit(3)
                                         .minimumScaleFactor(0.85)
                                 }
@@ -2577,16 +2597,16 @@ struct HomeView: View {
                                 } else {
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 12, weight: .bold))
-                                        .foregroundStyle(.white.opacity(0.45))
+                                        .foregroundStyle(AppColorRoles.textTertiary)
                                 }
                             }
                             .padding(12)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.white.opacity(0.04))
+                            .background(AppColorRoles.surfacePrimary)
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                    .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                             )
                         }
                         .buttonStyle(.plain)
@@ -2800,7 +2820,7 @@ struct HomeView: View {
                 kind.iconView(font: AppTypography.captionEmphasis, size: 14, tint: Color.appAccent)
                 Text(kind.title)
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                     .lineLimit(1)
             }
 
@@ -2809,26 +2829,26 @@ struct HomeView: View {
             VStack(alignment: .trailing, spacing: 3) {
                 Text(latestText)
                     .font(AppTypography.captionEmphasis.monospacedDigit())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                 Text(detailText)
                     .font(AppTypography.micro)
-                    .foregroundStyle(.white.opacity(0.62))
+                    .foregroundStyle(AppColorRoles.textSecondary)
                     .lineLimit(1)
             }
 
             Image(systemName: chevronUp ? "chevron.up" : "chevron.down")
                 .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(.white.opacity(0.44))
+                .foregroundStyle(AppColorRoles.textTertiary)
                 .contentTransition(.symbolEffect(.replace))
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.04))
+                .fill(AppColorRoles.surfaceInteractive)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                 )
         )
     }
@@ -2851,7 +2871,7 @@ struct HomeView: View {
                         .frame(width: 14, height: 14)
                     Text(definition.name)
                         .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                         .lineLimit(1)
                 }
 
@@ -2859,20 +2879,20 @@ struct HomeView: View {
 
                 Text(latestText)
                     .font(AppTypography.captionEmphasis.monospacedDigit())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.44))
+                    .foregroundStyle(AppColorRoles.textTertiary)
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.white.opacity(0.04))
+                    .fill(AppColorRoles.surfaceInteractive)
                     .overlay(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )
         }
@@ -2973,13 +2993,25 @@ struct HomeView: View {
     }
 
     private func infoPill(text: String, tint: Color) -> some View {
-        Text(text)
-            .font(AppTypography.badge)
-            .foregroundStyle(tint)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(tint.opacity(0.12))
-            .clipShape(Capsule())
+        HStack(spacing: 6) {
+            Circle()
+                .fill(tint)
+                .frame(width: 6, height: 6)
+
+            Text(text)
+                .font(AppTypography.badge)
+                .foregroundStyle(AppColorRoles.textPrimary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule(style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                )
+        )
     }
 
     private func dashboardInsightCard(
@@ -3101,10 +3133,10 @@ struct HomeView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.04))
+                .fill(AppColorRoles.surfaceInteractive)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                 )
         )
     }
@@ -3251,17 +3283,17 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text(AppLocalization.string("Measurements"))
                     .font(AppTypography.sectionTitle)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
 
                 if !hasAnyMeasurements && cachedLatestByKind.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(AppLocalization.string("No measurements yet."))
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
 
                         Text(AppLocalization.string("Add your first measurement to unlock trends and goal progress."))
                             .font(AppTypography.body)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(AppColorRoles.textSecondary)
 
                         Button {
                             showQuickAddSheet = true
@@ -3275,12 +3307,12 @@ struct HomeView: View {
                         .accessibilityIdentifier("home.quickadd.button")
                     }
                     .padding(12)
-                    .background(Color.white.opacity(0.05))
+                    .background(AppColorRoles.surfacePrimary)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 } else if visibleMetrics.isEmpty {
                     Text(AppLocalization.string("Select up to three key metrics in Settings."))
                         .font(AppTypography.body)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 } else {
                     VStack(spacing: 12) {
                         ForEach(visibleMetrics, id: \.self) { kind in
@@ -3332,9 +3364,9 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text(AppLocalization.string("Recent photos"))
                     .font(AppTypography.sectionTitle)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.white.opacity(0.08))
+                    .fill(AppColorRoles.surfaceInteractive)
                     .frame(height: 152)
             }
             .redacted(reason: .placeholder)
@@ -3351,9 +3383,9 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text(AppLocalization.string("Health"))
                     .font(AppTypography.sectionTitle)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.white.opacity(0.08))
+                    .fill(AppColorRoles.surfaceInteractive)
                     .frame(height: 108)
             }
             .redacted(reason: .placeholder)
@@ -3372,7 +3404,7 @@ struct HomeView: View {
                 HStack {
                     Text(AppLocalization.string("Last Photos"))
                         .font(AppTypography.sectionTitle)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                     
                     Spacer()
                     
@@ -3470,11 +3502,11 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text(AppLocalization.string("Last Photos"))
                     .font(AppTypography.sectionTitle)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
 
                 Text(AppLocalization.string("No photos yet. Capture progress photos to see changes beyond the scale."))
                     .font(AppTypography.body)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(AppColorRoles.textSecondary)
 
                 Button {
                     router.selectedTab = .photos

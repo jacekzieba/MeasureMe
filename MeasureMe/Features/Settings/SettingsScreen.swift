@@ -61,6 +61,7 @@ struct SettingsView: View {
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
     @AppSetting(\.home.settingsOpenHomeSettings) private var settingsOpenHomeSettings: Bool = false
+    @AppSetting(\.experience.appAppearance) private var appAppearance: String = AppAppearance.system.rawValue
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.experience.hapticsEnabled) private var hapticsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
@@ -260,16 +261,13 @@ struct SettingsView: View {
     }
 
     private var experienceSummary: String {
-        switch SettingsOverviewSummaryBuilder.experienceState(
-            animationsEnabled: animationsEnabled,
-            hapticsEnabled: hapticsEnabled
-        ) {
-        case .full:
-            return AppLocalization.string("settings.summary.experience.full")
-        case .reduced:
-            return AppLocalization.string("settings.summary.experience.reduced")
-        case .mixed:
-            return AppLocalization.string("settings.summary.experience.mixed")
+        switch SettingsOverviewSummaryBuilder.appearanceState(appAppearanceRaw: appAppearance) {
+        case .system:
+            return AppLocalization.string("settings.summary.appearance.system")
+        case .light:
+            return AppLocalization.string("settings.summary.appearance.light")
+        case .dark:
+            return AppLocalization.string("settings.summary.appearance.dark")
         }
     }
 
@@ -521,9 +519,9 @@ struct SettingsView: View {
 
                 settingsOverviewRow(
                     route: .experience,
-                    title: AppLocalization.string("Animations and haptics"),
+                    title: AppLocalization.string("Appearance, animations and haptics"),
                     subtitle: experienceSummary,
-                    systemImage: "apple.haptics.and.music.note",
+                    systemImage: "circle.lefthalf.filled.inverse",
                     accessibilityIdentifier: "settings.row.experience"
                 )
             }
@@ -1322,6 +1320,7 @@ struct SettingsView: View {
             UnitsSettingsDetailView(unitsSystem: $unitsSystem)
         case .experience:
             ExperienceSettingsDetailView(
+                appAppearance: $appAppearance,
                 animationsEnabled: $animationsEnabled,
                 hapticsEnabled: $hapticsEnabled
             )

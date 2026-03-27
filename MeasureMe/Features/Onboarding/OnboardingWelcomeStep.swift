@@ -41,7 +41,7 @@ struct OnboardingWelcomeStep: View {
                 .font(AppTypography.headlineEmphasis)
                 .lineLimit(2)
                 .minimumScaleFactor(0.86)
-                .foregroundStyle(Color.appWhite)
+                .foregroundStyle(AppColorRoles.textPrimary)
 
             VStack(spacing: 5) {
                 ForEach(OnboardingView.WelcomeGoal.allCases, id: \.self) { goal in
@@ -50,11 +50,11 @@ struct OnboardingWelcomeStep: View {
             }
         }
         .padding(12)
-        .background(Color.white.opacity(0.04))
+        .background(AppColorRoles.surfaceInteractive)
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
         )
     }
 
@@ -67,13 +67,13 @@ struct OnboardingWelcomeStep: View {
             HStack(spacing: 10) {
                 Text(goal.title)
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(isSelected ? 0.95 : 0.86))
+                    .foregroundStyle(isSelected ? AppColorRoles.textPrimary : AppColorRoles.textSecondary)
 
                 Spacer(minLength: 0)
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(isSelected ? Color.appAccent : Color.white.opacity(0.35))
+                    .foregroundStyle(isSelected ? Color.appAccent : AppColorRoles.textTertiary)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 8 : 7)
@@ -81,10 +81,10 @@ struct OnboardingWelcomeStep: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(isSelected ? Color.appAccent.opacity(0.14) : Color.white.opacity(0.04))
+                    .fill(isSelected ? Color.appAccent.opacity(0.14) : AppColorRoles.surfaceInteractive)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(isSelected ? Color.appAccent.opacity(0.7) : Color.white.opacity(0.12), lineWidth: 1)
+                            .stroke(isSelected ? Color.appAccent.opacity(0.7) : AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )
         }
@@ -109,7 +109,7 @@ struct OnboardingWelcomeStep: View {
 
                 Text(AppLocalization.systemString("onboarding.example.label"))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(0.96))
+                    .foregroundStyle(AppColorRoles.textPrimary)
             }
 
             trendPreview
@@ -121,8 +121,8 @@ struct OnboardingWelcomeStep: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.06),
-                            Color.white.opacity(0.03)
+                            AppColorRoles.surfacePrimary.opacity(0.82),
+                            AppColorRoles.surfaceInteractive
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -284,9 +284,9 @@ struct OnboardingWelcomeStep: View {
             .chartXAxis {
                 AxisMarks(values: xAxisValues) { value in
                     AxisGridLine(stroke: StrokeStyle(lineWidth: 0.8))
-                        .foregroundStyle(Color.white.opacity(0.08))
+                        .foregroundStyle(Color.dynamic(light: Color.appInk.opacity(0.08), dark: Color.white.opacity(0.08)))
                     AxisTick(stroke: StrokeStyle(lineWidth: 0.8))
-                        .foregroundStyle(Color.white.opacity(0.18))
+                        .foregroundStyle(Color.dynamic(light: Color.appInk.opacity(0.14), dark: Color.white.opacity(0.18)))
                     AxisValueLabel {
                         if let week = value.as(Int.self) {
                             Text(AppLocalization.systemString("onboarding.week.label", week))
@@ -299,9 +299,9 @@ struct OnboardingWelcomeStep: View {
             .chartYAxis {
                 AxisMarks(position: .leading, values: .stride(by: 1)) { value in
                     AxisGridLine(stroke: StrokeStyle(lineWidth: 0.8))
-                        .foregroundStyle(Color.white.opacity(0.08))
+                        .foregroundStyle(Color.dynamic(light: Color.appInk.opacity(0.08), dark: Color.white.opacity(0.08)))
                     AxisTick(stroke: StrokeStyle(lineWidth: 0.8))
-                        .foregroundStyle(Color.white.opacity(0.18))
+                        .foregroundStyle(Color.dynamic(light: Color.appInk.opacity(0.14), dark: Color.white.opacity(0.18)))
                 }
             }
             .chartXScale(domain: weekDomain)
@@ -309,11 +309,11 @@ struct OnboardingWelcomeStep: View {
             .frame(height: trendChartHeight)
         }
         .padding(8)
-        .background(Color.white.opacity(0.04))
+        .background(Color.dynamic(light: AppColorRoles.surfaceInteractive, dark: Color.white.opacity(0.04)))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                .stroke(Color.dynamic(light: AppColorRoles.borderSubtle, dark: Color.white.opacity(0.10)), lineWidth: 1)
         )
     }
 }

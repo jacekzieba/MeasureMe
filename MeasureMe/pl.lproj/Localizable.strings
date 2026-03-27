@@ -1397,6 +1397,10 @@
 "Sync and synced data" = "Synchronizacja i dane zsynchronizowane";
 "Home sections visibility" = "Widoczność sekcji strony głównej";
 "Metric or imperial" = "Metryczny lub imperialny";
+"Appearance" = "Wygląd";
+"Appearance, animations and haptics" = "Wygląd, animacje i haptyka";
+"Light" = "Jasny";
+"Dark" = "Ciemny";
 "Export and delete" = "Eksport i usuwanie";
 "Search Settings" = "Przeszukaj ustawienia";
 "No matching settings" = "Brak pasujących ustawień";
@@ -1422,6 +1426,9 @@
 "settings.summary.experience.full" = "Animacje i haptyka włączone";
 "settings.summary.experience.reduced" = "Animacje i haptyka wyłączone";
 "settings.summary.experience.mixed" = "Część informacji zwrotnej jest wyłączona";
+"settings.summary.appearance.system" = "Wygląd systemowy";
+"settings.summary.appearance.light" = "Wygląd jasny";
+"settings.summary.appearance.dark" = "Wygląd ciemny";
 "settings.summary.profile.empty" = "Dodaj swoje dane";
 "settings.summary.profile.incomplete" = "Profil uzupełniony częściowo";
 "settings.summary.metrics.count" = "Śledzone pomiary: %d";

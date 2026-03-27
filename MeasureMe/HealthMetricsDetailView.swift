@@ -36,53 +36,38 @@ struct HealthMetricsDetailView: View {
     // MARK: - Missing Data Banner
     
     private var missingDataBanner: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.title2)
-                    .foregroundStyle(AppColorRoles.accentPrimary)
+        HealthInsightNoteCard(accent: AppColorRoles.accentPrimary) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.title2)
+                        .foregroundStyle(AppColorRoles.accentPrimary)
+                    
+                    Text(AppLocalization.string("Missing measurements"))
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                }
                 
-                Text(AppLocalization.string("Missing measurements"))
-                    .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
-            }
-            
-            Text(AppLocalization.string("Some health metrics cannot be calculated because the following measurements are missing:"))
-                .font(AppTypography.body)
-                .foregroundStyle(.white.opacity(0.8))
-            
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(missingMetrics, id: \.self) { metric in
-                    HStack(spacing: 8) {
-                        Image(systemName: "circle.fill")
-                            .font(.system(size: 6))
-                            .foregroundStyle(AppColorRoles.accentPrimary)
-                        
-                        Text(metric)
-                            .font(AppTypography.body)
-                            .foregroundStyle(.white.opacity(0.9))
+                Text(AppLocalization.string("Some health metrics cannot be calculated because the following measurements are missing:"))
+                    .font(AppTypography.body)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(missingMetrics, id: \.self) { metric in
+                        HStack(spacing: 8) {
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 6))
+                                .foregroundStyle(AppColorRoles.accentPrimary)
+                            
+                            Text(metric)
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                        }
                     }
                 }
+                .padding(.top, 4)
             }
-            .padding(.top, 4)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(hex: "#FCA311").opacity(0.15),
-                    AppColorRoles.accentPrimary.opacity(0.05)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(AppColorRoles.accentPrimary.opacity(0.4), lineWidth: 1.5)
-        )
     }
     
     // MARK: - WHtR Section
@@ -93,7 +78,7 @@ struct HealthMetricsDetailView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(AppLocalization.string("Waist-to-Height Ratio"))
                     .font(AppTypography.sectionTitle)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                 
                 Text(AppLocalization.string("WHtR"))
                     .font(AppTypography.body)
@@ -132,7 +117,7 @@ struct HealthMetricsDetailView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(AppLocalization.string("Waist-to-Hip Ratio"))
                     .font(AppTypography.sectionTitle)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                 
                 Text(AppLocalization.string("WHR"))
                     .font(AppTypography.body)
@@ -178,156 +163,94 @@ struct HealthMetricsDetailView: View {
     // MARK: - Supporting Cards
     
     private func currentValueCard(value: Double, category: String, categoryColor: String, description: String) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Wartość i kategoria
-            HStack(alignment: .bottom, spacing: 16) {
-                Text(String(format: "%.2f", value))
-                    .font(AppTypography.displayMedium)
-                    .foregroundStyle(.white)
+        HealthInsightHeroCard(accent: Color(hex: categoryColor)) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .bottom, spacing: 16) {
+                    Text(String(format: "%.2f", value))
+                        .font(AppTypography.displayMedium)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                    
+                    Spacer()
+                    
+                    Text(AppLocalization.string(category))
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(Color.bestAccessibleTextColor(onHex: categoryColor))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color(hex: categoryColor), in: RoundedRectangle(cornerRadius: 10))
+                }
                 
-                Spacer()
-                
-                Text(AppLocalization.string(category))
-                    .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color(hex: categoryColor), in: RoundedRectangle(cornerRadius: 10))
+                Text(AppLocalization.string(description))
+                    .font(AppTypography.body)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            
-            // Opis kategorii
-            Text(AppLocalization.string(description))
-                .font(AppTypography.body)
-                .foregroundStyle(.white.opacity(0.85))
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(hex: "#14213D").opacity(0.5),
-                    Color.appInk.opacity(0.3)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(hex: categoryColor).opacity(0.3), lineWidth: 1.5)
-        )
     }
     
     private func unavailableCard(reason: String) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "exclamationmark.circle.fill")
-                    .font(.title3)
-                    .foregroundStyle(.white.opacity(0.6))
+        HealthInsightCard(tint: theme.softTint) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(AppColorRoles.textTertiary)
+                    
+                    Text(AppLocalization.string("Not available"))
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                }
                 
-                Text(AppLocalization.string("Not available"))
-                    .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                Text(AppLocalization.string(reason))
+                    .font(AppTypography.body)
+                    .foregroundStyle(AppColorRoles.textSecondary)
             }
-            
-            Text(AppLocalization.string(reason))
-                .font(AppTypography.body)
-                .foregroundStyle(.white.opacity(0.7))
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(hex: "#14213D").opacity(0.3),
-                    Color.appInk.opacity(0.2)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(.white.opacity(0.2), lineWidth: 1)
-        )
     }
     
     private func descriptionCard(text: String) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "info.circle.fill")
-                    .foregroundStyle(Color(hex: "#FCA311"))
+        HealthInsightCard(tint: theme.softTint) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(AppColorRoles.accentPrimary)
+                    
+                    Text(AppLocalization.string("About this metric"))
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                }
                 
-                Text(AppLocalization.string("About this metric"))
-                    .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                Text(AppLocalization.string(text))
+                    .font(AppTypography.body)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            
-            Text(AppLocalization.string(text))
-                .font(AppTypography.body)
-                .foregroundStyle(.white.opacity(0.85))
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(hex: "#14213D").opacity(0.4),
-                    Color(hex: "#000000")
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(hex: "#FCA311").opacity(0.2), lineWidth: 1)
-        )
     }
     
     private func legendCard(title: String, ranges: [(title: String, range: String, description: String)]) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 8) {
-                Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(Color(hex: "#FCA311"))
+        HealthInsightCard(tint: theme.softTint) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 8) {
+                    Image(systemName: "chart.bar.fill")
+                        .foregroundStyle(AppColorRoles.accentPrimary)
+                    
+                    Text(AppLocalization.string(title))
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                }
                 
-                Text(AppLocalization.string(title))
-                    .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
-            }
-            
-            VStack(spacing: 12) {
-                ForEach(ranges, id: \.title) { item in
-                    legendRow(
-                        title: item.title,
-                        range: item.range,
-                        description: item.description
-                    )
+                VStack(spacing: 12) {
+                    ForEach(ranges, id: \.title) { item in
+                        legendRow(
+                            title: item.title,
+                            range: item.range,
+                            description: item.description
+                        )
+                    }
                 }
             }
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(hex: "#14213D").opacity(0.4),
-                    Color(hex: "#000000")
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(hex: "#FCA311").opacity(0.2), lineWidth: 1)
-        )
     }
     
     private func legendRow(title: String, range: String, description: String) -> some View {
@@ -341,23 +264,23 @@ struct HealthMetricsDetailView: View {
                 // Nazwa kategorii
                 Text(AppLocalization.string(title))
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                 
                 Spacer()
                 
                 // Zakres
                 Text(range)
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(AppColorRoles.textSecondary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(Color(hex: "#14213D").opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
+                    .background(AppColorRoles.surfaceInteractive, in: RoundedRectangle(cornerRadius: 6))
             }
             
             // Opis
             Text(AppLocalization.string(description))
                 .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .padding(.leading, 22)
         }
     }
@@ -373,36 +296,28 @@ struct HealthMetricsDetailView: View {
     }
     
     private var genderNoticeCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "person.fill.questionmark")
-                    .foregroundStyle(Color(hex: "#FCA311"))
+        HealthInsightNoteCard(accent: AppColorRoles.accentPrimary) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: "person.fill.questionmark")
+                        .foregroundStyle(AppColorRoles.accentPrimary)
+                    
+                    Text(AppLocalization.string("Gender not specified"))
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                }
                 
-                Text(AppLocalization.string("Gender not specified"))
-                    .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                Text(AppLocalization.string("WHR thresholds differ between males and females. Set your gender in Settings for more accurate ranges."))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                Text(AppLocalization.string("Currently showing female ranges (more conservative)."))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textTertiary)
+                    .italic()
             }
-            
-            Text(AppLocalization.string("WHR thresholds differ between males and females. Set your gender in Settings for more accurate ranges."))
-                .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.8))
-                .fixedSize(horizontal: false, vertical: true)
-            
-            Text(AppLocalization.string("Currently showing female ranges (more conservative)."))
-                .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.6))
-                .italic()
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            Color(hex: "#FCA311").opacity(0.1),
-            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(hex: "#FCA311").opacity(0.3), lineWidth: 1)
-        )
     }
 }
 

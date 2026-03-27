@@ -11,32 +11,167 @@ struct WhyItMattersCard: View {
     let items: [WhyItMattersItem]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(AppLocalization.string("Why It Matters"))
-                .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(.white)
-
+        HealthInsightCard(tint: AppColorRoles.accentPrimary.opacity(0.08)) {
             VStack(alignment: .leading, spacing: 12) {
-                ForEach(items) { item in
-                    HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: item.icon)
-                            .foregroundStyle(Color(hex: "#FCA311"))
-                            .frame(width: 22, height: 22)
+                Text(AppLocalization.string("Why It Matters"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(AppColorRoles.textPrimary)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.title)
-                                .font(AppTypography.bodyEmphasis)
-                                .foregroundStyle(.white)
-                            Text(item.description)
-                                .font(AppTypography.caption)
-                                .foregroundStyle(.white.opacity(0.8))
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(items) { item in
+                        HStack(alignment: .top, spacing: 10) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(AppColorRoles.surfaceAccentSoft)
+                                    .frame(width: 28, height: 28)
+
+                                Image(systemName: item.icon)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(AppColorRoles.accentPrimary)
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.title)
+                                    .font(AppTypography.bodyEmphasis)
+                                    .foregroundStyle(AppColorRoles.textPrimary)
+                                Text(item.description)
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(AppColorRoles.textSecondary)
+                            }
                         }
                     }
                 }
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+struct HealthInsightHeroCard<Content: View>: View {
+    var accent: Color = FeatureTheme.health.accent
+    @ViewBuilder let content: Content
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        accent: Color = FeatureTheme.health.accent,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.accent = accent
+        self.content = content()
+    }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+
+        content
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                shape
+                    .fill(AppColorRoles.surfaceElevated)
+                    .overlay(
+                        shape.fill(
+                            LinearGradient(
+                                colors: [
+                                    accent.opacity(colorScheme == .dark ? 0.20 : 0.28),
+                                    Color.appAmber.opacity(colorScheme == .dark ? 0.10 : 0.14),
+                                    .clear
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    )
+                    .overlay(
+                        shape.stroke(AppColorRoles.borderStrong, lineWidth: 1)
+                    )
+            )
+            .shadow(color: AppColorRoles.shadowSoft, radius: 16, x: 0, y: 10)
+    }
+}
+
+struct HealthInsightCard<Content: View>: View {
+    var tint: Color = FeatureTheme.health.softTint
+    var cornerRadius: CGFloat = 16
+    @ViewBuilder let content: Content
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        tint: Color = FeatureTheme.health.softTint,
+        cornerRadius: CGFloat = 16,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.tint = tint
+        self.cornerRadius = cornerRadius
+        self.content = content()
+    }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        content
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                shape
+                    .fill(AppColorRoles.surfacePrimary)
+                    .overlay(
+                        shape.fill(
+                            LinearGradient(
+                                colors: [
+                                    tint.opacity(colorScheme == .dark ? 0.24 : 0.28),
+                                    .clear
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    )
+                    .overlay(
+                        shape.stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                    )
+            )
+            .shadow(color: AppColorRoles.shadowSoft.opacity(colorScheme == .dark ? 0.9 : 0.7), radius: 10, x: 0, y: 5)
+    }
+}
+
+struct HealthInsightNoteCard<Content: View>: View {
+    var accent: Color = FeatureTheme.health.accent
+    @ViewBuilder let content: Content
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        accent: Color = FeatureTheme.health.accent,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.accent = accent
+        self.content = content()
+    }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+
+        content
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                shape
+                    .fill(AppColorRoles.surfaceInteractive)
+                    .overlay(
+                        shape.fill(
+                            LinearGradient(
+                                colors: [
+                                    accent.opacity(colorScheme == .dark ? 0.20 : 0.26),
+                                    Color.appAmber.opacity(colorScheme == .dark ? 0.10 : 0.14),
+                                    .clear
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    )
+                    .overlay(
+                        shape.stroke(accent.opacity(colorScheme == .dark ? 0.32 : 0.22), lineWidth: 1)
+                    )
+            )
     }
 }

@@ -37,22 +37,32 @@ struct HomeKeyMetricRow: View {
     let unitsSystem: String
 
     private let cornerRadius: CGFloat = 16
+    private let accent = Color.appAccent
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
-                    kind.iconView(font: AppTypography.metricTitle, size: 16, tint: Color.appAccent)
+                    kind.iconView(font: AppTypography.metricTitle, size: 16, tint: accent)
+                        .frame(width: 28, height: 28)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(AppColorRoles.surfaceAccentSoft)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .stroke(accent.opacity(0.16), lineWidth: 1)
+                                )
+                        )
 
                     ViewThatFits(in: .vertical) {
                         Text(kind.title)
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
                         Text(kind.title)
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -62,7 +72,7 @@ struct HomeKeyMetricRow: View {
                     Text(valueString(metricValue: latest.value))
                         .font(AppTypography.metricValue)
                         .contentTransition(.numericText())
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
 
                     if let goal = goal {
                         HomeGoalProgressBar(
@@ -74,15 +84,15 @@ struct HomeKeyMetricRow: View {
                     } else {
                         Text(AppLocalization.string("Set a goal to see progress."))
                             .font(AppTypography.micro)
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
                 } else {
                     Text(AppLocalization.string("—"))
                         .font(AppTypography.metricValue)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(AppColorRoles.textTertiary)
                     Text(AppLocalization.string("No data yet"))
                         .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 }
             }
             .frame(maxHeight: .infinity, alignment: .top)
@@ -94,18 +104,33 @@ struct HomeKeyMetricRow: View {
                     .frame(width: 90, height: 44)
             } else {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
+                    .fill(AppColorRoles.surfaceInteractive)
                     .frame(width: 90, height: 44)
             }
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            AppGlassBackground(
-                depth: .base,
-                cornerRadius: cornerRadius,
-                tint: Color.appAccent.opacity(0.10)
-            )
+            ZStack {
+                AppGlassBackground(
+                    depth: .base,
+                    cornerRadius: cornerRadius,
+                    tint: accent.opacity(0.10)
+                )
+
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                accent.opacity(0.10),
+                                accent.opacity(0.03),
+                                .clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
         )
     }
 
@@ -162,20 +187,20 @@ private struct HomeGoalProgressBar: View {
             HStack {
                 Text(AppLocalization.string("Progress"))
                     .font(AppTypography.micro)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(AppColorRoles.textSecondary)
                 Spacer()
                 Text("\(Int(progress * 100))%")
                     .font(AppTypography.microEmphasis.monospacedDigit())
                     .contentTransition(.numericText())
-                    .foregroundStyle(isAchieved ? Color(hex: "#22C55E") : Color(hex: "#FCA311"))
+                    .foregroundStyle(isAchieved ? AppColorRoles.stateSuccess : AppColorRoles.accentPrimary)
             }
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color.white.opacity(0.12))
+                        .fill(AppColorRoles.surfaceInteractive)
                     Capsule()
-                        .fill(isAchieved ? Color(hex: "#22C55E") : Color(hex: "#FCA311"))
+                        .fill(isAchieved ? AppColorRoles.stateSuccess : AppColorRoles.accentPrimary)
                         .frame(width: geo.size.width * max(0, min(1, progress)))
                 }
             }
@@ -185,12 +210,12 @@ private struct HomeGoalProgressBar: View {
                 Text(AppLocalization.string("progress.now", format(currentVal)))
                     .font(AppTypography.micro)
                     .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(AppColorRoles.textSecondary)
                 Spacer()
                 Text(AppLocalization.string("progress.goal", format(goalVal)))
                     .font(AppTypography.micro)
                     .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(AppColorRoles.textSecondary)
             }
         }
     }
@@ -303,6 +328,7 @@ struct HomeCustomKeyMetricRow: View {
     let samples: [MetricSample]
 
     private let cornerRadius: CGFloat = 16
+    private let accent = Color.appAccent
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -310,18 +336,26 @@ struct HomeCustomKeyMetricRow: View {
                 HStack(spacing: 6) {
                     Image(systemName: definition.sfSymbolName)
                         .font(AppTypography.metricTitle)
-                        .frame(width: 16, height: 16)
-                        .foregroundStyle(Color.appAccent)
+                        .frame(width: 28, height: 28)
+                        .foregroundStyle(accent)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(AppColorRoles.surfaceAccentSoft)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .stroke(accent.opacity(0.16), lineWidth: 1)
+                                )
+                        )
 
                     ViewThatFits(in: .vertical) {
                         Text(definition.name)
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
                         Text(definition.name)
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -331,7 +365,7 @@ struct HomeCustomKeyMetricRow: View {
                     Text(formattedValue(latest.value))
                         .font(AppTypography.metricValue)
                         .contentTransition(.numericText())
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
 
                     if let goal {
                         HomeGoalProgressBar(
@@ -343,15 +377,15 @@ struct HomeCustomKeyMetricRow: View {
                     } else {
                         Text(AppLocalization.string("Set a goal to see progress."))
                             .font(AppTypography.micro)
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
                 } else {
                     Text(AppLocalization.string("—"))
                         .font(AppTypography.metricValue)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(AppColorRoles.textTertiary)
                     Text(AppLocalization.string("No data yet"))
                         .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                 }
             }
             .frame(maxHeight: .infinity, alignment: .top)
@@ -367,18 +401,33 @@ struct HomeCustomKeyMetricRow: View {
                 .frame(width: 90, height: 44)
             } else {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
+                    .fill(AppColorRoles.surfaceInteractive)
                     .frame(width: 90, height: 44)
             }
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            AppGlassBackground(
-                depth: .base,
-                cornerRadius: cornerRadius,
-                tint: Color.appAccent.opacity(0.10)
-            )
+            ZStack {
+                AppGlassBackground(
+                    depth: .base,
+                    cornerRadius: cornerRadius,
+                    tint: accent.opacity(0.10)
+                )
+
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                accent.opacity(0.10),
+                                accent.opacity(0.03),
+                                .clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
         )
     }
 

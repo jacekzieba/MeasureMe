@@ -13,7 +13,7 @@ func onboardingSlideHeader(title: String, subtitle: String) -> some View {
         if !subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             Text(subtitle)
                 .font(.system(.title3, design: .rounded).weight(.medium))
-                .foregroundStyle(Color.appGray)
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

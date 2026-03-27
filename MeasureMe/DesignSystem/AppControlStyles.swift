@@ -33,30 +33,64 @@ struct AppCTAButtonStyle: ButtonStyle {
         var animationsEnabled: Bool
         var isPressed: Bool
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @Environment(\.colorScheme) private var colorScheme
 
         func body(content: Content) -> some View {
             let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
             content
                 .font(size.font)
-                .foregroundStyle(Color.black)
+                .foregroundStyle(AppColorRoles.textOnAccent)
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, size.verticalPadding)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 44)
                 .background(
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(Color.appAccent)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    AppColorRoles.accentGradientStart,
+                                    AppColorRoles.accentGradientMid,
+                                    AppColorRoles.accentGradientEnd
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                         .overlay(
                             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.white.opacity(colorScheme == .dark ? 0.12 : 0.30),
+                                            .clear
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.white.opacity(colorScheme == .dark ? 0.28 : 0.70),
+                                            AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 0.68 : 0.44)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
                         )
                 )
                 .scaleEffect(isPressed && shouldAnimate ? 0.98 : 1)
                 .shadow(
-                    color: Color.appAccent.opacity(isPressed ? 0.14 : 0.24),
-                    radius: isPressed ? 4 : 9,
+                    color: Color.appAccent.opacity(isPressed ? 0.18 : (colorScheme == .dark ? 0.24 : 0.30)),
+                    radius: isPressed ? 4 : 11,
                     x: 0,
-                    y: isPressed ? 1 : 3
+                    y: isPressed ? 1 : 4
                 )
                 .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimate), value: isPressed)
         }
@@ -77,29 +111,65 @@ struct AppSecondaryButtonStyle: ButtonStyle {
         var animationsEnabled: Bool
         var isPressed: Bool
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @Environment(\.colorScheme) private var colorScheme
 
         func body(content: Content) -> some View {
             let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
             content
                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                .foregroundStyle(Color.appWhite)
+                .foregroundStyle(AppColorRoles.textPrimary)
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.sm)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 44)
                 .background(
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                .fill(Color.appAccent.opacity(isPressed ? 0.18 : 0.12))
+                        .fill(
+                            colorScheme == .dark
+                                ? AnyShapeStyle(AppColorRoles.surfaceChrome)
+                                : AnyShapeStyle(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(hex: "#F2F5F7").opacity(0.98),
+                                            AppColorRoles.surfaceWarmHighlight.opacity(0.96),
+                                            AppColorRoles.surfaceCoolHighlight.opacity(0.98)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.black.opacity(isPressed ? 0.06 : 0.03),
+                                            Color.black.opacity(isPressed ? 0.03 : 0.01),
+                                            .clear
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.white.opacity(colorScheme == .dark ? 0.16 : 0.82),
+                                            AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 1 : 0.58)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
                         )
                 )
                 .scaleEffect(isPressed && shouldAnimate ? 0.98 : 1)
+                .shadow(color: AppColorRoles.shadowSoft.opacity(isPressed ? 0.35 : 0.52), radius: isPressed ? 4 : 8, x: 0, y: isPressed ? 2 : 4)
                 .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimate), value: isPressed)
         }
     }
@@ -132,7 +202,7 @@ struct AppDestructiveButtonStyle: ButtonStyle {
                             .fill(Color.red)
                             .overlay(
                                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                                    .stroke(AppColorRoles.borderStrong, lineWidth: 1)
                             )
                     )
             },
@@ -164,7 +234,7 @@ struct AppInputContainerStyle: ViewModifier {
                     .fill(AppColorRoles.surfaceSecondary)
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-                            .stroke(Color.white.opacity(focused ? 0.36 : 0.16), lineWidth: 1)
+                            .stroke(focused ? AppColorRoles.borderStrong.opacity(1.2) : AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )
     }

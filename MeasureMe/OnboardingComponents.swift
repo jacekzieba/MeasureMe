@@ -11,7 +11,7 @@ struct OnboardingFeatureCard: View {
                 .font(AppTypography.iconMedium)
                 .foregroundStyle(Color.appAccent)
                 .frame(width: 32, height: 32)
-                .background(Color.white.opacity(0.08))
+                .background(AppColorRoles.surfaceAccentSoft)
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 4) {
@@ -25,11 +25,11 @@ struct OnboardingFeatureCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.04))
+        .background(AppColorRoles.surfaceInteractive)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
         )
     }
 }
@@ -42,11 +42,11 @@ struct OnboardingHeroView: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.white.opacity(0.06))
+                .fill(AppColorRoles.surfacePrimary)
                 .frame(height: 140)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                        .stroke(AppColorRoles.borderStrong, lineWidth: 1)
                 )
 
             HStack(spacing: 16) {
@@ -70,7 +70,7 @@ struct OnboardingHeroView: View {
                     .font(AppTypography.iconHero)
                     .foregroundStyle(Color.appAccent)
                     .frame(width: 60, height: 60)
-                    .background(Color.white.opacity(0.08))
+                    .background(AppColorRoles.surfaceAccentSoft)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .padding(.horizontal, 18)
@@ -103,7 +103,7 @@ struct OnboardingEmptyStateCard: View {
                     .font(AppTypography.iconMedium)
                     .foregroundStyle(Color.appAccent)
                     .frame(width: 30, height: 30)
-                    .background(Color.white.opacity(0.08))
+                    .background(AppColorRoles.surfaceAccentSoft)
                     .clipShape(Circle())
 
                 Text(title)
@@ -116,11 +116,11 @@ struct OnboardingEmptyStateCard: View {
                 .foregroundStyle(Color.appGray)
         }
         .padding(14)
-        .background(Color.white.opacity(0.04))
+        .background(AppColorRoles.surfaceInteractive)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
         )
     }
 }

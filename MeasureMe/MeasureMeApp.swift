@@ -7,6 +7,7 @@ import RevenueCat
 @main
 struct MeasureMeApp: App {
     @UIApplicationDelegateAdaptor(MeasureMeAppDelegate.self) private var appDelegate
+    @AppSetting(\.experience.appAppearance) private var appAppearance: String = AppAppearance.system.rawValue
     @AppSetting(\.experience.appLanguage) private var appLanguage: String = "system"
     @StateObject private var settingsStore = AppSettingsStore.shared
     @State private var startupState: StartupState = .loading
@@ -107,10 +108,7 @@ struct MeasureMeApp: App {
             registerBackgroundTasks()
         }
 
-        let segmentedFont = UIFont.systemFont(ofSize: 13, weight: .semibold).withMonospacedDigits()
-        UISegmentedControl.appearance().setTitleTextAttributes([.font: segmentedFont, .foregroundColor: UIColor.white], for: .normal)
-        UISegmentedControl.appearance().setTitleTextAttributes([.font: segmentedFont, .foregroundColor: UIColor.black], for: .selected)
-        UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(Color.appAccent)
+        Self.configureGlobalUIKitAppearance()
 
         // Select all text when any TextField gains focus (avoids "080" problem)
         if !isUnitTestHostMode {
@@ -131,22 +129,10 @@ struct MeasureMeApp: App {
         let navLargeFont = navLargeBase.fontDescriptor.withDesign(.rounded)
             .map { UIFont(descriptor: $0, size: navLargeBase.pointSize) } ?? navLargeBase
 
-        let navAppearance = UINavigationBarAppearance()
-        navAppearance.configureWithTransparentBackground()
-        navAppearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterialDark)
-        navAppearance.backgroundColor = UIColor.black.withAlphaComponent(0.18)
-        navAppearance.shadowColor = .clear
-        navAppearance.titleTextAttributes = [.font: navTitleFont]
-        navAppearance.largeTitleTextAttributes = [.font: navLargeFont]
-
-        let navBar = UINavigationBar.appearance()
-        navBar.standardAppearance = navAppearance
-        navBar.scrollEdgeAppearance = navAppearance
-        navBar.compactAppearance = navAppearance
-        navBar.compactScrollEdgeAppearance = navAppearance
-        navBar.titleTextAttributes = [.font: navTitleFont]
-        navBar.largeTitleTextAttributes = [.font: navLargeFont]
-        navBar.shadowImage = UIImage()
+        Self.configureNavigationAppearance(
+            titleFont: navTitleFont,
+            largeTitleFont: navLargeFont
+        )
     }
 
     var body: some Scene {
@@ -180,10 +166,14 @@ struct MeasureMeApp: App {
             }
             .environment(\.locale, appLocale)
             .environmentObject(settingsStore)
+            .preferredColorScheme(resolvedAppearance.preferredColorScheme)
             .task(id: startupAttemptID) {
                 guard !isSettingsUITestMode else { return }
                 guard !isUnitTestHostMode else { return }
                 await bootstrapApp()
+            }
+            .onChange(of: appAppearance) { _, _ in
+                WidgetDataWriter.reloadAllTimelines()
             }
             .onAppear {
                 if !AuditConfig.current.isEnabled, CrashReporter.shared.hasUnreportedCrash {
@@ -237,6 +227,79 @@ struct MeasureMeApp: App {
         default:
             return Locale.current
         }
+    }
+
+    private var resolvedAppearance: AppAppearance {
+        AppAppearance(rawValue: appAppearance) ?? .system
+    }
+
+    private static func configureGlobalUIKitAppearance() {
+        let segmentedFont = UIFont.systemFont(ofSize: 13, weight: .semibold).withMonospacedDigits()
+        let segmented = UISegmentedControl.appearance()
+        segmented.backgroundColor = UIColor(AppColorRoles.surfaceInteractive)
+        segmented.setTitleTextAttributes(
+            [.font: segmentedFont, .foregroundColor: UIColor(AppColorRoles.textSecondary)],
+            for: .normal
+        )
+        segmented.setTitleTextAttributes(
+            [.font: segmentedFont, .foregroundColor: UIColor(AppColorRoles.textOnAccent)],
+            for: .selected
+        )
+        segmented.selectedSegmentTintColor = UIColor(Color.appAccent)
+
+        let tabBarAppearance = UITabBarAppearance()
+        tabBarAppearance.configureWithOpaqueBackground()
+        tabBarAppearance.backgroundColor = UIColor(AppColorRoles.surfaceChrome)
+        tabBarAppearance.shadowColor = UIColor(AppColorRoles.borderSubtle)
+
+        let selectedItemColor = UIColor(Color.appAccent)
+        let normalItemColor = UIColor(AppColorRoles.textTertiary)
+        let itemAppearances = [
+            tabBarAppearance.stackedLayoutAppearance,
+            tabBarAppearance.inlineLayoutAppearance,
+            tabBarAppearance.compactInlineLayoutAppearance
+        ]
+        for itemAppearance in itemAppearances {
+            itemAppearance.normal.iconColor = normalItemColor
+            itemAppearance.normal.titleTextAttributes = [.foregroundColor: normalItemColor]
+            itemAppearance.selected.iconColor = selectedItemColor
+            itemAppearance.selected.titleTextAttributes = [.foregroundColor: selectedItemColor]
+        }
+
+        let tabBar = UITabBar.appearance()
+        tabBar.standardAppearance = tabBarAppearance
+        tabBar.scrollEdgeAppearance = tabBarAppearance
+        tabBar.tintColor = selectedItemColor
+        tabBar.unselectedItemTintColor = normalItemColor
+    }
+
+    private static func configureNavigationAppearance(
+        titleFont: UIFont,
+        largeTitleFont: UIFont
+    ) {
+        let navAppearance = UINavigationBarAppearance()
+        navAppearance.configureWithOpaqueBackground()
+        navAppearance.backgroundEffect = nil
+        navAppearance.backgroundColor = UIColor(AppColorRoles.surfaceChrome)
+        navAppearance.shadowColor = UIColor(AppColorRoles.borderSubtle)
+        navAppearance.titleTextAttributes = [
+            .font: titleFont,
+            .foregroundColor: UIColor(AppColorRoles.textPrimary)
+        ]
+        navAppearance.largeTitleTextAttributes = [
+            .font: largeTitleFont,
+            .foregroundColor: UIColor(AppColorRoles.textPrimary)
+        ]
+
+        let navBar = UINavigationBar.appearance()
+        navBar.standardAppearance = navAppearance
+        navBar.scrollEdgeAppearance = navAppearance
+        navBar.compactAppearance = navAppearance
+        navBar.compactScrollEdgeAppearance = navAppearance
+        navBar.tintColor = UIColor(Color.appAccent)
+        navBar.titleTextAttributes = navAppearance.titleTextAttributes
+        navBar.largeTitleTextAttributes = navAppearance.largeTitleTextAttributes
+        navBar.shadowImage = UIImage()
     }
 
     @MainActor
@@ -613,6 +676,7 @@ struct MeasureMeApp: App {
 
         if args.contains(UITestArgument.onboardingMode.rawValue) {
             defaults.set(\.onboarding.hasCompletedOnboarding, false)
+            defaults.set(\.experience.appAppearance, AppAppearance.dark.rawValue)
             defaults.set(\.experience.appLanguage, uiTestLanguage)
             defaults.set(\.premium.premiumEntitlement, false)
             defaults.set(\.iCloudBackup.isEnabled, false)
@@ -648,6 +712,7 @@ struct MeasureMeApp: App {
         defaults.removeObject(forKey: AppSettingsKeys.Home.homeLayoutData)
         defaults.set(\.homeLayout.layoutSchemaVersion, HomeLayoutSnapshot.currentSchemaVersion)
         defaults.set(\.onboarding.hasCompletedOnboarding, true)
+        defaults.set(\.experience.appAppearance, AppAppearance.dark.rawValue)
         defaults.set(\.experience.appLanguage, uiTestLanguage)
         defaults.set(\.premium.premiumEntitlement, true)
         defaults.set(\.iCloudBackup.isEnabled, false)
@@ -852,6 +917,7 @@ struct MeasureMeApp: App {
 private struct SettingsUITestHostView: View {
     @StateObject private var premiumStore = PremiumStore(startListener: false)
     @StateObject private var metricsStore = ActiveMetricsStore()
+    @AppSetting(\.experience.appAppearance) private var appAppearance: String = AppAppearance.system.rawValue
 
     var body: some View {
         NavigationStack {
@@ -863,7 +929,7 @@ private struct SettingsUITestHostView: View {
             PremiumPaywallView()
                 .environmentObject(premiumStore)
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme((AppAppearance(rawValue: appAppearance) ?? .system).preferredColorScheme)
         .accessibilityIdentifier("app.root.ready")
     }
 }

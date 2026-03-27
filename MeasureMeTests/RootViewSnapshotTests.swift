@@ -28,6 +28,7 @@ final class RootViewSnapshotTests: XCTestCase {
     let defaults = UserDefaults.standard
     let settingsStore = AppSettingsStore.shared
     let managedKeys = [
+      "appAppearance",
       "appLanguage",
       "hasCompletedOnboarding",
       "premium_first_launch_date",

@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppSettingsMigration {
-    private static let currentSchemaVersion = 3
+    private static let currentSchemaVersion = 4
 
     static func applyIfNeeded(defaults: UserDefaults) {
         let schemaVersion = defaults.integer(forKey: AppSettingsKeys.settingsSchemaVersion)

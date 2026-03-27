@@ -13,9 +13,12 @@ final class DesignSystemTokenTests: XCTestCase {
 
     func testLegacyBrandColorsDelegateToNewPalette() {
         XCTAssertEqual(rgba(Color.appBlack), rgba(Color.appInk))
-        XCTAssertEqual(rgba(Color.appAccent), rgba(Color.appAmber))
-        XCTAssertEqual(rgba(Color.appGray), rgba(Color.appFog))
-        XCTAssertEqual(rgba(Color.appWhite), rgba(Color.appPaper))
+        XCTAssertEqual(rgba(Color.appAccent, style: .light), rgba(Color.appAmberLight))
+        XCTAssertEqual(rgba(Color.appAccent, style: .dark), rgba(Color.appAmber))
+        XCTAssertEqual(rgba(Color.appGray, style: .dark), rgba(Color.appFog))
+        XCTAssertEqual(rgba(Color.appGray, style: .light), rgba(Color.appInk.opacity(0.62)))
+        XCTAssertEqual(rgba(Color.appWhite, style: .dark), rgba(Color.appPaper))
+        XCTAssertEqual(rgba(Color.appWhite, style: .light), rgba(Color.appInk))
     }
 
     func testFeatureThemesExposeDistinctAccents() {
@@ -25,17 +28,26 @@ final class DesignSystemTokenTests: XCTestCase {
     }
 
     func testSemanticRolesMapToExpectedPalette() {
-        XCTAssertEqual(rgba(AppColorRoles.accentPrimary), rgba(Color.appAmber))
+        XCTAssertEqual(rgba(AppColorRoles.accentPrimary, style: .light), rgba(Color.appAmberLight))
+        XCTAssertEqual(rgba(AppColorRoles.accentPrimary, style: .dark), rgba(Color.appAmber))
         XCTAssertEqual(rgba(AppColorRoles.accentPhoto), rgba(Color.appCyan))
         XCTAssertEqual(rgba(AppColorRoles.accentData), rgba(Color.appTeal))
-        XCTAssertEqual(rgba(AppColorRoles.accentPremium), rgba(Color.appAmber))
+        XCTAssertEqual(rgba(AppColorRoles.accentPremium, style: .light), rgba(Color.appAmberLight))
+        XCTAssertEqual(rgba(AppColorRoles.accentPremium, style: .dark), rgba(Color.appAmber))
         XCTAssertEqual(rgba(AppColorRoles.accentHealth), rgba(Color.appEmerald))
         XCTAssertEqual(rgba(AppColorRoles.chartPositive), rgba(Color.appEmerald))
         XCTAssertEqual(rgba(AppColorRoles.compareAfter), rgba(Color.appAmber))
     }
 
-    private func rgba(_ color: Color) -> [CGFloat] {
-        let uiColor = UIColor(color)
+    func testSemanticRolesAdaptAcrossLightAndDarkSchemes() {
+        XCTAssertNotEqual(rgba(AppColorRoles.surfaceCanvas, style: .light), rgba(AppColorRoles.surfaceCanvas, style: .dark))
+        XCTAssertNotEqual(rgba(AppColorRoles.textPrimary, style: .light), rgba(AppColorRoles.textPrimary, style: .dark))
+        XCTAssertNotEqual(rgba(AppColorRoles.surfaceGlass, style: .light), rgba(AppColorRoles.surfaceGlass, style: .dark))
+    }
+
+    private func rgba(_ color: Color, style: UIUserInterfaceStyle = .light) -> [CGFloat] {
+        let traitCollection = UITraitCollection(userInterfaceStyle: style)
+        let uiColor = UIColor(color).resolvedColor(with: traitCollection)
         var red: CGFloat = 0
         var green: CGFloat = 0
         var blue: CGFloat = 0

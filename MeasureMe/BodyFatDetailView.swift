@@ -10,158 +10,127 @@ struct BodyFatDetailView: View {
     let gender: Gender
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // Karta naglowka
+        SettingsScrollDetailScaffold(title: AppLocalization.string("Body Fat Percentage"), theme: .health) {
+            HealthInsightHeroCard(accent: Color(hex: category.color)) {
                 VStack(alignment: .leading, spacing: 16) {
                     Text(AppLocalization.string("Body Fat Percentage"))
                         .font(AppTypography.sectionTitle)
-                        .foregroundStyle(.white)
-                    
+                        .foregroundStyle(AppColorRoles.textPrimary)
+
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(String(format: "%.1f", value))
                             .font(AppTypography.displayLarge)
-                            .foregroundStyle(.white)
-                        
+                            .foregroundStyle(AppColorRoles.textPrimary)
+
                         Text(AppLocalization.string("%"))
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
-                    
+
                     Text(AppLocalization.string(category.name))
                         .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.bestAccessibleTextColor(onHex: category.color))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                         .background(Color(hex: category.color), in: RoundedRectangle(cornerRadius: 8))
-                    
+
                     HStack(spacing: 4) {
                         Image(systemName: "heart.fill")
                             .font(AppTypography.caption)
                         Text(AppLocalization.string("From HealthKit"))
                             .font(AppTypography.caption)
                     }
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(AppColorRoles.textTertiary)
                     .padding(.top, 4)
                 }
-                .padding(20)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    LinearGradient(
-                        colors: [
-                            Color(hex: "#14213D").opacity(0.6),
-                            Color(hex: "#000000")
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Color(hex: "#FCA311").opacity(0.3), lineWidth: 1)
-                )
-                
-                // Czym jest Body Fat %?
+            }
+
+            HealthInsightCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(AppLocalization.string("What is Body Fat Percentage?"))
                         .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(.white)
-                    
+                        .foregroundStyle(AppColorRoles.textPrimary)
+
                     Text(AppLocalization.string("Body fat percentage is the proportion of your body weight that is fat tissue. It provides a more accurate picture of your body composition than weight or BMI alone."))
                         .font(AppTypography.body)
-                        .foregroundStyle(.white.opacity(0.9))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    
+
                     Text(AppLocalization.string("This data is sourced from the Health app, which may collect it from compatible scales, fitness devices, or manual entries."))
                         .font(AppTypography.body)
-                        .foregroundStyle(.white.opacity(0.9))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 4)
                 }
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+            }
 
-                WhyItMattersCard(items: [
-                    WhyItMattersItem(
-                        icon: "figure.walk",
-                        title: AppLocalization.string("Composition focus"),
-                        description: AppLocalization.string("Body fat percentage shows how weight is split between fat and lean mass.")
-                    ),
-                    WhyItMattersItem(
-                        icon: "heart.fill",
-                        title: AppLocalization.string("Metabolic health"),
-                        description: AppLocalization.string("Very high levels can add cardiometabolic strain over time.")
-                    ),
-                    WhyItMattersItem(
-                        icon: "target",
-                        title: AppLocalization.string("Progress clarity"),
-                        description: AppLocalization.string("It helps track recomposition even when scale weight is steady.")
-                    )
-                ])
-                
-                // Ranges
+            WhyItMattersCard(items: [
+                WhyItMattersItem(
+                    icon: "figure.walk",
+                    title: AppLocalization.string("Composition focus"),
+                    description: AppLocalization.string("Body fat percentage shows how weight is split between fat and lean mass.")
+                ),
+                WhyItMattersItem(
+                    icon: "heart.fill",
+                    title: AppLocalization.string("Metabolic health"),
+                    description: AppLocalization.string("Very high levels can add cardiometabolic strain over time.")
+                ),
+                WhyItMattersItem(
+                    icon: "target",
+                    title: AppLocalization.string("Progress clarity"),
+                    description: AppLocalization.string("It helps track recomposition even when scale weight is steady.")
+                )
+            ])
+
+            HealthInsightCard(tint: Color(hex: category.color).opacity(0.10)) {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(AppLocalization.string("reference.ranges.gender", gender.displayName))
                         .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(.white)
-                    
+                        .foregroundStyle(AppColorRoles.textPrimary)
+
                     VStack(spacing: 8) {
                         ForEach(bodyFatRanges, id: \.title) { range in
                             HStack {
                                 Circle()
                                     .fill(Color(hex: range.color))
                                     .frame(width: 12, height: 12)
-                                
+
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(AppLocalization.string(range.title))
                                         .font(AppTypography.bodyEmphasis)
-                                        .foregroundStyle(.white)
-                                    
+                                        .foregroundStyle(AppColorRoles.textPrimary)
+
                                     Text(range.range)
                                         .font(AppTypography.caption)
-                                        .foregroundStyle(.white.opacity(0.7))
+                                        .foregroundStyle(AppColorRoles.textSecondary)
                                 }
-                                
+
                                 Spacer()
                             }
                             .padding(.vertical, 4)
                         }
                     }
                 }
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
-                
-                // Important Note
+            }
+
+            HealthInsightNoteCard(accent: Color(hex: "#3B82F6")) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
                         Image(systemName: "info.circle.fill")
                             .foregroundStyle(Color(hex: "#3B82F6"))
-                        
+
                         Text(AppLocalization.string("Important"))
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
                     }
-                    
+
                     Text(AppLocalization.string("Body fat percentage measurements can vary depending on the measurement method. For the most accurate assessment, use the same device consistently and measure under similar conditions."))
                         .font(AppTypography.caption)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    Color(hex: "#3B82F6").opacity(0.15),
-                    in: RoundedRectangle(cornerRadius: 10)
-                )
             }
-            .padding()
         }
-        .background(Color.black.ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
     }
     
     private var category: (name: String, color: String) {

@@ -96,6 +96,10 @@ enum WidgetDataWriter {
         performImmediateWriteAndReload(kinds: MetricKind.allCases, context: context, unitsSystem: unitsSystem)
     }
 
+    static func reloadAllTimelines() {
+        triggerReload()
+    }
+
     // MARK: - Internal test hooks
 
     static func setTestHooks(

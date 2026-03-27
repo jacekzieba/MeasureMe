@@ -13,11 +13,12 @@ struct TransformationCardPreviewSheet: View {
     @State private var showShareSheet = false
     @State private var showSaveAlert = false
     @State private var saveMessage = ""
+    private let photosTheme = FeatureTheme.photos
 
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                AppScreenBackground(topHeight: 280, tint: photosTheme.strongTint, showsSpotlight: true)
 
                 VStack(spacing: 16) {
                     // Aspect ratio picker
@@ -29,12 +30,13 @@ struct TransformationCardPreviewSheet: View {
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal)
+                    .padding(.top, 4)
 
                     // Preview
                     if isRendering {
                         Spacer()
                         ProgressView()
-                            .tint(.white)
+                            .tint(AppColorRoles.textSecondary)
                         Spacer()
                     } else if let image = renderedImage {
                         GeometryReader { geo in
@@ -50,7 +52,7 @@ struct TransformationCardPreviewSheet: View {
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: fitW, height: fitH)
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .shadow(color: .white.opacity(0.08), radius: 12)
+                                .shadow(color: AppColorRoles.shadowSoft, radius: 14, x: 0, y: 8)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
                     } else {
@@ -69,8 +71,7 @@ struct TransformationCardPreviewSheet: View {
                             Label(AppLocalization.string("transformation.card.save"), systemImage: "square.and.arrow.down")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.bordered)
-                        .tint(.white)
+                        .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
                         .disabled(renderedImage == nil || isRendering)
 
                         Button {
@@ -80,8 +81,7 @@ struct TransformationCardPreviewSheet: View {
                             Label(AppLocalization.string("transformation.card.shareAction"), systemImage: "square.and.arrow.up")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(Color(red: 252/255, green: 163/255, blue: 17/255))
+                        .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
                         .disabled(renderedImage == nil || isRendering)
                     }
                     .padding(.horizontal)
@@ -91,7 +91,7 @@ struct TransformationCardPreviewSheet: View {
             .navigationTitle(AppLocalization.string("transformation.card.preview.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(Color.black, for: .navigationBar)
+            .toolbarBackground(AppColorRoles.surfaceChrome, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Done")) { dismiss() }

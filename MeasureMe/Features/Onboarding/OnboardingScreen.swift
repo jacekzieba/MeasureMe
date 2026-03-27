@@ -234,7 +234,6 @@ struct OnboardingView: View {
                     .accessibilityIdentifier("onboarding.reminder.sheet.visible")
             }
         }
-        .preferredColorScheme(.dark)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if focusedField == nil {
                 VStack(spacing: 10) {
@@ -284,7 +283,7 @@ struct OnboardingView: View {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [Color.white.opacity(0.08), .clear],
+                        colors: [AppColorRoles.surfacePrimary.opacity(0.8), .clear],
                         center: .center,
                         startRadius: 20,
                         endRadius: 190
@@ -306,7 +305,7 @@ struct OnboardingView: View {
             HStack(spacing: 6) {
                 ForEach(0..<totalSteps, id: \.self) { index in
                     Capsule(style: .continuous)
-                        .fill(index <= currentStepIndex ? Color.appAccent : Color.white.opacity(0.16))
+                        .fill(index <= currentStepIndex ? Color.appAccent : AppColorRoles.borderSubtle)
                         .frame(maxWidth: .infinity)
                         .frame(height: 5)
                 }
@@ -380,7 +379,7 @@ struct OnboardingView: View {
                 goToNextStep()
             } label: {
                 Text(nextButtonTitle)
-                    .foregroundStyle(Color.black)
+                    .foregroundStyle(AppColorRoles.textOnAccent)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 44)
             }

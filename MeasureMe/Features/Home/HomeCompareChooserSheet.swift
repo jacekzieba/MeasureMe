@@ -95,50 +95,52 @@ struct HomeCompareChooserSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    Text("\(filteredPhotos.count)")
-                        .font(.system(size: 1))
-                        .accessibilityIdentifier("home.compare.filteredCount")
-                        .frame(width: 1, height: 1)
-                        .opacity(0.001)
+            ZStack(alignment: .top) {
+                AppScreenBackground(topHeight: 320, tint: photosTheme.strongTint, showsSpotlight: true)
 
-                    if isUITestMode {
-                        Button(AppLocalization.string("home.compare.chooser.uihook")) {
-                            guard let suggestedPair else { return }
-                            onCompareSelected(suggestedPair.older, suggestedPair.newer)
-                            dismiss()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text("\(filteredPhotos.count)")
+                            .font(.system(size: 1))
+                            .accessibilityIdentifier("home.compare.filteredCount")
+                            .frame(width: 1, height: 1)
+                            .opacity(0.001)
+
+                        if isUITestMode {
+                            Button(AppLocalization.string("home.compare.chooser.uihook")) {
+                                guard let suggestedPair else { return }
+                                onCompareSelected(suggestedPair.older, suggestedPair.newer)
+                                dismiss()
+                            }
+                            .font(.system(size: 1))
+                            .foregroundStyle(.clear)
+                            .frame(width: 1, height: 1)
+                            .clipped()
+                            .accessibilityIdentifier("home.compare.selectTwoHook")
                         }
-                        .font(.system(size: 1))
-                        .foregroundStyle(.clear)
-                        .frame(width: 1, height: 1)
-                        .clipped()
-                        .accessibilityIdentifier("home.compare.selectTwoHook")
+
+                        pairHeader
+
+                        Button {
+                            confirmCompare()
+                        } label: {
+                            Text(AppLocalization.string("Compare"))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                        .disabled(!compareEnabled)
+                        .accessibilityIdentifier("home.compare.confirm")
+
+                        filterSection
+                        photoGrid
                     }
-
-                    pairHeader
-
-                    Button {
-                        confirmCompare()
-                    } label: {
-                        Text(AppLocalization.string("Compare"))
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-                    .disabled(!compareEnabled)
-                    .accessibilityIdentifier("home.compare.confirm")
-
-                    filterSection
-                    photoGrid
+                    .padding(16)
                 }
-                .padding(16)
             }
-            .background(Color.black.ignoresSafeArea())
             .navigationTitle(AppLocalization.string("home.compare.chooser.title"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.black, for: .navigationBar)
+            .toolbarBackground(AppColorRoles.surfaceChrome, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Done")) {
@@ -234,7 +236,7 @@ struct HomeCompareChooserSheet: View {
                 Spacer()
                 Text(AppLocalization.string("home.compare.filter.count", filteredPhotos.count))
                     .font(AppTypography.micro)
-                    .foregroundStyle(.white.opacity(0.68))
+                    .foregroundStyle(AppColorRoles.textSecondary)
             }
 
             LazyVGrid(
@@ -249,11 +251,31 @@ struct HomeCompareChooserSheet: View {
                     } label: {
                         Text(range.title)
                             .font(AppTypography.microEmphasis)
-                            .foregroundStyle(selectedRange == range ? .black : .white.opacity(0.82))
+                            .foregroundStyle(selectedRange == range ? AppColorRoles.textOnAccent : AppColorRoles.textPrimary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .frame(maxWidth: .infinity, alignment: .center)
-                            .background(selectedRange == range ? photosTheme.accent : Color.white.opacity(0.06))
+                            .background(
+                                Group {
+                                    if selectedRange == range {
+                                        LinearGradient(
+                                            colors: [photosTheme.accent.opacity(0.92), Color.appAmber.opacity(0.72)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    } else {
+                                        LinearGradient(
+                                            colors: [AppColorRoles.surfaceInteractive, AppColorRoles.surfacePrimary],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    }
+                                }
+                            )
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .stroke(selectedRange == range ? photosTheme.accent.opacity(0.22) : AppColorRoles.borderSubtle, lineWidth: 1)
+                            )
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -317,10 +339,30 @@ struct HomeCompareChooserSheet: View {
                                         Text(tag.title)
                                     }
                                     .font(AppTypography.captionEmphasis)
-                                    .foregroundStyle(selectedTags.contains(tag) ? .black : .white.opacity(0.82))
+                                    .foregroundStyle(selectedTags.contains(tag) ? AppColorRoles.textOnAccent : AppColorRoles.textPrimary)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
-                                    .background(selectedTags.contains(tag) ? photosTheme.accent : Color.white.opacity(0.06))
+                                    .background(
+                                        Group {
+                                            if selectedTags.contains(tag) {
+                                                LinearGradient(
+                                                    colors: [photosTheme.accent.opacity(0.92), Color.appAmber.opacity(0.72)],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                            } else {
+                                                LinearGradient(
+                                                    colors: [AppColorRoles.surfaceInteractive, AppColorRoles.surfacePrimary],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                            }
+                                        }
+                                    )
+                                    .overlay(
+                                        Capsule(style: .continuous)
+                                            .stroke(selectedTags.contains(tag) ? photosTheme.accent.opacity(0.22) : AppColorRoles.borderSubtle, lineWidth: 1)
+                                    )
                                     .clipShape(Capsule())
                                 }
                                 .buttonStyle(.plain)
@@ -338,15 +380,29 @@ struct HomeCompareChooserSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(AppLocalization.string("home.compare.filter.empty"))
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                 Text(AppLocalization.string("home.compare.filter.empty.detail"))
                     .font(AppTypography.caption)
-                    .foregroundStyle(.white.opacity(0.68))
+                    .foregroundStyle(AppColorRoles.textSecondary)
             }
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.white.opacity(0.05))
+                    .fill(AppColorRoles.surfacePrimary)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [photosTheme.softTint, .clear],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                    )
             )
         } else {
             LazyVGrid(
@@ -421,7 +477,7 @@ struct HomeCompareChooserSheet: View {
                     )
                 } else {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color.white.opacity(0.06))
+                        .fill(AppColorRoles.surfaceInteractive)
                         .frame(width: 120, height: 120)
                         .overlay {
                             Image(systemName: fallbackSymbol)
@@ -505,7 +561,7 @@ struct HomeCompareChooserSheet: View {
     }
 
     private func selectionBorderColor(for photo: PhotoEntry) -> Color {
-        markerText(for: photo) == nil ? Color.white.opacity(0.08) : photosTheme.accent
+        markerText(for: photo) == nil ? AppColorRoles.borderSubtle : photosTheme.accent
     }
 
     private func selectionBorderWidth(for photo: PhotoEntry) -> CGFloat {

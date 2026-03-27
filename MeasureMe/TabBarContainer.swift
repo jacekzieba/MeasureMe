@@ -17,7 +17,7 @@ struct TabBarContainer: View {
         let tabBarShouldBeVisible = isUITest || router.selectedTab != .home || homeTabScrollOffset < -14
 
         ZStack {
-            Color.black
+            AppColorRoles.surfaceCanvas
                 .ignoresSafeArea()
 
             if #available(iOS 18.0, *) {
@@ -70,9 +70,9 @@ struct TabBarContainer: View {
                     }
                     .accessibilityIdentifier("tab.settings")
                 }
-                .tint(Color(hex: "#FCA311"))
+                .tint(Color.appAccent)
                 .toolbarBackground(tabBarShouldBeVisible ? .visible : .hidden, for: .tabBar)
-                .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+                .toolbarBackground(AppColorRoles.surfaceChrome, for: .tabBar)
                 .applyTabBarMinimizeBehaviorIfAvailable()
                 .onChange(of: router.selectedTab) { oldTab, newTab in
                     handleSelectedTabChange(oldTab: oldTab, newTab: newTab)
@@ -122,9 +122,9 @@ struct TabBarContainer: View {
                         .tag(AppTab.settings)
                         .accessibilityIdentifier("tab.settings")
                 }
-                .tint(Color(hex: "#FCA311"))
+                .tint(Color.appAccent)
                 .toolbarBackground(tabBarShouldBeVisible ? .visible : .hidden, for: .tabBar)
-                .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+                .toolbarBackground(AppColorRoles.surfaceChrome, for: .tabBar)
                 .applyTabBarMinimizeBehaviorIfAvailable()
                 .onChange(of: router.selectedTab) { oldTab, newTab in
                     handleSelectedTabChange(oldTab: oldTab, newTab: newTab)
@@ -162,7 +162,6 @@ struct TabBarContainer: View {
                 handleAppEntryAction(effectiveAction)
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func applyAuditRouteIfNeeded() {

@@ -19,6 +19,7 @@ final class AppSettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(store.snapshot.profile.unitsSystem, "metric")
         XCTAssertEqual(store.snapshot.experience.appLanguage, "system")
+        XCTAssertEqual(store.snapshot.experience.appAppearance, AppAppearance.system.rawValue)
         XCTAssertTrue(store.snapshot.experience.animationsEnabled)
         XCTAssertTrue(store.snapshot.notifications.photoRemindersEnabled)
         XCTAssertTrue(store.snapshot.health.healthkitSyncWeight)
@@ -208,14 +209,27 @@ final class AppSettingsStoreTests: XCTestCase {
         store.set(\.profile.unitsSystem, "imperial")
         defaults.set(true, forKey: AppSettingsKeys.Metrics.weightEnabled)
         defaults.set(true, forKey: AppSettingsKeys.Metrics.waistEnabled)
+        store.set(\.experience.appAppearance, AppAppearance.light.rawValue)
         // Trigger persist which calls syncIntentSettings
         store.set(\.profile.unitsSystem, "imperial")
 
         // Assert: App Group suite should mirror the values
         XCTAssertEqual(appGroupDefaults.string(forKey: AppSettingsKeys.Profile.unitsSystem), "imperial")
+        XCTAssertEqual(appGroupDefaults.string(forKey: AppSettingsKeys.Experience.appAppearance), AppAppearance.light.rawValue)
         XCTAssertTrue(appGroupDefaults.bool(forKey: AppSettingsKeys.Metrics.weightEnabled))
         XCTAssertTrue(appGroupDefaults.bool(forKey: AppSettingsKeys.Metrics.waistEnabled))
         XCTAssertFalse(appGroupDefaults.bool(forKey: AppSettingsKeys.Metrics.neckEnabled))
+    }
+
+    func testAppearanceSettingPersistsAndReloads() {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+
+        store.set(\.experience.appAppearance, AppAppearance.dark.rawValue)
+        store.reload()
+
+        XCTAssertEqual(store.snapshot.experience.appAppearance, AppAppearance.dark.rawValue)
+        XCTAssertEqual(defaults.string(forKey: AppSettingsKeys.Experience.appAppearance), AppAppearance.dark.rawValue)
     }
 
     func testClearUserDataDefaultsClearsProfileAndNotificationState() async {

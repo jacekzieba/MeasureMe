@@ -37,7 +37,7 @@ struct StartupLoadingView: View {
 
                     Text(AppLocalization.string(statusKey))
                         .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(Color.appGray)
+                        .foregroundStyle(AppColorRoles.textSecondary)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .accessibilityIdentifier("startup.loading.status")
@@ -49,7 +49,7 @@ struct StartupLoadingView: View {
 
                         ZStack(alignment: .leading) {
                             Capsule()
-                                .fill(Color.white.opacity(0.15))
+                                .fill(AppColorRoles.surfaceInteractive)
 
                             Capsule()
                                 .fill(
@@ -70,7 +70,7 @@ struct StartupLoadingView: View {
 
                     Text(progressPercentText)
                         .font(AppTypography.microEmphasis)
-                        .foregroundStyle(Color.appGray.opacity(0.85))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                         .monospacedDigit()
                 }
                 .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 6 : 14)
@@ -78,7 +78,6 @@ struct StartupLoadingView: View {
             .padding(.horizontal, 28)
             .padding(.vertical, 24)
         }
-        .preferredColorScheme(.dark)
         .accessibilityIdentifier("startup.loading.root")
         .onAppear {
             guard !reduceMotion else { return }
@@ -101,31 +100,7 @@ struct StartupLoadingView: View {
 
 private struct StartupLoadingBackground: View {
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-
-            LinearGradient(
-                colors: [
-                    Color.appNavy.opacity(0.96),
-                    Color.appBlack
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            Circle()
-                .fill(Color.appAccent.opacity(0.22))
-                .frame(width: 330, height: 330)
-                .blur(radius: 58)
-                .offset(x: -120, y: -210)
-
-            Circle()
-                .fill(Color.cyan.opacity(0.12))
-                .frame(width: 260, height: 260)
-                .blur(radius: 56)
-                .offset(x: 140, y: -160)
-        }
+        AppScreenBackground(topHeight: 360, tint: Color.appAccent.opacity(0.22))
         .accessibilityHidden(true)
     }
 }

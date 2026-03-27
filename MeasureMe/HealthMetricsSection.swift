@@ -187,7 +187,7 @@ struct HealthMetricsSection: View {
                 HStack {
                     Text(AppLocalization.string(title))
                         .font(AppTypography.sectionTitle)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
 
                     Spacer()
 
@@ -625,22 +625,22 @@ struct HealthMetricsSection: View {
                     .foregroundStyle(HealthIndicatorPalette.accent)
                 Text(AppLocalization.string("Missing data"))
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
             }
             Text(AppLocalization.string("To calculate all indicators, add:"))
                 .font(AppTypography.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColorRoles.textSecondary)
             ForEach(missingMetrics, id: \.self) { metric in
                 Text("• \(AppLocalization.string(metric))")
                     .font(AppTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColorRoles.textSecondary)
             }
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(0.05))
+                .fill(AppColorRoles.surfaceInteractive)
         )
     }
 
@@ -828,12 +828,12 @@ struct HealthMetricsSection: View {
 
                 Text(AppLocalization.string("No indicators selected"))
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
             }
 
             Text(AppLocalization.string("Enable health indicators in Settings to see results here."))
                 .font(AppTypography.body)
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(AppColorRoles.textSecondary)
 
             NavigationLink {
                 SettingsView()
@@ -843,7 +843,7 @@ struct HealthMetricsSection: View {
                     Text(AppLocalization.string("Go to Settings"))
                 }
                 .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(.black)
+                .foregroundStyle(AppColorRoles.textOnAccent)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .background(HealthIndicatorPalette.accent)
@@ -877,22 +877,22 @@ private struct HealthIndicatorMissingDataView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text(indicatorTitle)
                         .font(AppTypography.sectionTitle)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text(AppLocalization.string("To calculate this indicator, add:"))
                             .font(AppTypography.body)
-                            .foregroundStyle(.white.opacity(0.84))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                         ForEach(missingItems, id: \.self) { item in
                             Text("• \(item)")
                                 .font(AppTypography.body)
-                                .foregroundStyle(.white.opacity(0.9))
+                                .foregroundStyle(AppColorRoles.textPrimary)
                         }
                     }
                     .padding(14)
                     .background(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.white.opacity(0.06))
+                            .fill(AppColorRoles.surfaceInteractive)
                     )
 
                     Button {
@@ -901,7 +901,7 @@ private struct HealthIndicatorMissingDataView: View {
                     } label: {
                         Text(AppLocalization.string("Add measurement"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(AppColorRoles.textOnAccent)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(HealthIndicatorPalette.accent, in: RoundedRectangle(cornerRadius: 8))
@@ -928,11 +928,11 @@ private struct GenderRequiredIndicatorView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     Text(indicatorTitle)
                         .font(AppTypography.sectionTitle)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
 
                     Text(AppLocalization.string("Set your gender in Profile to unlock this indicator and its ranges."))
                         .font(AppTypography.body)
-                        .foregroundStyle(.white.opacity(0.88))
+                        .foregroundStyle(AppColorRoles.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     NavigationLink {
@@ -940,7 +940,7 @@ private struct GenderRequiredIndicatorView: View {
                     } label: {
                         Text(AppLocalization.string("Open profile settings"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(AppColorRoles.textOnAccent)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(HealthIndicatorPalette.accent, in: RoundedRectangle(cornerRadius: 8))
@@ -987,7 +987,7 @@ private struct CentralFatRiskDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text(value)
                     .font(AppTypography.displayLarge)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
 
                 Text(category)
                     .font(AppTypography.captionEmphasis)
@@ -998,28 +998,28 @@ private struct CentralFatRiskDetailView: View {
 
                 Text(formula)
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
 
                 Text(notes)
                     .font(AppTypography.caption)
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(AppColorRoles.textSecondary)
 
                 ForEach(Array(ranges.enumerated()), id: \.offset) { _, range in
                     HStack {
                         Circle().fill(Color(hex: range.2)).frame(width: 9, height: 9)
                         Text(range.0)
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
                         Spacer()
                         Text(range.1)
                             .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.75))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
                 }
             }
             .padding(16)
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(AppColorRoles.surfaceCanvas.ignoresSafeArea())
         .navigationTitle(title)
         .healthIndicatorDetailNavigationStyle()
     }
@@ -1033,7 +1033,7 @@ private struct BodyShapeRiskScoreDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text(String(format: "%.2f", result.score))
                     .font(AppTypography.displayLarge)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
 
                 Text(AppLocalization.string(result.category.rawValue))
                     .font(AppTypography.captionEmphasis)
@@ -1044,26 +1044,26 @@ private struct BodyShapeRiskScoreDetailView: View {
 
                 Text("z-score: \(String(format: "%.2f", result.zScore))")
                     .font(AppTypography.body)
-                    .foregroundStyle(.white.opacity(0.88))
+                    .foregroundStyle(AppColorRoles.textSecondary)
 
                 Text(AppLocalization.string("Body Shape Risk in this app is standardized ABSI (z-score), not an arbitrary composite."))
                     .font(AppTypography.caption)
-                    .foregroundStyle(.white.opacity(0.82))
+                    .foregroundStyle(AppColorRoles.textSecondary)
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(AppLocalization.string("Reference interpretation"))
                         .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                     rangeRow(color: "#22C55E", title: AppLocalization.string("Low risk"), value: "z < -0.272")
                     rangeRow(color: HealthIndicatorPalette.emphasisHex, title: AppLocalization.string("Moderate risk"), value: "-0.272 ... 0.229")
                     rangeRow(color: "#EF4444", title: AppLocalization.string("High risk"), value: "z > 0.229")
                 }
                 .padding(12)
-                .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+                .background(AppColorRoles.surfaceInteractive, in: RoundedRectangle(cornerRadius: 12))
             }
             .padding(16)
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(AppColorRoles.surfaceCanvas.ignoresSafeArea())
         .navigationTitle(AppLocalization.string("Body Shape Risk"))
         .healthIndicatorDetailNavigationStyle()
     }
@@ -1073,11 +1073,11 @@ private struct BodyShapeRiskScoreDetailView: View {
             Circle().fill(Color(hex: color)).frame(width: 9, height: 9)
             Text(title)
                 .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(.white)
+                .foregroundStyle(AppColorRoles.textPrimary)
             Spacer()
             Text(value)
                 .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(AppColorRoles.textSecondary)
         }
     }
 }
@@ -1094,7 +1094,7 @@ private struct WaistRiskDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text(String(format: "%.1f %@", display, unit))
                     .font(AppTypography.displayLarge)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
 
                 Text(AppLocalization.string(result.category.rawValue))
                     .font(AppTypography.captionEmphasis)
@@ -1105,7 +1105,7 @@ private struct WaistRiskDetailView: View {
 
                 Text(AppLocalization.string("Waist circumference is a direct marker of central fat distribution."))
                     .font(AppTypography.caption)
-                    .foregroundStyle(.white.opacity(0.84))
+                    .foregroundStyle(AppColorRoles.textSecondary)
 
                 VStack(alignment: .leading, spacing: 8) {
                     if result.gender == .male {
@@ -1119,11 +1119,11 @@ private struct WaistRiskDetailView: View {
                     }
                 }
                 .padding(12)
-                .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+                .background(AppColorRoles.surfaceInteractive, in: RoundedRectangle(cornerRadius: 12))
             }
             .padding(16)
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(AppColorRoles.surfaceCanvas.ignoresSafeArea())
         .navigationTitle(AppLocalization.string("Waist circumference"))
         .healthIndicatorDetailNavigationStyle()
     }
@@ -1133,11 +1133,11 @@ private struct WaistRiskDetailView: View {
             Circle().fill(Color(hex: color)).frame(width: 9, height: 9)
             Text(title)
                 .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(.white)
+                .foregroundStyle(AppColorRoles.textPrimary)
             Spacer()
             Text(value)
                 .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(AppColorRoles.textSecondary)
         }
     }
 }
@@ -1146,6 +1146,5 @@ private extension View {
     func healthIndicatorDetailNavigationStyle() -> some View {
         navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
     }
 }

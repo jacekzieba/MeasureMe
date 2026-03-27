@@ -63,6 +63,7 @@ struct StreakDetailView: View {
     @Query private var thisWeekSamples: [MetricSample]
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var flameScale: CGFloat = 1.0
     @State private var glowRadius: CGFloat = 18
@@ -77,6 +78,14 @@ struct StreakDetailView: View {
 
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    // MARK: - Adaptive colors
+    private var streakText: Color { colorScheme == .dark ? .white : AppColorRoles.textPrimary }
+    private var streakTextSecondary: Color { colorScheme == .dark ? .white.opacity(0.55) : AppColorRoles.textSecondary }
+    private var streakTextTertiary: Color { colorScheme == .dark ? .white.opacity(0.45) : AppColorRoles.textTertiary }
+    private var streakDivider: Color { colorScheme == .dark ? .white.opacity(0.16) : AppColorRoles.borderSubtle }
+    private var streakMuted: Color { colorScheme == .dark ? .white.opacity(0.07) : AppColorRoles.surfaceSecondary }
+    private var streakSubtle: Color { colorScheme == .dark ? .white.opacity(0.35) : AppColorRoles.textTertiary }
 
     private var shouldAnimate: Bool {
         animationsEnabled && !reduceMotion
@@ -101,7 +110,11 @@ struct StreakDetailView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                Color.black.ignoresSafeArea()
+                if colorScheme == .dark {
+                    Color.black.ignoresSafeArea()
+                } else {
+                    AppScreenBackground(tint: Color.orange.opacity(0.18))
+                }
 
                 ScrollView {
                     VStack(spacing: 28) {
@@ -143,9 +156,9 @@ struct StreakDetailView: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(streakText)
                     .frame(width: 36, height: 36)
-                    .background(Circle().fill(.white.opacity(0.12)))
+                    .background(Circle().fill(colorScheme == .dark ? .white.opacity(0.12) : AppColorRoles.surfaceGlass))
             }
             .buttonStyle(.plain)
 
@@ -153,7 +166,7 @@ struct StreakDetailView: View {
 
             Text(AppLocalization.string("streak.detail.title"))
                 .font(AppTypography.captionEmphasis)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(streakTextSecondary)
                 .tracking(2)
                 .textCase(.uppercase)
 
@@ -197,12 +210,12 @@ struct StreakDetailView: View {
 
             Text("\(streakManager.currentStreak)")
                 .font(.system(size: 88, weight: .bold, design: .rounded).monospacedDigit())
-                .foregroundStyle(.white)
+                .foregroundStyle(streakText)
                 .contentTransition(.numericText())
 
             Text(AppLocalization.string("streak.detail.weekStreak"))
                 .font(.system(.subheadline, design: .rounded).weight(.bold))
-                .foregroundStyle(.white.opacity(0.55))
+                .foregroundStyle(streakTextSecondary)
                 .tracking(3)
                 .textCase(.uppercase)
         }
@@ -219,7 +232,7 @@ struct StreakDetailView: View {
                 )
 
                 Rectangle()
-                    .fill(.white.opacity(0.16))
+                    .fill(streakDivider)
                     .frame(width: 1, height: 40)
 
                 statColumn(
@@ -228,7 +241,7 @@ struct StreakDetailView: View {
                 )
 
                 Rectangle()
-                    .fill(.white.opacity(0.16))
+                    .fill(streakDivider)
                     .frame(width: 1, height: 40)
 
                 statColumn(
@@ -244,13 +257,13 @@ struct StreakDetailView: View {
         VStack(spacing: 4) {
             Text(value)
                 .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(.white)
+                .foregroundStyle(streakText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
             Text(title)
                 .font(AppTypography.micro)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(streakTextSecondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
@@ -264,7 +277,7 @@ struct StreakDetailView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text(AppLocalization.string("streak.detail.thisWeek"))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(streakTextSecondary)
                     .tracking(2)
                     .textCase(.uppercase)
 
@@ -316,7 +329,7 @@ struct StreakDetailView: View {
         return VStack(spacing: 6) {
             Text(day.label)
                 .font(.system(size: 10, weight: day.isToday ? .bold : .regular))
-                .foregroundStyle(day.isToday ? .white : .white.opacity(0.45))
+                .foregroundStyle(day.isToday ? streakText : streakTextTertiary)
 
             if hasEntry {
                 Image(systemName: "flame.fill")
@@ -334,8 +347,8 @@ struct StreakDetailView: View {
                 Circle()
                     .strokeBorder(
                         isFuture
-                            ? Color.white.opacity(0.14)
-                            : Color.white.opacity(0.26),
+                            ? streakDivider
+                            : streakTextTertiary,
                         style: StrokeStyle(lineWidth: 1.5, dash: isFuture ? [3, 3] : [])
                     )
                     .frame(width: 22, height: 22)
@@ -376,21 +389,21 @@ struct StreakDetailView: View {
                     if weeksToNextMilestone > 0 {
                         Text(AppLocalization.string("streak.detail.nextMilestone.label", weeksToNextMilestone))
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(streakText)
 
                         Text(AppLocalization.string("streak.detail.nextMilestone.sub"))
                             .font(AppTypography.caption)
-                            .foregroundStyle(.white.opacity(0.55))
+                            .foregroundStyle(streakTextSecondary)
                     } else {
                         Text(AppLocalization.string("streak.detail.milestone.reached"))
                             .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(streakText)
                     }
 
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule()
-                                .fill(.white.opacity(0.11))
+                                .fill(streakMuted)
                                 .frame(height: 6)
 
                             Capsule()
@@ -416,7 +429,7 @@ struct StreakDetailView: View {
         VStack(spacing: 4) {
             ZStack {
                 Circle()
-                    .fill(isActive ? Color.orange.opacity(0.22) : .white.opacity(0.07))
+                    .fill(isActive ? Color.orange.opacity(0.22) : streakMuted)
                     .frame(width: 52, height: 52)
 
                 Image(systemName: "flame.fill")
@@ -424,13 +437,13 @@ struct StreakDetailView: View {
                     .foregroundStyle(
                         isActive
                         ? LinearGradient(colors: [.yellow, .orange], startPoint: .top, endPoint: .bottom)
-                        : LinearGradient(colors: [.white.opacity(0.3), .white.opacity(0.15)], startPoint: .top, endPoint: .bottom)
+                        : LinearGradient(colors: [streakSubtle, streakSubtle.opacity(0.5)], startPoint: .top, endPoint: .bottom)
                     )
             }
 
             Text("\(count)")
                 .font(AppTypography.captionEmphasis.monospacedDigit())
-                .foregroundStyle(isActive ? .white : .white.opacity(0.35))
+                .foregroundStyle(isActive ? streakText : streakSubtle)
         }
     }
 
@@ -448,13 +461,13 @@ struct StreakDetailView: View {
 
                     Text(AppLocalization.string("streak.detail.totalLogs"))
                         .font(AppTypography.body)
-                        .foregroundStyle(.white.opacity(0.72))
+                        .foregroundStyle(streakTextSecondary)
 
                     Spacer()
 
                     Text("\(totalEntries)")
                         .font(AppTypography.bodyEmphasis.monospacedDigit())
-                        .foregroundStyle(.white)
+                        .foregroundStyle(streakText)
                 }
             }
         }
@@ -468,11 +481,11 @@ struct StreakDetailView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(motivationalTitle)
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(streakText)
 
                 Text(motivationalBody)
                     .font(AppTypography.body)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(streakTextSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -548,9 +561,9 @@ struct StreakDetailView: View {
 
     private func heatmapColor(for count: Int) -> Color {
         switch count {
-        case 0:     return .white.opacity(0.07)
-        case 1:     return Color.orange.opacity(0.3)
-        case 2:     return Color.orange.opacity(0.55)
+        case 0:     return streakMuted
+        case 1:     return Color.orange.opacity(colorScheme == .dark ? 0.3 : 0.35)
+        case 2:     return Color.orange.opacity(colorScheme == .dark ? 0.55 : 0.6)
         default:    return Color.appAccent
         }
     }
@@ -595,7 +608,7 @@ struct StreakDetailView: View {
                 HStack {
                     Text(AppLocalization.string("streak.detail.heatmap.title"))
                         .font(AppTypography.captionEmphasis)
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(streakTextSecondary)
                         .tracking(2)
                         .textCase(.uppercase)
 
@@ -630,15 +643,15 @@ struct StreakDetailView: View {
                             HStack(spacing: 4) {
                                 Text(String(selectedYear))
                                     .font(.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit())
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(streakText)
 
                                 Image(systemName: "chevron.up.chevron.down")
                                     .font(.system(size: 9, weight: .semibold))
-                                    .foregroundStyle(.white.opacity(0.5))
+                                    .foregroundStyle(streakTextSecondary)
                             }
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
-                            .background(Capsule().fill(.white.opacity(0.1)))
+                            .background(Capsule().fill(streakMuted))
                         }
                     }
                 }
@@ -655,7 +668,7 @@ struct StreakDetailView: View {
                     Spacer()
                     Text(AppLocalization.string("streak.detail.heatmap.less"))
                         .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(streakTextTertiary)
 
                     ForEach(0..<4, id: \.self) { level in
                         RoundedRectangle(cornerRadius: 2, style: .continuous)
@@ -665,7 +678,7 @@ struct StreakDetailView: View {
 
                     Text(AppLocalization.string("streak.detail.heatmap.more"))
                         .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(streakTextTertiary)
                 }
             }
         }
@@ -677,7 +690,7 @@ struct StreakDetailView: View {
         return VStack(alignment: .leading, spacing: 3) {
             Text(monthName(month))
                 .font(.system(size: 10, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.55))
+                .foregroundStyle(streakTextSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             let dayCols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
@@ -688,7 +701,7 @@ struct StreakDetailView: View {
                     ForEach(Array(headers.enumerated()), id: \.offset) { _, symbol in
                         Text(symbol)
                             .font(.system(size: 8, weight: .medium, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.35))
+                            .foregroundStyle(streakSubtle)
                     }
                 }
             }
@@ -791,7 +804,7 @@ struct StreakDetailView: View {
             .overlay {
                 if cell.isToday && cell.isVisible {
                     RoundedRectangle(cornerRadius: 2, style: .continuous)
-                        .stroke(.white.opacity(0.7), lineWidth: 1)
+                        .stroke(colorScheme == .dark ? .white.opacity(0.7) : Color.appNavy.opacity(0.5), lineWidth: 1)
                 }
             }
             .shadow(

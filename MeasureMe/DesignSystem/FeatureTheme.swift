@@ -26,22 +26,37 @@ enum FeatureTheme {
     }
 
     var softTint: Color {
-        accent.opacity(0.14)
+        Color.dynamic(
+            light: accent.opacity(0.06),
+            dark: accent.opacity(0.14)
+        )
     }
 
     var strongTint: Color {
-        accent.opacity(0.22)
+        Color.dynamic(
+            light: accent.opacity(0.10),
+            dark: accent.opacity(0.22)
+        )
     }
 
     var border: Color {
-        accent.opacity(0.24)
+        Color.dynamic(
+            light: accent.opacity(0.18),
+            dark: accent.opacity(0.24)
+        )
     }
 
     var pillFill: Color {
-        accent.opacity(0.12)
+        Color.dynamic(
+            light: accent.opacity(0.12),
+            dark: accent.opacity(0.12)
+        )
     }
 
     var pillStroke: Color {
-        accent.opacity(0.24)
+        Color.dynamic(
+            light: accent.opacity(0.18),
+            dark: accent.opacity(0.24)
+        )
     }
 }

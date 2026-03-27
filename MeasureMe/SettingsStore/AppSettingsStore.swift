@@ -364,6 +364,7 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(indicators.showPhysiqueRFM, forKey: AppSettingsKeys.Indicators.showPhysiqueRFM)
 
             let experience = snapshot.experience
+            defaults.set(experience.appAppearance, forKey: AppSettingsKeys.Experience.appAppearance)
             defaults.set(experience.animationsEnabled, forKey: AppSettingsKeys.Experience.animationsEnabled)
             defaults.set(experience.hapticsEnabled, forKey: AppSettingsKeys.Experience.hapticsEnabled)
             defaults.set(experience.appLanguage, forKey: AppSettingsKeys.Experience.appLanguage)
@@ -428,6 +429,7 @@ final class AppSettingsStore: ObservableObject {
     private static func syncIntentSettings(_ snapshot: AppSettingsSnapshot, defaults: UserDefaults) {
         guard let shared = appGroupDefaults, shared !== defaults else { return }
         shared.set(snapshot.profile.unitsSystem, forKey: AppSettingsKeys.Profile.unitsSystem)
+        shared.set(snapshot.experience.appAppearance, forKey: AppSettingsKeys.Experience.appAppearance)
         for key in AppSettingsKeys.Metrics.allEnabledKeys {
             shared.set(defaults.bool(forKey: key), forKey: key)
         }
