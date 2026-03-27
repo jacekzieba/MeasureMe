@@ -729,7 +729,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                AppScreenBackground(
+                SettingsBackdrop(
                     topHeight: 380,
                     scrollOffset: scrollOffset,
                     tint: Color.cyan.opacity(0.22)

@@ -248,8 +248,7 @@ struct NotificationSettingsView: View {
                     }
                 }
 
-                Divider()
-                    .overlay(AppColorRoles.borderSubtle)
+                SettingsRowDivider()
 
                 HStack(spacing: 12) {
                     Text(AppLocalization.plural("notification.smart.after.days", smartDays))
@@ -266,8 +265,7 @@ struct NotificationSettingsView: View {
                     acknowledgeSaved()
                 }
 
-                Divider()
-                    .overlay(AppColorRoles.borderSubtle)
+                SettingsRowDivider()
 
                 HStack(spacing: 12) {
                     Text(AppLocalization.string("Time of day"))
@@ -283,8 +281,7 @@ struct NotificationSettingsView: View {
                 }
 
                 if smartEnabled {
-                    Divider()
-                        .overlay(AppColorRoles.borderSubtle)
+                    SettingsRowDivider()
 
                     Toggle(isOn: $perMetricSmartEnabled) {
                         Label(AppLocalization.string("notification.smart.permetric.toggle"), systemImage: "list.bullet.clipboard")
@@ -318,8 +315,7 @@ struct NotificationSettingsView: View {
                 acknowledgeSaved()
             }
 
-            Divider()
-                .overlay(AppColorRoles.borderSubtle)
+            SettingsRowDivider()
 
             Toggle(isOn: $photoRemindersEnabled) {
                 Label(AppLocalization.string("Photo reminders"), systemImage: "camera.fill")
@@ -335,8 +331,7 @@ struct NotificationSettingsView: View {
                 acknowledgeSaved()
             }
 
-            Divider()
-                .overlay(AppColorRoles.borderSubtle)
+            SettingsRowDivider()
 
             Toggle(isOn: $goalAchievedEnabled) {
                 Label(AppLocalization.string("Goal achieved"), systemImage: "checkmark.seal.fill")
@@ -453,7 +448,7 @@ private struct _NotificationGlassCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        AppGlassCard(depth: .base, tint: AppColorRoles.surfacePrimary, contentPadding: 16) {
+        AppGlassCard(depth: .base, tint: FeatureTheme.settings.softTint, contentPadding: 16) {
             content
         }
     }

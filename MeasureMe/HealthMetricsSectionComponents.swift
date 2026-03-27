@@ -31,7 +31,7 @@ struct HealthMetricsSectionCard<Content: View>: View {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [healthAccent.opacity(0.20), .clear],
+                                colors: [Color.dynamic(light: healthAccent.opacity(0.08), dark: healthAccent.opacity(0.18)), .clear],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -40,7 +40,7 @@ struct HealthMetricsSectionCard<Content: View>: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(healthAccent.opacity(0.24), lineWidth: 1)
+                .stroke(Color.dynamic(light: healthAccent.opacity(0.18), dark: healthAccent.opacity(0.28)), lineWidth: 1)
         )
     }
 }

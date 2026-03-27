@@ -4,6 +4,7 @@ struct CustomMetricRowView: View {
     let definition: CustomMetricDefinition
     let isOn: Binding<Bool>
     private let iconTint = AppColorRoles.textPrimary.opacity(0.82)
+    private let measurementsTheme = FeatureTheme.measurements
 
     var body: some View {
         HStack(spacing: 12) {
@@ -33,9 +34,16 @@ struct CustomMetricRowView: View {
         .frame(maxWidth: .infinity, minHeight: MetricsLayout.rowHeight, alignment: .leading)
         .padding(.horizontal, MetricsLayout.horizontalPadding)
         .padding(.vertical, 6)
+        .background(
+            AppGlassBackground(
+                depth: .base,
+                cornerRadius: AppRadius.md,
+                tint: measurementsTheme.softTint
+            )
+        )
         .contentShape(Rectangle())
         .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
         .listRowBackground(Color.clear)
     }
 }

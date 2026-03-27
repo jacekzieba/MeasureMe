@@ -1,5 +1,14 @@
 import SwiftUI
 
+private let physiqueAccentGradient = LinearGradient(
+    colors: [
+        Color.dynamic(light: Color(hex: "#7667FF"), dark: Color(hex: "#C1B6FF")),
+        Color.dynamic(light: Color(hex: "#4F46E5"), dark: Color(hex: "#7C6DFF"))
+    ],
+    startPoint: .topLeading,
+    endPoint: .bottomTrailing
+)
+
 struct PhysiqueIndicatorsSection: View {
     @AppSetting(\.profile.userGender) private var userGenderRaw: String = "notSpecified"
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
@@ -458,7 +467,7 @@ struct PhysiqueIndicatorsSection: View {
             title: title,
             value: "—",
             category: AppLocalization.string("Set gender"),
-            categoryColor: "#FCA311",
+            categoryColor: AppColorRoles.stateNeutralHex,
             destination: GenderRequiredMetricView(metricName: title)
         )
     }
@@ -468,7 +477,7 @@ struct PhysiqueIndicatorsSection: View {
             title: title,
             value: "—",
             category: AppLocalization.string("Add data"),
-            categoryColor: "#FCA311",
+            categoryColor: AppColorRoles.stateNeutralHex,
             destination: PhysiqueMissingDataDetailView(metricName: title, requirements: requirements)
         )
     }
@@ -477,7 +486,7 @@ struct PhysiqueIndicatorsSection: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "slider.horizontal.3")
-                    .foregroundStyle(Color(hex: "#14B8A6"))
+                    .foregroundStyle(AppColorRoles.accentPhysique)
                 Text(AppLocalization.string("No indicators selected"))
                     .font(AppTypography.bodyEmphasis)
                     .foregroundStyle(AppColorRoles.textPrimary)
@@ -492,10 +501,10 @@ struct PhysiqueIndicatorsSection: View {
             } label: {
                 Text(AppLocalization.string("Go to Settings"))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(AppColorRoles.textOnAccent)
+                    .foregroundStyle(Color.white.opacity(0.98))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Color(hex: "#14B8A6"), in: RoundedRectangle(cornerRadius: 8))
+                    .background(physiqueAccentGradient, in: RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
         }
@@ -508,7 +517,7 @@ struct PhysiqueIndicatorsSection: View {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "#14B8A6").opacity(0.12), .clear],
+                                colors: [Color.dynamic(light: AppColorRoles.accentPhysique.opacity(0.08), dark: AppColorRoles.accentPhysique.opacity(0.16)), .clear],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -516,14 +525,14 @@ struct PhysiqueIndicatorsSection: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color(hex: "#14B8A6").opacity(0.35), lineWidth: 1)
+                        .stroke(Color.dynamic(light: AppColorRoles.accentPhysique.opacity(0.18), dark: AppColorRoles.accentPhysique.opacity(0.28)), lineWidth: 1)
                 )
         )
     }
 }
 
 private struct PhysiqueSectionCard<Content: View>: View {
-    private let physiqueAccent = Color(hex: "#14B8A6")
+    private let physiqueAccent = AppColorRoles.accentPhysique
     let title: String
     let icon: String
     @ViewBuilder let content: Content
@@ -549,7 +558,7 @@ private struct PhysiqueSectionCard<Content: View>: View {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [physiqueAccent.opacity(0.12), .clear],
+                                colors: [Color.dynamic(light: physiqueAccent.opacity(0.08), dark: physiqueAccent.opacity(0.16)), .clear],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -557,7 +566,7 @@ private struct PhysiqueSectionCard<Content: View>: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(physiqueAccent.opacity(0.3), lineWidth: 1)
+                        .stroke(Color.dynamic(light: physiqueAccent.opacity(0.18), dark: physiqueAccent.opacity(0.28)), lineWidth: 1)
                 )
         )
     }
@@ -620,7 +629,7 @@ private struct PhysiqueRequiresGenderCard: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: "person.crop.circle.badge.exclamationmark")
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(AppColorRoles.accentPhysique)
                 Text(AppLocalization.string("Set gender to unlock these indicators"))
                     .font(AppTypography.bodyEmphasis)
                     .foregroundStyle(AppColorRoles.textPrimary)
@@ -636,10 +645,10 @@ private struct PhysiqueRequiresGenderCard: View {
             } label: {
                 Text(AppLocalization.string("Open profile settings"))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(AppColorRoles.textOnAccent)
+                    .foregroundStyle(Color.white.opacity(0.98))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Color(hex: "#FCA311"), in: RoundedRectangle(cornerRadius: 8))
+                    .background(physiqueAccentGradient, in: RoundedRectangle(cornerRadius: 8))
             }
             .accessibilityIdentifier("physique.requires.gender.cta")
             .buttonStyle(.plain)
@@ -676,7 +685,7 @@ private struct PhysiqueRatioDetailView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 340, tint: Color(hex: "#14B8A6").opacity(0.16))
+            AppScreenBackground(topHeight: 340, tint: AppColorRoles.accentPhysique.opacity(0.16))
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -686,7 +695,7 @@ private struct PhysiqueRatioDetailView: View {
                             .foregroundStyle(AppColorRoles.textPrimary)
                         Text(shortCode)
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(Color(hex: "#14B8A6"))
+                            .foregroundStyle(AppColorRoles.accentPhysique)
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
@@ -772,7 +781,7 @@ private struct PhysiqueMissingDataDetailView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 320, tint: Color(hex: "#14B8A6").opacity(0.16))
+            AppScreenBackground(topHeight: 320, tint: AppColorRoles.accentPhysique.opacity(0.16))
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(metricName)
@@ -795,10 +804,10 @@ private struct PhysiqueMissingDataDetailView: View {
                     } label: {
                         Text(AppLocalization.string("Add measurement"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(AppColorRoles.textOnAccent)
+                            .foregroundStyle(Color.white.opacity(0.98))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(Color(hex: "#14B8A6"), in: RoundedRectangle(cornerRadius: 8))
+                            .background(physiqueAccentGradient, in: RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.plain)
                 }
@@ -815,7 +824,7 @@ private struct GenderRequiredMetricView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 320, tint: Color(hex: "#FCA311").opacity(0.18))
+            AppScreenBackground(topHeight: 320, tint: AppColorRoles.accentPhysique.opacity(0.16))
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(metricName)
@@ -832,10 +841,10 @@ private struct GenderRequiredMetricView: View {
                     } label: {
                         Text(AppLocalization.string("Open profile settings"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(AppColorRoles.textOnAccent)
+                            .foregroundStyle(Color.white.opacity(0.98))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(Color(hex: "#FCA311"), in: RoundedRectangle(cornerRadius: 8))
+                            .background(physiqueAccentGradient, in: RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.plain)
                 }

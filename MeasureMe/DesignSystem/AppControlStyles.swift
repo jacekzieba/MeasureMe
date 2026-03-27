@@ -224,6 +224,7 @@ struct AppDestructiveButtonStyle: ButtonStyle {
 
 struct AppInputContainerStyle: ViewModifier {
     var focused: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
         content
@@ -231,10 +232,41 @@ struct AppInputContainerStyle: ViewModifier {
             .padding(.vertical, AppSpacing.sm)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-                    .fill(AppColorRoles.surfaceSecondary)
+                    .fill(
+                        LinearGradient(
+                            colors: colorScheme == .dark
+                                ? [
+                                    AppColorRoles.surfaceSecondary.opacity(0.92),
+                                    AppColorRoles.surfaceInteractive.opacity(0.92)
+                                ]
+                                : [
+                                    Color.white.opacity(0.88),
+                                    Color(hex: "#F2F4F7").opacity(0.96),
+                                    Color(hex: "#E8EBF0").opacity(0.96)
+                                ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-                            .stroke(focused ? AppColorRoles.borderStrong.opacity(1.2) : AppColorRoles.borderSubtle, lineWidth: 1)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(colorScheme == .dark ? 0.05 : 0.14),
+                                        focused ? Color.appAccent.opacity(0.10) : .clear
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
+                            .stroke(
+                                focused ? Color.appAccent.opacity(colorScheme == .dark ? 0.68 : 0.44) : AppColorRoles.borderSubtle,
+                                lineWidth: 1
+                            )
                     )
             )
     }

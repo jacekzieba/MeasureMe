@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ActiveMetricsSection: View {
+    private let measurementsTheme = FeatureTheme.measurements
     @ObservedObject var store: ActiveMetricsStore
     @Binding var isEditing: Bool
     @Binding var showLimitAlert: Bool
@@ -20,7 +21,7 @@ struct ActiveMetricsSection: View {
                         Text(AppLocalization.string("tracked.active.header"))
                     } icon: {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
+                            .foregroundStyle(measurementsTheme.accent)
                     }
                     .font(AppTypography.bodyEmphasis)
 
@@ -39,7 +40,7 @@ struct ActiveMetricsSection: View {
 
                 Text(AppLocalization.string("tracked.keymetrics.counter", starredCount))
                     .font(AppTypography.micro)
-                    .foregroundStyle(starredCount >= 1 ? Color.appAccent : Color.secondary.opacity(0.6))
+                    .foregroundStyle(starredCount >= 1 ? measurementsTheme.accent : Color.secondary.opacity(0.6))
                     .padding(.top, 2)
             }
             .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 4, trailing: 16))
@@ -77,7 +78,16 @@ struct ActiveMetricsSection: View {
                             : AppLocalization.string("accessibility.keymetric.add"))
                     }
                 }
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .padding(.trailing, isEditing ? 0 : 8)
+                .background(
+                    AppGlassBackground(
+                        depth: .base,
+                        cornerRadius: AppRadius.md,
+                        tint: measurementsTheme.softTint
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -97,12 +107,9 @@ struct ActiveMetricsSection: View {
                 }
             }
 
-            // MARK: - Separator
-            Rectangle()
-                .fill(Color.white.opacity(0.1))
-                .frame(height: 1)
-                .frame(maxWidth: .infinity)
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16))
+            Color.clear
+                .frame(height: 4)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
         }

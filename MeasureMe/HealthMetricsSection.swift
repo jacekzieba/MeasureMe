@@ -1,5 +1,14 @@
 import SwiftUI
 
+private let healthAccentGradient = LinearGradient(
+    colors: [
+        Color.dynamic(light: Color(hex: "#1FAF9F"), dark: Color(hex: "#7BF0DA")),
+        Color.dynamic(light: Color(hex: "#0F766E"), dark: Color(hex: "#27B7A7"))
+    ],
+    startPoint: .topLeading,
+    endPoint: .bottomTrailing
+)
+
 struct HealthMetricsSection: View {
     enum DisplayMode {
         case summaryOnly
@@ -599,23 +608,23 @@ struct HealthMetricsSection: View {
     private func leanMassCategory(_ lbmPercent: Double) -> (name: String, color: String) {
         guard let age = userAge else {
             return lbmPercent >= 80
-                ? (AppLocalization.string("In range"), "#34D399")
-                : (AppLocalization.string("Below range"), "#60A5FA")
+                ? (AppLocalization.string("In range"), AppColorRoles.stateSuccessHex)
+                : (AppLocalization.string("Below range"), AppColorRoles.stateInfoHex)
         }
 
         if age >= 19 && age <= 39 {
-            if lbmPercent >= 80 && lbmPercent <= 92 { return (AppLocalization.string("In range"), "#34D399") }
-            if lbmPercent > 92 { return (AppLocalization.string("Above range"), HealthIndicatorPalette.emphasisHex) }
-            return (AppLocalization.string("Below range"), "#60A5FA")
+            if lbmPercent >= 80 && lbmPercent <= 92 { return (AppLocalization.string("In range"), AppColorRoles.stateSuccessHex) }
+            if lbmPercent > 92 { return (AppLocalization.string("Above range"), AppColorRoles.stateWarningHex) }
+            return (AppLocalization.string("Below range"), AppColorRoles.stateInfoHex)
         }
         if age >= 40 && age <= 59 {
-            if lbmPercent >= 78 && lbmPercent <= 89 { return (AppLocalization.string("In range"), "#34D399") }
-            if lbmPercent > 89 { return (AppLocalization.string("Above range"), HealthIndicatorPalette.emphasisHex) }
-            return (AppLocalization.string("Below range"), "#60A5FA")
+            if lbmPercent >= 78 && lbmPercent <= 89 { return (AppLocalization.string("In range"), AppColorRoles.stateSuccessHex) }
+            if lbmPercent > 89 { return (AppLocalization.string("Above range"), AppColorRoles.stateWarningHex) }
+            return (AppLocalization.string("Below range"), AppColorRoles.stateInfoHex)
         }
-        if lbmPercent >= 75 && lbmPercent <= 87 { return (AppLocalization.string("In range"), "#34D399") }
-        if lbmPercent > 87 { return (AppLocalization.string("Above range"), HealthIndicatorPalette.emphasisHex) }
-        return (AppLocalization.string("Below range"), "#60A5FA")
+        if lbmPercent >= 75 && lbmPercent <= 87 { return (AppLocalization.string("In range"), AppColorRoles.stateSuccessHex) }
+        if lbmPercent > 87 { return (AppLocalization.string("Above range"), AppColorRoles.stateWarningHex) }
+        return (AppLocalization.string("Below range"), AppColorRoles.stateInfoHex)
     }
 
     private var missingDataBanner: some View {
@@ -667,7 +676,7 @@ struct HealthMetricsSection: View {
             title: title,
             value: "—",
             category: AppLocalization.string("Add data"),
-            categoryColor: HealthIndicatorPalette.emphasisHex,
+            categoryColor: HealthIndicatorPalette.placeholderHex,
             destination: HealthIndicatorMissingDataView(indicatorTitle: title, missingItems: missingInputs(for: kind))
         )
     }
@@ -678,7 +687,7 @@ struct HealthMetricsSection: View {
             title: title,
             value: "—",
             category: AppLocalization.string("Set gender"),
-            categoryColor: HealthIndicatorPalette.emphasisHex,
+            categoryColor: HealthIndicatorPalette.placeholderHex,
             destination: GenderRequiredIndicatorView(indicatorTitle: title)
         )
     }
@@ -752,37 +761,37 @@ struct HealthMetricsSection: View {
     private func softCategoryStyle(_ raw: String) -> (name: String, color: String) {
         switch raw.lowercased() {
         case "low risk":
-            return (AppLocalization.string("Excellence"), "#22C55E")
+            return (AppLocalization.string("Excellence"), AppColorRoles.stateSuccessHex)
         case "moderate risk":
-            return (AppLocalization.string("Keep steady"), HealthIndicatorPalette.emphasisHex)
+            return (AppLocalization.string("Keep steady"), AppColorRoles.stateWarningHex)
         case "high risk":
-            return (AppLocalization.string("Worth attention"), "#F97316")
+            return (AppLocalization.string("Worth attention"), AppColorRoles.stateErrorHex)
         case "increased risk":
-            return (AppLocalization.string("Worth attention"), "#F97316")
+            return (AppLocalization.string("Worth attention"), AppColorRoles.stateWarningHex)
         case "underweight":
-            return (AppLocalization.string("Building up"), "#60A5FA")
+            return (AppLocalization.string("Building up"), AppColorRoles.stateInfoHex)
         case "normal weight":
-            return (AppLocalization.string("On track"), "#34D399")
+            return (AppLocalization.string("On track"), AppColorRoles.stateSuccessHex)
         case "high weight", "overweight":
-            return (AppLocalization.string("Room to improve"), HealthIndicatorPalette.emphasisHex)
+            return (AppLocalization.string("Room to improve"), AppColorRoles.stateWarningHex)
         case "obese":
-            return (AppLocalization.string("Focus area"), "#F97316")
+            return (AppLocalization.string("Focus area"), AppColorRoles.stateErrorHex)
         case "normal fat level":
-            return (AppLocalization.string("On track"), "#34D399")
+            return (AppLocalization.string("On track"), AppColorRoles.stateSuccessHex)
         case "high fat level":
-            return (AppLocalization.string("Focus area"), "#F97316")
+            return (AppLocalization.string("Focus area"), AppColorRoles.stateErrorHex)
         case "low":
-            return (AppLocalization.string("Excellence"), "#22C55E")
+            return (AppLocalization.string("Excellence"), AppColorRoles.stateSuccessHex)
         case "moderate":
-            return (AppLocalization.string("Keep steady"), HealthIndicatorPalette.emphasisHex)
+            return (AppLocalization.string("Keep steady"), AppColorRoles.stateWarningHex)
         case "high":
-            return (AppLocalization.string("Worth attention"), "#F97316")
+            return (AppLocalization.string("Worth attention"), AppColorRoles.stateErrorHex)
         case "optimal":
-            return (AppLocalization.string("Excellence"), "#22C55E")
+            return (AppLocalization.string("Excellence"), AppColorRoles.stateSuccessHex)
         case "elevated":
-            return (AppLocalization.string("Room to improve"), HealthIndicatorPalette.emphasisHex)
+            return (AppLocalization.string("Room to improve"), AppColorRoles.stateWarningHex)
         default:
-            return (AppLocalization.string(raw), HealthIndicatorPalette.emphasisHex)
+            return (AppLocalization.string(raw), AppColorRoles.stateInfoHex)
         }
     }
 
@@ -843,10 +852,10 @@ struct HealthMetricsSection: View {
                     Text(AppLocalization.string("Go to Settings"))
                 }
                 .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(AppColorRoles.textOnAccent)
+                .foregroundStyle(Color.white.opacity(0.98))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(HealthIndicatorPalette.accent)
+                .background(healthAccentGradient)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .padding(.top, 4)
@@ -901,10 +910,10 @@ private struct HealthIndicatorMissingDataView: View {
                     } label: {
                         Text(AppLocalization.string("Add measurement"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(AppColorRoles.textOnAccent)
+                            .foregroundStyle(Color.white.opacity(0.98))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(HealthIndicatorPalette.accent, in: RoundedRectangle(cornerRadius: 8))
+                            .background(healthAccentGradient, in: RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.plain)
                 }
@@ -940,10 +949,10 @@ private struct GenderRequiredIndicatorView: View {
                     } label: {
                         Text(AppLocalization.string("Open profile settings"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(AppColorRoles.textOnAccent)
+                            .foregroundStyle(Color.white.opacity(0.98))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(HealthIndicatorPalette.accent, in: RoundedRectangle(cornerRadius: 8))
+                            .background(healthAccentGradient, in: RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.plain)
                 }
@@ -967,9 +976,9 @@ private struct CentralFatRiskDetailView: View {
             formula: "CFR = WHtR / 0.50",
             notes: AppLocalization.string("A simple scale based on WHtR where 1.00 is the core threshold."),
             ranges: [
-                (AppLocalization.string("Low risk"), "< 1.00", "#22C55E"),
-                (AppLocalization.string("Moderate risk"), "1.00 - 1.20", HealthIndicatorPalette.emphasisHex),
-                (AppLocalization.string("High risk"), "> 1.20", "#EF4444")
+                (AppLocalization.string("Low risk"), "< 1.00", AppColorRoles.stateSuccessHex),
+                (AppLocalization.string("Moderate risk"), "1.00 - 1.20", AppColorRoles.stateWarningHex),
+                (AppLocalization.string("High risk"), "> 1.20", AppColorRoles.stateErrorHex)
             ]
         )
     }
@@ -1054,9 +1063,9 @@ private struct BodyShapeRiskScoreDetailView: View {
                     Text(AppLocalization.string("Reference interpretation"))
                         .font(AppTypography.bodyEmphasis)
                         .foregroundStyle(AppColorRoles.textPrimary)
-                    rangeRow(color: "#22C55E", title: AppLocalization.string("Low risk"), value: "z < -0.272")
-                    rangeRow(color: HealthIndicatorPalette.emphasisHex, title: AppLocalization.string("Moderate risk"), value: "-0.272 ... 0.229")
-                    rangeRow(color: "#EF4444", title: AppLocalization.string("High risk"), value: "z > 0.229")
+                    rangeRow(color: AppColorRoles.stateSuccessHex, title: AppLocalization.string("Low risk"), value: "z < -0.272")
+                    rangeRow(color: AppColorRoles.stateWarningHex, title: AppLocalization.string("Moderate risk"), value: "-0.272 ... 0.229")
+                    rangeRow(color: AppColorRoles.stateErrorHex, title: AppLocalization.string("High risk"), value: "z > 0.229")
                 }
                 .padding(12)
                 .background(AppColorRoles.surfaceInteractive, in: RoundedRectangle(cornerRadius: 12))
@@ -1109,13 +1118,13 @@ private struct WaistRiskDetailView: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     if result.gender == .male {
-                        row(title: AppLocalization.string("Low risk"), value: "<= 94 cm", color: "#22C55E")
-                        row(title: AppLocalization.string("Moderate risk"), value: "> 94 - 102 cm", color: HealthIndicatorPalette.emphasisHex)
-                        row(title: AppLocalization.string("High risk"), value: "> 102 cm", color: "#EF4444")
+                        row(title: AppLocalization.string("Low risk"), value: "<= 94 cm", color: AppColorRoles.stateSuccessHex)
+                        row(title: AppLocalization.string("Moderate risk"), value: "> 94 - 102 cm", color: AppColorRoles.stateWarningHex)
+                        row(title: AppLocalization.string("High risk"), value: "> 102 cm", color: AppColorRoles.stateErrorHex)
                     } else {
-                        row(title: AppLocalization.string("Low risk"), value: "<= 80 cm", color: "#22C55E")
-                        row(title: AppLocalization.string("Moderate risk"), value: "> 80 - 88 cm", color: HealthIndicatorPalette.emphasisHex)
-                        row(title: AppLocalization.string("High risk"), value: "> 88 cm", color: "#EF4444")
+                        row(title: AppLocalization.string("Low risk"), value: "<= 80 cm", color: AppColorRoles.stateSuccessHex)
+                        row(title: AppLocalization.string("Moderate risk"), value: "> 80 - 88 cm", color: AppColorRoles.stateWarningHex)
+                        row(title: AppLocalization.string("High risk"), value: "> 88 cm", color: AppColorRoles.stateErrorHex)
                     }
                 }
                 .padding(12)

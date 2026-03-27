@@ -38,6 +38,7 @@ struct QuickAddSheetView: View {
     @FocusState private var focusedCustomId: String?
     @State private var rulerBaseValues: [MetricKind: Double] = [:]
     private let isUITestMode = UITestArgument.isPresent(.mode)
+    private let cardTint = Color.appAccent.opacity(0.10)
 
     init(
         kinds: [MetricKind],
@@ -187,12 +188,12 @@ struct QuickAddSheetView: View {
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(kind.title)
                         .font(AppTypography.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
 
                     if let summary = lastSummary(for: kind) {
                         Text(summary)
                             .font(.caption)
-                            .foregroundStyle(.white.opacity(0.68))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
                 }
 
@@ -261,12 +262,12 @@ struct QuickAddSheetView: View {
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(definition.name)
                         .font(AppTypography.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColorRoles.textPrimary)
 
                     if let last = customLatest[id] {
                         Text(customLastSummary(value: last.value, unit: definition.unitLabel, date: last.date))
                             .font(.caption)
-                            .foregroundStyle(.white.opacity(0.68))
+                            .foregroundStyle(AppColorRoles.textSecondary)
                     }
                 }
 
@@ -306,7 +307,7 @@ struct QuickAddSheetView: View {
         return HStack(spacing: 8) {
             Text(AppLocalization.string("Enter value"))
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .lineLimit(2)
 
             Spacer(minLength: 0)
@@ -331,7 +332,7 @@ struct QuickAddSheetView: View {
 
             Text(definition.unitLabel)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.72))
+                .foregroundStyle(AppColorRoles.textTertiary)
         }
     }
 
@@ -340,7 +341,7 @@ struct QuickAddSheetView: View {
         return VStack(alignment: .leading, spacing: 8) {
             Text(AppLocalization.string("Enter value"))
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -363,7 +364,7 @@ struct QuickAddSheetView: View {
 
                 Text(definition.unitLabel)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.72))
+                    .foregroundStyle(AppColorRoles.textTertiary)
                 Spacer(minLength: 0)
             }
         }
@@ -380,10 +381,10 @@ struct QuickAddSheetView: View {
             VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 Text(AppLocalization.string("Save unchanged values"))
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                 Text(AppLocalization.string("When enabled, current values are saved even if unchanged."))
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(AppColorRoles.textSecondary)
             }
         }
         .tint(Color.appAccent)
@@ -395,7 +396,7 @@ struct QuickAddSheetView: View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
             Label(AppLocalization.string("Measurement time"), systemImage: "calendar.badge.clock")
                 .font(AppTypography.sectionAction)
-                .foregroundStyle(.white)
+                .foregroundStyle(AppColorRoles.textPrimary)
 
             DatePicker(
                 "",
@@ -426,7 +427,12 @@ struct QuickAddSheetView: View {
         .padding(.horizontal, AppSpacing.md)
         .padding(.top, dynamicTypeSize.isAccessibilitySize ? 10 : 6)
         .padding(.bottom, dynamicTypeSize.isAccessibilitySize ? 12 : 8)
-        .background(.thinMaterial)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(AppColorRoles.borderSubtle)
+                .frame(height: 1)
+        }
     }
 
     private var saveControls: some View {
@@ -460,7 +466,7 @@ struct QuickAddSheetView: View {
             if cannotSave {
                 Text(cannotSaveReasonText)
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.66))
+                    .foregroundStyle(AppColorRoles.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("quickadd.validation.hint")
             }
@@ -471,7 +477,7 @@ struct QuickAddSheetView: View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
             Text(AppLocalization.string("measurements.footer.dynamic", kinds.count, 18))
                 .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.82))
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button {
@@ -496,12 +502,11 @@ struct QuickAddSheetView: View {
     }
 
     private func cardBackground(cornerRadius: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(AppColorRoles.surfacePrimary)
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
-            )
+        AppGlassBackground(
+            depth: .base,
+            cornerRadius: cornerRadius,
+            tint: cardTint
+        )
     }
 
     private var shouldAnimate: Bool {
@@ -524,7 +529,7 @@ struct QuickAddSheetView: View {
                 showRuler ? "Enter value" : "quickadd.first.value.hint"
             ))
             .font(showRuler ? AppTypography.caption : .subheadline.weight(.medium))
-            .foregroundStyle(.white.opacity(0.7))
+            .foregroundStyle(AppColorRoles.textSecondary)
             .lineLimit(2)
 
             Spacer(minLength: 0)
@@ -546,7 +551,7 @@ struct QuickAddSheetView: View {
 
             Text(kind.unitSymbol(unitsSystem: unitsSystem))
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.72))
+                .foregroundStyle(AppColorRoles.textTertiary)
         }
     }
 
@@ -556,7 +561,7 @@ struct QuickAddSheetView: View {
                 showRuler ? "Enter value" : "quickadd.first.value.hint"
             ))
             .font(showRuler ? AppTypography.caption : .subheadline.weight(.medium))
-            .foregroundStyle(.white.opacity(0.7))
+            .foregroundStyle(AppColorRoles.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
 
             HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -576,7 +581,7 @@ struct QuickAddSheetView: View {
 
                 Text(kind.unitSymbol(unitsSystem: unitsSystem))
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.72))
+                    .foregroundStyle(AppColorRoles.textTertiary)
                 Spacer(minLength: 0)
             }
         }
@@ -840,10 +845,10 @@ private struct RulerSlider: View {
 
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.black.opacity(0.26))
+                    .fill(AppColorRoles.surfaceSecondary)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                     )
 
                 let tickCount = QuickAddMath.tickCount(span: span, step: step)
@@ -851,7 +856,7 @@ private struct RulerSlider: View {
                     let tickX = horizontalInset + CGFloat(index) * (drawableWidth / CGFloat(max(tickCount - 1, 1)))
                     let isMajor = index.isMultiple(of: 5)
                     Rectangle()
-                        .fill(Color.white.opacity(isMajor ? 0.55 : 0.28))
+                        .fill(AppColorRoles.textTertiary.opacity(isMajor ? 0.55 : 0.26))
                         .frame(width: 1, height: isMajor ? height * 0.55 : height * 0.32)
                         .position(x: tickX, y: height / 2)
                 }

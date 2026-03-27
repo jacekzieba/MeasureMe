@@ -17,6 +17,40 @@ struct RootView: View {
     @State private var didConfigurePendingStore = false
     @State private var didScheduleDeferredStartupWork = false
 
+    private var isShowingOnboarding: Bool {
+        !hasCompletedOnboarding
+    }
+
+    private var showsOnboardingUITestOverlay: Bool {
+        isOnboardingUITestMode && isShowingOnboarding
+    }
+
+    private var showsTrialReminderDebugOverlay: Bool {
+        UITestArgument.isPresent(.showTrialReminderPrompt)
+            || (isUITestMode && premiumStore.showTrialReminderOptInPrompt)
+    }
+
+    private var trialReminderPromptBinding: Binding<Bool> {
+        if isAuditCaptureEnabled {
+            return .constant(false)
+        }
+        return $premiumStore.showTrialReminderOptInPrompt
+    }
+
+    private var trialThankYouAlertBinding: Binding<Bool> {
+        if isAuditCaptureEnabled {
+            return .constant(false)
+        }
+        return $premiumStore.showTrialThankYouAlert
+    }
+
+    private var trialNotificationPermissionPromptBinding: Binding<Bool> {
+        if isAuditCaptureEnabled {
+            return .constant(false)
+        }
+        return $premiumStore.showTrialNotificationPermissionPrompt
+    }
+
     init(
         premiumStore: PremiumStore? = nil,
         metricsStore: ActiveMetricsStore? = nil,
@@ -40,7 +74,7 @@ struct RootView: View {
                         .environmentObject(premiumStore)
                 }
 
-            if !hasCompletedOnboarding {
+            if isShowingOnboarding {
                 OnboardingView()
                     .environmentObject(metricsStore)
                     .environmentObject(premiumStore)
@@ -49,131 +83,38 @@ struct RootView: View {
                     .zIndex(2)
             }
 
-            if isOnboardingUITestMode, !hasCompletedOnboarding {
-                VStack(alignment: .leading, spacing: 8) {
-                    Button {
-                        NotificationCenter.default.post(name: .onboardingUITestNext, object: nil)
-                    } label: {
-                        Text("UITest Next")
-                            .frame(minWidth: 88, minHeight: 44, alignment: .leading)
-                    }
-                    .accessibilityIdentifier("onboarding.next")
-                    .buttonStyle(.borderedProminent)
-                    .contentShape(Rectangle())
-
-                    Button {
-                        NotificationCenter.default.post(name: .onboardingUITestBack, object: nil)
-                    } label: {
-                        Text("UITest Back")
-                            .frame(minWidth: 88, minHeight: 44, alignment: .leading)
-                    }
-                    .accessibilityIdentifier("onboarding.back")
-                    .buttonStyle(.bordered)
-                    .contentShape(Rectangle())
-
-                    Button {
-                        NotificationCenter.default.post(name: .onboardingUITestSkip, object: nil)
-                    } label: {
-                        Text("UITest Skip")
-                            .frame(minWidth: 88, minHeight: 44, alignment: .leading)
-                    }
-                    .accessibilityIdentifier("onboarding.skip")
-                    .buttonStyle(.bordered)
-                    .contentShape(Rectangle())
-
-                    Text("Privacy note")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.8))
-                        .frame(minWidth: 88, minHeight: 44, alignment: .leading)
-                        .accessibilityElement()
-                        .accessibilityLabel("Privacy note")
-                        .accessibilityIdentifier("onboarding.privacy.note")
-
-                    Text(verbatim: "step:\(onboardingUITestBridge.currentStepIndex)")
-                        .accessibilityIdentifier("root.onboarding.test.step")
-                    Text(verbatim: "icloudViewed:\(onboardingUITestBridge.iCloudViewed)")
-                        .accessibilityIdentifier("root.onboarding.test.icloudViewed")
-                    Text(verbatim: "icloudSkipped:\(onboardingUITestBridge.iCloudSkipped)")
-                        .accessibilityIdentifier("root.onboarding.test.icloudSkipped")
-                    Text(verbatim: "icloudEnabled:\(onboardingUITestBridge.iCloudEnabled)")
-                        .accessibilityIdentifier("root.onboarding.test.icloudEnabled")
-                }
-                .font(.system(size: 10, weight: .semibold))
-                .padding(8)
-                .background(Color.black.opacity(0.18))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(.top, 12)
-                .padding(.leading, 8)
+            if showsOnboardingUITestOverlay {
+                OnboardingUITestOverlay(
+                    bridge: onboardingUITestBridge,
+                    onNext: postOnboardingUITestNext,
+                    onBack: postOnboardingUITestBack,
+                    onSkip: postOnboardingUITestSkip
+                )
                 .zIndex(3)
             }
 
-            if UITestArgument.isPresent(.showTrialReminderPrompt)
-                || (UITestArgument.isPresent(.mode)
-                    && premiumStore.showTrialReminderOptInPrompt) {
-                HStack(spacing: 8) {
-                    Text("Trial prompt")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.8))
-                        .frame(minWidth: 44, minHeight: 44)
-                        .accessibilityIdentifier("premium.trial.reminder.prompt.visible")
-
-                    Button(AppLocalization.string("premium.trial.reminder.prompt.decline"), role: .cancel) {
-                        premiumStore.dismissTrialReminderOptIn()
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.white.opacity(0.2))
-                    .foregroundStyle(.white)
-                    .frame(minWidth: 44, minHeight: 44)
-                    .accessibilityIdentifier("premium.trial.reminder.prompt.decline")
-
-                    Button(AppLocalization.string("premium.trial.reminder.prompt.confirm")) {
-                        Task { await premiumStore.confirmTrialReminderOptIn() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.white.opacity(0.2))
-                    .foregroundStyle(.white)
-                    .frame(minWidth: 44, minHeight: 44)
-                    .accessibilityIdentifier("premium.trial.reminder.prompt.confirm")
-                }
-                .padding(8)
-                .background(Color.black.opacity(0.35))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .padding(.top, 12)
-                .padding(.trailing, 8)
+            if showsTrialReminderDebugOverlay {
+                TrialReminderPromptOverlay(
+                    declineTitle: AppLocalization.string("premium.trial.reminder.prompt.decline"),
+                    confirmTitle: AppLocalization.string("premium.trial.reminder.prompt.confirm"),
+                    onDecline: dismissTrialReminderOptIn,
+                    onConfirm: confirmTrialReminderOptIn
+                )
             }
 
             if isUITestMode {
-                Text("ready")
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .frame(width: 1, height: 1)
-                    .clipped()
-                    .accessibilityIdentifier("app.root.ready")
+                RootReadyMarker()
             }
         }
         .accessibilityIdentifier("app.root")
-        .onAppear {
-            Task { @MainActor in
-                configurePendingStoreIfNeeded()
-                scheduleDeferredStartupWorkIfNeeded()
-                if UITestArgument.isPresent(.showTrialReminderPrompt) {
-                    premiumStore.showTrialReminderOptInPrompt = true
-                }
-            }
-        }
+        .onAppear(perform: handleAppear)
         .alert(
             AppLocalization.string("premium.trial.reminder.prompt.title"),
             isPresented: trialReminderPromptBinding,
         ) {
-            Button(AppLocalization.string("premium.trial.reminder.prompt.decline"), role: .cancel) {
-                premiumStore.dismissTrialReminderOptIn()
-            }
+            Button(AppLocalization.string("premium.trial.reminder.prompt.decline"), role: .cancel, action: dismissTrialReminderOptIn)
             .accessibilityIdentifier("premium.trial.reminder.prompt.decline")
-            Button(AppLocalization.string("premium.trial.reminder.prompt.confirm")) {
-                Task { await premiumStore.confirmTrialReminderOptIn() }
-            }
+            Button(AppLocalization.string("premium.trial.reminder.prompt.confirm"), action: confirmTrialReminderOptIn)
             .accessibilityIdentifier("premium.trial.reminder.prompt.confirm")
         } message: {
             Text(AppLocalization.string("premium.trial.reminder.prompt.message"))
@@ -183,12 +124,8 @@ struct RootView: View {
             isPresented: trialNotificationPermissionPromptBinding,
             titleVisibility: .visible
         ) {
-            Button(AppLocalization.string("Not now"), role: .cancel) {
-                premiumStore.dismissTrialNotificationPermissionOptIn()
-            }
-            Button(AppLocalization.string("premium.trial.notification_permission.prompt.confirm")) {
-                Task { await premiumStore.confirmTrialNotificationPermissionOptIn() }
-            }
+            Button(AppLocalization.string("Not now"), role: .cancel, action: dismissTrialNotificationPermissionOptIn)
+            Button(AppLocalization.string("premium.trial.notification_permission.prompt.confirm"), action: confirmTrialNotificationPermissionOptIn)
         } message: {
             Text(AppLocalization.string("premium.trial.notification_permission.prompt.message"))
         }
@@ -208,25 +145,45 @@ struct RootView: View {
         }
     }
 
-    private var trialReminderPromptBinding: Binding<Bool> {
-        if isAuditCaptureEnabled {
-            return .constant(false)
+    private func handleAppear() {
+        configurePendingStoreIfNeeded()
+        scheduleDeferredStartupWorkIfNeeded()
+
+        if UITestArgument.isPresent(.showTrialReminderPrompt) {
+            premiumStore.showTrialReminderOptInPrompt = true
         }
-        return $premiumStore.showTrialReminderOptInPrompt
     }
 
-    private var trialThankYouAlertBinding: Binding<Bool> {
-        if isAuditCaptureEnabled {
-            return .constant(false)
-        }
-        return $premiumStore.showTrialThankYouAlert
+    private func postOnboardingUITestNext() {
+        postOnboardingUITestNotification(.onboardingUITestNext)
     }
 
-    private var trialNotificationPermissionPromptBinding: Binding<Bool> {
-        if isAuditCaptureEnabled {
-            return .constant(false)
-        }
-        return $premiumStore.showTrialNotificationPermissionPrompt
+    private func postOnboardingUITestBack() {
+        postOnboardingUITestNotification(.onboardingUITestBack)
+    }
+
+    private func postOnboardingUITestSkip() {
+        postOnboardingUITestNotification(.onboardingUITestSkip)
+    }
+
+    private func postOnboardingUITestNotification(_ name: Notification.Name) {
+        NotificationCenter.default.post(name: name, object: nil)
+    }
+
+    private func dismissTrialReminderOptIn() {
+        premiumStore.dismissTrialReminderOptIn()
+    }
+
+    private func confirmTrialReminderOptIn() {
+        Task { await premiumStore.confirmTrialReminderOptIn() }
+    }
+
+    private func dismissTrialNotificationPermissionOptIn() {
+        premiumStore.dismissTrialNotificationPermissionOptIn()
+    }
+
+    private func confirmTrialNotificationPermissionOptIn() {
+        Task { await premiumStore.confirmTrialNotificationPermissionOptIn() }
     }
 
     private func configurePendingStoreIfNeeded() {
@@ -254,5 +211,145 @@ struct RootView: View {
             StartupInstrumentation.event("PendingRestoreEnd")
             StartupInstrumentation.end("PendingRestore", state: pendingRestoreState)
         }
+    }
+}
+
+private struct OnboardingUITestOverlay: View {
+    @ObservedObject var bridge: OnboardingUITestBridge
+    let onNext: () -> Void
+    let onBack: () -> Void
+    let onSkip: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            OnboardingUITestButton(
+                title: "UITest Next",
+                identifier: "onboarding.next",
+                style: .borderedProminent,
+                action: onNext
+            )
+
+            OnboardingUITestButton(
+                title: "UITest Back",
+                identifier: "onboarding.back",
+                style: .bordered,
+                action: onBack
+            )
+
+            OnboardingUITestButton(
+                title: "UITest Skip",
+                identifier: "onboarding.skip",
+                style: .bordered,
+                action: onSkip
+            )
+
+            Text("Privacy note")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.white.opacity(0.8))
+                .frame(minWidth: 88, minHeight: 44, alignment: .leading)
+                .accessibilityElement()
+                .accessibilityLabel("Privacy note")
+                .accessibilityIdentifier("onboarding.privacy.note")
+
+            Text(verbatim: "step:\(bridge.currentStepIndex)")
+                .accessibilityIdentifier("root.onboarding.test.step")
+            Text(verbatim: "icloudViewed:\(bridge.iCloudViewed)")
+                .accessibilityIdentifier("root.onboarding.test.icloudViewed")
+            Text(verbatim: "icloudSkipped:\(bridge.iCloudSkipped)")
+                .accessibilityIdentifier("root.onboarding.test.icloudSkipped")
+            Text(verbatim: "icloudEnabled:\(bridge.iCloudEnabled)")
+                .accessibilityIdentifier("root.onboarding.test.icloudEnabled")
+        }
+        .font(.system(size: 10, weight: .semibold))
+        .padding(8)
+        .background(Color.black.opacity(0.18))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.top, 12)
+        .padding(.leading, 8)
+    }
+}
+
+private struct OnboardingUITestButton: View {
+    enum Style {
+        case bordered
+        case borderedProminent
+    }
+
+    let title: String
+    let identifier: String
+    let style: Style
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .frame(minWidth: 88, minHeight: 44, alignment: .leading)
+        }
+        .accessibilityIdentifier(identifier)
+        .modifier(OnboardingUITestButtonStyleModifier(style: style))
+        .contentShape(Rectangle())
+    }
+}
+
+private struct OnboardingUITestButtonStyleModifier: ViewModifier {
+    let style: OnboardingUITestButton.Style
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        switch style {
+        case .bordered:
+            content.buttonStyle(.bordered)
+        case .borderedProminent:
+            content.buttonStyle(.borderedProminent)
+        }
+    }
+}
+
+private struct TrialReminderPromptOverlay: View {
+    let declineTitle: String
+    let confirmTitle: String
+    let onDecline: () -> Void
+    let onConfirm: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text("Trial prompt")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.white.opacity(0.8))
+                .frame(minWidth: 44, minHeight: 44)
+                .accessibilityIdentifier("premium.trial.reminder.prompt.visible")
+
+            Button(declineTitle, role: .cancel, action: onDecline)
+                .buttonStyle(.bordered)
+                .tint(.white.opacity(0.2))
+                .foregroundStyle(.white)
+                .frame(minWidth: 44, minHeight: 44)
+                .accessibilityIdentifier("premium.trial.reminder.prompt.decline")
+
+            Button(confirmTitle, action: onConfirm)
+                .buttonStyle(.borderedProminent)
+                .tint(.white.opacity(0.2))
+                .foregroundStyle(.white)
+                .frame(minWidth: 44, minHeight: 44)
+                .accessibilityIdentifier("premium.trial.reminder.prompt.confirm")
+        }
+        .padding(8)
+        .background(Color.black.opacity(0.35))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+        .padding(.top, 12)
+        .padding(.trailing, 8)
+    }
+}
+
+private struct RootReadyMarker: View {
+    var body: some View {
+        Text("ready")
+            .font(.system(size: 1))
+            .foregroundStyle(.clear)
+            .frame(width: 1, height: 1)
+            .clipped()
+            .accessibilityIdentifier("app.root.ready")
     }
 }

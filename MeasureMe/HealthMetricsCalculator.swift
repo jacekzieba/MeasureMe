@@ -64,9 +64,9 @@ final class HealthMetricsCalculator {
             
             var color: String {
                 switch self {
-                case .normal: return "#22C55E"      // Zielony
-                case .increased: return HealthIndicatorPalette.emphasisHex   // Niebieski
-                case .high: return "#EF4444"        // Czerwony
+                case .normal: return AppColorRoles.stateSuccessHex
+                case .increased: return AppColorRoles.stateWarningHex
+                case .high: return AppColorRoles.stateErrorHex
                 }
             }
             
@@ -123,9 +123,9 @@ final class HealthMetricsCalculator {
             
             var color: String {
                 switch self {
-                case .normal: return "#22C55E"      // Zielony
-                case .increased: return HealthIndicatorPalette.emphasisHex   // Niebieski
-                case .high: return "#EF4444"        // Czerwony
+                case .normal: return AppColorRoles.stateSuccessHex
+                case .increased: return AppColorRoles.stateWarningHex
+                case .high: return AppColorRoles.stateErrorHex
                 }
             }
             
@@ -212,8 +212,8 @@ final class HealthMetricsCalculator {
             
             var color: String {
                 switch self {
-                case .lowRisk: return "#22C55E"
-                case .increasedRisk: return HealthIndicatorPalette.emphasisHex
+                case .lowRisk: return AppColorRoles.stateSuccessHex
+                case .increasedRisk: return AppColorRoles.stateWarningHex
                 }
             }
             
@@ -294,10 +294,10 @@ final class HealthMetricsCalculator {
             
             var color: String {
                 switch self {
-                case .underweight: return "#3B82F6"  // Niebieski
-                case .normal: return "#22C55E"        // Zielony
-                case .overweight: return HealthIndicatorPalette.emphasisHex   // Niebieski
-                case .obese: return "#EF4444"         // Czerwony
+                case .underweight: return AppColorRoles.stateInfoHex
+                case .normal: return AppColorRoles.stateSuccessHex
+                case .overweight: return AppColorRoles.stateWarningHex
+                case .obese: return AppColorRoles.stateErrorHex
                 }
             }
             
@@ -398,9 +398,9 @@ final class HealthMetricsCalculator {
 
             var color: String {
                 switch self {
-                case .low: return "#22C55E"
-                case .moderate: return HealthIndicatorPalette.emphasisHex
-                case .high: return "#EF4444"
+                case .low: return AppColorRoles.stateSuccessHex
+                case .moderate: return AppColorRoles.stateWarningHex
+                case .high: return AppColorRoles.stateErrorHex
                 }
             }
         }
@@ -437,9 +437,9 @@ final class HealthMetricsCalculator {
 
             var color: String {
                 switch self {
-                case .low: return "#22C55E"
-                case .moderate: return HealthIndicatorPalette.emphasisHex
-                case .high: return "#EF4444"
+                case .low: return AppColorRoles.stateSuccessHex
+                case .moderate: return AppColorRoles.stateWarningHex
+                case .high: return AppColorRoles.stateErrorHex
                 }
             }
         }
@@ -524,9 +524,9 @@ final class HealthMetricsCalculator {
             
             var color: String {
                 switch self {
-                case .low: return "#22C55E"         // Zielony
-                case .moderate: return HealthIndicatorPalette.emphasisHex   // Niebieski
-                case .high: return "#EF4444"        // Czerwony
+                case .low: return AppColorRoles.stateSuccessHex
+                case .moderate: return AppColorRoles.stateWarningHex
+                case .high: return AppColorRoles.stateErrorHex
                 }
             }
             
@@ -620,9 +620,9 @@ final class HealthMetricsCalculator {
 
             var color: String {
                 switch self {
-                case .low: return "#22C55E"
-                case .moderate: return HealthIndicatorPalette.emphasisHex
-                case .high: return "#EF4444"
+                case .low: return AppColorRoles.stateSuccessHex
+                case .moderate: return AppColorRoles.stateWarningHex
+                case .high: return AppColorRoles.stateErrorHex
                 }
             }
         }
@@ -696,9 +696,9 @@ final class HealthMetricsCalculator {
             
             var color: String {
                 switch self {
-                case .low: return "#22C55E"         // Zielony
-                case .moderate: return HealthIndicatorPalette.emphasisHex   // Niebieski
-                case .high: return "#EF4444"        // Czerwony
+                case .low: return AppColorRoles.stateSuccessHex
+                case .moderate: return AppColorRoles.stateWarningHex
+                case .high: return AppColorRoles.stateErrorHex
                 }
             }
             

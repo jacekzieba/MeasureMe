@@ -71,7 +71,17 @@ struct AppGlassBackground: View {
     private var backgroundFill: AnyShapeStyle {
         colorScheme == .dark
             ? AnyShapeStyle(.ultraThinMaterial)
-            : AnyShapeStyle(Color(hex: "#E5E5E5"))
+            : AnyShapeStyle(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0.94),
+                        Color(hex: "#F4F5F7").opacity(0.98),
+                        Color(hex: "#ECEEF2").opacity(0.98)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
     }
 
     private var fillOverlayGradient: LinearGradient {
@@ -82,9 +92,9 @@ struct AppGlassBackground: View {
                     Color.white.opacity(0.20)
                 ]
                 : [
-                    Color.white.opacity(0.18),
-                    Color(hex: "#E5E5E5").opacity(0.98),
-                    Color(hex: "#DEDEDE").opacity(0.96)
+                    Color.white.opacity(0.34),
+                    Color(hex: "#F8F8FA").opacity(0.96),
+                    Color(hex: "#E8EBF0").opacity(0.98)
                 ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -131,11 +141,11 @@ struct AppGlassBackground: View {
                         tint.opacity(depth.tintStrength * 0.42),
                         tint.opacity(depth.tintStrength * 0.16)
                     ]
-                    : [
-                        Color.white.opacity(0.04),
-                        Color(hex: "#E5E5E5").opacity(0.36),
-                        .clear
-                    ],
+                : [
+                    tint.opacity(max(depth.tintStrength * 0.72, 0.04)),
+                    Color.white.opacity(0.16),
+                    Color(hex: "#EEF1F5").opacity(0.28)
+                ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -151,7 +161,8 @@ struct AppGlassBackground: View {
             shape.fill(
                 RadialGradient(
                     colors: [
-                        Color.white.opacity(0.12),
+                        Color.white.opacity(0.18),
+                        tint.opacity(max(depth.tintStrength * 0.44, 0.03)),
                         .clear
                     ],
                     center: .topLeading,

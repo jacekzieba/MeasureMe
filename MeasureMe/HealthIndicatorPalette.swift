@@ -1,12 +1,12 @@
 import SwiftUI
 
 enum HealthIndicatorPalette {
-    static let accentHex = "#7FA28F"
-    static let emphasisHex = "#2F5D4A"
+    static let emphasisHex = AppColorRoles.stateWarningHex
+    static let placeholderHex = AppColorRoles.stateNeutralHex
     static let cardBackgroundHex = "#101A16"
     static let rowBackgroundHex = "#1B2B24"
 
-    static let accent = Color(hex: accentHex)
+    static let accent = AppColorRoles.accentHealth
     static let cardBackground = Color.dynamic(
         light: AppColorRoles.surfacePrimary,
         dark: Color(hex: cardBackgroundHex)
