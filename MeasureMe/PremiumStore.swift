@@ -370,7 +370,7 @@ final class PremiumStore: ObservableObject {
 
     func handleTrialActivated() async {
         showTrialNotificationPermissionPrompt = false
-        showTrialReminderOptInPrompt = false
+        showTrialReminderOptInPrompt = true
         showPostPurchaseSetup = true
     }
 

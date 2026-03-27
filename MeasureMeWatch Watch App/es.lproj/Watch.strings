@@ -1,0 +1,42 @@
+/* Metric names */
+"Weight" = "Peso";
+"Body Fat" = "Grasa corporal";
+"Height" = "Altura";
+"Lean Body Mass" = "Masa corporal magra";
+"Waist" = "Cintura";
+"Neck" = "Cuello";
+"Shoulders" = "Hombros";
+"Bust" = "Busto";
+"Chest" = "Pecho";
+"Left Bicep" = "Bíceps Izquierdo";
+"Right Bicep" = "Bíceps Derecho";
+"Left Forearm" = "Antebrazo Izquierdo";
+"Right Forearm" = "Antebrazo Derecho";
+"Hips" = "Caderas";
+"Left Thigh" = "Muslo Izquierdo";
+"Right Thigh" = "Muslo Derecho";
+"Left Calf" = "Pantorrilla Izquierda";
+"Right Calf" = "Pantorrilla Derecha";
+
+/* Short names (for Quick Add) */
+"Fat" = "Grasa";
+"Lean" = "Magra";
+"L Bicep" = "L Bíceps";
+"R Bicep" = "R Bíceps";
+"L Forearm" = "L Antebrazo";
+"R Forearm" = "R Antebrazo";
+"L Thigh" = "L Muslo";
+"R Thigh" = "R Muslo";
+"L Calf" = "L Pantorrilla";
+"R Calf" = "R Pantorrilla";
+
+/* UI */
+"Add" = "Agregar";
+"No Metrics" = "Sin métricas";
+"Enable metrics on your iPhone to see them here." = "Habilite las métricas en su iPhone para verlas aquí.";
+"Recent" = "Reciente";
+"30-Day Trend" = "Tendencia de 30 días";
+"Save" = "Guardar";
+"Saved" = "Guardado";
+"Premium Feature" = "Característica Premium";
+"Upgrade to Premium on your iPhone to use MeasureMe on Apple Watch." = "Actualice a Premium en su iPhone para usar MeasureMe en Apple Watch.";

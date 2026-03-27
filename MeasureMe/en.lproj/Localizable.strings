@@ -1313,6 +1313,9 @@
 "System" = "System";
 "English" = "English";
 "Polish" = "Polish";
+"Spanish" = "Spanish";
+"Portuguese" = "Portuguese";
+"Portuguese (Brazil)" = "Portuguese (Brazil)";
 "Backup from %@ contains %d measurements, %d goals, %d photos." = "Backup from %@ contains %d measurements, %d goals, %d photos.";
 "Replace all local data with backup?" = "Replace all local data with backup?";
 "Replace" = "Replace";
@@ -1827,17 +1830,11 @@
 "custom.metric.delete" = "Delete Custom Metric";
 "custom.metric.goal.target" = "Target value";
 "Target value" = "Target value";
-"Direction" = "Direction";
 "Remove goal" = "Remove goal";
 "No goal set" = "No goal set";
 "Goal:" = "Goal:";
-"Value" = "Value";
 "Delete measurement" = "Delete measurement";
-"Edit measurement" = "Edit measurement";
 "Show all" = "Show all";
-"Set" = "Set";
-"History" = "History";
-"Goal" = "Goal";
 
 // MARK: - Smart per-metric notifications
 "notification.smart.stale.title" = "Time for an update";

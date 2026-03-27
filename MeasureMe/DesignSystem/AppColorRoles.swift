@@ -98,19 +98,13 @@ enum AppColorRoles {
 
     static let accentPrimary = Color.dynamic(light: Color.appAmberLight, dark: Color.appAmber)
     static let accentPhoto = Color.appCyan
-    static let accentData = Color.dynamic(
-        light: Color(hex: "#1D4ED8"),
-        dark: Color(hex: "#60A5FA")
-    )
+    static let accentData = Color.appTeal
     static let accentPhysique = Color.dynamic(
         light: Color(hex: "#4F46E5"),
         dark: Color(hex: "#A5B4FC")
     )
     static let accentPremium = Color.dynamic(light: Color.appAmberLight, dark: Color.appAmber)
-    static let accentHealth = Color.dynamic(
-        light: Color(hex: "#0F766E"),
-        dark: Color(hex: "#5EEAD4")
-    )
+    static let accentHealth = Color.appEmerald
 
     static let stateSuccessHex = "#16A34A"
     static let stateWarningHex = "#D97706"
@@ -135,10 +129,7 @@ enum AppColorRoles {
         dark: Color(hex: "#60A5FA")
     )
 
-    static let chartPositive = Color.dynamic(
-        light: Color(hex: "#16A34A"),
-        dark: Color.appEmerald
-    )
+    static let chartPositive = Color.appEmerald
     static let chartNegative = Color.appRose
     static let chartNeutral = Color.dynamic(
         light: Color.appNavy.opacity(0.52),

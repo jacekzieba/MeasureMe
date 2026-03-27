@@ -1,0 +1,9 @@
+"SHORTCUT_QUICK_ADD_TITLE" = "Adição rápida";
+"SHORTCUT_QUICK_ADD_SUBTITLE" = "Registrar medições rapidamente";
+"SHORTCUT_ADD_PHOTO_TITLE" = "Adicionar foto";
+"SHORTCUT_ADD_PHOTO_SUBTITLE" = "Abrir fluxo de fotos";
+"NSCameraUsageDescription" = "MeasureMe usa a câmera para tirar fotos de progresso que você escolhe salvar.";
+"NSHealthShareUsageDescription" = "MeasureMe lê seus dados de saúde (peso, gordura corporal, altura, massa magra e cintura) para importar histórico, manter as medidas sincronizadas e calcular indicadores de saúde.";
+"NSHealthUpdateUsageDescription" = "MeasureMe grava as medidas que você adiciona no aplicativo ao Health para que seus registros permaneçam consistentes.";
+"NSPhotoLibraryAddUsageDescription" = "MeasureMe salva imagens de comparação exportadas em sua biblioteca de fotos.";
+"NSPhotoLibraryUsageDescription" = "MeasureMe acessa sua biblioteca de fotos para que você possa escolher fotos de progresso e compará-las.";

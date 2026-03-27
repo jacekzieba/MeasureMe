@@ -61,7 +61,7 @@ struct SettingsView: View {
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
     @AppSetting(\.home.settingsOpenHomeSettings) private var settingsOpenHomeSettings: Bool = false
-    @AppSetting(\.experience.appAppearance) private var appAppearance: String = AppAppearance.system.rawValue
+    @AppSetting(\.experience.appAppearance) private var appAppearance: String = AppAppearance.dark.rawValue
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.experience.hapticsEnabled) private var hapticsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
@@ -244,13 +244,17 @@ struct SettingsView: View {
     }
 
     private var languageSummary: String {
-        switch AppLanguage(rawValue: appLanguage) ?? .system {
+        switch AppLanguage.fromStoredValue(appLanguage) {
         case .system:
             return AppLocalization.string("System")
         case .en:
             return AppLocalization.string("English")
         case .pl:
             return AppLocalization.string("Polish")
+        case .es:
+            return AppLocalization.string("Spanish")
+        case .ptBR:
+            return AppLocalization.string("Portuguese (Brazil)")
         }
     }
 

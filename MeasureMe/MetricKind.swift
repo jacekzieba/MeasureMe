@@ -317,7 +317,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         includeUnit: Bool = true,
         alwaysShowSign: Bool = false
     ) -> String {
-        let valueFormat = alwaysShowSign ? "%+.2f" : "%.2f"
+        let valueFormat = alwaysShowSign ? "%+.1f" : "%.1f"
 
         switch unitCategory {
         case .percent:

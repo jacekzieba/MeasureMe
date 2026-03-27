@@ -14,6 +14,10 @@ struct LanguageSettingsDetailView: View {
                     languageRow(title: AppLocalization.string("English"), value: "en")
                     SettingsRowDivider()
                     languageRow(title: AppLocalization.string("Polish"), value: "pl")
+                    SettingsRowDivider()
+                    languageRow(title: AppLocalization.string("Spanish"), value: "es")
+                    SettingsRowDivider()
+                    languageRow(title: AppLocalization.string("Portuguese (Brazil)"), value: "pt-BR")
                 }
             }
             .listRowSeparator(.hidden)

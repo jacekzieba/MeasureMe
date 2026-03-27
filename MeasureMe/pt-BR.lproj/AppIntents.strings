@@ -1,0 +1,47 @@
+"intent.metric.type" = "Métrica";
+"intent.metric.weight" = "Peso";
+"intent.metric.bodyFat" = "Gordura Corporal";
+"intent.metric.leanBodyMass" = "Massa corporal magra";
+"intent.metric.waist" = "Cintura";
+"intent.metric.neck" = "Pescoço";
+"intent.metric.shoulders" = "Ombros";
+"intent.metric.bust" = "Busto";
+"intent.metric.chest" = "Peito";
+"intent.metric.leftBicep" = "Bíceps Esquerdo";
+"intent.metric.rightBicep" = "Bíceps Direito";
+"intent.metric.leftForearm" = "Antebraço Esquerdo";
+"intent.metric.rightForearm" = "Antebraço Direito";
+"intent.metric.hips" = "Quadris";
+"intent.metric.leftThigh" = "Coxa Esquerda";
+"intent.metric.rightThigh" = "Coxa Direita";
+"intent.metric.leftCalf" = "Panturrilha Esquerda";
+"intent.metric.rightCalf" = "Panturrilha Direita";
+
+"intent.openQuickAdd.title" = "Abra a adição rápida";
+"intent.openQuickAdd.description" = "Abre adição rápida em MeasureMe.";
+"intent.openQuickAdd.success" = "Abrindo adição rápida.";
+
+"intent.openAddPhoto.title" = "Abra Adicionar foto";
+"intent.openAddPhoto.description" = "Abre o fluxo Adicionar foto em MeasureMe.";
+"intent.openAddPhoto.success" = "Abrindo Adicionar foto.";
+
+"intent.addMeasurement.title" = "Adicionar medição";
+"intent.addMeasurement.description" = "Salva uma medição em MeasureMe.";
+"intent.addMeasurement.metric" = "Métrica";
+"intent.addMeasurement.value" = "Valor";
+"intent.addMeasurement.date" = "Data";
+"intent.addMeasurement.success" = "Medição salva.";
+"intent.addMeasurement.error.noActiveMetrics" = "Nenhuma métrica ativa está disponível.";
+"intent.addMeasurement.error.metricNotActive" = "Esta métrica não está ativa em MeasureMe.";
+"intent.addMeasurement.error.storage" = "Não foi possível salvar a medição.";
+
+"intent.shortcut.quickAdd.phrase1" = "Abra a adição rápida";
+"intent.shortcut.quickAdd.phrase2" = "Adição rápida";
+"intent.shortcut.quickAdd.shortTitle" = "Adição rápida";
+
+"intent.shortcut.addPhoto.phrase1" = "Abra Adicionar foto em";
+"intent.shortcut.addPhoto.phrase2" = "Adicionar foto em";
+"intent.shortcut.addPhoto.shortTitle" = "Adicionar foto";
+
+"intent.shortcut.addMeasurement.phrase1" = "Adicionar medição em";
+"intent.shortcut.addMeasurement.shortTitle" = "Adicionar medição";

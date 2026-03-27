@@ -20,3 +20,7 @@ build/
 # Test snapshots
 **/__Snapshots__/
 **/__snapshots__/
+!MeasureMeTests/__Snapshots__/
+!MeasureMeTests/__Snapshots__/**
+MeasureMeTests/__Snapshots__/.DS_Store
+MeasureMeTests/__Snapshots__/**/.DS_Store

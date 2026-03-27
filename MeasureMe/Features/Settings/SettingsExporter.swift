@@ -246,7 +246,7 @@ enum SettingsExporter {
         // metric_id — stały klucz do importu (MetricKind.rawValue, language-agnostic)
         // value_metric / unit_metric — wartości bazowe (kg/cm/%) — determinizm przy imporcie
         // value / unit — wartości display (lb/in gdy imperial) — wygoda w Excelu
-        var lines: [String] = ["metric_id,metric,value_metric,unit_metric,value,unit,source,timestamp"]
+        var lines: [String] = ["metric_id,metric,value_metric,unit_metric,value,unit,timestamp"]
         for row in rows {
             let metricValueStr = String(format: "%.4f", locale: posixLocale, row.metricValue)
             let displayValueStr = String(format: "%.2f", locale: posixLocale, row.displayValue)
@@ -258,7 +258,6 @@ enum SettingsExporter {
                 csvField(row.metricUnit),
                 displayValueStr,
                 csvField(row.unit),
-                csvField(row.sourceRaw),
                 dateString
             ].joined(separator: ","))
         }

@@ -40,7 +40,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         AppLocalization.reloadLanguage()
     }
 
-    private func makeView() -> some View {
+    private func makeView(colorScheme: ColorScheme = .dark) -> some View {
         NavigationStack {
             DataSettingsDetailView(
                 iCloudBackupEnabled: .constant(false),
@@ -57,7 +57,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
                 onDeleteAll: {}
             )
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(colorScheme)
     }
 
     private func makeHostingController(view: some View, height: CGFloat = 844) -> UIHostingController<some View> {
@@ -101,7 +101,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         AppLocalization.reloadLanguage()
         UIView.setAnimationsEnabled(false)
 
-        let vc = makeHostingController(view: makeView())
+        let vc = makeHostingController(view: makeView(colorScheme: .dark))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
         assertSnapshot(of: vc, as: .image, record: shouldRecord)
@@ -138,7 +138,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         AppLocalization.reloadLanguage()
         UIView.setAnimationsEnabled(false)
 
-        let vc = makeHostingController(view: makeView())
+        let vc = makeHostingController(view: makeView(colorScheme: .dark))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
         assertSnapshot(of: vc, as: .image, record: shouldRecord)
@@ -174,7 +174,114 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         AppLocalization.reloadLanguage()
         UIView.setAnimationsEnabled(false)
 
-        let vc = makeHostingController(view: makeView())
+        let vc = makeHostingController(view: makeView(colorScheme: .dark))
+
+        let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
+        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+    }
+
+    // MARK: - Light mode variants
+
+    @MainActor
+    func testDataSettings_defaultState_light() throws {
+        #if !targetEnvironment(simulator)
+        XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
+        return
+        #endif
+
+        let baseline = backupDefaults()
+        let wereAnimationsEnabled = UIView.areAnimationsEnabled
+        defer {
+            restoreDefaults(baseline)
+            AppSettingsStore.shared.forceReloadSnapshot()
+            AppLocalization.settings = .shared
+            AppLocalization.reloadLanguage()
+            UIView.setAnimationsEnabled(wereAnimationsEnabled)
+        }
+
+        let defaults = UserDefaults.standard
+        defaults.set("en", forKey: "appLanguage")
+        defaults.set(false, forKey: "icloud_backup_enabled")
+        defaults.removeObject(forKey: "icloud_backup_last_success_timestamp")
+        defaults.set("", forKey: "icloud_backup_last_error_message")
+        defaults.set(5120, forKey: "icloud_backup_last_size_bytes")
+        defaults.set(true, forKey: "analytics_enabled")
+        AppSettingsStore.shared.forceReloadSnapshot()
+        AppLocalization.settings = AppSettingsStore(defaults: defaults)
+        AppLocalization.reloadLanguage()
+        UIView.setAnimationsEnabled(false)
+
+        let vc = makeHostingController(view: makeView(colorScheme: .light))
+
+        let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
+        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+    }
+
+    @MainActor
+    func testDataSettings_backupEnabled_withTimestamp_light() throws {
+        #if !targetEnvironment(simulator)
+        XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
+        return
+        #endif
+
+        let baseline = backupDefaults()
+        let wereAnimationsEnabled = UIView.areAnimationsEnabled
+        defer {
+            restoreDefaults(baseline)
+            AppSettingsStore.shared.forceReloadSnapshot()
+            AppLocalization.settings = .shared
+            AppLocalization.reloadLanguage()
+            UIView.setAnimationsEnabled(wereAnimationsEnabled)
+        }
+
+        let defaults = UserDefaults.standard
+        defaults.set("en", forKey: "appLanguage")
+        defaults.set(true, forKey: "icloud_backup_enabled")
+        defaults.set(1609459200.0, forKey: "icloud_backup_last_success_timestamp") // 2021-01-01
+        defaults.set("", forKey: "icloud_backup_last_error_message")
+        defaults.set(5120, forKey: "icloud_backup_last_size_bytes")
+        defaults.set(true, forKey: "analytics_enabled")
+        AppSettingsStore.shared.forceReloadSnapshot()
+        AppLocalization.settings = AppSettingsStore(defaults: defaults)
+        AppLocalization.reloadLanguage()
+        UIView.setAnimationsEnabled(false)
+
+        let vc = makeHostingController(view: makeView(colorScheme: .light))
+
+        let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
+        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+    }
+
+    @MainActor
+    func testDataSettings_withErrorMessage_light() throws {
+        #if !targetEnvironment(simulator)
+        XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
+        return
+        #endif
+
+        let baseline = backupDefaults()
+        let wereAnimationsEnabled = UIView.areAnimationsEnabled
+        defer {
+            restoreDefaults(baseline)
+            AppSettingsStore.shared.forceReloadSnapshot()
+            AppLocalization.settings = .shared
+            AppLocalization.reloadLanguage()
+            UIView.setAnimationsEnabled(wereAnimationsEnabled)
+        }
+
+        let defaults = UserDefaults.standard
+        defaults.set("en", forKey: "appLanguage")
+        defaults.set(true, forKey: "icloud_backup_enabled")
+        defaults.removeObject(forKey: "icloud_backup_last_success_timestamp")
+        defaults.set("iCloud Drive is unavailable on this device.", forKey: "icloud_backup_last_error_message")
+        defaults.set(5120, forKey: "icloud_backup_last_size_bytes")
+        defaults.set(true, forKey: "analytics_enabled")
+        AppSettingsStore.shared.forceReloadSnapshot()
+        AppLocalization.settings = AppSettingsStore(defaults: defaults)
+        AppLocalization.reloadLanguage()
+        UIView.setAnimationsEnabled(false)
+
+        let vc = makeHostingController(view: makeView(colorScheme: .light))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
         assertSnapshot(of: vc, as: .image, record: shouldRecord)

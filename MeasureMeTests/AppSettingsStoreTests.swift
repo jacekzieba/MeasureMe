@@ -19,7 +19,7 @@ final class AppSettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(store.snapshot.profile.unitsSystem, "metric")
         XCTAssertEqual(store.snapshot.experience.appLanguage, "system")
-        XCTAssertEqual(store.snapshot.experience.appAppearance, AppAppearance.system.rawValue)
+        XCTAssertEqual(store.snapshot.experience.appAppearance, AppAppearance.dark.rawValue)
         XCTAssertTrue(store.snapshot.experience.animationsEnabled)
         XCTAssertTrue(store.snapshot.notifications.photoRemindersEnabled)
         XCTAssertTrue(store.snapshot.health.healthkitSyncWeight)

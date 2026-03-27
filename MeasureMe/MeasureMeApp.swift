@@ -7,7 +7,7 @@ import RevenueCat
 @main
 struct MeasureMeApp: App {
     @UIApplicationDelegateAdaptor(MeasureMeAppDelegate.self) private var appDelegate
-    @AppSetting(\.experience.appAppearance) private var appAppearance: String = AppAppearance.system.rawValue
+    @AppSetting(\.experience.appAppearance) private var appAppearance: String = AppAppearance.dark.rawValue
     @AppSetting(\.experience.appLanguage) private var appLanguage: String = "system"
     @StateObject private var settingsStore = AppSettingsStore.shared
     @State private var startupState: StartupState = .loading
@@ -219,14 +219,7 @@ struct MeasureMeApp: App {
     }
 
     private var appLocale: Locale {
-        switch appLanguage {
-        case "pl":
-            return Locale(identifier: "pl")
-        case "en":
-            return Locale(identifier: "en")
-        default:
-            return Locale.current
-        }
+        AppLanguage.fromStoredValue(appLanguage).locale
     }
 
     private var resolvedAppearance: AppAppearance {
@@ -917,7 +910,7 @@ struct MeasureMeApp: App {
 private struct SettingsUITestHostView: View {
     @StateObject private var premiumStore = PremiumStore(startListener: false)
     @StateObject private var metricsStore = ActiveMetricsStore()
-    @AppSetting(\.experience.appAppearance) private var appAppearance: String = AppAppearance.system.rawValue
+    @AppSetting(\.experience.appAppearance) private var appAppearance: String = AppAppearance.dark.rawValue
 
     var body: some View {
         NavigationStack {

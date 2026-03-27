@@ -539,12 +539,7 @@ nonisolated enum TransformationCardRenderer {
     /// Mirrors AppLanguage.bundle logic inline so this nonisolated enum can call it freely.
     private static var currentBundle: Bundle {
         let raw = UserDefaults.standard.string(forKey: "appLanguage") ?? "system"
-        if raw == "en" || raw == "pl",
-           let path = Bundle.main.path(forResource: raw, ofType: "lproj"),
-           let bundle = Bundle(path: path) {
-            return bundle
-        }
-        return .main
+        return AppLanguage.fromStoredValue(raw).bundle
     }
 
     private static func localizedString(_ key: String) -> String {

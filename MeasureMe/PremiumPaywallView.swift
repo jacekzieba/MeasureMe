@@ -140,7 +140,7 @@ struct PremiumPaywallView: View {
         switch AppLocalization.currentLanguage {
         case .pl:
             return true
-        case .en:
+        case .en, .es, .ptBR:
             return false
         case .system:
             return Locale.preferredLanguages.first?.lowercased().hasPrefix("pl") ?? false

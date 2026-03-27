@@ -4,6 +4,38 @@ enum AppLanguage: String {
     case system
     case en
     case pl
+    case es
+    case ptBR = "pt-BR"
+
+    static func fromStoredValue(_ raw: String?) -> AppLanguage {
+        guard let raw else { return .system }
+        if raw == "pt" {
+            return .ptBR
+        }
+        return AppLanguage(rawValue: raw) ?? .system
+    }
+
+    private static func localizedBundle(for languageCode: String) -> Bundle? {
+        guard let path = Bundle.main.path(forResource: languageCode, ofType: "lproj"),
+              let bundle = Bundle(path: path) else {
+            return nil
+        }
+        return bundle
+    }
+
+    static var resolvedSystemLanguage: AppLanguage {
+        let preferred = Locale.preferredLanguages.first?.lowercased() ?? ""
+        if preferred.hasPrefix("pl") {
+            return .pl
+        }
+        if preferred.hasPrefix("es") {
+            return .es
+        }
+        if preferred.hasPrefix("pt") {
+            return .ptBR
+        }
+        return .en
+    }
 
     var locale: Locale {
         switch self {
@@ -13,19 +45,19 @@ enum AppLanguage: String {
             return Locale(identifier: "en")
         case .pl:
             return Locale(identifier: "pl")
+        case .es:
+            return Locale(identifier: "es")
+        case .ptBR:
+            return Locale(identifier: "pt-BR")
         }
     }
 
     var bundle: Bundle {
         switch self {
         case .system:
-            return .main
-        case .en, .pl:
-            guard let path = Bundle.main.path(forResource: rawValue, ofType: "lproj"),
-                  let bundle = Bundle(path: path) else {
-                return .main
-            }
-            return bundle
+            return AppLanguage.resolvedSystemLanguage.bundle
+        case .en, .pl, .es, .ptBR:
+            return AppLanguage.localizedBundle(for: rawValue) ?? .main
         }
     }
 }
@@ -56,8 +88,7 @@ enum AppLocalization {
     }
 
     private static func loadLanguageFromDefaults() -> AppLanguage {
-        let raw = settings.snapshot.experience.appLanguage
-        return AppLanguage(rawValue: raw) ?? .system
+        AppLanguage.fromStoredValue(settings.snapshot.experience.appLanguage)
     }
 
     /// Wywolaj po zmianie jezyka aplikacji, aby odswiezyc zbuforowany bundle.
@@ -75,27 +106,22 @@ enum AppLocalization {
     }
 
     static func systemString(_ key: String, _ args: CVarArg...) -> String {
-        let lang = Locale.preferredLanguages.first?.lowercased() ?? ""
-        let bundle: Bundle
-        let locale: Locale
-        if lang.hasPrefix("pl"), let path = Bundle.main.path(forResource: "pl", ofType: "lproj"), let plBundle = Bundle(path: path) {
-            bundle = plBundle
-            locale = Locale(identifier: "pl")
-        } else if let path = Bundle.main.path(forResource: "en", ofType: "lproj"), let enBundle = Bundle(path: path) {
-            bundle = enBundle
-            locale = Locale(identifier: "en")
-        } else {
-            bundle = .main
-            locale = .current
-        }
+        let language = AppLanguage.resolvedSystemLanguage
+        let bundle = language.bundle
+        let locale = language.locale
         let format = bundle.localizedString(forKey: key, value: key, table: nil)
         guard !args.isEmpty else { return format }
         return String(format: format, locale: locale, arguments: args)
     }
 
     static func systemPlural(_ key: String, _ count: Int) -> String {
-        let lang = Locale.preferredLanguages.first?.lowercased() ?? ""
-        if !lang.hasPrefix("pl") {
+        let language = AppLanguage.resolvedSystemLanguage
+        if language != .pl {
+            let singularKey = "\(key).one"
+            let singularFormat = language.bundle.localizedString(forKey: singularKey, value: singularKey, table: nil)
+            if count == 1, singularFormat != singularKey {
+                return String(format: singularFormat, locale: language.locale, arguments: [count])
+            }
             return systemString(key, count)
         }
         let mod10 = count % 10
@@ -114,32 +140,26 @@ enum AppLocalization {
 
     static func plural(_ key: String, _ count: Int) -> String {
         let language = currentLanguage
-        let preferred = Locale.preferredLanguages.first?.lowercased() ?? ""
         let resolvedBundle: Bundle
         let resolvedLocale: Locale
 
         switch language {
         case .system:
-            if preferred.hasPrefix("pl"),
-               let path = Bundle.main.path(forResource: "pl", ofType: "lproj"),
-               let bundle = Bundle(path: path) {
-                resolvedBundle = bundle
-                resolvedLocale = Locale(identifier: "pl")
-            } else if let path = Bundle.main.path(forResource: "en", ofType: "lproj"),
-                      let bundle = Bundle(path: path) {
-                resolvedBundle = bundle
-                resolvedLocale = Locale(identifier: "en")
-            } else {
-                resolvedBundle = .main
-                resolvedLocale = .current
-            }
-        case .en, .pl:
+            let resolvedLanguage = AppLanguage.resolvedSystemLanguage
+            resolvedBundle = resolvedLanguage.bundle
+            resolvedLocale = resolvedLanguage.locale
+        case .en, .pl, .es, .ptBR:
             resolvedBundle = currentBundle
             resolvedLocale = language.locale
         }
 
         let shouldUsePolishRules = resolvedLocale.identifier.lowercased().hasPrefix("pl")
         guard shouldUsePolishRules else {
+            let singularKey = "\(key).one"
+            let singularFormat = resolvedBundle.localizedString(forKey: singularKey, value: singularKey, table: nil)
+            if count == 1, singularFormat != singularKey {
+                return String(format: singularFormat, locale: resolvedLocale, arguments: [count])
+            }
             let format = resolvedBundle.localizedString(forKey: key, value: key, table: nil)
             return String(format: format, locale: resolvedLocale, arguments: [count])
         }

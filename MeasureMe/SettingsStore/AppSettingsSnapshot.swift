@@ -155,7 +155,7 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.Metrics.bodyFatEnabled: true,
         AppSettingsKeys.Metrics.leanBodyMassEnabled: true,
         AppSettingsKeys.Profile.unitsSystem: "metric",
-        AppSettingsKeys.Experience.appAppearance: AppAppearance.system.rawValue,
+        AppSettingsKeys.Experience.appAppearance: AppAppearance.dark.rawValue,
         AppSettingsKeys.Experience.animationsEnabled: true,
         AppSettingsKeys.Experience.hapticsEnabled: true,
         AppSettingsKeys.Experience.saveUnchangedQuickAdd: false,
@@ -264,7 +264,7 @@ struct AppSettingsSnapshot: Sendable {
                 showPhysiqueRFM: defaults.object(forKey: AppSettingsKeys.Indicators.showPhysiqueRFM) as? Bool ?? true
             ),
             experience: .init(
-                appAppearance: defaults.string(forKey: AppSettingsKeys.Experience.appAppearance) ?? AppAppearance.system.rawValue,
+                appAppearance: defaults.string(forKey: AppSettingsKeys.Experience.appAppearance) ?? AppAppearance.dark.rawValue,
                 animationsEnabled: defaults.object(forKey: AppSettingsKeys.Experience.animationsEnabled) as? Bool ?? true,
                 hapticsEnabled: defaults.object(forKey: AppSettingsKeys.Experience.hapticsEnabled) as? Bool ?? true,
                 appLanguage: defaults.string(forKey: AppSettingsKeys.Experience.appLanguage) ?? "system",
