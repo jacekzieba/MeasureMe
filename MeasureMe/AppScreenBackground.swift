@@ -24,10 +24,10 @@ struct AppScreenBackground: View {
                             Color.appBlack
                         ]
                         : [
-                            Color.white,
-                            Color(hex: "#F7F8FA"),
-                            Color(hex: "#F0F2F5"),
-                            Color(hex: "#FBFBFC")
+                            Color(hex: "#F1F1F0"),
+                            Color(hex: "#ECECEA"),
+                            Color(hex: "#E3E3E0"),
+                            Color(hex: "#EFEFED")
                         ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -37,7 +37,7 @@ struct AppScreenBackground: View {
                 blob(
                     color: colorScheme == .dark
                         ? tint
-                        : Color(hex: "#F1F2F5").opacity(0.88),
+                        : Color(hex: "#E1E1DE").opacity(0.68),
                     width: width * 0.95,
                     height: topHeight * 0.78
                 )
@@ -49,7 +49,7 @@ struct AppScreenBackground: View {
                 blob(
                     color: colorScheme == .dark
                         ? Color.cyan.opacity(0.18)
-                        : Color(hex: "#ECEEF2").opacity(0.76),
+                        : Color(hex: "#D8D8D5").opacity(0.46),
                     width: width * 0.86,
                     height: topHeight * 0.68
                 )
@@ -61,7 +61,7 @@ struct AppScreenBackground: View {
                 blob(
                     color: colorScheme == .dark
                         ? Color.white.opacity(0.10)
-                        : Color.white.opacity(0.78),
+                        : Color(hex: "#F3F3F1").opacity(0.32),
                     width: width * 0.65,
                     height: topHeight * 0.48
                 )
@@ -92,49 +92,12 @@ struct AppScreenBackground: View {
                         )
                 }
 
-                if colorScheme == .light {
-                    Ellipse()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color(hex: "#E8EAEE").opacity(0.78),
-                                    Color(hex: "#E8EAEE").opacity(0.18),
-                                    .clear
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .frame(width: width * 0.52, height: topHeight * 0.48)
-                        .blur(radius: 20)
-                        .offset(
-                            x: -width * 0.10,
-                            y: -topHeight * 0.08 + parallax * 0.35
-                        )
-
-                    Rectangle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.44),
-                                    Color(hex: "#ECEEF2").opacity(0.22),
-                                    .clear
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .frame(height: topHeight * 0.86)
-                        .blur(radius: 18)
-                        .offset(y: -topHeight * 0.10)
-                }
-
                 FilmGrainOverlay()
                     .blendMode(colorScheme == .dark ? .softLight : .overlay)
-                    .opacity(colorScheme == .dark ? 0.11 : 0.04)
+                    .opacity(colorScheme == .dark ? 0.11 : 0.05)
                     .ignoresSafeArea()
             }
-            .drawingGroup(opaque: false, colorMode: .extendedLinear)
+            .drawingGroup()
         }
         .ignoresSafeArea()
     }

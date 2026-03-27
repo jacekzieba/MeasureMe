@@ -476,7 +476,7 @@ struct SettingsView: View {
         Section {
             SettingsSectionEyebrow(title: AppLocalization.string("settings.section.setup"))
 
-            SettingsCard(tint: AppColorRoles.surfacePrimary) {
+            SettingsCard(tint: FeatureTheme.home.softTint) {
                 settingsOverviewRow(
                     route: .home,
                     title: AppLocalization.string("Home"),
@@ -612,7 +612,7 @@ struct SettingsView: View {
         Section {
             SettingsSectionEyebrow(title: AppLocalization.string("settings.section.support"))
 
-            SettingsCard(tint: AppColorRoles.surfacePrimary) {
+            SettingsCard(tint: FeatureTheme.photos.softTint) {
                 settingsOverviewRow(
                     route: .data,
                     title: AppLocalization.string("Data"),
@@ -649,7 +649,7 @@ struct SettingsView: View {
         .listRowInsets(Self.settingsRowInsets)
 
         Section {
-            SettingsCard(tint: AppColorRoles.surfacePrimary) {
+            SettingsCard(tint: FeatureTheme.measurements.softTint) {
                 SettingsCardHeader(title: AppLocalization.string("App"), systemImage: "iphone.gen3.sizes")
 
                 Button {

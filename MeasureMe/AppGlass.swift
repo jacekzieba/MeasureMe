@@ -74,9 +74,9 @@ struct AppGlassBackground: View {
             : AnyShapeStyle(
                 LinearGradient(
                     colors: [
-                        Color.white.opacity(0.94),
-                        Color(hex: "#F4F5F7").opacity(0.98),
-                        Color(hex: "#ECEEF2").opacity(0.98)
+                        Color(hex: "#E6E6E3").opacity(0.99),
+                        Color(hex: "#E0E0DD").opacity(0.99),
+                        Color(hex: "#D6D6D3").opacity(0.99)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -92,9 +92,9 @@ struct AppGlassBackground: View {
                     Color.white.opacity(0.20)
                 ]
                 : [
-                    Color.white.opacity(0.34),
-                    Color(hex: "#F8F8FA").opacity(0.96),
-                    Color(hex: "#E8EBF0").opacity(0.98)
+                    Color.white.opacity(0.06),
+                    Color(hex: "#E4E4E1").opacity(0.10),
+                    Color(hex: "#D7D7D3").opacity(0.14)
                 ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -109,8 +109,8 @@ struct AppGlassBackground: View {
                     AppColorRoles.borderStrong.opacity(0.50)
                 ]
                 : [
-                    Color.white.opacity(0.90),
-                    AppColorRoles.borderStrong.opacity(0.72)
+                    Color.white.opacity(0.14),
+                    AppColorRoles.borderStrong.opacity(0.42)
                 ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -120,7 +120,7 @@ struct AppGlassBackground: View {
     private var innerStrokeColor: Color {
         colorScheme == .dark
             ? Color.black.opacity(depth.innerEdgeOpacity)
-            : Color.white.opacity(0.55)
+            : AppColorRoles.borderSubtle.opacity(0.88)
     }
 
     private var shadowColor: Color {
@@ -142,9 +142,9 @@ struct AppGlassBackground: View {
                         tint.opacity(depth.tintStrength * 0.16)
                     ]
                 : [
-                    tint.opacity(max(depth.tintStrength * 0.72, 0.04)),
-                    Color.white.opacity(0.16),
-                    Color(hex: "#EEF1F5").opacity(0.28)
+                    tint.opacity(max(depth.tintStrength * 0.42, 0.03)),
+                    Color.white.opacity(0.03),
+                    Color(hex: "#D9D9D5").opacity(0.06)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -161,8 +161,9 @@ struct AppGlassBackground: View {
             shape.fill(
                 RadialGradient(
                     colors: [
-                        Color.white.opacity(0.18),
-                        tint.opacity(max(depth.tintStrength * 0.44, 0.03)),
+                        Color.white.opacity(0.02),
+                        tint.opacity(max(depth.tintStrength * 0.20, 0.025)),
+                        Color.black.opacity(0.028),
                         .clear
                     ],
                     center: .topLeading,
@@ -182,10 +183,19 @@ struct AppGlassBackground: View {
         }
     }
 
+    private var borderStroke: some View {
+        shape.stroke(
+            colorScheme == .dark
+                ? AppColorRoles.borderStrong.opacity(0.66)
+                : AppColorRoles.borderStrong.opacity(0.84),
+            lineWidth: 1
+        )
+    }
+
     private var innerStroke: some View {
         shape
             .inset(by: 0.5)
-            .stroke(innerStrokeColor, lineWidth: 0.7)
+            .stroke(innerStrokeColor, lineWidth: 0.8)
     }
 
     var body: some View {
@@ -193,6 +203,7 @@ struct AppGlassBackground: View {
             .fill(backgroundFill)
             .overlay(tintedOverlay)
             .overlay(fillOverlay)
+            .overlay(borderStroke)
             .overlay(highlightStroke)
             .overlay(innerStroke)
             .shadow(

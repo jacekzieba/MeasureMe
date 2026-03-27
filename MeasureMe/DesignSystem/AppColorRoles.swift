@@ -11,44 +11,44 @@ enum AppColorRoles {
     }
 
     static let surfaceCanvas = dynamic(
-        light: UIColor(Color(hex: "#ECEFF2")),
+        light: UIColor(Color(hex: "#EBEBEA")),
         dark: UIColor(Color.appInk)
     )
     static let surfacePrimary = dynamic(
-        light: UIColor(Color(hex: "#DEE3E8")).withAlphaComponent(0.98),
+        light: UIColor(Color(hex: "#DFDFDD")).withAlphaComponent(0.98),
         dark: UIColor.white.withAlphaComponent(0.07)
     )
     static let surfaceSecondary = dynamic(
-        light: UIColor(Color(hex: "#D8DDE3")).withAlphaComponent(0.98),
+        light: UIColor(Color(hex: "#D8D8D5")).withAlphaComponent(0.98),
         dark: UIColor.black.withAlphaComponent(0.26)
     )
     static let surfaceElevated = dynamic(
-        light: UIColor(Color(hex: "#E3E7EC")).withAlphaComponent(0.98),
+        light: UIColor(Color(hex: "#E3E3E0")).withAlphaComponent(0.98),
         dark: UIColor.white.withAlphaComponent(0.09)
     )
     static let surfaceInteractive = dynamic(
-        light: UIColor(Color(hex: "#DDE2E7")).withAlphaComponent(0.98),
+        light: UIColor(Color(hex: "#DDDDDA")).withAlphaComponent(0.98),
         dark: UIColor.white.withAlphaComponent(0.05)
     )
     static let surfaceGlass = dynamic(
-        light: UIColor(Color(hex: "#DCE2E8")).withAlphaComponent(0.90),
+        light: UIColor(Color(hex: "#DBDBD8")).withAlphaComponent(0.90),
         dark: UIColor.white.withAlphaComponent(0.06)
     )
     static let surfaceChrome = dynamic(
-        light: UIColor(Color(hex: "#E1E5EA")).withAlphaComponent(0.95),
+        light: UIColor(Color(hex: "#E1E1DE")).withAlphaComponent(0.95),
         dark: UIColor(Color.appMidnight).withAlphaComponent(0.86)
     )
     static let surfaceAccentSoft = dynamic(
-        light: UIColor(Color(hex: "#D8DDE3")).withAlphaComponent(0.98),
+        light: UIColor(Color(hex: "#D8D8D5")).withAlphaComponent(0.98),
         dark: UIColor.white.withAlphaComponent(0.08)
     )
 
     static let borderSubtle = dynamic(
-        light: UIColor(Color.appMidnight).withAlphaComponent(0.18),
+        light: UIColor(Color.appMidnight).withAlphaComponent(0.09),
         dark: UIColor.white.withAlphaComponent(0.12)
     )
     static let borderStrong = dynamic(
-        light: UIColor(Color.appMidnight).withAlphaComponent(0.30),
+        light: UIColor(Color.appMidnight).withAlphaComponent(0.15),
         dark: UIColor.white.withAlphaComponent(0.22)
     )
 
@@ -88,11 +88,11 @@ enum AppColorRoles {
         dark: Color(hex: "#E87A08")
     )
     static let surfaceWarmHighlight = Color.dynamic(
-        light: Color(hex: "#EDF1F4"),
+        light: Color(hex: "#E9E9E6"),
         dark: Color.white.opacity(0.06)
     )
     static let surfaceCoolHighlight = Color.dynamic(
-        light: Color(hex: "#E2E7EC"),
+        light: Color(hex: "#DFDFDC"),
         dark: Color.white.opacity(0.03)
     )
 
@@ -135,7 +135,10 @@ enum AppColorRoles {
         dark: Color(hex: "#60A5FA")
     )
 
-    static let chartPositive = Color.appEmerald
+    static let chartPositive = Color.dynamic(
+        light: Color(hex: "#16A34A"),
+        dark: Color.appEmerald
+    )
     static let chartNegative = Color.appRose
     static let chartNeutral = Color.dynamic(
         light: Color.appNavy.opacity(0.52),

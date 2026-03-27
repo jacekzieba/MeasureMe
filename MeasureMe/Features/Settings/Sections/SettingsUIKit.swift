@@ -7,7 +7,6 @@ struct SettingsBackdrop: View {
     var topHeight: CGFloat = 380
     var scrollOffset: CGFloat = 0
     var tint: Color = settingsDetailTheme.strongTint
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         AppScreenBackground(
@@ -15,27 +14,12 @@ struct SettingsBackdrop: View {
             scrollOffset: scrollOffset,
             tint: tint
         )
-        .overlay {
-            if colorScheme == .light {
-                LinearGradient(
-                    colors: [
-                        Color(hex: "#E4E8EE").opacity(0.62),
-                        Color(hex: "#EDF1F5").opacity(0.36),
-                        Color.white.opacity(0.12)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-            }
-        }
     }
 }
 
 struct SettingsCard<Content: View>: View {
     let tint: Color
     @ViewBuilder let content: Content
-    @Environment(\.colorScheme) private var colorScheme
 
     init(tint: Color, @ViewBuilder content: () -> Content) {
         self.tint = tint
@@ -55,51 +39,6 @@ struct SettingsCard<Content: View>: View {
                 tint: tint
             )
         )
-        .overlay {
-            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: colorScheme == .dark
-                            ? [
-                                Color.white.opacity(0.04),
-                                tint.opacity(0.08),
-                                .clear
-                            ]
-                            : [
-                                Color.white.opacity(0.10),
-                                tint.opacity(0.12),
-                                Color.appAccent.opacity(0.04)
-                            ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .allowsHitTesting(false)
-        }
-        .overlay {
-            if colorScheme == .light {
-                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: "#D6DCE5").opacity(0.22),
-                                Color.clear,
-                                Color(hex: "#C8D0DB").opacity(0.16)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .allowsHitTesting(false)
-            }
-        }
-        .overlay {
-            if colorScheme == .light {
-                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                    .stroke(Color.appInk.opacity(0.07), lineWidth: 1)
-                    .allowsHitTesting(false)
-            }
-        }
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
     }
 }
