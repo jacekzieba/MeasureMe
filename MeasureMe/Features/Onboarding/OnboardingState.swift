@@ -1,18 +1,6 @@
 import Foundation
 
 extension OnboardingView {
-    struct ICloudBackupOfferDecision: Equatable {
-        let viewedOffer: Bool
-        let skippedBackup: Bool
-
-        nonisolated static func persistState(isBackupEnabled: Bool) -> Self {
-            .init(
-                viewedOffer: true,
-                skippedBackup: !isBackupEnabled
-            )
-        }
-    }
-
     enum FocusField: Hashable {
         case name
         case age

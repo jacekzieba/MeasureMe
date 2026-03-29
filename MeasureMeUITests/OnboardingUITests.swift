@@ -10,11 +10,7 @@ final class OnboardingUITests: XCTestCase {
     override func setUp() {
         super.setUp()
         continueAfterFailure = false
-        var launchArguments = ["-uiTestOnboardingMode"]
-        if name.contains("testICloudBackupBoosterCanEnableBackupForPremiumUsers") {
-            launchArguments.append("-uiTestForcePremium")
-        }
-        launchApp(arguments: launchArguments)
+        launchApp(arguments: ["-uiTestOnboardingMode"])
     }
 
     private func launchApp(arguments: [String]) {
@@ -108,51 +104,14 @@ final class OnboardingUITests: XCTestCase {
     }
 
     @MainActor
-    func testICloudBackupBoosterShowsPremiumCTAForNonPremiumUsers() {
+    func testICloudBackupBoosterIsHiddenDuringOnboarding() {
         for _ in 0..<2 {
             let next = nextButton
             XCTAssertTrue(next.waitForExistence(timeout: 10))
             next.tap()
         }
 
-        let iCloudButton = app.buttons["onboarding.booster.icloud"]
-        XCTAssertTrue(iCloudButton.waitForExistence(timeout: 5), "Przycisk boostera iCloud powinien istniec")
-        iCloudButton.tap()
-
-        let paywallCloseButton = app.buttons["premium.paywall.close"].firstMatch
-        XCTAssertTrue(paywallCloseButton.waitForExistence(timeout: 5), "Booster iCloud powinien otworzyc paywall dla uzytkownika bez Premium")
-    }
-
-    @MainActor
-    func testICloudBackupBoosterCanEnableBackupForPremiumUsers() {
-        for _ in 0..<2 {
-            let next = nextButton
-            XCTAssertTrue(next.waitForExistence(timeout: 10))
-            next.tap()
-        }
-
-        let iCloudButton = app.buttons["onboarding.booster.icloud"]
-        XCTAssertTrue(iCloudButton.waitForExistence(timeout: 5), "Przycisk boostera iCloud powinien istniec")
-        iCloudButton.tap()
-
-        XCTAssertTrue(app.staticTexts["icloudEnabled:true"].firstMatch.waitForExistence(timeout: 5), "Uzytkownik Premium powinien moc wlaczyc backup iCloud z onboardingu")
-    }
-
-    @MainActor
-    func testSkipOnBoostersPersistsICloudDecisionAndFinishesOnboarding() {
-        for _ in 0..<2 {
-            let next = nextButton
-            XCTAssertTrue(next.waitForExistence(timeout: 10))
-            next.tap()
-        }
-
-        XCTAssertTrue(skipButton.waitForExistence(timeout: 5))
-        skipButton.tap()
-
-        XCTAssertTrue(app.staticTexts["icloudViewed:true"].firstMatch.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["icloudSkipped:true"].firstMatch.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["icloudEnabled:false"].firstMatch.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8), "Skip na boosterach powinien zakonczyc onboarding")
+        XCTAssertFalse(app.buttons["onboarding.booster.icloud"].exists, "Onboarding nie powinien pytac o iCloud Backup")
     }
 
     @MainActor

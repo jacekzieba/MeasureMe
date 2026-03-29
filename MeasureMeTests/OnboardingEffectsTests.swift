@@ -121,18 +121,4 @@ final class OnboardingEffectsTests: XCTestCase {
         XCTAssertEqual(analytics.trackedSignals, [.onboardingStarted])
         XCTAssertEqual(store.integer(forKey: "onboarding_goal_selection_stat_loseWeight"), 2)
     }
-
-    func testICloudBackupOfferDecisionMarksSkippedWhenBackupWasNotEnabled() {
-        let decision = OnboardingView.ICloudBackupOfferDecision.persistState(isBackupEnabled: false)
-
-        XCTAssertTrue(decision.viewedOffer)
-        XCTAssertTrue(decision.skippedBackup)
-    }
-
-    func testICloudBackupOfferDecisionMarksAcceptedWhenBackupWasEnabled() {
-        let decision = OnboardingView.ICloudBackupOfferDecision.persistState(isBackupEnabled: true)
-
-        XCTAssertTrue(decision.viewedOffer)
-        XCTAssertFalse(decision.skippedBackup)
-    }
 }

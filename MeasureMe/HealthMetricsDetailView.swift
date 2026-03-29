@@ -287,7 +287,7 @@ struct HealthMetricsDetailView: View {
     
     private func colorForCategory(_ category: String) -> Color {
         if category.contains("Normal") {
-            return Color(hex: "#22C55E")
+            return AppColorRoles.stateSuccess
         } else if category.contains("Overweight") || category.contains("Increased") {
             return Color(hex: "#FCA311")
         } else {

@@ -1,9 +1,12 @@
 import Combine
 import SwiftUI
+import SwiftData
 
 struct NotificationSettingsView: View {
     @StateObject private var store = ReminderStore()
     @ObservedObject private var notificationManager = NotificationManager.shared
+    @EnvironmentObject private var premiumStore: PremiumStore
+    @Environment(\.modelContext) private var modelContext
 
     @State private var showAddSheet = false
     @State private var showPermissionAlert = false
@@ -18,6 +21,14 @@ struct NotificationSettingsView: View {
     @State private var smartDays = max(NotificationManager.shared.smartDays, 5)
     @State private var smartTime = NotificationManager.shared.smartTime
     @State private var perMetricSmartEnabled = NotificationManager.shared.perMetricSmartEnabled
+    @State private var aiNotificationsEnabled = NotificationManager.shared.aiNotificationsEnabled
+    @State private var aiWeeklyDigestEnabled = NotificationManager.shared.aiWeeklyDigestEnabled
+    @State private var aiTrendShiftEnabled = NotificationManager.shared.aiTrendShiftEnabled
+    @State private var aiGoalMilestonesEnabled = NotificationManager.shared.aiGoalMilestonesEnabled
+    @State private var aiRoundNumbersEnabled = NotificationManager.shared.aiRoundNumbersEnabled
+    @State private var aiConsistencyEnabled = NotificationManager.shared.aiConsistencyEnabled
+    @State private var aiDigestWeekday = NotificationManager.shared.aiDigestWeekday
+    @State private var aiDigestTime = NotificationManager.shared.aiDigestTime
 
     private let theme = FeatureTheme.settings
 
@@ -31,6 +42,7 @@ struct NotificationSettingsView: View {
 
             scheduledSection
             smartSection
+            aiSection
             otherSection
         }
         .alert(AppLocalization.string("Notifications"), isPresented: $showPermissionAlert) {
@@ -238,6 +250,123 @@ private extension NotificationSettingsView {
         .modifier(NotificationSectionStyle())
     }
 
+    var aiSection: some View {
+        Section {
+            SettingsCard(tint: FeatureTheme.premium.softTint) {
+                SettingsCompactSectionHeader(
+                    title: AppLocalization.string("notification.ai.title"),
+                    subtitle: AppLocalization.string("notification.ai.subtitle")
+                )
+
+                if !premiumStore.isPremium {
+                    SettingsRowDivider()
+                    Text(AppLocalization.string("Premium Edition required"))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                } else if !AppleIntelligenceSupport.isAvailable() || !AINotificationLanguage.isSupported {
+                    SettingsRowDivider()
+                    Text(AppLocalization.string("notification.ai.unavailable"))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                } else {
+                    SettingsRowDivider()
+
+                    SettingsToggleRow(isOn: $aiNotificationsEnabled, accent: theme.accent) {
+                        Label(AppLocalization.string("notification.ai.master"), systemImage: "sparkles.rectangle.stack")
+                            .font(AppTypography.body)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+                    }
+                    .onChange(of: aiNotificationsEnabled, updateAINotifications)
+
+                    if aiNotificationsEnabled {
+                        SettingsRowDivider()
+
+                        SettingsToggleRow(isOn: $aiWeeklyDigestEnabled, accent: theme.accent) {
+                            Label(AppLocalization.string("notification.ai.weekly"), systemImage: "calendar.badge.clock")
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                        }
+                        .onChange(of: aiWeeklyDigestEnabled, updateAIWeeklyDigest)
+
+                        SettingsRowDivider()
+
+                        SettingsToggleRow(isOn: $aiTrendShiftEnabled, accent: theme.accent) {
+                            Label(AppLocalization.string("notification.ai.trend"), systemImage: "chart.line.uptrend.xyaxis")
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                        }
+                        .onChange(of: aiTrendShiftEnabled, updateAITrendShift)
+
+                        SettingsRowDivider()
+
+                        SettingsToggleRow(isOn: $aiGoalMilestonesEnabled, accent: theme.accent) {
+                            Label(AppLocalization.string("notification.ai.goal"), systemImage: "flag.checkered.2.crossed")
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                        }
+                        .onChange(of: aiGoalMilestonesEnabled, updateAIGoalMilestones)
+
+                        SettingsRowDivider()
+
+                        SettingsToggleRow(isOn: $aiRoundNumbersEnabled, accent: theme.accent) {
+                            Label(AppLocalization.string("notification.ai.round"), systemImage: "number.circle")
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                        }
+                        .onChange(of: aiRoundNumbersEnabled, updateAIRoundNumbers)
+
+                        SettingsRowDivider()
+
+                        SettingsToggleRow(isOn: $aiConsistencyEnabled, accent: theme.accent) {
+                            Label(AppLocalization.string("notification.ai.consistency"), systemImage: "repeat.circle")
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                        }
+                        .onChange(of: aiConsistencyEnabled, updateAIConsistency)
+
+                        SettingsRowDivider()
+
+                        SettingsValueRow {
+                            Text(AppLocalization.string("notification.ai.digest.day"))
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                        } trailing: {
+                            Picker("", selection: $aiDigestWeekday) {
+                                ForEach(1...7, id: \.self) { weekday in
+                                    Text(Calendar.current.weekdaySymbols[weekday - 1]).tag(weekday)
+                                }
+                            }
+                            .labelsHidden()
+                        }
+                        .onChange(of: aiDigestWeekday, updateAIDigestWeekday)
+
+                        SettingsRowDivider()
+
+                        SettingsValueRow {
+                            Text(AppLocalization.string("notification.ai.digest.time"))
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                        } trailing: {
+                            DatePicker("", selection: $aiDigestTime, displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                        }
+                        .onChange(of: aiDigestTime, updateAIDigestTime)
+
+                        SettingsRowDivider()
+                    }
+
+                    Text(AppLocalization.string("notification.ai.disclosure"))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        } header: {
+            SettingsSectionEyebrow(title: AppLocalization.string("notification.ai.header"))
+        }
+        .modifier(NotificationSectionStyle())
+    }
+
     @ViewBuilder
     var savedToast: some View {
         if showSavedToast {
@@ -405,6 +534,77 @@ private extension NotificationSettingsView {
 
     func updateGoalNotifications(oldValue: Bool, newValue: Bool) {
         NotificationManager.shared.goalAchievedEnabled = newValue
+        acknowledgeSaved()
+    }
+
+    func updateAINotifications(oldValue: Bool, newValue: Bool) {
+        if newValue && !notificationsEnabled {
+            Task { @MainActor in
+                let granted = await NotificationManager.shared.requestAuthorization()
+                if granted {
+                    notificationsEnabled = true
+                    NotificationManager.shared.notificationsEnabled = true
+                    NotificationManager.shared.aiNotificationsEnabled = true
+                    NotificationManager.shared.scheduleAINotificationsIfNeeded(context: modelContext, trigger: .startup)
+                    acknowledgeSaved()
+                } else {
+                    aiNotificationsEnabled = false
+                    NotificationManager.shared.aiNotificationsEnabled = false
+                    permissionMessage = AppLocalization.string("Permission denied. Enable notifications in Settings.")
+                    showPermissionAlert = true
+                }
+            }
+            return
+        }
+
+        NotificationManager.shared.aiNotificationsEnabled = newValue
+        if newValue {
+            NotificationManager.shared.scheduleAINotificationsIfNeeded(context: modelContext, trigger: .startup)
+        } else {
+            NotificationManager.shared.cancelAllAINotifications()
+        }
+        acknowledgeSaved()
+    }
+
+    func updateAIWeeklyDigest(oldValue: Bool, newValue: Bool) {
+        NotificationManager.shared.aiWeeklyDigestEnabled = newValue
+        NotificationManager.shared.scheduleAINotificationsIfNeeded(context: modelContext, trigger: .startup)
+        acknowledgeSaved()
+    }
+
+    func updateAITrendShift(oldValue: Bool, newValue: Bool) {
+        NotificationManager.shared.aiTrendShiftEnabled = newValue
+        NotificationManager.shared.scheduleAINotificationsIfNeeded(context: modelContext, trigger: .startup)
+        acknowledgeSaved()
+    }
+
+    func updateAIGoalMilestones(oldValue: Bool, newValue: Bool) {
+        NotificationManager.shared.aiGoalMilestonesEnabled = newValue
+        NotificationManager.shared.scheduleAINotificationsIfNeeded(context: modelContext, trigger: .startup)
+        acknowledgeSaved()
+    }
+
+    func updateAIRoundNumbers(oldValue: Bool, newValue: Bool) {
+        NotificationManager.shared.aiRoundNumbersEnabled = newValue
+        NotificationManager.shared.scheduleAINotificationsIfNeeded(context: modelContext, trigger: .startup)
+        acknowledgeSaved()
+    }
+
+    func updateAIConsistency(oldValue: Bool, newValue: Bool) {
+        NotificationManager.shared.aiConsistencyEnabled = newValue
+        NotificationManager.shared.scheduleAINotificationsIfNeeded(context: modelContext, trigger: .startup)
+        acknowledgeSaved()
+    }
+
+    func updateAIDigestWeekday(oldValue: Int, newValue: Int) {
+        NotificationManager.shared.aiDigestWeekday = newValue
+        NotificationManager.shared.scheduleAINotificationsIfNeeded(context: modelContext, trigger: .startup)
+        acknowledgeSaved()
+    }
+
+    func updateAIDigestTime(oldValue: Date, newValue: Date) {
+        NotificationManager.shared.aiDigestTime = newValue
+        NotificationManager.shared.scheduleAINotificationsIfNeeded(context: modelContext, trigger: .startup)
         acknowledgeSaved()
     }
 }

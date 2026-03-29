@@ -66,6 +66,7 @@ struct AppGlassBackground: View {
     var depth: AppGlassDepth = .base
     var cornerRadius: CGFloat = 16
     var tint: Color = .clear
+    var showsShadow: Bool = true
     @Environment(\.colorScheme) private var colorScheme
 
     private var backgroundFill: AnyShapeStyle {
@@ -74,9 +75,9 @@ struct AppGlassBackground: View {
             : AnyShapeStyle(
                 LinearGradient(
                     colors: [
-                        Color(hex: "#E6E6E3").opacity(0.99),
-                        Color(hex: "#E0E0DD").opacity(0.99),
-                        Color(hex: "#D6D6D3").opacity(0.99)
+                        AppColorRoles.surfaceElevated,
+                        AppColorRoles.surfaceGlass,
+                        AppColorRoles.surfacePrimary
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -92,9 +93,9 @@ struct AppGlassBackground: View {
                     Color.white.opacity(0.20)
                 ]
                 : [
-                    Color.white.opacity(0.06),
-                    Color(hex: "#E4E4E1").opacity(0.10),
-                    Color(hex: "#D7D7D3").opacity(0.14)
+                    Color.white.opacity(0.22),
+                    Color.white.opacity(0.08),
+                    AppColorRoles.surfaceWarmHighlight.opacity(0.20)
                 ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -109,8 +110,8 @@ struct AppGlassBackground: View {
                     AppColorRoles.borderStrong.opacity(0.50)
                 ]
                 : [
-                    Color.white.opacity(0.14),
-                    AppColorRoles.borderStrong.opacity(0.42)
+                    Color.white.opacity(0.90),
+                    AppColorRoles.borderStrong.opacity(0.54)
                 ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -142,9 +143,9 @@ struct AppGlassBackground: View {
                         tint.opacity(depth.tintStrength * 0.16)
                     ]
                 : [
-                    tint.opacity(max(depth.tintStrength * 0.42, 0.03)),
-                    Color.white.opacity(0.03),
-                    Color(hex: "#D9D9D5").opacity(0.06)
+                    tint.opacity(max(depth.tintStrength * 0.52, 0.05)),
+                    Color.white.opacity(0.08),
+                    AppColorRoles.surfacePrimary.opacity(0.30)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -161,9 +162,9 @@ struct AppGlassBackground: View {
             shape.fill(
                 RadialGradient(
                     colors: [
-                        Color.white.opacity(0.02),
-                        tint.opacity(max(depth.tintStrength * 0.20, 0.025)),
-                        Color.black.opacity(0.028),
+                        Color.white.opacity(0.20),
+                        tint.opacity(max(depth.tintStrength * 0.24, 0.04)),
+                        Color.black.opacity(0.016),
                         .clear
                     ],
                     center: .topLeading,
@@ -198,7 +199,7 @@ struct AppGlassBackground: View {
             .stroke(innerStrokeColor, lineWidth: 0.8)
     }
 
-    var body: some View {
+    private var baseBackground: some View {
         shape
             .fill(backgroundFill)
             .overlay(tintedOverlay)
@@ -206,18 +207,26 @@ struct AppGlassBackground: View {
             .overlay(borderStroke)
             .overlay(highlightStroke)
             .overlay(innerStroke)
-            .shadow(
-                color: .clear,
-                radius: 0,
-                x: 0,
-                y: 0
-            )
-            .shadow(
-                color: shadowColor,
-                radius: depth.shadowRadius * (colorScheme == .dark ? 1.0 : 1.3),
-                x: 0,
-                y: depth.shadowY * (colorScheme == .dark ? 1.0 : 1.2)
-            )
+    }
+
+    var body: some View {
+        if showsShadow {
+            baseBackground
+                .shadow(
+                    color: .clear,
+                    radius: 0,
+                    x: 0,
+                    y: 0
+                )
+                .shadow(
+                    color: shadowColor,
+                    radius: depth.shadowRadius * (colorScheme == .dark ? 1.0 : 1.3),
+                    x: 0,
+                    y: depth.shadowY * (colorScheme == .dark ? 1.0 : 1.2)
+                )
+        } else {
+            baseBackground
+        }
     }
 }
 
@@ -225,6 +234,7 @@ struct AppGlassCard<Content: View>: View {
     let depth: AppGlassDepth
     let cornerRadius: CGFloat
     let tint: Color
+    let showsShadow: Bool
     let contentPadding: CGFloat
     @ViewBuilder let content: Content
 
@@ -232,12 +242,14 @@ struct AppGlassCard<Content: View>: View {
         depth: AppGlassDepth = .base,
         cornerRadius: CGFloat = 18,
         tint: Color = .clear,
+        showsShadow: Bool = true,
         contentPadding: CGFloat = 14,
         @ViewBuilder content: () -> Content
     ) {
         self.depth = depth
         self.cornerRadius = cornerRadius
         self.tint = tint
+        self.showsShadow = showsShadow
         self.contentPadding = contentPadding
         self.content = content()
     }
@@ -249,7 +261,8 @@ struct AppGlassCard<Content: View>: View {
                 AppGlassBackground(
                     depth: depth,
                     cornerRadius: cornerRadius,
-                    tint: tint
+                    tint: tint,
+                    showsShadow: showsShadow
                 )
             )
     }
@@ -271,7 +284,21 @@ struct LiquidCapsuleButtonStyle: ButtonStyle {
             .padding(.vertical, 10)
             .background(
                 Capsule(style: .continuous)
-                    .fill(colorScheme == .dark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.thinMaterial))
+                    .fill(
+                        colorScheme == .dark
+                            ? AnyShapeStyle(.ultraThinMaterial)
+                            : AnyShapeStyle(
+                                LinearGradient(
+                                    colors: [
+                                        AppColorRoles.surfaceElevated,
+                                        AppColorRoles.surfaceGlass,
+                                        AppColorRoles.surfacePrimary
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
                     .overlay(Capsule().fill(tint.opacity(configuration.isPressed ? 0.28 : 0.22)))
                     .overlay(
                         Capsule(style: .continuous)
@@ -310,7 +337,20 @@ struct LiquidSwitchToggleStyle: ToggleStyle {
             } label: {
                 ZStack(alignment: configuration.isOn ? .trailing : .leading) {
                     Capsule(style: .continuous)
-                        .fill(colorScheme == .dark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.thinMaterial))
+                        .fill(
+                            colorScheme == .dark
+                                ? AnyShapeStyle(.ultraThinMaterial)
+                                : AnyShapeStyle(
+                                    LinearGradient(
+                                        colors: [
+                                            AppColorRoles.surfaceElevated,
+                                            AppColorRoles.surfaceGlass
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        )
                         .overlay(Capsule().fill(tint.opacity(configuration.isOn ? 0.32 : 0.14)))
                         .overlay(
                             Capsule(style: .continuous)
@@ -374,7 +414,21 @@ struct PhotoTagChipToggleStyle: ToggleStyle {
             .padding(.vertical, 7)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                    .fill(colorScheme == .dark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.thinMaterial))
+                    .fill(
+                        colorScheme == .dark
+                            ? AnyShapeStyle(.ultraThinMaterial)
+                            : AnyShapeStyle(
+                                LinearGradient(
+                                    colors: [
+                                        AppColorRoles.surfaceElevated,
+                                        AppColorRoles.surfaceGlass,
+                                        AppColorRoles.surfacePrimary
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .fill(tint.opacity(configuration.isOn ? 0.88 : 0.14))
@@ -420,7 +474,20 @@ struct GlassSegmentedControlModifier: ViewModifier {
             .padding(4)
             .background(
                 Capsule(style: .continuous)
-                    .fill(colorScheme == .dark ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.thinMaterial))
+                    .fill(
+                        colorScheme == .dark
+                            ? AnyShapeStyle(.ultraThinMaterial)
+                            : AnyShapeStyle(
+                                LinearGradient(
+                                    colors: [
+                                        AppColorRoles.surfaceSecondary,
+                                        AppColorRoles.surfaceInteractive
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
                     .overlay(Capsule().fill(tint.opacity(colorScheme == .dark ? 0.10 : 0.18)))
                     .overlay(
                         Capsule(style: .continuous)

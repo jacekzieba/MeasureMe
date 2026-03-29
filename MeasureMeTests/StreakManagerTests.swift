@@ -1,4 +1,5 @@
 import XCTest
+import SwiftData
 @testable import MeasureMe
 
 // MARK: - ISO Week Identifier Tests
@@ -272,6 +273,20 @@ final class StreakManagerIntegrationTests: XCTestCase {
         super.tearDown()
     }
 
+    private func dateTime(_ string: String) -> Date {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        return formatter.date(from: string)!
+    }
+
+    private func makeEmptyContext() throws -> ModelContext {
+        let schema = Schema([MetricSample.self, PhotoEntry.self])
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+        let container = try ModelContainer(for: schema, configurations: config)
+        return ModelContext(container)
+    }
+
     func testRecordMetricSaved_addsActiveWeek() {
         manager.recordMetricSaved(date: fixedDate)
         XCTAssertEqual(manager.currentStreak, 1)
@@ -352,5 +367,40 @@ final class StreakManagerIntegrationTests: XCTestCase {
     func testStreakPersistsInDefaults() {
         manager.recordMetricSaved(date: fixedDate)
         XCTAssertEqual(defaults.integer(forKey: "streak_current_count"), 1)
+    }
+
+    func testStreakResetsAfterMissingWeekWithoutVacationMode() throws {
+        var now = dateTime("2026-02-25 12:00:00") // 2026-W09
+        let manager = StreakManager(defaults: settings, clock: { now }, calendar: cal)
+        let context = try makeEmptyContext()
+
+        manager.recordMetricSaved(date: dateTime("2026-02-18 12:00:00")) // 2026-W08
+        XCTAssertEqual(manager.currentStreak, 1)
+
+        now = dateTime("2026-03-04 12:00:00") // 2026-W10, no log in W09
+        manager.recordAppOpen(context: context)
+
+        XCTAssertEqual(manager.currentStreak, 0)
+    }
+
+    func testVacationModeFreezesStreakWithoutNewValues() throws {
+        var now = dateTime("2026-02-25 12:00:00") // 2026-W09
+        let manager = StreakManager(defaults: settings, clock: { now }, calendar: cal)
+        let context = try makeEmptyContext()
+
+        manager.recordMetricSaved(date: dateTime("2026-02-18 12:00:00")) // 2026-W08
+        manager.recordMetricSaved(date: dateTime("2026-02-25 12:00:00")) // 2026-W09
+        XCTAssertEqual(manager.currentStreak, 2)
+
+        manager.enableVacationMode(durationWeeks: 3)
+        let baseline = manager.currentStreak
+
+        now = dateTime("2026-03-04 12:00:00") // 2026-W10
+        manager.recordAppOpen(context: context)
+        XCTAssertEqual(manager.currentStreak, baseline)
+
+        now = dateTime("2026-03-11 12:00:00") // 2026-W11
+        manager.recordAppOpen(context: context)
+        XCTAssertEqual(manager.currentStreak, baseline)
     }
 }

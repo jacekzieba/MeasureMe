@@ -2,9 +2,9 @@ import Foundation
 import SwiftData
 
 extension [MetricSample] {
-    /// Oblicza zmianę wartości metryki w zadanym oknie czasowym.
-    /// Zwraca sformatowany string (np. "+1.2 kg") lub nil gdy brak danych lub tylko jedna próbka.
-    /// Niezależna od kolejności sortowania przekazanej tablicy.
+    /// Calculates the metric value change within a given time window.
+    /// Returns a formatted string (e.g. "+1.2 kg") or nil when there is no data or only one sample.
+    /// Independent of the sort order of the provided array.
     func deltaText(
         days: Int,
         kind: MetricKind,
@@ -24,8 +24,8 @@ extension [MetricSample] {
         return kind.formattedDisplayValue(delta, unitsSystem: unitsSystem, alwaysShowSign: true)
     }
 
-    /// Zwraca surową deltę dla okna czasowego (lub all-time gdy days == nil).
-    /// Wartości oldest/newest są w jednostkach metrycznych (do użycia z trendOutcome).
+    /// Returns the raw delta for a time window (or all-time when days == nil).
+    /// The oldest/newest values are in metric units (for use with trendOutcome).
     func trendDelta(
         days: Int?,
         kind: MetricKind,

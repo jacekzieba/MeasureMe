@@ -3,10 +3,10 @@ import SwiftData
 
 struct TabBarContainer: View {
     let autoCheckPaywallPrompt: Bool
+    let premiumStore: PremiumStore
     @StateObject private var router = AppRouter()
     @AppSetting(\.home.homeTabScrollOffset) private var homeTabScrollOffset: Double = 0.0
     @Environment(\.modelContext) private var modelContext
-    @EnvironmentObject private var premiumStore: PremiumStore
     @State private var didApplyAuditRoute = false
     @State private var mountedTabs: Set<AppTab> = TabBarContainer.initialMountedTabs()
     @State private var didSchedulePendingEntryRetry = false
@@ -146,13 +146,22 @@ struct TabBarContainer: View {
                 }
             }
         }
+        .environmentObject(premiumStore)
         .environmentObject(router)
         .onAppear {
             Task { @MainActor in
                 applyAuditRouteIfNeeded()
                 mountTabIfNeeded(router.selectedTab)
+                consumePendingNavigationRouteIfNeeded()
                 consumePendingAppEntryActionIfNeeded()
                 schedulePendingAppEntryRetryIfNeeded()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AppNavigationRouteDispatcher.didEnqueueNotification)) { notification in
+            guard let route = notification.object as? AppNavigationRoute else { return }
+            Task { @MainActor in
+                let effectiveRoute = AppNavigationRouteDispatcher.consumePendingRoute() ?? route
+                handleNavigationRoute(effectiveRoute)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: AppEntryActionDispatcher.didEnqueueNotification)) { notification in
@@ -165,36 +174,26 @@ struct TabBarContainer: View {
     }
 
     private func applyAuditRouteIfNeeded() {
-        if UITestArgument.isPresent(.openSettingsTab) {
-            router.selectedTab = .settings
-            mountTabIfNeeded(.settings)
+        guard let initialRoute = TabBarRoutingCoordinator.initialRoute(didApplyAuditRoute: didApplyAuditRoute) else {
             return
         }
-
-        guard AuditConfig.current.isEnabled else { return }
-        guard !didApplyAuditRoute else { return }
         didApplyAuditRoute = true
 
-        guard let route = AuditConfig.current.route else { return }
-        switch route {
-        case .dashboard:
-            router.selectedTab = .home
-        case .measurements:
-            router.selectedTab = .measurements
-        case .photos:
-            router.selectedTab = .photos
-        case .settings:
-            router.selectedTab = .settings
-        case .paywall:
-            router.selectedTab = .settings
+        switch initialRoute {
+        case .tab(let tab):
+            router.selectTab(tab)
+            mountTabIfNeeded(tab)
+        case .settingsPaywall:
+            router.selectTab(.settings)
+            mountTabIfNeeded(.settings)
             premiumStore.presentPaywall(reason: .settings)
         }
     }
 
     private func handleSelectedTabChange(oldTab: AppTab, newTab: AppTab) {
         if newTab == .compose {
-            router.presentedSheet = .composer(mode: .newPost)
-            router.selectedTab = oldTab
+            router.presentComposer()
+            router.selectTab(oldTab)
             return
         }
 
@@ -211,17 +210,13 @@ struct TabBarContainer: View {
     }
 
     private func consumePendingAppEntryActionIfNeeded() {
-        if let action = AppEntryActionDispatcher.consumePendingAction() {
-            handleAppEntryAction(action)
+        guard let result = TabBarRoutingCoordinator.pendingEntryAction(
+            didConsumeUITestFallback: didConsumeUITestPendingEntryFallback
+        ) else {
             return
         }
-
-        #if DEBUG
-        guard !didConsumeUITestPendingEntryFallback else { return }
-        guard let fallbackAction = requestedUITestPendingEntryAction(from: ProcessInfo.processInfo.arguments) else { return }
-        didConsumeUITestPendingEntryFallback = true
-        handleAppEntryAction(fallbackAction)
-        #endif
+        didConsumeUITestPendingEntryFallback = result.consumedUITestFallback
+        handleAppEntryAction(result.action)
     }
 
     private func schedulePendingAppEntryRetryIfNeeded() {
@@ -230,27 +225,43 @@ struct TabBarContainer: View {
 
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(750))
+            consumePendingNavigationRouteIfNeeded()
             consumePendingAppEntryActionIfNeeded()
         }
     }
 
-    #if DEBUG
-    private func requestedUITestPendingEntryAction(from args: [String]) -> AppEntryAction? {
-        guard let value = UITestArgument.value(for: .pendingAppEntryAction, in: args) else { return nil }
-        return AppEntryAction(rawValue: value)
+    private func consumePendingNavigationRouteIfNeeded() {
+        guard let route = AppNavigationRouteDispatcher.consumePendingRoute() else { return }
+        handleNavigationRoute(route)
     }
-    #endif
 
     private func handleAppEntryAction(_ action: AppEntryAction) {
         switch action {
         case .openQuickAdd:
-            router.presentedSheet = .composer(mode: .newPost)
+            router.presentComposer()
         case .openAddPhoto:
-            if router.selectedTab != .photos {
-                router.selectedTab = .photos
-            }
+            router.openPhotoComposer()
             mountTabIfNeeded(.photos)
-            router.requestPhotoComposer()
+        }
+    }
+
+    private func handleNavigationRoute(_ route: AppNavigationRoute) {
+        switch route {
+        case .home:
+            router.selectTab(.home)
+            mountTabIfNeeded(.home)
+        case .metricDetail(let kindRaw):
+            guard let kind = MetricKind(rawValue: kindRaw) else { return }
+            router.openMetricDetail(kind)
+            mountTabIfNeeded(.measurements)
+        case .quickAdd(let kindRaw):
+            if let kindRaw, let kind = MetricKind(rawValue: kindRaw) {
+                router.selectTab(.measurements)
+                mountTabIfNeeded(.measurements)
+                router.presentAddSample(for: kind)
+            } else {
+                router.presentComposer()
+            }
         }
     }
 }

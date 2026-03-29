@@ -17,13 +17,13 @@
 "intent.metric.leftCalf" = "Pantorrilla Izquierda";
 "intent.metric.rightCalf" = "Pantorrilla Derecha";
 
-"intent.openQuickAdd.title" = "Abrir Agregar rápido";
-"intent.openQuickAdd.description" = "Abre Agregar rápido en MeasureMe.";
-"intent.openQuickAdd.success" = "Abriendo Agregar rápido.";
+"intent.openQuickAdd.title" = "Abrir Registro rápido";
+"intent.openQuickAdd.description" = "Abre Registro rápido en MeasureMe.";
+"intent.openQuickAdd.success" = "Abriendo Registro rápido.";
 
-"intent.openAddPhoto.title" = "Abrir Agregar foto";
-"intent.openAddPhoto.description" = "Abre el flujo Agregar foto en MeasureMe.";
-"intent.openAddPhoto.success" = "Abriendo Agregar foto.";
+"intent.openAddPhoto.title" = "Abrir flujo para agregar foto";
+"intent.openAddPhoto.description" = "Abre el flujo para agregar foto en MeasureMe.";
+"intent.openAddPhoto.success" = "Abriendo flujo para agregar foto.";
 
 "intent.addMeasurement.title" = "Agregar medida";
 "intent.addMeasurement.description" = "Guarda una medición en MeasureMe.";
@@ -35,11 +35,11 @@
 "intent.addMeasurement.error.metricNotActive" = "Esta métrica no está activa en MeasureMe.";
 "intent.addMeasurement.error.storage" = "No se pudo guardar la medición.";
 
-"intent.shortcut.quickAdd.phrase1" = "Abrir Agregar rápido";
-"intent.shortcut.quickAdd.phrase2" = "Agregar rápido";
-"intent.shortcut.quickAdd.shortTitle" = "Agregar rápido";
+"intent.shortcut.quickAdd.phrase1" = "Abrir Registro rápido en";
+"intent.shortcut.quickAdd.phrase2" = "Registro rápido en";
+"intent.shortcut.quickAdd.shortTitle" = "Registro rápido";
 
-"intent.shortcut.addPhoto.phrase1" = "Abra Agregar foto en";
+"intent.shortcut.addPhoto.phrase1" = "Abrir flujo para agregar foto en";
 "intent.shortcut.addPhoto.phrase2" = "Agregar foto en";
 "intent.shortcut.addPhoto.shortTitle" = "Agregar foto";
 

@@ -156,7 +156,7 @@ struct PhysiqueIndicatorsSection: View {
                             improve: AppLocalization.string("Lower waist and build delts/lats for a stronger silhouette."),
                             ranges: [
                                 PhysiqueRange(title: AppLocalization.string("Average"), value: "1.30 - 1.44", color: "#60A5FA"),
-                                PhysiqueRange(title: AppLocalization.string("Athletic"), value: "1.45 - 1.59", color: "#22C55E"),
+                                PhysiqueRange(title: AppLocalization.string("Athletic"), value: "1.45 - 1.59", color: AppColorRoles.stateSuccessHex),
                                 PhysiqueRange(title: AppLocalization.string("Top"), value: ">= 1.60", color: "#FCA311")
                             ]
                         )
@@ -188,7 +188,7 @@ struct PhysiqueIndicatorsSection: View {
                             improve: AppLocalization.string("Build upper chest and back while reducing waist."),
                             ranges: [
                                 PhysiqueRange(title: AppLocalization.string("Average"), value: "1.10 - 1.19", color: "#60A5FA"),
-                                PhysiqueRange(title: AppLocalization.string("Athletic"), value: "1.20 - 1.29", color: "#22C55E"),
+                                PhysiqueRange(title: AppLocalization.string("Athletic"), value: "1.20 - 1.29", color: AppColorRoles.stateSuccessHex),
                                 PhysiqueRange(title: AppLocalization.string("Top"), value: ">= 1.30", color: "#FCA311")
                             ]
                         )
@@ -222,7 +222,7 @@ struct PhysiqueIndicatorsSection: View {
                             improve: AppLocalization.string("Adjust upper or lower body training based on your aesthetic goal."),
                             ranges: [
                                 PhysiqueRange(title: AppLocalization.string("Lower-body dominant"), value: "< 1.00", color: "#60A5FA"),
-                                PhysiqueRange(title: AppLocalization.string("Balanced frame"), value: "1.00 - 1.25", color: "#22C55E"),
+                                PhysiqueRange(title: AppLocalization.string("Balanced frame"), value: "1.00 - 1.25", color: AppColorRoles.stateSuccessHex),
                                 PhysiqueRange(title: AppLocalization.string("Upper-body dominant"), value: "> 1.25", color: "#FCA311")
                             ]
                         )
@@ -257,7 +257,7 @@ struct PhysiqueIndicatorsSection: View {
                             improve: AppLocalization.string("Lower waist and build glutes/legs progressively."),
                             ranges: [
                                 PhysiqueRange(title: AppLocalization.string("Average"), value: "1.25 - 1.34", color: "#60A5FA"),
-                                PhysiqueRange(title: AppLocalization.string("Athletic"), value: "1.35 - 1.49", color: "#22C55E"),
+                                PhysiqueRange(title: AppLocalization.string("Athletic"), value: "1.35 - 1.49", color: AppColorRoles.stateSuccessHex),
                                 PhysiqueRange(title: AppLocalization.string("Top"), value: ">= 1.50", color: "#FCA311")
                             ]
                         )
@@ -291,7 +291,7 @@ struct PhysiqueIndicatorsSection: View {
                             improve: AppLocalization.string("Improve posture, upper body training, and reduce waist gradually."),
                             ranges: [
                                 PhysiqueRange(title: AppLocalization.string("Average"), value: "1.10 - 1.19", color: "#60A5FA"),
-                                PhysiqueRange(title: AppLocalization.string("Athletic"), value: "1.20 - 1.29", color: "#22C55E"),
+                                PhysiqueRange(title: AppLocalization.string("Athletic"), value: "1.20 - 1.29", color: AppColorRoles.stateSuccessHex),
                                 PhysiqueRange(title: AppLocalization.string("Top"), value: ">= 1.30", color: "#FCA311")
                             ]
                         )
@@ -325,7 +325,7 @@ struct PhysiqueIndicatorsSection: View {
                             improve: AppLocalization.string("Build delts/back or lower body depending on your desired look."),
                             ranges: [
                                 PhysiqueRange(title: AppLocalization.string("Lower-body dominant"), value: "< 1.00", color: "#60A5FA"),
-                                PhysiqueRange(title: AppLocalization.string("Balanced frame"), value: "1.00 - 1.25", color: "#22C55E"),
+                                PhysiqueRange(title: AppLocalization.string("Balanced frame"), value: "1.00 - 1.25", color: AppColorRoles.stateSuccessHex),
                                 PhysiqueRange(title: AppLocalization.string("Upper-body dominant"), value: "> 1.25", color: "#FCA311")
                             ]
                         )
@@ -364,7 +364,7 @@ struct PhysiqueIndicatorsSection: View {
                         summary: AppLocalization.string("In physique view, WHtR is a visibility filter for proportions and definition."),
                         improve: AppLocalization.string("Lower waist while maintaining strength to improve visual definition."),
                         ranges: [
-                            PhysiqueRange(title: AppLocalization.string("Visible definition"), value: "<= 0.50", color: "#22C55E"),
+                            PhysiqueRange(title: AppLocalization.string("Visible definition"), value: "<= 0.50", color: AppColorRoles.stateSuccessHex),
                             PhysiqueRange(title: AppLocalization.string("Soft definition"), value: "0.50 - 0.59", color: "#FCA311"),
                             PhysiqueRange(title: AppLocalization.string("Hidden proportions"), value: ">= 0.60", color: "#EF4444")
                         ]
@@ -443,14 +443,14 @@ struct PhysiqueIndicatorsSection: View {
         switch gender {
         case .male:
             return [
-                PhysiqueRange(title: AppLocalization.string("Athletes"), value: "6 - 13%", color: "#22C55E"),
+                PhysiqueRange(title: AppLocalization.string("Athletes"), value: "6 - 13%", color: AppColorRoles.stateSuccessHex),
                 PhysiqueRange(title: AppLocalization.string("Fitness"), value: "14 - 17%", color: "#34D399"),
                 PhysiqueRange(title: AppLocalization.string("Average"), value: "18 - 24%", color: "#FCA311"),
                 PhysiqueRange(title: AppLocalization.string("High"), value: ">= 25%", color: "#EF4444")
             ]
         case .female:
             return [
-                PhysiqueRange(title: AppLocalization.string("Athletes"), value: "14 - 20%", color: "#22C55E"),
+                PhysiqueRange(title: AppLocalization.string("Athletes"), value: "14 - 20%", color: AppColorRoles.stateSuccessHex),
                 PhysiqueRange(title: AppLocalization.string("Fitness"), value: "21 - 24%", color: "#34D399"),
                 PhysiqueRange(title: AppLocalization.string("Average"), value: "25 - 31%", color: "#FCA311"),
                 PhysiqueRange(title: AppLocalization.string("High"), value: ">= 32%", color: "#EF4444")

@@ -2,7 +2,6 @@ import SwiftUI
 import SwiftData
 import UIKit
 import BackgroundTasks
-import RevenueCat
 
 @main
 struct MeasureMeApp: App {
@@ -73,65 +72,14 @@ struct MeasureMeApp: App {
         }
     }
 
-    private enum RevenueCatConfig {
-        #if DEBUG
-        static let testStoreAPIKey = "test_IqhDylvTOfSwcULqzOlKpGIXmEa"
-        #endif
-        static let appStoreAPIKey = "appl_wTCpVzaoTfaUEHWONdHdqWyBnsr"
-
-        static var apiKey: String {
-            #if DEBUG
-            let useTestStore = ProcessInfo.processInfo.environment["MEASUREME_RC_TEST_STORE"] == "1"
-            if useTestStore { return testStoreAPIKey }
-            #endif
-            return appStoreAPIKey
-        }
-    }
-
     init() {
-        if !isRunningXCTest, !Purchases.isConfigured {
-            #if DEBUG
-            Purchases.logLevel = .debug
-            #endif
-            Purchases.configure(withAPIKey: RevenueCatConfig.apiKey)
-        }
-
-        // Zainstaluj crash reporter jako pierwszy krok
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
-            CrashReporter.shared.install()
-            Analytics.shared.setup()
-            Analytics.shared.track(.appLaunched)
-        }
-
-        if !isUnitTestHostMode {
-            configureUITestDefaultsIfNeeded()
-            registerBackgroundTasks()
-        }
-
-        Self.configureGlobalUIKitAppearance()
-
-        // Select all text when any TextField gains focus (avoids "080" problem)
-        if !isUnitTestHostMode {
-            NotificationCenter.default.addObserver(
-                forName: UITextField.textDidBeginEditingNotification,
-                object: nil, queue: .main
-            ) { notification in
-                if let textField = notification.object as? UITextField {
-                    DispatchQueue.main.async { textField.selectAll(nil) }
-                }
+        AppRuntimeConfigurator.configureInitialServices(
+            isRunningXCTest: isRunningXCTest,
+            isUnitTestHostMode: isUnitTestHostMode,
+            configureUITestDefaults: configureUITestDefaultsIfNeeded,
+            registerBackgroundTasks: {
+                AppLifecycleCoordinator.registerBackgroundTasks()
             }
-        }
-
-        let navTitleBase = UIFont.systemFont(ofSize: 17, weight: .semibold)
-        let navLargeBase = UIFont.systemFont(ofSize: 34, weight: .bold)
-        let navTitleFont = navTitleBase.fontDescriptor.withDesign(.rounded)
-            .map { UIFont(descriptor: $0, size: navTitleBase.pointSize) } ?? navTitleBase
-        let navLargeFont = navLargeBase.fontDescriptor.withDesign(.rounded)
-            .map { UIFont(descriptor: $0, size: navLargeBase.pointSize) } ?? navLargeBase
-
-        Self.configureNavigationAppearance(
-            titleFont: navTitleFont,
-            largeTitleFont: navLargeFont
         )
     }
 
@@ -181,15 +129,16 @@ struct MeasureMeApp: App {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
-                WidgetDataWriter.flushPendingWrites()
-                CrashReporter.shared.persistLogBuffer()
-                guard !isRunningXCTest else { return }
-                guard case .ready(let container) = startupState else { return }
-                Task(priority: .utility) {
-                    let context = ModelContext(container)
-                    let isPremium = AppSettingsStore.shared.snapshot.premium.premiumEntitlement
-                    await ICloudBackupService.runScheduledBackupIfNeeded(context: context, isPremium: isPremium)
+                let container: ModelContainer?
+                if case .ready(let readyContainer) = startupState {
+                    container = readyContainer
+                } else {
+                    container = nil
                 }
+                AppLifecycleCoordinator.handleWillResignActive(
+                    container: container,
+                    isRunningXCTest: isRunningXCTest
+                )
             }
             .alert(AppLocalization.string("Crash Detected"), isPresented: $showCrashAlert) {
                 Button(AppLocalization.string("View Report")) {
@@ -224,75 +173,6 @@ struct MeasureMeApp: App {
 
     private var resolvedAppearance: AppAppearance {
         AppAppearance(rawValue: appAppearance) ?? .system
-    }
-
-    private static func configureGlobalUIKitAppearance() {
-        let segmentedFont = UIFont.systemFont(ofSize: 13, weight: .semibold).withMonospacedDigits()
-        let segmented = UISegmentedControl.appearance()
-        segmented.backgroundColor = UIColor(AppColorRoles.surfaceInteractive)
-        segmented.setTitleTextAttributes(
-            [.font: segmentedFont, .foregroundColor: UIColor(AppColorRoles.textSecondary)],
-            for: .normal
-        )
-        segmented.setTitleTextAttributes(
-            [.font: segmentedFont, .foregroundColor: UIColor(AppColorRoles.textOnAccent)],
-            for: .selected
-        )
-        segmented.selectedSegmentTintColor = UIColor(Color.appAccent)
-
-        let tabBarAppearance = UITabBarAppearance()
-        tabBarAppearance.configureWithOpaqueBackground()
-        tabBarAppearance.backgroundColor = UIColor(AppColorRoles.surfaceChrome)
-        tabBarAppearance.shadowColor = UIColor(AppColorRoles.borderSubtle)
-
-        let selectedItemColor = UIColor(Color.appAccent)
-        let normalItemColor = UIColor(AppColorRoles.textTertiary)
-        let itemAppearances = [
-            tabBarAppearance.stackedLayoutAppearance,
-            tabBarAppearance.inlineLayoutAppearance,
-            tabBarAppearance.compactInlineLayoutAppearance
-        ]
-        for itemAppearance in itemAppearances {
-            itemAppearance.normal.iconColor = normalItemColor
-            itemAppearance.normal.titleTextAttributes = [.foregroundColor: normalItemColor]
-            itemAppearance.selected.iconColor = selectedItemColor
-            itemAppearance.selected.titleTextAttributes = [.foregroundColor: selectedItemColor]
-        }
-
-        let tabBar = UITabBar.appearance()
-        tabBar.standardAppearance = tabBarAppearance
-        tabBar.scrollEdgeAppearance = tabBarAppearance
-        tabBar.tintColor = selectedItemColor
-        tabBar.unselectedItemTintColor = normalItemColor
-    }
-
-    private static func configureNavigationAppearance(
-        titleFont: UIFont,
-        largeTitleFont: UIFont
-    ) {
-        let navAppearance = UINavigationBarAppearance()
-        navAppearance.configureWithOpaqueBackground()
-        navAppearance.backgroundEffect = nil
-        navAppearance.backgroundColor = UIColor(AppColorRoles.surfaceChrome)
-        navAppearance.shadowColor = UIColor(AppColorRoles.borderSubtle)
-        navAppearance.titleTextAttributes = [
-            .font: titleFont,
-            .foregroundColor: UIColor(AppColorRoles.textPrimary)
-        ]
-        navAppearance.largeTitleTextAttributes = [
-            .font: largeTitleFont,
-            .foregroundColor: UIColor(AppColorRoles.textPrimary)
-        ]
-
-        let navBar = UINavigationBar.appearance()
-        navBar.standardAppearance = navAppearance
-        navBar.scrollEdgeAppearance = navAppearance
-        navBar.compactAppearance = navAppearance
-        navBar.compactScrollEdgeAppearance = navAppearance
-        navBar.tintColor = UIColor(Color.appAccent)
-        navBar.titleTextAttributes = navAppearance.titleTextAttributes
-        navBar.largeTitleTextAttributes = navAppearance.largeTitleTextAttributes
-        navBar.shadowImage = UIImage()
     }
 
     @MainActor
@@ -425,6 +305,7 @@ struct MeasureMeApp: App {
             try? await Task.sleep(for: .milliseconds(200))
             let healthSetupState = StartupInstrumentation.begin("DeferredHealthKitSetup")
             NotificationManager.shared.scheduleSmartIfNeeded(context: container.mainContext)
+            NotificationManager.shared.scheduleAINotificationsIfNeeded(context: container.mainContext, trigger: .startup)
             HealthKitManager.shared.configure(modelContainer: container)
             _ = HealthKitManager.shared.reconcileStoredSyncState()
             HealthKitManager.shared.startObservingHealthKitUpdates()
@@ -465,7 +346,11 @@ struct MeasureMeApp: App {
             let isPremium = AppSettingsStore.shared.snapshot.premium.premiumEntitlement
             await ICloudBackupService.runScheduledBackupIfNeeded(context: context, isPremium: isPremium)
             if isPremium, AppSettingsStore.shared.snapshot.iCloudBackup.isEnabled {
-                Self.scheduleBackgroundBackup()
+                AppLifecycleCoordinator.scheduleBackgroundBackup()
+            }
+            if AppSettingsStore.shared.snapshot.notifications.notificationsEnabled,
+               AppSettingsStore.shared.snapshot.notifications.aiNotificationsEnabled {
+                AppLifecycleCoordinator.scheduleBackgroundAINotifications()
             }
         }
     }
@@ -479,61 +364,6 @@ struct MeasureMeApp: App {
             )
             WatchSessionManager.shared.activate()
         }
-    }
-
-    // MARK: - Background Backup Task
-
-    private static let backgroundBackupTaskID = "com.jacek.measureme.icloud-backup"
-
-    private func registerBackgroundTasks() {
-        BGTaskScheduler.shared.register(
-            forTaskWithIdentifier: Self.backgroundBackupTaskID,
-            using: nil
-        ) { task in
-            guard let processingTask = task as? BGProcessingTask else { return }
-            Self.handleBackgroundBackup(task: processingTask)
-        }
-    }
-
-    private static func handleBackgroundBackup(task: BGProcessingTask) {
-        let operation = Task {
-            do {
-                let container = try createBackgroundModelContainer()
-                let context = ModelContext(container)
-                let isPremium = AppSettingsStore.shared.snapshot.premium.premiumEntitlement
-                await ICloudBackupService.runScheduledBackupIfNeeded(context: context, isPremium: isPremium)
-            } catch {
-                // Container creation failed; nothing to back up
-            }
-        }
-        task.expirationHandler = { operation.cancel() }
-        Task {
-            _ = await operation.result
-            task.setTaskCompleted(success: true)
-            let snapshot = AppSettingsStore.shared.snapshot
-            if snapshot.premium.premiumEntitlement, snapshot.iCloudBackup.isEnabled {
-                scheduleBackgroundBackup()
-            }
-        }
-    }
-
-    static func scheduleBackgroundBackup() {
-        let request = BGProcessingTaskRequest(identifier: backgroundBackupTaskID)
-        request.requiresNetworkConnectivity = true
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 86_400)
-        try? BGTaskScheduler.shared.submit(request)
-    }
-
-    private static func createBackgroundModelContainer() throws -> ModelContainer {
-        let fileManager = FileManager.default
-        guard let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            throw StartupStorageError.applicationSupportDirectoryUnavailable
-        }
-        try fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
-
-        let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self, CustomMetricDefinition.self])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
-        return try ModelContainer(for: schema, configurations: [configuration])
     }
 
     private func createPersistentModelContainer() throws -> ModelContainer {

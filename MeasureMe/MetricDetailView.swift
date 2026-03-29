@@ -24,6 +24,7 @@ struct MetricDetailView: View {
     private let measurementsTheme = FeatureTheme.measurements
     let kind: MetricKind
     @EnvironmentObject private var premiumStore: PremiumStore
+    @Environment(\.colorScheme) private var colorScheme
 
     // MARK: - SwiftData Queries
     @Environment(\.modelContext) var context
@@ -371,10 +372,9 @@ struct MetricDetailView: View {
     var detailList: some View {
         ZStack(alignment: .top) {
             AppScreenBackground(topHeight: 260, tint: measurementsTheme.softTint)
-            List {
-                listContent
+            ScrollView {
+                detailContent
             }
-            .scrollContentBackground(.hidden)
         }
         .navigationTitle(kind.title)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -472,6 +472,47 @@ struct MetricDetailView: View {
     }
 
     @ViewBuilder
+    private var detailContent: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            if samples.isEmpty {
+                emptyStateSection
+                howToMeasureSection
+            } else {
+                heroSection
+                goalPredictionSection
+                insightSection
+                trendsSection
+                historySection
+                howToMeasureSection
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 24)
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(AppTypography.eyebrow)
+            .foregroundStyle(AppColorRoles.textSecondary)
+            .textCase(.uppercase)
+            .tracking(0.4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 2)
+    }
+
+    @ViewBuilder
+    private func sectionHeader<Accessory: View>(
+        _ title: String,
+        @ViewBuilder accessory: () -> Accessory
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            sectionHeader(title)
+            accessory()
+        }
+    }
+
+    @ViewBuilder
     private var listContent: some View {
         if samples.isEmpty {
             emptyStateSection
@@ -545,7 +586,8 @@ struct MetricDetailView: View {
     @ViewBuilder
     private var insightSection: some View {
         if supportsAppleIntelligence {
-            Section {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(AppLocalization.string("Insight"))
                 switch insightState {
                 case .ready(let text):
                     MetricInsightCard(
@@ -570,12 +612,11 @@ struct MetricDetailView: View {
                         onRefresh: { Task { await refreshInsight() } }
                     )
                 }
-            } header: {
-                Text(AppLocalization.string("Insight"))
             }
         }
         if premiumStore.isPremium && !appleIntelligenceAvailable {
-            Section {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(AppLocalization.string("Insight"))
                 VStack(alignment: .leading, spacing: 6) {
                     Text(AppLocalization.string("AI Insights aren’t available right now."))
                         .font(AppTypography.caption)
@@ -586,10 +627,8 @@ struct MetricDetailView: View {
                         Text(AppLocalization.string("Learn more in FAQ"))
                             .font(AppTypography.captionEmphasis)
                             .foregroundStyle(measurementsTheme.accent)
-                    }
+                        }
                 }
-            } header: {
-                Text(AppLocalization.string("Insight"))
             }
         }
     }
@@ -597,7 +636,8 @@ struct MetricDetailView: View {
     @ViewBuilder
     private var goalPredictionSection: some View {
         if currentGoal != nil {
-            Section {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(AppLocalization.string("metric.goal.prediction.title"))
                 if premiumStore.isPremium {
                     if let result = goalPredictionResult, let text = goalForecastText {
                         AppGlassCard(
@@ -674,8 +714,6 @@ struct MetricDetailView: View {
                         premiumStore.presentPaywall(reason: .feature("Goal Prediction"))
                     }
                 }
-            } header: {
-                Text(AppLocalization.string("metric.goal.prediction.title"))
             }
             .alert(AppLocalization.string("prediction.commitment.edit_title"), isPresented: $isEditingCommitment) {
                 TextField("0.50", text: $commitmentInput)
@@ -879,7 +917,8 @@ struct MetricDetailView: View {
     private static let trendNegative = Color(hex: "#EF4444")
 
     private var trendsSection: some View {
-        Section {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader(AppLocalization.string("trends.title", kind.title))
             AppGlassCard(
                 depth: .elevated,
                 cornerRadius: 20,
@@ -893,10 +932,6 @@ struct MetricDetailView: View {
                 }
             }
             .padding(.vertical, 4)
-            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
-            .listRowBackground(Color.clear)
-        } header: {
-            Text(AppLocalization.string("trends.title", kind.title))
         }
     }
 
@@ -960,81 +995,132 @@ struct MetricDetailView: View {
     }
 
     private var heroSection: some View {
-        Section {
-            AppGlassCard(
-                depth: .floating,
-                cornerRadius: 24,
-                tint: measurementsTheme.strongTint,
-                contentPadding: 18
-            ) {
-                VStack(spacing: 18) {
-                    metricHeroSummary
+        VStack(spacing: 18) {
+            metricHeroSummary
 
-                    Divider()
-                        .overlay(Color.white.opacity(0.08))
+            Divider()
+                .overlay(Color.white.opacity(0.08))
 
-                    chartSectionContent
-                }
-            }
-            .padding(.vertical, 4)
-            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 8, trailing: 16))
-            .listRowBackground(Color.clear)
+            chartSectionContent
         }
+        .padding(18)
+        .background(heroCardBackground)
+        .padding(.vertical, 4)
+    }
+
+    private var heroCardBackground: some View {
+        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+
+        return shape
+            .fill(
+                LinearGradient(
+                    colors: colorScheme == .dark
+                        ? [
+                            AppColorRoles.surfaceChrome.opacity(0.98),
+                            AppColorRoles.surfacePrimary.opacity(0.92)
+                        ]
+                        : [
+                            Color(hex: "#FAFAF7"),
+                            Color(hex: "#EFF1EB")
+                        ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay(
+                shape.fill(
+                    LinearGradient(
+                        colors: [
+                            measurementsTheme.strongTint.opacity(colorScheme == .dark ? 0.18 : 0.08),
+                            .clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            )
+            .overlay(
+                shape.stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(colorScheme == .dark ? 0.12 : 0.88),
+                            AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 0.72 : 0.54)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+            )
     }
 
     private var historySection: some View {
-        Section {
-            ForEach(visibleHistorySamples, id: \.persistentModelID) { s in
-                HStack {
-                    Text(s.date, style: .date)
-                    Spacer()
-                    Text(valueString(s.value))
-                        .monospacedDigit()
-                        .foregroundStyle(AppColorRoles.textSecondary)
-                }
-                .contentShape(Rectangle())
-                .onTapGesture { edit(sample: s) }
-                .accessibilityLabel({
-                    let dateText = s.date.formatted(date: .abbreviated, time: .omitted)
-                    return AppLocalization.string("accessibility.entry.detail", dateText, valueString(s.value))
-                }())
-                .accessibilityHint(AppLocalization.string("accessibility.entry.edit"))
-                .swipeActions {
-                    Button(role: .destructive) {
-                        delete(sample: s)
-                    } label: {
-                        Label(AppLocalization.string("Delete"), systemImage: "trash")
-                    }
-                    .tint(.red)
-                    Button {
-                        edit(sample: s)
-                    } label: {
-                        Label(AppLocalization.string("Edit"), systemImage: "pencil")
-                    }
-                    .tint(.blue)
-                }
-            }
-        } header: {
-            HStack {
-                Text(AppLocalization.string("History"))
-                Spacer()
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader(AppLocalization.string("History")) {
                 if samples.count > historyLimit {
                     Button(showAllHistory ? AppLocalization.string("Show Less") : AppLocalization.string("View All")) {
                         showAllHistory.toggle()
                     }
                     .font(AppTypography.sectionAction)
+                    .buttonStyle(.plain)
+                }
+            }
+
+            AppGlassCard(
+                depth: .base,
+                cornerRadius: 20,
+                tint: measurementsTheme.softTint,
+                contentPadding: 0
+            ) {
+                VStack(spacing: 0) {
+                    ForEach(Array(visibleHistorySamples.enumerated()), id: \.element.persistentModelID) { index, s in
+                        HStack {
+                            Text(s.date, style: .date)
+                            Spacer()
+                            Text(valueString(s.value))
+                                .monospacedDigit()
+                                .foregroundStyle(AppColorRoles.textSecondary)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .contentShape(Rectangle())
+                        .onTapGesture { edit(sample: s) }
+                        .accessibilityLabel({
+                            let dateText = s.date.formatted(date: .abbreviated, time: .omitted)
+                            return AppLocalization.string("accessibility.entry.detail", dateText, valueString(s.value))
+                        }())
+                        .accessibilityHint(AppLocalization.string("accessibility.entry.edit"))
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                delete(sample: s)
+                            } label: {
+                                Label(AppLocalization.string("Delete"), systemImage: "trash")
+                            }
+                            .tint(.red)
+                            Button {
+                                edit(sample: s)
+                            } label: {
+                                Label(AppLocalization.string("Edit"), systemImage: "pencil")
+                            }
+                            .tint(.blue)
+                        }
+
+                        if index < visibleHistorySamples.count - 1 {
+                            Divider()
+                                .padding(.horizontal, 16)
+                        }
+                    }
                 }
             }
         }
     }
 
     private var howToMeasureSection: some View {
-        Section {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader(AppLocalization.string("How to measure"))
             Text(measurementInstructions)
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textSecondary)
-        } header: {
-            Text(AppLocalization.string("How to measure"))
         }
     }
 
@@ -1236,7 +1322,25 @@ struct MetricDetailView: View {
         HStack(spacing: 7) {
             Image(systemName: icon)
                 .font(AppTypography.iconMedium)
-                .foregroundStyle(isActive ? color : AppColorRoles.textTertiary)
+                .foregroundStyle(isActive ? color : AppColorRoles.textSecondary)
+                .frame(width: 30, height: 30)
+                .background(
+                    Circle()
+                        .fill(
+                            isActive
+                                ? color.opacity(colorScheme == .dark ? 0.18 : 0.12)
+                                : AppColorRoles.surfacePrimary.opacity(colorScheme == .dark ? 0.82 : 0.96)
+                        )
+                )
+                .overlay(
+                    Circle()
+                        .stroke(
+                            isActive
+                                ? color.opacity(colorScheme == .dark ? 0.34 : 0.16)
+                                : AppColorRoles.borderSubtle.opacity(colorScheme == .dark ? 0.72 : 0.9),
+                            lineWidth: 1
+                        )
+                )
             Text(title)
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColorRoles.textPrimary)
@@ -1253,10 +1357,7 @@ struct MetricDetailView: View {
         .frame(maxWidth: .infinity, minHeight: 44)
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(isActive ? AppColorRoles.surfaceInteractive : AppColorRoles.surfaceInteractive.opacity(0.74))
-        )
+        .background(actionCardBackground(accent: color, isActive: isActive))
     }
 
     private var chartLegendRow: some View {
@@ -1294,10 +1395,127 @@ struct MetricDetailView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(
-            Capsule(style: .continuous)
-                .fill(AppColorRoles.surfaceInteractive)
-        )
+        .background(legendChipBackground(accent: color))
+    }
+
+    private func actionCardBackground(accent: Color, isActive: Bool) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        let fillColors: [Color] = {
+            if colorScheme == .dark {
+                return [
+                    AppColorRoles.surfaceChrome.opacity(isActive ? 0.98 : 0.92),
+                    AppColorRoles.surfaceInteractive.opacity(isActive ? 0.94 : 0.82)
+                ]
+            }
+
+            return isActive
+                ? [
+                    Color(hex: "#FAFBF8"),
+                    Color(hex: "#F0F1EC")
+                ]
+                : [
+                    Color(hex: "#F6F7F3"),
+                    Color(hex: "#ECEDE7")
+                ]
+        }()
+        let shadowColor = AppColorRoles.shadowSoft.opacity(colorScheme == .dark ? 0.18 : (isActive ? 0.18 : 0.12))
+        let shadowBlur: CGFloat = isActive ? 10 : 7
+        let shadowYOffset: CGFloat = isActive ? 4 : 3
+
+        return ZStack {
+            shape
+                .fill(shadowColor)
+                .blur(radius: shadowBlur)
+                .offset(y: shadowYOffset)
+
+            shape
+                .fill(
+                    LinearGradient(
+                        colors: fillColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    shape.fill(
+                        LinearGradient(
+                            colors: [
+                                accent.opacity(isActive ? (colorScheme == .dark ? 0.18 : 0.08) : 0.025),
+                                .clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                )
+                .overlay(
+                    shape.stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.16 : 0.9),
+                                AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 0.92 : 0.62)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+                )
+        }
+    }
+
+    private func legendChipBackground(accent: Color) -> some View {
+        let shape = Capsule(style: .continuous)
+        let shadowColor = AppColorRoles.shadowSoft.opacity(colorScheme == .dark ? 0.14 : 0.1)
+
+        return ZStack {
+            shape
+                .fill(shadowColor)
+                .blur(radius: 8)
+                .offset(y: 3)
+
+            shape
+                .fill(
+                    LinearGradient(
+                        colors: colorScheme == .dark
+                            ? [
+                                AppColorRoles.surfaceChrome.opacity(0.96),
+                                AppColorRoles.surfaceInteractive.opacity(0.88)
+                            ]
+                            : [
+                                Color(hex: "#F9FAF7"),
+                                Color(hex: "#EFF1EA")
+                            ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    shape.fill(
+                        LinearGradient(
+                            colors: [
+                                accent.opacity(colorScheme == .dark ? 0.12 : 0.06),
+                                .clear
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                )
+                .overlay(
+                    shape.stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.14 : 0.86),
+                                AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 0.82 : 0.56)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+                )
+        }
     }
 
     private var compareActionValueText: String {

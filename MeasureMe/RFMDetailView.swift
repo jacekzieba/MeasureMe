@@ -126,19 +126,19 @@ struct RFMDetailView: View {
         switch result.gender {
         case .male:
             return [
-                ("Normal fat level", "< 20%", "#22C55E"),
+                ("Normal fat level", "< 20%", AppColorRoles.stateSuccessHex),
                 ("Increased fat level", "20-25%", "#FCA311"),
                 ("High fat level", "> 25%", "#EF4444")
             ]
         case .female:
             return [
-                ("Normal fat level", "< 30%", "#22C55E"),
+                ("Normal fat level", "< 30%", AppColorRoles.stateSuccessHex),
                 ("Increased fat level", "30-35%", "#FCA311"),
                 ("High fat level", "> 35%", "#EF4444")
             ]
         case .notSpecified:
             return [
-                ("Normal fat level", "< 20%", "#22C55E"),
+                ("Normal fat level", "< 20%", AppColorRoles.stateSuccessHex),
                 ("Increased fat level", "20-25%", "#FCA311"),
                 ("High fat level", "> 25%", "#EF4444")
             ]

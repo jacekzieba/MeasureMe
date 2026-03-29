@@ -1,18 +1,18 @@
 // ActiveMetricsStore.swift
 //
 // **ActiveMetricsStore**
-// ObservableObject zarządzający aktywowanymi metrykami użytkownika.
+// ObservableObject managing user-activated metrics.
 //
-// **Odpowiedzialności:**
-// - Przechowywanie stanu włączenia/wyłączenia metryk w UserDefaults
-// - Zarządzanie kolejnością aktywnych metryk (drag & drop)
-// - Publikowanie zmian do widoków SwiftUI
-// - Nasłuchiwanie zmian w UserDefaults z innych źródeł
+// **Responsibilities:**
+// - Storing metric enabled/disabled state in UserDefaults
+// - Managing the order of active metrics (drag & drop)
+// - Publishing changes to SwiftUI views
+// - Observing UserDefaults changes from other sources
 //
-// **Optymalizacje:**
-// - Debouncing publikacji zmian (unikanie nadmiarowych re-renderów)
-// - Efektywne zarządzanie obserwatorem UserDefaults
-// - Odroczone publikowanie zmian do następnego cyklu run loop
+// **Optimizations:**
+// - Debouncing change publications (avoiding excessive re-renders)
+// - Efficient UserDefaults observer management
+// - Deferred change publishing to the next run loop cycle
 //
 import Foundation
 import SwiftUI
@@ -28,11 +28,11 @@ final class ActiveMetricsStore: ObservableObject {
     private let keyMetricsKey = "home_key_metrics"
     private let maxKeyMetrics = 3
     
-    /// Debouncing - zapobiega nadmiarowym publikacjom zmian.
+    /// Debouncing - prevents excessive change publications.
     /// `nonisolated(unsafe)` allows safe access from `deinit` which is not
-    /// izolowany do MainActor. `Task.cancel()` jest bezpieczne watkowo (atomowe),
+    /// isolated to MainActor. `Task.cancel()` is thread-safe (atomic),
     /// and all *writes* to this property happen exclusively on @MainActor,
-    /// wiec jedynym dostepem miedzy izolacjami jest koncowe `.cancel()` w deinit.
+    /// so the only cross-isolation access is the final `.cancel()` in deinit.
     nonisolated(unsafe) private var pendingPublish: Task<Void, Never>?
 
     // MARK: - Initialization
@@ -59,60 +59,60 @@ final class ActiveMetricsStore: ObservableObject {
     
     // MARK: - Debounced Publishing
     
-    /// Publikuje zmiany z małym opóźnieniem, anulując poprzednie oczekujące publikacje
+    /// Publishes changes with a small delay, cancelling previous pending publications
     private func debouncedPublish() {
-        // Anuluj poprzedni oczekujący task
+        // Cancel previous pending task
         pendingPublish?.cancel()
-        
-        // Utwórz nowy task z małym opóźnieniem
+
+        // Create a new task with a small delay
         pendingPublish = Task { @MainActor in
-            // Minimalne opóźnienie dla batch updates
+            // Minimal delay for batch updates
             try? await Task.sleep(for: .milliseconds(50))
-            
-            // Sprawdź czy nie został anulowany
+
+            // Check if cancelled
             guard !Task.isCancelled else { return }
-            
-            // Publikuj zmianę
+
+            // Publish change
             self.objectWillChange.send()
         }
     }
 
-    // MARK: - Metric Groups (Stabilna kolejność)
-    
-    /// Metryki składu ciała (sync z HealthKit)
+    // MARK: - Metric Groups (Stable order)
+
+    /// Body composition metrics (synced with HealthKit)
     let bodyComposition: [MetricKind] = [.weight, .bodyFat, .leanBodyMass]
-    
-    /// Metryki rozmiaru ciała (sync z HealthKit)
-    /// Wzrost jest zarzadzany tylko w Ustawieniach do obliczen zdrowotnych, nie jako sledzona metryka.
+
+    /// Body size metrics (synced with HealthKit)
+    /// Height is managed only in Settings for health calculations, not as a tracked metric.
     let bodySize: [MetricKind] = [.waist]
-    
-    /// Metryki górnej części ciała
+
+    /// Upper body metrics
     let upperBody: [MetricKind] = [.neck, .shoulders, .bust, .chest]
-    
-    /// Metryki ramion
+
+    /// Arm metrics
     let arms: [MetricKind] = [.leftBicep, .rightBicep, .leftForearm, .rightForearm]
-    
-    /// Metryki dolnej części ciała
+
+    /// Lower body metrics
     let lowerBody: [MetricKind] = [.hips, .leftThigh, .rightThigh, .leftCalf, .rightCalf]
 
-    /// Wszystkie metryki w domyślnej kolejności
+    /// All metrics in default order
     var allKindsInOrder: [MetricKind] {
         bodyComposition + bodySize + upperBody + arms + lowerBody
     }
 
     // MARK: - Active Metrics
     
-    /// Zwraca aktywne metryki w kolejności ustawionej przez użytkownika
+    /// Returns active metrics in the order set by the user
     var activeKinds: [MetricKind] {
-        // Które metryki są włączone
+        // Which metrics are enabled
         let enabledSet = Set(allKindsInOrder.filter { isEnabled($0) })
 
-        // Załaduj zapisaną kolejność (może zawierać nieaktywne - przefiltruj)
-        // Deduplikacja: zabezpieczenie przed uszkodzonym metrics_active_order w UserDefaults
+        // Load saved order (may contain inactive ones - filter them out)
+        // Deduplication: protection against corrupted metrics_active_order in UserDefaults
         var seen = Set<MetricKind>()
         let saved = loadActiveOrderKinds().filter { enabledSet.contains($0) && seen.insert($0).inserted }
 
-        // Dodaj brakujące aktywne metryki na końcu
+        // Add missing active metrics at the end
         let missing = allKindsInOrder.filter { enabledSet.contains($0) && !seen.contains($0) }
 
         return saved + missing
@@ -120,32 +120,32 @@ final class ActiveMetricsStore: ObservableObject {
 
     // MARK: - Key Metrics (Home)
 
-    /// Zwraca kluczowe metryki na Home (maks 3), zawsze będące podzbiorem aktywnych.
-    /// Jeśli użytkownik nigdy nie ustawiał key metrics (brak klucza w UserDefaults),
-    /// automatycznie przypisujemy pierwsze aktywne metryki. Jeśli użytkownik świadomie
-    /// odznaczył wszystkie gwiazdki (klucz istnieje, ale tablica jest pusta), zwracamy [].
+    /// Returns key metrics for Home (max 3), always a subset of active metrics.
+    /// If the user has never set key metrics (no key in UserDefaults),
+    /// we automatically assign the first active metrics. If the user deliberately
+    /// unchecked all stars (key exists but array is empty), we return [].
     var keyMetrics: [MetricKind] {
         let active = activeKinds
         let stored = loadKeyMetricsKinds().filter { active.contains($0) }
 
-        // Pierwsza sesja: klucz nie istnieje → auto-przypisz domyślne
+        // First session: key doesn't exist -> auto-assign defaults
         if defaults.object(forKey: keyMetricsKey) == nil {
             let initial = Array(active.prefix(maxKeyMetrics))
             saveKeyMetricsKinds(initial)
             return initial
         }
 
-        // Klucz istnieje (nawet jeśli pusty) → uszanuj wybór użytkownika
+        // Key exists (even if empty) -> respect user's choice
         let orderedByActive = active.filter { stored.contains($0) }
         return Array(orderedByActive.prefix(maxKeyMetrics))
     }
 
-    /// Sprawdza czy metryka jest oznaczona jako kluczowa (Home)
+    /// Checks whether a metric is marked as key (Home)
     func isKeyMetric(_ kind: MetricKind) -> Bool {
         keyMetrics.contains(kind)
     }
 
-    /// Włącza/wyłącza metrykę jako kluczową. Zwraca false jeśli przekroczono limit.
+    /// Enables/disables a metric as key. Returns false if the limit is exceeded.
     @discardableResult
     func setKeyMetric(_ enabled: Bool, for kind: MetricKind) -> Bool {
         var current = loadKeyMetricsKinds().filter { activeKinds.contains($0) }
@@ -161,7 +161,7 @@ final class ActiveMetricsStore: ObservableObject {
         return true
     }
 
-    /// Tworzy Binding dla Toggle w UI
+    /// Creates a Binding for Toggle in UI
     func binding(for kind: MetricKind) -> Binding<Bool> {
         Binding(
             get: { self.isEnabled(kind) },
@@ -169,54 +169,54 @@ final class ActiveMetricsStore: ObservableObject {
         )
     }
 
-    // MARK: - Order Management (Persistowana kolejność)
-    
-    /// Ładuje surową kolejność jako array stringów
+    // MARK: - Order Management (Persisted order)
+
+    /// Loads raw order as a string array
     private func loadActiveOrderRaw() -> [String] {
         defaults.stringArray(forKey: activeOrderKey) ?? []
     }
 
-    /// Konwertuje surową kolejność na array MetricKind
+    /// Converts raw order to a MetricKind array
     private func loadActiveOrderKinds() -> [MetricKind] {
         loadActiveOrderRaw().compactMap { MetricKind(rawValue: $0) }
     }
 
-    /// Zapisuje kolejność do UserDefaults
+    /// Saves order to UserDefaults
     private func saveActiveOrderKinds(_ kinds: [MetricKind]) {
         let raw = kinds.map { $0.rawValue }
         defaults.set(raw, forKey: activeOrderKey)
     }
 
-    /// Ładuje zapisane kluczowe metryki jako array stringów
+    /// Loads saved key metrics as a string array
     private func loadKeyMetricsRaw() -> [String] {
         defaults.stringArray(forKey: keyMetricsKey) ?? []
     }
 
-    /// Konwertuje zapisane kluczowe metryki na array MetricKind
+    /// Converts saved key metrics to a MetricKind array
     private func loadKeyMetricsKinds() -> [MetricKind] {
         loadKeyMetricsRaw().compactMap { MetricKind(rawValue: $0) }
     }
 
-    /// Zapisuje kluczowe metryki do UserDefaults
+    /// Saves key metrics to UserDefaults
     private func saveKeyMetricsKinds(_ kinds: [MetricKind]) {
         let raw = kinds.map { $0.rawValue }
         defaults.set(raw, forKey: keyMetricsKey)
     }
 
-    /// Przestawia kolejność aktywnych metryk (drag & drop w UI)
+    /// Reorders active metrics (drag & drop in UI)
     func moveActiveKinds(fromOffsets: IndexSet, toOffset: Int) {
-        // Reorder na podstawie aktualnie widocznych activeKinds
+        // Reorder based on currently visible activeKinds
         var current = activeKinds
         current.move(fromOffsets: fromOffsets, toOffset: toOffset)
 
-        // Scal przestawioną listę z zapisaną kolejnością
+        // Merge reordered list with saved order
         var saved = loadActiveOrderKinds()
         let activeSet = Set(current)
-        
-        // Usuń aktywne metryki z zapisanej listy
+
+        // Remove active metrics from saved list
         saved.removeAll { activeSet.contains($0) }
-        
-        // Wstaw przestawione aktywne metryki na początek
+
+        // Insert reordered active metrics at the beginning
         saved.insert(contentsOf: current, at: 0)
 
         saveActiveOrderKinds(saved)
@@ -225,30 +225,30 @@ final class ActiveMetricsStore: ObservableObject {
 
     // MARK: - Enable/Disable Management
     
-    /// Sprawdza czy metryka jest włączona
+    /// Checks whether a metric is enabled
     func isEnabled(_ kind: MetricKind) -> Bool {
         defaults.bool(forKey: key(for: kind))
     }
 
-    /// Włącza lub wyłącza metrykę
+    /// Enables or disables a metric
     func setEnabled(_ enabled: Bool, for kind: MetricKind) {
         let k = key(for: kind)
         let current = defaults.bool(forKey: k)
 
-        // Nic nie rób jeśli stan się nie zmienił
+        // Do nothing if state hasn't changed
         guard current != enabled else { return }
 
         defaults.set(enabled, forKey: k)
 
-        // Oznacz, że użytkownik zmienił konfigurację metryk
+        // Mark that the user has customized metric configuration
         if !defaults.bool(forKey: AppSettingsKeys.Experience.hasCustomizedMetrics) {
             defaults.set(true, forKey: AppSettingsKeys.Experience.hasCustomizedMetrics)
         }
 
-        // Aktualizuj kolejność
+        // Update order
         var order = loadActiveOrderKinds()
         if enabled {
-            // Dodaj na końcu jeśli nie ma
+            // Add at the end if not present
             if !order.contains(kind) { 
                 order.append(kind) 
             }

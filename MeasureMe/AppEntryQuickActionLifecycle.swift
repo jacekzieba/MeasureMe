@@ -1,6 +1,18 @@
 import UIKit
+import UserNotifications
 
-final class MeasureMeAppDelegate: NSObject, UIApplicationDelegate {
+final class MeasureMeAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
+    ) -> Bool {
+        UNUserNotificationCenter.current().delegate = self
+        Task { @MainActor in
+            NotificationManager.shared.configureAINotificationCategories()
+        }
+        return true
+    }
+
     func application(
         _ application: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,
@@ -9,6 +21,20 @@ final class MeasureMeAppDelegate: NSObject, UIApplicationDelegate {
         let configuration = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
         configuration.delegateClass = MeasureMeSceneDelegate.self
         return configuration
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        Task { @MainActor in
+            NotificationManager.shared.handleAINotificationResponse(
+                actionIdentifier: response.actionIdentifier,
+                userInfo: response.notification.request.content.userInfo
+            )
+            completionHandler()
+        }
     }
 }
 

@@ -75,8 +75,8 @@ struct AppCTAButtonStyle: ButtonStyle {
                                 .stroke(
                                     LinearGradient(
                                         colors: [
-                                            Color.white.opacity(colorScheme == .dark ? 0.28 : 0.70),
-                                            AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 0.68 : 0.44)
+                                            Color.white.opacity(colorScheme == .dark ? 0.28 : 0.84),
+                                            AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 0.68 : 0.52)
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
@@ -87,8 +87,8 @@ struct AppCTAButtonStyle: ButtonStyle {
                 )
                 .scaleEffect(isPressed && shouldAnimate ? 0.98 : 1)
                 .shadow(
-                    color: Color.appAccent.opacity(isPressed ? 0.18 : (colorScheme == .dark ? 0.24 : 0.30)),
-                    radius: isPressed ? 4 : 11,
+                    color: Color.appAccent.opacity(isPressed ? 0.16 : (colorScheme == .dark ? 0.24 : 0.24)),
+                    radius: isPressed ? 4 : 9,
                     x: 0,
                     y: isPressed ? 1 : 4
                 )
@@ -130,9 +130,9 @@ struct AppSecondaryButtonStyle: ButtonStyle {
                                 : AnyShapeStyle(
                                     LinearGradient(
                                         colors: [
-                                            Color(hex: "#F2F5F7").opacity(0.98),
-                                            AppColorRoles.surfaceWarmHighlight.opacity(0.96),
-                                            AppColorRoles.surfaceCoolHighlight.opacity(0.98)
+                                            AppColorRoles.surfaceElevated,
+                                            AppColorRoles.surfaceGlass,
+                                            AppColorRoles.surfacePrimary
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
@@ -144,8 +144,8 @@ struct AppSecondaryButtonStyle: ButtonStyle {
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            Color.black.opacity(isPressed ? 0.06 : 0.03),
-                                            Color.black.opacity(isPressed ? 0.03 : 0.01),
+                                            Color.black.opacity(isPressed ? 0.05 : 0.02),
+                                            Color.black.opacity(isPressed ? 0.02 : 0.008),
                                             .clear
                                         ],
                                         startPoint: .topLeading,
@@ -158,8 +158,8 @@ struct AppSecondaryButtonStyle: ButtonStyle {
                                 .stroke(
                                     LinearGradient(
                                         colors: [
-                                            Color.white.opacity(colorScheme == .dark ? 0.16 : 0.82),
-                                            AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 1 : 0.58)
+                                            Color.white.opacity(colorScheme == .dark ? 0.16 : 0.90),
+                                            AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 1 : 0.60)
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
@@ -169,7 +169,7 @@ struct AppSecondaryButtonStyle: ButtonStyle {
                         )
                 )
                 .scaleEffect(isPressed && shouldAnimate ? 0.98 : 1)
-                .shadow(color: AppColorRoles.shadowSoft.opacity(isPressed ? 0.35 : 0.52), radius: isPressed ? 4 : 8, x: 0, y: isPressed ? 2 : 4)
+                .shadow(color: AppColorRoles.shadowSoft.opacity(isPressed ? 0.24 : 0.34), radius: isPressed ? 4 : 7, x: 0, y: isPressed ? 2 : 4)
                 .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimate), value: isPressed)
         }
     }
@@ -240,9 +240,9 @@ struct AppInputContainerStyle: ViewModifier {
                                     AppColorRoles.surfaceInteractive.opacity(0.92)
                                 ]
                                 : [
-                                    Color.white.opacity(0.88),
-                                    Color(hex: "#F2F4F7").opacity(0.96),
-                                    Color(hex: "#E8EBF0").opacity(0.96)
+                                    AppColorRoles.surfaceElevated,
+                                    AppColorRoles.surfaceGlass,
+                                    AppColorRoles.surfacePrimary
                                 ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -253,7 +253,7 @@ struct AppInputContainerStyle: ViewModifier {
                             .fill(
                                 LinearGradient(
                                     colors: [
-                                        Color.white.opacity(colorScheme == .dark ? 0.05 : 0.14),
+                                        Color.white.opacity(colorScheme == .dark ? 0.05 : 0.20),
                                         focused ? Color.appAccent.opacity(0.10) : .clear
                                     ],
                                     startPoint: .topLeading,

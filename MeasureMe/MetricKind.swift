@@ -1,15 +1,15 @@
 // MetricKind.swift
 //
 // **MetricKind**
-// Główny enum definiujący wszystkie rodzaje metryk w aplikacji.
+// Main enum defining all metric types in the app.
 //
-// **Odpowiedzialności:**
-// - Definicja wszystkich dostępnych metryk
-// - Dostarczanie metadanych (tytuł, ikona, jednostki)
-// - Konwersja jednostek metric ↔ imperial
-// - Klasyfikacja metryk (weight, length, percent)
+// **Responsibilities:**
+// - Definition of all available metrics
+// - Providing metadata (title, icon, units)
+// - Unit conversion metric ↔ imperial
+// - Metric classification (weight, length, percent)
 //
-// **Kategorie metryk:**
+// **Metric categories:**
 // - Body Composition: weight, bodyFat, leanBodyMass
 // - Body Size: height, waist
 // - Upper Body: neck, shoulders, bust, chest
@@ -50,7 +50,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
 
     // MARK: - Display Properties
     
-    /// Czytelna nazwa metryki dla UI
+    /// Human-readable metric name for UI
     var title: String {
         switch self {
         case .weight: return AppLocalization.string("metric.weight")
@@ -74,7 +74,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         }
     }
 
-    /// Kontekst pomiaru do promptow AI — unika mylenia obwodow ciala z wysokoscia
+    /// Measurement context for AI prompts — avoids confusing body circumferences with height
     var insightMeasurementContext: String {
         switch self {
         case .weight: return "body weight"
@@ -88,7 +88,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         }
     }
 
-    /// Angielski tytul do promptow AI i logiki wewnetrznej
+    /// English title for AI prompts and internal logic
     var englishTitle: String {
         switch self {
         case .weight: return "Weight"
@@ -112,7 +112,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         }
     }
 
-    /// Nazwa ikony SF Symbols dla metryki
+    /// SF Symbols icon name for the metric
     var systemImage: String {
         switch self {
         case .weight: return "scalemass.fill"
@@ -134,10 +134,10 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         }
     }
 
-    /// Czy ikona powinna być odbita poziomo.
-    /// Bicep i calf: ikona domyślnie pokazuje prawą stronę → right=oryginał, left=mirror.
-    /// Forearm: ikona domyślnie pokazuje lewą stronę → left=oryginał, right=mirror.
-    /// Thigh: nie mirroruje — crop po lewej/prawej stronie sam załatwia semantykę lewo/prawo.
+    /// Whether the icon should be horizontally mirrored.
+    /// Bicep and calf: icon defaults to showing right side → right=original, left=mirror.
+    /// Forearm: icon defaults to showing left side → left=original, right=mirror.
+    /// Thigh: no mirroring — left/right crop handles left/right semantics on its own.
     var shouldMirrorSymbol: Bool {
         switch self {
         case .leftBicep, .rightCalf: return true  // bicep: left mirroruje; calf: right mirroruje
@@ -146,7 +146,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         }
     }
 
-    /// Nazwa custom image asset (Icons8) lub nil — wtedy używaj systemImage
+    /// Custom image asset name (Icons8) or nil — then use systemImage
     var customImageName: String? {
         switch self {
         case .weight:                       return "icons8.scale"
@@ -169,10 +169,10 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
 
     // MARK: - Icon View Builder
 
-    /// Zwraca ikonę metryki — custom PNG (Icons8) jeśli dostępna, inaczej SF Symbol.
-    /// - `font`:  stosowany tylko dla SF Symbol fallback
-    /// - `size`:  rozmiar ikony w punktach
-    /// - `tint`:  kolor ikony; dla PNG używa renderingMode(.template) + foregroundStyle
+    /// Returns the metric icon — custom PNG (Icons8) if available, otherwise SF Symbol.
+    /// - `font`:  applied only for SF Symbol fallback
+    /// - `size`:  icon size in points
+    /// - `tint`:  icon color; for PNG uses renderingMode(.template) + foregroundStyle
     @ViewBuilder
     func iconView(font: Font? = nil, size: CGFloat? = nil, tint: Color? = nil) -> some View {
         if let name = customImageName {
@@ -199,7 +199,7 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         case neutral
     }
 
-    /// Domyslny kierunek bez ustawionego celu: dla wybranych metryk spadek jest korzystny.
+    /// Default direction when no goal is set: for selected metrics a decrease is favorable.
     var favorsDecreaseWhenNoGoal: Bool {
         switch self {
         case .weight, .bodyFat, .waist, .hips, .bust:
@@ -241,21 +241,21 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         return delta > 0 ? .positive : .negative
     }
 
-    /// Czy metryka używa "gained/lost" (waga, procent) zamiast "increased/decreased" (długość).
+    /// Whether the metric uses "gained/lost" (weight, percent) instead of "increased/decreased" (length).
     var usesGainedLostVerb: Bool {
         unitCategory == .weight || unitCategory == .percent
     }
 
     // MARK: - Unit System
     
-    /// Kategoria jednostek dla metryki - używana do konwersji i formatowania
+    /// Unit category for the metric — used for conversion and formatting
     enum UnitCategory {
         case weight     // kg (metric) / lb (imperial)
         case length     // cm (metric) / in (imperial)
-        case percent    // % (zawsze bez konwersji)
+        case percent    // % (always without conversion)
     }
 
-    /// Zwraca kategorię jednostek dla tej metryki
+    /// Returns the unit category for this metric
     nonisolated var unitCategory: UnitCategory {
         switch self {
         case .weight, .leanBodyMass:
@@ -269,9 +269,9 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         }
     }
 
-    /// Zwraca symbol jednostki dla wybranego systemu ("metric" lub "imperial")
-    /// - Parameter unitsSystem: "metric" dla kg/cm, "imperial" dla lb/in
-    /// - Returns: String z symbolem jednostki
+    /// Returns the unit symbol for the selected system ("metric" or "imperial")
+    /// - Parameter unitsSystem: "metric" for kg/cm, "imperial" for lb/in
+    /// - Returns: String with the unit symbol
     nonisolated func unitSymbol(unitsSystem: String) -> String {
         switch unitCategory {
         case .weight:
@@ -283,30 +283,30 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         }
     }
     
-    /// Zwraca symbol jednostki dla wybranego systemu (Bool version)
-    /// - Parameter isMetric: true dla kg/cm, false dla lb/in
-    /// - Returns: String z symbolem jednostki
+    /// Returns the unit symbol for the selected system (Bool version)
+    /// - Parameter isMetric: true for kg/cm, false for lb/in
+    /// - Returns: String with the unit symbol
     nonisolated func unit(isMetric: Bool) -> String {
         unitSymbol(unitsSystem: isMetric ? "metric" : "imperial")
     }
 
     // MARK: - Unit Conversion
     
-    /// Konwertuje wartość z jednostek bazowych (metrycznych) na jednostki wyświetlania
+    /// Converts a value from base (metric) units to display units
     /// - Parameters:
-    ///   - value: Wartość w jednostkach metrycznych (kg, cm, %)
-    ///   - unitsSystem: "metric" lub "imperial"
-    /// - Returns: Wartość w odpowiednich jednostkach dla wyświetlenia
+    ///   - value: Value in metric units (kg, cm, %)
+    ///   - unitsSystem: "metric" or "imperial"
+    /// - Returns: Value in the appropriate units for display
     nonisolated func valueForDisplay(fromMetric value: Double, unitsSystem: String) -> Double {
         switch unitCategory {
         case .weight:
-            // Baza: kg → imperial: lb (1 kg = 2.20462 lb)
+            // Base: kg → imperial: lb (1 kg = 2.20462 lb)
             return unitsSystem == "imperial" ? value / 0.45359237 : value
         case .length:
-            // Baza: cm → imperial: in (1 in = 2.54 cm)
+            // Base: cm → imperial: in (1 in = 2.54 cm)
             return unitsSystem == "imperial" ? value / 2.54 : value
         case .percent:
-            // Procenty zawsze bez konwersji
+            // Percentages always without conversion
             return value
         }
     }
@@ -346,29 +346,29 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         )
     }
 
-    /// Konwertuje wartość wprowadzoną przez użytkownika na jednostki bazowe (metryczne)
+    /// Converts a user-entered value to base (metric) units
     /// - Parameters:
-    ///   - value: Wartość wprowadzona w UI (lb/in lub kg/cm)
-    ///   - unitsSystem: "metric" lub "imperial"
-    /// - Returns: Wartość w jednostkach metrycznych do zapisu w bazie
+    ///   - value: Value entered in the UI (lb/in or kg/cm)
+    ///   - unitsSystem: "metric" or "imperial"
+    /// - Returns: Value in metric units for storage in the database
     func valueToMetric(fromDisplay value: Double, unitsSystem: String) -> Double {
         switch unitCategory {
         case .weight:
-            // lb → kg przy imperial
+            // lb → kg for imperial
             return unitsSystem == "imperial" ? value * 0.45359237 : value
         case .length:
-            // in → cm przy imperial
+            // in → cm for imperial
             return unitsSystem == "imperial" ? value * 2.54 : value
         case .percent:
-            // Procenty bez konwersji
+            // Percentages without conversion
             return value
         }
     }
 
     // MARK: - HealthKit Integration
     
-    /// Określa czy metryka może być synchronizowana z HealthKit
-    /// - Returns: true dla metryk dostępnych w Health app
+    /// Determines whether the metric can be synced with HealthKit
+    /// - Returns: true for metrics available in the Health app
     var isHealthSynced: Bool {
         switch self {
         case .weight, .bodyFat, .height, .leanBodyMass, .waist:

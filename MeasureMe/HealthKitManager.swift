@@ -783,6 +783,10 @@ final class HealthKitManager {
                 let sampleDates = samples.map(\.date)
                 await MainActor.run {
                     StreakManager.shared.recordHealthKitImport(sampleDates: sampleDates)
+                    NotificationManager.shared.scheduleAINotificationsIfNeeded(
+                        context: container.mainContext,
+                        trigger: .healthImport(kind: kind)
+                    )
                 }
             }
 

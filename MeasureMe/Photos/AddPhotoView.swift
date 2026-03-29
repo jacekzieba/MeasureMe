@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// Widok do dodawania nowego zdjęcia z tagami i opcjonalnymi pomiarami
+/// View for adding a new photo with tags and optional measurements
 struct AddPhotoView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var activeMetrics: ActiveMetricsStore

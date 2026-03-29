@@ -217,25 +217,25 @@ struct OnboardingWelcomeStep: View {
                 Spacer()
                 Text(AppLocalization.systemString("onboarding.trend.delta"))
                     .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color(hex: "#22C55E"))
+                    .foregroundStyle(AppColorRoles.stateSuccess)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color(hex: "#22C55E").opacity(0.16))
+                    .background(AppColorRoles.stateSuccess.opacity(0.16))
                     .clipShape(Capsule(style: .continuous))
 
                 Text(AppLocalization.systemString("onboarding.goal.badge", goalValue))
                     .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color(hex: "#22C55E"))
+                    .foregroundStyle(AppColorRoles.stateSuccess)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color(hex: "#22C55E").opacity(0.16))
+                    .background(AppColorRoles.stateSuccess.opacity(0.16))
                     .clipShape(Capsule(style: .continuous))
             }
 
             Chart {
                 RuleMark(y: .value("Goal", goalValue))
                     .lineStyle(StrokeStyle(lineWidth: 1.1, dash: [5, 4]))
-                    .foregroundStyle(Color(hex: "#22C55E").opacity(0.9))
+                    .foregroundStyle(AppColorRoles.stateSuccess.opacity(0.9))
 
                 ForEach(trendPoints) { point in
                     AreaMark(
@@ -273,7 +273,7 @@ struct OnboardingWelcomeStep: View {
                             y: .value("Goal", goalValue)
                         )
                         .symbolSize(36)
-                        .foregroundStyle(Color(hex: "#22C55E"))
+                        .foregroundStyle(AppColorRoles.stateSuccess)
                     }
                 }
             }

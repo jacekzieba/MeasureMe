@@ -49,7 +49,7 @@ enum SettingsAlert: Identifiable {
 /// - Brak blokowania głównego wątku podczas żądania uprawnień
 struct SettingsView: View {
     // MARK: - Constants
-    private static let settingsRowInsets = EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
+    static let settingsRowInsets = EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
@@ -121,8 +121,6 @@ struct SettingsView: View {
     @State private var activeAlert: SettingsAlert?
     @State private var settingsSearchQuery: String = ""
     @State private var selectedSettingsRoute: SettingsSearchRoute?
-    @State private var showExportFormatPicker = false
-    @State private var showPDFRangeSheet = false
     @State private var isBackingUp = false
     
     private var lastImportText: String? {
@@ -365,369 +363,23 @@ struct SettingsView: View {
     }
 
     private let settingsTheme = FeatureTheme.settings
-    private let healthTheme = FeatureTheme.health
 
-    @ViewBuilder private var settingsSearchSection: some View {
-        Section {
-            SettingsCard(tint: AppColorRoles.surfaceElevated) {
-                HStack(spacing: AppSpacing.sm) {
-                    Image(systemName: "magnifyingglass")
-                        .font(AppTypography.iconMedium)
-                        .foregroundStyle(AppColorRoles.textTertiary)
-                        .accessibilityHidden(true)
-
-                    TextField(
-                        AppLocalization.string("Search Settings"),
-                        text: $settingsSearchQuery
-                    )
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .font(AppTypography.body)
-                    .foregroundStyle(AppColorRoles.textPrimary)
-                    .accessibilityIdentifier("settings.search.field")
-
-                    if isSearchingSettings {
-                        Button {
-                            settingsSearchQuery = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(AppTypography.iconMedium)
-                                .foregroundStyle(AppColorRoles.textTertiary)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("settings.search.clear")
-                    }
-                }
-                .frame(minHeight: 44)
-            }
-            .accessibilityIdentifier("settings.section.search")
-        }
-        .listRowSeparator(.hidden)
-        .listSectionSeparator(.hidden)
-        .listRowBackground(Color.clear)
-        .listRowInsets(Self.settingsRowInsets)
-    }
-
-    @ViewBuilder private var settingsSections: some View {
-        Section {
-            SettingsSectionEyebrow(title: AppLocalization.string("settings.section.account"))
-
-            SettingsCard(tint: settingsTheme.strongTint) {
-                HStack(spacing: AppSpacing.sm) {
-                    Image("BrandButton")
-                        .renderingMode(.original)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 44, height: 44)
-                        .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(accountTitle)
-                            .font(AppTypography.displayStatement)
-                            .foregroundStyle(AppColorRoles.textPrimary)
-                        Text(accountSubtitle)
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColorRoles.textSecondary)
-                    }
-
-                    Spacer()
-                }
-
-                if premiumStore.isPremium {
-                    SettingsActionRow(
-                        title: AppLocalization.string("Manage subscription"),
-                        subtitle: AppLocalization.string("settings.summary.subscription.manage"),
-                        systemImage: "crown.fill",
-                        trailingText: nil,
-                        accessibilityIdentifier: "settings.row.manageSubscription"
-                    ) {
-                        premiumStore.openManageSubscriptions()
-                    }
-
-                    SettingsRowDivider()
-
-                    SettingsNavigationRow(
-                        title: AppLocalization.string("Premium Edition"),
-                        subtitle: AppLocalization.string("settings.app.subscription.view.benefits"),
-                        systemImage: "checkmark.seal.fill",
-                        trailingText: nil,
-                        accessibilityIdentifier: "settings.row.premiumBenefits"
-                    ) {
-                        PremiumBenefitsInfoView()
-                    }
-                } else {
-                    Text(AppLocalization.string("settings.summary.premium.pitch"))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColorRoles.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Button {
-                        premiumStore.presentPaywall(reason: .settings)
-                    } label: {
-                        Text(AppLocalization.string("settings.action.explorePremium"))
-                    }
-                    .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-                    .accessibilityIdentifier("settings.action.explorePremium")
-                }
-            }
-            .accessibilityIdentifier("settings.section.account")
-        }
-        .listRowSeparator(.hidden)
-        .listSectionSeparator(.hidden)
-        .listRowBackground(Color.clear)
-        .listRowInsets(Self.settingsRowInsets)
-
-        Section {
-            SettingsSectionEyebrow(title: AppLocalization.string("settings.section.setup"))
-
-            SettingsCard(tint: FeatureTheme.home.softTint) {
-                settingsOverviewRow(
-                    route: .home,
-                    title: AppLocalization.string("Home"),
-                    subtitle: homeModuleSummary,
-                    systemImage: "house.fill",
-                    accessibilityIdentifier: "settings.row.home"
-                )
-
-                SettingsRowDivider()
-
-                settingsOverviewRow(
-                    route: .notifications,
-                    title: AppLocalization.string("Notifications"),
-                    subtitle: notificationsSummary,
-                    systemImage: "bell.badge",
-                    accessibilityIdentifier: "settings.row.notifications"
-                )
-
-                SettingsRowDivider()
-
-                settingsOverviewRow(
-                    route: .language,
-                    title: AppLocalization.string("Language"),
-                    subtitle: languageSummary,
-                    systemImage: "globe",
-                    accessibilityIdentifier: "settings.row.language"
-                )
-
-                SettingsRowDivider()
-
-                settingsOverviewRow(
-                    route: .units,
-                    title: AppLocalization.string("Units"),
-                    subtitle: unitsSummary,
-                    systemImage: "ruler",
-                    accessibilityIdentifier: "settings.row.units"
-                )
-
-                SettingsRowDivider()
-
-                settingsOverviewRow(
-                    route: .experience,
-                    title: AppLocalization.string("Appearance, animations and haptics"),
-                    subtitle: experienceSummary,
-                    systemImage: "circle.lefthalf.filled.inverse",
-                    accessibilityIdentifier: "settings.row.experience"
-                )
-            }
-            .accessibilityIdentifier("settings.section.setup")
-        }
-        .listRowSeparator(.hidden)
-        .listSectionSeparator(.hidden)
-        .listRowBackground(Color.clear)
-        .listRowInsets(Self.settingsRowInsets)
-
-        Section {
-            SettingsSectionEyebrow(title: AppLocalization.string("settings.section.measurements"))
-
-            SettingsCard(tint: FeatureTheme.measurements.softTint) {
-                settingsOverviewRow(
-                    route: .profile,
-                    title: AppLocalization.string("Profile"),
-                    subtitle: profileSummary,
-                    systemImage: "person.crop.circle",
-                    accessibilityIdentifier: "settings.row.profile"
-                )
-
-                SettingsRowDivider()
-
-                settingsOverviewRow(
-                    route: .metrics,
-                    title: AppLocalization.string("Metrics"),
-                    subtitle: trackedMetricsSummary,
-                    systemImage: "list.bullet.clipboard",
-                    accessibilityIdentifier: "settings.row.metrics"
-                )
-
-                SettingsRowDivider()
-
-                settingsOverviewRow(
-                    route: .indicators,
-                    title: AppLocalization.string("Indicators"),
-                    subtitle: indicatorsSummary,
-                    systemImage: "slider.horizontal.3",
-                    accessibilityIdentifier: "settings.row.indicators"
-                )
-            }
-            .accessibilityIdentifier("settings.section.measurements")
-        }
-        .listRowSeparator(.hidden)
-        .listSectionSeparator(.hidden)
-        .listRowBackground(Color.clear)
-        .listRowInsets(Self.settingsRowInsets)
-
-        Section {
-            SettingsSectionEyebrow(title: AppLocalization.string("settings.section.insights"))
-
-            SettingsCard(tint: FeatureTheme.premium.softTint) {
-                settingsOverviewRow(
-                    route: .aiInsights,
-                    title: AppLocalization.string("AI Insights"),
-                    subtitle: aiSummary,
-                    systemImage: "sparkles",
-                    accessibilityIdentifier: "settings.row.ai"
-                )
-            }
-            .accessibilityIdentifier("settings.section.insights")
-        }
-        .listRowSeparator(.hidden)
-        .listSectionSeparator(.hidden)
-        .listRowBackground(Color.clear)
-        .listRowInsets(Self.settingsRowInsets)
-
-        Section {
-            SettingsSectionEyebrow(title: AppLocalization.string("settings.section.health"))
-
-            SettingsCard(tint: healthTheme.softTint) {
-                settingsOverviewRow(
-                    route: .health,
-                    title: AppLocalization.string("Health"),
-                    subtitle: healthSummary,
-                    systemImage: "heart.fill",
-                    accessibilityIdentifier: "settings.row.health"
-                )
-            }
-            .accessibilityIdentifier("settings.section.health")
-        }
-        .listRowSeparator(.hidden)
-        .listSectionSeparator(.hidden)
-        .listRowBackground(Color.clear)
-        .listRowInsets(Self.settingsRowInsets)
-
-        Section {
-            SettingsSectionEyebrow(title: AppLocalization.string("settings.section.support"))
-
-            SettingsCard(tint: FeatureTheme.photos.softTint) {
-                settingsOverviewRow(
-                    route: .data,
-                    title: AppLocalization.string("Data"),
-                    subtitle: AppLocalization.string("settings.summary.data"),
-                    systemImage: "square.and.arrow.up",
-                    accessibilityIdentifier: "settings.row.data"
-                )
-
-                SettingsRowDivider()
-
-                settingsOverviewRow(
-                    route: .faq,
-                    title: AppLocalization.string("FAQ"),
-                    subtitle: AppLocalization.string("settings.summary.support"),
-                    systemImage: "questionmark.circle",
-                    accessibilityIdentifier: "settings.row.faq"
-                )
-
-                SettingsRowDivider()
-
-                settingsOverviewRow(
-                    route: .about,
-                    title: AppLocalization.string("About"),
-                    subtitle: AppLocalization.string("About MeasureMe"),
-                    systemImage: "info.circle",
-                    accessibilityIdentifier: "settings.row.about"
-                )
-            }
-            .accessibilityIdentifier("settings.section.support")
-        }
-        .listRowSeparator(.hidden)
-        .listSectionSeparator(.hidden)
-        .listRowBackground(Color.clear)
-        .listRowInsets(Self.settingsRowInsets)
-
-        Section {
-            SettingsCard(tint: FeatureTheme.measurements.softTint) {
-                SettingsCardHeader(title: AppLocalization.string("App"), systemImage: "iphone.gen3.sizes")
-
-                Button {
-                    Task { await premiumStore.restorePurchases() }
-                } label: {
-                    appSectionRowLabel(
-                        title: AppLocalization.string("Restore purchases"),
-                        trailingSymbol: "arrow.clockwise.circle"
-                    )
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .accessibilityIdentifier("settings.row.restorePurchases")
-
-                SettingsRowDivider()
-
-                Button {
-                    shareApp()
-                } label: {
-                    appSectionRowLabel(
-                        title: AppLocalization.string("Share app"),
-                        subtitle: "MeasureMe – Body Tracker",
-                        trailingSymbol: "square.and.arrow.up"
-                    )
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .accessibilityIdentifier("settings.row.shareApp")
-
-                SettingsRowDivider()
-
-                Button {
-                    openURL(LegalLinks.termsOfUse)
-                } label: {
-                    appSectionRowLabel(
-                        title: AppLocalization.string("Terms of Use"),
-                        trailingSymbol: "arrow.up.right.square"
-                    )
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-
-                SettingsRowDivider()
-
-                Button {
-                    openURL(LegalLinks.privacyPolicy)
-                } label: {
-                    appSectionRowLabel(
-                        title: AppLocalization.string("Privacy Policy"),
-                        trailingSymbol: "arrow.up.right.square"
-                    )
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-
-                SettingsRowDivider()
-
-                Button {
-                    openURL(LegalLinks.accessibility)
-                } label: {
-                    appSectionRowLabel(
-                        title: AppLocalization.string("Accessibility"),
-                        trailingSymbol: "arrow.up.right.square"
-                    )
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            }
-            .accessibilityIdentifier("settings.section.app")
-        }
-        .listRowSeparator(.hidden)
-        .listSectionSeparator(.hidden)
-        .listRowBackground(Color.clear)
-        .listRowInsets(Self.settingsRowInsets)
+    private var overviewSnapshot: SettingsOverviewSnapshot {
+        SettingsOverviewSnapshot(
+            accountTitle: accountTitle,
+            accountSubtitle: accountSubtitle,
+            homeModuleSummary: homeModuleSummary,
+            notificationsSummary: notificationsSummary,
+            languageSummary: languageSummary,
+            unitsSummary: unitsSummary,
+            experienceSummary: experienceSummary,
+            profileSummary: profileSummary,
+            trackedMetricsSummary: trackedMetricsSummary,
+            indicatorsSummary: indicatorsSummary,
+            aiSummary: aiSummary,
+            healthSummary: healthSummary,
+            isPremium: premiumStore.isPremium
+        )
     }
 
     var body: some View {
@@ -747,41 +399,25 @@ struct SettingsView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
 
-                settingsSearchSection
+                SettingsSearchSection(query: $settingsSearchQuery)
 
                 if isSearchingSettings {
-                    Section {
-                        if filteredSettingsSearchItems.isEmpty {
-                            Text(AppLocalization.string("No matching settings"))
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .frame(minHeight: 44)
-                        } else {
-                            ForEach(filteredSettingsSearchItems) { item in
-                                Button {
-                                    openSettingsRoute(item.route)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 3) {
-                Text(item.title)
-                    .font(AppTypography.bodyStrong)
-                    .foregroundStyle(AppColorRoles.textPrimary)
-                Text(item.subtitle)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColorRoles.textSecondary)
-                                    }
-                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                                }
-                                .buttonStyle(.plain)
-                                .appHitTarget()
-                            }
-                        }
-                    }
-                    .listRowSeparator(.hidden)
-                    .listSectionSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(Self.settingsRowInsets)
+                    SettingsSearchResultsSection(
+                        items: filteredSettingsSearchItems,
+                        onOpenRoute: openSettingsRoute
+                    )
                 } else {
-                    settingsSections
+                    SettingsOverviewSections(
+                        snapshot: overviewSnapshot,
+                        onOpenRoute: openSettingsRoute,
+                        onRestorePurchases: { Task { await premiumStore.restorePurchases() } },
+                        onShareApp: shareApp,
+                        onTerms: { openURL(LegalLinks.termsOfUse) },
+                        onPrivacy: { openURL(LegalLinks.privacyPolicy) },
+                        onAccessibility: { openURL(LegalLinks.accessibility) },
+                        onExplorePremium: { premiumStore.presentPaywall(reason: .settings) },
+                        onManageSubscription: { premiumStore.openManageSubscriptions() }
+                    )
                 }
             }
             .tint(settingsTheme.accent)
@@ -845,151 +481,114 @@ struct SettingsView: View {
                 actions: settingsAlertActions,
                 message: settingsAlertMessage
             )
-            .fileImporter(
-                isPresented: $showImportPicker,
-                allowedContentTypes: [.commaSeparatedText],
-                allowsMultipleSelection: true
-            ) { result in
-                switch result {
-                case .success(let urls):
-                    pendingImportURLs = urls
-                    showImportStrategyAlert = true
-                case .failure(let error):
-                    activeAlert = .importResult(AppLocalization.string("Could not open file: ") + error.localizedDescription)
-                }
-            }
-            .confirmationDialog(
-                AppLocalization.string("Import data"),
-                isPresented: $showImportStrategyAlert,
-                titleVisibility: .visible
-            ) {
-                Button(AppLocalization.string("Merge (keep existing data)")) {
-                    performImport(urls: pendingImportURLs, strategy: .merge)
-                }
-                Button(AppLocalization.string("Replace (delete existing data)"), role: .destructive) {
-                    performImport(urls: pendingImportURLs, strategy: .replace)
-                }
-                Button(AppLocalization.string("Cancel"), role: .cancel) {
-                    pendingImportURLs = []
-                }
-            } message: {
-                Text(AppLocalization.string("How should MeasureMe handle existing data?"))
-            }
+            .modifier(
+                SettingsImportFlowModifier(
+                    showImportPicker: $showImportPicker,
+                    showImportStrategyAlert: $showImportStrategyAlert,
+                    pendingImportURLs: $pendingImportURLs,
+                    activeAlert: $activeAlert,
+                    onImport: performImport
+                )
+            )
             if isExporting {
                 exportOverlay
             }
             }
             .navigationDestination(item: $selectedSettingsRoute) { route in
-                settingsSearchDestination(for: route)
+                SettingsRouteDestinationView(
+                    route: route,
+                    userName: $userName,
+                    userGender: $userGender,
+                    userAge: $userAge,
+                    manualHeight: $manualHeight,
+                    unitsSystem: $unitsSystem,
+                    showWHtROnHome: $showWHtROnHome,
+                    showRFMOnHome: $showRFMOnHome,
+                    showBMIOnHome: $showBMIOnHome,
+                    showBodyFatOnHome: $showBodyFatOnHome,
+                    showLeanMassOnHome: $showLeanMassOnHome,
+                    showWHROnHome: $showWHROnHome,
+                    showWaistRiskOnHome: $showWaistRiskOnHome,
+                    showABSIOnHome: $showABSIOnHome,
+                    showBodyShapeScoreOnHome: $showBodyShapeScoreOnHome,
+                    showCentralFatRiskOnHome: $showCentralFatRiskOnHome,
+                    showPhysiqueSWR: $showPhysiqueSWR,
+                    showPhysiqueCWR: $showPhysiqueCWR,
+                    showPhysiqueSHR: $showPhysiqueSHR,
+                    showPhysiqueHWR: $showPhysiqueHWR,
+                    showPhysiqueBWR: $showPhysiqueBWR,
+                    showPhysiqueWHtR: $showPhysiqueWHtR,
+                    showPhysiqueBodyFat: $showPhysiqueBodyFat,
+                    showPhysiqueRFM: $showPhysiqueRFM,
+                    isSyncEnabled: $isSyncEnabled,
+                    hkWeight: $hkWeight,
+                    hkBodyFat: $hkBodyFat,
+                    hkHeight: $hkHeight,
+                    hkLeanMass: $hkLeanMass,
+                    hkWaist: $hkWaist,
+                    appAppearance: $appAppearance,
+                    animationsEnabled: $animationsEnabled,
+                    hapticsEnabled: $hapticsEnabled,
+                    appLanguage: $appLanguage,
+                    appleIntelligenceEnabled: $appleIntelligenceEnabled,
+                    iCloudBackupEnabled: $iCloudBackupEnabled,
+                    isBackingUp: $isBackingUp,
+                    lastImportText: lastImportText,
+                    isPremium: premiumStore.isPremium,
+                    iCloudBackupLastSuccessText: iCloudBackupLastSuccessText,
+                    iCloudBackupLastErrorText: iCloudBackupErrorText,
+                    onExport: exportData,
+                    onImport: { showImportPicker = true },
+                    onBackupNow: performBackupNow,
+                    onRestoreLatestBackup: initiateRestore,
+                    onPresentPremiumFeature: { premiumStore.presentPaywall(reason: .feature($0)) },
+                    onSeedDummyData: { activeAlert = .seedDummyDataConfirm },
+                    onDeleteAll: { activeAlert = .deleteAllDataConfirm },
+                    onReportBug: exportDiagnosticsJSON
+                )
             }
         }
     }
 
     // MARK: - Exports
 
-    @ViewBuilder
-    private func appSectionRowLabel(
-        title: String,
-        subtitle: String? = nil,
-        trailingSymbol: String? = nil,
-        trailingColor: Color = .secondary
-    ) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(AppTypography.body)
-                    .foregroundStyle(AppColorRoles.textPrimary)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColorRoles.textSecondary)
-                }
-            }
-
-            Spacer(minLength: 8)
-
-            if let trailingSymbol {
-                Image(systemName: trailingSymbol)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(trailingColor)
-                    .frame(width: 18, alignment: .center)
-            }
-        }
-        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-    }
-
     private func exportMetricsCSV() {
         exportData(format: .csv)
     }
 
     private func exportData(format: SettingsExporter.ExportFormat, pdfStartDate: Date? = nil) {
-        switch format {
-        case .csv:  exportMessage = AppLocalization.string("Preparing data export...")
-        case .json: exportMessage = AppLocalization.string("Preparing JSON export...")
-        case .pdf:  exportMessage = AppLocalization.string("Generating PDF report...")
-        }
-        isExporting = true
-        Task {
-            let out: SettingsExporter.ExportOutput
-            switch format {
-            case .csv:
-                out = await SettingsExporter.exportMetrics(context: modelContext, unitsSystem: unitsSystem)
-            case .json:
-                out = await SettingsExporter.exportMetricsJSON(context: modelContext, unitsSystem: unitsSystem)
-            case .pdf:
-                out = await SettingsExporter.exportMetricsPDF(context: modelContext, unitsSystem: unitsSystem, startDate: pdfStartDate)
-            }
-            shareItems = out.items
-            shareSubject = out.subject
-            isExporting = false
-            isPresentingShareSheet = !out.items.isEmpty
-        }
+        SettingsTransferCoordinator.exportData(
+            format: format,
+            context: modelContext,
+            unitsSystem: unitsSystem,
+            setExportMessage: { exportMessage = $0 },
+            setIsExporting: { isExporting = $0 },
+            setShareItems: { shareItems = $0 },
+            setShareSubject: { shareSubject = $0 },
+            setIsPresentingShareSheet: { isPresentingShareSheet = $0 },
+            pdfStartDate: pdfStartDate
+        )
     }
 
     private func exportDiagnosticsJSON() {
-        exportMessage = AppLocalization.string("Generating diagnostics...")
-        isExporting = true
-        Task {
-            let out = await SettingsExporter.exportDiagnostics(
-                context: modelContext,
-                isSyncEnabled: isSyncEnabled,
-                lastHealthImportTimestamp: lastHealthImportTimestamp
-            )
-            shareItems = out.items
-            shareSubject = out.subject
-            isExporting = false
-            isPresentingShareSheet = !out.items.isEmpty
-        }
+        SettingsTransferCoordinator.exportDiagnostics(
+            context: modelContext,
+            isSyncEnabled: isSyncEnabled,
+            lastHealthImportTimestamp: lastHealthImportTimestamp,
+            setExportMessage: { exportMessage = $0 },
+            setIsExporting: { isExporting = $0 },
+            setShareItems: { shareItems = $0 },
+            setShareSubject: { shareSubject = $0 },
+            setIsPresentingShareSheet: { isPresentingShareSheet = $0 }
+        )
     }
 
     private func shareApp() {
-        let appName = "MeasureMe – Body Tracker"
-        let shareText = AppLocalization.string(
-            "share.app.message",
-            appName,
-            LegalLinks.appStore.absoluteString
+        SettingsTransferCoordinator.shareApp(
+            setShareItems: { shareItems = $0 },
+            setShareSubject: { shareSubject = $0 },
+            setIsPresentingShareSheet: { isPresentingShareSheet = $0 }
         )
-        shareItems = [shareText, LegalLinks.appStore]
-        shareSubject = appName
-        isPresentingShareSheet = true
-    }
-
-    @ViewBuilder
-    private func settingsOverviewRow(
-        route: SettingsSearchRoute,
-        title: String,
-        subtitle: String,
-        systemImage: String,
-        accessibilityIdentifier: String
-    ) -> some View {
-        SettingsActionRow(
-            title: title,
-            subtitle: subtitle,
-            systemImage: systemImage,
-            accessibilityIdentifier: accessibilityIdentifier
-        ) {
-            openSettingsRoute(route)
-        }
     }
 
     private func openSettingsRoute(_ route: SettingsSearchRoute) {
@@ -1041,22 +640,19 @@ struct SettingsView: View {
                 premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
                 return
             }
-            guard iCloudBackupEnabled else {
-                Haptics.error()
-                activeAlert = .backupResult(AppLocalization.string("Enable automatic iCloud backup first."))
-                return
-            }
             isBackingUp = true
             defer { isBackingUp = false }
-            let result = await ICloudBackupService.createBackupNow(context: modelContext, isPremium: premiumStore.isPremium)
-            switch result {
-            case .success(let manifest):
+            let result = await SettingsBackupCoordinator.performBackupNow(
+                context: modelContext,
+                isPremium: premiumStore.isPremium,
+                isBackupEnabled: iCloudBackupEnabled
+            )
+            if result.isSuccess {
                 Haptics.success()
-                activeAlert = .backupResult(AppLocalization.string("Backup complete. %d measurements, %d goals, %d photos saved.", manifest.metricsCount, manifest.goalsCount, manifest.photosCount))
-            case .failure(let error):
+            } else {
                 Haptics.error()
-                activeAlert = .backupResult(error.localizedMessage)
             }
+            activeAlert = .backupResult(result.message)
         }
     }
 
@@ -1067,31 +663,17 @@ struct SettingsView: View {
                 premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
                 return
             }
-            let preflightResult = await ICloudBackupService.preflightRestore(context: modelContext, isPremium: premiumStore.isPremium)
-            switch preflightResult {
-            case .success(let manifest):
-                let localMetrics = (try? modelContext.fetchCount(FetchDescriptor<MetricSample>())) ?? 0
-                let localGoals = (try? modelContext.fetchCount(FetchDescriptor<MetricGoal>())) ?? 0
-                let localPhotos = (try? modelContext.fetchCount(FetchDescriptor<PhotoEntry>())) ?? 0
-
-                if localMetrics == 0 && localGoals == 0 && localPhotos == 0 {
-                    // Database empty — restore without confirmation
-                    performRestore()
-                } else {
-                    // Database has data — show conflict alert with details
-                    let formatter = DateFormatter()
-                    formatter.dateStyle = .medium
-                    formatter.timeStyle = .short
-                    let backupDate = formatter.string(from: manifest.createdAt)
-
-                    let conflictMsg = AppLocalization.string("Your data: %d measurements, %d goals, %d photos.", localMetrics, localGoals, localPhotos)
-                        + "\n"
-                        + AppLocalization.string("Backup from %@ contains %d measurements, %d goals, %d photos.", backupDate, manifest.metricsCount, manifest.goalsCount, manifest.photosCount)
-                    activeAlert = .restoreConflict(conflictMsg)
-                }
-            case .failure(let error):
+            switch await SettingsBackupCoordinator.preflightRestore(
+                context: modelContext,
+                isPremium: premiumStore.isPremium
+            ) {
+            case .readyToRestoreImmediately:
+                performRestore()
+            case .needsConflictConfirmation(let message):
+                activeAlert = .restoreConflict(message)
+            case .failed(let message):
                 Haptics.error()
-                activeAlert = .restoreResult(error.localizedMessage)
+                activeAlert = .restoreResult(message)
             }
         }
     }
@@ -1103,15 +685,16 @@ struct SettingsView: View {
                 premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
                 return
             }
-            let result = await ICloudBackupService.restoreLatestBackupManually(context: modelContext, isPremium: premiumStore.isPremium)
-            switch result {
-            case .success:
+            let result = await SettingsBackupCoordinator.performRestore(
+                context: modelContext,
+                isPremium: premiumStore.isPremium
+            )
+            if result.isSuccess {
                 Haptics.success()
-                activeAlert = .restoreResult(AppLocalization.string("Data restored successfully from iCloud backup."))
-            case .failure(let error):
+            } else {
                 Haptics.error()
-                activeAlert = .restoreResult(error.localizedMessage)
             }
+            activeAlert = .restoreResult(result.message)
         }
     }
 
@@ -1259,160 +842,6 @@ struct SettingsView: View {
         AppSettingsStore.shared.clearUserDataDefaults()
     }
 
-    @ViewBuilder
-    private func settingsSearchDestination(for route: SettingsSearchRoute) -> some View {
-        switch route {
-        case .profile:
-            ProfileSettingsDetailView(
-                userName: $userName,
-                userGender: $userGender,
-                userAge: $userAge,
-                manualHeight: $manualHeight,
-                unitsSystem: $unitsSystem
-            )
-        case .metrics:
-            TrackedMeasurementsView()
-        case .indicators:
-            IndicatorsSettingsDetailView(
-                showWHtROnHome: $showWHtROnHome,
-                showRFMOnHome: $showRFMOnHome,
-                showBMIOnHome: $showBMIOnHome,
-                showWHROnHome: $showWHROnHome,
-                showWaistRiskOnHome: $showWaistRiskOnHome,
-                showBodyFatOnHome: $showBodyFatOnHome,
-                showLeanMassOnHome: $showLeanMassOnHome,
-                showABSIOnHome: $showABSIOnHome,
-                showBodyShapeScoreOnHome: $showBodyShapeScoreOnHome,
-                showCentralFatRiskOnHome: $showCentralFatRiskOnHome,
-                showPhysiqueSWR: $showPhysiqueSWR,
-                showPhysiqueCWR: $showPhysiqueCWR,
-                showPhysiqueSHR: $showPhysiqueSHR,
-                showPhysiqueHWR: $showPhysiqueHWR,
-                showPhysiqueBWR: $showPhysiqueBWR,
-                showPhysiqueWHtR: $showPhysiqueWHtR,
-                showPhysiqueBodyFat: $showPhysiqueBodyFat,
-                showPhysiqueRFM: $showPhysiqueRFM
-            )
-        case .physiqueIndicators:
-            PhysiqueIndicatorsSettingsDetailView(
-                showPhysiqueSWR: $showPhysiqueSWR,
-                showPhysiqueCWR: $showPhysiqueCWR,
-                showPhysiqueSHR: $showPhysiqueSHR,
-                showPhysiqueHWR: $showPhysiqueHWR,
-                showPhysiqueBWR: $showPhysiqueBWR,
-                showPhysiqueWHtR: $showPhysiqueWHtR,
-                showPhysiqueBodyFat: $showPhysiqueBodyFat,
-                showPhysiqueRFM: $showPhysiqueRFM
-            )
-        case .health:
-            HealthSettingsDetailView(
-                isSyncEnabled: $isSyncEnabled,
-                lastImportText: lastImportText,
-                hkWeight: $hkWeight,
-                hkBodyFat: $hkBodyFat,
-                hkHeight: $hkHeight,
-                hkLeanMass: $hkLeanMass,
-                hkWaist: $hkWaist
-            )
-        case .notifications:
-            NotificationSettingsView()
-        case .home:
-            HomeSettingsDetailView()
-        case .aiInsights:
-            AIInsightsSettingsDetailView(appleIntelligenceEnabled: $appleIntelligenceEnabled)
-        case .units:
-            UnitsSettingsDetailView(unitsSystem: $unitsSystem)
-        case .experience:
-            ExperienceSettingsDetailView(
-                appAppearance: $appAppearance,
-                animationsEnabled: $animationsEnabled,
-                hapticsEnabled: $hapticsEnabled
-            )
-        case .language:
-            LanguageSettingsDetailView(appLanguage: $appLanguage)
-        case .data:
-            DataSettingsDetailView(
-                iCloudBackupEnabled: $iCloudBackupEnabled,
-                isBackingUp: $isBackingUp,
-                isPremium: premiumStore.isPremium,
-                iCloudBackupLastSuccessText: iCloudBackupLastSuccessText,
-                iCloudBackupLastErrorText: iCloudBackupErrorText,
-                onExport: {
-                    Haptics.light()
-                    if premiumStore.isPremium {
-                        showExportFormatPicker = true
-                    } else {
-                        premiumStore.presentPaywall(reason: .feature("Data export"))
-                    }
-                },
-                onImport: {
-                    Haptics.light()
-                    SettingsDataActions.runPremiumAction(
-                        isPremium: premiumStore.isPremium,
-                        feature: "Data import",
-                        onAllowed: { showImportPicker = true },
-                        onLocked: { premiumStore.presentPaywall(reason: .feature($0)) }
-                    )
-                },
-                onBackupNow: {
-                    Haptics.light()
-                    SettingsDataActions.runPremiumAction(
-                        isPremium: premiumStore.isPremium,
-                        feature: "iCloud Backup",
-                        onAllowed: { performBackupNow() },
-                        onLocked: { premiumStore.presentPaywall(reason: .feature($0)) }
-                    )
-                },
-                onRestoreLatestBackup: {
-                    Haptics.light()
-                    SettingsDataActions.runPremiumAction(
-                        isPremium: premiumStore.isPremium,
-                        feature: "iCloud Backup",
-                        onAllowed: { initiateRestore() },
-                        onLocked: { premiumStore.presentPaywall(reason: .feature($0)) }
-                    )
-                },
-                onUnlockICloudBackup: {
-                    Haptics.light()
-                    premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
-                },
-                onSeedDummyData: {
-                    Haptics.light()
-                    activeAlert = .seedDummyDataConfirm
-                },
-                onDeleteAll: {
-                    Haptics.light()
-                    activeAlert = .deleteAllDataConfirm
-                }
-            )
-            .confirmationDialog(
-                AppLocalization.string("Export format"),
-                isPresented: $showExportFormatPicker
-            ) {
-                Button("CSV") { exportData(format: .csv) }
-                Button("JSON") { exportData(format: .json) }
-                Button(AppLocalization.string("PDF Report")) { showPDFRangeSheet = true }
-                Button(AppLocalization.string("Cancel"), role: .cancel) {}
-            } message: {
-                Text(AppLocalization.string("Choose an export format"))
-            }
-            .sheet(isPresented: $showPDFRangeSheet) {
-                ExportPDFRangeSheet { startDate in
-                    exportData(format: .pdf, pdfStartDate: startDate)
-                }
-            }
-        case .faq:
-            FAQView()
-        case .about:
-            AboutSettingsDetailView(
-                onReportBug: {
-                    Haptics.light()
-                    exportDiagnosticsJSON()
-                }
-            )
-        }
-    }
-
     private var exportOverlay: some View {
         ZStack {
             Color.black.opacity(0.35)
@@ -1439,20 +868,13 @@ struct SettingsView: View {
     // MARK: - Import logic
 
     private func performImport(urls: [URL], strategy: SettingsImporter.Strategy) {
-        guard !urls.isEmpty else { return }
-        isImporting = true
-        Task {
-            var msg: String
-            do {
-                msg = try await SettingsImporter.importData(urls: urls, strategy: strategy, context: modelContext)
-                Haptics.success()
-            } catch {
-                msg = error.localizedDescription
-                Haptics.error()
-            }
-            isImporting = false
-            pendingImportURLs = []
-            activeAlert = .importResult(msg)
-        }
+        SettingsTransferCoordinator.performImport(
+            urls: urls,
+            strategy: strategy,
+            context: modelContext,
+            setIsImporting: { isImporting = $0 },
+            clearPendingImportURLs: { pendingImportURLs = [] },
+            setActiveAlert: { activeAlert = $0 }
+        )
     }
 }

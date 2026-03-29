@@ -142,7 +142,8 @@ struct HomeKeyMetricRow: View {
         if let sv = goal.startValue { return sv }
         guard !samples.isEmpty else { return latest?.value ?? goal.targetValue }
         let sorted = samples.sorted { $0.date < $1.date }
-        if let baseline = sorted.last(where: { $0.date <= goal.createdDate }) {
+        let anchorDate = goal.startDate ?? goal.createdDate
+        if let baseline = sorted.last(where: { $0.date <= anchorDate }) {
             return baseline.value
         }
         return sorted.first?.value ?? (latest?.value ?? goal.targetValue)
@@ -207,7 +208,7 @@ private struct HomeGoalProgressBar: View {
             .frame(height: 6)
 
             HStack {
-                Text(AppLocalization.string("progress.now", format(currentVal)))
+                Text(AppLocalization.string("progress.start", format(baselineValue)))
                     .font(AppTypography.micro)
                     .monospacedDigit()
                     .foregroundStyle(AppColorRoles.textSecondary)
@@ -250,7 +251,7 @@ struct CustomMiniSparklineChart: View {
                 else { outcome = delta > 0 ? .positive : .negative }
             }
             switch outcome {
-            case .positive: self.trendColor = Color(hex: "#22C55E").opacity(0.85)
+            case .positive: self.trendColor = AppColorRoles.stateSuccess.opacity(0.85)
             case .negative: self.trendColor = Color(hex: "#EF4444").opacity(0.85)
             case .neutral:  self.trendColor = Color.gray.opacity(0.5)
             }
@@ -442,7 +443,8 @@ struct HomeCustomKeyMetricRow: View {
         if let sv = goal.startValue { return sv }
         guard !samples.isEmpty else { return latest?.value ?? goal.targetValue }
         let sorted = samples.sorted { $0.date < $1.date }
-        if let baseline = sorted.last(where: { $0.date <= goal.createdDate }) {
+        let anchorDate = goal.startDate ?? goal.createdDate
+        if let baseline = sorted.last(where: { $0.date <= anchorDate }) {
             return baseline.value
         }
         return sorted.first?.value ?? (latest?.value ?? goal.targetValue)

@@ -32,6 +32,7 @@ struct MeasurementsTabView: View {
     @State private var cachedCustomLatest: [String: MetricSample] = [:]
 
     @State private var selectedTab: MeasurementsTab = .metrics
+    @State private var requestedMetricDetailKind: MetricKind?
 
     private let healthAccent = HealthIndicatorPalette.accent
 
@@ -443,6 +444,14 @@ struct MeasurementsTabView: View {
         .onChange(of: samplesSignature) { _, _ in
             rebuildSamplesCache()
         }
+        .navigationDestination(item: $requestedMetricDetailKind) { kind in
+            MetricDetailView(kind: kind)
+        }
+        .onChange(of: router.metricDetailRequestID) { _, requestID in
+            guard let requestID, let kind = router.requestedMetricDetailKind else { return }
+            requestedMetricDetailKind = kind
+            router.consumeMetricDetailRequest(requestID)
+        }
     }
 
     private var trackedMetricsFooter: some View {
@@ -650,7 +659,7 @@ struct MetricChartTile: View {
 
     @State private var shortInsight: String?
     @State private var isLoadingInsight = false
-    // Scrubbing wykresu usuniety z kafelka - dostepny tylko w MetricDetailView
+    // Chart scrubbing removed from tile - available only in MetricDetailView
 
     init(kind: MetricKind, unitsSystem: String) {
         self.kind = kind
@@ -671,7 +680,7 @@ struct MetricChartTile: View {
         )
     }
     
-    // Aktualny cel dla tej metryki
+    // Current goal for this metric
     private var currentGoal: MetricGoal? {
         goals.first
     }
@@ -721,7 +730,7 @@ struct MetricChartTile: View {
 
     var body: some View {
         if recentSamples.isEmpty {
-            // MARK: - Kompaktowy pusty kafelek (brak danych)
+            // MARK: - Compact empty tile (no data)
             Group {
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: 12) {
@@ -818,7 +827,7 @@ struct MetricChartTile: View {
             .accessibilityLabel(AppLocalization.string("accessibility.metric.summary.nodata", kind.title))
             .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
         } else {
-            // MARK: - Pelny kafelek z wykresem
+            // MARK: - Full tile with chart
             VStack(alignment: .leading, spacing: 10) {
 
                 // Header
@@ -844,7 +853,7 @@ struct MetricChartTile: View {
                     .accessibilityIdentifier("metric.tile.open.\(kind.rawValue)")
                 }
 
-                // Wartosc + trend + informacje o celu
+                // Value + trend + goal info
                 if let latest {
                     Text(valueString(metricValue: latest.value))
                         .font(AppTypography.dataCompact)
@@ -866,7 +875,7 @@ struct MetricChartTile: View {
                         )
                     }
 
-                    // Goal info (ile zostało do celu)
+                    // Goal info (how much remains to reach the goal)
                     if let goal = currentGoal {
                         let isAchieved = goal.isAchieved(currentValue: latest.value)
                         let remaining = goal.remainingToGoal(currentValue: latest.value)
@@ -917,10 +926,10 @@ struct MetricChartTile: View {
                         .foregroundStyle(AppColorRoles.textTertiary)
                 }
 
-                // Chart - z podwójnym maskowaniem
+                // Chart - with double masking
                 VStack(alignment: .leading, spacing: 8) {
                     ZStack {
-                        // Tło wykresu
+                        // Chart background
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(AppColorRoles.surfaceInteractive)
                             .overlay(
@@ -939,7 +948,7 @@ struct MetricChartTile: View {
 
                         Chart {
 
-                        // 🔹 AREA – gradient zanikający od linii w dół
+                        // 🔹 AREA – gradient fading down from the line
                         ForEach(recentSamples) { s in
                             AreaMark(
                                 x: .value("Date", s.date),
@@ -960,7 +969,7 @@ struct MetricChartTile: View {
 
                         }
 
-                        // 🔸 LINIA
+                        // 🔸 LINE
                         ForEach(recentSamples) { s in
                             LineMark(
                                 x: .value("Date", s.date),
@@ -971,7 +980,7 @@ struct MetricChartTile: View {
                             .foregroundStyle(measurementsTheme.accent)
                         }
 
-                        // 🔸 PUNKTY
+                        // 🔸 POINTS
                         ForEach(recentSamples) { s in
                             PointMark(
                                 x: .value("Date", s.date),
@@ -981,7 +990,7 @@ struct MetricChartTile: View {
                             .foregroundStyle(measurementsTheme.accent.opacity(0.6))
                         }
 
-                        // Linia celu (z annotation)
+                        // Goal line (with annotation)
                         if let goal = currentGoal {
                             let goalValue = displayValue(goal.targetValue)
                             RuleMark(y: .value("Goal", goalValue))
@@ -1063,7 +1072,7 @@ struct MetricChartTile: View {
     private var yDomain: ClosedRange<Double> {
         var values = recentSamples.map { displayValue($0.value) }
         
-        // Dodaj wartość celu do zakresu, jeśli cel istnieje
+        // Add goal value to the range if a goal exists
         if let goal = currentGoal {
             values.append(displayValue(goal.targetValue))
         }

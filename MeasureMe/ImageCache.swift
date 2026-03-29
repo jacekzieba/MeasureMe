@@ -2,11 +2,11 @@ import UIKit
 import SwiftUI
 import CryptoKit
 
-/// LRU (Least Recently Used) Cache dla obrazów
-/// Automatycznie zarządza pamięcią i usuwa najdawniej używane obrazy przy przekroczeniu limitu.
+/// LRU (Least Recently Used) Cache for images
+/// Automatically manages memory and removes least recently used images when the limit is exceeded.
 ///
-/// Uzywa opakowania `CacheEntry`; gdy NSCache cicho usuwa obiekty
-/// pod presja pamieci `deinit` opakowania zapisuje usuniety klucz.
+/// Uses a `CacheEntry` wrapper; when NSCache silently removes objects
+/// under memory pressure, the wrapper's `deinit` records the removed key.
 /// This keeps the LRU linked list (and therefore `cachedImagesCount`) accurate.
 @MainActor
 final class ImageCache {
@@ -21,18 +21,18 @@ final class ImageCache {
     private var lruNodes: [String: LRUNode] = [:]
     private var lruHead: LRUNode?
     private var lruTail: LRUNode?
-    private let maxAccessOrderSize = 200 // Max liczba śledzionych kluczy
+    private let maxAccessOrderSize = 200 // Max number of tracked keys
     private let evictionTracker = EvictionTracker()
 
     // MARK: - Configuration
 
-    /// Maksymalna liczba obiektów w cache (domyślnie 50)
+    /// Maximum number of objects in cache (default 50)
     var countLimit: Int {
         get { cache.countLimit }
         set { cache.countLimit = newValue }
     }
 
-    /// Maksymalny koszt w bajtach (domyślnie 100MB)
+    /// Maximum cost in bytes (default 100MB)
     var totalCostLimit: Int {
         get { cache.totalCostLimit }
         set { cache.totalCostLimit = newValue }
@@ -41,12 +41,12 @@ final class ImageCache {
     // MARK: - Initialization
 
     private init() {
-        // Domyślna konfiguracja
-        cache.countLimit = 50 // Max 50 obrazów
+        // Default configuration
+        cache.countLimit = 50 // Max 50 images
         cache.totalCostLimit = 100 * 1024 * 1024 // 100MB
         cache.name = "ImageCache"
 
-        // Obsługa memory warnings
+        // Handle memory warnings
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleMemoryWarning),
@@ -63,13 +63,13 @@ final class ImageCache {
 
     // MARK: - Cache Operations
 
-    /// Pobiera obraz z cache
+    /// Retrieves an image from cache
     func image(forKey key: String) -> UIImage? {
         drainEvictedKeys()
 
         let nsKey = NSString(string: key)
         if let entry = cache.object(forKey: nsKey) {
-            // Aktualizuj kolejność dostępu (LRU)
+            // Update access order (LRU)
             updateAccessOrder(key: key)
             return entry.image
         }
@@ -77,17 +77,17 @@ final class ImageCache {
         return nil
     }
 
-    /// Zapisuje obraz do cache
+    /// Stores an image in cache
     func setImage(_ image: UIImage, forKey key: String) {
         let nsKey = NSString(string: key)
 
-        // Oblicz koszt (przybliżony rozmiar w pamięci)
+        // Calculate cost (approximate size in memory)
         let cost = calculateImageCost(image)
 
         let entry = CacheEntry(key: key, image: image, tracker: evictionTracker)
         cache.setObject(entry, forKey: nsKey, cost: cost)
 
-        // Aktualizuj kolejność dostępu
+        // Update access order
         updateAccessOrder(key: key)
 
         // Drain any keys evicted by NSCache during setObject
@@ -98,7 +98,7 @@ final class ImageCache {
         #endif
     }
 
-    /// Usuwa obraz z cache
+    /// Removes an image from cache
     func removeImage(forKey key: String) {
         let nsKey = NSString(string: key)
         cache.removeObject(forKey: nsKey)
@@ -111,8 +111,8 @@ final class ImageCache {
         #endif
     }
 
-    /// Usuwa wszystkie obrazy, ktorych klucz zaczyna sie od podanego prefixu.
-    /// Uzywane przy usuwaniu zdjecia, aby wyrzucic wszystkie warianty miniatur.
+    /// Removes all images whose key starts with the given prefix.
+    /// Used when deleting a photo to evict all thumbnail variants.
     func removeImages(withPrefix prefix: String) {
         let keysToRemove = lruNodes.keys.filter { $0.hasPrefix(prefix) }
         for key in keysToRemove {
@@ -129,7 +129,7 @@ final class ImageCache {
         #endif
     }
 
-    /// Czyści cały cache
+    /// Clears the entire cache
     func removeAll() {
         cache.removeAllObjects()
         lruNodes.removeAll()
@@ -167,7 +167,7 @@ final class ImageCache {
         }
     }
 
-    /// Zwraca najmniej ostatnio używane klucze (dla debugowania)
+    /// Returns the least recently used keys (for debugging)
     func getLeastRecentlyUsedKeys(count: Int) -> [String] {
         guard count > 0 else { return [] }
         var result: [String] = []
@@ -187,7 +187,7 @@ final class ImageCache {
         removeAll()
     }
 
-    /// Oblicza przybliżony koszt obrazu w bajtach
+    /// Calculates the approximate cost of an image in bytes
     private func calculateImageCost(_ image: UIImage) -> Int {
         guard let cgImage = image.cgImage else {
             return 0
@@ -202,7 +202,7 @@ final class ImageCache {
 
     // MARK: - Statistics
 
-    /// Zwraca statystyki cache (dla debugowania)
+    /// Returns cache statistics (for debugging)
     func getStatistics() -> CacheStatistics {
         drainEvictedKeys()
         return CacheStatistics(
@@ -280,21 +280,21 @@ struct CacheStatistics {
 
 // MARK: - Eviction Tracking
 
-/// Bezpieczny watkowo kolektor kluczy usunietych z cache.
-/// NSCache moze usuwac wpisy na dowolnym watku, dlatego zapisy sa chronione blokada.
+/// Thread-safe collector of keys removed from cache.
+/// NSCache may remove entries on any thread, so writes are protected by a lock.
 /// Reads (drain) happen on @MainActor inside ImageCache.
 private final class EvictionTracker: @unchecked Sendable {
     private let lock = NSLock()
     private var _keys: [String] = []
 
-    /// Rejestruje usuniecie klucza (wywolywane z CacheEntry.deinit na dowolnym watku).
+    /// Records a key removal (called from CacheEntry.deinit on any thread).
     func record(_ key: String) {
         lock.lock()
         _keys.append(key)
         lock.unlock()
     }
 
-    /// Zwraca i czysci wszystkie zebrane klucze usuniec.
+    /// Returns and clears all collected removal keys.
     func drain() -> [String] {
         lock.lock()
         let result = _keys
@@ -305,8 +305,8 @@ private final class EvictionTracker: @unchecked Sendable {
 }
 
 /// Wrapper around UIImage stored in NSCache.
-/// Gdy NSCache cicho usunie wpis, `deinit` zapisuje klucz
-/// aby ImageCache mogl posprzatac `accessOrder` przy kolejnym dostepie.
+/// When NSCache silently removes an entry, `deinit` records the key
+/// so ImageCache can clean up `accessOrder` on the next access.
 private final class CacheEntry {
     let key: String
     let image: UIImage
@@ -337,23 +337,23 @@ private final class LRUNode {
 
 extension UIImage {
 
-    /// Cache key bazujący na danych obrazu (SHA-256, stabilny między uruchomieniami)
+    /// Cache key based on image data (SHA-256, stable across launches)
     static func cacheKey(from data: Data) -> String {
         let digest = SHA256.hash(data: data)
         let hex = digest.prefix(16).map { String(format: "%02x", $0) }.joined()
         return "image_\(hex)"
     }
 
-    /// Pobiera obraz z cache lub tworzy nowy
+    /// Retrieves an image from cache or creates a new one
     static func cachedImage(from data: Data) -> UIImage? {
         let key = cacheKey(from: data)
 
-        // Sprawdź cache
+        // Check cache
         if let cached = ImageCache.shared.image(forKey: key) {
             return cached
         }
 
-        // Stwórz nowy i cache'uj
+        // Create new and cache it
         if let image = UIImage(data: data) {
             ImageCache.shared.setImage(image, forKey: key)
             return image
@@ -367,7 +367,7 @@ extension UIImage {
 
 #if DEBUG
 extension ImageCache {
-    /// Resetuje cache (tylko dla testów)
+    /// Resets cache (for tests only)
     func reset() {
         removeAll()
         AppLog.debug("🔄 ImageCache reset")

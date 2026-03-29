@@ -443,7 +443,7 @@ struct PremiumPaywallView: View {
         text += part1
 
         var valuePart = AttributedString(" -0.3 kg/week ")
-        valuePart.foregroundColor = Color(hex: "#22C55E")
+        valuePart.foregroundColor = AppColorRoles.stateSuccess
         text += valuePart
 
         var part2 = AttributedString(AppLocalization.string("premium.carousel.insight.body.part2"))
@@ -589,7 +589,7 @@ struct PremiumPaywallView: View {
                 title: AppLocalization.string("premium.carousel.indicator.whtr"),
                 value: "0.48",
                 status: AppLocalization.string("premium.carousel.indicator.status.good"),
-                tint: Color(hex: "#22C55E")
+                tint: AppColorRoles.stateSuccess
             )
 
             Text(AppLocalization.string("premium.carousel.indicators.more"))
@@ -626,7 +626,7 @@ struct PremiumPaywallView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(Color(hex: "#22C55E"), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .background(AppColorRoles.stateSuccess, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
             Text(AppLocalization.string("premium.carousel.indicator.preview.copy"))
@@ -1013,7 +1013,7 @@ struct PremiumPaywallView: View {
                     .foregroundStyle(
                         premium.actionMessageIsError
                         ? Color.orange.opacity(0.95)
-                        : Color(hex: "#22C55E")
+                        : AppColorRoles.stateSuccess
                     )
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)

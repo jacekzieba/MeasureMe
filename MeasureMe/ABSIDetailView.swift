@@ -127,19 +127,19 @@ struct ABSIDetailView: View {
         switch result.gender {
         case .male:
             return [
-                ("Low risk", "< 0.075", "#22C55E"),
+                ("Low risk", "< 0.075", AppColorRoles.stateSuccessHex),
                 ("Moderate risk", "0.075-0.085", "#FCA311"),
                 ("High risk", "> 0.085", "#EF4444")
             ]
         case .female:
             return [
-                ("Low risk", "< 0.070", "#22C55E"),
+                ("Low risk", "< 0.070", AppColorRoles.stateSuccessHex),
                 ("Moderate risk", "0.070-0.080", "#FCA311"),
                 ("High risk", "> 0.080", "#EF4444")
             ]
         case .notSpecified:
             return [
-                ("Low risk", "< 0.075", "#22C55E"),
+                ("Low risk", "< 0.075", AppColorRoles.stateSuccessHex),
                 ("Moderate risk", "0.075-0.085", "#FCA311"),
                 ("High risk", "> 0.085", "#EF4444")
             ]

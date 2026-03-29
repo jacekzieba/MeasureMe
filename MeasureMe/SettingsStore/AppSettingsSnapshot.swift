@@ -111,6 +111,16 @@ struct AppSettingsSnapshot: Sendable {
         var goalAchievedEnabled: Bool
         var importNotificationsEnabled: Bool
         var perMetricSmartEnabled: Bool
+        var aiNotificationsEnabled: Bool
+        var aiWeeklyDigestEnabled: Bool
+        var aiTrendShiftEnabled: Bool
+        var aiGoalMilestonesEnabled: Bool
+        var aiRoundNumbersEnabled: Bool
+        var aiConsistencyEnabled: Bool
+        var aiDigestWeekday: Int
+        var aiDigestTime: Double
+        var aiLastSentTimestamps: Data?
+        var aiMutedTypes: Data?
     }
 
     struct Analytics: Sendable {
@@ -163,6 +173,13 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.Notifications.goalAchievedEnabled: true,
         AppSettingsKeys.Notifications.importNotificationsEnabled: true,
         AppSettingsKeys.Notifications.perMetricSmartEnabled: true,
+        AppSettingsKeys.Notifications.aiNotificationsEnabled: true,
+        AppSettingsKeys.Notifications.aiWeeklyDigestEnabled: true,
+        AppSettingsKeys.Notifications.aiTrendShiftEnabled: true,
+        AppSettingsKeys.Notifications.aiGoalMilestonesEnabled: true,
+        AppSettingsKeys.Notifications.aiRoundNumbersEnabled: true,
+        AppSettingsKeys.Notifications.aiConsistencyEnabled: true,
+        AppSettingsKeys.Notifications.aiDigestWeekday: 1,
         AppSettingsKeys.Onboarding.onboardingSkippedHealthKit: false,
         AppSettingsKeys.Onboarding.onboardingSkippedReminders: false,
         AppSettingsKeys.Onboarding.onboardingViewedICloudBackupOffer: false,
@@ -294,7 +311,17 @@ struct AppSettingsSnapshot: Sendable {
                 photoRemindersEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.photoRemindersEnabled) as? Bool ?? true,
                 goalAchievedEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.goalAchievedEnabled) as? Bool ?? true,
                 importNotificationsEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.importNotificationsEnabled) as? Bool ?? true,
-                perMetricSmartEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.perMetricSmartEnabled) as? Bool ?? true
+                perMetricSmartEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.perMetricSmartEnabled) as? Bool ?? true,
+                aiNotificationsEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.aiNotificationsEnabled) as? Bool ?? true,
+                aiWeeklyDigestEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.aiWeeklyDigestEnabled) as? Bool ?? true,
+                aiTrendShiftEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.aiTrendShiftEnabled) as? Bool ?? true,
+                aiGoalMilestonesEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.aiGoalMilestonesEnabled) as? Bool ?? true,
+                aiRoundNumbersEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.aiRoundNumbersEnabled) as? Bool ?? true,
+                aiConsistencyEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.aiConsistencyEnabled) as? Bool ?? true,
+                aiDigestWeekday: max(defaults.integer(forKey: AppSettingsKeys.Notifications.aiDigestWeekday), 1),
+                aiDigestTime: defaults.double(forKey: AppSettingsKeys.Notifications.aiDigestTime),
+                aiLastSentTimestamps: defaults.data(forKey: AppSettingsKeys.Notifications.aiLastSentTimestamps),
+                aiMutedTypes: defaults.data(forKey: AppSettingsKeys.Notifications.aiMutedTypes)
             ),
             analytics: .init(
                 analyticsEnabled: defaults.object(forKey: AppSettingsKeys.Analytics.analyticsEnabled) as? Bool ?? true,

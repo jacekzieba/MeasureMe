@@ -6,20 +6,9 @@ final class OnboardingUITestBridge: ObservableObject {
     static let shared = OnboardingUITestBridge()
 
     @Published private(set) var currentStepIndex: Int = 0
-    @Published private(set) var iCloudViewed: Bool = false
-    @Published private(set) var iCloudSkipped: Bool = false
-    @Published private(set) var iCloudEnabled: Bool = false
 
-    func update(
-        currentStepIndex: Int,
-        iCloudViewed: Bool,
-        iCloudSkipped: Bool,
-        iCloudEnabled: Bool
-    ) {
+    func update(currentStepIndex: Int) {
         self.currentStepIndex = currentStepIndex
-        self.iCloudViewed = iCloudViewed
-        self.iCloudSkipped = iCloudSkipped
-        self.iCloudEnabled = iCloudEnabled
     }
 }
 

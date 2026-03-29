@@ -441,6 +441,11 @@ enum SettingsExporter {
         )
     }
 
+    private nonisolated static func rounded(_ value: Double, decimals: Int) -> Double {
+        let factor = pow(10.0, Double(decimals))
+        return (value * factor).rounded() / factor
+    }
+
     nonisolated static func buildMetricsJSON(
         metrics: [MetricCSVRowSnapshot],
         goals: [MetricGoalSnapshot],
@@ -455,9 +460,9 @@ enum SettingsExporter {
             [
                 "metricId": row.kindRaw,
                 "metric": row.metricTitle,
-                "valueMetric": Double(String(format: "%.4f", locale: posixLocale, row.metricValue))!,
+                "valueMetric": rounded(row.metricValue, decimals: 4),
                 "unitMetric": row.metricUnit,
-                "value": Double(String(format: "%.2f", locale: posixLocale, row.displayValue))!,
+                "value": rounded(row.displayValue, decimals: 2),
                 "unit": row.unit,
                 "source": row.sourceRaw,
                 "timestamp": iso.string(from: row.date)
@@ -469,17 +474,17 @@ enum SettingsExporter {
                 "metricId": row.kindRaw,
                 "metric": row.metricTitle,
                 "direction": row.direction,
-                "targetValueMetric": Double(String(format: "%.4f", locale: posixLocale, row.targetMetricValue))!,
+                "targetValueMetric": rounded(row.targetMetricValue, decimals: 4),
                 "targetUnitMetric": row.targetMetricUnit,
-                "targetValue": Double(String(format: "%.2f", locale: posixLocale, row.targetDisplayValue))!,
+                "targetValue": rounded(row.targetDisplayValue, decimals: 2),
                 "targetUnit": row.targetDisplayUnit,
                 "createdDate": iso.string(from: row.createdDate)
             ]
             if let sv = row.startMetricValue {
-                dict["startValueMetric"] = Double(String(format: "%.4f", locale: posixLocale, sv))!
+                dict["startValueMetric"] = rounded(sv, decimals: 4)
             }
             if let sd = row.startDisplayValue {
-                dict["startValue"] = Double(String(format: "%.2f", locale: posixLocale, sd))!
+                dict["startValue"] = rounded(sd, decimals: 2)
             }
             if let sdate = row.startDate {
                 dict["startDate"] = iso.string(from: sdate)

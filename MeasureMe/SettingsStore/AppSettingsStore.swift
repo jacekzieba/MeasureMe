@@ -186,6 +186,16 @@ final class AppSettingsStore: ObservableObject {
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.detectedPatterns)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.smartLastNotificationDate)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.smartLastNotifiedMetric)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.aiNotificationsEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.aiWeeklyDigestEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.aiTrendShiftEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.aiGoalMilestonesEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.aiRoundNumbersEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.aiConsistencyEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.aiDigestWeekday)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.aiDigestTime)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.aiLastSentTimestamps)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.aiMutedTypes)
         }
     }
 
@@ -395,6 +405,16 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(notifications.goalAchievedEnabled, forKey: AppSettingsKeys.Notifications.goalAchievedEnabled)
             defaults.set(notifications.importNotificationsEnabled, forKey: AppSettingsKeys.Notifications.importNotificationsEnabled)
             defaults.set(notifications.perMetricSmartEnabled, forKey: AppSettingsKeys.Notifications.perMetricSmartEnabled)
+            defaults.set(notifications.aiNotificationsEnabled, forKey: AppSettingsKeys.Notifications.aiNotificationsEnabled)
+            defaults.set(notifications.aiWeeklyDigestEnabled, forKey: AppSettingsKeys.Notifications.aiWeeklyDigestEnabled)
+            defaults.set(notifications.aiTrendShiftEnabled, forKey: AppSettingsKeys.Notifications.aiTrendShiftEnabled)
+            defaults.set(notifications.aiGoalMilestonesEnabled, forKey: AppSettingsKeys.Notifications.aiGoalMilestonesEnabled)
+            defaults.set(notifications.aiRoundNumbersEnabled, forKey: AppSettingsKeys.Notifications.aiRoundNumbersEnabled)
+            defaults.set(notifications.aiConsistencyEnabled, forKey: AppSettingsKeys.Notifications.aiConsistencyEnabled)
+            defaults.set(notifications.aiDigestWeekday, forKey: AppSettingsKeys.Notifications.aiDigestWeekday)
+            defaults.set(notifications.aiDigestTime, forKey: AppSettingsKeys.Notifications.aiDigestTime)
+            defaults.set(notifications.aiLastSentTimestamps, forKey: AppSettingsKeys.Notifications.aiLastSentTimestamps)
+            defaults.set(notifications.aiMutedTypes, forKey: AppSettingsKeys.Notifications.aiMutedTypes)
 
             let analytics = snapshot.analytics
             defaults.set(analytics.analyticsEnabled, forKey: AppSettingsKeys.Analytics.analyticsEnabled)

@@ -30,7 +30,7 @@ struct MiniSparklineChart: View {
 
         switch cachedTrendOutcome {
         case .positive:
-            return Color(hex: "#22C55E").opacity(0.85)
+            return AppColorRoles.stateSuccess.opacity(0.85)
         case .negative:
             return Color(hex: "#EF4444").opacity(0.85)
         case .neutral:

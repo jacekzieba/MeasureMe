@@ -127,19 +127,19 @@ struct ConicityDetailView: View {
         switch result.gender {
         case .male:
             return [
-                ("Low risk", "< 1.20", "#22C55E"),
+                ("Low risk", "< 1.20", AppColorRoles.stateSuccessHex),
                 ("Moderate risk", "1.20-1.30", "#FCA311"),
                 ("High risk", "> 1.30", "#EF4444")
             ]
         case .female:
             return [
-                ("Low risk", "< 1.15", "#22C55E"),
+                ("Low risk", "< 1.15", AppColorRoles.stateSuccessHex),
                 ("Moderate risk", "1.15-1.25", "#FCA311"),
                 ("High risk", "> 1.25", "#EF4444")
             ]
         case .notSpecified:
             return [
-                ("Low risk", "< 1.20", "#22C55E"),
+                ("Low risk", "< 1.20", AppColorRoles.stateSuccessHex),
                 ("Moderate risk", "1.20-1.30", "#FCA311"),
                 ("High risk", "> 1.30", "#EF4444")
             ]

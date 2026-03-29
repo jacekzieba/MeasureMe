@@ -6,6 +6,7 @@ enum AppSettingsKeys {
     enum Entry {
         static let pendingAppEntryAction = "pending_app_entry_action"
         static let pendingHealthKitSyncFromIntent = "pending_healthkit_sync_from_intent"
+        static let pendingNavigationRoute = "pending_navigation_route"
     }
 
     enum Profile {
@@ -123,6 +124,17 @@ enum AppSettingsKeys {
         static let detectedPatterns = "smart_detected_patterns"
         static let smartLastNotificationDate = "smart_last_notification_date"
         static let smartLastNotifiedMetric = "smart_last_notified_metric"
+        static let aiNotificationsEnabled = "ai_notifications_enabled"
+        static let aiWeeklyDigestEnabled = "ai_weekly_digest_enabled"
+        static let aiTrendShiftEnabled = "ai_trend_shift_enabled"
+        static let aiGoalMilestonesEnabled = "ai_goal_milestones_enabled"
+        static let aiRoundNumbersEnabled = "ai_round_numbers_enabled"
+        static let aiConsistencyEnabled = "ai_consistency_enabled"
+        static let aiDigestWeekday = "ai_digest_weekday"
+        static let aiDigestTime = "ai_digest_time"
+        static let aiLastSentTimestamps = "ai_last_sent_timestamps"
+        static let aiMutedTypes = "ai_muted_types"
+        static let aiNotificationPrefix = "ai_notification_"
     }
 
     enum ICloudBackup {

@@ -767,6 +767,12 @@ struct QuickAddSheetView: View {
 
         do {
             try service.save(entries: entries, date: date, unitsSystem: unitsSystem)
+            await MainActor.run {
+                NotificationManager.shared.scheduleAINotificationsIfNeeded(
+                    context: context,
+                    trigger: .manualLog(kinds: entries.map(\.kind))
+                )
+            }
 
             // Save custom metric entries
             let customEntries = preparedCustomEntries(includeUnchanged: saveUnchangedValues)

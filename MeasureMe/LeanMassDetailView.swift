@@ -188,26 +188,26 @@ struct LeanMassDetailView: View {
         
         guard let age = age else {
             // Bez wieku używamy zakresów dla młodych dorosłych
-            if percentage >= 80 && percentage <= 92 { return ("Optimal", "#22C55E") }
+            if percentage >= 80 && percentage <= 92 { return ("Optimal", AppColorRoles.stateSuccessHex) }
             else if percentage > 92 { return ("High", "#3B82F6") }
             else { return ("Low", "#EF4444") }
         }
         
         // Zakresy zależą od wieku
         if age >= 19 && age <= 39 {
-            if percentage >= 80 && percentage <= 92 { return ("Optimal", "#22C55E") }
+            if percentage >= 80 && percentage <= 92 { return ("Optimal", AppColorRoles.stateSuccessHex) }
             else if percentage > 92 { return ("High", "#3B82F6") }
             else { return ("Low", "#EF4444") }
         } else if age >= 40 && age <= 59 {
-            if percentage >= 78 && percentage <= 89 { return ("Optimal", "#22C55E") }
+            if percentage >= 78 && percentage <= 89 { return ("Optimal", AppColorRoles.stateSuccessHex) }
             else if percentage > 89 { return ("High", "#3B82F6") }
             else { return ("Low", "#EF4444") }
         } else if age >= 60 && age <= 79 {
-            if percentage >= 75 && percentage <= 87 { return ("Optimal", "#22C55E") }
+            if percentage >= 75 && percentage <= 87 { return ("Optimal", AppColorRoles.stateSuccessHex) }
             else if percentage > 87 { return ("High", "#3B82F6") }
             else { return ("Low", "#EF4444") }
         } else {
-            if percentage >= 75 && percentage <= 87 { return ("Optimal", "#22C55E") }
+            if percentage >= 75 && percentage <= 87 { return ("Optimal", AppColorRoles.stateSuccessHex) }
             else if percentage > 87 { return ("High", "#3B82F6") }
             else { return ("Low", "#EF4444") }
         }
@@ -230,7 +230,7 @@ struct LeanMassDetailView: View {
     private var referenceRanges: [(title: String, range: String, color: String)] {
         guard let age = age else {
             return [
-                ("Optimal", "80-92%", "#22C55E"),
+                ("Optimal", "80-92%", AppColorRoles.stateSuccessHex),
                 ("High", "> 92%", "#3B82F6"),
                 ("Low", "< 80%", "#EF4444")
             ]
@@ -238,25 +238,25 @@ struct LeanMassDetailView: View {
         
         if age >= 19 && age <= 39 {
             return [
-                ("Optimal", "80-92%", "#22C55E"),
+                ("Optimal", "80-92%", AppColorRoles.stateSuccessHex),
                 ("High", "> 92%", "#3B82F6"),
                 ("Low", "< 80%", "#EF4444")
             ]
         } else if age >= 40 && age <= 59 {
             return [
-                ("Optimal", "78-89%", "#22C55E"),
+                ("Optimal", "78-89%", AppColorRoles.stateSuccessHex),
                 ("High", "> 89%", "#3B82F6"),
                 ("Low", "< 78%", "#EF4444")
             ]
         } else if age >= 60 && age <= 79 {
             return [
-                ("Optimal", "75-87%", "#22C55E"),
+                ("Optimal", "75-87%", AppColorRoles.stateSuccessHex),
                 ("High", "> 87%", "#3B82F6"),
                 ("Low", "< 75%", "#EF4444")
             ]
         } else {
             return [
-                ("Optimal", "75-87%", "#22C55E"),
+                ("Optimal", "75-87%", AppColorRoles.stateSuccessHex),
                 ("High", "> 87%", "#3B82F6"),
                 ("Low", "< 75%", "#EF4444")
             ]

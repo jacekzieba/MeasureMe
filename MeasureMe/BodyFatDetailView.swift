@@ -137,17 +137,17 @@ struct BodyFatDetailView: View {
         switch gender {
         case .male:
             if value < 10 { return ("Essential", "#3B82F6") }
-            else if value < 20 { return ("Athletic", "#22C55E") }
+            else if value < 20 { return ("Athletic", AppColorRoles.stateSuccessHex) }
             else if value < 25 { return ("Fitness", "#FCA311") }
             else { return ("High", "#EF4444") }
         case .female:
             if value < 20 { return ("Essential", "#3B82F6") }
-            else if value < 30 { return ("Athletic", "#22C55E") }
+            else if value < 30 { return ("Athletic", AppColorRoles.stateSuccessHex) }
             else if value < 35 { return ("Fitness", "#FCA311") }
             else { return ("High", "#EF4444") }
         case .notSpecified:
             if value < 15 { return ("Low", "#3B82F6") }
-            else if value < 25 { return ("Normal", "#22C55E") }
+            else if value < 25 { return ("Normal", AppColorRoles.stateSuccessHex) }
             else if value < 30 { return ("Elevated", "#FCA311") }
             else { return ("High", "#EF4444") }
         }
@@ -158,21 +158,21 @@ struct BodyFatDetailView: View {
         case .male:
             return [
                 ("Essential", "< 10%", "#3B82F6"),
-                ("Athletic", "10-20%", "#22C55E"),
+                ("Athletic", "10-20%", AppColorRoles.stateSuccessHex),
                 ("Fitness", "20-25%", "#FCA311"),
                 ("High", "> 25%", "#EF4444")
             ]
         case .female:
             return [
                 ("Essential", "< 20%", "#3B82F6"),
-                ("Athletic", "20-30%", "#22C55E"),
+                ("Athletic", "20-30%", AppColorRoles.stateSuccessHex),
                 ("Fitness", "30-35%", "#FCA311"),
                 ("High", "> 35%", "#EF4444")
             ]
         case .notSpecified:
             return [
                 ("Low", "< 15%", "#3B82F6"),
-                ("Normal", "15-25%", "#22C55E"),
+                ("Normal", "15-25%", AppColorRoles.stateSuccessHex),
                 ("Elevated", "25-30%", "#FCA311"),
                 ("High", "> 30%", "#EF4444")
             ]

@@ -4,8 +4,8 @@ import Foundation
 import CryptoKit
 #endif
 
-/// Prosty cache obrazow na dysku (katalog Caches).
-/// Uzywany jako drugi poziom cache pod `ImageCache` (pamiec), aby unikac ponownego dekodowania miniatur miedzy uruchomieniami.
+/// Simple disk-based image cache (Caches directory).
+/// Used as a second-level cache below `ImageCache` (in-memory) to avoid re-decoding thumbnails between launches.
 actor DiskImageCache {
     static let shared = DiskImageCache()
 
@@ -26,7 +26,7 @@ actor DiskImageCache {
                 ofItemAtPath: directoryURL.path
             )
         } catch {
-            // Niekrytyczne: jesli tworzenie katalogu sie nie powiedzie, operacje cache beda pomijane.
+            // Non-critical: if directory creation fails, cache operations will be skipped.
             AppLog.debug("⚠️ DiskImageCache: failed to create cache directory: \(error)")
         }
     }
@@ -53,7 +53,7 @@ actor DiskImageCache {
         do {
             try data.write(to: url, options: [.atomic])
         } catch {
-            // Niekrytyczne: cache dyskowy dziala w trybie najlepszej starannosci.
+            // Non-critical: disk cache operates on a best-effort basis.
             #if DEBUG
             AppLog.debug("⚠️ DiskImageCache: write failed for \(key): \(error)")
             #endif
@@ -67,7 +67,7 @@ actor DiskImageCache {
         try? fileManager.removeItem(at: url)
     }
 
-    /// Usuwa z cache dyskowego dane dla wszystkich podanych kluczy.
+    /// Removes disk cache data for all provided keys.
     func removeImages(forKeys keys: [String]) {
         for key in keys {
             removeImage(forKey: key)
@@ -92,13 +92,13 @@ actor DiskImageCache {
     }
 
     private func hashedFileName(forKey key: String) -> String {
-        // Bezpieczne dla systemu plikow i stabilne.
+        // File-system safe and stable.
         #if canImport(CryptoKit)
         let digest = SHA256.hash(data: Data(key.utf8))
         let hex = digest.map { String(format: "%02x", $0) }.joined()
         return "\(hex).jpg"
         #else
-        // Zapasowe rozwiazanie (mniej stabilne, ale nadal bezpieczne dla plikow).
+        // Fallback (less stable, but still file-system safe).
         let sanitized = key
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: ":", with: "_")

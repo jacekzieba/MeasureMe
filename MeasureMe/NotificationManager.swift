@@ -89,6 +89,9 @@ final class NotificationManager: ObservableObject {
     private let trialEndingReminderId = "premium_trial_ending_reminder"
     private let smartMetricStalePrefix = "smart_metric_stale_"
     private let smartMetricPatternPrefix = "smart_metric_pattern_"
+    private let aiNotificationPrefix = AppSettingsKeys.Notifications.aiNotificationPrefix
+    private let aiMuteActionIdentifier = "ai_notification_mute_type"
+    private let aiCategoryPrefix = "ai.notification.category."
     private lazy var importBatcher = ImportNotificationBatcher(center: center, settings: settings)
     private lazy var goalSender = GoalNotificationSender(center: center, settings: settings)
     @Published private(set) var lastSchedulingError: String?
@@ -114,6 +117,7 @@ final class NotificationManager: ObservableObject {
             settings.set(\.notifications.notificationsEnabled, newValue)
             if !newValue {
                 cancelImportNotifications()
+                cancelAllAINotifications()
             }
             notifyStateChanged()
         }
@@ -181,6 +185,58 @@ final class NotificationManager: ObservableObject {
             if !newValue {
                 cancelImportNotifications()
             }
+        }
+    }
+
+    var aiNotificationsEnabled: Bool {
+        get { settings.snapshot.notifications.aiNotificationsEnabled }
+        set { settings.set(\.notifications.aiNotificationsEnabled, newValue) }
+    }
+
+    var aiWeeklyDigestEnabled: Bool {
+        get { settings.snapshot.notifications.aiWeeklyDigestEnabled }
+        set { settings.set(\.notifications.aiWeeklyDigestEnabled, newValue) }
+    }
+
+    var aiTrendShiftEnabled: Bool {
+        get { settings.snapshot.notifications.aiTrendShiftEnabled }
+        set { settings.set(\.notifications.aiTrendShiftEnabled, newValue) }
+    }
+
+    var aiGoalMilestonesEnabled: Bool {
+        get { settings.snapshot.notifications.aiGoalMilestonesEnabled }
+        set { settings.set(\.notifications.aiGoalMilestonesEnabled, newValue) }
+    }
+
+    var aiRoundNumbersEnabled: Bool {
+        get { settings.snapshot.notifications.aiRoundNumbersEnabled }
+        set { settings.set(\.notifications.aiRoundNumbersEnabled, newValue) }
+    }
+
+    var aiConsistencyEnabled: Bool {
+        get { settings.snapshot.notifications.aiConsistencyEnabled }
+        set { settings.set(\.notifications.aiConsistencyEnabled, newValue) }
+    }
+
+    var aiDigestWeekday: Int {
+        get { min(max(settings.snapshot.notifications.aiDigestWeekday, 1), 7) }
+        set { settings.set(\.notifications.aiDigestWeekday, min(max(newValue, 1), 7)) }
+    }
+
+    var aiDigestTime: Date {
+        get {
+            let time = settings.snapshot.notifications.aiDigestTime
+            if time > 0 {
+                return Date(timeIntervalSince1970: time)
+            }
+            let cal = Calendar.current
+            var comps = cal.dateComponents([.year, .month, .day], from: AppClock.now)
+            comps.hour = 19
+            comps.minute = 0
+            return cal.date(from: comps) ?? AppClock.now
+        }
+        set {
+            settings.set(\.notifications.aiDigestTime, newValue.timeIntervalSince1970)
         }
     }
 
@@ -528,6 +584,86 @@ final class NotificationManager: ObservableObject {
         lastSchedulingError = nil
     }
 
+    func configureAINotificationCategories() {
+        let categories = Set(AINotificationKind.allCases.map { kind in
+            UNNotificationCategory(
+                identifier: aiCategoryIdentifier(for: kind),
+                actions: [
+                    UNNotificationAction(
+                        identifier: aiMuteActionIdentifier,
+                        title: AppLocalization.systemString("notification.ai.mute.action"),
+                        options: []
+                    )
+                ],
+                intentIdentifiers: [],
+                options: []
+            )
+        })
+        UNUserNotificationCenter.current().setNotificationCategories(categories)
+    }
+
+    func scheduleAINotificationsIfNeeded(
+        context: ModelContext,
+        trigger: AINotificationTrigger = .startup
+    ) {
+        guard notificationsEnabled else {
+            cancelAllAINotifications()
+            return
+        }
+        guard aiNotificationsEnabled else {
+            cancelAllAINotifications()
+            return
+        }
+        guard AppleIntelligenceSupport.isAvailable(), AINotificationLanguage.isSupported else {
+            cancelAllAINotifications()
+            return
+        }
+
+        Task { @MainActor in
+            let builder = AINotificationCandidateBuilder(
+                context: context,
+                settings: settings,
+                trigger: trigger
+            )
+            guard let candidate = builder.bestCandidate(),
+                  let decision = await AINotificationGenerator.shared.generateDecision(for: candidate) else {
+                return
+            }
+            self.cancelAllAINotifications()
+            self.scheduleAINotification(candidate: candidate, decision: decision)
+        }
+    }
+
+    func cancelAllAINotifications() {
+        Task {
+            let pending = await center.pendingRequestIdentifiers()
+            let aiIdentifiers = pending.filter { $0.hasPrefix(aiNotificationPrefix) }
+            if !aiIdentifiers.isEmpty {
+                center.removePendingNotificationRequests(withIdentifiers: aiIdentifiers)
+            }
+        }
+    }
+
+    func handleAINotificationResponse(
+        actionIdentifier: String,
+        userInfo: [AnyHashable: Any]
+    ) {
+        guard let kindRaw = userInfo["aiNotificationKind"] as? String,
+              let kind = AINotificationKind(rawValue: kindRaw) else {
+            return
+        }
+
+        if actionIdentifier == aiMuteActionIdentifier {
+            muteAINotificationKind(kind)
+            cancelAllAINotifications()
+            return
+        }
+
+        if let route = route(from: userInfo) {
+            AppNavigationRouteDispatcher.enqueue(route)
+        }
+    }
+
     func resetAllData() async {
         importBatcher.cancel()
 
@@ -542,6 +678,7 @@ final class NotificationManager: ObservableObject {
             || identifier.hasPrefix(goalPrefix)
             || identifier.hasPrefix(smartMetricStalePrefix)
             || identifier.hasPrefix(smartMetricPatternPrefix)
+            || identifier.hasPrefix(aiNotificationPrefix)
         }
 
         if !appOwnedPendingIdentifiers.isEmpty {
@@ -603,5 +740,77 @@ final class NotificationManager: ObservableObject {
     
     private func notifyStateChanged() {
         NotificationCenter.default.post(name: Self.notificationsDidChange, object: nil)
+    }
+
+    private func scheduleAINotification(candidate: AINotificationCandidate, decision: AINotificationDecision) {
+        let content = UNMutableNotificationContent()
+        content.title = decision.title
+        content.body = decision.body
+        content.sound = .default
+        content.categoryIdentifier = aiCategoryIdentifier(for: candidate.kind)
+        content.threadIdentifier = candidate.threadIdentifier
+        content.interruptionLevel = decision.priority.interruptionLevel
+        content.relevanceScore = decision.priority.relevanceScore
+        content.userInfo = candidate.userInfo
+
+        let triggerDate = max(candidate.fireDate.timeIntervalSinceNow, 60)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: triggerDate, repeats: false)
+        let request = UNNotificationRequest(identifier: candidate.identifier, content: content, trigger: trigger)
+
+        addNotificationRequest(request)
+        recordAISent(candidate.dedupeKeys)
+    }
+
+    private func recordAISent(_ keys: [String]) {
+        var timestamps = loadAILastSentTimestamps()
+        let nowTimestamp = AppClock.now.timeIntervalSince1970
+        for key in keys {
+            timestamps[key] = nowTimestamp
+        }
+        persistAILastSentTimestamps(timestamps)
+    }
+
+    private func loadAILastSentTimestamps() -> [String: TimeInterval] {
+        guard let data = settings.snapshot.notifications.aiLastSentTimestamps else { return [:] }
+        return (try? JSONDecoder().decode([String: TimeInterval].self, from: data)) ?? [:]
+    }
+
+    private func persistAILastSentTimestamps(_ timestamps: [String: TimeInterval]) {
+        guard let data = try? JSONEncoder().encode(timestamps) else { return }
+        settings.set(\.notifications.aiLastSentTimestamps, data)
+    }
+
+    private func muteAINotificationKind(_ kind: AINotificationKind) {
+        var mutedKinds = loadMutedAINotificationKinds()
+        mutedKinds.insert(kind.rawValue)
+        guard let data = try? JSONEncoder().encode(Array(mutedKinds).sorted()) else { return }
+        settings.set(\.notifications.aiMutedTypes, data)
+    }
+
+    private func loadMutedAINotificationKinds() -> Set<String> {
+        guard let data = settings.snapshot.notifications.aiMutedTypes,
+              let values = try? JSONDecoder().decode([String].self, from: data) else {
+            return []
+        }
+        return Set(values)
+    }
+
+    private func route(from userInfo: [AnyHashable: Any]) -> AppNavigationRoute? {
+        guard let routeRaw = userInfo["aiRoute"] as? String else { return nil }
+        switch routeRaw {
+        case "home":
+            return .home
+        case "metricDetail":
+            guard let kindRaw = userInfo["aiRouteMetricKindRaw"] as? String else { return nil }
+            return .metricDetail(kindRaw: kindRaw)
+        case "quickAdd":
+            return .quickAdd(kindRaw: userInfo["aiRouteMetricKindRaw"] as? String)
+        default:
+            return nil
+        }
+    }
+
+    private func aiCategoryIdentifier(for kind: AINotificationKind) -> String {
+        aiCategoryPrefix + kind.rawValue
     }
 }

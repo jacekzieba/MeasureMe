@@ -276,6 +276,10 @@ extension MetricDetailView {
         context.insert(sample)
         AnalyticsFirstEventTracker.trackFirstMetricIfNeeded(previousMetricCount: previousMetricCount)
         NotificationManager.shared.recordMeasurement(kinds: [kind], date: date)
+        NotificationManager.shared.scheduleAINotificationsIfNeeded(
+            context: context,
+            trigger: .manualLog(kinds: [kind])
+        )
         if let goal = currentGoal, goal.isAchieved(currentValue: value) {
             NotificationManager.shared.sendGoalAchievedNotification(
                 kind: kind,
@@ -1487,6 +1491,11 @@ struct SetGoalView: View {
         UITestArgument.isPresent(.mode)
     }
 
+    private func dismissKeyboard() {
+        isValueFocused = false
+        isStartValueFocused = false
+    }
+
     private var goalInputTextBinding: Binding<String> {
         Binding(
             get: {
@@ -1677,6 +1686,7 @@ struct SetGoalView: View {
                     .padding(.top, 16)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle(currentGoal == nil ? AppLocalization.string("Set Goal") : AppLocalization.string("Update Goal"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -1698,6 +1708,12 @@ struct SetGoalView: View {
                     }
                     .disabled(!isFormValid)
                     .accessibilityIdentifier("goal.save")
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button(AppLocalization.string("Done")) {
+                        dismissKeyboard()
+                    }
                 }
             }
             .alert(AppLocalization.string("Delete Goal"), isPresented: $showDeleteConfirmation) {

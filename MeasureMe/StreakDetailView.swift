@@ -75,6 +75,11 @@ struct StreakDetailView: View {
     @State private var heatmapRevealed = false
     @State private var actualFirstUseDate: Date? = nil
     @State private var showAllLogs = false
+    @State private var vacationEndSelection: Date = AppClock.now
+    @State private var showVacationConfirmation = false
+    @State private var vacationConfirmationMessage = ""
+    @State private var vacationCardPulse = false
+    @State private var isVacationPickerExpanded = false
 
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -140,9 +145,16 @@ struct StreakDetailView: View {
             }
             .onAppear {
                 loadHeatmapData()
+                syncVacationDurationFromState()
                 if shouldAnimate {
                     startFlameAnimation()
                 }
+            }
+            .onChange(of: streakManager.isVacationModeActive) { _, _ in
+                syncVacationDurationFromState()
+            }
+            .onChange(of: streakManager.vacationWeeksRemaining) { _, _ in
+                syncVacationDurationFromState()
             }
         }
     }
@@ -290,6 +302,173 @@ struct StreakDetailView: View {
         }
     }
 
+    // MARK: - Vacation Mode
+
+    private var vacationModeSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: streakManager.isVacationModeActive ? "bed.double.fill" : "bed.double")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(streakManager.isVacationModeActive ? Color.orange : streakTextSecondary)
+                    .frame(width: 28, height: 28)
+                    .background(Circle().fill(streakMuted))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(AppLocalization.string("streak.detail.vacation.title"))
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(streakTextSecondary)
+                        .tracking(2)
+                        .textCase(.uppercase)
+
+                    Text(vacationStatusText)
+                        .font(AppTypography.body)
+                        .foregroundStyle(streakText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Button {
+                Haptics.selection()
+                withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+                    isVacationPickerExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(AppLocalization.string("streak.detail.vacation.endDate.label"))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(streakTextSecondary)
+
+                        Text(formattedDate(vacationEndSelection))
+                            .font(AppTypography.bodyEmphasis)
+                            .foregroundStyle(streakText)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: isVacationPickerExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(streakTextSecondary)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(streakMuted)
+                )
+            }
+            .buttonStyle(.plain)
+
+            Group {
+                DatePicker(
+                    "",
+                    selection: $vacationEndSelection,
+                    in: Date()...,
+                    displayedComponents: [.date]
+                )
+                .datePickerStyle(.graphical)
+                .labelsHidden()
+                .tint(.orange)
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(streakMuted)
+                )
+            }
+            .frame(maxHeight: isVacationPickerExpanded ? 360 : 0, alignment: .top)
+            .opacity(isVacationPickerExpanded ? 1 : 0)
+            .clipped()
+            .allowsHitTesting(isVacationPickerExpanded)
+
+            if let endDate = streakManager.vacationEndDate, streakManager.isVacationModeActive {
+                Text(AppLocalization.string("streak.detail.vacation.ends", formattedDate(endDate)))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(streakTextSecondary)
+            }
+
+            if showVacationConfirmation {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color.green)
+                        .contentTransition(.symbolEffect(.replace))
+
+                    Text(vacationConfirmationMessage)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(streakText)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color.green.opacity(colorScheme == .dark ? 0.2 : 0.14))
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
+            HStack(spacing: 12) {
+                Button {
+                    applyVacationModeSelection()
+                } label: {
+                    Text(
+                        AppLocalization.string(
+                            streakManager.isVacationModeActive
+                                ? "streak.detail.vacation.update"
+                                : "streak.detail.vacation.enable"
+                        )
+                    )
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(Color.black.opacity(0.78))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.orange)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                if streakManager.isVacationModeActive {
+                    Button {
+                        streakManager.disableVacationMode()
+                    } label: {
+                        Text(AppLocalization.string("streak.detail.vacation.disable"))
+                            .font(AppTypography.bodyEmphasis)
+                            .foregroundStyle(streakText)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(streakMuted)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .scaleEffect(vacationCardPulse ? 1.015 : 1)
+        .shadow(
+            color: vacationCardPulse ? Color.orange.opacity(colorScheme == .dark ? 0.28 : 0.18) : .clear,
+            radius: vacationCardPulse ? 18 : 0
+        )
+        .animation(
+            AppMotion.animation(AppMotion.emphasized, enabled: shouldAnimate),
+            value: vacationCardPulse
+        )
+        .animation(
+            AppMotion.animation(AppMotion.standard, enabled: shouldAnimate),
+            value: showVacationConfirmation
+        )
+    }
+
+    private var vacationStatusText: String {
+        if streakManager.isVacationModeActive {
+            return AppLocalization.string(
+                "streak.detail.vacation.active",
+                AppLocalization.string("streak.detail.vacation.active.date", formattedDate(streakManager.vacationEndDate))
+            )
+        }
+        return AppLocalization.string("streak.detail.vacation.inactive")
+    }
+
     private struct WeekDay {
         let index: Int      // 0 = Mon … 6 = Sun (ISO)
         let label: String
@@ -382,45 +561,53 @@ struct StreakDetailView: View {
 
     private var milestoneSection: some View {
         AppGlassCard(depth: .base, cornerRadius: 18, tint: .clear, contentPadding: 16) {
-            HStack(spacing: 14) {
-                milestoneFlameIcon(count: previousMilestone, isActive: true)
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(spacing: 14) {
+                    milestoneFlameIcon(count: previousMilestone, isActive: true)
 
-                VStack(spacing: 8) {
-                    if weeksToNextMilestone > 0 {
-                        Text(AppLocalization.string("streak.detail.nextMilestone.label", weeksToNextMilestone))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(streakText)
+                    VStack(spacing: 8) {
+                        if weeksToNextMilestone > 0 {
+                            Text(AppLocalization.string("streak.detail.nextMilestone.label", weeksToNextMilestone))
+                                .font(AppTypography.bodyEmphasis)
+                                .foregroundStyle(streakText)
 
-                        Text(AppLocalization.string("streak.detail.nextMilestone.sub"))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(streakTextSecondary)
-                    } else {
-                        Text(AppLocalization.string("streak.detail.milestone.reached"))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(streakText)
-                    }
-
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(streakMuted)
-                                .frame(height: 6)
-
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color.yellow, Color.orange],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(width: geo.size.width * milestoneProgress, height: 6)
+                            Text(AppLocalization.string("streak.detail.nextMilestone.sub"))
+                                .font(AppTypography.caption)
+                                .foregroundStyle(streakTextSecondary)
+                        } else {
+                            Text(AppLocalization.string("streak.detail.milestone.reached"))
+                                .font(AppTypography.bodyEmphasis)
+                                .foregroundStyle(streakText)
                         }
+
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(streakMuted)
+                                    .frame(height: 6)
+
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color.yellow, Color.orange],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: geo.size.width * milestoneProgress, height: 6)
+                            }
+                        }
+                        .frame(height: 6)
                     }
-                    .frame(height: 6)
+
+                    milestoneFlameIcon(count: nextMilestone, isActive: false)
                 }
 
-                milestoneFlameIcon(count: nextMilestone, isActive: false)
+                Rectangle()
+                    .fill(streakDivider)
+                    .frame(height: 1)
+
+                vacationModeSection
             }
         }
     }
@@ -842,6 +1029,62 @@ struct StreakDetailView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter.string(from: date)
+    }
+
+    private func syncVacationDurationFromState() {
+        if let endDate = streakManager.vacationEndDate {
+            vacationEndSelection = endDate
+        } else {
+            vacationEndSelection = Calendar(identifier: .iso8601).date(byAdding: .day, value: 6, to: AppClock.now) ?? AppClock.now
+        }
+    }
+
+    private func applyVacationModeSelection() {
+        if streakManager.isVacationModeActive {
+            streakManager.updateVacationMode(until: vacationEndSelection)
+            vacationConfirmationMessage = AppLocalization.string("streak.detail.vacation.confirmation.updated")
+        } else {
+            streakManager.enableVacationMode(until: vacationEndSelection)
+            vacationConfirmationMessage = AppLocalization.string("streak.detail.vacation.confirmation.enabled")
+        }
+
+        if shouldAnimate {
+            withAnimation(AppMotion.standard) {
+                isVacationPickerExpanded = false
+            }
+        } else {
+            isVacationPickerExpanded = false
+        }
+
+        Haptics.success()
+        if shouldAnimate {
+            withAnimation(AppMotion.emphasized) {
+                vacationCardPulse.toggle()
+                showVacationConfirmation = true
+            }
+        } else {
+            showVacationConfirmation = true
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1100))
+            if shouldAnimate {
+                withAnimation(AppMotion.standard) {
+                    vacationCardPulse = false
+                }
+            } else {
+                vacationCardPulse = false
+            }
+
+            try? await Task.sleep(for: .milliseconds(1300))
+            if shouldAnimate {
+                withAnimation(AppMotion.toastOut) {
+                    showVacationConfirmation = false
+                }
+            } else {
+                showVacationConfirmation = false
+            }
+        }
     }
 
     private func startFlameAnimation() {

@@ -15,7 +15,7 @@ final class PhysiqueIndicatorsCalculator {
             var color: String {
                 switch self {
                 case .average: return "#60A5FA"
-                case .athletic: return "#22C55E"
+                case .athletic: return AppColorRoles.stateSuccessHex
                 case .top: return "#FCA311"
                 }
             }
@@ -34,7 +34,7 @@ final class PhysiqueIndicatorsCalculator {
             var color: String {
                 switch self {
                 case .lowerDominant: return "#60A5FA"
-                case .balanced: return "#22C55E"
+                case .balanced: return AppColorRoles.stateSuccessHex
                 case .upperDominant: return "#FCA311"
                 }
             }
@@ -53,7 +53,7 @@ final class PhysiqueIndicatorsCalculator {
 
             var color: String {
                 switch self {
-                case .athletes: return "#22C55E"
+                case .athletes: return AppColorRoles.stateSuccessHex
                 case .fitness: return "#34D399"
                 case .average: return "#FCA311"
                 case .high: return "#EF4444"
@@ -73,7 +73,7 @@ final class PhysiqueIndicatorsCalculator {
 
             var color: String {
                 switch self {
-                case .visibleDefinition: return "#22C55E"
+                case .visibleDefinition: return AppColorRoles.stateSuccessHex
                 case .softDefinition: return "#FCA311"
                 case .hiddenProportions: return "#EF4444"
                 }

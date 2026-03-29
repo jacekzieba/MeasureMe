@@ -303,4 +303,35 @@ final class NotificationManagerTests: XCTestCase {
         XCTAssertNil(settings.string(forKey: AppSettingsKeys.Notifications.smartLastNotifiedMetric))
         XCTAssertEqual(settings.double(forKey: AppSettingsKeys.Notifications.smartLastNotificationDate), 0)
     }
+
+    func testCancelAllAINotificationsRemovesOnlyAIPendingRequests() async {
+        let center = MockNotificationCenterClient()
+        center.pendingIdentifiers = [
+            "ai_notification_weeklyDigest.weight.1",
+            "ai_notification_roundNumber.weight.2",
+            "measurement_reminder_a"
+        ]
+        let manager = makeManager(center: center)
+
+        manager.cancelAllAINotifications()
+        await waitUntil(center.removedIdentifiers.count == 2)
+
+        XCTAssertTrue(center.removedIdentifiers.contains("ai_notification_weeklyDigest.weight.1"))
+        XCTAssertTrue(center.removedIdentifiers.contains("ai_notification_roundNumber.weight.2"))
+        XCTAssertFalse(center.removedIdentifiers.contains("measurement_reminder_a"))
+    }
+
+    func testHandleAINotificationResponseMuteActionPersistsMutedKind() throws {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        manager.handleAINotificationResponse(
+            actionIdentifier: "ai_notification_mute_type",
+            userInfo: ["aiNotificationKind": AINotificationKind.trendShift.rawValue]
+        )
+
+        let data = try XCTUnwrap(settings.snapshot.notifications.aiMutedTypes)
+        let muted = try JSONDecoder().decode([String].self, from: data)
+        XCTAssertEqual(muted, [AINotificationKind.trendShift.rawValue])
+    }
 }

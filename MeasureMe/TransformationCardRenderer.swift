@@ -22,8 +22,8 @@ enum CardAspectRatio: String, CaseIterable, Sendable {
 
     var label: String {
         switch self {
-        case .story: localizedString("transformation.card.ratio.story")
-        case .square: localizedString("transformation.card.ratio.square")
+        case .story: AppLocalization.string("transformation.card.ratio.story")
+        case .square: AppLocalization.string("transformation.card.ratio.square")
         }
     }
 
@@ -32,10 +32,6 @@ enum CardAspectRatio: String, CaseIterable, Sendable {
         case .story: "rectangle.portrait"
         case .square: "square"
         }
-    }
-
-    private func localizedString(_ key: String) -> String {
-        NSLocalizedString(key, comment: "")
     }
 }
 
@@ -538,8 +534,32 @@ nonisolated enum TransformationCardRenderer {
     /// Resolves the localization bundle without touching any MainActor-isolated state.
     /// Mirrors AppLanguage.bundle logic inline so this nonisolated enum can call it freely.
     private static var currentBundle: Bundle {
+        // Read the raw app language directly from defaults to avoid touching AppSettingsStore/AppLocalization
         let raw = UserDefaults.standard.string(forKey: "appLanguage") ?? "system"
-        return AppLanguage.fromStoredValue(raw).bundle
+
+        // Resolve effective language code without calling AppLanguage or any MainActor-isolated state
+        let resolvedCode: String = {
+            if raw == "system" {
+                let preferred = Locale.preferredLanguages.first?.lowercased() ?? "en"
+                if preferred.hasPrefix("pl") { return "pl" }
+                if preferred.hasPrefix("es") { return "es" }
+                if preferred.hasPrefix("pt") { return "pt-BR" }
+                return "en"
+            }
+            if raw == "pt" { return "pt-BR" }
+            switch raw {
+            case "en", "pl", "es", "pt-BR":
+                return raw
+            default:
+                return "en"
+            }
+        }()
+
+        if let path = Bundle.main.path(forResource: resolvedCode, ofType: "lproj"),
+           let bundle = Bundle(path: path) {
+            return bundle
+        }
+        return .main
     }
 
     private static func localizedString(_ key: String) -> String {

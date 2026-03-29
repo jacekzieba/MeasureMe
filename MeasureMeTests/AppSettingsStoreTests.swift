@@ -27,6 +27,13 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertFalse(store.snapshot.iCloudBackup.autoRestoreCompleted)
         XCTAssertFalse(store.snapshot.onboarding.onboardingViewedICloudBackupOffer)
         XCTAssertFalse(store.snapshot.onboarding.onboardingSkippedICloudBackup)
+        XCTAssertTrue(store.snapshot.notifications.aiNotificationsEnabled)
+        XCTAssertTrue(store.snapshot.notifications.aiWeeklyDigestEnabled)
+        XCTAssertTrue(store.snapshot.notifications.aiTrendShiftEnabled)
+        XCTAssertTrue(store.snapshot.notifications.aiGoalMilestonesEnabled)
+        XCTAssertTrue(store.snapshot.notifications.aiRoundNumbersEnabled)
+        XCTAssertTrue(store.snapshot.notifications.aiConsistencyEnabled)
+        XCTAssertEqual(store.snapshot.notifications.aiDigestWeekday, 1)
     }
 
     func testSetAndReloadUpdatesSnapshot() async {
@@ -185,6 +192,27 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertFalse(store.snapshot.health.healthkitInitialHistoricalImport)
         XCTAssertNil(store.healthKitAnchor(for: .weight))
         XCTAssertNil(store.lastProcessedHealthDate(for: .weight))
+    }
+
+    func testResetNotificationSettingsToDefaultsClearsAIState() throws {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+        let timestamps = try JSONEncoder().encode(["weeklyDigest": 123.0])
+        let mutedKinds = try JSONEncoder().encode([AINotificationKind.weeklyDigest.rawValue])
+
+        store.set(\.notifications.aiNotificationsEnabled, false)
+        store.set(\.notifications.aiDigestWeekday, 5)
+        store.set(\.notifications.aiDigestTime, 456)
+        store.set(\.notifications.aiLastSentTimestamps, timestamps)
+        store.set(\.notifications.aiMutedTypes, mutedKinds)
+
+        store.resetNotificationSettingsToDefaults()
+
+        XCTAssertTrue(store.snapshot.notifications.aiNotificationsEnabled)
+        XCTAssertEqual(store.snapshot.notifications.aiDigestWeekday, 1)
+        XCTAssertEqual(store.snapshot.notifications.aiDigestTime, 0)
+        XCTAssertNil(store.snapshot.notifications.aiLastSentTimestamps)
+        XCTAssertNil(store.snapshot.notifications.aiMutedTypes)
     }
 
     func testSyncIntentSettingsMirrorsUnitsAndMetricFlagsToAppGroup() async {

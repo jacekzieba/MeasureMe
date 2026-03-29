@@ -1,57 +1,57 @@
 // GoalPredictionEngine.swift
 //
 // **GoalPredictionEngine**
-// Prognoza daty osiągnięcia celu za pomocą Double Exponential Smoothing (metoda Holta).
+// Goal date prediction using Double Exponential Smoothing (Holt's method).
 //
-// **Algorytm:**
-// Holt's Linear Trend Method modeluje dwa komponenty:
-//   - Poziom (s_t): wygładzony bieżący poziom danych
-//   - Trend (b_t): wygładzona zmiana na dzień
+// **Algorithm:**
+// Holt's Linear Trend Method models two components:
+//   - Level (s_t): smoothed current data level
+//   - Trend (b_t): smoothed change per day
 //
-// Formuły aktualizacji (dla nieregularnych interwałów):
+// Update formulas (for irregular intervals):
 //   s_i = α * y_i + (1 - α) * (s_{i-1} + b_{i-1} * Δt)
 //   b_i = β * ((s_i - s_{i-1}) / Δt) + (1 - β) * b_{i-1}
 //
-// Prognoza: ŷ(t + h) = s_n + b_n * h
-// Data celu: h = (targetValue - s_n) / b_n
+// Forecast: ŷ(t + h) = s_n + b_n * h
+// Goal date: h = (targetValue - s_n) / b_n
 //
-// **Parametry:**
-// - α = 0.15 (wygładzanie danych) — tłumi dzienne wahania ±1 kg
-// - β = 0.05 (wygładzanie trendu) — stabilny trend, wolno się zmienia
+// **Parameters:**
+// - α = 0.15 (data smoothing) — dampens daily fluctuations of ±1 kg
+// - β = 0.05 (trend smoothing) — stable trend, changes slowly
 //
-// **Wymagania minimalne:** 7 punktów danych rozłożonych na ≥ 7 dni
+// **Minimum requirements:** 7 data points spread over ≥ 7 days
 //
 import Foundation
 
-/// Wynik predykcji osiągnięcia celu.
+/// Goal prediction result.
 enum GoalPredictionResult: Equatable {
-    /// Cel już osiągnięty.
+    /// Goal already achieved.
     case achieved
-    /// Prognozowana data osiągnięcia celu.
+    /// Predicted date of goal achievement.
     case onTrack(date: Date)
-    /// Trend idzie w przeciwną stronę niż cel.
+    /// Trend is moving in the opposite direction from the goal.
     case trendOpposite
-    /// Trend jest płaski — brak wyraźnej zmiany.
+    /// Trend is flat — no significant change.
     case flatTrend
-    /// Prognoza wykracza poza 5 lat.
+    /// Prediction exceeds 5 years.
     case tooFarOut
-    /// Za mało danych (< 7 pomiarów lub < 7 dni rozpiętości).
+    /// Insufficient data (< 7 measurements or < 7 days span).
     case insufficientData
 }
 
-/// Silnik predykcji celu oparty na Double Exponential Smoothing (Holt's Linear Trend).
+/// Goal prediction engine based on Double Exponential Smoothing (Holt's Linear Trend).
 enum GoalPredictionEngine {
 
     // MARK: - Public API
 
-    /// Oblicza prognozę osiągnięcia celu na podstawie historycznych pomiarów.
+    /// Calculates goal achievement prediction based on historical measurements.
     ///
     /// - Parameters:
-    ///   - samples: Wszystkie próbki dla danej metryki (dowolna kolejność).
-    ///   - goal: Cel użytkownika z kierunkiem i wartością docelową.
-    ///   - alpha: Współczynnik wygładzania danych (domyślnie 0.15).
-    ///   - beta: Współczynnik wygładzania trendu (domyślnie 0.05).
-    /// - Returns: Wynik predykcji.
+    ///   - samples: All samples for the given metric (any order).
+    ///   - goal: User's goal with direction and target value.
+    ///   - alpha: Data smoothing coefficient (default 0.15).
+    ///   - beta: Trend smoothing coefficient (default 0.05).
+    /// - Returns: Prediction result.
     static func predict(
         samples: [MetricSample],
         goal: MetricGoal,
@@ -59,13 +59,13 @@ enum GoalPredictionEngine {
         beta: Double = 0.05
     ) -> GoalPredictionResult {
 
-        // 1. Sprawdź czy cel jest już osiągnięty (na surowej ostatniej wartości)
+        // 1. Check if the goal is already achieved (based on the raw latest value)
         let sortedAll = samples.sorted { $0.date < $1.date }
         if let latest = sortedAll.last, goal.isAchieved(currentValue: latest.value) {
             return .achieved
         }
 
-        // 2. Agreguj próbki do jednej na dzień (średnia) i posortuj
+        // 2. Aggregate samples to one per day (average) and sort
         let daily = aggregateDaily(sortedAll)
         guard daily.count >= 7 else { return .insufficientData }
 
@@ -74,14 +74,14 @@ enum GoalPredictionEngine {
         let spanDays = lastDate.timeIntervalSince(firstDate) / 86400.0
         guard spanDays >= 7 else { return .insufficientData }
 
-        // 3. Uruchom Holt's Double Exponential Smoothing
+        // 3. Run Holt's Double Exponential Smoothing
         let (level, trend) = holtSmooth(daily: daily, alpha: alpha, beta: beta)
 
-        // 4. Interpretuj wynik
+        // 4. Interpret the result
         let epsilon = 1e-6
         guard abs(trend) > epsilon else { return .flatTrend }
 
-        // Sprawdź kierunek trendu vs cel
+        // Check trend direction vs goal
         let movingTowardGoal: Bool
         switch goal.direction {
         case .increase:
@@ -92,9 +92,9 @@ enum GoalPredictionEngine {
 
         guard movingTowardGoal else { return .trendOpposite }
 
-        // 5. Oblicz horyzont (w dniach)
+        // 5. Calculate horizon (in days)
         let remaining = goal.targetValue - level
-        let horizon = remaining / trend  // trend jest per-day
+        let horizon = remaining / trend  // trend is per-day
         guard horizon.isFinite, horizon > 0 else { return .trendOpposite }
 
         let maxDays = 5.0 * 365.0
@@ -106,13 +106,13 @@ enum GoalPredictionEngine {
 
     // MARK: - Internal
 
-    /// Punkt danych zagregowany do jednego dnia.
+    /// Data point aggregated to a single day.
     struct DailyPoint {
         let date: Date
         let value: Double
     }
 
-    /// Grupuje próbki wg dnia kalendarzowego i uśrednia wartości.
+    /// Groups samples by calendar day and averages values.
     static func aggregateDaily(_ sorted: [MetricSample]) -> [DailyPoint] {
         let calendar = Calendar.current
         var groups: [(day: Date, values: [Double])] = []
@@ -132,9 +132,9 @@ enum GoalPredictionEngine {
         }
     }
 
-    /// Holt's Double Exponential Smoothing z obsługą nieregularnych interwałów.
+    /// Holt's Double Exponential Smoothing with support for irregular intervals.
     ///
-    /// - Returns: (level, trendPerDay) — końcowy poziom i trend dzienny.
+    /// - Returns: (level, trendPerDay) — final level and daily trend.
     static func holtSmooth(
         daily: [DailyPoint],
         alpha: Double,
@@ -142,20 +142,20 @@ enum GoalPredictionEngine {
     ) -> (level: Double, trend: Double) {
         guard daily.count >= 2 else { return (daily.first?.value ?? 0, 0) }
 
-        // Inicjalizacja
+        // Initialization
         var s = daily[0].value
         let dt0 = max(daily[1].date.timeIntervalSince(daily[0].date) / 86400.0, 1.0)
         var b = (daily[1].value - daily[0].value) / dt0
 
-        // Iteracja od drugiego punktu
+        // Iterate from the second point
         for i in 1..<daily.count {
             let dt = max(daily[i].date.timeIntervalSince(daily[i - 1].date) / 86400.0, 1.0)
             let prevS = s
 
-            // Aktualizacja poziomu
+            // Update level
             s = alpha * daily[i].value + (1 - alpha) * (prevS + b * dt)
 
-            // Aktualizacja trendu (znormalizowany do per-day)
+            // Update trend (normalized to per-day)
             b = beta * ((s - prevS) / dt) + (1 - beta) * b
         }
 
@@ -164,11 +164,11 @@ enum GoalPredictionEngine {
 
     // MARK: - Weight Prediction Rates
 
-    /// Wynik obliczeń trzech temp zmiany wagi (commitment / current / overall).
+    /// Result of three weight change rate calculations (commitment / current / overall).
     struct WeightPredictionRates {
-        /// Tempo zadeklarowane przez użytkownika (kg/tydzień), nil gdy nie ustawione.
+        /// Rate declared by the user (kg/week), nil when not set.
         let commitmentRate: Double?
-        /// Tempo z ostatnich 30 dni (kg/tydzień), nil gdy kierunek niezgodny z celem lub brak danych.
+        /// Rate from the last 30 days (kg/week), nil when direction doesn't match the goal or no data.
         let currentRate: Double?
         /// Tempo od początku celu (kg/tydzień), nil gdy kierunek niezgodny z celem lub brak danych.
         let overallRate: Double?

@@ -1,13 +1,9 @@
 import SwiftUI
 import SwiftData
 
-extension Notification.Name {
-    static let homeOpenPhotoComposer = Notification.Name("homeOpenPhotoComposer")
-}
-
-/// Główny widok Photos w Tab Bar
-/// Pokazuje zdjęcia w formie siatki (grid) z trybem selekcji i porównywania
-/// Alternatywny widok listy znajduje się w PhotosListView (PhotosView.swift)
+/// Main Photos view in the Tab Bar
+/// Displays photos in a grid with selection and comparison modes
+/// An alternative list view is located in PhotosListView (PhotosView.swift)
 struct PhotoView: View {
     private let photosTheme = FeatureTheme.photos
 
@@ -25,7 +21,7 @@ struct PhotoView: View {
     @State private var showSourceChooserSheet = false
     @State private var showCamera = false
     @State private var cameraPickerImage: UIImage? = nil
-    @State private var showLibraryPicker = false   // PHPicker (1 i wiele)
+    @State private var showLibraryPicker = false   // PHPicker (1 and multiple)
     @State private var pendingLibrarySelection: MultiPhotoLibrarySelectionPayload? = nil
     @State private var singlePickerImage: UIImage? = nil
     @State private var singlePickerSource: PhotoLibraryImageSource? = nil
@@ -66,8 +62,8 @@ struct PhotoView: View {
     private let heroCompareOverrideLifetime: TimeInterval = 30 * 60
 
     #if DEBUG
-    /// Liczba zdjęć do otwarcia w MultiPhotoImportView podczas testu UI.
-    /// Aktywowana przez launch argument: -uiTestOpenMultiImport {count}
+    /// Number of photos to open in MultiPhotoImportView during a UI test.
+    /// Activated by launch argument: -uiTestOpenMultiImport {count}
     private var uiTestMultiImportCount: Int? {
         let args = ProcessInfo.processInfo.arguments
         guard let raw = UITestArgument.value(for: .openMultiImport, in: args),
@@ -76,8 +72,8 @@ struct PhotoView: View {
         return count
     }
 
-    /// Otwiera AddPhotoView z wygenerowanym zdjęciem testowym.
-    /// Aktywowane przez launch argument: -uiTestOpenSingleAdd
+    /// Opens AddPhotoView with a generated test image.
+    /// Activated by launch argument: -uiTestOpenSingleAdd
     private var uiTestShouldOpenSingleAdd: Bool {
         UITestArgument.isPresent(.openSingleAdd)
     }
@@ -169,7 +165,7 @@ struct PhotoView: View {
                         }
                     }
 
-                    // Pasek akcji na dole (usuwanie + porownywanie)
+                    // Action bar at the bottom (delete + compare)
                     if isSelecting && !selectedPhotos.isEmpty {
                         selectionActionBar
                             .padding(.bottom, 20)
@@ -203,17 +199,14 @@ struct PhotoView: View {
             .onChange(of: pendingPhotoSaveStore.lastFailureMessage) { _, newValue in
                 handlePendingPhotoFailure(newValue)
             }
-            .onReceive(NotificationCenter.default.publisher(for: .homeOpenPhotoComposer)) { _ in
-                showSourceChooserSheet = true
-            }
-            // Deep link / empty state — otwiera AddPhotoView bez zdjęcia
+            // Deep link / empty state — opens AddPhotoView without a photo
             .sheet(isPresented: $showAddPhoto) {
                 NavigationStack {
                     AddPhotoView()
                         .environmentObject(metricsStore)
                 }
             }
-            // Kamera → AddPhotoView z podglądem (onDismiss po dismiss, który jest po onSelect)
+            // Camera → AddPhotoView with preview (onDismiss after dismiss, which follows onSelect)
             .sheet(isPresented: $showCamera, onDismiss: {
                 if let img = cameraPickerImage {
                     presentSingleImport(images: [img])
@@ -222,7 +215,7 @@ struct PhotoView: View {
             }) {
                 CameraPickerView(selectedImage: $cameraPickerImage)
             }
-            // PHPicker (1 i wiele) — routing po liczbie wybranych zdjęć.
+            // PHPicker (1 and multiple) — routing based on the number of selected photos.
             .sheet(isPresented: $showLibraryPicker, onDismiss: {
                 pickerDismissedAt = ContinuousClock.now
                 routePendingLibrarySelection()
@@ -231,8 +224,8 @@ struct PhotoView: View {
                     pendingLibrarySelection = selection
                 }
             }
-            // Flow importu po wyborze zdjęć z galerii uruchamiamy jako push w NavigationStack,
-            // co eliminuje "sheet-on-sheet" i daje płynniejsze przejście po dismiss PHPicker.
+            // Import flow after selecting photos from the library is launched as a push in NavigationStack,
+            // which eliminates "sheet-on-sheet" and provides a smoother transition after PHPicker dismiss.
             .navigationDestination(isPresented: $showSingleImportFlow) {
                 if singlePickerImage != nil || singlePickerSource != nil {
                     AddPhotoView(previewImage: singlePickerImage, previewSource: singlePickerSource)
@@ -588,7 +581,7 @@ private extension PhotoView {
     }
 
     #if DEBUG
-    /// Otwiera właściwy flow importu zdjęć dla UI testów.
+    /// Opens the appropriate photo import flow for UI tests.
     private func openUITestImportHookIfNeeded() {
         guard !didRunUITestAutoOpen else { return }
         if uiTestShouldOpenSingleAdd {
@@ -602,7 +595,7 @@ private extension PhotoView {
         }
     }
 
-    /// Otwiera AddPhotoView z wygenerowanym zdjęciem testowym.
+    /// Opens AddPhotoView with a generated test image.
     private func openSingleAddForUITest() {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 400, height: 533))
         let image = renderer.image { ctx in
@@ -617,8 +610,8 @@ private extension PhotoView {
         presentSingleImport(images: [image])
     }
 
-    /// Otwiera MultiPhotoImportView z wygenerowanymi zdjęciami testowymi.
-    /// Aktywowane przez launch argument: -uiTestOpenMultiImport {count}
+    /// Opens MultiPhotoImportView with generated test images.
+    /// Activated by launch argument: -uiTestOpenMultiImport {count}
     private func openMultiImportForUITest(count: Int) {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 400, height: 533))
         let images = (0..<count).map { i -> UIImage in
@@ -813,7 +806,7 @@ private func singlePhotoSaveID(for photo: PhotoEntry) -> String {
     String(describing: photo.persistentModelID)
 }
 
-// MARK: - Widok zawartosci zdjec z Query
+// MARK: - Photo content view with Query
 private struct PhotoContentView: View {
     @Environment(\.modelContext) private var context
 
@@ -994,8 +987,8 @@ private struct PhotoContentView: View {
     @MainActor
     private func loadMoreUntilVisibleOrExhausted() async {
         await loadMore()
-        // Jesli filtrowanie tagow nie moze byc przeniesione do predykatu store (albo nie jest wspierane),
-        // pierwsze strony moga miec 0 widocznych wynikow. Kontynuuj stronicowanie, az znajdziesz wynik albo dane sie skoncza.
+        // If tag filtering cannot be pushed down to the store predicate (or is not supported),
+        // the first pages may have 0 visible results. Continue paging until a result is found or data is exhausted.
         let needsMore = usesInMemoryTagFiltering && !filters.selectedTags.isEmpty
         while needsMore, photos.isEmpty, hasMore {
             await loadMore()
@@ -1022,7 +1015,7 @@ private struct PhotoContentView: View {
             return try context.fetch(descriptor)
         } catch {
             // Some SwiftData backends cannot translate complex tag predicates.
-            // Zapasowo: pobieranie tylko po dacie i filtrowanie w pamieci.
+            // Fallback: fetch by date only and filter in memory.
             if !usesInMemoryTagFiltering {
                 usesInMemoryTagFiltering = true
                 return await fetchNextBatch()
@@ -1364,7 +1357,7 @@ private extension PhotoView {
 
         ToolbarItem(placement: .topBarTrailing) {
             HStack(spacing: 16) {
-                // Przycisk filtra z odznaka
+                // Filter button with badge
                 Button {
                     Haptics.selection()
                     showFilters = true

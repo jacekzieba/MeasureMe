@@ -30,6 +30,9 @@ final class StreakManager: ObservableObject {
     @Published private(set) var currentStreak: Int = 0
     @Published private(set) var maxStreak: Int = 0
     @Published private(set) var shouldPlayAnimation: Bool = false
+    @Published private(set) var isVacationModeActive: Bool = false
+    @Published private(set) var vacationWeeksRemaining: Int = 0
+    @Published private(set) var vacationEndDate: Date? = nil
 
     // MARK: - Dependencies
 
@@ -46,6 +49,8 @@ final class StreakManager: ObservableObject {
         static let animationPlayedWeek = "streak_animation_played_week"
         static let appOpenedWeeks = "streak_app_opened_weeks"
         static let vacationWeeks = "streak_vacation_weeks"
+        static let vacationStartWeek = "streak_vacation_start_week"
+        static let vacationEndWeek = "streak_vacation_end_week"
     }
 
     // MARK: - Init
@@ -60,6 +65,7 @@ final class StreakManager: ObservableObject {
         self.calendar = calendar
         _currentStreak = Published(wrappedValue: defaults.integer(forKey: Keys.currentCount))
         _maxStreak = Published(wrappedValue: defaults.integer(forKey: Keys.maxCount))
+        refreshVacationState()
     }
 
     convenience init(
@@ -141,6 +147,88 @@ final class StreakManager: ObservableObject {
         }
     }
 
+    func enableVacationMode(durationWeeks: Int) {
+        let normalizedDuration = max(durationWeeks, 1)
+        let startWeek = clock().isoWeekIdentifier(calendar: calendar)
+        let endWeek = Self.advanceISOWeek(startWeek, by: normalizedDuration - 1, calendar: calendar)
+
+        var vacationWeeks = loadWeekSet(forKey: Keys.vacationWeeks)
+        vacationWeeks.formUnion(Self.weeksBetween(startWeek: startWeek, endWeek: endWeek, calendar: calendar))
+        pruneOldWeeks(&vacationWeeks)
+        saveWeekSet(vacationWeeks, forKey: Keys.vacationWeeks)
+        defaults.set(startWeek, forKey: Keys.vacationStartWeek)
+        defaults.set(endWeek, forKey: Keys.vacationEndWeek)
+        recomputeStreak()
+    }
+
+    func enableVacationMode(until endDate: Date) {
+        let startWeek = clock().isoWeekIdentifier(calendar: calendar)
+        let endWeek = maxVacationWeekIdentifier(from: endDate, minimumWeek: startWeek)
+
+        var vacationWeeks = loadWeekSet(forKey: Keys.vacationWeeks)
+        vacationWeeks.formUnion(Self.weeksBetween(startWeek: startWeek, endWeek: endWeek, calendar: calendar))
+        pruneOldWeeks(&vacationWeeks)
+        saveWeekSet(vacationWeeks, forKey: Keys.vacationWeeks)
+        defaults.set(startWeek, forKey: Keys.vacationStartWeek)
+        defaults.set(endWeek, forKey: Keys.vacationEndWeek)
+        recomputeStreak()
+    }
+
+    func updateVacationMode(durationWeeks: Int) {
+        let normalizedDuration = max(durationWeeks, 1)
+        let startWeek = clock().isoWeekIdentifier(calendar: calendar)
+        let previousEndWeek = defaults.string(forKey: Keys.vacationEndWeek)
+
+        var vacationWeeks = loadWeekSet(forKey: Keys.vacationWeeks)
+        if let previousEndWeek {
+            let currentRange = Self.weeksBetween(startWeek: startWeek, endWeek: previousEndWeek, calendar: calendar)
+            vacationWeeks.subtract(currentRange)
+        }
+
+        let newEndWeek = Self.advanceISOWeek(startWeek, by: normalizedDuration - 1, calendar: calendar)
+        vacationWeeks.formUnion(Self.weeksBetween(startWeek: startWeek, endWeek: newEndWeek, calendar: calendar))
+        pruneOldWeeks(&vacationWeeks)
+        saveWeekSet(vacationWeeks, forKey: Keys.vacationWeeks)
+        defaults.set(startWeek, forKey: Keys.vacationStartWeek)
+        defaults.set(newEndWeek, forKey: Keys.vacationEndWeek)
+        recomputeStreak()
+    }
+
+    func updateVacationMode(until endDate: Date) {
+        let startWeek = clock().isoWeekIdentifier(calendar: calendar)
+        let previousEndWeek = defaults.string(forKey: Keys.vacationEndWeek)
+        let newEndWeek = maxVacationWeekIdentifier(from: endDate, minimumWeek: startWeek)
+
+        var vacationWeeks = loadWeekSet(forKey: Keys.vacationWeeks)
+        if let previousEndWeek {
+            let currentRange = Self.weeksBetween(startWeek: startWeek, endWeek: previousEndWeek, calendar: calendar)
+            vacationWeeks.subtract(currentRange)
+        }
+
+        vacationWeeks.formUnion(Self.weeksBetween(startWeek: startWeek, endWeek: newEndWeek, calendar: calendar))
+        pruneOldWeeks(&vacationWeeks)
+        saveWeekSet(vacationWeeks, forKey: Keys.vacationWeeks)
+        defaults.set(startWeek, forKey: Keys.vacationStartWeek)
+        defaults.set(newEndWeek, forKey: Keys.vacationEndWeek)
+        recomputeStreak()
+    }
+
+    func disableVacationMode() {
+        let startWeek = clock().isoWeekIdentifier(calendar: calendar)
+        guard let endWeek = defaults.string(forKey: Keys.vacationEndWeek) else {
+            refreshVacationState()
+            return
+        }
+
+        var vacationWeeks = loadWeekSet(forKey: Keys.vacationWeeks)
+        let weeksToRemove = Self.weeksBetween(startWeek: startWeek, endWeek: endWeek, calendar: calendar)
+        vacationWeeks.subtract(weeksToRemove)
+        saveWeekSet(vacationWeeks, forKey: Keys.vacationWeeks)
+        defaults.removeObject(forKey: Keys.vacationStartWeek)
+        defaults.removeObject(forKey: Keys.vacationEndWeek)
+        recomputeStreak()
+    }
+
     // MARK: - Streak Algorithm (pure, static for testability)
 
     /// Computes the consecutive-week streak ending at or before `now`.
@@ -171,12 +259,10 @@ final class StreakManager: ObservableObject {
 
         while iterations < maxIterations {
             iterations += 1
-            if vacationWeeks.contains(weekToCheck) {
-                weekToCheck = previousISOWeek(weekToCheck, calendar: calendar)
-                continue
-            }
             if activeWeeks.contains(weekToCheck) {
                 streak += 1
+                weekToCheck = previousISOWeek(weekToCheck, calendar: calendar)
+            } else if vacationWeeks.contains(weekToCheck) {
                 weekToCheck = previousISOWeek(weekToCheck, calendar: calendar)
             } else {
                 break
@@ -191,6 +277,18 @@ final class StreakManager: ObservableObject {
         guard let monday = mondayOfWeek(weekID, calendar: calendar) else { return "" }
         let previousMonday = calendar.date(byAdding: .day, value: -7, to: monday)!
         return previousMonday.isoWeekIdentifier(calendar: calendar)
+    }
+
+    static func advanceISOWeek(
+        _ weekID: String,
+        by weeks: Int,
+        calendar: Calendar = Calendar(identifier: .iso8601)
+    ) -> String {
+        guard let monday = mondayOfWeek(weekID, calendar: calendar),
+              let shiftedMonday = calendar.date(byAdding: .day, value: weeks * 7, to: monday) else {
+            return weekID
+        }
+        return shiftedMonday.isoWeekIdentifier(calendar: calendar)
     }
 
     // MARK: - Private Helpers
@@ -219,6 +317,7 @@ final class StreakManager: ObservableObject {
             maxStreak = computed
             defaults.set(computed, forKey: Keys.maxCount)
         }
+        refreshVacationState()
     }
 
     /// Checks SwiftData for any MetricSample or PhotoEntry in the given
@@ -270,7 +369,11 @@ final class StreakManager: ObservableObject {
         var remaining = currentStreak - 1
         while remaining > 0 {
             let prev = Self.previousISOWeek(weekID, calendar: calendar)
-            if !vacationWeeks.contains(prev) { remaining -= 1 }
+            if activeWeeks.contains(prev) {
+                remaining -= 1
+            } else if !vacationWeeks.contains(prev) {
+                break
+            }
             weekID = prev
         }
         return Self.mondayOfWeek(weekID, calendar: calendar)
@@ -310,6 +413,27 @@ final class StreakManager: ObservableObject {
         return (start, end)
     }
 
+    static func weeksBetween(
+        startWeek: String,
+        endWeek: String,
+        calendar: Calendar = Calendar(identifier: .iso8601)
+    ) -> Set<String> {
+        guard let startMonday = mondayOfWeek(startWeek, calendar: calendar),
+              let endMonday = mondayOfWeek(endWeek, calendar: calendar),
+              startMonday <= endMonday else {
+            return []
+        }
+
+        var weeks: Set<String> = []
+        var cursor = startMonday
+        while cursor <= endMonday {
+            weeks.insert(cursor.isoWeekIdentifier(calendar: calendar))
+            guard let next = calendar.date(byAdding: .day, value: 7, to: cursor) else { break }
+            cursor = next
+        }
+        return weeks
+    }
+
     // MARK: - UserDefaults Persistence
 
     private func loadWeekSet(forKey key: String) -> Set<String> {
@@ -331,5 +455,53 @@ final class StreakManager: ObservableObject {
         guard weeks.count > 104 else { return }
         let sorted = weeks.sorted()
         weeks = Set(sorted.suffix(104))
+    }
+
+    private func maxVacationWeekIdentifier(from endDate: Date, minimumWeek: String) -> String {
+        let selectedWeek = endDate.isoWeekIdentifier(calendar: calendar)
+        guard let selectedMonday = Self.mondayOfWeek(selectedWeek, calendar: calendar),
+              let minimumMonday = Self.mondayOfWeek(minimumWeek, calendar: calendar) else {
+            return minimumWeek
+        }
+        return selectedMonday >= minimumMonday ? selectedWeek : minimumWeek
+    }
+
+    private func refreshVacationState() {
+        let currentWeek = clock().isoWeekIdentifier(calendar: calendar)
+        let vacationWeeks = loadWeekSet(forKey: Keys.vacationWeeks)
+
+        guard let endWeek = defaults.string(forKey: Keys.vacationEndWeek),
+              let endMonday = Self.mondayOfWeek(endWeek, calendar: calendar) else {
+            isVacationModeActive = false
+            vacationWeeksRemaining = 0
+            vacationEndDate = nil
+            return
+        }
+
+        guard let currentMonday = Self.mondayOfWeek(currentWeek, calendar: calendar) else {
+            isVacationModeActive = false
+            vacationWeeksRemaining = 0
+            vacationEndDate = nil
+            return
+        }
+
+        if currentMonday > endMonday {
+            defaults.removeObject(forKey: Keys.vacationStartWeek)
+            defaults.removeObject(forKey: Keys.vacationEndWeek)
+            isVacationModeActive = false
+            vacationWeeksRemaining = 0
+            vacationEndDate = nil
+            return
+        }
+
+        isVacationModeActive = vacationWeeks.contains(currentWeek)
+        if isVacationModeActive {
+            let weeksDiff = calendar.dateComponents([.weekOfYear], from: currentMonday, to: endMonday).weekOfYear ?? 0
+            vacationWeeksRemaining = max(weeksDiff + 1, 1)
+            vacationEndDate = calendar.date(byAdding: .day, value: 6, to: endMonday)
+        } else {
+            vacationWeeksRemaining = 0
+            vacationEndDate = nil
+        }
     }
 }

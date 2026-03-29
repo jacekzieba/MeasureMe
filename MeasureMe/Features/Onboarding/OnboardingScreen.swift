@@ -13,12 +13,9 @@ struct OnboardingView: View {
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.onboarding.onboardingSkippedHealthKit) private var onboardingSkippedHealthKit: Bool = false
     @AppSetting(\.onboarding.onboardingSkippedReminders) private var onboardingSkippedReminders: Bool = false
-    @AppSetting(\.onboarding.onboardingViewedICloudBackupOffer) private var onboardingViewedICloudBackupOffer: Bool = false
-    @AppSetting(\.onboarding.onboardingSkippedICloudBackup) private var onboardingSkippedICloudBackup: Bool = false
     @AppSetting(\.onboarding.onboardingChecklistShow) private var showOnboardingChecklistOnHome: Bool = true
     @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
     @AppSetting(\.onboarding.onboardingPrimaryGoal) private var onboardingPrimaryGoalsRaw: String = ""
-    @AppSetting(\.iCloudBackup.isEnabled) private var iCloudBackupEnabled: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
@@ -141,13 +138,10 @@ struct OnboardingView: View {
                                 OnboardingBoostersStep(
                                     isSyncEnabled: isSyncEnabled,
                                     isReminderScheduled: isReminderScheduled,
-                                    isICloudBackupEnabled: iCloudBackupEnabled,
-                                    isPremium: premiumStore.isPremium,
                                     isRequestingHealthKit: isRequestingHealthKit,
                                     isRequestingNotifications: isRequestingNotifications,
                                     onRequestHealthKit: requestHealthKitAccess,
-                                    onSetupReminder: { showReminderSetupSheet = true },
-                                    onRequestICloudBackup: requestICloudBackup
+                                    onSetupReminder: { showReminderSetupSheet = true }
                                 )
                             }
                             .containerRelativeFrame(.horizontal)
@@ -206,15 +200,6 @@ struct OnboardingView: View {
             if let signal = AnalyticsSignal.onboardingStepViewed(stepIndex: currentStepIndex) {
                 effects.track(signal)
             }
-        }
-        .onChange(of: onboardingViewedICloudBackupOffer) { _, _ in
-            syncUITestBridge()
-        }
-        .onChange(of: onboardingSkippedICloudBackup) { _, _ in
-            syncUITestBridge()
-        }
-        .onChange(of: iCloudBackupEnabled) { _, _ in
-            syncUITestBridge()
         }
         .sheet(isPresented: $showReminderSetupSheet) {
             OnboardingReminderSetupSheet(
@@ -351,7 +336,7 @@ struct OnboardingView: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Color.appGray)
 
-            Text(AppLocalization.systemString("Your data stays on this device by default. Encrypted iCloud backup is optional and available with Premium if you enable it."))
+            Text(AppLocalization.systemString("Your data stays on this device by default. You can change backup and sync options later in Settings."))
                 .font(AppTypography.micro)
                 .foregroundStyle(Color.appGray)
         }
@@ -395,10 +380,7 @@ struct OnboardingView: View {
     private func syncUITestBridge() {
         guard isUITestOnboardingMode else { return }
         OnboardingUITestBridge.shared.update(
-            currentStepIndex: currentStepIndex,
-            iCloudViewed: onboardingViewedICloudBackupOffer,
-            iCloudSkipped: onboardingSkippedICloudBackup,
-            iCloudEnabled: iCloudBackupEnabled
+            currentStepIndex: currentStepIndex
         )
     }
 
@@ -558,9 +540,6 @@ struct OnboardingView: View {
     private func persistBoostersOutcome() {
         onboardingSkippedHealthKit = !isSyncEnabled
         onboardingSkippedReminders = !isReminderScheduled
-        let decision = ICloudBackupOfferDecision.persistState(isBackupEnabled: iCloudBackupEnabled)
-        onboardingViewedICloudBackupOffer = decision.viewedOffer
-        onboardingSkippedICloudBackup = decision.skippedBackup
     }
 
     // MARK: - Effects
@@ -628,23 +607,6 @@ struct OnboardingView: View {
             isRequestingNotifications = false
             Haptics.success()
         }
-    }
-
-    private func requestICloudBackup() {
-        onboardingViewedICloudBackupOffer = true
-
-        if premiumStore.isPremium {
-            guard !iCloudBackupEnabled else { return }
-            iCloudBackupEnabled = true
-            onboardingSkippedICloudBackup = false
-            Haptics.success()
-            return
-        }
-
-        onboardingSkippedICloudBackup = true
-        onboardingChecklistPremiumExplored = true
-        premiumStore.presentPaywall(reason: .onboarding)
-        Haptics.light()
     }
 
     private func defaultWeeklyReminderDate() -> Date {

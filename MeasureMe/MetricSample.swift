@@ -27,20 +27,20 @@ enum MetricSampleSource: String, CaseIterable, Sendable {
 
 @Model
 final class MetricSample {
-    /// Rodzaj metryki jako String (rawValue z MetricKind enum)
-    /// Używane do filtrowania w Query
+    /// Metric kind as String (rawValue from MetricKind enum)
+    /// Used for filtering in Query
     var kindRaw: String
     
-    /// Wartość pomiaru w jednostkach bazowych (metrycznych):
+    /// Measurement value in base (metric) units:
     /// - Weight/LeanBodyMass: kg
-    /// - Height/Waist/inne wymiary: cm
+    /// - Height/Waist/other dimensions: cm
     /// - BodyFat: % (0-100)
     var value: Double
     
-    /// Data i czas pomiaru
+    /// Date and time of measurement
     var date: Date
 
-    /// Zrodlo probki: manual / HealthKit
+    /// Sample source: manual / HealthKit
     var sourceRaw: String = MetricSampleSource.manual.rawValue
 
     init(kind: MetricKind, value: Double, date: Date, source: MetricSampleSource = .manual) {
@@ -50,7 +50,7 @@ final class MetricSample {
         self.sourceRaw = source.rawValue
     }
 
-    /// Inicjalizator dla custom metryk — przyjmuje surowy identyfikator (np. "custom_<UUID>")
+    /// Initializer for custom metrics — accepts a raw identifier (e.g. "custom_<UUID>")
     init(kindRaw: String, value: Double, date: Date, source: MetricSampleSource = .manual) {
         self.kindRaw = kindRaw
         self.value = value
@@ -58,13 +58,13 @@ final class MetricSample {
         self.sourceRaw = source.rawValue
     }
 
-    /// Czy próbka pochodzi z custom metryki użytkownika
+    /// Whether the sample belongs to a user-defined custom metric
     var isCustomMetric: Bool {
         kindRaw.hasPrefix("custom_")
     }
 
-    /// Wygodny accessor do konwersji String -> MetricKind.
-    /// Zwraca nil dla uszkodzonych rekordów i custom metryk.
+    /// Convenience accessor for String -> MetricKind conversion.
+    /// Returns nil for corrupted records and custom metrics.
     var kind: MetricKind? {
         get { MetricKind(rawValue: kindRaw) }
         set {
@@ -73,7 +73,7 @@ final class MetricSample {
         }
     }
 
-    /// Legacy fallback: brak / nieznana wartosc traktujemy jako wpis reczny.
+    /// Legacy fallback: missing / unknown value is treated as a manual entry.
     var source: MetricSampleSource {
         get { MetricSampleSource(rawValue: sourceRaw) ?? .manual }
         set { sourceRaw = newValue.rawValue }
