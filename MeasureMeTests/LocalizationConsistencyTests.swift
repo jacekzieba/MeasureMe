@@ -1,29 +1,36 @@
 import XCTest
 
 final class LocalizationConsistencyTests: XCTestCase {
-    func testEnglishAndPolishLocalizationsHaveMatchingKeys() throws {
-        let en = try parseStringsFile(named: "en")
-        let pl = try parseStringsFile(named: "pl")
+    private let supportedLanguages = ["en", "pl", "es", "pt-BR"]
 
-        let missingInEnglish = Set(pl.values.keys).subtracting(en.values.keys).sorted()
-        let missingInPolish = Set(en.values.keys).subtracting(pl.values.keys).sorted()
+    func testEnglishLocalizationMatchesAllSupportedLocalizations() throws {
+        let english = try parseStringsFile(named: "en")
 
-        XCTAssertTrue(
-            missingInEnglish.isEmpty,
-            "Missing English localization keys: \(missingInEnglish.joined(separator: ", "))"
-        )
-        XCTAssertTrue(
-            missingInPolish.isEmpty,
-            "Missing Polish localization keys: \(missingInPolish.joined(separator: ", "))"
-        )
+        for languageCode in supportedLanguages where languageCode != "en" {
+            let localized = try parseStringsFile(named: languageCode)
+
+            let missingInEnglish = Set(localized.values.keys).subtracting(english.values.keys).sorted()
+            let missingInLocalized = Set(english.values.keys).subtracting(localized.values.keys).sorted()
+
+            XCTAssertTrue(
+                missingInEnglish.isEmpty,
+                "Missing English localization keys for \(languageCode): \(missingInEnglish.joined(separator: ", "))"
+            )
+            XCTAssertTrue(
+                missingInLocalized.isEmpty,
+                "Missing \(languageCode) localization keys: \(missingInLocalized.joined(separator: ", "))"
+            )
+        }
     }
 
-    func testEnglishAndPolishLocalizationsHaveNoDuplicateKeys() throws {
-        let en = try parseStringsFile(named: "en")
-        let pl = try parseStringsFile(named: "pl")
-
-        XCTAssertTrue(en.duplicates.isEmpty, "Duplicate English keys: \(en.duplicates)")
-        XCTAssertTrue(pl.duplicates.isEmpty, "Duplicate Polish keys: \(pl.duplicates)")
+    func testSupportedLocalizationsHaveNoDuplicateKeys() throws {
+        for languageCode in supportedLanguages {
+            let localization = try parseStringsFile(named: languageCode)
+            XCTAssertTrue(
+                localization.duplicates.isEmpty,
+                "Duplicate \(languageCode) keys: \(localization.duplicates)"
+            )
+        }
     }
 
     private func parseStringsFile(named languageCode: String) throws -> ParsedStrings {

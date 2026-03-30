@@ -70,6 +70,21 @@ final class QuickAddUITests: XCTestCase {
                       "Arkusz QuickAdd powinien sie pojawic z przyciskiem zapisu")
     }
 
+    private func quickAddLaunchStateSummary() -> String {
+        let states = [
+            ("pendingAddPhoto.active", app.otherElements["uitest.debug.pendingAddPhoto.active"].exists),
+            ("pendingAddPhoto.overlayActive", app.otherElements["uitest.debug.pendingAddPhoto.overlayActive"].exists),
+            ("tab.photos", app.otherElements["uitest.debug.tab.photos"].exists),
+            ("sourceChooser.visible", app.otherElements["photos.sourceChooser.visible"].exists),
+            ("cameraButton", app.buttons["photos.add.menu.camera"].firstMatch.exists),
+            ("libraryButton", app.buttons["photos.add.menu.library"].firstMatch.exists)
+        ]
+
+        return states
+            .map { "\($0.0)=\($0.1)" }
+            .joined(separator: ", ")
+    }
+
     // MARK: - Tests
 
     @MainActor
@@ -192,9 +207,12 @@ final class QuickAddUITests: XCTestCase {
         let libraryOption = app.buttons["photos.add.menu.library"].firstMatch
         XCTAssertTrue(
             cameraOption.waitForExistence(timeout: 20),
-            "Pending app entry action should open Add Photo source chooser with camera option"
+            "Pending app entry action should open Add Photo source chooser with camera option. State: \(quickAddLaunchStateSummary())"
         )
-        XCTAssertTrue(libraryOption.exists, "Source chooser should also expose library option")
+        XCTAssertTrue(
+            libraryOption.exists,
+            "Source chooser should also expose library option. State: \(quickAddLaunchStateSummary())"
+        )
     }
 
     @MainActor

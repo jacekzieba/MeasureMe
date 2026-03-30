@@ -143,7 +143,7 @@ struct MeasureMeApp: App {
             .alert(AppLocalization.string("Crash Detected"), isPresented: $showCrashAlert) {
                 Button(AppLocalization.string("View Report")) {
                     CrashReporter.shared.markCrashReported()
-                    // Uzytkownik moze przejsc do Ustawienia -> Dane -> Raporty awarii
+                    // User can navigate to Settings -> Data -> Crash Reports
                 }
                 Button(AppLocalization.string("Dismiss"), role: .cancel) {
                     CrashReporter.shared.markCrashReported()
@@ -599,7 +599,7 @@ struct MeasureMeApp: App {
         #endif
     }
 
-    /// Usuwa wszystkie utrwalone dane, aby kazdy test UI startowal od czystego stanu.
+    /// Removes all persisted data so each UI test starts from a clean state.
     private func cleanUITestDataIfNeeded(container: ModelContainer) throws {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
@@ -752,6 +752,51 @@ private struct SettingsUITestHostView: View {
             PremiumPaywallView()
                 .environmentObject(premiumStore)
         }
+        .onChange(of: premiumStore.isPaywallPresented) { _, isPresented in
+            guard !isPresented else { return }
+            premiumStore.handlePaywallDismissed()
+        }
+        .sheet(isPresented: $premiumStore.showPostPurchaseSetup) {
+            PostPurchaseSetupView()
+                .presentationDetents([.fraction(0.72)])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(.ultraThinMaterial)
+        }
+        .onChange(of: premiumStore.isPremium) { _, isPremium in
+            guard isPremium else { return }
+            guard UITestArgument.isPresent(.simulateTrialActivation) else { return }
+            guard !premiumStore.isPaywallPresented else { return }
+            if !premiumStore.showPostPurchaseSetup {
+                premiumStore.showPostPurchaseSetup = true
+            }
+        }
+        .overlay {
+            if UITestArgument.isPresent(.simulateTrialActivation) && premiumStore.showPostPurchaseSetup {
+                ZStack(alignment: .bottom) {
+                    Color.black.opacity(0.18)
+                        .ignoresSafeArea()
+
+                    VStack(spacing: 12) {
+                        Text(AppLocalization.string("postpurchase.title"))
+                            .font(AppTypography.displaySection)
+                            .multilineTextAlignment(.center)
+
+                        Button(AppLocalization.string("postpurchase.getstarted")) {
+                            premiumStore.showPostPurchaseSetup = false
+                        }
+                        .buttonStyle(AppAccentButtonStyle())
+                        .accessibilityIdentifier("postpurchase.getstarted")
+                    }
+                    .padding(24)
+                    .frame(maxWidth: .infinity)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 20)
+                    .accessibilityIdentifier("postpurchase.sheet")
+                }
+            }
+        }
+        .modelContainer(for: [MetricSample.self, MetricGoal.self, PhotoEntry.self, CustomMetricDefinition.self], inMemory: true)
         .preferredColorScheme((AppAppearance(rawValue: appAppearance) ?? .system).preferredColorScheme)
         .accessibilityIdentifier("app.root.ready")
     }

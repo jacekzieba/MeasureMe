@@ -1844,17 +1844,27 @@
 "custom.metric.delete" = "Excluir métrica personalizada";
 "custom.metric.goal.target" = "Valor alvo";
 "Target value" = "Valor alvo";
-"Direction" = "Direção";
 "Remove goal" = "Remover meta";
 "No goal set" = "Nenhuma meta definida";
 "Goal:" = "Meta:";
-"Value" = "Valor";
 "Delete measurement" = "Excluir medição";
-"Edit measurement" = "Editar medição";
 "Show all" = "Mostrar tudo";
-"Set" = "Definir";
-"History" = "História";
-"Goal" = "Meta";
+
+// MARK: - AI notifications
+"notification.ai.header" = "Notificações de IA";
+"notification.ai.title" = "Notificações de IA";
+"notification.ai.subtitle" = "No dispositivo, a Apple Intelligence percebe progresso relevante, mudanças de tendência e ritmo semanal.";
+"notification.ai.master" = "Ativar notificações de IA";
+"notification.ai.weekly" = "Resumo semanal";
+"notification.ai.trend" = "Mudanças de tendência";
+"notification.ai.goal" = "Marcos da meta";
+"notification.ai.round" = "Números redondos";
+"notification.ai.consistency" = "Lembretes de consistência";
+"notification.ai.digest.day" = "Dia do resumo semanal";
+"notification.ai.digest.time" = "Horário do resumo semanal";
+"notification.ai.disclosure" = "Gerado no dispositivo com Apple Intelligence. Esses resumos podem não ser perfeitos e não constituem aconselhamento médico.";
+"notification.ai.unavailable" = "As notificações de IA exigem Premium Edition, Apple Intelligence e um idioma compatível. A V1 atualmente oferece suporte a inglês e polonês.";
+"notification.ai.mute.action" = "Silenciar este tipo";
 
 // MARK: - Smart per-metric notifications
 "notification.smart.stale.title" = "É hora de uma atualização";

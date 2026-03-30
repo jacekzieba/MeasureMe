@@ -130,6 +130,7 @@ final class PremiumStore: ObservableObject {
     private var updateListenerTask: Task<Void, Never>?
     private var foregroundObserver: NSObjectProtocol?
     private var trackedPurchaseKeys: Set<String> = []
+    private var shouldPresentPostPurchaseSetupAfterPaywallDismissal = false
 
     init(
         billingClient: PremiumBillingClient? = nil,
@@ -161,6 +162,11 @@ final class PremiumStore: ObservableObject {
             Task { @MainActor in
                 self.isPremium = true
                 settings.set(\.premium.premiumEntitlement, true)
+            }
+        } else if forceNonPremiumForUITests {
+            Task { @MainActor in
+                self.isPremium = false
+                settings.set(\.premium.premiumEntitlement, false)
             }
         } else if forcePremiumOnSimulator {
             Task { @MainActor in
@@ -212,6 +218,12 @@ final class PremiumStore: ObservableObject {
 
     func dismissPaywall() {
         isPaywallPresented = false
+    }
+
+    func handlePaywallDismissed() {
+        guard shouldPresentPostPurchaseSetupAfterPaywallDismissal else { return }
+        shouldPresentPostPurchaseSetupAfterPaywallDismissal = false
+        showPostPurchaseSetup = true
     }
 
     func clearActionMessage() {
@@ -364,12 +376,22 @@ final class PremiumStore: ObservableObject {
         productsLoadError = nil
         actionMessage = nil
         actionMessageIsError = false
-        await handleTrialActivated()
+        showTrialReminderOptInPrompt = false
+        showTrialNotificationPermissionPrompt = false
+        showTrialThankYouAlert = false
+        showPostPurchaseSetup = true
         return true
     }
 
     func handleTrialActivated() async {
         showTrialNotificationPermissionPrompt = false
+        #if DEBUG
+        if UITestArgument.isAnyTestMode {
+            showTrialReminderOptInPrompt = false
+            await presentPostPurchaseSetupAfterCurrentModalDismisses()
+            return
+        }
+        #endif
         showTrialReminderOptInPrompt = true
         showPostPurchaseSetup = true
     }
@@ -529,7 +551,7 @@ final class PremiumStore: ObservableObject {
             } else {
                 actionMessage = AppLocalization.string("premium.purchase.success")
                 actionMessageIsError = false
-                showPostPurchaseSetup = true
+                await presentPostPurchaseSetupAfterCurrentModalDismisses()
             }
         } else {
             analytics.track(
@@ -546,6 +568,20 @@ final class PremiumStore: ObservableObject {
         await handlePurchaseResult(result, purchasedProduct: purchasedProduct)
     }
     #endif
+
+    private func presentPostPurchaseSetupAfterCurrentModalDismisses() async {
+        if showPostPurchaseSetup {
+            return
+        }
+
+        if isPaywallPresented {
+            shouldPresentPostPurchaseSetupAfterPaywallDismissal = true
+            dismissPaywall()
+            return
+        }
+
+        showPostPurchaseSetup = true
+    }
 
     private func applyCustomerInfo(_ info: CustomerInfo) {
         customerInfo = info

@@ -3,7 +3,7 @@ import SwiftUI
 import ImageIO
 import UniformTypeIdentifiers
 
-/// Utilities dla obsługi zdjęć
+/// Utilities for photo handling
 enum PhotoUtilities {
     struct EncodedPhoto: Sendable {
         let data: Data
@@ -17,20 +17,20 @@ enum PhotoUtilities {
     
     // MARK: - Image Compression
     
-    /// Kompresuje obraz do określonego rozmiaru (w bajtach)
+    /// Compresses the image to a specified size (in bytes)
     /// - Parameters:
-    ///   - image: Obraz do skompresowania
-    ///   - maxSize: Maksymalny rozmiar w bajtach
-    /// - Returns: Skompresowane dane obrazu lub nil
+    ///   - image: Image to compress
+    ///   - maxSize: Maximum size in bytes
+    /// - Returns: Compressed image data or nil
     nonisolated static func compress(_ image: UIImage, toMaxSize maxSize: Int = 2_000_000) -> Data? {
         encodeForStorage(image, maxSize: maxSize)?.data
     }
     
-    /// Kompresuje obraz do JPEG z określoną jakością
+    /// Compresses the image to JPEG with a specified quality
     /// - Parameters:
-    ///   - image: Obraz do skompresowania
-    ///   - quality: Jakość JPEG (0.0 - 1.0)
-    /// - Returns: Skompresowane dane obrazu
+    ///   - image: Image to compress
+    ///   - quality: JPEG quality (0.0 - 1.0)
+    /// - Returns: Compressed image data
     nonisolated static func compress(_ image: UIImage, quality: CGFloat = 0.8) -> Data? {
         if supportsHEICEncoding(), let data = encode(image: image, typeIdentifier: UTType.heic.identifier, quality: quality) {
             return data
@@ -40,11 +40,11 @@ enum PhotoUtilities {
     
     // MARK: - Image Resizing
     
-    /// Zmienia rozmiar obrazu zachowując proporcje
+    /// Resizes the image while preserving aspect ratio
     /// - Parameters:
-    ///   - image: Obraz do przeskalowania
-    ///   - maxDimension: Maksymalny wymiar (szerokość lub wysokość)
-    /// - Returns: Przeskalowany obraz
+    ///   - image: Image to resize
+    ///   - maxDimension: Maximum dimension (width or height)
+    /// - Returns: Resized image
     nonisolated static func resize(_ image: UIImage, maxDimension: CGFloat = 1920) -> UIImage {
         let size = image.size
         let aspectRatio = size.width / size.height
@@ -56,7 +56,7 @@ enum PhotoUtilities {
             newSize = CGSize(width: maxDimension * aspectRatio, height: maxDimension)
         }
         
-        // Nie powiększaj obrazów mniejszych niż maxDimension
+        // Don't enlarge images smaller than maxDimension
         if size.width <= maxDimension && size.height <= maxDimension {
             return image
         }
@@ -73,9 +73,9 @@ enum PhotoUtilities {
     
     // MARK: - Image Orientation
     
-    /// Naprawia orientację obrazu (usuwa flagi EXIF)
-    /// - Parameter image: Obraz do naprawy
-    /// - Returns: Obraz z poprawioną orientacją
+    /// Fixes image orientation (removes EXIF flags)
+    /// - Parameter image: Image to fix
+    /// - Returns: Image with corrected orientation
     nonisolated static func fixOrientation(_ image: UIImage) -> UIImage {
         if image.imageOrientation == .up {
             return image
@@ -137,11 +137,11 @@ enum PhotoUtilities {
     
     // MARK: - Thumbnail Generation
     
-    /// Generuje miniaturę obrazu
+    /// Generates an image thumbnail
     /// - Parameters:
-    ///   - image: Obraz źródłowy
-    ///   - size: Rozmiar miniatury
-    /// - Returns: Miniatura obrazu
+    ///   - image: Source image
+    ///   - size: Thumbnail size
+    /// - Returns: Image thumbnail
     nonisolated static func thumbnail(from image: UIImage, size: CGSize = CGSize(width: 200, height: 200)) -> UIImage {
         let sourceSize = image.size
         guard sourceSize.width > 0, sourceSize.height > 0, size.width > 0, size.height > 0 else {
@@ -242,9 +242,9 @@ enum PhotoUtilities {
     
     // MARK: - Format Detection
     
-    /// Określa format obrazu na podstawie danych
-    /// - Parameter data: Dane obrazu
-    /// - Returns: Format obrazu jako string (np. "JPEG", "PNG")
+    /// Determines the image format based on data
+    /// - Parameter data: Image data
+    /// - Returns: Image format as a string (e.g. "JPEG", "PNG")
     nonisolated static func imageFormat(from data: Data) -> String? {
         guard let firstByte = data.first else { return nil }
         
@@ -264,9 +264,9 @@ enum PhotoUtilities {
     
     // MARK: - Size Formatting
     
-    /// Formatuje rozmiar danych do czytelnego stringu
-    /// - Parameter bytes: Liczba bajtów
-    /// - Returns: Sformatowany string (np. "1.5 MB")
+    /// Formats data size to a human-readable string
+    /// - Parameter bytes: Number of bytes
+    /// - Returns: Formatted string (e.g. "1.5 MB")
     nonisolated static func formatFileSize(_ bytes: Int) -> String {
         let formatter = ByteCountFormatter()
         formatter.allowedUnits = [.useKB, .useMB]
@@ -292,12 +292,12 @@ enum PhotoUtilities {
     ) -> EncodedPhoto? {
         let minQuality: CGFloat = 0.45
         let maxQuality: CGFloat = 0.92
-        // 4 iteracje binary search = precyzja ~0.03 jakości (nieodróżnialna wizualnie).
-        // Każda iteracja to pełny encode ~30-80ms — mniej iteracji = szybciej.
+        // 4 binary search iterations = ~0.03 quality precision (visually indistinguishable).
+        // Each iteration is a full encode ~30-80ms — fewer iterations = faster.
         let iterations = 4
 
-        // Optymistyczny start: spróbuj najpierw maxQuality — jeśli mieści się w limicie,
-        // nie potrzeba binary search wcale.
+        // Optimistic start: try maxQuality first — if it fits within the limit,
+        // no binary search is needed at all.
         if let data = encode(image: image, typeIdentifier: typeIdentifier, quality: maxQuality),
            data.count <= maxSize {
             return EncodedPhoto(data: data, format: formatLabel, quality: maxQuality)

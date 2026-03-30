@@ -143,6 +143,10 @@ struct RootPresentationModifier: ViewModifier {
                 PremiumPaywallView()
                     .environmentObject(premiumStore)
             }
+            .onChange(of: premiumStore.isPaywallPresented) { _, isPresented in
+                guard !isPresented else { return }
+                premiumStore.handlePaywallDismissed()
+            }
             .sheet(isPresented: $premiumStore.showPostPurchaseSetup) {
                 PostPurchaseSetupView()
                     .presentationDetents([.fraction(0.72)])

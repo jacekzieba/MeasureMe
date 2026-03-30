@@ -1,25 +1,25 @@
 // HealthMetricsCalculator.swift
 //
 // **HealthMetricsCalculator**
-// Kalkulator wskaźników zdrowotnych z kategoriami ryzyka.
+// Health metrics calculator with risk categories.
 //
 // **Core Metrics:**
-// - WHtR (stosunek talii do wzrostu): Stosunek obwodu talii do wzrostu
-// - RFM (Relative Fat Mass): Względna masa tłuszczowa
-// - BMI (Body Mass Index): Wskaźnik masy ciała z uwzględnieniem wieku
+// - WHtR (waist-to-height ratio): Ratio of waist circumference to height
+// - RFM (Relative Fat Mass): Relative fat mass estimate
+// - BMI (Body Mass Index): Body mass index with age adjustment
 //
 // **Body Composition:**
-// - Body Fat Percentage: Procent tkanki tłuszczowej (z HealthKit)
-// - Lean Body Mass: Beztłuszczowa masa ciała (z HealthKit)
+// - Body Fat Percentage: Body fat percentage (from HealthKit)
+// - Lean Body Mass: Lean body mass (from HealthKit)
 //
 // **Risk Indicators:**
-// - ABSI (A Body Shape Index): Ryzyko związane z kształtem ciała
-// - Conicity Index: Ryzyko związane z centralnym rozkładem tłuszczu
+// - ABSI (A Body Shape Index): Risk related to body shape
+// - Conicity Index: Risk related to central fat distribution
 //
-// **BMI i wiek:**
-// - Dzieci/młodzież (< 18 lat): Uproszczone zakresy
-// - Dorośli (18-65 lat): Standardowe zakresy WHO
-// - Seniorzy (> 65 lat): Nieco wyższe zakresy
+// **BMI and age:**
+// - Children/adolescents (< 18 years): Simplified ranges
+// - Adults (18-65 years): Standard WHO ranges
+// - Seniors (> 65 years): Slightly higher ranges
 //
 import Foundation
 import Darwin
@@ -51,7 +51,7 @@ enum GenderDependentResult<Value> {
 @MainActor
 final class HealthMetricsCalculator {
     
-    // MARK: - WHtR (stosunek talii do wzrostu)
+    // MARK: - WHtR (waist-to-height ratio)
     
     struct WHtRResult {
         let ratio: Double
@@ -93,11 +93,11 @@ final class HealthMetricsCalculator {
         }
     }
     
-    /// Oblicza WHtR (stosunek talii do wzrostu)
+    /// Calculates WHtR (waist-to-height ratio)
     /// - Parameters:
-    ///   - waistCm: Obwód talii w centymetrach
-    ///   - heightCm: Wzrost w centymetrach
-    /// - Returns: Wynik z kategorią lub nil jeśli brak danych
+    ///   - waistCm: Waist circumference in centimeters
+    ///   - heightCm: Height in centimeters
+    /// - Returns: Result with category or nil if data is missing
     static func calculateWHtR(waistCm: Double?, heightCm: Double?) -> WHtRResult? {
         guard let waist = waistCm, let height = heightCm, height > 0 else {
             return nil
@@ -151,7 +151,7 @@ final class HealthMetricsCalculator {
                         return .high
                     }
                 case .female:
-                    // Dla kobiet wyższe progi (naturalnie wyższy % tłuszczu)
+                    // Higher thresholds for women (naturally higher fat %)
                     if rfm < 30 {
                         return .normal
                     } else if rfm < 35 {
@@ -160,7 +160,7 @@ final class HealthMetricsCalculator {
                         return .high
                     }
                 case .notSpecified:
-                    // Używamy progów męskich jako bardziej konserwatywne
+                    // Using male thresholds as more conservative
                     if rfm < 20 {
                         return .normal
                     } else if rfm < 25 {
@@ -173,12 +173,12 @@ final class HealthMetricsCalculator {
         }
     }
     
-    /// Oblicza RFM (Relative Fat Mass) - szacunkowy procent tkanki tłuszczowej
+    /// Calculates RFM (Relative Fat Mass) - estimated body fat percentage
     /// - Parameters:
-    ///   - waistCm: Obwód talii w centymetrach
-    ///   - heightCm: Wzrost w centymetrach
-    ///   - gender: Płeć użytkownika
-    /// - Returns: Wynik z kategorią lub nil jeśli brak danych
+    ///   - waistCm: Waist circumference in centimeters
+    ///   - heightCm: Height in centimeters
+    ///   - gender: User's gender
+    /// - Returns: Result with category or nil if data is missing
     static func calculateRFM(waistCm: Double?, heightCm: Double?, gender: Gender) -> RFMResult? {
         guard let waist = waistCm, let height = heightCm, height > 0 else {
             return nil
@@ -191,7 +191,7 @@ final class HealthMetricsCalculator {
         case .female:
             rfm = 76 - (20 * height / waist)
         case .notSpecified:
-            // Używamy formuły męskiej
+            // Using the male formula
             rfm = 64 - (20 * height / waist)
         }
         
@@ -199,7 +199,7 @@ final class HealthMetricsCalculator {
         return RFMResult(rfm: rfm, category: category, gender: gender)
     }
     
-    // MARK: - WHR (stosunek talii do bioder)
+    // MARK: - WHR (waist-to-hip ratio)
     
     struct WHRResult {
         let ratio: Double
@@ -233,19 +233,19 @@ final class HealthMetricsCalculator {
                 case .female:
                     return ratio < 0.85 ? .lowRisk : .increasedRisk
                 case .notSpecified:
-                    // Fallback do progu męskiego (spójny z RFM/ABSI/Conicity); ścieżki produkcyjne używają wrappera requiresGender.
+                    // Fallback to male threshold (consistent with RFM/ABSI/Conicity); production paths use the requiresGender wrapper.
                     return ratio < 0.90 ? .lowRisk : .increasedRisk
                 }
             }
         }
     }
     
-    /// Oblicza WHR (stosunek talii do bioder)
+    /// Calculates WHR (waist-to-hip ratio)
     /// - Parameters:
-    ///   - waistCm: Obwód talii w centymetrach
-    ///   - hipsCm: Obwód bioder w centymetrach
-    ///   - gender: Płeć użytkownika (wpływa na progi kategorii)
-    /// - Returns: Wynik z kategorią lub nil jeśli brak danych
+    ///   - waistCm: Waist circumference in centimeters
+    ///   - hipsCm: Hip circumference in centimeters
+    ///   - gender: User's gender (affects category thresholds)
+    /// - Returns: Result with category or nil if data is missing
     static func calculateWHR(waistCm: Double?, hipsCm: Double?, gender: Gender) -> WHRResult? {
         guard let waist = waistCm, let hips = hipsCm, hips > 0 else {
             return nil
@@ -325,8 +325,8 @@ final class HealthMetricsCalculator {
             static func fromBMI(_ bmi: Double, ageGroup: AgeGroup) -> BMICategory {
                 switch ageGroup {
                 case .child:
-                    // Dla dzieci BMI jest bardziej skomplikowane (percentyle)
-                    // Używamy uproszczonych progów - idealnie potrzebne są tabele percentylowe
+                    // For children BMI is more complex (percentiles)
+                    // Using simplified thresholds - ideally percentile tables are needed
                     if bmi < 16.0 {
                         return .underweight
                     } else if bmi < 23.0 {
@@ -338,7 +338,7 @@ final class HealthMetricsCalculator {
                     }
                     
                 case .adult:
-                    // Standardowe progi WHO dla dorosłych
+                    // Standard WHO thresholds for adults
                     if bmi < 18.5 {
                         return .underweight
                     } else if bmi < 25.0 {
@@ -350,8 +350,8 @@ final class HealthMetricsCalculator {
                     }
                     
                 case .senior:
-                    // Dla seniorów progi są nieco wyższe
-                    // Lekka nadwaga może być ochronna w starszym wieku
+                    // For seniors thresholds are slightly higher
+                    // Mild overweight may be protective in older age
                     if bmi < 20.0 {
                         return .underweight
                     } else if bmi < 27.0 {
@@ -366,12 +366,12 @@ final class HealthMetricsCalculator {
         }
     }
     
-    /// Oblicza BMI (Body Mass Index)
+    /// Calculates BMI (Body Mass Index)
     /// - Parameters:
-    ///   - weightKg: Waga w kilogramach
-    ///   - heightCm: Wzrost w centymetrach
-    ///   - age: Wiek użytkownika (opcjonalny, wpływa na interpretację)
-    /// - Returns: Wynik z kategorią lub nil jeśli brak danych
+    ///   - weightKg: Weight in kilograms
+    ///   - heightCm: Height in centimeters
+    ///   - age: User's age (optional, affects interpretation)
+    /// - Returns: Result with category or nil if data is missing
     static func calculateBMI(weightKg: Double?, heightCm: Double?, age: Int? = nil) -> BMIResult? {
         guard let weight = weightKg, let height = heightCm, height > 0 else {
             return nil
@@ -552,7 +552,7 @@ final class HealthMetricsCalculator {
                         return .high
                     }
                 case .female:
-                    // Kobiety mają nieco inne progi
+                    // Women have slightly different thresholds
                     if absi < 0.070 {
                         return .low
                     } else if absi < 0.080 {
@@ -561,7 +561,7 @@ final class HealthMetricsCalculator {
                         return .high
                     }
                 case .notSpecified:
-                    // Używamy męskich progów
+                    // Using male thresholds
                     if absi < 0.075 {
                         return .low
                     } else if absi < 0.085 {
@@ -574,13 +574,13 @@ final class HealthMetricsCalculator {
         }
     }
     
-    /// Oblicza ABSI (A Body Shape Index) - wskaźnik kształtu ciała niezależny od wagi
+    /// Calculates ABSI (A Body Shape Index) - weight-independent body shape index
     /// - Parameters:
-    ///   - waistCm: Obwód talii w centymetrach
-    ///   - heightCm: Wzrost w centymetrach
-    ///   - weightKg: Waga w kilogramach
-    ///   - gender: Płeć użytkownika
-    /// - Returns: Wynik z kategorią lub nil jeśli brak danych
+    ///   - waistCm: Waist circumference in centimeters
+    ///   - heightCm: Height in centimeters
+    ///   - weightKg: Weight in kilograms
+    ///   - gender: User's gender
+    /// - Returns: Result with category or nil if data is missing
     static func calculateABSI(waistCm: Double?, heightCm: Double?, weightKg: Double?, gender: Gender) -> ABSIResult? {
         guard let waist = waistCm, 
               let height = heightCm, 
@@ -590,13 +590,13 @@ final class HealthMetricsCalculator {
             return nil
         }
         
-        // Konwersja do metrów
+        // Convert to meters
         let waistM = waist / 100.0
         let heightM = height / 100.0
-        
+
         // BMI
         let bmi = weight / (heightM * heightM)
-        
+
         // ABSI = waist / (BMI^(2/3) × height^(1/2))
         let absi = waistM / (pow(bmi, 2.0/3.0) * sqrt(heightM))
         
@@ -724,7 +724,7 @@ final class HealthMetricsCalculator {
                         return .high
                     }
                 case .female:
-                    // Kobiety mają nieco niższe progi
+                    // Women have slightly lower thresholds
                     if conicity < 1.15 {
                         return .low
                     } else if conicity < 1.25 {
@@ -733,7 +733,7 @@ final class HealthMetricsCalculator {
                         return .high
                     }
                 case .notSpecified:
-                    // Używamy męskich progów
+                    // Using male thresholds
                     if conicity < 1.20 {
                         return .low
                     } else if conicity < 1.30 {
@@ -746,13 +746,13 @@ final class HealthMetricsCalculator {
         }
     }
     
-    /// Oblicza Conicity Index - wskaźnik centralnego rozkładu tłuszczu
+    /// Calculates Conicity Index - central fat distribution indicator
     /// - Parameters:
-    ///   - waistCm: Obwód talii w centymetrach
-    ///   - heightCm: Wzrost w centymetrach
-    ///   - weightKg: Waga w kilogramach
-    ///   - gender: Płeć użytkownika
-    /// - Returns: Wynik z kategorią lub nil jeśli brak danych
+    ///   - waistCm: Waist circumference in centimeters
+    ///   - heightCm: Height in centimeters
+    ///   - weightKg: Weight in kilograms
+    ///   - gender: User's gender
+    /// - Returns: Result with category or nil if data is missing
     static func calculateConicity(waistCm: Double?, heightCm: Double?, weightKg: Double?, gender: Gender) -> ConicityResult? {
         guard let waist = waistCm,
               let height = heightCm,
@@ -762,10 +762,10 @@ final class HealthMetricsCalculator {
             return nil
         }
         
-        // Konwersja do metrów
+        // Convert to meters
         let waistM = waist / 100.0
         let heightM = height / 100.0
-        
+
         // Conicity = waist / (0.109 × sqrt(weight / height))
         let conicity = waistM / (0.109 * sqrt(weight / heightM))
         
@@ -775,14 +775,14 @@ final class HealthMetricsCalculator {
     
     // MARK: - Missing Data Helper
     
-    /// Sprawdza jakich danych brakuje do obliczenia wskaźników
+    /// Checks which data is missing for calculating indicators
     /// - Parameters:
-    ///   - waist: Obwód talii (opcjonalny)
-    ///   - height: Wzrost (opcjonalny)
-    ///   - weight: Waga (opcjonalna)
-    ///   - bodyFat: Procent tkanki tłuszczowej (opcjonalny)
-    ///   - leanMass: Beztłuszczowa masa ciała (opcjonalna)
-    /// - Returns: Lista brakujących metryk
+    ///   - waist: Waist circumference (optional)
+    ///   - height: Height (optional)
+    ///   - weight: Weight (optional)
+    ///   - bodyFat: Body fat percentage (optional)
+    ///   - leanMass: Lean body mass (optional)
+    /// - Returns: List of missing metrics
     static func missingMetrics(
         waist: Double?,
         height: Double?,
@@ -805,7 +805,7 @@ final class HealthMetricsCalculator {
         return missing
     }
     
-    /// Sprawdza czy Body Composition jest dostępna
+    /// Checks whether Body Composition data is available
     static func hasBodyComposition(bodyFat: Double?, leanMass: Double?) -> Bool {
         bodyFat != nil || leanMass != nil
     }

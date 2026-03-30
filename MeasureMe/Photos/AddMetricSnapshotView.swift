@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Arkusz do dodawania nowego snapshotu metryki
+/// Sheet for adding a new metric snapshot
 struct AddMetricSnapshotView: View {
     @Environment(\.dismiss) private var dismiss
     

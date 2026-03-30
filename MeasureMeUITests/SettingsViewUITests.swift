@@ -10,6 +10,21 @@ final class SettingsViewUITests: XCTestCase {
         app.launchArguments = ["-uiTestMode", "-uiTestOpenSettingsTab"]
     }
 
+    private func premiumActivationStateSummary() -> String {
+        let states = [
+            ("premium.simulatedActivation.enabled", app.otherElements["uitest.debug.premium.simulatedActivation.enabled"].exists),
+            ("premium.active", app.otherElements["uitest.debug.premium.active"].exists),
+            ("postpurchase.flag", app.otherElements["uitest.debug.postpurchase.flag"].exists),
+            ("postpurchase.sheet", app.otherElements["postpurchase.sheet"].exists),
+            ("postpurchase.getstarted", app.buttons["postpurchase.getstarted"].exists),
+            ("paywall.subscribe", app.buttons["premium.paywall.subscribe"].exists)
+        ]
+
+        return states
+            .map { "\($0.0)=\($0.1)" }
+            .joined(separator: ", ")
+    }
+
     @MainActor
     func testSettingsNavigationReturnsDirectlyToOverviewAfterMultipleDetails() {
         app.launch()
@@ -112,14 +127,23 @@ final class SettingsViewUITests: XCTestCase {
         subscribeButton.tap()
 
         let postPurchaseSheet = app.otherElements["postpurchase.sheet"].firstMatch
-        XCTAssertTrue(postPurchaseSheet.waitForExistence(timeout: 5), "Aktywacja z Settings powinna pokazac ekran post-purchase setup")
+        XCTAssertTrue(
+            postPurchaseSheet.waitForExistence(timeout: 5),
+            "Aktywacja z Settings powinna pokazac ekran post-purchase setup. State: \(premiumActivationStateSummary())"
+        )
 
         let getStartedButton = app.buttons["postpurchase.getstarted"].firstMatch
-        XCTAssertTrue(getStartedButton.waitForExistence(timeout: 5), "Post-purchase setup should expose the dismiss CTA")
+        XCTAssertTrue(
+            getStartedButton.waitForExistence(timeout: 5),
+            "Post-purchase setup should expose the dismiss CTA. State: \(premiumActivationStateSummary())"
+        )
         getStartedButton.tap()
 
         let manageSubscriptionRow = app.descendants(matching: .any)["settings.row.manageSubscription"].firstMatch
-        XCTAssertTrue(manageSubscriptionRow.waitForExistence(timeout: 5), "Po aktywacji konto powinno pokazac stan Premium w Settings")
+        XCTAssertTrue(
+            manageSubscriptionRow.waitForExistence(timeout: 5),
+            "Po aktywacji konto powinno pokazac stan Premium w Settings. State: \(premiumActivationStateSummary())"
+        )
     }
 
     @MainActor

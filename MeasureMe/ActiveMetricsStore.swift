@@ -253,17 +253,17 @@ final class ActiveMetricsStore: ObservableObject {
                 order.append(kind) 
             }
         }
-        // else: gdy disabled - pozostaw w order, ale nie będzie w activeKinds
+        // else: when disabled - keep in order, but won't appear in activeKinds
         
         saveActiveOrderKinds(order)
         
-        // Natychmiastowa publikacja zmian dla Toggle
+        // Immediate change publication for Toggle
         objectWillChange.send()
     }
 
     // MARK: - UserDefaults Keys
 
-    /// Zwraca klucz UserDefaults dla danej metryki
+    /// Returns the UserDefaults key for a given metric
     private func key(for kind: MetricKind) -> String {
         switch kind {
         case .weight: return "metric_weight_enabled"
@@ -291,17 +291,17 @@ final class ActiveMetricsStore: ObservableObject {
 
     private let customOrderKey = "custom_metrics_order"
 
-    /// Zwraca klucz UserDefaults dla custom metryki
+    /// Returns the UserDefaults key for a custom metric
     private func customKey(for identifier: String) -> String {
         "custom_metric_\(identifier)_enabled"
     }
 
-    /// Sprawdza czy custom metryka jest włączona
+    /// Checks whether a custom metric is enabled
     func isCustomEnabled(_ identifier: String) -> Bool {
         defaults.bool(forKey: customKey(for: identifier))
     }
 
-    /// Włącza lub wyłącza custom metrykę
+    /// Enables or disables a custom metric
     func setCustomEnabled(_ enabled: Bool, for identifier: String) {
         let k = customKey(for: identifier)
         let current = defaults.bool(forKey: k)
@@ -323,7 +323,7 @@ final class ActiveMetricsStore: ObservableObject {
         objectWillChange.send()
     }
 
-    /// Tworzy Binding dla Toggle custom metryki w UI
+    /// Creates a Binding for Toggle of a custom metric in UI
     func customBinding(for identifier: String) -> Binding<Bool> {
         Binding(
             get: { self.isCustomEnabled(identifier) },
@@ -331,7 +331,7 @@ final class ActiveMetricsStore: ObservableObject {
         )
     }
 
-    /// Zwraca aktywne (włączone) custom metryki identifiers w kolejności usera
+    /// Returns active (enabled) custom metric identifiers in the user's order
     func activeCustomIdentifiers(from definitions: [CustomMetricDefinition]) -> [String] {
         let enabledSet = Set(definitions.map(\.identifier).filter { isCustomEnabled($0) })
 
@@ -342,16 +342,16 @@ final class ActiveMetricsStore: ObservableObject {
         return saved + missing
     }
 
-    /// Sprawdza czy custom metryka jest kluczowa (Home) — dzieli limit z built-in key metrics
+    /// Checks whether a custom metric is a key metric (Home) — shares the limit with built-in key metrics
     func isCustomKeyMetric(_ identifier: String) -> Bool {
         loadKeyMetricsRaw().contains(identifier)
     }
 
-    /// Włącza/wyłącza custom metrykę jako kluczową. Dzieli limit maxKeyMetrics z built-in.
+    /// Enables/disables a custom metric as a key metric. Shares the maxKeyMetrics limit with built-in.
     @discardableResult
     func setCustomKeyMetric(_ enabled: Bool, for identifier: String) -> Bool {
         var current = loadKeyMetricsRaw()
-        // Filtruj do aktywnych built-in + aktywnych custom
+        // Filter to active built-in + active custom
         let activeBuiltIn = Set(activeKinds.map(\.rawValue))
         current = current.filter { activeBuiltIn.contains($0) || (isCustomEnabled($0) && $0.hasPrefix("custom_")) }
 
@@ -367,7 +367,7 @@ final class ActiveMetricsStore: ObservableObject {
         return true
     }
 
-    /// Łączna liczba key metrics (built-in + custom)
+    /// Total number of key metrics (built-in + custom)
     var totalKeyMetricsCount: Int {
         let raw = loadKeyMetricsRaw()
         let activeBuiltIn = Set(activeKinds.map(\.rawValue))
@@ -405,7 +405,7 @@ final class ActiveMetricsStore: ObservableObject {
         defaults.set(identifiers, forKey: customOrderKey)
     }
 
-    /// Przestawia kolejność custom metryk (drag & drop)
+    /// Reorders custom metrics (drag & drop)
     func moveCustomIdentifiers(fromOffsets: IndexSet, toOffset: Int, definitions: [CustomMetricDefinition]) {
         var current = activeCustomIdentifiers(from: definitions)
         current.move(fromOffsets: fromOffsets, toOffset: toOffset)
@@ -413,14 +413,14 @@ final class ActiveMetricsStore: ObservableObject {
         debouncedPublish()
     }
 
-    /// Usuwa custom metrykę — czyści klucze enabled i order
+    /// Removes a custom metric — clears enabled and order keys
     func removeCustomMetric(_ identifier: String) {
         defaults.removeObject(forKey: customKey(for: identifier))
         var order = loadCustomOrderRaw()
         order.removeAll { $0 == identifier }
         saveCustomOrderRaw(order)
 
-        // Usuń z key metrics jeśli była
+        // Remove from key metrics if it was one
         var keyRaw = loadKeyMetricsRaw()
         if keyRaw.contains(identifier) {
             keyRaw.removeAll { $0 == identifier }

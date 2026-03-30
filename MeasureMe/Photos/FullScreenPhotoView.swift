@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Pełnoekranowy widok zdjęcia z możliwością zoomowania i przesuwania
+/// Full-screen photo view with zoom and pan capabilities
 struct FullScreenPhotoView: View {
     @Environment(\.dismiss) private var dismiss
     let imageData: Data

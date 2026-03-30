@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Sekcja z podglądem zdjęcia i opcją pełnoekranowego wyświetlania
+/// Section with photo preview and full-screen display option
 struct PhotoPreviewSection: View {
     let imageData: Data
     var cacheID: String? = nil
@@ -40,7 +40,7 @@ struct PhotoPreviewSection: View {
     }
 }
 
-/// Sekcja z datą zdjęcia
+/// Section with photo date
 struct PhotoDateSection: View {
     let date: Date
     @Binding var editedDate: Date
@@ -75,7 +75,7 @@ struct PhotoDateSection: View {
     }
 }
 
-/// Sekcja z tagami zdjęcia
+/// Section with photo tags
 struct PhotoTagsSection: View {
     let tags: [PhotoTag]
     @Binding var editedTags: Set<PhotoTag>
@@ -119,7 +119,7 @@ struct PhotoTagsSection: View {
     }
 }
 
-/// Sekcja z metrykami zdjęcia
+/// Section with photo metrics
 struct PhotoMetricsSection: View {
     let metrics: [MetricValueSnapshot]
     @Binding var editedMetrics: [MetricValueSnapshot]

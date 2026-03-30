@@ -21,6 +21,9 @@ final class AppRouter: ObservableObject {
         if UITestArgument.isPresent(.openSettingsTab) {
             return .settings
         }
+        if UITestArgument.value(for: .pendingAppEntryAction) == AppEntryAction.openAddPhoto.rawValue {
+            return .photos
+        }
         return .home
     }
 

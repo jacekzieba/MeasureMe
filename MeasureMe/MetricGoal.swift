@@ -1,55 +1,55 @@
 // MetricGoal.swift
 //
 // **MetricGoal**
-// Model SwiftData reprezentujący cel użytkownika dla konkretnej metryki.
+// SwiftData model representing a user's goal for a specific metric.
 //
-// **Struktura:**
-// - Każda metryka może mieć maksymalnie jeden cel
-// - Wartość celu przechowywana w jednostkach bazowych (metric: kg, cm, %)
-// - Data utworzenia celu dla celów historycznych
-// - Kierunek celu (increase/decrease) określa czy chcemy zwiększyć czy zmniejszyć wartość
+// **Structure:**
+// - Each metric can have at most one goal
+// - Goal value stored in base (metric) units (kg, cm, %)
+// - Goal creation date for historical purposes
+// - Goal direction (increase/decrease) determines whether we want to increase or decrease the value
 //
-// **Użycie:**
-// - Wyświetlanie poziomej przerywanej linii na wykresach
-// - Tracking postępów użytkownika w osiąganiu celów
-// - Edycja i usuwanie celów przez użytkownika
+// **Usage:**
+// - Displaying a horizontal dashed line on charts
+// - Tracking user progress toward goals
+// - Editing and deleting goals by the user
 //
 import SwiftData
 import Foundation
 
 @Model
 final class MetricGoal {
-    /// Kierunek celu - czy chcemy zwiększyć czy zmniejszyć wartość
+    /// Goal direction - whether we want to increase or decrease the value
     enum Direction: String, Codable {
-        case increase  // Zwiększ (np. masa mięśniowa, wzrost)
-        case decrease  // Zmniejsz (np. waga, tłuszcz, obwody)
+        case increase  // Increase (e.g. muscle mass, height)
+        case decrease  // Decrease (e.g. weight, fat, circumferences)
     }
     
-    /// Rodzaj metryki jako String (rawValue z MetricKind enum)
+    /// Metric kind as String (rawValue from MetricKind enum)
     var kindRaw: String
     
-    /// Wartość docelowa w jednostkach bazowych:
-    /// - Waga/Lean Body Mass: kilogramy
-    /// - Wymiary: centymetry
-    /// - Body Fat: procent (0.0-100.0)
+    /// Target value in base units:
+    /// - Weight/Lean Body Mass: kilograms
+    /// - Dimensions: centimeters
+    /// - Body Fat: percentage (0.0-100.0)
     var targetValue: Double
     
-    /// Data utworzenia/ostatniej modyfikacji celu
+    /// Date of creation/last modification of the goal
     var createdDate: Date
     
-    /// Kierunek celu jako String (rawValue z Direction enum)
+    /// Goal direction as String (rawValue from Direction enum)
     var directionRaw: String
 
-    /// Opcjonalna wartość startowa celu podana przez użytkownika (jednostki bazowe: kg, cm, %).
-    /// Gdy nil, baseline jest wyliczany dynamicznie z próbek (stare zachowanie).
+    /// Optional goal start value provided by the user (base units: kg, cm, %).
+    /// When nil, baseline is calculated dynamically from samples (legacy behavior).
     var startValue: Double?
 
-    /// Opcjonalna data startowa celu podana przez użytkownika.
-    /// Gdy nil, baseline pochodzi z próbek ≤ createdDate (stare zachowanie).
+    /// Optional goal start date provided by the user.
+    /// When nil, baseline comes from samples ≤ createdDate (legacy behavior).
     var startDate: Date?
 
-    /// Zamierzone tygodniowe tempo zmiany w jednostkach bazowych (kg/tydzień dla wagi).
-    /// Wartość dodatnia — np. 0.5 oznacza 0.5 kg/tydzień (niezależnie od kierunku).
+    /// Intended weekly rate of change in base units (kg/week for weight).
+    /// Positive value — e.g. 0.5 means 0.5 kg/week (regardless of direction).
     var commitmentWeeklyRate: Double?
 
     init(kind: MetricKind, targetValue: Double, direction: Direction = .decrease,

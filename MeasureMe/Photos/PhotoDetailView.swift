@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import Photos
 
-/// Szczegółowy widok pojedynczego zdjęcia z możliwością edycji i pełnoekranowego wyświetlania
+/// Detailed view of a single photo with editing and full-screen display capabilities
 struct PhotoDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss

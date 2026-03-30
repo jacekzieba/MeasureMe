@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Rząd z pojedynczym snapshotem metryki (tryb wyświetlania)
+/// Row with a single metric snapshot (display mode)
 struct MetricSnapshotRow: View {
     let snapshot: MetricValueSnapshot
     var compact: Bool = false
@@ -56,7 +56,7 @@ struct MetricSnapshotRow: View {
     }
 }
 
-/// Edytor snapshotów metryk (tryb edycji)
+/// Metric snapshots editor (edit mode)
 struct MetricSnapshotsEditor: View {
     @Binding var snapshots: [MetricValueSnapshot]
     let metricsStore: ActiveMetricsStore
@@ -130,7 +130,7 @@ struct MetricSnapshotsEditor: View {
     }
 }
 
-/// Rząd z edytowalną metryką
+/// Row with an editable metric
 struct EditableMetricRow: View {
     let snapshot: MetricValueSnapshot
     let onDelete: () -> Void

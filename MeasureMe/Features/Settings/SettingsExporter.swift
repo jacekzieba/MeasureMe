@@ -2,8 +2,8 @@ import SwiftUI
 import SwiftData
 import HealthKit
 
-/// Serwis eksportu danych — wyekstrahowany z SettingsScreen.
-/// Wzorzec: static enum (jak WidgetDataWriter) — brak stanu, czysta logika.
+/// Data export service — extracted from SettingsScreen.
+/// Pattern: static enum (like WidgetDataWriter) — no state, pure logic.
 enum SettingsExporter {
 
     // MARK: - Export Format
@@ -42,12 +42,12 @@ enum SettingsExporter {
     }
 
     struct MetricCSVRowSnapshot: Sendable {
-        let kindRaw: String           // MetricKind.rawValue — klucz do importu
-        let metricTitle: String       // englishTitle — czytelna etykieta (zawsze EN)
-        let metricValue: Double       // wartość w jednostkach bazowych (kg/cm/%)
-        let metricUnit: String        // jednostka bazowa (kg/cm/%)
-        let displayValue: Double      // wartość w jednostkach display
-        let unit: String              // jednostka display
+        let kindRaw: String           // MetricKind.rawValue — import key
+        let metricTitle: String       // englishTitle — human-readable label (always EN)
+        let metricValue: Double       // value in base units (kg/cm/%)
+        let metricUnit: String        // base unit (kg/cm/%)
+        let displayValue: Double      // value in display units
+        let unit: String              // display unit
         let sourceRaw: String
         let date: Date
 
@@ -75,12 +75,12 @@ enum SettingsExporter {
     struct MetricGoalSnapshot: Sendable {
         let kindRaw: String
         let metricTitle: String       // englishTitle
-        let direction: String         // "increase" lub "decrease"
-        let targetMetricValue: Double // wartość celu w jednostkach bazowych
-        let targetMetricUnit: String  // jednostka bazowa celu
+        let direction: String         // "increase" or "decrease"
+        let targetMetricValue: Double // goal value in base units
+        let targetMetricUnit: String  // base unit for the goal
         let targetDisplayValue: Double
         let targetDisplayUnit: String
-        let startMetricValue: Double? // opcjonalny punkt startowy (bazowy)
+        let startMetricValue: Double? // optional starting point (base units)
         let startDisplayValue: Double?
         let startDate: Date?
         let createdDate: Date
@@ -243,9 +243,9 @@ enum SettingsExporter {
     nonisolated static func buildMetricsCSV(from rows: [MetricCSVRowSnapshot]) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        // metric_id — stały klucz do importu (MetricKind.rawValue, language-agnostic)
-        // value_metric / unit_metric — wartości bazowe (kg/cm/%) — determinizm przy imporcie
-        // value / unit — wartości display (lb/in gdy imperial) — wygoda w Excelu
+        // metric_id — stable import key (MetricKind.rawValue, language-agnostic)
+        // value_metric / unit_metric — base values (kg/cm/%) — deterministic for import
+        // value / unit — display values (lb/in when imperial) — convenience in Excel
         var lines: [String] = ["metric_id,metric,value_metric,unit_metric,value,unit,timestamp"]
         for row in rows {
             let metricValueStr = String(format: "%.4f", locale: posixLocale, row.metricValue)
@@ -336,7 +336,7 @@ enum SettingsExporter {
 
     // MARK: - Helpers
 
-    /// Escapuje pole CSV zgodnie z RFC 4180 — otacza cudzysłowami jeśli zawiera przecinek, cudzysłów lub nową linię.
+    /// Escapes a CSV field per RFC 4180 — wraps in double quotes if it contains a comma, double quote, or newline.
     nonisolated static func csvField(_ value: String) -> String {
         let needsQuoting = value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")
         guard needsQuoting else { return value }
@@ -506,7 +506,7 @@ enum SettingsExporter {
 
     // MARK: - PDF Export
 
-    /// Kategorie metryk do grupowania w raporcie PDF.
+    /// Metric categories for grouping in the PDF report.
     nonisolated static let metricCategories: [(title: String, kinds: [MetricKind])] = [
         ("Body Composition & Size", [.weight, .bodyFat, .height, .leanBodyMass, .waist]),
         ("Upper Body", [.neck, .shoulders, .bust, .chest]),

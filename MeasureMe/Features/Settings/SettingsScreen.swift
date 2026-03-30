@@ -37,16 +37,16 @@ enum SettingsAlert: Identifiable {
 }
 
 /// **SettingsView**
-/// Widok ustawień aplikacji. Odpowiada za:
-/// - Włączanie/wyłączanie synchronizacji z HealthKit
-/// - Wybór systemu jednostek (metryczny/imperialny)
-/// - Nawigację do zarządzania śledzonymi metrykami
-/// - Sekcję informacyjną "About"
+/// Application settings view. Responsible for:
+/// - Enabling/disabling HealthKit synchronization
+/// - Selecting units system (metric/imperial)
+/// - Navigating to tracked metrics management
+/// - Informational "About" section
 ///
-/// **Optymalizacje wydajności:**
-/// - Autoryzacja HealthKit uruchamiana asynchronicznie z opóźnieniem
-/// - Task anulowany przy znikaniu widoku, aby uniknąć memory leaks
-/// - Brak blokowania głównego wątku podczas żądania uprawnień
+/// **Performance optimizations:**
+/// - HealthKit authorization launched asynchronously with a delay
+/// - Task cancelled on view disappearance to avoid memory leaks
+/// - No blocking of the main thread during permission requests
 struct SettingsView: View {
     // MARK: - Constants
     static let settingsRowInsets = EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
@@ -392,7 +392,7 @@ struct SettingsView: View {
                 )
                 .ignoresSafeArea(edges: .top)
                 
-                // Zawartość
+                // Content
                 List {
                 ScreenTitleHeader(title: AppLocalization.string("Settings"), topPadding: 0, bottomPadding: 4)
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
@@ -400,6 +400,10 @@ struct SettingsView: View {
                     .listRowSeparator(.hidden)
 
                 SettingsSearchSection(query: $settingsSearchQuery)
+
+                if !premiumStore.isPremium && !isSearchingSettings {
+                    topPremiumCTASection
+                }
 
                 if isSearchingSettings {
                     SettingsSearchResultsSection(
@@ -434,7 +438,7 @@ struct SettingsView: View {
             .onPreferenceChange(SettingsScrollOffsetKey.self) { value in
                 scrollOffset = value
             }
-            .scrollContentBackground(.hidden) // Ukryj domyślne tło List
+            .scrollContentBackground(.hidden) // Hide default List background
             .onAppear {
                 schedulePendingDeepLinksHandling()
                 refreshHomeModuleSummary()
@@ -548,6 +552,29 @@ struct SettingsView: View {
                 )
             }
         }
+    }
+
+    private var topPremiumCTASection: some View {
+        Section {
+            Button {
+                premiumStore.presentPaywall(reason: .settings)
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "crown.fill")
+                        .font(AppTypography.iconMedium)
+                    Text(AppLocalization.string("settings.action.explorePremium"))
+                        .font(AppTypography.bodyEmphasis)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            }
+            .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+            .accessibilityIdentifier("settings.action.explorePremium")
+        }
+        .listRowSeparator(.hidden)
+        .listSectionSeparator(.hidden)
+        .listRowBackground(Color.clear)
+        .listRowInsets(SettingsView.settingsRowInsets)
     }
 
     // MARK: - Exports

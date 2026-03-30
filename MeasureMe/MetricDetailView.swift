@@ -5,21 +5,21 @@ import Accessibility
 import Foundation
 
 /// **MetricDetailView**
-/// Widok szczegółów pojedynczej metryki. Wyświetla:
-/// - Wykres z danymi historycznymi (z możliwością zmiany zakresu czasowego)
-/// - Linię celu (jeśli jest ustawiona)
-/// - Przycisk do ustawiania/edycji celu
-/// - Historię wszystkich pomiarów z możliwością edycji/usuwania
+/// Detail view for a single metric. Displays:
+/// - Chart with historical data (with adjustable time range)
+/// - Goal line (if set)
+/// - Button to set/edit goal
+/// - History of all measurements with edit/delete capability
 ///
-/// **Architektura:**
-/// - Używa SwiftData do przechowywania próbek (`MetricSample`) i celów (`MetricGoal`)
-/// - Automatycznie konwertuje jednostki między metric/imperial
-/// - Dynamicznie dostosowuje zakres osi Y do danych i celu
+/// **Architecture:**
+/// - Uses SwiftData to store samples (`MetricSample`) and goals (`MetricGoal`)
+/// - Automatically converts units between metric/imperial
+/// - Dynamically adjusts Y-axis range to data and goal
 ///
-/// **Optymalizacje:**
-/// - Query filtruje dane już na poziomie bazy danych
-/// - Obliczenia wartości do wyświetlenia są cache'owane przez computed properties
-/// - Używa `persistentModelID` jako stabilnego identyfikatora w pętlach
+/// **Optimizations:**
+/// - Query filters data at the database level
+/// - Display value calculations are cached via computed properties
+/// - Uses `persistentModelID` as a stable identifier in loops
 struct MetricDetailView: View {
     private let measurementsTheme = FeatureTheme.measurements
     let kind: MetricKind
@@ -30,10 +30,10 @@ struct MetricDetailView: View {
     @Environment(\.modelContext) var context
     @EnvironmentObject var router: AppRouter
     
-    /// Próbki tej metryki, posortowane rosnąco po dacie (dla wykresu)
+    /// Samples for this metric, sorted ascending by date (for the chart)
     @Query var samples: [MetricSample]
     
-    /// Cel dla tej metryki (maksymalnie jeden cel na metrykę)
+    /// Goal for this metric (at most one goal per metric)
     @Query var goals: [MetricGoal]
     
     @Query var photos: [PhotoEntry]
@@ -76,9 +76,9 @@ struct MetricDetailView: View {
         case all = "All"
         var id: String { rawValue }
 
-        /// Oblicza datę początkową dla danego zakresu
-        /// - Parameter now: Data odniesienia (domyślnie teraz)
-        /// - Returns: Data początkowa lub nil dla "All"
+        /// Calculates the start date for a given time range
+        /// - Parameter now: Reference date (defaults to now)
+        /// - Returns: Start date or nil for "All"
         func startDate(from now: Date = AppClock.now) -> Date? {
             let cal = Calendar.current
             switch self {
@@ -109,16 +109,16 @@ struct MetricDetailView: View {
     
     init(kind: MetricKind) {
         self.kind = kind
-        // Hoist rawValue do lokalnej stałej - #Predicate wymaga wartości, nie key path
+        // Hoist rawValue to a local constant - #Predicate requires values, not key paths
         let kindValue = kind.rawValue
         
-        // Query dla próbek tej metryki, posortowane rosnąco po dacie
+        // Query for this metric's samples, sorted ascending by date
         _samples = Query(
             filter: #Predicate<MetricSample> { $0.kindRaw == kindValue },
             sort: [SortDescriptor(\.date, order: .forward)]
         )
         
-        // Query dla celu tej metryki
+        // Query for this metric's goal
         _goals = Query(
             filter: #Predicate<MetricGoal> { $0.kindRaw == kindValue }
         )
@@ -138,7 +138,7 @@ struct MetricDetailView: View {
     
     // MARK: - Computed Properties
     
-    /// Aktualny cel dla tej metryki (może być nil)
+    /// Current goal for this metric (can be nil)
     var currentGoal: MetricGoal? {
         goals.first
     }
@@ -192,7 +192,7 @@ struct MetricDetailView: View {
         return allMetricSamples.filter { $0.kindRaw == comparisonKind.rawValue }
     }
     
-    /// Próbki przefiltrowane według wybranego zakresu czasowego
+    /// Samples filtered by the selected time range
     var chartSamples: [MetricSample] {
         if let start = timeframe.startDate(from: AppClock.now) {
             return sortedSamplesAscending.filter { $0.date >= start }
@@ -774,7 +774,7 @@ struct MetricDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            // Rzędy dat
+            // Date rows
             VStack(spacing: 6) {
                 if let commitDate = rates.projectedDate(forRate: rates.commitmentRate) {
                     predictionDateRow(
@@ -1144,6 +1144,7 @@ struct MetricDetailView: View {
                 } label: {
                     secondaryActionCard(
                         title: AppLocalization.string("Goal"),
+                        subtitle: currentGoal.map { valueString($0.targetValue) },
                         icon: "target",
                         color: measurementsTheme.accent
                     )
@@ -1314,6 +1315,7 @@ struct MetricDetailView: View {
 
     private func secondaryActionCard(
         title: String,
+        subtitle: String? = nil,
         icon: String,
         color: Color,
         isActive: Bool = true,
@@ -1341,13 +1343,24 @@ struct MetricDetailView: View {
                             lineWidth: 1
                         )
                 )
-            Text(title)
-                .font(AppTypography.caption)
-                .foregroundStyle(AppColorRoles.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.82)
-                .allowsTightening(true)
-                .layoutPriority(1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+                    .allowsTightening(true)
+
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                        .allowsTightening(true)
+                }
+            }
+            .layoutPriority(1)
             if showsChevron {
                 Image(systemName: "chevron.right")
                     .font(AppTypography.micro)
@@ -1945,8 +1958,9 @@ struct MetricDetailView: View {
     }
 
     static func chartDomain(for values: [Double], kind: MetricKind) -> ClosedRange<Double> {
-        let minV = values.min() ?? 0
-        let maxV = values.max() ?? 1
+        let sanitizedValues = values.filter(\.isFinite)
+        let minV = sanitizedValues.min() ?? 0
+        let maxV = sanitizedValues.max() ?? 1
         let span = max(maxV - minV, minimalSpan(for: kind))
         let padding = max(span * 0.10, minimalPadding(for: kind))
         return (minV - padding)...(maxV + padding)

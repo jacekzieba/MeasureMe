@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Minimalistyczny wykres liniowy (sparkline) bez osi, tła - tylko linia trendu
-/// Pokazuje trend za ostatnie 30 dni z kolorystyką: wzrost = zielony, spadek = czerwony
-/// Zoptymalizowany dla kompaktowych kafelków zgodnie z Apple Design Guidelines
+/// Minimalist line chart (sparkline) without axes or background - only the trend line
+/// Shows trend for the last 30 days with coloring: increase = green, decrease = red
+/// Optimized for compact tiles following Apple Design Guidelines
 struct MiniSparklineChart: View {
     let kind: MetricKind
     private let recentSamples: [MetricSample]
@@ -55,7 +55,7 @@ struct MiniSparklineChart: View {
             let color = trendColor
 
             if points.isEmpty {
-                // Brak danych - bardziej subtelny placeholder
+                // No data - more subtle placeholder
                 Path { path in
                     let midY = geometry.size.height / 2
                     path.move(to: CGPoint(x: 0, y: midY))
@@ -63,9 +63,9 @@ struct MiniSparklineChart: View {
                 }
                 .stroke(Color.gray.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [2, 2]))
             } else {
-                // Rysuj sparkline z gradientem pod linią
+                // Draw sparkline with gradient fill below the line
                 ZStack(alignment: .bottom) {
-                    // Gradient fill pod linią (opcjonalny - subtelny)
+                    // Gradient fill below the line (optional - subtle)
                     Path { path in
                         guard let firstPoint = points.first else { return }
                         
@@ -90,7 +90,7 @@ struct MiniSparklineChart: View {
                         )
                     )
                     
-                    // Główna linia trendu
+                    // Main trend line
                     Path { path in
                         guard let firstPoint = points.first else { return }
                         
@@ -109,7 +109,7 @@ struct MiniSparklineChart: View {
         .accessibilityValue(trendAccessibilityValue)
     }
     
-    /// Normalizuje punkty danych do wymiarów widoku
+    /// Normalizes data points to the view dimensions
     private func normalizedPoints(in size: CGSize) -> [CGPoint] {
         guard !recentSamples.isEmpty else { return [] }
         
@@ -118,10 +118,10 @@ struct MiniSparklineChart: View {
         let maxValue = values.max() ?? 0
         let range = maxValue - minValue
         
-        // Jeśli wszystkie wartości są takie same, rysuj linię prostą na środku
+        // If all values are the same, draw a straight line in the middle
         let useRange = range > 0 ? range : 1
         
-        // Dodaj padding 10% z góry i dołu dla lepszej prezentacji
+        // Add 10% padding top and bottom for better presentation
         let padding: CGFloat = 0.1
         let adjustedHeight = size.height * (1 - 2 * padding)
         
@@ -130,7 +130,7 @@ struct MiniSparklineChart: View {
                 ? size.width * CGFloat(index) / CGFloat(recentSamples.count - 1)
                 : size.width / 2
             
-            // Odwróć oś Y (0 na górze, height na dole) + padding
+            // Invert Y axis (0 at top, height at bottom) + padding
             let normalizedValue = (sample.value - minValue) / useRange
             let y = size.height * padding + adjustedHeight * (1 - normalizedValue)
             

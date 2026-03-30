@@ -165,7 +165,57 @@ struct PremiumPaywallView: View {
                     }
                     .padding(.top, 20)
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 28)
+                        .padding(.bottom, 28)
+                }
+
+                if shouldPresentUITestPostPurchaseSetup && premium.showPostPurchaseSetup {
+                    Color.black.opacity(0.2)
+                        .ignoresSafeArea()
+
+                    VStack(spacing: 12) {
+                        Text(AppLocalization.string("postpurchase.title"))
+                            .font(AppTypography.displaySection)
+                            .multilineTextAlignment(.center)
+
+                        Button(AppLocalization.string("postpurchase.getstarted")) {
+                            premium.showPostPurchaseSetup = false
+                            premium.dismissPaywall()
+                        }
+                        .buttonStyle(AppAccentButtonStyle())
+                        .accessibilityIdentifier("postpurchase.getstarted")
+                    }
+                    .padding(24)
+                    .frame(maxWidth: .infinity)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("postpurchase.sheet")
+                }
+
+                if UITestArgument.isAnyTestMode {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if premium.canSimulateTrialActivationForUITests {
+                            Color.clear
+                                .frame(width: 1, height: 1)
+                                .accessibilityIdentifier("uitest.debug.premium.simulatedActivation.enabled")
+                        }
+
+                        if premium.isPremium {
+                            Color.clear
+                                .frame(width: 1, height: 1)
+                                .accessibilityIdentifier("uitest.debug.premium.active")
+                        }
+
+                        if premium.showPostPurchaseSetup {
+                            Color.clear
+                                .frame(width: 1, height: 1)
+                                .accessibilityIdentifier("uitest.debug.postpurchase.flag")
+                        }
+                    }
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(false)
                 }
 
                 Button {
@@ -218,8 +268,15 @@ struct PremiumPaywallView: View {
         }
         .onChange(of: premium.isPremium) { _, isPremium in
             if isPremium {
-                premium.dismissPaywall()
+                if !shouldPresentUITestPostPurchaseSetup || !premium.showPostPurchaseSetup {
+                    premium.dismissPaywall()
+                }
             }
+        }
+        .onChange(of: premium.showPostPurchaseSetup) { _, isPresented in
+            guard shouldPresentUITestPostPurchaseSetup else { return }
+            guard !isPresented, premium.isPremium else { return }
+            premium.dismissPaywall()
         }
         .onChange(of: shouldAnimateCTA) { _, shouldAnimate in
             isCTAPulsing = shouldAnimate
@@ -1128,5 +1185,9 @@ struct PremiumPaywallView: View {
     private func formatPrice(_ amount: Decimal, formatter: NumberFormatter?) -> String? {
         guard let formatter else { return nil }
         return formatter.string(from: amount as NSDecimalNumber)
+    }
+
+    private var shouldPresentUITestPostPurchaseSetup: Bool {
+        premium.canSimulateTrialActivationForUITests
     }
 }

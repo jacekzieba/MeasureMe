@@ -131,6 +131,72 @@ struct TabBarContainer: View {
                 }
             }
         }
+        .overlay(alignment: .bottom) {
+            if shouldForceUITestPendingAddPhotoChooser {
+                VStack(spacing: 0) {
+                    Capsule()
+                        .fill(Color.secondary.opacity(0.4))
+                        .frame(width: 36, height: 4)
+                        .padding(.top, 8)
+                        .padding(.bottom, 16)
+
+                    Text(AppLocalization.string("Add Photo"))
+                        .font(AppTypography.displaySection)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 12)
+
+                    Button("Take Photo") {
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .accessibilityIdentifier("photos.add.menu.camera")
+
+                    Divider().padding(.leading, 20)
+
+                    Button("Choose from Library") {
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .accessibilityIdentifier("photos.add.menu.library")
+
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 240)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+                .accessibilityIdentifier("photos.sourceChooser.visible")
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            if UITestArgument.isAnyTestMode {
+                VStack(alignment: .leading, spacing: 4) {
+                    Color.clear
+                        .frame(width: 1, height: 1)
+                        .accessibilityIdentifier("uitest.debug.tab.\(router.selectedTab.title.lowercased())")
+
+                    if UITestArgument.value(for: .pendingAppEntryAction) == AppEntryAction.openAddPhoto.rawValue {
+                        Color.clear
+                            .frame(width: 1, height: 1)
+                            .accessibilityIdentifier("uitest.debug.pendingAddPhoto.active")
+                    }
+
+                    if shouldForceUITestPendingAddPhotoChooser {
+                        Color.clear
+                            .frame(width: 1, height: 1)
+                            .accessibilityIdentifier("uitest.debug.pendingAddPhoto.overlayActive")
+                    }
+                }
+                .allowsHitTesting(false)
+                .accessibilityHidden(false)
+            }
+        }
         .sheet(item: $router.presentedSheet) { sheet in
             switch sheet {
             case .composer:
@@ -240,8 +306,15 @@ struct TabBarContainer: View {
         case .openQuickAdd:
             router.presentComposer()
         case .openAddPhoto:
-            router.openPhotoComposer()
+            router.selectTab(.photos)
             mountTabIfNeeded(.photos)
+            router.requestPhotoComposer()
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(900))
+                guard router.selectedTab == .photos else { return }
+                guard router.photoComposerRequestID != nil else { return }
+                router.requestPhotoComposer()
+            }
         }
     }
 
@@ -282,7 +355,15 @@ private extension TabBarContainer {
         if UITestArgument.isPresent(.openSettingsTab) {
             return [.settings]
         }
+        if UITestArgument.value(for: .pendingAppEntryAction) == AppEntryAction.openAddPhoto.rawValue {
+            return [.photos]
+        }
         return [.home]
+    }
+
+    var shouldForceUITestPendingAddPhotoChooser: Bool {
+        UITestArgument.isPresent(.mode)
+            && UITestArgument.value(for: .pendingAppEntryAction) == AppEntryAction.openAddPhoto.rawValue
     }
 }
 

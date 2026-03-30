@@ -133,8 +133,8 @@ private extension AddPhotoView {
 
     @ViewBuilder
     var photoSelectionCard: some View {
-        // Karta wyboru zdjęcia znika gdy obraz jest już wybrany.
-        // Kamera i biblioteka nadal dostępne przez photoPreviewCard (zamiana zdjęcia).
+        // Photo selection card disappears when an image is already selected.
+        // Camera and library remain available via photoPreviewCard (swap photo).
         if selectedImage == nil && !isLoadingPreview {
             AppGlassCard(
                 depth: .elevated,
@@ -249,7 +249,7 @@ private extension AddPhotoView {
 // MARK: - Computed Properties
 private extension AddPhotoView {
     
-    /// Tagi dostępne do wyboru (whole body + aktywne metryki z wyjątkiem weight, body fat, lean mass)
+    /// Tags available for selection (whole body + active metrics except weight, body fat, lean mass)
     var availableTags: [PhotoTag] {
         var tags: [PhotoTag] = [.wholeBody]
         
@@ -376,7 +376,7 @@ private extension AddPhotoView {
 
 // MARK: - Supporting Views
 
-/// Pole do wprowadzania wartości metryki
+/// Field for entering a metric value
 private struct MetricValueField: View {
     let kind: MetricKind
     @Binding var value: Double?
@@ -425,8 +425,8 @@ private struct MetricValueField: View {
 
 // MARK: - Multi-photo payload
 
-/// Wrapper Identifiable przekazujący obrazy do sheet(item:).
-/// Gwarantuje że SwiftUI czyta dane w momencie prezentacji sheetu.
+/// Identifiable wrapper for passing images to sheet(item:).
+/// Ensures SwiftUI reads data at the moment the sheet is presented.
 struct MultiPhotoImportPayload: Identifiable {
     let id = UUID()
     let items: [Item]

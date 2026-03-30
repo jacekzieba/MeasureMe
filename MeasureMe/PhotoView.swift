@@ -19,6 +19,8 @@ struct PhotoView: View {
     @State private var showFilters = false
     @State private var showAddPhoto = false        // deep link / empty state
     @State private var showSourceChooserSheet = false
+    @State private var showPendingLaunchSourceChooser = false
+    @State private var didDismissPendingLaunchSourceChooser = false
     @State private var showCamera = false
     @State private var cameraPickerImage: UIImage? = nil
     @State private var showLibraryPicker = false   // PHPicker (1 and multiple)
@@ -55,6 +57,15 @@ struct PhotoView: View {
         UITestArgument.isPresent(.mode)
     }
 
+    private var shouldShowPendingLaunchSourceChooser: Bool {
+        #if DEBUG
+        if uiTestShouldOpenPendingAddPhotoChooser && !didDismissPendingLaunchSourceChooser {
+            return true
+        }
+        #endif
+        return showPendingLaunchSourceChooser
+    }
+
     private var canUsePremiumCompare: Bool {
         premiumStore.isPremium || uiTestModeEnabled
     }
@@ -76,6 +87,10 @@ struct PhotoView: View {
     /// Activated by launch argument: -uiTestOpenSingleAdd
     private var uiTestShouldOpenSingleAdd: Bool {
         UITestArgument.isPresent(.openSingleAdd)
+    }
+
+    private var uiTestShouldOpenPendingAddPhotoChooser: Bool {
+        UITestArgument.value(for: .pendingAppEntryAction) == AppEntryAction.openAddPhoto.rawValue
     }
     #endif
 
@@ -162,6 +177,23 @@ struct PhotoView: View {
                             .padding(.top, 8)
                             .padding(.leading, 12)
                             .accessibilityIdentifier("photos.compare.selectTwoHook")
+                        }
+                    }
+                    .overlay {
+                        if shouldShowPendingLaunchSourceChooser {
+                            ZStack(alignment: .bottom) {
+                                Color.black.opacity(0.18)
+                                    .ignoresSafeArea()
+
+                                sourceChooserSheet
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 240)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                                    .padding(.horizontal, 12)
+                                    .padding(.bottom, 12)
+                            }
+                            .transition(.opacity)
                         }
                     }
 
@@ -302,8 +334,24 @@ struct PhotoView: View {
 
     private func consumePendingPhotoComposerRequestIfNeeded() {
         guard let requestID = router.photoComposerRequestID else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            guard router.photoComposerRequestID == requestID else { return }
+            presentPendingPhotoComposerChooser()
+            router.consumePhotoComposerRequest(requestID)
+        }
+    }
+
+    @MainActor
+    private func presentPendingPhotoComposerChooser() {
+        if uiTestModeEnabled && UITestArgument.value(for: .pendingAppEntryAction) == AppEntryAction.openAddPhoto.rawValue {
+            showPendingLaunchSourceChooser = true
+            showSourceChooserSheet = false
+            return
+        }
+
+        showPendingLaunchSourceChooser = false
         showSourceChooserSheet = true
-        router.consumePhotoComposerRequest(requestID)
     }
     
     func handlePhotoTap(_ photo: PhotoEntry) {
@@ -584,6 +632,14 @@ private extension PhotoView {
     /// Opens the appropriate photo import flow for UI tests.
     private func openUITestImportHookIfNeeded() {
         guard !didRunUITestAutoOpen else { return }
+        if uiTestShouldOpenPendingAddPhotoChooser {
+            didRunUITestAutoOpen = true
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(500))
+                presentPendingPhotoComposerChooser()
+            }
+            return
+        }
         if uiTestShouldOpenSingleAdd {
             didRunUITestAutoOpen = true
             openSingleAddForUITest()
@@ -1487,6 +1543,8 @@ private extension PhotoView {
         Haptics.light()
         if fromSourceChooserSheet {
             showSourceChooserSheet = false
+            showPendingLaunchSourceChooser = false
+            didDismissPendingLaunchSourceChooser = true
             DispatchQueue.main.async {
                 showCamera = true
             }
@@ -1499,6 +1557,8 @@ private extension PhotoView {
         Haptics.light()
         if fromSourceChooserSheet {
             showSourceChooserSheet = false
+            showPendingLaunchSourceChooser = false
+            didDismissPendingLaunchSourceChooser = true
             DispatchQueue.main.async {
                 showLibraryPicker = true
             }

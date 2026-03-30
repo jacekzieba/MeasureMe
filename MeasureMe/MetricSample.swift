@@ -1,21 +1,21 @@
 // MetricSample.swift
 //
 // **MetricSample**
-// Model SwiftData reprezentujący pojedynczy pomiar metryki.
+// SwiftData model representing a single metric measurement.
 //
-// **Struktura:**
-// - Każdy pomiar przypisany do jednej metryki (przez kindRaw)
-// - Wartość zawsze w jednostkach bazowych (metrycznych)
-// - Data pomiaru z dokładnością do minuty
+// **Structure:**
+// - Each measurement is assigned to one metric (via kindRaw)
+// - Value is always in base (metric) units
+// - Measurement date with minute precision
 //
-// **Jednostki bazowe:**
-// - Waga (weight, leanBodyMass): kilogramy (kg)
-// - Wymiary (height, waist, neck, itp.): centymetry (cm)  
-// - Body Fat: procent jako 0.0-100.0
+// **Base units:**
+// - Weight (weight, leanBodyMass): kilograms (kg)
+// - Dimensions (height, waist, neck, etc.): centimeters (cm)
+// - Body Fat: percentage as 0.0-100.0
 //
-// **Konwersja jednostek:**
-// - Konwersja metric ↔ imperial obsługiwana przez MetricKind
-// - Widoki zawsze konwertują przed wyświetleniem
+// **Unit conversion:**
+// - Metric ↔ imperial conversion handled by MetricKind
+// - Views always convert before display
 //
 import SwiftData
 import Foundation

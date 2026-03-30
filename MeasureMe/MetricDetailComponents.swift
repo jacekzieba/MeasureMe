@@ -321,6 +321,7 @@ extension MetricDetailView {
             existingGoal: currentGoal,
             existingSamples: samples
         )
+        try? context.save()
         WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
     }
     
@@ -328,6 +329,7 @@ extension MetricDetailView {
     func deleteGoal() {
         if let goal = currentGoal {
             context.delete(goal)
+            try? context.save()
             WidgetDataWriter.writeAndReload(kinds: [kind], context: context, unitsSystem: unitsSystem)
         }
     }
