@@ -17,85 +17,73 @@ struct AppScreenBackground: View {
                 AppColorRoles.surfaceCanvas
                     .ignoresSafeArea()
 
-                LinearGradient(
-                    colors: colorScheme == .dark
-                        ? [
+                if colorScheme == .dark {
+                    LinearGradient(
+                        colors: [
                             Color.appNavy.opacity(0.95),
                             Color.appBlack
-                        ]
-                        : [
-                            Color(hex: "#F1F1F0"),
-                            Color(hex: "#ECECEA"),
-                            Color(hex: "#E3E3E0"),
-                            Color(hex: "#EFEFED")
                         ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-
-                blob(
-                    color: colorScheme == .dark
-                        ? tint
-                        : Color(hex: "#E1E1DE").opacity(0.68),
-                    width: width * 0.95,
-                    height: topHeight * 0.78
-                )
-                .offset(
-                    x: -width * 0.08,
-                    y: -88 + parallax
-                )
-
-                blob(
-                    color: colorScheme == .dark
-                        ? Color.cyan.opacity(0.18)
-                        : Color(hex: "#D8D8D5").opacity(0.46),
-                    width: width * 0.86,
-                    height: topHeight * 0.68
-                )
-                .offset(
-                    x: width * 0.20,
-                    y: 20 + parallax * 0.6
-                )
-
-                blob(
-                    color: colorScheme == .dark
-                        ? Color.white.opacity(0.10)
-                        : Color(hex: "#F3F3F1").opacity(0.32),
-                    width: width * 0.65,
-                    height: topHeight * 0.48
-                )
-                .offset(
-                    x: -width * 0.18,
-                    y: 62 + parallax * 0.5
-                )
-
-                if showsSpotlight {
-                    Ellipse()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.10),
-                                    Color.white.opacity(0.03),
-                                    .clear
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .opacity(colorScheme == .dark ? 1 : 0.72)
-                        .frame(width: width * 0.58, height: topHeight * 0.66)
-                        .blur(radius: 18)
-                        .offset(
-                            x: width * 0.22,
-                            y: -topHeight * 0.16 + parallax * 0.7
-                        )
-                }
-
-                FilmGrainOverlay()
-                    .blendMode(colorScheme == .dark ? .softLight : .overlay)
-                    .opacity(colorScheme == .dark ? 0.11 : 0.05)
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
                     .ignoresSafeArea()
+
+                    blob(
+                        color: tint,
+                        width: width * 0.95,
+                        height: topHeight * 0.78
+                    )
+                    .offset(
+                        x: width * 0.16,
+                        y: -108 + parallax
+                    )
+
+                    blob(
+                        color: Color.cyan.opacity(0.18),
+                        width: width * 0.86,
+                        height: topHeight * 0.68
+                    )
+                    .offset(
+                        x: -width * 0.18,
+                        y: 18 + parallax * 0.6
+                    )
+
+                    blob(
+                        color: Color.white.opacity(0.10),
+                        width: width * 0.65,
+                        height: topHeight * 0.48
+                    )
+                    .offset(
+                        x: width * 0.22,
+                        y: 54 + parallax * 0.5
+                    )
+
+                    if showsSpotlight {
+                        Ellipse()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.10),
+                                        Color.white.opacity(0.03),
+                                        .clear
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .frame(width: width * 0.58, height: topHeight * 0.66)
+                            .blur(radius: 18)
+                            .offset(
+                                x: -width * 0.08,
+                                y: -topHeight * 0.12 + parallax * 0.7
+                            )
+                    }
+
+                    FilmGrainOverlay()
+                        .blendMode(.softLight)
+                        .opacity(0.11)
+                        .ignoresSafeArea()
+                }
             }
             .drawingGroup()
         }
@@ -135,7 +123,7 @@ private struct FilmGrainOverlay: View {
                     Path(point),
                     with: .color(
                         (colorScheme == .dark ? Color.white : Color.appInk)
-                            .opacity(Double(alpha))
+                            .opacity(colorScheme == .dark ? Double(alpha) : Double(alpha * 0.32))
                     )
                 )
             }

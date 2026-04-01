@@ -46,6 +46,8 @@ enum AppSettingsKeys {
         static let onboardingChecklistMetricsCompleted = "onboarding_checklist_metrics_completed"
         static let onboardingChecklistPremiumExplored = "onboarding_checklist_premium_explored"
         static let onboardingPrimaryGoal = "onboarding_primary_goal"
+        static let onboardingActivationCompleted = "onboarding_activation_completed"
+        static let activationTriggerQuickAdd = "onboarding_activation_trigger_quick_add"
     }
 
     enum Health {

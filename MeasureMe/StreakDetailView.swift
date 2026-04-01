@@ -144,17 +144,13 @@ struct StreakDetailView: View {
                 AllLogsView()
             }
             .onAppear {
-                loadHeatmapData()
-                syncVacationDurationFromState()
-                if shouldAnimate {
-                    startFlameAnimation()
-                }
+                handleStreakDetailAppear()
             }
             .onChange(of: streakManager.isVacationModeActive) { _, _ in
-                syncVacationDurationFromState()
+                handleVacationStateChange()
             }
             .onChange(of: streakManager.vacationWeeksRemaining) { _, _ in
-                syncVacationDurationFromState()
+                handleVacationStateChange()
             }
         }
     }
@@ -163,9 +159,7 @@ struct StreakDetailView: View {
 
     private var headerBar: some View {
         HStack {
-            Button {
-                dismiss()
-            } label: {
+            Button(action: dismissStreakDetail) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(streakText)
@@ -328,10 +322,7 @@ struct StreakDetailView: View {
             }
 
             Button {
-                Haptics.selection()
-                withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-                    isVacationPickerExpanded.toggle()
-                }
+                toggleVacationPicker()
             } label: {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -405,9 +396,7 @@ struct StreakDetailView: View {
             }
 
             HStack(spacing: 12) {
-                Button {
-                    applyVacationModeSelection()
-                } label: {
+                Button(action: applyVacationModeSelection) {
                     Text(
                         AppLocalization.string(
                             streakManager.isVacationModeActive
@@ -427,9 +416,7 @@ struct StreakDetailView: View {
                 .buttonStyle(.plain)
 
                 if streakManager.isVacationModeActive {
-                    Button {
-                        streakManager.disableVacationMode()
-                    } label: {
+                    Button(action: disableVacationMode) {
                         Text(AppLocalization.string("streak.detail.vacation.disable"))
                             .font(AppTypography.bodyEmphasis)
                             .foregroundStyle(streakText)
@@ -467,6 +454,33 @@ struct StreakDetailView: View {
             )
         }
         return AppLocalization.string("streak.detail.vacation.inactive")
+    }
+
+    private func handleStreakDetailAppear() {
+        loadHeatmapData()
+        syncVacationDurationFromState()
+        if shouldAnimate {
+            startFlameAnimation()
+        }
+    }
+
+    private func handleVacationStateChange() {
+        syncVacationDurationFromState()
+    }
+
+    private func dismissStreakDetail() {
+        dismiss()
+    }
+
+    private func toggleVacationPicker() {
+        Haptics.selection()
+        withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+            isVacationPickerExpanded.toggle()
+        }
+    }
+
+    private func disableVacationMode() {
+        streakManager.disableVacationMode()
     }
 
     private struct WeekDay {
@@ -514,10 +528,12 @@ struct StreakDetailView: View {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(
-                        LinearGradient(
+                        ClaudeLightStyle.directionalGradient(
                             colors: day.isToday
                                 ? [Color.yellow, Color.orange]
                                 : [Color.orange.opacity(0.9), Color.red.opacity(0.7)],
+                            colorScheme: colorScheme,
+                            lightColor: day.isToday ? Color.appAccent : Color.orange,
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -588,8 +604,10 @@ struct StreakDetailView: View {
 
                                 Capsule()
                                     .fill(
-                                        LinearGradient(
+                                        ClaudeLightStyle.directionalGradient(
                                             colors: [Color.yellow, Color.orange],
+                                            colorScheme: colorScheme,
+                                            lightColor: Color.appAccent,
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
@@ -623,8 +641,20 @@ struct StreakDetailView: View {
                     .font(.system(size: 24, weight: .semibold))
                     .foregroundStyle(
                         isActive
-                        ? LinearGradient(colors: [.yellow, .orange], startPoint: .top, endPoint: .bottom)
-                        : LinearGradient(colors: [streakSubtle, streakSubtle.opacity(0.5)], startPoint: .top, endPoint: .bottom)
+                        ? ClaudeLightStyle.directionalGradient(
+                            colors: [.yellow, .orange],
+                            colorScheme: colorScheme,
+                            lightColor: Color.appAccent,
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        : ClaudeLightStyle.directionalGradient(
+                            colors: [streakSubtle, streakSubtle.opacity(0.5)],
+                            colorScheme: colorScheme,
+                            lightColor: streakSubtle,
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
                     )
             }
 
@@ -1185,31 +1215,19 @@ private struct AllLogsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .onAppear {
-            if pagedSamples.isEmpty {
-                resetAndLoad()
-            }
+            handleAllLogsAppear()
         }
         .onChange(of: sourceFilter) { _, _ in
-            resetAndLoad()
+            handleAllLogsSourceFilterChange()
         }
         .onChange(of: dateFilter) { _, _ in
-            resetAndLoad()
+            handleAllLogsDateFilterChange()
         }
         .onChange(of: customStartDate) { _, newValue in
-            if newValue > customEndDate {
-                customEndDate = newValue
-            }
-            if dateFilter == .custom {
-                resetAndLoad()
-            }
+            handleAllLogsCustomStartDateChange(newValue)
         }
         .onChange(of: customEndDate) { _, newValue in
-            if newValue < customStartDate {
-                customStartDate = newValue
-            }
-            if dateFilter == .custom {
-                resetAndLoad()
-            }
+            handleAllLogsCustomEndDateChange(newValue)
         }
     }
 
@@ -1277,7 +1295,7 @@ private struct AllLogsView: View {
                 ForEach(pagedSamples, id: \.persistentModelID) { sample in
                     row(for: sample)
                         .onAppear {
-                            loadNextPageIfNeeded(currentSample: sample)
+                            handleAllLogsRowAppear(sample)
                         }
                 }
 
@@ -1338,6 +1356,42 @@ private struct AllLogsView: View {
                 Capsule(style: .continuous)
                     .fill(.white.opacity(0.12))
             )
+    }
+
+    private func handleAllLogsAppear() {
+        if pagedSamples.isEmpty {
+            resetAndLoad()
+        }
+    }
+
+    private func handleAllLogsSourceFilterChange() {
+        resetAndLoad()
+    }
+
+    private func handleAllLogsDateFilterChange() {
+        resetAndLoad()
+    }
+
+    private func handleAllLogsCustomStartDateChange(_ newValue: Date) {
+        if newValue > customEndDate {
+            customEndDate = newValue
+        }
+        if dateFilter == .custom {
+            resetAndLoad()
+        }
+    }
+
+    private func handleAllLogsCustomEndDateChange(_ newValue: Date) {
+        if newValue < customStartDate {
+            customStartDate = newValue
+        }
+        if dateFilter == .custom {
+            resetAndLoad()
+        }
+    }
+
+    private func handleAllLogsRowAppear(_ sample: MetricSample) {
+        loadNextPageIfNeeded(currentSample: sample)
     }
 
     private func metricTitle(for sample: MetricSample) -> String {

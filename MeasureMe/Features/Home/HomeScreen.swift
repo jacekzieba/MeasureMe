@@ -42,10 +42,12 @@ struct HomeView: View {
     @AppSetting(\.home.homeTabScrollOffset) private var homeTabScrollOffset: Double = 0.0
     @AppSetting(\.onboarding.onboardingSkippedHealthKit) private var onboardingSkippedHealthKit: Bool = false
     @AppSetting(\.onboarding.onboardingSkippedReminders) private var onboardingSkippedReminders: Bool = false
+    // activationTriggerQuickAdd removed — first measurement now happens during onboarding
     @AppSetting(\.onboarding.onboardingChecklistShow) private var showOnboardingChecklistOnHome: Bool = true
     @AppSetting(\.onboarding.onboardingChecklistMetricsCompleted) private var onboardingChecklistMetricsCompleted: Bool = false
     @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
     @AppSetting(\.onboarding.onboardingChecklistCollapsed) private var onboardingChecklistCollapsed: Bool = false
+    @AppSetting(\.onboarding.onboardingPrimaryGoal) private var onboardingPrimaryGoalsRaw: String = ""
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
     @AppSetting(\.home.settingsOpenHomeSettings) private var settingsOpenHomeSettings: Bool = false
@@ -72,13 +74,13 @@ struct HomeView: View {
     @State private var selectedPhotoForFullScreen: PhotoEntry?
     @State private var selectedHomeComparePair: HomeComparePair?
     @State private var scrollOffset: CGFloat = 0
-    @State private var lastPhotosGridWidth: CGFloat = 0
     @State private var checklistStatusText: String?
     @State private var isChecklistConnectingHealth: Bool = false
     @State private var shouldShowHealthSettingsShortcut: Bool = false
     @State private var shouldPromptToOpenHealthSettings: Bool = false
     @State private var reminderChecklistCompleted: Bool = false
     @State private var showMoreChecklistItems: Bool = false
+    @State private var didTrackPrimaryChecklistShown: Bool = false
     @State private var expandedSecondaryMetrics: Set<MetricKind> = []
     @State private var didCheckSevenDayPaywallPrompt: Bool = false
     @State private var didRunStartupPhases = false
@@ -105,6 +107,8 @@ struct HomeView: View {
     @State private var cachedCustomLatestByIdentifier: [String: MetricSample] = [:]
     @State private var cachedCustomGoalsByIdentifier: [String: MetricGoal] = [:]
     @State private var cachedDashboardItems: [HomeModuleLayoutItem] = []
+    @State private var cachedVisiblePhotoTiles: [HomePhotoTile] = []
+    @State private var cachedNextFocusInsight: HomeNextFocusInsight?
 
     private let maxVisibleMetrics = 3
     private let maxVisiblePhotos = 6
@@ -232,7 +236,7 @@ struct HomeView: View {
         let linkedMetrics: [PhotoSyncSnapshotPayload]
     }
 
-    private enum HomePhotoTile: Identifiable {
+    fileprivate enum HomePhotoTile: Identifiable {
         case persisted(PhotoEntry)
         case pending(PendingPhotoSaveItem)
 
@@ -254,16 +258,6 @@ struct HomeView: View {
             }
         }
     }
-    
-    private var lastPhotosGridSide: CGFloat {
-        let spacing: CGFloat = 8
-        let totalSpacing = spacing * 2
-        guard lastPhotosGridWidth.isFinite, lastPhotosGridWidth > 0 else { return 86 }
-        let raw = (lastPhotosGridWidth - totalSpacing) / 3
-        guard raw.isFinite, raw > 0 else { return 86 }
-        return max(floor(raw), 86)
-    }
-
     
     /// Widoczne metryki (maksymalnie 3)
     private var visibleMetrics: [MetricKind] {
@@ -288,13 +282,7 @@ struct HomeView: View {
     
     /// Widoczne kafelki zdjęć (persisted + pending, maksymalnie 6)
     private var visiblePhotoTiles: [HomePhotoTile] {
-        let persistedCandidateLimit = maxVisiblePhotos * 3
-        let persistedTiles = recentPhotos.prefix(persistedCandidateLimit).map { HomePhotoTile.persisted($0) }
-        let pendingTiles = pendingPhotoSaveStore.pendingItems.map { HomePhotoTile.pending($0) }
-        return (persistedTiles + pendingTiles)
-            .sorted { lhs, rhs in lhs.date > rhs.date }
-            .prefix(maxVisiblePhotos)
-            .map { $0 }
+        cachedVisiblePhotoTiles
     }
 
     private var dashboardRecentPhotoTiles: [HomePhotoTile] {
@@ -479,6 +467,7 @@ struct HomeView: View {
             hasAnyMeasurements = false
         }
 
+        rebuildNextFocusInsightCache()
         autoHideChecklistIfCompleted()
     }
 
@@ -494,6 +483,7 @@ struct HomeView: View {
         let newestPhotos = (try? modelContext.fetch(descriptor)) ?? []
         hasAnySavedPhotosInStore = !newestPhotos.isEmpty
         hasEnoughSavedPhotosForCompareInStore = newestPhotos.count >= 2
+        rebuildVisiblePhotoTilesCache()
     }
 
     private enum PhotoSyncMode {
@@ -779,6 +769,22 @@ struct HomeView: View {
             }
         }
         cachedGoalsByKind = dict
+        rebuildNextFocusInsightCache()
+    }
+
+    private func rebuildVisiblePhotoTilesCache() {
+        let persistedCandidateLimit = maxVisiblePhotos * 3
+        let persistedTiles = recentPhotos.prefix(persistedCandidateLimit).map { HomePhotoTile.persisted($0) }
+        let pendingTiles = pendingPhotoSaveStore.pendingItems.map { HomePhotoTile.pending($0) }
+        cachedVisiblePhotoTiles = Array(
+            (persistedTiles + pendingTiles)
+                .sorted { lhs, rhs in lhs.date > rhs.date }
+                .prefix(maxVisiblePhotos)
+        )
+    }
+
+    private func rebuildNextFocusInsightCache() {
+        cachedNextFocusInsight = computeNextFocusInsight()
     }
 
     private var dashboardColumns: Int {
@@ -866,9 +872,7 @@ struct HomeView: View {
                     .clipped()
 
                 if activeChecklistItems.count > collapsedChecklistItems.count {
-                    Button("expand") {
-                        showMoreChecklistItems = true
-                    }
+                    Button("expand", action: handleUITestShowMoreChecklistTap)
                     .buttonStyle(.plain)
                     .frame(width: 44, height: 44)
                     .opacity(0.01)
@@ -908,11 +912,7 @@ struct HomeView: View {
             }
 
             ForEach(Array(expandedSecondaryMetrics), id: \.self) { kind in
-                Button("collapse") {
-                    withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-                        _ = expandedSecondaryMetrics.remove(kind)
-                    }
-                }
+                Button("collapse") { collapseSecondaryMetric(kind) }
                 .buttonStyle(.plain)
                 .frame(width: 44, height: 44)
                 .opacity(0.01)
@@ -970,14 +970,7 @@ struct HomeView: View {
             }
             .coordinateSpace(name: "homeScroll")
             .onPreferenceChange(HomeScrollOffsetKey.self) { value in
-                scrollOffset = value
-                let normalizedOffset = Double(value)
-                // Defer AppSetting write to avoid publishing during the view-update pass.
-                if abs(homeTabScrollOffset - normalizedOffset) > 0.5 {
-                    Task { @MainActor in
-                        homeTabScrollOffset = normalizedOffset
-                    }
-                }
+                handleHomeScrollOffsetChange(value)
             }
 
             if isUITestMode {
@@ -1044,27 +1037,13 @@ struct HomeView: View {
     ) -> some View {
         content
             .onAppear {
-                Task { @MainActor in
-                    refreshPhotoStoreState()
-                    rebuildDashboardItemsCache()
-                    if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
-                        didCheckSevenDayPaywallPrompt = true
-                        premiumStore.checkSevenDayPromptIfNeeded()
-                    }
-                    if UITestArgument.isPresent(.expandChecklist) {
-                        showMoreChecklistItems = true
-                    }
-                    emitHomeInitialRenderIfNeeded()
-                    runStartupPhasesIfNeeded()
-                }
+                handleHomeAppear()
             }
             .onDisappear {
-                expandedSecondaryMetrics.removeAll()
+                handleHomeDisappear()
             }
             .onReceive(NotificationCenter.default.publisher(for: .homeScrollToChecklist)) { _ in
-                withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-                    scrollProxy.scrollTo(HomeModuleKind.setupChecklist.rawValue, anchor: .top)
-                }
+                scrollToChecklist(using: scrollProxy)
             }
     }
 
@@ -1075,6 +1054,7 @@ struct HomeView: View {
             }
             .onChange(of: metricsStore.activeKinds) { _, _ in
                 refreshMeasurementCaches()
+                rebuildVisiblePhotoTilesCache()
             }
             .onChange(of: goals.count) { _, _ in
                 rebuildGoalsCache()
@@ -1098,6 +1078,9 @@ struct HomeView: View {
                     scheduleDeferredStartupPhaseC(delayMilliseconds: 900)
                 }
             }
+            .onChange(of: pendingPhotoItemsSignature) { _, _ in
+                refreshPhotoStoreState()
+            }
             .onChange(of: onboardingChecklistMetricsCompleted) { _, _ in
                 refreshChecklistState()
             }
@@ -1120,6 +1103,7 @@ struct HomeView: View {
             }
             .onChange(of: showMeasurementsOnHome) { _, _ in
                 rebuildDashboardItemsCache()
+                rebuildNextFocusInsightCache()
             }
             .onChange(of: showLastPhotosOnHome) { _, _ in
                 rebuildDashboardItemsCache()
@@ -1131,19 +1115,67 @@ struct HomeView: View {
                 rebuildDashboardItemsCache()
             }
 
-        return Group {
-            if showStreakDetail {
-                observedContent
-            } else {
-                observedContent
-                    .refreshable {
-                        await syncMeasurementsFromPhotosIfNeeded(force: true)
-                        refreshMeasurementCaches()
-                        rebuildGoalsCache()
-                        fetchHealthKitData()
-                        refreshChecklistState()
-                    }
+        return observedContent
+            .refreshable {
+                await refreshHomeContent()
             }
+    }
+
+    private func handleHomeAppear() {
+        Task { @MainActor in
+            refreshPhotoStoreState()
+            rebuildVisiblePhotoTilesCache()
+            rebuildDashboardItemsCache()
+            if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
+                didCheckSevenDayPaywallPrompt = true
+                premiumStore.checkSevenDayPromptIfNeeded()
+            }
+            if UITestArgument.isPresent(.expandChecklist) {
+                showMoreChecklistItems = true
+            }
+            emitHomeInitialRenderIfNeeded()
+            runStartupPhasesIfNeeded()
+        }
+    }
+
+    private func handleHomeDisappear() {
+        expandedSecondaryMetrics.removeAll()
+    }
+
+    private func scrollToChecklist(using scrollProxy: ScrollViewProxy) {
+        withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+            scrollProxy.scrollTo(HomeModuleKind.setupChecklist.rawValue, anchor: .top)
+        }
+    }
+
+    private func handleHomeScrollOffsetChange(_ value: CGFloat) {
+        scrollOffset = value
+        let normalizedOffset = Double(value)
+        // Defer AppSetting write to avoid publishing during the view-update pass.
+        if abs(homeTabScrollOffset - normalizedOffset) > 0.5 {
+            Task { @MainActor in
+                homeTabScrollOffset = normalizedOffset
+            }
+        }
+    }
+
+    private func handleUITestShowMoreChecklistTap() {
+        showMoreChecklistItems = true
+    }
+
+    private func refreshHomeContent() async {
+        guard !showStreakDetail else { return }
+        await syncMeasurementsFromPhotosIfNeeded(force: true)
+        refreshMeasurementCaches()
+        rebuildGoalsCache()
+        rebuildVisiblePhotoTilesCache()
+        fetchHealthKitData()
+        refreshChecklistState()
+    }
+
+    private func collapseSecondaryMetric(_ kind: MetricKind) {
+        withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+            _ = expandedSecondaryMetrics.remove(kind)
         }
     }
 
@@ -1447,6 +1479,22 @@ struct HomeView: View {
     }
 
     private var nextFocusInsight: HomeNextFocusInsight {
+        cachedNextFocusInsight ?? fallbackNextFocusInsight
+    }
+
+    private var fallbackNextFocusInsight: HomeNextFocusInsight {
+        HomeNextFocusInsight(
+            headline: AppLocalization.string("Set goal"),
+            primaryValue: nil,
+            supportingLabel: nil,
+            summary: AppLocalization.string("home.nextfocus.fallback.summary"),
+            cta: AppLocalization.string("home.nextfocus.cta.goal"),
+            action: .measurements,
+            accessibilityValue: "setGoal"
+        )
+    }
+
+    private func computeNextFocusInsight() -> HomeNextFocusInsight {
         if isUITestMode && UITestArgument.isPresent(.longNextFocusInsight) {
             return HomeNextFocusInsight(
                 headline: nil,
@@ -1471,15 +1519,7 @@ struct HomeView: View {
             return trendCandidate.insight
         }
 
-        return HomeNextFocusInsight(
-            headline: AppLocalization.string("Set goal"),
-            primaryValue: nil,
-            supportingLabel: nil,
-            summary: AppLocalization.string("home.nextfocus.fallback.summary"),
-            cta: AppLocalization.string("home.nextfocus.cta.goal"),
-            action: .measurements,
-            accessibilityValue: "setGoal"
-        )
+        return fallbackNextFocusInsight
     }
 
     private func goalInsightCandidate(for kind: MetricKind) -> HomeNextFocusCandidate? {
@@ -1934,6 +1974,19 @@ struct HomeView: View {
         return collapsedChecklistItems
     }
 
+    private var primaryChecklistItem: SetupChecklistItem? {
+        activeChecklistItems.first
+    }
+
+    private var secondaryChecklistItems: [SetupChecklistItem] {
+        guard activeChecklistItems.count > 1 else { return [] }
+        return Array(activeChecklistItems.dropFirst())
+    }
+
+    private var shownSecondaryChecklistItems: [SetupChecklistItem] {
+        showMoreChecklistItems ? secondaryChecklistItems : Array(secondaryChecklistItems.prefix(2))
+    }
+
     private var setupChecklistSection: some View {
         AppGlassCard(
             depth: .base,
@@ -1943,11 +1996,9 @@ struct HomeView: View {
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(AppLocalization.string("Finish setup"))
-                            .font(AppTypography.sectionTitle)
-                            .foregroundStyle(AppColorRoles.textPrimary)
-                    }
+                    Text(AppLocalization.string("Finish setup"))
+                        .font(AppTypography.sectionTitle)
+                        .foregroundStyle(AppColorRoles.textPrimary)
                     Spacer()
                     Menu {
                         Button(AppLocalization.string("Hide checklist")) {
@@ -1973,79 +2024,133 @@ struct HomeView: View {
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColorRoles.textSecondary)
                 } else {
-                    ForEach(shownChecklistItems) { item in
+                    // Primary task — large, prominent
+                    if let primary = primaryChecklistItem {
                         Button {
-                            performChecklistAction(item.id)
+                            performChecklistAction(primary.id)
                         } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: item.icon)
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(item.isCompleted ? AppColorRoles.stateSuccess : Color.appAccent)
-                                    .frame(width: 28, height: 28)
-                                    .background(AppColorRoles.surfaceAccentSoft)
+                            HStack(spacing: 14) {
+                                Image(systemName: primary.icon)
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundStyle(Color.appAccent)
+                                    .frame(width: 40, height: 40)
+                                    .background(Color.appAccent.opacity(0.16))
                                     .clipShape(Circle())
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.title)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(primary.title)
                                         .font(AppTypography.bodyEmphasis)
                                         .foregroundStyle(AppColorRoles.textPrimary)
-                                    Text(item.detail)
-                                        .font(AppTypography.micro)
+                                    Text(primary.detail)
+                                        .font(AppTypography.caption)
                                         .foregroundStyle(AppColorRoles.textSecondary)
-                                        .lineLimit(3)
-                                        .minimumScaleFactor(0.85)
+                                        .lineLimit(2)
                                 }
 
-                                Spacer(minLength: 10)
+                                Spacer(minLength: 8)
 
-                                if item.isLoading {
+                                if primary.isLoading {
                                     ProgressView()
                                         .controlSize(.small)
                                         .tint(Color.appAccent)
-                                } else if item.isCompleted {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundStyle(AppColorRoles.stateSuccess)
                                 } else {
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundStyle(AppColorRoles.textTertiary)
+                                    Image(systemName: "arrow.right.circle.fill")
+                                        .font(.system(size: 22, weight: .semibold))
+                                        .foregroundStyle(Color.appAccent)
                                 }
                             }
-                            .padding(12)
+                            .padding(14)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(AppColorRoles.surfacePrimary)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .background(Color.appAccent.opacity(0.10))
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(Color.appAccent.opacity(0.35), lineWidth: 1)
                             )
                         }
                         .buttonStyle(.plain)
-                        .disabled(item.isLoading)
+                        .disabled(primary.isLoading)
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("\(item.title). \(item.detail)")
-                        .accessibilityValue(
-                            item.isLoading
-                            ? AppLocalization.string("accessibility.setup.checklist.loading")
-                            : (item.isCompleted
-                               ? AppLocalization.string("accessibility.setup.checklist.completed")
-                               : AppLocalization.string("accessibility.setup.checklist.incomplete"))
-                        )
+                        .accessibilityLabel("\(primary.title). \(primary.detail)")
+                        .accessibilityIdentifier("home.checklist.primary.\(primary.id)")
+                        .accessibilityIdentifier("home.checklist.item.\(primary.id)")
                     }
 
-                    if !showMoreChecklistItems, activeChecklistItems.count > collapsedChecklistItems.count {
-                        Button {
-                            Haptics.selection()
-                            showMoreChecklistItems = true
-                        } label: {
-                            Text(AppLocalization.plural("Show %d more", activeChecklistItems.count - collapsedChecklistItems.count))
-                                .font(AppTypography.captionEmphasis)
-                                .foregroundStyle(Color.appAccent)
+                    // Secondary tasks — subdued
+                    if !shownSecondaryChecklistItems.isEmpty {
+                        Text(AppLocalization.string("More to set up"))
+                            .font(AppTypography.microEmphasis)
+                            .foregroundStyle(AppColorRoles.textTertiary)
+                            .padding(.top, 2)
+
+                        ForEach(shownSecondaryChecklistItems) { item in
+                            Button {
+                                performChecklistAction(item.id)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: item.icon)
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(item.isCompleted ? AppColorRoles.stateSuccess : Color.appAccent)
+                                        .frame(width: 26, height: 26)
+                                        .background(AppColorRoles.surfaceAccentSoft)
+                                        .clipShape(Circle())
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.title)
+                                            .font(AppTypography.captionEmphasis)
+                                            .foregroundStyle(AppColorRoles.textPrimary)
+                                        Text(item.detail)
+                                            .font(AppTypography.micro)
+                                            .foregroundStyle(AppColorRoles.textSecondary)
+                                            .lineLimit(2)
+                                    }
+
+                                    Spacer(minLength: 8)
+
+                                    if item.isLoading {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                            .tint(Color.appAccent)
+                                    } else if item.isCompleted {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundStyle(AppColorRoles.stateSuccess)
+                                    } else {
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .foregroundStyle(AppColorRoles.textTertiary)
+                                    }
+                                }
+                                .padding(10)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 2)
+                                .background(AppColorRoles.surfacePrimary)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                                )
+                                .opacity(0.72)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(item.isLoading)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("\(item.title). \(item.detail)")
+                            .accessibilityIdentifier("home.checklist.item.\(item.id)")
                         }
-                        .buttonStyle(.plain)
+
+                        if !showMoreChecklistItems, secondaryChecklistItems.count > 2 {
+                            Button {
+                                Haptics.selection()
+                                showMoreChecklistItems = true
+                            } label: {
+                                Text(AppLocalization.plural("Show %d more", secondaryChecklistItems.count - 2))
+                                    .font(AppTypography.captionEmphasis)
+                                    .foregroundStyle(Color.appAccent)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 2)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
 
@@ -2116,6 +2221,13 @@ struct HomeView: View {
         return Set(days).count
     }
 
+    private var pendingPhotoItemsSignature: String {
+        pendingPhotoSaveStore.pendingItems.map {
+            "\($0.id.uuidString)|\($0.date.timeIntervalSince1970)|\($0.progress)|\($0.status.rawValue)"
+        }
+        .joined(separator: ",")
+    }
+
     private var latestCheckInThisWeek: MetricSample? {
         let calendar = Calendar.current
         return recentSamples.first { calendar.isDate($0.date, equalTo: AppClock.now, toGranularity: .weekOfYear) }
@@ -2149,12 +2261,28 @@ struct HomeView: View {
         return .onTrack
     }
 
+    private var selectedOnboardingGoals: [OnboardingView.WelcomeGoal] {
+        onboardingPrimaryGoalsRaw
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .compactMap(OnboardingView.WelcomeGoal.init(rawValue:))
+            .sorted { $0.rawValue < $1.rawValue }
+    }
+
+    private var selectedOnboardingGoalTitle: String? {
+        selectedOnboardingGoals.first?.title
+    }
+
     private var goalStatusText: String {
         switch goalStatus {
         case .onTrack: return AppLocalization.string("home.goalstatus.ontrack")
         case .slightlyOff: return AppLocalization.string("home.goalstatus.slightlyoff")
         case .needsAttention: return AppLocalization.string("home.goalstatus.needsattention")
-        case .noGoals: return AppLocalization.string("home.goalstatus.nogoals")
+        case .noGoals:
+            if let selectedOnboardingGoalTitle {
+                return AppLocalization.string("home.goalstatus.selectedgoal", selectedOnboardingGoalTitle)
+            }
+            return AppLocalization.string("home.goalstatus.nogoals")
         }
     }
 
@@ -2182,14 +2310,7 @@ struct HomeView: View {
                 detailText: detailText,
                 isExpanded: isExpanded
             ) {
-                Haptics.selection()
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    if isExpanded {
-                        _ = expandedSecondaryMetrics.remove(kind)
-                    } else {
-                        _ = expandedSecondaryMetrics.insert(kind)
-                    }
-                }
+                toggleSecondaryMetric(kind)
             }
             .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
             .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
@@ -2213,11 +2334,7 @@ struct HomeView: View {
             .allowsHitTesting(isExpanded)
 
             if isUITestMode && isExpanded {
-                Button("collapse") {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        _ = expandedSecondaryMetrics.remove(kind)
-                    }
-                }
+                Button("collapse") { collapseSecondaryMetric(kind) }
                 .buttonStyle(.plain)
                 .frame(width: 1, height: 1)
                 .opacity(0.01)
@@ -2242,6 +2359,17 @@ struct HomeView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    private func toggleSecondaryMetric(_ kind: MetricKind) {
+        Haptics.selection()
+        withAnimation(.easeInOut(duration: 0.3)) {
+            if expandedSecondaryMetrics.contains(kind) {
+                _ = expandedSecondaryMetrics.remove(kind)
+            } else {
+                _ = expandedSecondaryMetrics.insert(kind)
+            }
+        }
     }
 
     private func moduleHeader(
@@ -2498,6 +2626,13 @@ struct HomeView: View {
     private func refreshChecklistState() {
         reminderChecklistCompleted = effects.reminderChecklistCompleted()
         autoHideChecklistIfCompleted()
+        trackPrimaryChecklistShownIfNeeded()
+    }
+
+    private func trackPrimaryChecklistShownIfNeeded() {
+        guard !didTrackPrimaryChecklistShown, primaryChecklistItem != nil else { return }
+        didTrackPrimaryChecklistShown = true
+        Analytics.shared.track(.checklistTaskShown)
     }
 
     private func autoHideChecklistIfCompleted() {
@@ -2514,6 +2649,7 @@ struct HomeView: View {
     }
 
     private func performChecklistAction(_ id: String) {
+        Analytics.shared.track(.checklistTaskCompleted)
         switch id {
         case "first_measurement":
             Haptics.selection()
@@ -2611,11 +2747,10 @@ struct HomeView: View {
                             showQuickAddSheet = true
                         } label: {
                             Text(AppLocalization.string("Add measurement"))
-                                .foregroundStyle(.black)
+                                .foregroundStyle(AppColorRoles.textOnAccent)
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(Color.appAccent)
+                        .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
                         .accessibilityIdentifier("home.quickadd.button")
                     }
                     .padding(12)
@@ -2738,67 +2873,9 @@ struct HomeView: View {
                     }
                 }
                 
-                LazyVGrid(
-                    columns: Array(repeating: GridItem(.fixed(lastPhotosGridSide), spacing: 8), count: 3),
-                    spacing: 8
-                ) {
-                    ForEach(visiblePhotoTiles) { tile in
-                        switch tile {
-                        case .persisted(let photo):
-                            Button {
-                                selectedPhotoForFullScreen = photo
-                            } label: {
-                                PhotoGridThumb(
-                                    photo: photo,
-                                    size: lastPhotosGridSide,
-                                    cacheID: String(describing: photo.id)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(AppLocalization.string("accessibility.open.photo.details"))
-                            .accessibilityValue(photo.date.formatted(date: .abbreviated, time: .omitted))
-                        case .pending(let pending):
-                            PendingPhotoGridCell(
-                                thumbnailData: pending.thumbnailData,
-                                progress: pending.progress,
-                                status: pending.status,
-                                targetSize: CGSize(width: lastPhotosGridSide, height: lastPhotosGridSide),
-                                cornerRadius: 12,
-                                cacheID: pending.id.uuidString,
-                                showsStatusLabel: false,
-                                accessibilityIdentifier: "home.lastPhotos.pending.item"
-                            )
-                            .frame(width: lastPhotosGridSide, height: lastPhotosGridSide)
-                        }
-                    }
-                }
-                .frame(height: {
-                    let rows = max(1, Int(ceil(Double(visiblePhotoTiles.count) / 3.0)))
-                    let spacing: CGFloat = 8
-                    return CGFloat(rows) * lastPhotosGridSide + CGFloat(max(rows - 1, 0)) * spacing
-                }())
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    GeometryReader { geo in
-                        Color.clear
-                            .onAppear {
-                                let width = geo.size.width
-                                if width.isFinite, width > 0 {
-                                    Task { @MainActor in
-                                        lastPhotosGridWidth = width
-                                    }
-                                }
-                            }
-                            .onChange(of: geo.size.width) { _, newValue in
-                                if newValue.isFinite, newValue > 0 {
-                                    if abs(lastPhotosGridWidth - newValue) > 0.5 {
-                                        Task { @MainActor in
-                                            lastPhotosGridWidth = newValue
-                                        }
-                                    }
-                                }
-                            }
-                    }
+                HomeLastPhotosGrid(
+                    tiles: visiblePhotoTiles,
+                    onPersistedTap: { selectedPhotoForFullScreen = $0 }
                 )
             }
         }
@@ -2824,11 +2901,10 @@ struct HomeView: View {
                     router.selectedTab = .photos
                 } label: {
                     Text(AppLocalization.string("Add photo"))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(AppColorRoles.textOnAccent)
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Color.appAccent)
+                .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
             }
         }
     }
@@ -2955,5 +3031,69 @@ private struct GoalStatusLegendSheet: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct HomeLastPhotosGrid: View {
+    let tiles: [HomeView.HomePhotoTile]
+    let onPersistedTap: (PhotoEntry) -> Void
+
+    private let columns = 3
+    private let spacing: CGFloat = 8
+    private let minimumSide: CGFloat = 86
+
+    var body: some View {
+        GeometryReader { geometry in
+            let side = tileSide(for: geometry.size.width)
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.fixed(side), spacing: spacing), count: columns),
+                spacing: spacing
+            ) {
+                ForEach(tiles) { tile in
+                    switch tile {
+                    case .persisted(let photo):
+                        Button {
+                            onPersistedTap(photo)
+                        } label: {
+                            PhotoGridThumb(
+                                photo: photo,
+                                size: side,
+                                cacheID: String(describing: photo.id)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(AppLocalization.string("accessibility.open.photo.details"))
+                        .accessibilityValue(photo.date.formatted(date: .abbreviated, time: .omitted))
+                    case .pending(let pending):
+                        PendingPhotoGridCell(
+                            thumbnailData: pending.thumbnailData,
+                            progress: pending.progress,
+                            status: pending.status,
+                            targetSize: CGSize(width: side, height: side),
+                            cornerRadius: 12,
+                            cacheID: pending.id.uuidString,
+                            showsStatusLabel: false,
+                            accessibilityIdentifier: "home.lastPhotos.pending.item"
+                        )
+                        .frame(width: side, height: side)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(height: gridHeight)
+    }
+
+    private var gridHeight: CGFloat {
+        let rows = max(1, Int(ceil(Double(tiles.count) / Double(columns))))
+        return CGFloat(rows) * minimumSide + CGFloat(max(rows - 1, 0)) * spacing
+    }
+
+    private func tileSide(for width: CGFloat) -> CGFloat {
+        let totalSpacing = spacing * CGFloat(columns - 1)
+        guard width.isFinite, width > totalSpacing else { return minimumSide }
+        let raw = (width - totalSpacing) / CGFloat(columns)
+        guard raw.isFinite, raw > 0 else { return minimumSide }
+        return max(floor(raw), minimumSide)
     }
 }

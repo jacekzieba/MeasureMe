@@ -7,6 +7,8 @@ enum RootDeferredStartupCoordinator {
         premiumStore: PremiumStore,
         pendingPhotoSaveStore: PendingPhotoSaveStore
     ) async {
+        AppRuntimeConfigurator.configureDeferredServicesIfNeeded()
+
         if hasCompletedOnboarding {
             try? await Task.sleep(for: .milliseconds(1200))
         }

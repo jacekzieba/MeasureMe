@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 protocol OnboardingHealthKitAuthorizing {
     func requestAuthorization() async throws
@@ -46,8 +47,6 @@ struct OnboardingReminderSeedState {
 struct OnboardingEffects {
     static let live = OnboardingEffects()
 
-    let notificationsDidChangeName: Notification.Name
-
     private let healthKit: OnboardingHealthKitAuthorizing
     private let notifications: OnboardingNotificationManaging
     private let analytics: OnboardingAnalyticsTracking
@@ -57,14 +56,12 @@ struct OnboardingEffects {
         healthKit: OnboardingHealthKitAuthorizing? = nil,
         notifications: OnboardingNotificationManaging? = nil,
         analytics: OnboardingAnalyticsTracking? = nil,
-        settings: AppSettingsStore? = nil,
-        notificationsDidChangeName: Notification.Name? = nil
+        settings: AppSettingsStore? = nil
     ) {
         self.healthKit = healthKit ?? HealthKitManager.shared
         self.notifications = notifications ?? NotificationManager.shared
         self.analytics = analytics ?? OnboardingAnalyticsAdapter()
         self.settings = settings ?? .shared
-        self.notificationsDidChangeName = notificationsDidChangeName ?? NotificationManager.notificationsDidChange
     }
 
     func track(_ signal: AnalyticsSignal) {
@@ -75,18 +72,24 @@ struct OnboardingEffects {
         try await healthKit.requestAuthorization()
     }
 
+    // MARK: - Deprecated notification/reminder functions (no longer called from onboarding v2)
+
+    @available(*, deprecated, message: "Reminders are deferred out of onboarding; use NotificationManager directly from Settings")
     func requestNotificationAuthorization() async -> Bool {
         await notifications.requestAuthorization()
     }
 
+    @available(*, deprecated, message: "Reminders are deferred out of onboarding")
     func setNotificationsEnabled(_ value: Bool) {
         notifications.notificationsEnabled = value
     }
 
+    @available(*, deprecated, message: "Reminders are deferred out of onboarding")
     func setSmartTime(_ date: Date) {
         notifications.smartTime = date
     }
 
+    @available(*, deprecated, message: "Reminders are deferred out of onboarding")
     func loadReminderSeed(defaultWeeklyReminderDate: Date, calendar: Calendar = .current) -> OnboardingReminderSeedState {
         let reminders = notifications.loadReminders()
         if let weeklyReminder = reminders.first(where: { $0.repeatRule == .weekly }) {
@@ -125,10 +128,12 @@ struct OnboardingEffects {
         )
     }
 
+    @available(*, deprecated, message: "Reminders are deferred out of onboarding")
     func isReminderScheduled() -> Bool {
         isReminderScheduled(reminders: notifications.loadReminders())
     }
 
+    @available(*, deprecated, message: "Reminders are deferred out of onboarding")
     func upsertReminder(date: Date, repeatRule: ReminderRepeat) {
         var reminders = notifications.loadReminders()
         if let index = reminders.firstIndex(where: { $0.repeatRule == repeatRule }) {
@@ -141,8 +146,58 @@ struct OnboardingEffects {
         notifications.scheduleAllReminders(reminders)
     }
 
+    // MARK: - First measurement (onboarding v3)
+
+    /// Saves first measurement entries during onboarding using QuickAddSaveService.
+    func saveFirstMeasurement(entries: [QuickAddSaveService.Entry], date: Date, unitsSystem: String, context: ModelContext) throws {
+        let service = QuickAddSaveService(context: context)
+        try service.save(entries: entries, date: date, unitsSystem: unitsSystem)
+        analytics.track(.onboardingFirstMeasurementSaved)
+    }
+
     func incrementWelcomeGoalSelectionStat(goalRawValue: String) {
         settings.incrementOnboardingGoalSelectionStat(for: goalRawValue)
+    }
+
+    // MARK: - Goal metric pack
+
+    /// Returns true if the user has already manually customized their metrics selection.
+    func hasCustomizedMetrics() -> Bool {
+        settings.bool(forKey: AppSettingsKeys.Experience.hasCustomizedMetrics)
+    }
+
+    /// Enables the recommended metrics for the given kinds and sets the home key metrics.
+    /// Does NOT mark metrics as "customized by user" — this is an automated default.
+    func applyMetricPack(_ kinds: [MetricKind]) {
+        guard !kinds.isEmpty else { return }
+        for kind in kinds {
+            settings.set(true, forKey: enabledKey(for: kind))
+        }
+        let keyMetrics = Array(kinds.prefix(3)).map(\.rawValue)
+        settings.set(keyMetrics, forKey: "home_key_metrics")
+    }
+
+    private func enabledKey(for kind: MetricKind) -> String {
+        switch kind {
+        case .weight:       return "metric_weight_enabled"
+        case .bodyFat:      return "metric_bodyFat_enabled"
+        case .height:       return "metric_height_enabled"
+        case .leanBodyMass: return "metric_nonFatMass_enabled"
+        case .waist:        return "metric_waist_enabled"
+        case .neck:         return "metric_neck_enabled"
+        case .shoulders:    return "metric_shoulders_enabled"
+        case .bust:         return "metric_bust_enabled"
+        case .chest:        return "metric_chest_enabled"
+        case .leftBicep:    return "metric_leftBicep_enabled"
+        case .rightBicep:   return "metric_rightBicep_enabled"
+        case .leftForearm:  return "metric_leftForearm_enabled"
+        case .rightForearm: return "metric_rightForearm_enabled"
+        case .hips:         return "metric_hips_enabled"
+        case .leftThigh:    return "metric_leftThigh_enabled"
+        case .rightThigh:   return "metric_rightThigh_enabled"
+        case .leftCalf:     return "metric_leftCalf_enabled"
+        case .rightCalf:    return "metric_rightCalf_enabled"
+        }
     }
 
     private func isReminderScheduled(reminders: [MeasurementReminder]) -> Bool {

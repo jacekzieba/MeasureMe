@@ -27,6 +27,7 @@ final class ActiveMetricsStore: ObservableObject {
     private let activeOrderKey = "metrics_active_order"
     private let keyMetricsKey = "home_key_metrics"
     private let maxKeyMetrics = 3
+    private var lastPublishedStateSignature: String
     
     /// Debouncing - prevents excessive change publications.
     /// `nonisolated(unsafe)` allows safe access from `deinit` which is not
@@ -43,11 +44,12 @@ final class ActiveMetricsStore: ObservableObject {
 
     init(settings: AppSettingsStore) {
         self.defaults = settings
+        self.lastPublishedStateSignature = Self.makeStateSignature(from: settings)
 
         defaultsObserver = settings.objectWillChange.sink { [weak self] _ in
             guard let self else { return }
             Task { @MainActor [weak self] in
-                self?.debouncedPublish()
+                self?.debouncedPublishIfNeeded()
             }
         }
     }
@@ -73,8 +75,44 @@ final class ActiveMetricsStore: ObservableObject {
             guard !Task.isCancelled else { return }
 
             // Publish change
+            self.lastPublishedStateSignature = self.currentStateSignature()
             self.objectWillChange.send()
         }
+    }
+
+    private func debouncedPublishIfNeeded() {
+        let nextSignature = currentStateSignature()
+        guard nextSignature != lastPublishedStateSignature else { return }
+        debouncedPublish()
+    }
+
+    private func currentStateSignature() -> String {
+        Self.makeStateSignature(from: defaults)
+    }
+
+    private static func makeStateSignature(from settings: AppSettingsStore) -> String {
+        let dictionary = settings.dictionaryRepresentation()
+        let builtInMetricFlags = dictionary.keys
+            .filter { $0.hasPrefix("metric_") && $0.hasSuffix("_enabled") }
+            .sorted()
+            .map { key in "\(key)=\(settings.bool(forKey: key) ? 1 : 0)" }
+            .joined(separator: "|")
+        let customMetricFlags = dictionary.keys
+            .filter { $0.hasPrefix("custom_metric_") && $0.hasSuffix("_enabled") }
+            .sorted()
+            .map { key in "\(key)=\(settings.bool(forKey: key) ? 1 : 0)" }
+            .joined(separator: "|")
+        let activeOrder = (settings.stringArray(forKey: "metrics_active_order") ?? []).joined(separator: ",")
+        let keyMetrics = (settings.stringArray(forKey: "home_key_metrics") ?? []).joined(separator: ",")
+        let customOrder = (settings.stringArray(forKey: "custom_metrics_order") ?? []).joined(separator: ",")
+
+        return [
+            builtInMetricFlags,
+            customMetricFlags,
+            activeOrder,
+            keyMetrics,
+            customOrder
+        ].joined(separator: "||")
     }
 
     // MARK: - Metric Groups (Stable order)

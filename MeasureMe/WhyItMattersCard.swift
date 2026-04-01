@@ -70,12 +70,14 @@ struct HealthInsightHeroCard<Content: View>: View {
                     .fill(AppColorRoles.surfaceElevated)
                     .overlay(
                         shape.fill(
-                            LinearGradient(
+                            ClaudeLightStyle.directionalGradient(
                                 colors: [
-                                    accent.opacity(colorScheme == .dark ? 0.20 : 0.28),
-                                    Color.appAmber.opacity(colorScheme == .dark ? 0.10 : 0.14),
+                                    accent.opacity(0.20),
+                                    Color.appAmber.opacity(0.10),
                                     .clear
                                 ],
+                                colorScheme: colorScheme,
+                                lightColor: accent.opacity(0.10),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -116,11 +118,13 @@ struct HealthInsightCard<Content: View>: View {
                     .fill(AppColorRoles.surfacePrimary)
                     .overlay(
                         shape.fill(
-                            LinearGradient(
+                            ClaudeLightStyle.directionalGradient(
                                 colors: [
-                                    tint.opacity(colorScheme == .dark ? 0.24 : 0.28),
+                                    tint.opacity(0.24),
                                     .clear
                                 ],
+                                colorScheme: colorScheme,
+                                lightColor: tint.opacity(0.10),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -158,12 +162,14 @@ struct HealthInsightNoteCard<Content: View>: View {
                     .fill(AppColorRoles.surfaceInteractive)
                     .overlay(
                         shape.fill(
-                            LinearGradient(
+                            ClaudeLightStyle.directionalGradient(
                                 colors: [
-                                    accent.opacity(colorScheme == .dark ? 0.20 : 0.26),
-                                    Color.appAmber.opacity(colorScheme == .dark ? 0.10 : 0.14),
+                                    accent.opacity(0.20),
+                                    Color.appAmber.opacity(0.10),
                                     .clear
                                 ],
+                                colorScheme: colorScheme,
+                                lightColor: accent.opacity(0.10),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )

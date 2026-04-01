@@ -340,6 +340,8 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(onboarding.onboardingChecklistMetricsCompleted, forKey: AppSettingsKeys.Onboarding.onboardingChecklistMetricsCompleted)
             defaults.set(onboarding.onboardingChecklistPremiumExplored, forKey: AppSettingsKeys.Onboarding.onboardingChecklistPremiumExplored)
             defaults.set(onboarding.onboardingPrimaryGoal, forKey: AppSettingsKeys.Onboarding.onboardingPrimaryGoal)
+            defaults.set(onboarding.onboardingActivationCompleted, forKey: AppSettingsKeys.Onboarding.onboardingActivationCompleted)
+            defaults.set(onboarding.activationTriggerQuickAdd, forKey: AppSettingsKeys.Onboarding.activationTriggerQuickAdd)
 
             let health = snapshot.health
             defaults.set(health.isSyncEnabled, forKey: AppSettingsKeys.Health.isSyncEnabled)

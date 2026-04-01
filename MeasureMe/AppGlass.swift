@@ -1,5 +1,51 @@
 import SwiftUI
 
+enum ClaudeLightStyle {
+    static func directionalGradient(
+        colors: [Color],
+        colorScheme: ColorScheme,
+        lightColor: Color? = nil,
+        startPoint: UnitPoint = .topLeading,
+        endPoint: UnitPoint = .bottomTrailing
+    ) -> LinearGradient {
+        if colorScheme == .dark {
+            return LinearGradient(
+                colors: colors,
+                startPoint: startPoint,
+                endPoint: endPoint
+            )
+        }
+
+        let resolvedLightColor = lightColor ?? colors.first ?? .clear
+        return LinearGradient(
+            colors: [resolvedLightColor, resolvedLightColor],
+            startPoint: startPoint,
+            endPoint: endPoint
+        )
+    }
+
+    static func areaFill(accent: Color, colorScheme: ColorScheme) -> AnyShapeStyle {
+        if colorScheme == .dark {
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [
+                        accent.opacity(0.28),
+                        accent.opacity(0.02)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+        }
+
+        return AnyShapeStyle(accent.opacity(0.10))
+    }
+
+    static func tintOverlay(accent: Color, colorScheme: ColorScheme, lightOpacity: Double, darkOpacity: Double) -> Color {
+        accent.opacity(colorScheme == .dark ? darkOpacity : lightOpacity)
+    }
+}
+
 enum AppGlassDepth {
     case base
     case elevated
@@ -72,17 +118,7 @@ struct AppGlassBackground: View {
     private var backgroundFill: AnyShapeStyle {
         colorScheme == .dark
             ? AnyShapeStyle(.ultraThinMaterial)
-            : AnyShapeStyle(
-                LinearGradient(
-                    colors: [
-                        AppColorRoles.surfaceElevated,
-                        AppColorRoles.surfaceGlass,
-                        AppColorRoles.surfacePrimary
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
+            : AnyShapeStyle(AppColorRoles.surfacePrimary)
     }
 
     private var fillOverlayGradient: LinearGradient {
@@ -93,9 +129,8 @@ struct AppGlassBackground: View {
                     Color.white.opacity(0.20)
                 ]
                 : [
-                    Color.white.opacity(0.22),
-                    Color.white.opacity(0.08),
-                    AppColorRoles.surfaceWarmHighlight.opacity(0.20)
+                    .clear,
+                    .clear
                 ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -110,8 +145,8 @@ struct AppGlassBackground: View {
                     AppColorRoles.borderStrong.opacity(0.50)
                 ]
                 : [
-                    Color.white.opacity(0.90),
-                    AppColorRoles.borderStrong.opacity(0.54)
+                    AppColorRoles.borderSubtle,
+                    AppColorRoles.borderSubtle
                 ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -121,7 +156,7 @@ struct AppGlassBackground: View {
     private var innerStrokeColor: Color {
         colorScheme == .dark
             ? Color.black.opacity(depth.innerEdgeOpacity)
-            : AppColorRoles.borderSubtle.opacity(0.88)
+            : .clear
     }
 
     private var shadowColor: Color {
@@ -143,9 +178,9 @@ struct AppGlassBackground: View {
                         tint.opacity(depth.tintStrength * 0.16)
                     ]
                 : [
-                    tint.opacity(max(depth.tintStrength * 0.52, 0.05)),
-                    Color.white.opacity(0.08),
-                    AppColorRoles.surfacePrimary.opacity(0.30)
+                    .clear,
+                    .clear,
+                    .clear
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -157,21 +192,6 @@ struct AppGlassBackground: View {
     private var fillOverlay: some View {
         if colorScheme == .dark {
             shape.fill(Color.black.opacity(depth.darkness))
-        } else {
-            shape.fill(fillOverlayGradient)
-            shape.fill(
-                RadialGradient(
-                    colors: [
-                        Color.white.opacity(0.20),
-                        tint.opacity(max(depth.tintStrength * 0.24, 0.04)),
-                        Color.black.opacity(0.016),
-                        .clear
-                    ],
-                    center: .topLeading,
-                    startRadius: 8,
-                    endRadius: cornerRadius * 7
-                )
-            )
         }
     }
 
@@ -180,7 +200,7 @@ struct AppGlassBackground: View {
         if colorScheme == .dark {
             shape.stroke(Color.white.opacity(depth.highlightOpacity), lineWidth: 1)
         } else {
-            shape.stroke(highlightStrokeGradient, lineWidth: 1)
+            shape.stroke(AppColorRoles.borderSubtle, lineWidth: 1)
         }
     }
 
@@ -188,7 +208,7 @@ struct AppGlassBackground: View {
         shape.stroke(
             colorScheme == .dark
                 ? AppColorRoles.borderStrong.opacity(0.66)
-                : AppColorRoles.borderStrong.opacity(0.84),
+                : AppColorRoles.borderStrong.opacity(0.90),
             lineWidth: 1
         )
     }
@@ -200,30 +220,28 @@ struct AppGlassBackground: View {
     }
 
     private var baseBackground: some View {
-        shape
-            .fill(backgroundFill)
-            .overlay(tintedOverlay)
-            .overlay(fillOverlay)
-            .overlay(borderStroke)
-            .overlay(highlightStroke)
-            .overlay(innerStroke)
+        Group {
+            if colorScheme == .dark {
+                shape
+                    .fill(backgroundFill)
+                    .overlay(tintedOverlay)
+                    .overlay(fillOverlay)
+                    .overlay(borderStroke)
+                    .overlay(highlightStroke)
+                    .overlay(innerStroke)
+            } else {
+                shape
+                    .fill(backgroundFill)
+                    .overlay(borderStroke)
+            }
+        }
     }
 
     var body: some View {
         if showsShadow {
             baseBackground
-                .shadow(
-                    color: .clear,
-                    radius: 0,
-                    x: 0,
-                    y: 0
-                )
-                .shadow(
-                    color: shadowColor,
-                    radius: depth.shadowRadius * (colorScheme == .dark ? 1.0 : 1.3),
-                    x: 0,
-                    y: depth.shadowY * (colorScheme == .dark ? 1.0 : 1.2)
-                )
+                .shadow(color: shadowColor, radius: depth.shadowRadius * (colorScheme == .dark ? 1.0 : 0.6), x: 0, y: depth.shadowY * (colorScheme == .dark ? 1.0 : 0.55))
+                .shadow(color: colorScheme == .dark ? .clear : AppColorRoles.shadowSoft.opacity(0.08), radius: 1, x: 0, y: 1)
         } else {
             baseBackground
         }
@@ -278,7 +296,7 @@ struct LiquidCapsuleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         let shouldAnimate = animationsEnabled && !reduceMotion
         configuration.label
-            .font(.system(.headline, design: .rounded).weight(.semibold))
+            .font(.system(.subheadline, design: .default).weight(.semibold))
             .foregroundStyle(textColor)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -290,22 +308,21 @@ struct LiquidCapsuleButtonStyle: ButtonStyle {
                             : AnyShapeStyle(
                                 LinearGradient(
                                     colors: [
-                                        AppColorRoles.surfaceElevated,
-                                        AppColorRoles.surfaceGlass,
-                                        AppColorRoles.surfacePrimary
+                                        AppColorRoles.surfaceSecondary,
+                                        AppColorRoles.surfaceInteractive
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
                             )
                     )
-                    .overlay(Capsule().fill(tint.opacity(configuration.isPressed ? 0.28 : 0.22)))
+                    .overlay(Capsule().fill(tint.opacity(colorScheme == .dark ? (configuration.isPressed ? 0.28 : 0.22) : (configuration.isPressed ? 0.14 : 0.10))))
                     .overlay(
                         Capsule(style: .continuous)
                             .stroke(
                                 colorScheme == .dark
                                     ? Color.white.opacity(configuration.isPressed ? 0.32 : 0.22)
-                                    : AppColorRoles.borderStrong.opacity(configuration.isPressed ? 1 : 0.84),
+                                    : AppColorRoles.borderSubtle.opacity(configuration.isPressed ? 1 : 0.96),
                                 lineWidth: 1
                             )
                     )
@@ -315,12 +332,13 @@ struct LiquidCapsuleButtonStyle: ButtonStyle {
                             .stroke(
                                 colorScheme == .dark
                                     ? Color.black.opacity(0.24)
-                                    : Color.white.opacity(0.55),
+                                    : Color.white.opacity(0.62),
                                 lineWidth: 0.6
                             )
                     )
             )
             .scaleEffect(configuration.isPressed && shouldAnimate ? 0.98 : 1)
+            .shadow(color: colorScheme == .dark ? .clear : AppColorRoles.shadowSoft.opacity(configuration.isPressed ? 0.06 : 0.10), radius: configuration.isPressed ? 4 : 8, x: 0, y: configuration.isPressed ? 2 : 4)
     }
 }
 

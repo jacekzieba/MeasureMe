@@ -40,6 +40,11 @@ struct AppSettingsSnapshot: Sendable {
         var onboardingChecklistMetricsCompleted: Bool
         var onboardingChecklistPremiumExplored: Bool
         var onboardingPrimaryGoal: String
+        /// v2: true after the post-onboarding activation screen has been seen/dismissed.
+        /// Existing users who have already completed onboarding get this set to true via migration.
+        var onboardingActivationCompleted: Bool = false
+        /// v2: set to true by OnboardingActivationView (manual path) to trigger QuickAdd on HomeView appear.
+        var activationTriggerQuickAdd: Bool = false
     }
 
     struct Health: Sendable {
@@ -206,7 +211,9 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.Indicators.showConicityOnHome: true,
         AppSettingsKeys.Analytics.appleIntelligenceEnabled: true,
         AppSettingsKeys.ICloudBackup.isEnabled: false,
-        AppSettingsKeys.ICloudBackup.autoRestoreCompleted: false
+        AppSettingsKeys.ICloudBackup.autoRestoreCompleted: false,
+        AppSettingsKeys.Onboarding.onboardingActivationCompleted: false,
+        AppSettingsKeys.Onboarding.activationTriggerQuickAdd: false
     ]
 
     static func load(from defaults: UserDefaults) -> AppSettingsSnapshot {
@@ -246,7 +253,9 @@ struct AppSettingsSnapshot: Sendable {
                 onboardingChecklistHideCompleted: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistHideCompleted),
                 onboardingChecklistMetricsCompleted: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistMetricsCompleted),
                 onboardingChecklistPremiumExplored: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistPremiumExplored),
-                onboardingPrimaryGoal: defaults.string(forKey: AppSettingsKeys.Onboarding.onboardingPrimaryGoal) ?? ""
+                onboardingPrimaryGoal: defaults.string(forKey: AppSettingsKeys.Onboarding.onboardingPrimaryGoal) ?? "",
+                onboardingActivationCompleted: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingActivationCompleted),
+                activationTriggerQuickAdd: defaults.bool(forKey: AppSettingsKeys.Onboarding.activationTriggerQuickAdd)
             ),
             health: .init(
                 isSyncEnabled: defaults.bool(forKey: AppSettingsKeys.Health.isSyncEnabled),

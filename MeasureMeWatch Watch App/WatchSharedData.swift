@@ -139,5 +139,5 @@ struct WatchMetricData: Codable {
 }
 
 func watchLocalized(_ english: String, _ polish: String) -> String {
-    Locale.current.language.languageCode?.identifier == "pl" ? polish : english
+    NSLocalizedString(english, tableName: "Watch", bundle: .main, value: english, comment: "")
 }

@@ -16,7 +16,7 @@ extension Color {
     static let appIndigo = Color(hex: "#7C8CFF")
     static let appEmerald = Color(hex: "#2DD881")
     static let appRose = Color(hex: "#FF6B8A")
-    static let appSunbeam = Color(hex: "#FFD99B")
+    static let appSunbeam = Color(hex: "#FFE08A")
     static let appSkyMist = Color(hex: "#DDF1FF")
     static let appMintMist = Color(hex: "#C6F3E8")
     static let appLilacMist = Color(hex: "#E7E9FF")
@@ -31,13 +31,13 @@ extension Color {
 
     // MARK: - Backward compatibility
     static let appBlack = appInk
-    static let appAccent = Color.dynamic(light: appAmberLight, dark: appAmber)
+    static let appAccent = Color.dynamic(light: appAmber, dark: appAmber)
     static let appGray = Color.dynamic(
-        light: Color.appInk.opacity(0.62),
+        light: Color(hex: "#5E5D59"),
         dark: Color.appFog
     )
     static let appWhite = Color.dynamic(
-        light: Color.appInk,
+        light: Color(hex: "#141413"),
         dark: Color.appPaper
     )
 }

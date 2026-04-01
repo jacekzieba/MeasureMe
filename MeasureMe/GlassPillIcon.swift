@@ -21,6 +21,14 @@ private struct GlassPillBackground: View {
     let colorScheme: ColorScheme
 
     var body: some View {
+        if colorScheme == .dark {
+            darkBackground
+        } else {
+            lightBackground
+        }
+    }
+
+    private var darkBackground: some View {
         let outerStroke = LinearGradient(
             colors: [
                 Color.white.opacity(colorScheme == .dark ? 0.55 : 0.60),
@@ -40,7 +48,7 @@ private struct GlassPillBackground: View {
             endPoint: .bottomTrailing
         )
 
-        Capsule()
+        return Capsule()
             .fill(.ultraThinMaterial)
             .overlay(
                 Capsule()
@@ -60,5 +68,15 @@ private struct GlassPillBackground: View {
             )
             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.10), radius: 10, x: 0, y: 6)
             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.10 : 0.05), radius: 4, x: 0, y: 2)
+    }
+
+    private var lightBackground: some View {
+        Capsule()
+            .fill(AppColorRoles.surfacePrimary)
+            .overlay(
+                Capsule()
+                    .strokeBorder(AppColorRoles.borderSubtle, lineWidth: 1)
+            )
+            .shadow(color: AppColorRoles.shadowSoft.opacity(0.08), radius: 4, x: 0, y: 2)
     }
 }

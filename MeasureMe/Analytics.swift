@@ -75,6 +75,7 @@ enum AnalyticsFirstEventTracker {
         guard shouldTrackFirstMetricEvent() else { return }
 
         Analytics.shared.track(.firstMetricAdded)
+        Analytics.shared.track(.activationFirstMeasurementSaved)
         settings.set(\.analytics.firstMetricAddedTracked, true)
     }
 

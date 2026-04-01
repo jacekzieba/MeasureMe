@@ -8,6 +8,7 @@ struct OnboardingWelcomeStep: View {
 
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var shouldAnimate: Bool {
@@ -29,8 +30,46 @@ struct OnboardingWelcomeStep: View {
             }
 
             goalSelector
+
+            if !selectedGoals.isEmpty {
+                recommendedMetricsPreview
+            }
+
             examplePreview
         }
+    }
+
+    // MARK: - Recommended metrics preview
+
+    private var recommendedMetricsPreview: some View {
+        let kinds = GoalMetricPack.recommendedKinds(for: selectedGoals)
+        return HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.appAccent)
+
+            Text(AppLocalization.systemString("You'll track:"))
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(AppColorRoles.textSecondary)
+
+            Text(kinds.map(\.title).joined(separator: ", "))
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(AppColorRoles.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.appAccent.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.appAccent.opacity(0.20), lineWidth: 1)
+                )
+        )
+        .transition(.opacity.combined(with: .move(edge: .top)))
+        .animation(shouldAnimate ? AppMotion.quick : .none, value: selectedGoals)
     }
 
     // MARK: - Goal selector
@@ -119,13 +158,13 @@ struct OnboardingWelcomeStep: View {
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(
-                    LinearGradient(
+                    ClaudeLightStyle.directionalGradient(
                         colors: [
                             AppColorRoles.surfacePrimary.opacity(0.82),
                             AppColorRoles.surfaceInteractive
                         ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        colorScheme: colorScheme,
+                        lightColor: AppColorRoles.surfacePrimary
                     )
                 )
         )
@@ -244,13 +283,7 @@ struct OnboardingWelcomeStep: View {
                         yEnd: .value("Weight", point.value)
                     )
                     .interpolationMethod(.catmullRom)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color.appAccent.opacity(0.28), Color.appAccent.opacity(0.02)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
+                    .foregroundStyle(ClaudeLightStyle.areaFill(accent: Color.appAccent, colorScheme: colorScheme))
 
                     LineMark(
                         x: .value("Week", point.week),

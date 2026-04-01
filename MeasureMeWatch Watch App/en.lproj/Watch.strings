@@ -40,3 +40,27 @@
 "Saved" = "Saved";
 "Premium Feature" = "Premium Feature";
 "Upgrade to Premium on your iPhone to use MeasureMe on Apple Watch." = "Upgrade to Premium on your iPhone to use MeasureMe on Apple Watch.";
+
+"Opens Quick Add" = "Opens Quick Add";
+"Not enough data" = "Not enough data";
+"Improving" = "Improving";
+"Worsening" = "Worsening";
+"Stable" = "Stable";
+"Not enough data for trend" = "Not enough data for trend";
+"up" = "up";
+"down" = "down";
+"unchanged" = "unchanged";
+"Improving, stable over 30 days" = "Improving, stable over 30 days";
+"Improving, %@ %@ over 30 days" = "Improving, %@ %@ over 30 days";
+"Worsening, stable over 30 days" = "Worsening, stable over 30 days";
+"Worsening, %@ %@ over 30 days" = "Worsening, %@ %@ over 30 days";
+"Stable over 30 days" = "Stable over 30 days";
+"Stable, %@ %@ over 30 days" = "Stable, %@ %@ over 30 days";
+"Goal %@" = "Goal %@";
+"Goal" = "Goal";
+"Shows metric details" = "Shows metric details";
+"Selected. Rotate Digital Crown to adjust this metric." = "Selected. Rotate Digital Crown to adjust this metric.";
+"Selects this metric for Digital Crown editing." = "Selects this metric for Digital Crown editing.";
+"Saves %d edited metrics" = "Saves %d edited metrics";
+"Saves the selected metric" = "Saves the selected metric";
+

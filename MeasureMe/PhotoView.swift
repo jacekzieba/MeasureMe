@@ -110,41 +110,10 @@ struct PhotoView: View {
                         selectedPhotos: $selectedPhotos,
                         onPhotoTap: handlePhotoTap,
                         onPhotoLongPress: handlePhotoLongPress,
-                        onAddPhoto: {
-                            Haptics.light()
-                            showSourceChooserSheet = true
-                        },
-                        onOpenCompareChooser: {
-                            Haptics.light()
-                            guard canUsePremiumCompare else {
-                                premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
-                                return
-                            }
-                            compareChooserContext = CompareChooserContext(
-                                olderPhoto: nil,
-                                newerPhoto: nil,
-                                preferredSlot: .newer
-                            )
-                        },
-                        onChooseHeroSlot: { pair, slot in
-                            Haptics.light()
-                            guard canUsePremiumCompare else {
-                                premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
-                                return
-                            }
-                            compareChooserContext = CompareChooserContext(
-                                olderPhoto: pair.older,
-                                newerPhoto: pair.newer,
-                                preferredSlot: slot
-                            )
-                        },
-                        onOpenSuggestedCompare: { pair in
-                            guard canUsePremiumCompare else {
-                                premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
-                                return
-                            }
-                            openCompare(using: pair.older, pair.newer)
-                        },
+                        onAddPhoto: handleAddPhotoTap,
+                        onOpenCompareChooser: handleOpenCompareChooserTap,
+                        onChooseHeroSlot: handleChooseHeroSlot,
+                        onOpenSuggestedCompare: handleOpenSuggestedCompare,
                         heroCompareOverride: heroCompareOverride,
                         refreshToken: refreshToken,
                         recentlySavedPhoto: recentlySavedPhoto,
@@ -152,7 +121,7 @@ struct PhotoView: View {
                         pendingItems: pendingPhotoSaveStore.pendingItems
                     )
                     .refreshable {
-                        refreshToken = UUID()
+                        refreshPhotoContent()
                     }
                     .overlay(alignment: .top) {
                         if showsFailureToast, let failureToastMessage {
@@ -167,9 +136,7 @@ struct PhotoView: View {
                     }
                     .overlay(alignment: .topLeading) {
                         if uiTestModeEnabled && isSelecting {
-                            Button("Select 2") {
-                                selectFirstTwoPhotosForUITest()
-                            }
+                            Button("Select 2", action: selectFirstTwoPhotosForUITest)
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
@@ -210,23 +177,19 @@ struct PhotoView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar { toolbarContent }
             .onAppear {
-                applyExternalFilterIfNeeded()
-                consumePendingPhotoComposerRequestIfNeeded()
-                #if DEBUG
-                openUITestImportHookIfNeeded()
-                #endif
+                handlePhotoViewAppear()
             }
             .onChange(of: router.photoComposerRequestID) { _, _ in
-                consumePendingPhotoComposerRequestIfNeeded()
+                handlePhotoComposerRequestChange()
             }
             .task(id: heroCompareOverride?.id) {
                 await scheduleHeroCompareOverrideReset()
             }
             .onChange(of: photosFilterTag) { _, _ in
-                applyExternalFilterIfNeeded()
+                handlePhotosFilterTagChange()
             }
             .onChange(of: pendingPhotoSaveStore.completedEvent?.eventID) { _, _ in
-                handlePendingPhotoCompletedEvent()
+                handlePendingPhotoCompletedEventChange()
             }
             .onChange(of: pendingPhotoSaveStore.lastFailureMessage) { _, newValue in
                 handlePendingPhotoFailure(newValue)
@@ -289,12 +252,7 @@ struct PhotoView: View {
                     initialOlderPhoto: context.olderPhoto,
                     initialNewerPhoto: context.newerPhoto,
                     preferredSlot: context.preferredSlot,
-                    onSelectionChanged: { olderPhoto, newerPhoto in
-                        heroCompareOverride = TemporaryHeroPairOverride(
-                            pair: PhotoComparePair(olderPhoto: olderPhoto, newerPhoto: newerPhoto),
-                            expiresAt: AppClock.now.addingTimeInterval(heroCompareOverrideLifetime)
-                        )
-                    }
+                    onSelectionChanged: handleCompareChooserSelectionChange
                 ) { olderPhoto, newerPhoto in
                     openCompare(using: olderPhoto, newerPhoto)
                 }
@@ -306,15 +264,10 @@ struct PhotoView: View {
                 )
             }
             .sheet(item: $selectedPhotoForDetail, onDismiss: {
-                refreshToken = UUID()
+                refreshPhotoContent()
             }) { photo in
-                PhotoDetailView(photo: photo, onCompareRequested: { olderPhoto, newerPhoto in
-                    selectedPhotoForDetail = nil
-                    openCompare(using: olderPhoto, newerPhoto)
-                }) {
-                    selectedPhotos.remove(photo)
-                    selectedPhotoForDetail = nil
-                    refreshToken = UUID()
+                PhotoDetailView(photo: photo, onCompareRequested: handlePhotoDetailCompareRequest) {
+                    handlePhotoDeletedFromDetail(photo)
                 }
                     .environmentObject(metricsStore)
             }
@@ -323,9 +276,7 @@ struct PhotoView: View {
                 isPresented: $showDeleteConfirmation
             ) {
                 Button(AppLocalization.string("Cancel"), role: .cancel) { }
-                Button(AppLocalization.string("Delete"), role: .destructive) {
-                    performBatchDelete()
-                }
+                Button(AppLocalization.string("Delete"), role: .destructive, action: performBatchDelete)
             } message: {
                 Text(AppLocalization.plural("photos.delete.confirmation", selectedPhotos.count))
             }
@@ -381,6 +332,87 @@ struct PhotoView: View {
         let sorted = [olderPhoto, newerPhoto].sorted { $0.date < $1.date }
         guard sorted.count == 2 else { return }
         selectedComparePair = PhotoComparePair(olderPhoto: sorted[0], newerPhoto: sorted[1])
+    }
+
+    private func refreshPhotoContent() {
+        refreshToken = UUID()
+    }
+
+    private func handlePhotoViewAppear() {
+        applyExternalFilterIfNeeded()
+        consumePendingPhotoComposerRequestIfNeeded()
+        #if DEBUG
+        openUITestImportHookIfNeeded()
+        #endif
+    }
+
+    private func handlePhotoComposerRequestChange() {
+        consumePendingPhotoComposerRequestIfNeeded()
+    }
+
+    private func handlePhotosFilterTagChange() {
+        applyExternalFilterIfNeeded()
+    }
+
+    private func handlePendingPhotoCompletedEventChange() {
+        handlePendingPhotoCompletedEvent()
+    }
+
+    private func handleAddPhotoTap() {
+        Haptics.light()
+        showSourceChooserSheet = true
+    }
+
+    private func handleOpenCompareChooserTap() {
+        Haptics.light()
+        guard canUsePremiumCompare else {
+            premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
+            return
+        }
+        compareChooserContext = CompareChooserContext(
+            olderPhoto: nil,
+            newerPhoto: nil,
+            preferredSlot: .newer
+        )
+    }
+
+    private func handleChooseHeroSlot(_ pair: PhotoComparePairSuggestion, _ slot: CompareChooserSlot) {
+        Haptics.light()
+        guard canUsePremiumCompare else {
+            premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
+            return
+        }
+        compareChooserContext = CompareChooserContext(
+            olderPhoto: pair.older,
+            newerPhoto: pair.newer,
+            preferredSlot: slot
+        )
+    }
+
+    private func handleOpenSuggestedCompare(_ pair: PhotoComparePairSuggestion) {
+        guard canUsePremiumCompare else {
+            premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
+            return
+        }
+        openCompare(using: pair.older, pair.newer)
+    }
+
+    private func handleCompareChooserSelectionChange(_ olderPhoto: PhotoEntry, _ newerPhoto: PhotoEntry) {
+        heroCompareOverride = TemporaryHeroPairOverride(
+            pair: PhotoComparePair(olderPhoto: olderPhoto, newerPhoto: newerPhoto),
+            expiresAt: AppClock.now.addingTimeInterval(heroCompareOverrideLifetime)
+        )
+    }
+
+    private func handlePhotoDetailCompareRequest(_ olderPhoto: PhotoEntry, _ newerPhoto: PhotoEntry) {
+        selectedPhotoForDetail = nil
+        openCompare(using: olderPhoto, newerPhoto)
+    }
+
+    private func handlePhotoDeletedFromDetail(_ photo: PhotoEntry) {
+        selectedPhotos.remove(photo)
+        selectedPhotoForDetail = nil
+        refreshPhotoContent()
     }
     
 }
@@ -889,6 +921,7 @@ private struct PhotoContentView: View {
     @State private var fetchOffset: Int = 0
     @State private var usesInMemoryTagFiltering: Bool = false
     @State private var hasAnySavedPhotos: Bool = false
+    @State private var cachedRenderItems: [PhotoGridRenderItem] = []
     
     private let pageSize: Int = 60
 
@@ -897,37 +930,7 @@ private struct PhotoContentView: View {
     }
 
     private var renderItems: [PhotoGridRenderItem] {
-        let persistedByID = Dictionary(
-            uniqueKeysWithValues: photos.map { photo in
-                let key = "persisted_\(singlePhotoSaveID(for: photo))"
-                return (key, PhotoGridRenderItem.persisted(photo))
-            }
-        )
-        let pendingByID = Dictionary(
-            uniqueKeysWithValues: visiblePendingItems.map { item in
-                let key = "pending_\(item.id.uuidString)"
-                return (key, PhotoGridRenderItem.pending(item))
-            }
-        )
-
-        let orderedIDs = PhotoFeedMergePlanner.orderedIDs(
-            persisted: photos.map { photo in
-                PhotoFeedMergeItem(
-                    id: "persisted_\(singlePhotoSaveID(for: photo))",
-                    date: photo.date
-                )
-            },
-            pending: visiblePendingItems.map { item in
-                PhotoFeedMergeItem(
-                    id: "pending_\(item.id.uuidString)",
-                    date: item.date
-                )
-            }
-        )
-
-        return orderedIDs.compactMap { id in
-            pendingByID[id] ?? persistedByID[id]
-        }
+        cachedRenderItems
     }
 
     private var archiveItems: [PhotoGridRenderItem] {
@@ -1000,6 +1003,9 @@ private struct PhotoContentView: View {
         .task(id: filtersKey) {
             await reload()
         }
+        .onChange(of: pendingItemsSignature) { _, _ in
+            rebuildRenderItems()
+        }
         .onChange(of: recentlySavedPhotoEventID) { _, _ in
             applyRecentlySavedPhoto()
         }
@@ -1016,6 +1022,7 @@ private struct PhotoContentView: View {
         hasAnySavedPhotos = ((try? context.fetchCount(FetchDescriptor<PhotoEntry>())) ?? 0) > 0
         
         await loadMoreUntilVisibleOrExhausted()
+        rebuildRenderItems()
         isLoadingInitial = false
     }
     
@@ -1038,6 +1045,7 @@ private struct PhotoContentView: View {
         fetchOffset += rawBatch.count
         hasMore = rawBatch.count == pageSize
         isLoadingMore = false
+        rebuildRenderItems()
     }
 
     @MainActor
@@ -1078,6 +1086,47 @@ private struct PhotoContentView: View {
             }
             AppLog.debug("❌ Photo fetch failed: \(error)")
             return []
+        }
+    }
+
+    private var pendingItemsSignature: String {
+        pendingItems.map {
+            "\($0.id.uuidString)|\($0.date.timeIntervalSince1970)|\($0.progress)|\($0.status.rawValue)"
+        }
+        .joined(separator: ",")
+    }
+
+    @MainActor
+    private func rebuildRenderItems() {
+        let visiblePendingItems = pendingItems.filter { filters.matches(date: $0.date, tags: $0.tags) }
+        let persistedByID = Dictionary(
+            uniqueKeysWithValues: photos.map { photo in
+                let key = "persisted_\(singlePhotoSaveID(for: photo))"
+                return (key, PhotoGridRenderItem.persisted(photo))
+            }
+        )
+        let pendingByID = Dictionary(
+            uniqueKeysWithValues: visiblePendingItems.map { item in
+                let key = "pending_\(item.id.uuidString)"
+                return (key, PhotoGridRenderItem.pending(item))
+            }
+        )
+        let orderedIDs = PhotoFeedMergePlanner.orderedIDs(
+            persisted: photos.map { photo in
+                PhotoFeedMergeItem(
+                    id: "persisted_\(singlePhotoSaveID(for: photo))",
+                    date: photo.date
+                )
+            },
+            pending: visiblePendingItems.map { item in
+                PhotoFeedMergeItem(
+                    id: "pending_\(item.id.uuidString)",
+                    date: item.date
+                )
+            }
+        )
+        cachedRenderItems = orderedIDs.compactMap { id in
+            pendingByID[id] ?? persistedByID[id]
         }
     }
 
@@ -1180,21 +1229,9 @@ private struct PhotoGridView: View {
                             state: heroState,
                             isPremium: isPremium,
                             onOpenChooser: onOpenCompareChooser,
-                            onChooseOlderPhoto: {
-                                if case .pair(let suggestedPair) = heroState {
-                                    onChooseHeroSlot(suggestedPair, .older)
-                                }
-                            },
-                            onChooseNewerPhoto: {
-                                if case .pair(let suggestedPair) = heroState {
-                                    onChooseHeroSlot(suggestedPair, .newer)
-                                }
-                            },
-                            onCompare: {
-                                if case .pair(let suggestedPair) = heroState {
-                                    onOpenSuggestedCompare(suggestedPair)
-                                }
-                            },
+                            onChooseOlderPhoto: chooseOlderHeroPhoto,
+                            onChooseNewerPhoto: chooseNewerHeroPhoto,
+                            onCompare: openHeroSuggestedCompare,
                             onAddPhoto: onAddPhoto
                         )
 
@@ -1211,7 +1248,7 @@ private struct PhotoGridView: View {
                             .frame(maxWidth: .infinity)
                             .id(loadMoreToken)
                             .onAppear {
-                                onLoadMore()
+                                handleLoadMoreIndicatorAppear()
                             }
                     }
                 }
@@ -1335,6 +1372,25 @@ private struct PhotoGridView: View {
             }
         }
         .padding(.bottom, isSelecting && !selectedPhotos.isEmpty ? 80 : 0)
+    }
+
+    private func chooseOlderHeroPhoto() {
+        guard case .pair(let suggestedPair) = heroState else { return }
+        onChooseHeroSlot(suggestedPair, .older)
+    }
+
+    private func chooseNewerHeroPhoto() {
+        guard case .pair(let suggestedPair) = heroState else { return }
+        onChooseHeroSlot(suggestedPair, .newer)
+    }
+
+    private func openHeroSuggestedCompare() {
+        guard case .pair(let suggestedPair) = heroState else { return }
+        onOpenSuggestedCompare(suggestedPair)
+    }
+
+    private func handleLoadMoreIndicatorAppear() {
+        onLoadMore()
     }
 
     private func photoAccessibilityValue(for photo: PhotoEntry) -> String {

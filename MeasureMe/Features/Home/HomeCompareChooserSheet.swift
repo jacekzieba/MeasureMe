@@ -21,6 +21,7 @@ struct HomeCompareChooserOnDemandSheet: View {
 
 struct HomeCompareChooserSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     let photos: [PhotoEntry]
     let initialOlderPhoto: PhotoEntry?
@@ -258,16 +259,16 @@ struct HomeCompareChooserSheet: View {
                             .background(
                                 Group {
                                     if selectedRange == range {
-                                        LinearGradient(
+                                        ClaudeLightStyle.directionalGradient(
                                             colors: [photosTheme.accent.opacity(0.92), Color.appAmber.opacity(0.72)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
+                                            colorScheme: colorScheme,
+                                            lightColor: Color.appAccent
                                         )
                                     } else {
-                                        LinearGradient(
+                                        ClaudeLightStyle.directionalGradient(
                                             colors: [AppColorRoles.surfaceInteractive, AppColorRoles.surfacePrimary],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
+                                            colorScheme: colorScheme,
+                                            lightColor: AppColorRoles.surfacePrimary
                                         )
                                     }
                                 }
@@ -345,16 +346,16 @@ struct HomeCompareChooserSheet: View {
                                     .background(
                                         Group {
                                             if selectedTags.contains(tag) {
-                                                LinearGradient(
+                                                ClaudeLightStyle.directionalGradient(
                                                     colors: [photosTheme.accent.opacity(0.92), Color.appAmber.opacity(0.72)],
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
+                                                    colorScheme: colorScheme,
+                                                    lightColor: Color.appAccent
                                                 )
                                             } else {
-                                                LinearGradient(
+                                                ClaudeLightStyle.directionalGradient(
                                                     colors: [AppColorRoles.surfaceInteractive, AppColorRoles.surfacePrimary],
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
+                                                    colorScheme: colorScheme,
+                                                    lightColor: AppColorRoles.surfacePrimary
                                                 )
                                             }
                                         }
@@ -392,10 +393,10 @@ struct HomeCompareChooserSheet: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .fill(
-                                LinearGradient(
+                                ClaudeLightStyle.directionalGradient(
                                     colors: [photosTheme.softTint, .clear],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+                                    colorScheme: colorScheme,
+                                    lightColor: photosTheme.softTint.opacity(0.08)
                                 )
                             )
                     )
@@ -428,9 +429,9 @@ struct HomeCompareChooserSheet: View {
                                 if markerText(for: photo) != nil {
                                     Text(markerText(for: photo) ?? "")
                                         .font(AppTypography.microEmphasis.monospacedDigit())
-                                        .foregroundStyle(.black)
+                                        .foregroundStyle(AppColorRoles.textOnAccent)
                                         .frame(width: 22, height: 22)
-                                        .background(photosTheme.accent)
+                                        .background(Color.appAccent)
                                         .clipShape(Circle())
                                         .padding(6)
                                 }

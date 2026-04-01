@@ -38,9 +38,9 @@ struct ComplicationProvider: AppIntentTimelineProvider {
         let waist = ComplicationMetricIntent()
         waist.metric = .waist
         return [
-            AppIntentRecommendation(intent: weight, description: "Weight"),
-            AppIntentRecommendation(intent: bodyFat, description: "Body Fat"),
-            AppIntentRecommendation(intent: waist, description: "Waist")
+            AppIntentRecommendation(intent: weight, description: String(localized: "Weight")),
+            AppIntentRecommendation(intent: bodyFat, description: String(localized: "Body Fat")),
+            AppIntentRecommendation(intent: waist, description: String(localized: "Waist"))
         ]
     }
 }

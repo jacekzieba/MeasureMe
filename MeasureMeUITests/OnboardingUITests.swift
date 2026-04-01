@@ -63,55 +63,41 @@ final class OnboardingUITests: XCTestCase {
     /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
     /// Kryteria: Asercje na elementach UI przechodza (m.in. `onboarding.next`).
     func testNavigateThroughAllStepsSequentially() {
-        // powitanie -> profil -> boostery
-        for _ in 0..<2 {
-            let next = nextButton
-            XCTAssertTrue(next.waitForExistence(timeout: 10), "Przycisk Dalej powinien istniec")
-            XCTAssertTrue(next.isEnabled, "Przycisk Dalej powinien byc aktywny")
-            next.tap()
-        }
+        let firstNext = nextButton
+        XCTAssertTrue(firstNext.waitForExistence(timeout: 10), "Przycisk Dalej powinien istniec")
+        XCTAssertTrue(firstNext.isEnabled, "Przycisk Dalej powinien byc aktywny")
+        firstNext.tap()
 
-        XCTAssertTrue(app.buttons["onboarding.booster.reminders"].waitForExistence(timeout: 5), "Po dwoch krokach onboarding powinien zatrzymac sie na boosterach")
+        XCTAssertTrue(app.buttons["onboarding.booster.healthkit"].waitForExistence(timeout: 5), "Na ekranie pierwszego pomiaru powinien byc widoczny prompt HealthKit")
+        XCTAssertTrue(app.buttons["onboarding.skip"].waitForExistence(timeout: 5), "Na ekranie pierwszego pomiaru powinien byc widoczny przycisk pominiecia")
+
+        app.buttons["onboarding.skip"].tap()
+
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8), "Po pominieciu drugiego kroku onboarding powinien sie zakonczyc")
     }
 
     @MainActor
-    /// Co sprawdza: Sprawdza, ze RemindersButtonOpensSheet dziala poprawnie (otwarcie i podstawowe warunki).
+    /// Co sprawdza: Sprawdza, ze karta HealthKit jest widoczna na ekranie pierwszego pomiaru.
     /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
-    /// Kryteria: Asercje na elementach UI przechodza (m.in. `onboarding.next`, `onboarding.booster.reminders`, `onboarding.reminder.cancel`).
-    func testRemindersButtonOpensSheet() {
-        // powitanie -> profil -> boostery
-        for _ in 0..<2 {
-            let next = nextButton
-            XCTAssertTrue(next.waitForExistence(timeout: 10))
-            next.tap()
-        }
+    /// Kryteria: Asercje na elementach UI przechodza (m.in. `onboarding.next`, `onboarding.booster.healthkit`).
+    func testHealthKitPromptIsVisibleOnFirstMeasurementStep() {
+        let next = nextButton
+        XCTAssertTrue(next.waitForExistence(timeout: 10))
+        next.tap()
 
-        let remindersButton = app.buttons["onboarding.booster.reminders"]
-        XCTAssertTrue(remindersButton.waitForExistence(timeout: 5), "Przycisk boostera przypomnien powinien istniec")
-        remindersButton.tap()
-
-        let sheet = app.otherElements["onboarding.reminder.sheet.visible"]
-        let cancel = app.buttons["onboarding.reminder.cancel"]
-        let confirm = app.buttons["onboarding.reminder.confirm"]
-        XCTAssertTrue(
-            sheet.waitForExistence(timeout: 5)
-                || cancel.waitForExistence(timeout: 5)
-                || confirm.waitForExistence(timeout: 5),
-                      "Arkusz konfiguracji przypomnien powinien sie pojawic")
-        if cancel.exists {
-            cancel.tap()
-        }
+        let healthKitButton = app.buttons["onboarding.booster.healthkit"]
+        XCTAssertTrue(healthKitButton.waitForExistence(timeout: 5), "Przycisk HealthKit powinien istniec na ekranie pierwszego pomiaru")
     }
 
     @MainActor
-    func testICloudBackupBoosterIsHiddenDuringOnboarding() {
-        for _ in 0..<2 {
-            let next = nextButton
-            XCTAssertTrue(next.waitForExistence(timeout: 10))
-            next.tap()
-        }
+    func testHealthKitPromptDoesNotReplaceMeasurementFields() {
+        let next = nextButton
+        XCTAssertTrue(next.waitForExistence(timeout: 10))
+        next.tap()
 
-        XCTAssertFalse(app.buttons["onboarding.booster.icloud"].exists, "Onboarding nie powinien pytac o iCloud Backup")
+        XCTAssertTrue(app.buttons["onboarding.booster.healthkit"].exists, "Prompt HealthKit powinien byc widoczny")
+        XCTAssertTrue(app.buttons["onboarding.skip"].exists, "Drugi krok powinien miec opcje pominiecia")
+        XCTAssertTrue(app.textFields["onboarding.measurement.weight"].waitForExistence(timeout: 5), "Pole wagi powinno pozostac widoczne obok promptu HealthKit")
     }
 
     @MainActor

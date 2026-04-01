@@ -1,11 +1,11 @@
 /* Metric names */
 "Weight" = "Waga";
-"Body Fat" = "Tkanka tłuszczowa";
+"Body Fat" = "Tkanka tÅuszczowa";
 "Height" = "Wzrost";
-"Lean Body Mass" = "Beztłuszczowa masa";
+"Lean Body Mass" = "Beztłuszczowa masa ciała";
 "Waist" = "Talia";
 "Neck" = "Szyja";
-"Shoulders" = "Ramiona";
+"Shoulders" = "Barki";
 "Bust" = "Biust";
 "Chest" = "Klatka piersiowa";
 "Left Bicep" = "Lewy biceps";
@@ -15,28 +15,52 @@
 "Hips" = "Biodra";
 "Left Thigh" = "Lewe udo";
 "Right Thigh" = "Prawe udo";
-"Left Calf" = "Lewa łydka";
-"Right Calf" = "Prawa łydka";
+"Left Calf" = "Lewa Åydka";
+"Right Calf" = "Prawa Åydka";
 
 /* Short names (for Quick Add) */
-"Fat" = "Tłuszcz";
-"Lean" = "Beztł.";
+"Fat" = "TÅuszcz";
+"Lean" = "BeztÅ.";
 "L Bicep" = "L biceps";
 "R Bicep" = "P biceps";
 "L Forearm" = "L przedr.";
 "R Forearm" = "P przedr.";
 "L Thigh" = "L udo";
 "R Thigh" = "P udo";
-"L Calf" = "L łydka";
-"R Calf" = "P łydka";
+"L Calf" = "L Åydka";
+"R Calf" = "P Åydka";
 
 /* UI */
 "Add" = "Dodaj";
 "No Metrics" = "Brak metryk";
-"Enable metrics on your iPhone to see them here." = "Włącz metryki na iPhonie, aby zobaczyć je tutaj.";
+"Enable metrics on your iPhone to see them here." = "WÅÄ
+cz metryki na iPhonie, aby zobaczyÄ je tutaj.";
 "Recent" = "Ostatnie";
 "30-Day Trend" = "Trend 30-dniowy";
 "Save" = "Zapisz";
 "Saved" = "Zapisano";
 "Premium Feature" = "Funkcja Premium";
-"Upgrade to Premium on your iPhone to use MeasureMe on Apple Watch." = "Przejdź na Premium na swoim iPhonie, aby korzystać z MeasureMe na Apple Watch.";
+"Upgrade to Premium on your iPhone to use MeasureMe on Apple Watch." = "PrzejdÅº na Premium na swoim iPhonie, aby korzystaÄ z MeasureMe na Apple Watch.";
+
+"Opens Quick Add" = "Otwiera szybkie dodawanie";
+"Not enough data" = "Brak danych";
+"Improving" = "Poprawa";
+"Worsening" = "Pogorszenie";
+"Stable" = "Stabilnie";
+"Not enough data for trend" = "Za mało danych, aby ocenić trend";
+"up" = "w górę";
+"down" = "w dół";
+"unchanged" = "bez zmian";
+"Improving, stable over 30 days" = "Poprawa, stabilnie w ostatnich 30 dniach";
+"Improving, %@ %@ over 30 days" = "Poprawa, %@ %@ w ostatnich 30 dniach";
+"Worsening, stable over 30 days" = "Pogorszenie, stabilnie w ostatnich 30 dniach";
+"Worsening, %@ %@ over 30 days" = "Pogorszenie, %@ %@ w ostatnich 30 dniach";
+"Stable over 30 days" = "Stabilnie w ostatnich 30 dniach";
+"Stable, %@ %@ over 30 days" = "Stabilnie, %@ %@ w ostatnich 30 dniach";
+"Goal %@" = "Cel %@";
+"Goal" = "Cel";
+"Shows metric details" = "Pokazuje szczegóły metryki";
+"Selected. Rotate Digital Crown to adjust this metric." = "Wybrano. Obróć Digital Crown, aby zmienić tę metrykę.";
+"Selects this metric for Digital Crown editing." = "Wybiera tÄ metrykÄ do edycji za pomocÄ Digital Crown.";
+"Saves %d edited metrics" = "Zapisuje %d edytowane metryki";
+"Saves the selected metric" = "Zapisuje wybranÄ metrykÄ";

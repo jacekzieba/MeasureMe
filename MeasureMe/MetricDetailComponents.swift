@@ -434,11 +434,7 @@ struct MetricCompareSheet: View {
                             .foregroundStyle(AppColorRoles.textSecondary)
                     }
 
-                    Button {
-                        withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
-                            isPickerExpanded.toggle()
-                        }
-                    } label: {
+                    Button(action: togglePickerExpansion) {
                         selectionRow
                     }
                     .buttonStyle(.plain)
@@ -460,10 +456,7 @@ struct MetricCompareSheet: View {
 
                                 ForEach(options) { option in
                                     Button {
-                                        withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
-                                            onSelect(option.kind)
-                                            isPickerExpanded = false
-                                        }
+                                        selectComparisonOption(option.kind)
                                     } label: {
                                         compareOptionRow(option)
                                     }
@@ -481,9 +474,7 @@ struct MetricCompareSheet: View {
                     }
 
                     if let selectedKind, let onClear {
-                        Button {
-                            onClear()
-                        } label: {
+                        Button(action: onClear) {
                             HStack(spacing: 10) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundStyle(AppColorRoles.textSecondary)
@@ -508,9 +499,7 @@ struct MetricCompareSheet: View {
             .scrollIndicators(.hidden)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(AppLocalization.string("Done")) {
-                        dismiss()
-                    }
+                    Button(AppLocalization.string("Done"), action: dismissSheet)
                 }
             }
         }
@@ -625,10 +614,7 @@ struct MetricCompareSheet: View {
             HStack(spacing: 8) {
                 ForEach(MetricDetailView.Timeframe.allCases) { option in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.18)) {
-                            timeframe = option
-                            scrubbedDate = nil
-                        }
+                        selectTimeframe(option)
                     } label: {
                         Text(option.rawValue)
                             .font(AppTypography.microEmphasis)
@@ -769,16 +755,16 @@ struct MetricCompareSheet: View {
                         .simultaneousGesture(
                             SpatialTapGesture()
                                 .onEnded { value in
-                                    updateScrubbedDate(at: value.location, proxy: proxy, geometry: geometry)
+                                    handleComparisonChartTap(value, proxy: proxy, geometry: geometry)
                                 }
                         )
                         .simultaneousGesture(
                             DragGesture(minimumDistance: 0)
                                 .onChanged { value in
-                                    updateScrubbedDate(at: value.location, proxy: proxy, geometry: geometry)
+                                    handleComparisonChartDragChanged(value, proxy: proxy, geometry: geometry)
                                 }
                                 .onEnded { _ in
-                                    scrubbedDate = nil
+                                    handleComparisonChartDragEnded()
                                 }
                         )
                 }
@@ -917,6 +903,50 @@ struct MetricCompareSheet: View {
             abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
         }
     }
+
+    private func togglePickerExpansion() {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
+            isPickerExpanded.toggle()
+        }
+    }
+
+    private func selectComparisonOption(_ kind: MetricKind) {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
+            onSelect(kind)
+            isPickerExpanded = false
+        }
+    }
+
+    private func dismissSheet() {
+        dismiss()
+    }
+
+    private func selectTimeframe(_ option: MetricDetailView.Timeframe) {
+        withAnimation(.easeInOut(duration: 0.18)) {
+            timeframe = option
+            scrubbedDate = nil
+        }
+    }
+
+    private func handleComparisonChartTap(
+        _ value: SpatialTapGesture.Value,
+        proxy: ChartProxy,
+        geometry: GeometryProxy
+    ) {
+        updateScrubbedDate(at: value.location, proxy: proxy, geometry: geometry)
+    }
+
+    private func handleComparisonChartDragChanged(
+        _ value: DragGesture.Value,
+        proxy: ChartProxy,
+        geometry: GeometryProxy
+    ) {
+        updateScrubbedDate(at: value.location, proxy: proxy, geometry: geometry)
+    }
+
+    private func handleComparisonChartDragEnded() {
+        scrubbedDate = nil
+    }
 }
 
 struct MetricPhotosRow: View {
@@ -1030,6 +1060,7 @@ struct GoalProgressView: View {
 
 struct ProgressViewCard: View {
     private let measurementsTheme = FeatureTheme.measurements
+    @Environment(\.colorScheme) private var colorScheme
     let isAchieved: Bool
     let progress: Double
     let percentage: Int
@@ -1057,7 +1088,7 @@ struct ProgressViewCard: View {
 
                     RoundedRectangle(cornerRadius: 4)
                         .fill(
-                            LinearGradient(
+                            ClaudeLightStyle.directionalGradient(
                                 colors: isAchieved ? [
                                     AppColorRoles.stateSuccess,
                                     AppColorRoles.stateSuccess.opacity(0.8)
@@ -1065,6 +1096,8 @@ struct ProgressViewCard: View {
                                     measurementsTheme.accent,
                                     measurementsTheme.accent.opacity(0.8)
                                 ],
+                                colorScheme: colorScheme,
+                                lightColor: isAchieved ? AppColorRoles.stateSuccess : measurementsTheme.accent,
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )

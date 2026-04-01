@@ -10,6 +10,7 @@ private let physiqueAccentGradient = LinearGradient(
 )
 
 struct PhysiqueIndicatorsSection: View {
+    @Environment(\.colorScheme) private var colorScheme
     @AppSetting(\.profile.userGender) private var userGenderRaw: String = "notSpecified"
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
     @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
@@ -501,12 +502,8 @@ struct PhysiqueIndicatorsSection: View {
             } label: {
                 Text(AppLocalization.string("Go to Settings"))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(Color.white.opacity(0.98))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(physiqueAccentGradient, in: RoundedRectangle(cornerRadius: 8))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 8))
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -516,8 +513,10 @@ struct PhysiqueIndicatorsSection: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(
-                            LinearGradient(
-                                colors: [Color.dynamic(light: AppColorRoles.accentPhysique.opacity(0.08), dark: AppColorRoles.accentPhysique.opacity(0.16)), .clear],
+                            ClaudeLightStyle.directionalGradient(
+                                colors: [AppColorRoles.accentPhysique.opacity(0.16), .clear],
+                                colorScheme: colorScheme,
+                                lightColor: AppColorRoles.accentPhysique.opacity(0.08),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -533,6 +532,7 @@ struct PhysiqueIndicatorsSection: View {
 
 private struct PhysiqueSectionCard<Content: View>: View {
     private let physiqueAccent = AppColorRoles.accentPhysique
+    @Environment(\.colorScheme) private var colorScheme
     let title: String
     let icon: String
     @ViewBuilder let content: Content
@@ -557,8 +557,10 @@ private struct PhysiqueSectionCard<Content: View>: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(
-                            LinearGradient(
-                                colors: [Color.dynamic(light: physiqueAccent.opacity(0.08), dark: physiqueAccent.opacity(0.16)), .clear],
+                            ClaudeLightStyle.directionalGradient(
+                                colors: [physiqueAccent.opacity(0.16), .clear],
+                                colorScheme: colorScheme,
+                                lightColor: physiqueAccent.opacity(0.08),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -645,13 +647,9 @@ private struct PhysiqueRequiresGenderCard: View {
             } label: {
                 Text(AppLocalization.string("Open profile settings"))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(Color.white.opacity(0.98))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(physiqueAccentGradient, in: RoundedRectangle(cornerRadius: 8))
             }
             .accessibilityIdentifier("physique.requires.gender.cta")
-            .buttonStyle(.plain)
+            .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 8))
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -804,12 +802,8 @@ private struct PhysiqueMissingDataDetailView: View {
                     } label: {
                         Text(AppLocalization.string("Add measurement"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(Color.white.opacity(0.98))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(physiqueAccentGradient, in: RoundedRectangle(cornerRadius: 8))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 8))
                 }
                 .padding(16)
             }
@@ -841,12 +835,8 @@ private struct GenderRequiredMetricView: View {
                     } label: {
                         Text(AppLocalization.string("Open profile settings"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(Color.white.opacity(0.98))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(physiqueAccentGradient, in: RoundedRectangle(cornerRadius: 8))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 8))
                 }
                 .padding(16)
             }

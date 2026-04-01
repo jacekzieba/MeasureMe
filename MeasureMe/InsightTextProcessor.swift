@@ -23,11 +23,11 @@ nonisolated enum InsightTextProcessor {
         if detail.isEmpty { detail = sanitizedWhole }
 
         if short.isEmpty {
-            short = "Your trend is being analyzed."
+            short = AppLocalization.string("Your trend is being analyzed.")
         }
 
         if detail.isEmpty {
-            detail = "Keep logging consistently to get a clearer trend signal."
+            detail = AppLocalization.string("Keep logging consistently to get a clearer trend signal.")
         }
 
         return MetricInsightPair(shortText: short, detailedText: detail)
@@ -129,7 +129,7 @@ nonisolated enum InsightTextProcessor {
         lines.append("Do not infer causes that are not supported by the data.")
         lines.append("Do not predict or mention a projected goal date. Goal prediction is handled separately.")
         lines.append("Write the insight using second person. Use 2 to 5 sentences total.")
-        lines.append("Respond in English.")
+        lines.append(responseLanguageDirective())
 
         return lines.joined(separator: "\n")
     }
@@ -187,7 +187,7 @@ nonisolated enum InsightTextProcessor {
         lines.append("If the pattern is mostly stable, explain why that stability is still useful.")
         lines.append("Finish with one concrete focus for the next 7 days.")
         lines.append("Use 2 to 5 sentences total.")
-        lines.append("Respond in English.")
+        lines.append(responseLanguageDirective())
         return lines.joined(separator: "\n")
     }
 
@@ -212,9 +212,33 @@ nonisolated enum InsightTextProcessor {
         lines.append("If the section is broadly stable, frame that stability as useful consistency rather than empty progress.")
         lines.append("Keep the tone motivating, factual, and compact.")
         lines.append("Use 2 to 5 sentences total.")
-        lines.append("Respond in English.")
+        lines.append(responseLanguageDirective())
 
         return lines.joined(separator: "\n")
+    }
+
+    private static func responseLanguageDirective() -> String {
+        switch AppLocalization.currentLanguage {
+        case .pl:
+            return "Respond in Polish."
+        case .de:
+            return "Respond in German."
+        case .fr:
+            return "Respond in French."
+        case .system:
+            switch AppLanguage.resolvedSystemLanguage {
+            case .pl:
+                return "Respond in Polish."
+            case .de:
+                return "Respond in German."
+            case .fr:
+                return "Respond in French."
+            case .en, .es, .ptBR, .system:
+                return "Respond in English."
+            }
+        case .en, .es, .ptBR:
+            return "Respond in English."
+        }
     }
 
     private static func sectionTaskHint(for sectionID: String) -> String {

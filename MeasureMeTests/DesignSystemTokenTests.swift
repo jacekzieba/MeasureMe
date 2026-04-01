@@ -13,12 +13,12 @@ final class DesignSystemTokenTests: XCTestCase {
 
     func testLegacyBrandColorsDelegateToNewPalette() {
         XCTAssertEqual(rgba(Color.appBlack), rgba(Color.appInk))
-        XCTAssertEqual(rgba(Color.appAccent, style: .light), rgba(Color.appAmberLight))
+        XCTAssertEqual(rgba(Color.appAccent, style: .light), rgba(Color.appAmber))
         XCTAssertEqual(rgba(Color.appAccent, style: .dark), rgba(Color.appAmber))
         XCTAssertEqual(rgba(Color.appGray, style: .dark), rgba(Color.appFog))
-        XCTAssertEqual(rgba(Color.appGray, style: .light), rgba(Color.appInk.opacity(0.62)))
+        XCTAssertEqual(rgba(Color.appGray, style: .light), rgba(Color(hex: "#5E5D59")))
         XCTAssertEqual(rgba(Color.appWhite, style: .dark), rgba(Color.appPaper))
-        XCTAssertEqual(rgba(Color.appWhite, style: .light), rgba(Color.appInk))
+        XCTAssertEqual(rgba(Color.appWhite, style: .light), rgba(Color(hex: "#141413")))
     }
 
     func testFeatureThemesExposeDistinctAccents() {
@@ -28,11 +28,11 @@ final class DesignSystemTokenTests: XCTestCase {
     }
 
     func testSemanticRolesMapToExpectedPalette() {
-        XCTAssertEqual(rgba(AppColorRoles.accentPrimary, style: .light), rgba(Color.appAmberLight))
+        XCTAssertEqual(rgba(AppColorRoles.accentPrimary, style: .light), rgba(Color.appAmber))
         XCTAssertEqual(rgba(AppColorRoles.accentPrimary, style: .dark), rgba(Color.appAmber))
         XCTAssertEqual(rgba(AppColorRoles.accentPhoto), rgba(Color.appCyan))
         XCTAssertEqual(rgba(AppColorRoles.accentData), rgba(Color.appTeal))
-        XCTAssertEqual(rgba(AppColorRoles.accentPremium, style: .light), rgba(Color.appAmberLight))
+        XCTAssertEqual(rgba(AppColorRoles.accentPremium, style: .light), rgba(Color.appAmber))
         XCTAssertEqual(rgba(AppColorRoles.accentPremium, style: .dark), rgba(Color.appAmber))
         XCTAssertEqual(rgba(AppColorRoles.accentHealth, style: .light), rgba(Color(hex: "#166534")))
         XCTAssertEqual(rgba(AppColorRoles.accentHealth, style: .dark), rgba(Color.appEmerald))

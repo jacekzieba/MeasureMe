@@ -58,6 +58,7 @@ struct MetricDetailView: View {
     @State private var isPredictionExpanded = false
     @State private var isEditingCommitment = false
     @State private var commitmentInput: String = ""
+    @State private var comparisonCache = ComparisonCache()
     
     @AppSetting(\.experience.photosFilterTag) var photosFilterTag: String = ""
 
@@ -105,6 +106,11 @@ struct MetricDetailView: View {
         case fallback(String)
     }
 
+    private struct ComparisonCache {
+        var options: [MetricComparisonOption] = []
+        var samplesByKind: [MetricKind: [MetricSample]] = [:]
+    }
+
     // MARK: - Initialization
     
     init(kind: MetricKind) {
@@ -144,38 +150,7 @@ struct MetricDetailView: View {
     }
 
     var availableComparisonOptions: [MetricComparisonOption] {
-        let grouped = Dictionary(grouping: allMetricSamples) { $0.kindRaw }
-
-        return MetricKind.allCases.compactMap { candidate in
-            guard candidate != kind,
-                  let candidateSamples = grouped[candidate.rawValue],
-                  !candidateSamples.isEmpty else {
-                return nil
-            }
-
-            let sorted = candidateSamples.sorted { $0.date < $1.date }
-            return MetricComparisonOption(
-                kind: candidate,
-                latestSample: sorted.last,
-                sampleCount: sorted.count,
-                usesSecondaryAxis: candidate.unitCategory != kind.unitCategory,
-                isRecommended: candidate.unitCategory == kind.unitCategory
-            )
-        }
-        .sorted { lhs, rhs in
-            if lhs.isRecommended != rhs.isRecommended {
-                return lhs.isRecommended && !rhs.isRecommended
-            }
-            if lhs.sampleCount != rhs.sampleCount {
-                return lhs.sampleCount > rhs.sampleCount
-            }
-            switch (lhs.latestSample?.date, rhs.latestSample?.date) {
-            case let (left?, right?) where left != right:
-                return left > right
-            default:
-                return lhs.kind.title.localizedCaseInsensitiveCompare(rhs.kind.title) == .orderedAscending
-            }
-        }
+        comparisonCache.options
     }
 
     var hasComparisonOptions: Bool {
@@ -189,7 +164,7 @@ struct MetricDetailView: View {
 
     var comparisonSamples: [MetricSample] {
         guard let comparisonKind else { return [] }
-        return allMetricSamples.filter { $0.kindRaw == comparisonKind.rawValue }
+        return comparisonCache.samplesByKind[comparisonKind] ?? []
     }
     
     /// Samples filtered by the selected time range
@@ -261,6 +236,10 @@ struct MetricDetailView: View {
 
     var latestSample: MetricSample? {
         sortedSamplesAscending.last
+    }
+
+    var comparisonCacheRefreshSignature: [PersistentIdentifier] {
+        allMetricSamples.map(\.persistentModelID)
     }
 
     var previousSample: MetricSample? {
@@ -370,104 +349,133 @@ struct MetricDetailView: View {
     }
 
     var detailList: some View {
+        detailListWithLifecycle
+    }
+
+    private var detailListBase: some View {
         ZStack(alignment: .top) {
             AppScreenBackground(topHeight: 260, tint: measurementsTheme.softTint)
             ScrollView {
                 detailContent
             }
         }
+    }
+
+    private var detailListNavigation: some View {
+        detailListBase
         .navigationTitle(kind.title)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Haptics.light()
-                    showAddSheet = true
-                } label: {
+                Button(action: presentAddMeasurementSheet) {
                     Label(AppLocalization.string("Update"), systemImage: "plus")
                 }
                 .accessibilityLabel(AppLocalization.string("accessibility.update.metric", kind.title))
                 .accessibilityHint(AppLocalization.string("accessibility.add.measurement"))
             }
         }
-        // MARK: Sheets
+    }
+
+    private var detailListWithSheets: some View {
+        detailListNavigation
         .sheet(isPresented: $showAddSheet) {
-            AddMetricSampleView(
-                kind: kind,
-                defaultMetricValue: samples.last?.value
-            ) { date, metricValue in
-                add(date: date, value: metricValue)
-            }
+            addMeasurementSheetContent
         }
         .sheet(item: $editingSample) { sample in
             EditMetricSampleView(kind: kind, sample: sample)
         }
         .sheet(isPresented: $showGoalSheet) {
-            SetGoalView(
-                kind: kind,
-                currentGoal: currentGoal,
-                latestMetricValue: latestSampleValue,
-                onSet: { targetValue, direction, startValue, startDate in
-                    setGoal(targetValue: targetValue, direction: direction,
-                            startValue: startValue, startDate: startDate)
-                },
-                onDelete: {
-                    deleteGoal()
-                }
-            )
+            goalSheetContent
         }
         .sheet(isPresented: $showCompareSheet) {
-            MetricCompareSheet(
-                currentKind: kind,
-                selectedKind: comparisonKind,
-                options: availableComparisonOptions,
-                timeframe: $timeframe,
-                unitsSystem: unitsSystem,
-                primarySamples: chartRenderSamples,
-                comparisonSamples: comparisonRenderSamples,
-                primaryColor: measurementsTheme.accent,
-                comparisonColor: AppColorRoles.compareAfter,
-                usesSecondaryAxis: comparisonRequiresSecondaryAxis,
-                primaryAxisDomain: comparisonPrimaryAxisDomain,
-                secondaryAxisValues: secondaryAxisGuideValues.reversed(),
-                primaryDisplayValue: { displayValue($0) },
-                comparisonDisplayValue: { plottedComparisonValue(for: $0) },
-                onSelect: { selectedKind in
-                    Haptics.selection()
-                    comparisonKind = selectedKind
-                    scrubbedDate = nil
-                },
-                onClear: isComparisonActive ? {
-                    Haptics.light()
-                    comparisonKind = nil
-                    scrubbedDate = nil
-                } : nil
-            )
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-            .presentationBackground(.ultraThinMaterial)
+            metricCompareSheetContent
         }
         .sheet(isPresented: $showInsightConversation) {
-            if let input = insightInput, case .ready(let text) = insightState {
-                InsightConversationView(
-                    metricTitle: kind.title,
-                    originalInsight: text,
-                    input: input
-                )
-            }
+            insightConversationSheetContent
         }
+    }
+
+    private var detailListWithLifecycle: some View {
+        detailListWithSheets
         .task(id: insightInput) {
             await loadInsightIfNeeded()
         }
         .onChange(of: comparisonKind) { _, _ in
             endChartScrubbing()
         }
-        .onChange(of: allMetricSamples.count) { _, _ in
-            guard let comparisonKind else { return }
-            let stillExists = allMetricSamples.contains { $0.kindRaw == comparisonKind.rawValue }
-            if !stillExists {
-                self.comparisonKind = nil
-            }
+        .onChange(of: comparisonCacheRefreshSignature) { _, _ in handleAllMetricSamplesCountChange() }
+        .onAppear(perform: handleDetailAppear)
+    }
+
+    @ViewBuilder
+    private var addMeasurementSheetContent: some View {
+        AddMetricSampleView(
+            kind: kind,
+            defaultMetricValue: samples.last?.value
+        ) { date, metricValue in
+            add(date: date, value: metricValue)
+        }
+    }
+
+    @ViewBuilder
+    private var goalSheetContent: some View {
+        SetGoalView(
+            kind: kind,
+            currentGoal: currentGoal,
+            latestMetricValue: latestSampleValue,
+            onSet: { targetValue, direction, startValue, startDate in
+                setGoal(
+                    targetValue: targetValue,
+                    direction: direction,
+                    startValue: startValue,
+                    startDate: startDate
+                )
+            },
+            onDelete: deleteGoal
+        )
+    }
+
+    private var compareSheetOnClearAction: (() -> Void)? {
+        if isComparisonActive {
+            return { clearComparison() }
+        }
+        return nil
+    }
+
+    private var metricCompareSheetContent: some View {
+        MetricCompareSheet(
+            currentKind: kind,
+            selectedKind: comparisonKind,
+            options: availableComparisonOptions,
+            timeframe: $timeframe,
+            unitsSystem: unitsSystem,
+            primarySamples: chartRenderSamples,
+            comparisonSamples: comparisonRenderSamples,
+            primaryColor: measurementsTheme.accent,
+            comparisonColor: AppColorRoles.compareAfter,
+            usesSecondaryAxis: comparisonRequiresSecondaryAxis,
+            primaryAxisDomain: comparisonPrimaryAxisDomain,
+            secondaryAxisValues: secondaryAxisGuideValues.reversed(),
+            primaryDisplayValue: { displayValue($0) },
+            comparisonDisplayValue: { plottedComparisonValue(for: $0) },
+            onSelect: handleComparisonSelection,
+            onClear: compareSheetOnClearAction
+        )
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(.ultraThinMaterial)
+    }
+
+    @ViewBuilder
+    private var insightConversationSheetContent: some View {
+        if let input = insightInput, case .ready(let text) = insightState {
+            InsightConversationView(
+                metricTitle: kind.title,
+                originalInsight: text,
+                input: input
+            )
+        } else {
+            EmptyView()
         }
     }
 
@@ -491,6 +499,44 @@ struct MetricDetailView: View {
         .padding(.bottom, 24)
     }
 
+    private func rebuildComparisonCache() {
+        let grouped = Dictionary(grouping: allMetricSamples) { $0.kindRaw }
+        var samplesByKind: [MetricKind: [MetricSample]] = [:]
+
+        let options = MetricKind.allCases.compactMap { candidate -> MetricComparisonOption? in
+            guard candidate != kind,
+                  let candidateSamples = grouped[candidate.rawValue],
+                  !candidateSamples.isEmpty else {
+                return nil
+            }
+
+            samplesByKind[candidate] = candidateSamples
+            return MetricComparisonOption(
+                kind: candidate,
+                latestSample: candidateSamples.last,
+                sampleCount: candidateSamples.count,
+                usesSecondaryAxis: candidate.unitCategory != kind.unitCategory,
+                isRecommended: candidate.unitCategory == kind.unitCategory
+            )
+        }
+        .sorted { lhs, rhs in
+            if lhs.isRecommended != rhs.isRecommended {
+                return lhs.isRecommended && !rhs.isRecommended
+            }
+            if lhs.sampleCount != rhs.sampleCount {
+                return lhs.sampleCount > rhs.sampleCount
+            }
+            switch (lhs.latestSample?.date, rhs.latestSample?.date) {
+            case let (left?, right?) where left != right:
+                return left > right
+            default:
+                return lhs.kind.title.localizedCaseInsensitiveCompare(rhs.kind.title) == .orderedAscending
+            }
+        }
+
+        comparisonCache = ComparisonCache(options: options, samplesByKind: samplesByKind)
+    }
+
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
             .font(AppTypography.eyebrow)
@@ -499,6 +545,36 @@ struct MetricDetailView: View {
             .tracking(0.4)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 2)
+    }
+
+    private func presentAddMeasurementSheet() {
+        Haptics.light()
+        showAddSheet = true
+    }
+
+    private func handleComparisonSelection(_ selectedKind: MetricKind) {
+        Haptics.selection()
+        comparisonKind = selectedKind
+        scrubbedDate = nil
+    }
+
+    private func clearComparison() {
+        Haptics.light()
+        comparisonKind = nil
+        scrubbedDate = nil
+    }
+
+    private func handleAllMetricSamplesCountChange() {
+        rebuildComparisonCache()
+        guard let comparisonKind else { return }
+        let stillExists = allMetricSamples.contains { $0.kindRaw == comparisonKind.rawValue }
+        if !stillExists {
+            self.comparisonKind = nil
+        }
+    }
+
+    private func handleDetailAppear() {
+        rebuildComparisonCache()
     }
 
     @ViewBuilder
@@ -1013,7 +1089,7 @@ struct MetricDetailView: View {
 
         return shape
             .fill(
-                LinearGradient(
+                ClaudeLightStyle.directionalGradient(
                     colors: colorScheme == .dark
                         ? [
                             AppColorRoles.surfaceChrome.opacity(0.98),
@@ -1023,31 +1099,31 @@ struct MetricDetailView: View {
                             Color(hex: "#FAFAF7"),
                             Color(hex: "#EFF1EB")
                         ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+                    colorScheme: colorScheme,
+                    lightColor: AppColorRoles.surfacePrimary
                 )
             )
             .overlay(
                 shape.fill(
-                    LinearGradient(
+                    ClaudeLightStyle.directionalGradient(
                         colors: [
                             measurementsTheme.strongTint.opacity(colorScheme == .dark ? 0.18 : 0.08),
                             .clear
                         ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        colorScheme: colorScheme,
+                        lightColor: measurementsTheme.strongTint.opacity(0.04)
                     )
                 )
             )
             .overlay(
                 shape.stroke(
-                    LinearGradient(
+                    ClaudeLightStyle.directionalGradient(
                         colors: [
                             Color.white.opacity(colorScheme == .dark ? 0.12 : 0.88),
                             AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 0.72 : 0.54)
                         ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        colorScheme: colorScheme,
+                        lightColor: AppColorRoles.borderSubtle
                     ),
                     lineWidth: 1
                 )
@@ -1443,33 +1519,33 @@ struct MetricDetailView: View {
 
             shape
                 .fill(
-                    LinearGradient(
+                    ClaudeLightStyle.directionalGradient(
                         colors: fillColors,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        colorScheme: colorScheme,
+                        lightColor: fillColors.first ?? AppColorRoles.surfacePrimary
                     )
                 )
                 .overlay(
                     shape.fill(
-                        LinearGradient(
+                        ClaudeLightStyle.directionalGradient(
                             colors: [
                                 accent.opacity(isActive ? (colorScheme == .dark ? 0.18 : 0.08) : 0.025),
                                 .clear
                             ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                            colorScheme: colorScheme,
+                            lightColor: accent.opacity(isActive ? 0.04 : 0.015)
                         )
                     )
                 )
                 .overlay(
                     shape.stroke(
-                        LinearGradient(
+                        ClaudeLightStyle.directionalGradient(
                             colors: [
                                 Color.white.opacity(colorScheme == .dark ? 0.16 : 0.9),
                                 AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 0.92 : 0.62)
                             ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                            colorScheme: colorScheme,
+                            lightColor: AppColorRoles.borderSubtle
                         ),
                         lineWidth: 1
                     )
@@ -1489,7 +1565,7 @@ struct MetricDetailView: View {
 
             shape
                 .fill(
-                    LinearGradient(
+                    ClaudeLightStyle.directionalGradient(
                         colors: colorScheme == .dark
                             ? [
                                 AppColorRoles.surfaceChrome.opacity(0.96),
@@ -1499,17 +1575,19 @@ struct MetricDetailView: View {
                                 Color(hex: "#F9FAF7"),
                                 Color(hex: "#EFF1EA")
                             ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        colorScheme: colorScheme,
+                        lightColor: AppColorRoles.surfaceSecondary
                     )
                 )
                 .overlay(
                     shape.fill(
-                        LinearGradient(
+                        ClaudeLightStyle.directionalGradient(
                             colors: [
                                 accent.opacity(colorScheme == .dark ? 0.12 : 0.06),
                                 .clear
                             ],
+                            colorScheme: colorScheme,
+                            lightColor: accent.opacity(0.04),
                             startPoint: .leading,
                             endPoint: .trailing
                         )
@@ -1517,13 +1595,13 @@ struct MetricDetailView: View {
                 )
                 .overlay(
                     shape.stroke(
-                        LinearGradient(
+                        ClaudeLightStyle.directionalGradient(
                             colors: [
                                 Color.white.opacity(colorScheme == .dark ? 0.14 : 0.86),
                                 AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 0.82 : 0.56)
                             ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                            colorScheme: colorScheme,
+                            lightColor: AppColorRoles.borderSubtle
                         ),
                         lineWidth: 1
                     )
@@ -1562,16 +1640,7 @@ struct MetricDetailView: View {
                     yEnd: .value("Value", displayValue(s.value))
                 )
                 .interpolationMethod(.monotone)
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [
-                            measurementsTheme.accent.opacity(0.28),
-                            measurementsTheme.accent.opacity(0.02)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
+                .foregroundStyle(ClaudeLightStyle.areaFill(accent: measurementsTheme.accent, colorScheme: colorScheme))
 
                 LineMark(
                     x: .value("Date", s.date),

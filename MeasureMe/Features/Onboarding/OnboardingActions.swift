@@ -16,8 +16,4 @@ extension OnboardingView {
         return min(max(candidate, minimumCardHeight), maximumCardHeight)
     }
 
-    func parseLocalizedDouble(_ raw: String) -> Double? {
-        let normalized = raw.replacingOccurrences(of: ",", with: ".")
-        return Double(normalized)
-    }
 }

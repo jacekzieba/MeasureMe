@@ -18,6 +18,7 @@ struct HealthMetricsSection: View {
 
     @AppSetting(\.profile.userName) private var userName: String = ""
     @EnvironmentObject private var premiumStore: PremiumStore
+    @Environment(\.colorScheme) private var colorScheme
     @AppSetting(\.profile.userGender) private var userGenderRaw: String = "notSpecified"
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
     @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
@@ -275,15 +276,15 @@ struct HealthMetricsSection: View {
         } else if !AppleIntelligenceSupport.isAvailable() && !bypassGuards {
             Text(AppLocalization.string("AI Insights aren't available right now."))
                 .font(AppTypography.body)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(AppColorRoles.textSecondary)
         } else if !hasAnyMetricEnabled && !bypassGuards {
             Text(AppLocalization.string("Enable health indicators in Settings to generate your summary."))
                 .font(AppTypography.body)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(AppColorRoles.textSecondary)
         } else if !hasSummaryMeasurementData && !bypassGuards {
             Text(AppLocalization.string("AI summary needs measurement data. Add your first measurement to get personalized insights."))
                 .font(AppTypography.body)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(AppColorRoles.textSecondary)
         } else {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .top, spacing: 10) {
@@ -291,7 +292,7 @@ struct HealthMetricsSection: View {
                         .font(AppTypography.iconSmall)
                         .foregroundStyle(HealthIndicatorPalette.accent)
                         .padding(8)
-                        .background(Color.white.opacity(0.08))
+                        .background(AppColorRoles.surfaceAccentSoft)
                         .clipShape(Circle())
 
                     Text(healthInsightText ?? AppLocalization.string("Generating your health summary..."))
@@ -852,12 +853,8 @@ struct HealthMetricsSection: View {
                     Text(AppLocalization.string("Go to Settings"))
                 }
                 .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(Color.white.opacity(0.98))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(healthAccentGradient)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
+            .buttonStyle(AppCTAButtonStyle(cornerRadius: 10))
             .padding(.top, 4)
         }
         .padding(16)
@@ -910,12 +907,8 @@ private struct HealthIndicatorMissingDataView: View {
                     } label: {
                         Text(AppLocalization.string("Add measurement"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(Color.white.opacity(0.98))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(healthAccentGradient, in: RoundedRectangle(cornerRadius: 8))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 8))
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 20)
@@ -949,12 +942,8 @@ private struct GenderRequiredIndicatorView: View {
                     } label: {
                         Text(AppLocalization.string("Open profile settings"))
                             .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(Color.white.opacity(0.98))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(healthAccentGradient, in: RoundedRectangle(cornerRadius: 8))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 8))
                 }
                 .padding(16)
             }

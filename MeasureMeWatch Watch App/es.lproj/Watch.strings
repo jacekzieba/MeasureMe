@@ -8,27 +8,27 @@
 "Shoulders" = "Hombros";
 "Bust" = "Busto";
 "Chest" = "Pecho";
-"Left Bicep" = "Bíceps Izquierdo";
-"Right Bicep" = "Bíceps Derecho";
-"Left Forearm" = "Antebrazo Izquierdo";
-"Right Forearm" = "Antebrazo Derecho";
+"Left Bicep" = "Bíceps izquierdo";
+"Right Bicep" = "Bíceps derecho";
+"Left Forearm" = "antebrazo izquierdo";
+"Right Forearm" = "antebrazo derecho";
 "Hips" = "Caderas";
-"Left Thigh" = "Muslo Izquierdo";
-"Right Thigh" = "Muslo Derecho";
+"Left Thigh" = "muslo izquierdo";
+"Right Thigh" = "muslo derecho";
 "Left Calf" = "Pantorrilla Izquierda";
-"Right Calf" = "Pantorrilla Derecha";
+"Right Calf" = "pantorrilla derecha";
 
 /* Short names (for Quick Add) */
 "Fat" = "Grasa";
 "Lean" = "Magra";
-"L Bicep" = "L Bíceps";
-"R Bicep" = "R Bíceps";
-"L Forearm" = "L Antebrazo";
-"R Forearm" = "R Antebrazo";
-"L Thigh" = "L Muslo";
-"R Thigh" = "R Muslo";
-"L Calf" = "L Pantorrilla";
-"R Calf" = "R Pantorrilla";
+"L Bicep" = "Bíceps I";
+"R Bicep" = "Bíceps D";
+"L Forearm" = "Antebr. I";
+"R Forearm" = "Antebr. D";
+"L Thigh" = "Muslo I";
+"R Thigh" = "Muslo D";
+"L Calf" = "Pant. I";
+"R Calf" = "Pant. D";
 
 /* UI */
 "Add" = "Agregar";
@@ -38,5 +38,28 @@
 "30-Day Trend" = "Tendencia de 30 días";
 "Save" = "Guardar";
 "Saved" = "Guardado";
-"Premium Feature" = "Característica Premium";
+"Premium Feature" = "Característica prémium";
 "Upgrade to Premium on your iPhone to use MeasureMe on Apple Watch." = "Actualice a Premium en su iPhone para usar MeasureMe en Apple Watch.";
+
+"Opens Quick Add" = "Abre Agregar rápido";
+"Not enough data" = "No hay suficientes datos";
+"Improving" = "Mejora";
+"Worsening" = "Empeoramiento";
+"Stable" = "Estable";
+"Not enough data for trend" = "No hay suficientes datos para la tendencia";
+"up" = "subida";
+"down" = "bajada";
+"unchanged" = "sin cambios";
+"Improving, stable over 30 days" = "Mejora, estable durante 30 días";
+"Improving, %@ %@ over 30 days" = "Mejora, %1$@ de %2$@ en 30 días";
+"Worsening, stable over 30 days" = "Empeoramiento, estable durante 30 días";
+"Worsening, %@ %@ over 30 days" = "Empeoramiento, %1$@ de %2$@ en 30 días";
+"Stable over 30 days" = "Estable durante 30 días";
+"Stable, %@ %@ over 30 days" = "Estable, %1$@ de %2$@ en 30 días";
+"Goal %@" = "Meta %@";
+"Goal" = "Meta";
+"Shows metric details" = "Muestra detalles de métricas";
+"Selected. Rotate Digital Crown to adjust this metric." = "Seleccionado. Gire Digital Crown para ajustar esta métrica.";
+"Selects this metric for Digital Crown editing." = "Selecciona esta métrica para la edición Digital Crown.";
+"Saves %d edited metrics" = "Guarda %d métricas editadas";
+"Saves the selected metric" = "Guarda la métrica seleccionada";

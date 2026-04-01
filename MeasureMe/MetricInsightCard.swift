@@ -8,6 +8,7 @@ struct MetricInsightCard: View {
 
     @State private var shimmerPhase: CGFloat = 0
     @State private var isExpanded = false
+    @Environment(\.colorScheme) private var colorScheme
 
     private let collapsedLineLimit = 4
 
@@ -91,18 +92,22 @@ struct MetricInsightCard: View {
         .overlay(
             RoundedRectangle(cornerRadius: compact ? 12 : 14, style: .continuous)
                 .stroke(
-                    LinearGradient(
-                        colors: [
-                            AppColorRoles.borderStrong,
-                            AppColorRoles.borderSubtle
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
+                    colorScheme == .dark
+                        ? AnyShapeStyle(
+                            LinearGradient(
+                                colors: [
+                                    AppColorRoles.borderStrong,
+                                    AppColorRoles.borderSubtle
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        : AnyShapeStyle(AppColorRoles.borderSubtle),
                     lineWidth: 1
                 )
         )
-        .shadow(color: Color.black.opacity(0.16), radius: 10, x: 0, y: 4)
+        .shadow(color: (colorScheme == .dark ? Color.black : AppColorRoles.shadowSoft).opacity(colorScheme == .dark ? 0.16 : 0.10), radius: 10, x: 0, y: 4)
         .onChange(of: isLoading) {
             if isLoading {
                 withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {

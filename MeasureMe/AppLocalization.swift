@@ -5,6 +5,8 @@ enum AppLanguage: String {
     case en
     case pl
     case es
+    case de
+    case fr
     case ptBR = "pt-BR"
 
     static func fromStoredValue(_ raw: String?) -> AppLanguage {
@@ -31,6 +33,12 @@ enum AppLanguage: String {
         if preferred.hasPrefix("es") {
             return .es
         }
+        if preferred.hasPrefix("de") {
+            return .de
+        }
+        if preferred.hasPrefix("fr") {
+            return .fr
+        }
         if preferred.hasPrefix("pt") {
             return .ptBR
         }
@@ -47,6 +55,10 @@ enum AppLanguage: String {
             return Locale(identifier: "pl")
         case .es:
             return Locale(identifier: "es")
+        case .de:
+            return Locale(identifier: "de")
+        case .fr:
+            return Locale(identifier: "fr")
         case .ptBR:
             return Locale(identifier: "pt-BR")
         }
@@ -56,7 +68,7 @@ enum AppLanguage: String {
         switch self {
         case .system:
             return AppLanguage.resolvedSystemLanguage.bundle
-        case .en, .pl, .es, .ptBR:
+        case .en, .pl, .es, .de, .fr, .ptBR:
             return AppLanguage.localizedBundle(for: rawValue) ?? .main
         }
     }
@@ -148,7 +160,7 @@ enum AppLocalization {
             let resolvedLanguage = AppLanguage.resolvedSystemLanguage
             resolvedBundle = resolvedLanguage.bundle
             resolvedLocale = resolvedLanguage.locale
-        case .en, .pl, .es, .ptBR:
+        case .en, .pl, .es, .de, .fr, .ptBR:
             resolvedBundle = currentBundle
             resolvedLocale = language.locale
         }

@@ -218,9 +218,9 @@ struct OnboardingUITestButtonStyleModifier: ViewModifier {
     func body(content: Content) -> some View {
         switch style {
         case .bordered:
-            content.buttonStyle(.bordered)
+            content.buttonStyle(AppSecondaryButtonStyle(cornerRadius: 10))
         case .borderedProminent:
-            content.buttonStyle(.borderedProminent)
+            content.buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 10))
         }
     }
 }
@@ -240,16 +240,12 @@ struct TrialReminderPromptOverlay: View {
                 .accessibilityIdentifier("premium.trial.reminder.prompt.visible")
 
             Button(declineTitle, role: .cancel, action: onDecline)
-                .buttonStyle(.bordered)
-                .tint(.white.opacity(0.2))
-                .foregroundStyle(.white)
+                .buttonStyle(AppSecondaryButtonStyle(cornerRadius: 10))
                 .frame(minWidth: 44, minHeight: 44)
                 .accessibilityIdentifier("premium.trial.reminder.prompt.decline")
 
             Button(confirmTitle, action: onConfirm)
-                .buttonStyle(.borderedProminent)
-                .tint(.white.opacity(0.2))
-                .foregroundStyle(.white)
+                .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 10))
                 .frame(minWidth: 44, minHeight: 44)
                 .accessibilityIdentifier("premium.trial.reminder.prompt.confirm")
         }

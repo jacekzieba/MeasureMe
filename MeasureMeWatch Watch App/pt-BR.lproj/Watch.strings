@@ -19,16 +19,16 @@
 "Right Calf" = "Panturrilha Direita";
 
 /* Short names (for Quick Add) */
-"Fat" = "Gord.";
-"Lean" = "Magro";
-"L Bicep" = "L Bíceps";
-"R Bicep" = "R Bíceps";
-"L Forearm" = "L Antebraço";
-"R Forearm" = "R Antebraço";
-"L Thigh" = "L Coxa";
-"R Thigh" = "R Coxa";
-"L Calf" = "L Panturrilha";
-"R Calf" = "R Panturrilha";
+"Fat" = "Gordura";
+"Lean" = "Magra";
+"L Bicep" = "Bíceps E";
+"R Bicep" = "Bíceps D";
+"L Forearm" = "Ant. E";
+"R Forearm" = "Ant. D";
+"L Thigh" = "Coxa E";
+"R Thigh" = "Coxa D";
+"L Calf" = "Pant. E";
+"R Calf" = "Pant. D";
 
 /* UI */
 "Add" = "Adicionar";
@@ -39,4 +39,27 @@
 "Save" = "Salvar";
 "Saved" = "Salvo";
 "Premium Feature" = "Recurso Premium";
-"Upgrade to Premium on your iPhone to use MeasureMe on Apple Watch." = "Atualize para Premium no seu iPhone para usar MeasureMe no Apple Watch.";
+"Upgrade to Premium on your iPhone to use MeasureMe on Apple Watch." = "Atualize para Premium no seu iPhone para usar MeasureMe em Apple Watch.";
+
+"Opens Quick Add" = "Abre adição rápida";
+"Not enough data" = "Dados insuficientes";
+"Improving" = "Melhora";
+"Worsening" = "Piora";
+"Stable" = "Estável";
+"Not enough data for trend" = "Dados insuficientes para tendência";
+"up" = "alta";
+"down" = "queda";
+"unchanged" = "sem mudança";
+"Improving, stable over 30 days" = "Melhora, estável por 30 dias";
+"Improving, %@ %@ over 30 days" = "Melhora, %1$@ de %2$@ em 30 dias";
+"Worsening, stable over 30 days" = "Piora, estável por 30 dias";
+"Worsening, %@ %@ over 30 days" = "Piora, %1$@ de %2$@ em 30 dias";
+"Stable over 30 days" = "Estável por 30 dias";
+"Stable, %@ %@ over 30 days" = "Estável, %1$@ de %2$@ em 30 dias";
+"Goal %@" = "Meta %@";
+"Goal" = "Meta";
+"Shows metric details" = "Mostra detalhes da métrica";
+"Selected. Rotate Digital Crown to adjust this metric." = "Selecionado. Gire Digital Crown para ajustar esta métrica.";
+"Selects this metric for Digital Crown editing." = "Seleciona esta métrica para edição Digital Crown.";
+"Saves %d edited metrics" = "Salva %d métricas editadas";
+"Saves the selected metric" = "Salva a métrica selecionada";

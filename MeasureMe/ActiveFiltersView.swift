@@ -34,12 +34,8 @@ struct ActiveFiltersView: View {
                         }
                         .font(.caption)
                         .fontWeight(.medium)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.red)
-                        .clipShape(Capsule())
                     }
+                    .buttonStyle(AppDestructiveButtonStyle(size: .compact, cornerRadius: 999))
                     .accessibilityLabel(AppLocalization.string("Clear all filters"))
                 }
                 .padding(.horizontal)
@@ -60,7 +56,7 @@ private struct FilterChip: View {
         }
         .font(.caption)
         .fontWeight(.medium)
-        .foregroundStyle(.white)
+        .foregroundStyle(AppColorRoles.textOnAccent)
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(Color.appAccent)

@@ -21,14 +21,52 @@ enum AnalyticsSignal: String, CaseIterable {
 
     case onboardingStarted = "com.jacekzieba.measureme.onboarding.started"
     case onboardingStepWelcomeViewed = "com.jacekzieba.measureme.onboarding.step.welcome.viewed"
+    // Deprecated: profile step removed from onboarding in v2
     case onboardingStepProfileViewed = "com.jacekzieba.measureme.onboarding.step.profile.viewed"
+    // Deprecated: boosters step replaced by healthKit step in v2
     case onboardingStepBoostersViewed = "com.jacekzieba.measureme.onboarding.step.boosters.viewed"
     case onboardingStepPremiumViewed = "com.jacekzieba.measureme.onboarding.step.premium.viewed"
+    case onboardingStepHealthKitViewed = "com.jacekzieba.measureme.onboarding.step.healthkit.viewed"
     case onboardingCompleted = "com.jacekzieba.measureme.onboarding.completed"
     case onboardingSkipped = "com.jacekzieba.measureme.onboarding.skipped"
     case onboardingGoalLoseWeight  = "com.jacekzieba.measureme.onboarding.goal.lose_weight"
     case onboardingGoalBuildMuscle = "com.jacekzieba.measureme.onboarding.goal.build_muscle"
     case onboardingGoalTrackHealth = "com.jacekzieba.measureme.onboarding.goal.track_health"
+
+    // v2: Health sync tracking (separate from the HealthKit step view event)
+    case onboardingHealthSyncPromptShown = "com.jacekzieba.measureme.onboarding.health_sync.prompt.shown"
+    case onboardingHealthSyncAccepted    = "com.jacekzieba.measureme.onboarding.health_sync.accepted"
+    case onboardingHealthSyncDeclined    = "com.jacekzieba.measureme.onboarding.health_sync.declined"
+
+    // v3: Inline first measurement during onboarding
+    case onboardingStepFirstMeasurementViewed = "com.jacekzieba.measureme.onboarding.step.first_measurement.viewed"
+    case onboardingFirstMeasurementSaved      = "com.jacekzieba.measureme.onboarding.first_measurement.saved"
+    case onboardingStepValuePreviewViewed     = "com.jacekzieba.measureme.onboarding.step.value_preview.viewed"
+    case onboardingFirstMeasurementHealthPromptViewed = "com.jacekzieba.measureme.onboarding.first_measurement.health_prompt.viewed"
+
+    // v2: Post-onboarding activation (deprecated — kept for historical continuity)
+    case activationPrimaryTaskShown      = "com.jacekzieba.measureme.activation.primary_task.shown"
+    case activationPrimaryTaskCompleted  = "com.jacekzieba.measureme.activation.primary_task.completed"
+    case activationFirstMeasurementStarted   = "com.jacekzieba.measureme.activation.first_measurement.started"
+    case activationFirstMeasurementSaved     = "com.jacekzieba.measureme.activation.first_measurement.saved"
+    case activationFirstMeasurementSuccessViewed = "com.jacekzieba.measureme.activation.first_measurement.success.viewed"
+    case activationRecommendedMetricsAccepted = "com.jacekzieba.measureme.activation.recommended_metrics.accepted"
+
+    // v2: Checklist
+    case checklistTaskShown     = "com.jacekzieba.measureme.checklist.task.shown"
+    case checklistTaskCompleted = "com.jacekzieba.measureme.checklist.task.completed"
+
+    // v2: Notifications / reminders (deferred out of onboarding)
+    case notificationsPromptShown = "com.jacekzieba.measureme.notifications.prompt.shown"
+    case notificationsAccepted    = "com.jacekzieba.measureme.notifications.accepted"
+    case remindersSetupStarted    = "com.jacekzieba.measureme.reminders.setup.started"
+    case remindersSetupCompleted  = "com.jacekzieba.measureme.reminders.setup.completed"
+
+    // v2: Photos
+    case photoFirstAddStarted = "com.jacekzieba.measureme.photo.first_add.started"
+
+    // v2: Charts
+    case chartFirstViewed = "com.jacekzieba.measureme.chart.first_viewed"
 
     case firstMetricAdded = "com.jacekzieba.measureme.metric.first_added"
     case firstPhotoAdded = "com.jacekzieba.measureme.photo.first_added"
@@ -41,9 +79,7 @@ enum AnalyticsSignal: String, CaseIterable {
         case 0:
             return .onboardingStepWelcomeViewed
         case 1:
-            return .onboardingStepProfileViewed
-        case 2:
-            return .onboardingStepBoostersViewed
+            return .onboardingStepFirstMeasurementViewed
         default:
             return nil
         }

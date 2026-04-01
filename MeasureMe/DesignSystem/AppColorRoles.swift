@@ -11,72 +11,72 @@ enum AppColorRoles {
     }
 
     static let surfaceCanvas = dynamic(
-        light: UIColor(Color(hex: "#EEEFEA")),
+        light: UIColor(Color(hex: "#FAF9F5")),
         dark: UIColor(Color.appInk)
     )
     static let surfacePrimary = dynamic(
-        light: UIColor(Color(hex: "#F6F7F2")).withAlphaComponent(0.99),
+        light: UIColor(Color.white).withAlphaComponent(0.99),
         dark: UIColor.white.withAlphaComponent(0.07)
     )
     static let surfaceSecondary = dynamic(
-        light: UIColor(Color(hex: "#F0F2EC")).withAlphaComponent(0.99),
+        light: UIColor(Color(hex: "#F5F4ED")).withAlphaComponent(0.99),
         dark: UIColor.black.withAlphaComponent(0.26)
     )
     static let surfaceElevated = dynamic(
-        light: UIColor(Color(hex: "#FCFCF9")).withAlphaComponent(0.99),
+        light: UIColor(Color(hex: "#FFFDF8")).withAlphaComponent(0.99),
         dark: UIColor.white.withAlphaComponent(0.09)
     )
     static let surfaceInteractive = dynamic(
-        light: UIColor(Color(hex: "#F4F6F0")).withAlphaComponent(0.99),
+        light: UIColor(Color(hex: "#F0EEE6")).withAlphaComponent(0.99),
         dark: UIColor.white.withAlphaComponent(0.05)
     )
     static let surfaceGlass = dynamic(
-        light: UIColor(Color(hex: "#F7F8F3")).withAlphaComponent(0.98),
+        light: UIColor(Color(hex: "#F7F5EE")).withAlphaComponent(0.98),
         dark: UIColor.white.withAlphaComponent(0.06)
     )
     static let surfaceChrome = dynamic(
-        light: UIColor(Color(hex: "#F8F9F4")).withAlphaComponent(0.99),
+        light: UIColor(Color(hex: "#F5F4ED")).withAlphaComponent(0.99),
         dark: UIColor(Color.appMidnight).withAlphaComponent(0.86)
     )
     static let surfaceAccentSoft = dynamic(
-        light: UIColor(Color(hex: "#EEF5F1")).withAlphaComponent(0.99),
+        light: UIColor(Color(hex: "#F8EFCF")).withAlphaComponent(0.99),
         dark: UIColor.white.withAlphaComponent(0.08)
     )
 
     static let borderSubtle = dynamic(
-        light: UIColor(Color.appMidnight).withAlphaComponent(0.07),
+        light: UIColor(Color(hex: "#D1CFC5")),
         dark: UIColor.white.withAlphaComponent(0.12)
     )
     static let borderStrong = dynamic(
-        light: UIColor(Color.appMidnight).withAlphaComponent(0.14),
+        light: UIColor(Color(hex: "#B0AEA5")),
         dark: UIColor.white.withAlphaComponent(0.22)
     )
 
     static let textPrimary = dynamic(
-        light: UIColor(Color.appInk),
+        light: UIColor(Color(hex: "#141413")),
         dark: .white
     )
     static let textSecondary = dynamic(
-        light: UIColor(Color.appInk).withAlphaComponent(0.80),
+        light: UIColor(Color(hex: "#3D3D3A")),
         dark: UIColor.white.withAlphaComponent(0.74)
     )
     static let textTertiary = dynamic(
-        light: UIColor(Color.appInk).withAlphaComponent(0.64),
+        light: UIColor(Color(hex: "#73726C")),
         dark: UIColor.white.withAlphaComponent(0.58)
     )
-    static let textOnAccent = Color.appInk
+    static let textOnAccent = Color(hex: "#141413")
 
     static let shadowSoft = dynamic(
-        light: UIColor(Color.appNavy).withAlphaComponent(0.10),
+        light: UIColor.black.withAlphaComponent(0.05),
         dark: UIColor.black.withAlphaComponent(0.18)
     )
     static let shadowStrong = dynamic(
-        light: UIColor(Color.appNavy).withAlphaComponent(0.16),
+        light: UIColor.black.withAlphaComponent(0.12),
         dark: UIColor.black.withAlphaComponent(0.30)
     )
 
     static let accentGradientStart = Color.dynamic(
-        light: Color.appSunbeam,
+        light: Color(hex: "#FFE08A"),
         dark: Color(hex: "#FFC85A")
     )
     static let accentGradientMid = Color.dynamic(
@@ -84,26 +84,26 @@ enum AppColorRoles {
         dark: Color.appAmber
     )
     static let accentGradientEnd = Color.dynamic(
-        light: Color.appAmberLight,
+        light: Color(hex: "#E1A10A"),
         dark: Color(hex: "#E87A08")
     )
     static let surfaceWarmHighlight = Color.dynamic(
-        light: Color(hex: "#F8F8F4"),
+        light: Color(hex: "#FFFDF8"),
         dark: Color.white.opacity(0.06)
     )
     static let surfaceCoolHighlight = Color.dynamic(
-        light: Color(hex: "#EEF2EA"),
+        light: Color(hex: "#F5F4ED"),
         dark: Color.white.opacity(0.03)
     )
 
-    static let accentPrimary = Color.dynamic(light: Color.appAmberLight, dark: Color.appAmber)
+    static let accentPrimary = Color.dynamic(light: Color.appAmber, dark: Color.appAmber)
     static let accentPhoto = Color.appCyan
     static let accentData = Color.appTeal
     static let accentPhysique = Color.dynamic(
         light: Color(hex: "#4F46E5"),
         dark: Color(hex: "#A5B4FC")
     )
-    static let accentPremium = Color.dynamic(light: Color.appAmberLight, dark: Color.appAmber)
+    static let accentPremium = Color.dynamic(light: Color.appAmber, dark: Color.appAmber)
     static let accentHealth = Color.dynamic(
         light: Color(hex: "#166534"),
         dark: Color.appEmerald

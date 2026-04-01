@@ -1,47 +1,36 @@
 import SwiftUI
+import SwiftData
 import UIKit
 
 struct OnboardingView: View {
     private let effects: OnboardingEffects
     @AppSetting(\.onboarding.hasCompletedOnboarding) private var hasCompletedOnboarding: Bool = false
-    @AppSetting(\.profile.userName) private var userName: String = ""
-    @AppSetting(\.profile.userAge) private var userAge: Int = 0
-    @AppSetting(\.profile.userGender) private var userGender: String = "notSpecified"
-    @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
     @AppSetting(\.health.isSyncEnabled) private var isSyncEnabled: Bool = false
-    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.onboarding.onboardingSkippedHealthKit) private var onboardingSkippedHealthKit: Bool = false
+    // Kept because HomeScreen reads it to decide checklist reminders item visibility
     @AppSetting(\.onboarding.onboardingSkippedReminders) private var onboardingSkippedReminders: Bool = false
     @AppSetting(\.onboarding.onboardingChecklistShow) private var showOnboardingChecklistOnHome: Bool = true
     @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
     @AppSetting(\.onboarding.onboardingPrimaryGoal) private var onboardingPrimaryGoalsRaw: String = ""
+    @AppSetting(\.onboarding.onboardingActivationCompleted) private var onboardingActivationCompleted: Bool = false
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
+    @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var premiumStore: PremiumStore
 
     @State private var currentStepIndex: Int
     @State private var scrolledStepID: Int?
-    @FocusState private var focusedField: FocusField?
-
-    @State private var nameInput: String = ""
-    @State private var ageInput: String = ""
-    @State private var heightInput: String = ""
-    @State private var feetInput: String = ""
-    @State private var inchesInput: String = ""
 
     @State private var isRequestingHealthKit: Bool = false
-    @State private var isRequestingNotifications: Bool = false
-    @State private var isReminderScheduled: Bool = false
-    @State private var showReminderSetupSheet: Bool = false
-    @State private var reminderWeekday: Int = 2
-    @State private var reminderTime: Date = AppClock.now
-    @State private var reminderRepeat: ReminderRepeat = .weekly
-    @State private var reminderOnceDate: Date = AppClock.now
     @State private var healthKitStatusText: String?
-    @State private var notificationsStatusText: String?
     @State private var selectedWelcomeGoals: Set<WelcomeGoal> = []
+
+    // First measurement state (step 2)
+    @State private var measurementEntries: [MetricKind: String] = [:]
+    @State private var didSaveFirstMeasurement: Bool = false
 
     @State private var animateBackdrop: Bool = false
     private let isUITestOnboardingMode = UITestArgument.isPresent(.onboardingMode)
@@ -67,10 +56,16 @@ struct OnboardingView: View {
         Step.allCases.count
     }
 
+    private var progressSteps: [Step] { Step.progressSteps }
+
+    private var progressIndex: Int {
+        progressSteps.firstIndex(of: currentStep) ?? 0
+    }
+
     private var stepStatusText: String? {
         switch currentStep {
-        case .boosters:
-            return notificationsStatusText ?? healthKitStatusText
+        case .firstMeasurement:
+            return nil
         default:
             return nil
         }
@@ -80,8 +75,39 @@ struct OnboardingView: View {
         AppLocalization.systemString("Continue")
     }
 
+    /// Whether the Continue button should be enabled.
+    private var isNextEnabled: Bool {
+        switch currentStep {
+        case .firstMeasurement:
+            return hasAtLeastOneValidEntry || isSyncEnabled
+        default:
+            return true
+        }
+    }
+
+    /// Whether the Skip button should be visible.
+    private var isSkipVisible: Bool {
+        switch currentStep {
+        case .welcome, .firstMeasurement:
+            return true
+        }
+    }
+
     private var sortedWelcomeGoals: [WelcomeGoal] {
         selectedWelcomeGoals.sorted { $0.rawValue < $1.rawValue }
+    }
+
+    /// Recommended metric kinds based on selected goals.
+    private var recommendedKinds: [MetricKind] {
+        GoalMetricPack.recommendedKinds(for: selectedWelcomeGoals)
+    }
+
+    /// Whether at least one measurement field has a valid numeric value.
+    private var hasAtLeastOneValidEntry: Bool {
+        measurementEntries.values.contains { text in
+            guard let value = parseDecimal(text), value > 0 else { return false }
+            return true
+        }
     }
 
     // MARK: - Body
@@ -93,16 +119,12 @@ struct OnboardingView: View {
 
             GeometryReader { proxy in
                 let baseReserve: CGFloat = {
-                    // Podczas edycji (widoczna klawiatura) utrzymuj minimalna przerwe
-                    if focusedField != nil { return 8 }
-                    // W przeciwnym razie rezerwuj miejsce na stopke i elementy statusu
                     if currentStep == .welcome && !dynamicTypeSize.isAccessibilitySize { return 110 }
                     return (stepStatusText == nil) ? 122 : 146
                 }()
                 let accessibilityReserve: CGFloat = dynamicTypeSize.isAccessibilitySize ? 68 : 0
-                let keyboardReserve: CGFloat = 0
-                let bottomReserve = baseReserve + keyboardReserve + accessibilityReserve
-                let extra: CGFloat = (focusedField != nil) ? 0 : (dynamicTypeSize.isAccessibilitySize ? 8 : 20)
+                let bottomReserve = baseReserve + accessibilityReserve
+                let extra: CGFloat = dynamicTypeSize.isAccessibilitySize ? 8 : 20
                 let cardHeight = safeCardHeight(from: proxy.size.height, reserved: bottomReserve, extra: extra)
 
                 VStack(spacing: 0) {
@@ -120,32 +142,19 @@ struct OnboardingView: View {
                             .id(Step.welcome.rawValue)
 
                             slideCard {
-                                OnboardingProfileStep(
-                                    nameInput: $nameInput,
-                                    ageInput: $ageInput,
-                                    heightInput: $heightInput,
-                                    feetInput: $feetInput,
-                                    inchesInput: $inchesInput,
-                                    userGender: $userGender,
+                                OnboardingFirstMeasurementStep(
+                                    recommendedKinds: recommendedKinds,
+                                    entries: $measurementEntries,
                                     unitsSystem: unitsSystem,
-                                    focused: $focusedField
-                                )
-                            }
-                            .containerRelativeFrame(.horizontal)
-                            .id(Step.profile.rawValue)
-
-                            slideCard {
-                                OnboardingBoostersStep(
-                                    isSyncEnabled: isSyncEnabled,
-                                    isReminderScheduled: isReminderScheduled,
+                                    isHealthKitSyncEnabled: isSyncEnabled,
                                     isRequestingHealthKit: isRequestingHealthKit,
-                                    isRequestingNotifications: isRequestingNotifications,
-                                    onRequestHealthKit: requestHealthKitAccess,
-                                    onSetupReminder: { showReminderSetupSheet = true }
+                                    healthKitStatusText: healthKitStatusText,
+                                    onRequestHealthKit: requestHealthKitAccess
                                 )
                             }
                             .containerRelativeFrame(.horizontal)
-                            .id(Step.boosters.rawValue)
+                            .id(Step.firstMeasurement.rawValue)
+
                         }
                         .scrollTargetLayout()
                     }
@@ -162,23 +171,14 @@ struct OnboardingView: View {
                             .padding(.top, 10)
                     }
 
-                    if focusedField == nil {
-                        privacyNote
-                            .padding(.top, 6)
-                            .padding(.horizontal, AppSpacing.lg)
-                            .padding(.bottom, 2)
-                    }
+                    privacyNote
+                        .padding(.top, 6)
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.bottom, 2)
                 }
                 .safeAreaPadding(.top, 10)
             }
         }
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                if focusedField != nil {
-                    dismissKeyboard()
-                }
-            }
-        )
         .onAppear {
             hydrate()
             animateBackdrop = true
@@ -194,41 +194,17 @@ struct OnboardingView: View {
             currentStepIndex = newValue
         }
         .onChange(of: currentStepIndex) { _, _ in
-            dismissKeyboard()
             Haptics.selection()
             syncUITestBridge()
             if let signal = AnalyticsSignal.onboardingStepViewed(stepIndex: currentStepIndex) {
                 effects.track(signal)
             }
         }
-        .sheet(isPresented: $showReminderSetupSheet) {
-            OnboardingReminderSetupSheet(
-                repeatRule: $reminderRepeat,
-                weekday: $reminderWeekday,
-                time: $reminderTime,
-                onceDate: $reminderOnceDate
-            ) {
-                showReminderSetupSheet = false
-                setupReminder()
-            }
-        }
-        .overlay(alignment: .topLeading) {
-            if showReminderSetupSheet {
-                Color.clear
-                    .frame(width: 1, height: 1)
-                    .accessibilityIdentifier("onboarding.reminder.sheet.visible")
-            }
-        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if focusedField == nil {
-                VStack(spacing: 10) {
-                    footer
-                }
-                .padding(.bottom, 8)
+            VStack(spacing: 10) {
+                footer
             }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: effects.notificationsDidChangeName)) { _ in
-            isReminderScheduled = effects.isReminderScheduled()
+            .padding(.bottom, 8)
         }
         .onReceive(NotificationCenter.default.publisher(for: .onboardingUITestNext)) { _ in
             guard isUITestOnboardingMode else { return }
@@ -288,22 +264,26 @@ struct OnboardingView: View {
     private var topBar: some View {
         HStack(spacing: 12) {
             HStack(spacing: 6) {
-                ForEach(0..<totalSteps, id: \.self) { index in
+                ForEach(0..<progressSteps.count, id: \.self) { index in
                     Capsule(style: .continuous)
-                        .fill(index <= currentStepIndex ? Color.appAccent : AppColorRoles.borderSubtle)
+                        .fill(index <= progressIndex ? Color.appAccent : AppColorRoles.borderSubtle)
                         .frame(maxWidth: .infinity)
                         .frame(height: 5)
                 }
             }
             .frame(maxWidth: .infinity)
 
-            Button(AppLocalization.systemString("Skip")) {
-                skipCurrentStep()
+            if isSkipVisible {
+                Button(AppLocalization.systemString("Skip")) {
+                    skipCurrentStep()
+                }
+                .font(AppTypography.microEmphasis)
+                .foregroundStyle(Color.appGray)
+                .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+                .accessibilityIdentifier("onboarding.skip")
+            } else {
+                Color.clear.frame(width: 44, height: 44)
             }
-            .font(AppTypography.microEmphasis)
-            .foregroundStyle(Color.appGray)
-            .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
-            .accessibilityIdentifier("onboarding.skip")
         }
         .padding(.horizontal, 24)
     }
@@ -324,8 +304,8 @@ struct OnboardingView: View {
                 }
                 .padding(dynamicTypeSize.isAccessibilitySize ? 20 : 16)
             }
+            .scrollDismissesKeyboard(.interactively)
             .scrollDisabled(!isScrollEnabled)
-            .scrollDismissesKeyboard(.immediately)
         }
         .shadow(color: .clear, radius: 0, x: 0, y: 0)
     }
@@ -353,8 +333,7 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 44)
             }
-            .buttonStyle(.bordered)
-            .tint(Color.appGray.opacity(0.34))
+            .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
             .disabled(currentStepIndex == 0)
             .appHitTarget()
             .accessibilityIdentifier("onboarding.back")
@@ -368,8 +347,8 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 44)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Color.appAccent)
+            .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+            .disabled(!isNextEnabled)
             .appHitTarget()
             .accessibilityIdentifier("onboarding.next")
             .accessibilitySortPriority(3)
@@ -387,20 +366,16 @@ struct OnboardingView: View {
     // MARK: - Navigation
 
     private func goToPreviousStep() {
-        dismissKeyboard()
         guard currentStepIndex > 0 else { return }
         animateToStep(currentStepIndex - 1)
     }
 
     private func goToNextStep() {
-        dismissKeyboard()
         switch currentStep {
         case .welcome:
-            break
-        case .profile:
-            persistProfile()
-        case .boosters:
-            persistBoostersOutcome()
+            applyGoalMetricPackIfNeeded()
+        case .firstMeasurement:
+            saveFirstMeasurementIfNeeded()
         }
 
         let next = min(currentStepIndex + 1, totalSteps - 1)
@@ -413,10 +388,6 @@ struct OnboardingView: View {
 
     private func skipCurrentStep() {
         effects.track(.onboardingSkipped)
-        dismissKeyboard()
-        if currentStep == .boosters {
-            persistBoostersOutcome()
-        }
 
         let next = min(currentStepIndex + 1, totalSteps - 1)
         if next == currentStepIndex {
@@ -434,17 +405,16 @@ struct OnboardingView: View {
         } else {
             scrolledStepID = index
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-            dismissKeyboard()
-        }
     }
 
     private func finishOnboarding() {
         persistWelcomeGoals()
-        persistProfile()
-        persistBoostersOutcome()
+        persistHealthKitOutcome()
+        applyGoalMetricPackIfNeeded()
         showOnboardingChecklistOnHome = true
         onboardingChecklistPremiumExplored = onboardingChecklistPremiumExplored || premiumStore.isPremium
+        // Mark activation as completed since we now handle it inline
+        onboardingActivationCompleted = true
         Haptics.success()
         effects.track(.onboardingCompleted)
 
@@ -460,30 +430,7 @@ struct OnboardingView: View {
     // MARK: - Data
 
     private func hydrate() {
-        nameInput = userName
         selectedWelcomeGoals = parseWelcomeGoals(from: onboardingPrimaryGoalsRaw)
-
-        if userAge > 0 {
-            ageInput = "\(userAge)"
-        }
-
-        if manualHeight > 0 {
-            let display = MetricKind.height.valueForDisplay(fromMetric: manualHeight, unitsSystem: unitsSystem)
-            if unitsSystem == "imperial" {
-                let totalInches = Int(display.rounded())
-                feetInput = "\(totalInches / 12)"
-                inchesInput = "\(totalInches % 12)"
-            } else {
-                heightInput = String(format: "%.1f", display)
-            }
-        }
-
-        let reminderSeed = effects.loadReminderSeed(defaultWeeklyReminderDate: defaultWeeklyReminderDate())
-        reminderRepeat = reminderSeed.repeatRule
-        reminderWeekday = reminderSeed.reminderWeekday
-        reminderTime = reminderSeed.reminderTime
-        reminderOnceDate = reminderSeed.reminderOnceDate
-        isReminderScheduled = reminderSeed.isReminderScheduled
     }
 
     private func toggleWelcomeGoal(_ goal: WelcomeGoal) {
@@ -520,26 +467,54 @@ struct OnboardingView: View {
         }
     }
 
-    private func persistProfile() {
-        userName = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func persistHealthKitOutcome() {
+        onboardingSkippedHealthKit = !isSyncEnabled
+    }
 
-        if let parsedAge = Int(ageInput), (5...120).contains(parsedAge) {
-            userAge = parsedAge
+    private func applyGoalMetricPackIfNeeded() {
+        guard !effects.hasCustomizedMetrics() else { return }
+        let kinds = GoalMetricPack.recommendedKinds(for: selectedWelcomeGoals)
+        effects.applyMetricPack(kinds)
+        effects.track(.activationRecommendedMetricsAccepted)
+    }
+
+    // MARK: - First measurement
+
+    /// Parses entered values and saves them via QuickAddSaveService.
+    private func saveFirstMeasurementIfNeeded() {
+        guard !didSaveFirstMeasurement else { return }
+
+        var entries: [QuickAddSaveService.Entry] = []
+
+        for kind in recommendedKinds {
+            guard let text = measurementEntries[kind],
+                  let displayValue = parseDecimal(text),
+                  displayValue > 0 else { continue }
+
+            // Convert display value back to metric (base) units for storage
+            let metricValue = kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
+            entries.append(QuickAddSaveService.Entry(kind: kind, metricValue: metricValue))
         }
 
-        if unitsSystem == "imperial" {
-            if let feet = Int(feetInput), let inches = Int(inchesInput), feet >= 0, inches >= 0, inches < 12, (feet > 0 || inches > 0) {
-                let totalInches = Double(feet * 12 + inches)
-                manualHeight = MetricKind.height.valueToMetric(fromDisplay: totalInches, unitsSystem: unitsSystem)
-            }
-        } else if let value = parseLocalizedDouble(heightInput), value > 0 {
-            manualHeight = MetricKind.height.valueToMetric(fromDisplay: value, unitsSystem: unitsSystem)
+        guard !entries.isEmpty else { return }
+
+        do {
+            try effects.saveFirstMeasurement(
+                entries: entries,
+                date: Date(),
+                unitsSystem: unitsSystem,
+                context: modelContext
+            )
+            didSaveFirstMeasurement = true
+        } catch {
+            AppLog.debug("⚠️ Failed to save first measurement during onboarding: \(error.localizedDescription)")
         }
     }
 
-    private func persistBoostersOutcome() {
-        onboardingSkippedHealthKit = !isSyncEnabled
-        onboardingSkippedReminders = !isReminderScheduled
+    /// Parses a decimal string, accepting both . and , as decimal separators.
+    private func parseDecimal(_ text: String) -> Double? {
+        let normalized = text.replacingOccurrences(of: ",", with: ".")
+        return Double(normalized)
     }
 
     // MARK: - Effects
@@ -548,110 +523,25 @@ struct OnboardingView: View {
         guard !isSyncEnabled else { return }
         guard !isRequestingHealthKit else { return }
 
-        dismissKeyboard()
         isRequestingHealthKit = true
         healthKitStatusText = AppLocalization.systemString("Requesting Health access...")
+        effects.track(.onboardingHealthSyncPromptShown)
 
         Task { @MainActor in
             do {
                 try await effects.requestHealthKitAuthorization()
                 isSyncEnabled = true
                 healthKitStatusText = AppLocalization.systemString("Health sync enabled. Importing data in background.")
+                effects.track(.onboardingHealthSyncAccepted)
                 Haptics.success()
                 isRequestingHealthKit = false
             } catch {
                 isSyncEnabled = false
                 healthKitStatusText = HealthKitManager.userFacingSyncErrorMessage(for: error)
+                effects.track(.onboardingHealthSyncDeclined)
                 Haptics.error()
                 isRequestingHealthKit = false
             }
         }
-    }
-
-    private func setupReminder() {
-        guard !isReminderScheduled else { return }
-        guard !isRequestingNotifications else { return }
-
-        dismissKeyboard()
-        isRequestingNotifications = true
-        notificationsStatusText = AppLocalization.string("Requesting notification permission...")
-
-        Task { @MainActor in
-            let granted = await effects.requestNotificationAuthorization()
-            guard granted else {
-                effects.setNotificationsEnabled(false)
-                notificationsStatusText = AppLocalization.string("Notifications denied. You can enable them later in Settings.")
-                isRequestingNotifications = false
-                Haptics.error()
-                return
-            }
-
-            effects.setNotificationsEnabled(true)
-
-            let targetDate: Date
-            switch reminderRepeat {
-            case .weekly:
-                targetDate = reminderDate(weekday: reminderWeekday, time: reminderTime)
-                effects.setSmartTime(reminderTime)
-            case .daily:
-                targetDate = dailyReminderDate(time: reminderTime)
-                effects.setSmartTime(reminderTime)
-            case .once:
-                targetDate = reminderOnceDate
-                effects.setSmartTime(reminderOnceDate)
-            }
-
-            effects.upsertReminder(date: targetDate, repeatRule: reminderRepeat)
-            isReminderScheduled = effects.isReminderScheduled()
-            notificationsStatusText = AppLocalization.string("Reminder is set.")
-            isRequestingNotifications = false
-            Haptics.success()
-        }
-    }
-
-    private func defaultWeeklyReminderDate() -> Date {
-        reminderDate(weekday: 2, time: defaultReminderTime())
-    }
-
-    private func defaultReminderTime() -> Date {
-        let calendar = Calendar.current
-        var components = calendar.dateComponents([.year, .month, .day], from: AppClock.now)
-        components.hour = 7
-        components.minute = 0
-        return calendar.date(from: components) ?? AppClock.now
-    }
-
-    private func dailyReminderDate(time: Date, from now: Date = AppClock.now) -> Date {
-        let calendar = Calendar.current
-        let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
-        var todayComponents = calendar.dateComponents([.year, .month, .day], from: now)
-        todayComponents.hour = timeComponents.hour
-        todayComponents.minute = timeComponents.minute
-        let todayTarget = calendar.date(from: todayComponents) ?? now
-        if todayTarget > now {
-            return todayTarget
-        }
-        return calendar.date(byAdding: .day, value: 1, to: todayTarget) ?? todayTarget
-    }
-
-    private func reminderDate(weekday: Int, time: Date, from now: Date = AppClock.now) -> Date {
-        let calendar = Calendar.current
-        let clampedWeekday = min(max(weekday, 1), 7)
-        let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
-        let hour = timeComponents.hour ?? 7
-        let minute = timeComponents.minute ?? 0
-
-        let components = DateComponents(hour: hour, minute: minute, weekday: clampedWeekday)
-        return calendar.nextDate(
-            after: now,
-            matching: components,
-            matchingPolicy: .nextTime,
-            direction: .forward
-        ) ?? now.addingTimeInterval(7 * 24 * 3600)
-    }
-
-    private func dismissKeyboard() {
-        focusedField = nil
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }

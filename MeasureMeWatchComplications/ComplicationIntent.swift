@@ -16,27 +16,27 @@ enum ComplicationMetricKind: String, AppEnum, CaseIterable {
     case leftBicep, rightBicep, leftForearm, rightForearm
     case hips, leftThigh, rightThigh, leftCalf, rightCalf
 
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Metric"
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = TypeDisplayRepresentation(name: "Metric")
 
     static var caseDisplayRepresentations: [ComplicationMetricKind: DisplayRepresentation] = [
-        .weight:        "Weight",
-        .bodyFat:       "Body Fat",
-        .height:        "Height",
-        .leanBodyMass:  "Lean Body Mass",
-        .waist:         "Waist",
-        .neck:          "Neck",
-        .shoulders:     "Shoulders",
-        .bust:          "Bust",
-        .chest:         "Chest",
-        .leftBicep:     "Left Bicep",
-        .rightBicep:    "Right Bicep",
-        .leftForearm:   "Left Forearm",
-        .rightForearm:  "Right Forearm",
-        .hips:          "Hips",
-        .leftThigh:     "Left Thigh",
-        .rightThigh:    "Right Thigh",
-        .leftCalf:      "Left Calf",
-        .rightCalf:     "Right Calf"
+        .weight:        DisplayRepresentation(title: "Weight"),
+        .bodyFat:       DisplayRepresentation(title: "Body Fat"),
+        .height:        DisplayRepresentation(title: "Height"),
+        .leanBodyMass:  DisplayRepresentation(title: "Lean Body Mass"),
+        .waist:         DisplayRepresentation(title: "Waist"),
+        .neck:          DisplayRepresentation(title: "Neck"),
+        .shoulders:     DisplayRepresentation(title: "Shoulders"),
+        .bust:          DisplayRepresentation(title: "Bust"),
+        .chest:         DisplayRepresentation(title: "Chest"),
+        .leftBicep:     DisplayRepresentation(title: "Left Bicep"),
+        .rightBicep:    DisplayRepresentation(title: "Right Bicep"),
+        .leftForearm:   DisplayRepresentation(title: "Left Forearm"),
+        .rightForearm:  DisplayRepresentation(title: "Right Forearm"),
+        .hips:          DisplayRepresentation(title: "Hips"),
+        .leftThigh:     DisplayRepresentation(title: "Left Thigh"),
+        .rightThigh:    DisplayRepresentation(title: "Right Thigh"),
+        .leftCalf:      DisplayRepresentation(title: "Left Calf"),
+        .rightCalf:     DisplayRepresentation(title: "Right Calf")
     ]
 
     /// Map to ComplicationMetricKindHelper for data loading.
@@ -61,47 +61,47 @@ enum ComplicationMetricKind: String, AppEnum, CaseIterable {
 
     var shortName: String {
         switch self {
-        case .weight:       return "Weight"
-        case .bodyFat:      return "Fat"
-        case .height:       return "Height"
-        case .leanBodyMass: return "Lean"
-        case .waist:        return "Waist"
-        case .neck:         return "Neck"
-        case .shoulders:    return "Shoulders"
-        case .bust:         return "Bust"
-        case .chest:        return "Chest"
-        case .leftBicep:    return "L Bicep"
-        case .rightBicep:   return "R Bicep"
-        case .leftForearm:  return "L Forearm"
-        case .rightForearm: return "R Forearm"
-        case .hips:         return "Hips"
-        case .leftThigh:    return "L Thigh"
-        case .rightThigh:   return "R Thigh"
-        case .leftCalf:     return "L Calf"
-        case .rightCalf:    return "R Calf"
+        case .weight:       return String(localized: "Weight")
+        case .bodyFat:      return String(localized: "Fat")
+        case .height:       return String(localized: "Height")
+        case .leanBodyMass: return String(localized: "Lean")
+        case .waist:        return String(localized: "Waist")
+        case .neck:         return String(localized: "Neck")
+        case .shoulders:    return String(localized: "Shoulders")
+        case .bust:         return String(localized: "Bust")
+        case .chest:        return String(localized: "Chest")
+        case .leftBicep:    return String(localized: "L Bicep")
+        case .rightBicep:   return String(localized: "R Bicep")
+        case .leftForearm:  return String(localized: "L Forearm")
+        case .rightForearm: return String(localized: "R Forearm")
+        case .hips:         return String(localized: "Hips")
+        case .leftThigh:    return String(localized: "L Thigh")
+        case .rightThigh:   return String(localized: "R Thigh")
+        case .leftCalf:     return String(localized: "L Calf")
+        case .rightCalf:    return String(localized: "R Calf")
         }
     }
 
     var displayName: String {
         switch self {
-        case .weight:       return "Weight"
-        case .bodyFat:      return "Body Fat"
-        case .height:       return "Height"
-        case .leanBodyMass: return "Lean Body Mass"
-        case .waist:        return "Waist"
-        case .neck:         return "Neck"
-        case .shoulders:    return "Shoulders"
-        case .bust:         return "Bust"
-        case .chest:        return "Chest"
-        case .leftBicep:    return "Left Bicep"
-        case .rightBicep:   return "Right Bicep"
-        case .leftForearm:  return "Left Forearm"
-        case .rightForearm: return "Right Forearm"
-        case .hips:         return "Hips"
-        case .leftThigh:    return "Left Thigh"
-        case .rightThigh:   return "Right Thigh"
-        case .leftCalf:     return "Left Calf"
-        case .rightCalf:    return "Right Calf"
+        case .weight:       return String(localized: "Weight")
+        case .bodyFat:      return String(localized: "Body Fat")
+        case .height:       return String(localized: "Height")
+        case .leanBodyMass: return String(localized: "Lean Body Mass")
+        case .waist:        return String(localized: "Waist")
+        case .neck:         return String(localized: "Neck")
+        case .shoulders:    return String(localized: "Shoulders")
+        case .bust:         return String(localized: "Bust")
+        case .chest:        return String(localized: "Chest")
+        case .leftBicep:    return String(localized: "Left Bicep")
+        case .rightBicep:   return String(localized: "Right Bicep")
+        case .leftForearm:  return String(localized: "Left Forearm")
+        case .rightForearm: return String(localized: "Right Forearm")
+        case .hips:         return String(localized: "Hips")
+        case .leftThigh:    return String(localized: "Left Thigh")
+        case .rightThigh:   return String(localized: "Right Thigh")
+        case .leftCalf:     return String(localized: "Left Calf")
+        case .rightCalf:    return String(localized: "Right Calf")
         }
     }
 

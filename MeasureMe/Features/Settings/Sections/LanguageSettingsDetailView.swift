@@ -17,6 +17,10 @@ struct LanguageSettingsDetailView: View {
                     SettingsRowDivider()
                     languageRow(title: AppLocalization.string("Spanish"), value: "es")
                     SettingsRowDivider()
+                    languageRow(title: AppLocalization.string("German"), value: "de")
+                    SettingsRowDivider()
+                    languageRow(title: AppLocalization.string("French"), value: "fr")
+                    SettingsRowDivider()
                     languageRow(title: AppLocalization.string("Portuguese (Brazil)"), value: "pt-BR")
                 }
             }

@@ -97,11 +97,9 @@ struct MeasureMeApp: App {
                             statusKey: startupLoadingState.statusKey,
                             progress: startupLoadingState.progress
                         )
-                        .transition(.opacity)
                     case .ready(let container):
                         RootView()
                             .modelContainer(container)
-                            .transition(.opacity)
                     case .failed(let message):
                         StartupErrorView(
                             message: message,
@@ -238,9 +236,7 @@ struct MeasureMeApp: App {
             withAnimation(.easeOut(duration: 0.14)) {
                 startupLoadingState.progress = 1.0
             }
-            withAnimation(.easeInOut(duration: 0.22)) {
-                startupState = .ready(container)
-            }
+            startupState = .ready(container)
             StartupInstrumentation.event("FirstFrameReady")
             Analytics.shared.track(.appFirstFrameReady)
             runDeferredStartupWork(container: container)
@@ -301,27 +297,31 @@ struct MeasureMeApp: App {
     }
 
     private func scheduleDeferredHealthSetup(container: ModelContainer) {
-        Task { @MainActor in
+        Task(priority: .utility) {
             try? await Task.sleep(for: .milliseconds(200))
             let healthSetupState = StartupInstrumentation.begin("DeferredHealthKitSetup")
-            NotificationManager.shared.scheduleSmartIfNeeded(context: container.mainContext)
-            NotificationManager.shared.scheduleAINotificationsIfNeeded(context: container.mainContext, trigger: .startup)
-            HealthKitManager.shared.configure(modelContainer: container)
-            _ = HealthKitManager.shared.reconcileStoredSyncState()
-            HealthKitManager.shared.startObservingHealthKitUpdates()
+            await MainActor.run {
+                NotificationManager.shared.scheduleSmartIfNeeded(context: container.mainContext)
+                NotificationManager.shared.scheduleAINotificationsIfNeeded(context: container.mainContext, trigger: .startup)
+                HealthKitManager.shared.configure(modelContainer: container)
+                _ = HealthKitManager.shared.reconcileStoredSyncState()
+                HealthKitManager.shared.startObservingHealthKitUpdates()
+            }
             await IntentDeferredHealthSyncProcessor.processPendingIfNeeded()
             StartupInstrumentation.end("DeferredHealthKitSetup", state: healthSetupState)
         }
     }
 
     private func scheduleDeferredAutoRestore(container: ModelContainer) {
-        Task(priority: .utility) { @MainActor in
+        Task(priority: .utility) {
             try? await Task.sleep(for: .milliseconds(250))
             let autoRestoreState = StartupInstrumentation.begin("DeferredICloudAutoRestore")
             let context = ModelContext(container)
             let didRestore = await ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: context)
             if didRestore {
-                autoRestoreMessage = AppLocalization.string("Latest iCloud backup was restored automatically. Review your measurements and photos to confirm everything looks right.")
+                await MainActor.run {
+                    autoRestoreMessage = AppLocalization.string("Latest iCloud backup was restored automatically. Review your measurements and photos to confirm everything looks right.")
+                }
             }
             StartupInstrumentation.end("DeferredICloudAutoRestore", state: autoRestoreState)
         }
@@ -356,13 +356,15 @@ struct MeasureMeApp: App {
     }
 
     private func scheduleDeferredWatchConnectivity(container: ModelContainer) {
-        Task { @MainActor in
+        Task(priority: .utility) {
             try? await Task.sleep(for: .milliseconds(500))
-            WatchSessionManager.shared.configure(
-                container: container,
-                healthKit: HealthKitManager.shared
-            )
-            WatchSessionManager.shared.activate()
+            await MainActor.run {
+                WatchSessionManager.shared.configure(
+                    container: container,
+                    healthKit: HealthKitManager.shared
+                )
+                WatchSessionManager.shared.activate()
+            }
         }
     }
 

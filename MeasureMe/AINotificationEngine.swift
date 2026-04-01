@@ -147,13 +147,13 @@ struct AINotificationCandidate: Sendable, Equatable {
 }
 
 enum AINotificationLanguage {
-    static var supportedLanguages: Set<AppLanguage> { [.en, .pl] }
+    static var supportedLanguages: Set<AppLanguage> { [.en, .pl, .de, .fr] }
 
     static var resolvedLanguage: AppLanguage {
         switch AppLocalization.currentLanguage {
         case .system:
             return AppLanguage.resolvedSystemLanguage
-        case .en, .pl, .es, .ptBR:
+        case .en, .pl, .es, .de, .fr, .ptBR:
             return AppLocalization.currentLanguage
         }
     }
@@ -166,6 +166,10 @@ enum AINotificationLanguage {
         switch resolvedLanguage {
         case .pl:
             return "pl"
+        case .de:
+            return "de"
+        case .fr:
+            return "fr"
         default:
             return "en"
         }
@@ -666,7 +670,12 @@ struct AINotificationCandidateBuilder {
     }
 
     private func localeLine(en: String, pl: String) -> String {
-        AINotificationLanguage.resolvedLanguage == .pl ? pl : en
+        switch AINotificationLanguage.resolvedLanguage {
+        case .pl:
+            return pl
+        default:
+            return en
+        }
     }
 }
 
@@ -701,7 +710,7 @@ actor AINotificationGenerator {
         #if canImport(FoundationModels)
         let session = LanguageModelSession(
             model: .default,
-            instructions: input.localeCode == "pl" ? polishInstructions : englishInstructions
+            instructions: instructions(for: input.localeCode)
         )
         let prompt = buildPrompt(for: input)
         let response = try await session.respond(to: prompt, generating: AINotificationStructuredOutput.self)
@@ -720,7 +729,8 @@ actor AINotificationGenerator {
 
     private func buildPrompt(for input: AINotificationPromptInput) -> String {
         let facts = input.facts.joined(separator: "\n")
-        if input.localeCode == "pl" {
+        switch input.localeCode {
+        case "pl":
             return """
             Wygeneruj decyzję dla krótkiego powiadomienia premium o postępie zdrowia/sylwetki.
             Priorytet bazowy: \(input.priority.rawValue)
@@ -728,14 +738,44 @@ actor AINotificationGenerator {
             Fakty:
             \(facts)
             """
+        case "de":
+            return """
+            Erstelle eine Entscheidung für eine kurze Premium-Mitteilung über Fortschritte bei Körper- und Gesundheitswerten.
+            Grundpriorität: \(input.priority.rawValue)
+            Typ: \(input.kind.rawValue)
+            Fakten:
+            \(facts)
+            """
+        case "fr":
+            return """
+            Génère une décision pour une courte notification premium sur les progrès liés au suivi du corps et de la santé.
+            Priorité de base : \(input.priority.rawValue)
+            Type : \(input.kind.rawValue)
+            Faits :
+            \(facts)
+            """
+        default:
+            return """
+            Generate a structured decision for a short premium health-progress notification.
+            Base priority: \(input.priority.rawValue)
+            Kind: \(input.kind.rawValue)
+            Facts:
+            \(facts)
+            """
         }
-        return """
-        Generate a structured decision for a short premium health-progress notification.
-        Base priority: \(input.priority.rawValue)
-        Kind: \(input.kind.rawValue)
-        Facts:
-        \(facts)
-        """
+    }
+
+    private func instructions(for localeCode: String) -> String {
+        switch localeCode {
+        case "pl":
+            return polishInstructions
+        case "de":
+            return germanInstructions
+        case "fr":
+            return frenchInstructions
+        default:
+            return englishInstructions
+        }
     }
 
     private var englishInstructions: String {
@@ -775,6 +815,46 @@ actor AINotificationGenerator {
         - Ton: konkretny, spokojny, wspierający.
         - Używaj tylko liczb obecnych w faktach.
         - Priority musi być passive albo active.
+        """
+    }
+
+    private var germanInstructions: String {
+        """
+        Du schreibst kurze Premium-Benachrichtigungen auf dem Gerät über Fortschritte beim Tracking von Körper- und Gesundheitswerten.
+        Entscheide ausschließlich auf Basis der bereitgestellten Fakten, ob diese Benachrichtigung sinnvoll ist.
+
+        Harte Regeln:
+        - Erfinde niemals Fakten, Ursachen, Daten, Zahlen oder Vergleiche.
+        - Gib keine medizinischen Ratschläge, Diagnosen, Behandlungen oder Krankheitsformulierungen.
+        - Beschäme nicht und setze nicht unter Druck.
+        - Wenn das Signal schwach, wiederholt oder wenig wertvoll ist, gib shouldSend false zurück.
+
+        Ausgabe-Regeln:
+        - Titel: 3 bis 8 Wörter.
+        - Text: 1 oder 2 kurze Sätze, maximal 180 Zeichen.
+        - Ton: präzise, ruhig, spezifisch und ermutigend.
+        - Verwende nur Zahlen, die bereits in den Fakten vorkommen.
+        - Priority muss entweder passive oder active sein.
+        """
+    }
+
+    private var frenchInstructions: String {
+        """
+        Tu rédiges de courtes notifications premium sur l’appareil au sujet des progrès liés au suivi du corps et de la santé.
+        Décide uniquement à partir des faits fournis si cette notification mérite d’être envoyée.
+
+        Règles strictes :
+        - N’invente jamais de faits, de causes, de dates, de chiffres ou de comparaisons.
+        - Ne donne aucun conseil médical, diagnostic, traitement ou formulation liée à une maladie.
+        - N’utilise ni culpabilisation ni pression.
+        - Si le signal est faible, répétitif ou peu utile, renvoie shouldSend à false.
+
+        Règles de sortie :
+        - Titre : 3 à 8 mots.
+        - Corps : 1 ou 2 phrases courtes, 180 caractères maximum.
+        - Ton : concis, calme, précis et encourageant.
+        - Utilise uniquement les nombres déjà présents dans les faits.
+        - Priority doit être soit passive, soit active.
         """
     }
 }

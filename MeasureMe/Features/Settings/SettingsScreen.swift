@@ -251,6 +251,10 @@ struct SettingsView: View {
             return AppLocalization.string("Polish")
         case .es:
             return AppLocalization.string("Spanish")
+        case .de:
+            return AppLocalization.string("German")
+        case .fr:
+            return AppLocalization.string("French")
         case .ptBR:
             return AppLocalization.string("Portuguese (Brazil)")
         }

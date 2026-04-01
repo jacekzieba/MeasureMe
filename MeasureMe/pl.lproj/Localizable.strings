@@ -163,6 +163,7 @@
 "home.goalstatus.slightlyoff" = "Małe kroki też się liczą. Działaj dalej.";
 "home.goalstatus.needsattention" = "Dasz radę. Jeden wpis na raz.";
 "home.goalstatus.nogoals" = "Ustaw cel, gdy będziesz gotowy.";
+"home.goalstatus.selectedgoal" = "Wybrany cel: %@. Ustaw docelową wartość metryki, aby śledzić postęp.";
 "home.goalstatus.accessibility.hint.legend" = "Dotknij, aby zobaczyć, co oznacza ten status.";
 "home.goalstatus.accessibility.hint.nogoals" = "Dotknij, aby przejść do pomiarów i ustawić cel.";
 "home.goalstatus.legend.navtitle" = "Status celu";
@@ -1873,3 +1874,8 @@
 "notification.ai.disclosure" = "Treść jest generowana na urządzeniu przez Apple Intelligence. Może zawierać błędy i nie stanowi porady medycznej.";
 "notification.ai.unavailable" = "Powiadomienia AI wymagają wersji Premium, Apple Intelligence i obsługiwanego języka. V1 wspiera obecnie angielski i polski.";
 "notification.ai.mute.action" = "Wycisz ten typ";
+"Want less manual typing?" = "Chcesz mniej wpisywać ręcznie?";
+"We can automatically fill in some values from Apple Health and keep them updated later." = "Możemy automatycznie uzupełnić część wartości z aplikacji Zdrowie i później utrzymywać je na bieżąco.";
+"If you already track weight, body fat, or lean body mass in Apple Health, we can import that automatically." = "Jeśli zapisujesz w aplikacji Zdrowie wagę, tkankę tłuszczową lub masę beztłuszczową, możemy zaimportować je automatycznie.";
+"Use Apple Health" = "Użyj aplikacji Zdrowie";
+"You can skip this and enter everything manually. You can also connect later in Settings." = "Możesz to pominąć i wpisywać wszystko ręcznie. Aplikację Zdrowie możesz też połączyć później w Ustawieniach.";

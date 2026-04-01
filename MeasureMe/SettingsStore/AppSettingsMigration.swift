@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppSettingsMigration {
-    private static let currentSchemaVersion = 4
+    private static let currentSchemaVersion = 5
 
     static func applyIfNeeded(defaults: UserDefaults) {
         let schemaVersion = defaults.integer(forKey: AppSettingsKeys.settingsSchemaVersion)
@@ -10,6 +10,7 @@ enum AppSettingsMigration {
         migrateUnitsSystemIfNeeded(defaults: defaults)
         migrateHomeLayoutIfNeeded(defaults: defaults)
         migrateHomePinnedActionIfNeeded(defaults: defaults)
+        migrateActivationCompletedIfNeeded(defaults: defaults)
         defaults.set(currentSchemaVersion, forKey: AppSettingsKeys.settingsSchemaVersion)
     }
 
@@ -36,6 +37,17 @@ enum AppSettingsMigration {
 
         defaults.set(HomeLayoutSnapshot.currentSchemaVersion, forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion)
         defaults.set(encoded, forKey: AppSettingsKeys.Home.homeLayoutData)
+    }
+
+    /// Existing users who already completed the old onboarding must have
+    /// onboardingActivationCompleted = true so they never see the v2 activation screen.
+    private static func migrateActivationCompletedIfNeeded(defaults: UserDefaults) {
+        let activationKey = AppSettingsKeys.Onboarding.onboardingActivationCompleted
+        guard defaults.object(forKey: activationKey) == nil else { return }
+        let hasCompleted = defaults.bool(forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding)
+        if hasCompleted {
+            defaults.set(true, forKey: activationKey)
+        }
     }
 
     private static func migrateHomePinnedActionIfNeeded(defaults: UserDefaults) {

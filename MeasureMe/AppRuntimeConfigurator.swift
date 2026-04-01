@@ -10,12 +10,8 @@ enum AppRuntimeConfigurator {
         configureUITestDefaults: () -> Void,
         registerBackgroundTasks: () -> Void
     ) {
-        configureRevenueCatIfNeeded(isRunningXCTest: isRunningXCTest)
-
         if !isRunningXCTest {
             CrashReporter.shared.install()
-            Analytics.shared.setup()
-            Analytics.shared.track(.appLaunched)
         }
 
         if !isUnitTestHostMode {
@@ -26,6 +22,23 @@ enum AppRuntimeConfigurator {
         configureGlobalAppearance()
         installTextFieldSelectionBehaviorIfNeeded(isUnitTestHostMode: isUnitTestHostMode)
     }
+
+    @MainActor
+    static func configureDeferredServicesIfNeeded() {
+        guard !didConfigureDeferredServices else { return }
+        didConfigureDeferredServices = true
+
+        let isRunningXCTest = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        configureRevenueCatIfNeeded(isRunningXCTest: isRunningXCTest)
+
+        if !isRunningXCTest {
+            Analytics.shared.setup()
+            Analytics.shared.track(.appLaunched)
+        }
+    }
+
+    @MainActor
+    private static var didConfigureDeferredServices = false
 
     private enum RevenueCatConfig {
         #if DEBUG

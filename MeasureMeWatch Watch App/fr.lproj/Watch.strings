@@ -1,0 +1,64 @@
+/* Metric names */
+"Weight" = "Poids";
+"Body Fat" = "Graisse corporelle";
+"Height" = "Taille";
+"Lean Body Mass" = "Masse corporelle maigre";
+"Waist" = "Taille";
+"Neck" = "Cou";
+"Shoulders" = "Épaules";
+"Bust" = "Buste";
+"Chest" = "Poitrine";
+"Left Bicep" = "Biceps gauche";
+"Right Bicep" = "Biceps droit";
+"Left Forearm" = "Avant-bras gauche";
+"Right Forearm" = "Avant-bras droit";
+"Hips" = "Hanches";
+"Left Thigh" = "Cuisse gauche";
+"Right Thigh" = "Cuisse droite";
+"Left Calf" = "Mollet gauche";
+"Right Calf" = "Mollet droit";
+
+/* Short names (for Quick Add) */
+"Fat" = "Graisse";
+"Lean" = "Maigre";
+"L Bicep" = "Biceps G";
+"R Bicep" = "Biceps D";
+"L Forearm" = "Av-br G";
+"R Forearm" = "Av-br D";
+"L Thigh" = "Cuisse G";
+"R Thigh" = "Cuisse D";
+"L Calf" = "Mollet G";
+"R Calf" = "Mollet D";
+
+/* UI */
+"Add" = "Ajouter";
+"No Metrics" = "Aucune mesure";
+"Enable metrics on your iPhone to see them here." = "Activez les mesures sur votre iPhone pour les afficher ici.";
+"Recent" = "Récentes";
+"30-Day Trend" = "Tendance sur 30 jours";
+"Save" = "Enregistrer";
+"Saved" = "Enregistré";
+"Premium Feature" = "Fonction Premium";
+"Upgrade to Premium on your iPhone to use MeasureMe on Apple Watch." = "Passez à Premium sur votre iPhone pour utiliser MeasureMe sur Apple Watch.";
+"Opens Quick Add" = "Ouvre Ajout rapide";
+"Not enough data" = "Données insuffisantes";
+"Improving" = "Amélioration";
+"Worsening" = "Dégradation";
+"Stable" = "Stable";
+"Not enough data for trend" = "Pas assez de données pour établir une tendance";
+"up" = "hausse";
+"down" = "baisse";
+"unchanged" = "stabilité";
+"Improving, stable over 30 days" = "Amélioration, stable sur 30 jours";
+"Improving, %@ %@ over 30 days" = "Amélioration, %1$@ de %2$@ sur 30 jours";
+"Worsening, stable over 30 days" = "Dégradation, stable sur 30 jours";
+"Worsening, %@ %@ over 30 days" = "Dégradation, %1$@ de %2$@ sur 30 jours";
+"Stable over 30 days" = "Stable sur 30 jours";
+"Stable, %@ %@ over 30 days" = "Stable, %1$@ de %2$@ sur 30 jours";
+"Goal %@" = "Objectif %@";
+"Goal" = "Objectif";
+"Shows metric details" = "Affiche les détails de la mesure";
+"Selected. Rotate Digital Crown to adjust this metric." = "Sélectionnée. Tournez la Digital Crown pour ajuster cette mesure.";
+"Selects this metric for Digital Crown editing." = "Sélectionne cette mesure pour l’édition avec la Digital Crown.";
+"Saves %d edited metrics" = "Enregistre %d mesures modifiées";
+"Saves the selected metric" = "Enregistre la mesure sélectionnée";

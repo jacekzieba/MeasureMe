@@ -136,5 +136,5 @@ struct WidgetMetricData: Codable {
 }
 
 func widgetLocalized(_ english: String, _ polish: String) -> String {
-    Locale.current.language.languageCode?.identifier == "pl" ? polish : english
+    NSLocalizedString(english, bundle: .main, comment: "")
 }

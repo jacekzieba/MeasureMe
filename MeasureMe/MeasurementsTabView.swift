@@ -540,31 +540,31 @@ private struct MeasurementsCategoryTabs: View {
     private func selectedGradient(for tab: MeasurementsTabView.MeasurementsTab) -> LinearGradient {
         switch tab {
         case .metrics:
-            return LinearGradient(
+            return ClaudeLightStyle.directionalGradient(
                 colors: [
                     Color.dynamic(light: Color(hex: "#5B7CFF"), dark: Color(hex: "#7DB5FF")),
                     Color.dynamic(light: Color(hex: "#2F56D9"), dark: Color(hex: "#3B82F6"))
                 ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                colorScheme: colorScheme,
+                lightColor: AppColorRoles.surfaceInteractive
             )
         case .health:
-            return LinearGradient(
+            return ClaudeLightStyle.directionalGradient(
                 colors: [
                     Color.dynamic(light: Color(hex: "#1FAF9F"), dark: Color(hex: "#7BF0DA")),
                     Color.dynamic(light: Color(hex: "#0F766E"), dark: Color(hex: "#27B7A7"))
                 ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                colorScheme: colorScheme,
+                lightColor: AppColorRoles.surfaceInteractive
             )
         case .physique:
-            return LinearGradient(
+            return ClaudeLightStyle.directionalGradient(
                 colors: [
                     Color.dynamic(light: Color(hex: "#7667FF"), dark: Color(hex: "#C1B6FF")),
                     Color.dynamic(light: Color(hex: "#4F46E5"), dark: Color(hex: "#7C6DFF"))
                 ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                colorScheme: colorScheme,
+                lightColor: AppColorRoles.surfaceInteractive
             )
         }
     }
@@ -596,7 +596,7 @@ private struct MeasurementsCategoryTabs: View {
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .minimumScaleFactor(0.74)
-                            .foregroundStyle(selectedTab == tab ? Color.white.opacity(colorScheme == .dark ? 0.96 : 0.98) : AppColorRoles.textPrimary)
+                            .foregroundStyle(selectedTab == tab ? (colorScheme == .dark ? Color.white.opacity(0.96) : AppColorRoles.textPrimary) : AppColorRoles.textPrimary)
                             .padding(.horizontal, 8)
                     }
                     .frame(maxWidth: .infinity, minHeight: 52)
@@ -616,13 +616,13 @@ private struct MeasurementsCategoryTabs: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .fill(
-                            LinearGradient(
+                            ClaudeLightStyle.directionalGradient(
                                 colors: [
                                     activeTint.opacity(colorScheme == .dark ? 0.10 : 0.08),
                                     .clear
                                 ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                                colorScheme: colorScheme,
+                                lightColor: activeTint.opacity(0.04)
                             )
                         )
                 )
@@ -935,13 +935,13 @@ struct MetricChartTile: View {
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                                     .fill(
-                                        LinearGradient(
+                                        ClaudeLightStyle.directionalGradient(
                                             colors: [
                                                 measurementsTheme.softTint.opacity(colorScheme == .dark ? 0.32 : 0.28),
                                                 .clear
                                             ],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
+                                            colorScheme: colorScheme,
+                                            lightColor: measurementsTheme.softTint.opacity(0.08)
                                         )
                                     )
                             )
@@ -956,16 +956,7 @@ struct MetricChartTile: View {
                                 yEnd: .value("Value", displayValue(s.value))
                             )
                             .interpolationMethod(.monotone)
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [
-                                        measurementsTheme.accent.opacity(0.28),
-                                        measurementsTheme.accent.opacity(0.02)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
+                            .foregroundStyle(ClaudeLightStyle.areaFill(accent: measurementsTheme.accent, colorScheme: colorScheme))
 
                         }
 

@@ -3,6 +3,7 @@ import SwiftUI
 /// Samodzielny ekran oferty Premium uzywany poza onboardingiem.
 struct OnboardingPremiumStep: View {
     @EnvironmentObject private var premiumStore: PremiumStore
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
@@ -59,7 +60,7 @@ struct OnboardingPremiumStep: View {
                 HStack(spacing: 10) {
                     if premiumStore.isPurchasing {
                         ProgressView()
-                            .tint(.white)
+                            .tint(colorScheme == .dark ? .white : AppColorRoles.textOnAccent)
                     }
 
                     Text(AppLocalization.systemString("Start my 14-day free trial"))
@@ -68,8 +69,7 @@ struct OnboardingPremiumStep: View {
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 44)
             }
-            .buttonStyle(.bordered)
-            .tint(Color.appAccent)
+            .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
             .disabled((selectedProduct == nil && !premiumStore.canSimulateTrialActivationForUITests) || premiumStore.isPurchasing)
             .appHitTarget()
             .accessibilityIdentifier("onboarding.premium.trial")
@@ -77,7 +77,7 @@ struct OnboardingPremiumStep: View {
 
             billedAfterTrialText
                 .font(AppTypography.micro)
-                .foregroundStyle(.white.opacity(0.72))
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity, alignment: .center)
 
@@ -111,7 +111,7 @@ struct OnboardingPremiumStep: View {
 
                 Text(AppLocalization.string("premium.unlock.bundle.title"))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(0.92))
+                    .foregroundStyle(AppColorRoles.textPrimary)
             }
 
             premiumUnlockBenefitRow(icon: "sparkles",                     tint: Color(hex: "#4ADE80"), textKey: "premium.carousel.unlock.item.ai")
@@ -125,15 +125,15 @@ struct OnboardingPremiumStep: View {
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(
-                    LinearGradient(
+                    ClaudeLightStyle.directionalGradient(
                         colors: [Color.white.opacity(0.09), Color.white.opacity(0.04)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        colorScheme: colorScheme,
+                        lightColor: AppColorRoles.surfacePrimary
                     )
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                        .stroke(colorScheme == .dark ? Color.white.opacity(0.16) : AppColorRoles.borderSubtle, lineWidth: 1)
                 )
         )
     }
@@ -147,14 +147,14 @@ struct OnboardingPremiumStep: View {
 
             Text(AppLocalization.string(textKey))
                 .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(.white.opacity(0.92))
+                .foregroundStyle(AppColorRoles.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Spacer(minLength: 8)
 
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color(hex: "#FCA311"))
+                .foregroundStyle(Color.appAccent)
         }
         .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 4 : 2)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -191,23 +191,23 @@ struct OnboardingPremiumStep: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(planTitle(for: product))
                                 .font(AppTypography.body)
-                                .foregroundStyle(.white.opacity(0.88))
+                                .foregroundStyle(AppColorRoles.textPrimary)
                             Text(planSubtitle(for: product))
                                 .font(AppTypography.caption)
-                                .foregroundStyle(.white.opacity(0.68))
+                                .foregroundStyle(AppColorRoles.textSecondary)
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(primaryPriceLine(for: product))
                                 .font(.system(.title3, design: .rounded).weight(.bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppColorRoles.textPrimary)
                                 .lineLimit(2)
                                 .minimumScaleFactor(0.9)
 
                             if let secondaryPrice {
                                 Text(secondaryPrice)
                                     .font(AppTypography.micro)
-                                    .foregroundStyle(.white.opacity(0.6))
+                                    .foregroundStyle(AppColorRoles.textSecondary)
                                     .lineLimit(2)
                             }
                         }
@@ -217,10 +217,10 @@ struct OnboardingPremiumStep: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(planTitle(for: product))
                                 .font(AppTypography.body)
-                                .foregroundStyle(.white.opacity(0.88))
+                                .foregroundStyle(AppColorRoles.textPrimary)
                             Text(planSubtitle(for: product))
                                 .font(AppTypography.caption)
-                                .foregroundStyle(.white.opacity(0.68))
+                                .foregroundStyle(AppColorRoles.textSecondary)
                         }
 
                         Spacer()
@@ -228,13 +228,13 @@ struct OnboardingPremiumStep: View {
                         VStack(alignment: .trailing, spacing: 3) {
                             Text(primaryPriceLine(for: product))
                                 .font(.system(.title3, design: .rounded).weight(.bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppColorRoles.textPrimary)
                                 .minimumScaleFactor(0.82)
 
                             if let secondaryPrice {
                                 Text(secondaryPrice)
                                     .font(AppTypography.micro)
-                                    .foregroundStyle(.white.opacity(0.6))
+                                    .foregroundStyle(AppColorRoles.textSecondary)
                                     .minimumScaleFactor(0.9)
                             }
                         }
@@ -246,10 +246,10 @@ struct OnboardingPremiumStep: View {
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                    .fill(isSelected ? Color.appAccent.opacity(0.16) : Color.white.opacity(0.05))
+                    .fill(isSelected ? Color.appAccent.opacity(colorScheme == .dark ? 0.16 : 0.10) : (colorScheme == .dark ? Color.white.opacity(0.05) : AppColorRoles.surfacePrimary))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                            .stroke(isSelected ? Color.appAccent : Color.white.opacity(0.14), lineWidth: 1)
+                            .stroke(isSelected ? Color.appAccent : (colorScheme == .dark ? Color.white.opacity(0.14) : AppColorRoles.borderSubtle), lineWidth: 1)
                     )
             )
         }

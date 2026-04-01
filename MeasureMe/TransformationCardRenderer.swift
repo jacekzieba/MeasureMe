@@ -543,12 +543,14 @@ nonisolated enum TransformationCardRenderer {
                 let preferred = Locale.preferredLanguages.first?.lowercased() ?? "en"
                 if preferred.hasPrefix("pl") { return "pl" }
                 if preferred.hasPrefix("es") { return "es" }
+                if preferred.hasPrefix("de") { return "de" }
+                if preferred.hasPrefix("fr") { return "fr" }
                 if preferred.hasPrefix("pt") { return "pt-BR" }
                 return "en"
             }
             if raw == "pt" { return "pt-BR" }
             switch raw {
-            case "en", "pl", "es", "pt-BR":
+            case "en", "pl", "es", "de", "fr", "pt-BR":
                 return raw
             default:
                 return "en"

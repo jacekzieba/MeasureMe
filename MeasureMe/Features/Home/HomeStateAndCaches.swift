@@ -30,6 +30,7 @@ extension HomeView {
 }
 
 struct HomeKeyMetricRow: View {
+    @Environment(\.colorScheme) private var colorScheme
     let kind: MetricKind
     let latest: MetricSample?
     let goal: MetricGoal?
@@ -120,12 +121,14 @@ struct HomeKeyMetricRow: View {
 
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(
-                        LinearGradient(
+                        ClaudeLightStyle.directionalGradient(
                             colors: [
                                 accent.opacity(0.10),
                                 accent.opacity(0.03),
                                 .clear
                             ],
+                            colorScheme: colorScheme,
+                            lightColor: .clear,
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -228,6 +231,7 @@ private struct HomeGoalProgressBar: View {
 struct CustomMiniSparklineChart: View {
     private let recentSamples: [MetricSample]
     private let trendColor: Color
+    @Environment(\.colorScheme) private var colorScheme
 
     init(samples: [MetricSample], favorsDecrease: Bool, goal: MetricGoal?) {
         let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? AppClock.now
@@ -283,9 +287,12 @@ struct CustomMiniSparklineChart: View {
                         path.closeSubpath()
                     }
                     .fill(
-                        LinearGradient(
+                        ClaudeLightStyle.directionalGradient(
                             colors: [trendColor.opacity(0.15), trendColor.opacity(0.0)],
-                            startPoint: .top, endPoint: .bottom
+                            colorScheme: colorScheme,
+                            lightColor: trendColor.opacity(0.10),
+                            startPoint: .top,
+                            endPoint: .bottom
                         )
                     )
                     Path { path in
@@ -323,6 +330,7 @@ struct CustomMiniSparklineChart: View {
 // MARK: - Home Custom Key Metric Row
 
 struct HomeCustomKeyMetricRow: View {
+    @Environment(\.colorScheme) private var colorScheme
     let definition: CustomMetricDefinition
     let latest: MetricSample?
     let goal: MetricGoal?
@@ -418,12 +426,14 @@ struct HomeCustomKeyMetricRow: View {
 
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(
-                        LinearGradient(
+                        ClaudeLightStyle.directionalGradient(
                             colors: [
                                 accent.opacity(0.10),
                                 accent.opacity(0.03),
                                 .clear
                             ],
+                            colorScheme: colorScheme,
+                            lightColor: .clear,
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )

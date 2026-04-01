@@ -34,6 +34,7 @@ struct AppCTAButtonStyle: ButtonStyle {
         var isPressed: Bool
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @Environment(\.colorScheme) private var colorScheme
+        @Environment(\.isEnabled) private var isEnabled
 
         func body(content: Content) -> some View {
             let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
@@ -47,22 +48,29 @@ struct AppCTAButtonStyle: ButtonStyle {
                 .background(
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .fill(
-                            LinearGradient(
-                                colors: [
-                                    AppColorRoles.accentGradientStart,
-                                    AppColorRoles.accentGradientMid,
-                                    AppColorRoles.accentGradientEnd
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+                            colorScheme == .dark
+                                ? AnyShapeStyle(
+                                    LinearGradient(
+                                        colors: [
+                                            AppColorRoles.accentGradientStart,
+                                            AppColorRoles.accentGradientMid,
+                                            AppColorRoles.accentGradientEnd
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                : AnyShapeStyle(
+                                    AppColorRoles.accentPrimary
+                                )
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            Color.white.opacity(colorScheme == .dark ? 0.12 : 0.30),
+                                            Color.white.opacity(colorScheme == .dark ? 0.12 : 0.18),
+                                            Color.white.opacity(colorScheme == .dark ? 0.02 : 0.04),
                                             .clear
                                         ],
                                         startPoint: .top,
@@ -73,25 +81,36 @@ struct AppCTAButtonStyle: ButtonStyle {
                         .overlay(
                             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                                 .stroke(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.white.opacity(colorScheme == .dark ? 0.28 : 0.84),
-                                            AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 0.68 : 0.52)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
+                                    colorScheme == .dark
+                                        ? AnyShapeStyle(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color.white.opacity(0.28),
+                                                    AppColorRoles.borderStrong.opacity(0.68)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        : AnyShapeStyle(Color(hex: "#D7950D")),
                                     lineWidth: 1
+                                )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .inset(by: 0.5)
+                                .stroke(
+                                    colorScheme == .dark
+                                        ? Color.clear
+                                        : Color.white.opacity(0.20),
+                                    lineWidth: 0.6
                                 )
                         )
                 )
                 .scaleEffect(isPressed && shouldAnimate ? 0.98 : 1)
-                .shadow(
-                    color: Color.appAccent.opacity(isPressed ? 0.16 : (colorScheme == .dark ? 0.24 : 0.24)),
-                    radius: isPressed ? 4 : 9,
-                    x: 0,
-                    y: isPressed ? 1 : 4
-                )
+                .opacity(isEnabled ? 1 : 0.55)
+                .shadow(color: colorScheme == .dark ? Color.appAccent.opacity(isPressed ? 0.16 : 0.24) : AppColorRoles.shadowStrong.opacity(isPressed ? 0.05 : 0.10), radius: isPressed ? 4 : 12, x: 0, y: isPressed ? 2 : 6)
+                .shadow(color: colorScheme == .dark ? .clear : AppColorRoles.shadowSoft.opacity(0.16), radius: 2, x: 0, y: 1)
                 .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimate), value: isPressed)
         }
     }
@@ -112,11 +131,12 @@ struct AppSecondaryButtonStyle: ButtonStyle {
         var isPressed: Bool
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @Environment(\.colorScheme) private var colorScheme
+        @Environment(\.isEnabled) private var isEnabled
 
         func body(content: Content) -> some View {
             let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
             content
-                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .font(.system(.subheadline, design: .default).weight(.medium))
                 .foregroundStyle(AppColorRoles.textPrimary)
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.sm)
@@ -128,15 +148,7 @@ struct AppSecondaryButtonStyle: ButtonStyle {
                             colorScheme == .dark
                                 ? AnyShapeStyle(AppColorRoles.surfaceChrome)
                                 : AnyShapeStyle(
-                                    LinearGradient(
-                                        colors: [
-                                            AppColorRoles.surfaceElevated,
-                                            AppColorRoles.surfaceGlass,
-                                            AppColorRoles.surfacePrimary
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
+                                    AppColorRoles.surfaceSecondary
                                 )
                         )
                         .overlay(
@@ -144,9 +156,9 @@ struct AppSecondaryButtonStyle: ButtonStyle {
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            Color.black.opacity(isPressed ? 0.05 : 0.02),
-                                            Color.black.opacity(isPressed ? 0.02 : 0.008),
-                                            .clear
+                                            Color.white.opacity(colorScheme == .dark ? 0.02 : 0.48),
+                                            Color.white.opacity(colorScheme == .dark ? 0.01 : 0.14),
+                                            Color.clear
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
@@ -156,20 +168,35 @@ struct AppSecondaryButtonStyle: ButtonStyle {
                         .overlay(
                             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                                 .stroke(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.white.opacity(colorScheme == .dark ? 0.16 : 0.90),
-                                            AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 1 : 0.60)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
+                                    colorScheme == .dark
+                                        ? AnyShapeStyle(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color.white.opacity(0.16),
+                                                    AppColorRoles.borderStrong.opacity(1)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        : AnyShapeStyle(AppColorRoles.borderSubtle.opacity(isPressed ? 1 : 0.96)),
                                     lineWidth: 1
+                                )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .inset(by: 0.5)
+                                .stroke(
+                                    colorScheme == .dark
+                                        ? Color.clear
+                                        : Color.white.opacity(0.58),
+                                    lineWidth: 0.6
                                 )
                         )
                 )
                 .scaleEffect(isPressed && shouldAnimate ? 0.98 : 1)
-                .shadow(color: AppColorRoles.shadowSoft.opacity(isPressed ? 0.24 : 0.34), radius: isPressed ? 4 : 7, x: 0, y: isPressed ? 2 : 4)
+                .opacity(isEnabled ? 1 : 0.52)
+                .shadow(color: colorScheme == .dark ? AppColorRoles.shadowSoft.opacity(isPressed ? 0.24 : 0.34) : AppColorRoles.shadowSoft.opacity(isPressed ? 0.05 : 0.10), radius: isPressed ? 4 : 8, x: 0, y: isPressed ? 2 : 4)
                 .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimate), value: isPressed)
         }
     }
@@ -240,9 +267,9 @@ struct AppInputContainerStyle: ViewModifier {
                                     AppColorRoles.surfaceInteractive.opacity(0.92)
                                 ]
                                 : [
-                                    AppColorRoles.surfaceElevated,
-                                    AppColorRoles.surfaceGlass,
-                                    AppColorRoles.surfacePrimary
+                                    AppColorRoles.surfacePrimary,
+                                    AppColorRoles.surfaceSecondary,
+                                    AppColorRoles.surfaceInteractive
                                 ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -253,8 +280,8 @@ struct AppInputContainerStyle: ViewModifier {
                             .fill(
                                 LinearGradient(
                                     colors: [
-                                        Color.white.opacity(colorScheme == .dark ? 0.05 : 0.20),
-                                        focused ? Color.appAccent.opacity(0.10) : .clear
+                                        Color.white.opacity(colorScheme == .dark ? 0.05 : 0.34),
+                                        focused ? Color.appAccent.opacity(colorScheme == .dark ? 0.10 : 0.08) : .clear
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing

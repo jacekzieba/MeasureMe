@@ -6,6 +6,7 @@ enum StartupInstrumentation {
         subsystem: Bundle.main.bundleIdentifier ?? "com.jacek.measureme",
         category: "Startup"
     )
+    private static let appLaunchStart = ContinuousClock().now
 
     struct IntervalState {
         let signpostID: OSSignpostID
@@ -27,5 +28,8 @@ enum StartupInstrumentation {
 
     static func event(_ name: StaticString) {
         os_signpost(.event, log: log, name: name)
+        let elapsed = appLaunchStart.duration(to: ContinuousClock().now)
+        let milliseconds = Int(elapsed.components.seconds * 1_000) + Int(elapsed.components.attoseconds / 1_000_000_000_000_000)
+        AppLog.debug("🚀 \(name): +\(milliseconds) ms")
     }
 }

@@ -242,7 +242,7 @@ struct HomeQuickActionButton: View {
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(
-                                LinearGradient(
+                                ClaudeLightStyle.directionalGradient(
                                     colors: colorScheme == .dark
                                         ? [
                                             tint.opacity(0.24),
@@ -253,8 +253,8 @@ struct HomeQuickActionButton: View {
                                             Color(hex: "#EAEFF3").opacity(0.96),
                                             Color(hex: "#E1E7EC").opacity(0.92)
                                         ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+                                    colorScheme: colorScheme,
+                                    lightColor: AppColorRoles.surfaceSecondary
                                 )
                             )
                             .overlay(
@@ -282,31 +282,25 @@ struct HomeQuickActionButton: View {
                         colorScheme == .dark
                             ? AnyShapeStyle(AppColorRoles.surfaceInteractive)
                             : AnyShapeStyle(
-                                LinearGradient(
-                                    colors: [
-                                        Color(hex: "#F1F4F7").opacity(0.98),
-                                        AppColorRoles.surfaceWarmHighlight.opacity(0.94),
-                                        AppColorRoles.surfaceCoolHighlight.opacity(0.98)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+                                AppColorRoles.surfacePrimary
                             )
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .fill(
-                                RadialGradient(
-                                    colors: [
-                                        colorScheme == .dark
-                                            ? tint.opacity(0.10)
-                                            : Color.white.opacity(0.42),
-                                        .clear
-                                    ],
-                                    center: .topLeading,
-                                    startRadius: 8,
-                                    endRadius: 110
-                                )
+                                colorScheme == .dark
+                                    ? AnyShapeStyle(
+                                        RadialGradient(
+                                            colors: [
+                                                tint.opacity(0.10),
+                                                .clear
+                                            ],
+                                            center: .topLeading,
+                                            startRadius: 8,
+                                            endRadius: 110
+                                        )
+                                    )
+                                    : AnyShapeStyle(Color.white.opacity(0.18))
                             )
                     )
                     .overlay(

@@ -8,23 +8,17 @@ struct AppBackground: View {
             AppColorRoles.surfaceCanvas
                 .ignoresSafeArea()
 
-            LinearGradient(
-                colors: colorScheme == .dark
-                    ? [
+            if colorScheme == .dark {
+                LinearGradient(
+                    colors: [
                         Color.appNavy,
                         Color.appBlack
-                    ]
-                    : [
-                        Color(hex: "#F1F1F0"),
-                        Color(hex: "#ECECEA"),
-                        Color(hex: "#E3E3E0"),
-                        Color(hex: "#EFEFED")
                     ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+            }
         }
         .ignoresSafeArea()
     }

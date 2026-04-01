@@ -50,14 +50,23 @@ final class TextTruncationUITests: XCTestCase {
         ]
         app.launch()
 
-        for step in 1...4 {
+        for step in 1...2 {
             scanCurrentScreenForTruncatedText(context: "Onboarding.Step\(step)", maxSwipes: 2)
 
-            let nextButton = onboardingNextButton()
-            if nextButton.waitForExistence(timeout: 2), nextButton.isHittable {
-                nextButton.tap()
+            if step == 1 {
+                let nextButton = onboardingNextButton()
+                if nextButton.waitForExistence(timeout: 2), nextButton.isHittable {
+                    nextButton.tap()
+                } else {
+                    break
+                }
             } else {
-                break
+                let skipButton = app.buttons["onboarding.skip"].firstMatch
+                if skipButton.waitForExistence(timeout: 2), skipButton.isHittable {
+                    skipButton.tap()
+                } else {
+                    break
+                }
             }
         }
     }

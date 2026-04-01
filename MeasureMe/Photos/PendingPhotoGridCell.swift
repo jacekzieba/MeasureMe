@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PendingPhotoGridCell: View {
+    @Environment(\.colorScheme) private var colorScheme
     let thumbnailData: Data
     let progress: Double
     let status: PendingPhotoSaveStatus
@@ -21,11 +22,8 @@ struct PendingPhotoGridCell: View {
                 cacheID: "pending_\(cacheID)"
             )
 
-            LinearGradient(
-                colors: [.clear, .black.opacity(0.78)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            Rectangle()
+                .fill(colorScheme == .dark ? Color.black.opacity(0.62) : Color.black.opacity(0.44))
 
             VStack(alignment: .leading, spacing: 4) {
                 if showsStatusLabel {
@@ -46,7 +44,7 @@ struct PendingPhotoGridCell: View {
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                .stroke(colorScheme == .dark ? Color.white.opacity(0.14) : AppColorRoles.borderSubtle, lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(AppLocalization.string("Photo"))

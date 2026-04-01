@@ -5,6 +5,7 @@ import RevenueCatUI
 struct PremiumPaywallView: View {
     @EnvironmentObject private var premium: PremiumStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var selectedProductID: String?
@@ -140,7 +141,7 @@ struct PremiumPaywallView: View {
         switch AppLocalization.currentLanguage {
         case .pl:
             return true
-        case .en, .es, .ptBR:
+        case .en, .es, .de, .fr, .ptBR:
             return false
         case .system:
             return Locale.preferredLanguages.first?.lowercased().hasPrefix("pl") ?? false
@@ -313,10 +314,10 @@ struct PremiumPaywallView: View {
                 .background(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .fill(
-                            LinearGradient(
+                            ClaudeLightStyle.directionalGradient(
                                 colors: slide.gradient,
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                                colorScheme: colorScheme,
+                                lightColor: AppColorRoles.surfacePrimary
                             )
                         )
                         .overlay(
@@ -365,10 +366,10 @@ struct PremiumPaywallView: View {
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(
-                        LinearGradient(
+                        ClaudeLightStyle.directionalGradient(
                             colors: [slide.tint.opacity(0.22), AppColorRoles.surfaceSecondary],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                            colorScheme: colorScheme,
+                            lightColor: slide.tint.opacity(0.08)
                         )
                     )
                     .overlay(
@@ -473,10 +474,10 @@ struct PremiumPaywallView: View {
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(
-                    LinearGradient(
+                    ClaudeLightStyle.directionalGradient(
                         colors: [Color(hex: "#1E2850").opacity(0.85), Color.black.opacity(0.45)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        colorScheme: colorScheme,
+                        lightColor: AppColorRoles.surfaceSecondary
                     )
                 )
                 .overlay(
@@ -491,7 +492,7 @@ struct PremiumPaywallView: View {
 
         if let name = personalizedFirstName {
             var namePart = AttributedString("\(name), ")
-            namePart.foregroundColor = Color(hex: "#FCA311")
+            namePart.foregroundColor = Color.appAccent
             text += namePart
         }
 
@@ -765,12 +766,12 @@ struct PremiumPaywallView: View {
 
                     Text(AppLocalization.string("premium.unlock.bundle.title"))
                         .font(AppTypography.captionEmphasis)
-                        .foregroundStyle(.white.opacity(0.92))
+                        .foregroundStyle(colorScheme == .dark ? .white.opacity(0.92) : AppColorRoles.textPrimary)
                 }
 
                 Text(AppLocalization.string("premium.carousel.unlock.body"))
                     .font(AppTypography.caption)
-                    .foregroundStyle(.white.opacity(0.82))
+                    .foregroundStyle(colorScheme == .dark ? .white.opacity(0.82) : AppColorRoles.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 unlockBenefitRow(icon: "sparkles", tint: Color(hex: "#4ADE80"), textKey: "premium.carousel.unlock.item.ai")
@@ -790,15 +791,17 @@ struct PremiumPaywallView: View {
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(
-                        LinearGradient(
+                        ClaudeLightStyle.directionalGradient(
                             colors: [Color.white.opacity(0.09), Color.white.opacity(0.04)],
+                            colorScheme: colorScheme,
+                            lightColor: AppColorRoles.surfaceSecondary,
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                            .stroke(colorScheme == .dark ? Color.white.opacity(0.16) : AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )
 
@@ -807,7 +810,7 @@ struct PremiumPaywallView: View {
             HStack(spacing: 8) {
                 Text(AppLocalization.string("premium.carousel.unlock.item.support"))
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(colorScheme == .dark ? .white.opacity(0.9) : AppColorRoles.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }

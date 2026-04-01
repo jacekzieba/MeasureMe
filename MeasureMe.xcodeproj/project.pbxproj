@@ -544,6 +544,8 @@
 				Base,
 				pl,
 				es,
+				de,
+				fr,
 				"pt-BR",
 			);
 			mainGroup = A3BAF7B32F27B74C00269A9A;

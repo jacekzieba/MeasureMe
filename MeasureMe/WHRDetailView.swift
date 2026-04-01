@@ -8,6 +8,7 @@ import SwiftUI
 struct WHRDetailView: View {
     let result: HealthMetricsCalculator.WHRResult
     let gender: Gender
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         ZStack(alignment: .top) {
@@ -20,11 +21,11 @@ struct WHRDetailView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(AppLocalization.string("Waist-to-Hip Ratio"))
                             .font(AppTypography.sectionTitle)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColorRoles.textPrimary)
                         
                         Text(AppLocalization.string("WHR"))
                             .font(AppTypography.body)
-                            .foregroundStyle(Color(hex: "#FCA311"))
+                            .foregroundStyle(Color.appAccent)
                             .textCase(.uppercase)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -59,13 +60,13 @@ struct WHRDetailView: View {
             HStack(alignment: .bottom, spacing: 16) {
                 Text(String(format: "%.2f", result.ratio))
                     .font(AppTypography.displayLarge)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                 
                 Spacer()
                 
                 Text(AppLocalization.string(result.category.rawValue))
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.bestAccessibleTextColor(onHex: result.category.color))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .background(Color(hex: result.category.color), in: RoundedRectangle(cornerRadius: 10))
@@ -74,17 +75,22 @@ struct WHRDetailView: View {
             // Opis kategorii
             Text(AppLocalization.string(result.category.description))
                 .font(AppTypography.body)
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
-                colors: [
-                    Color(hex: "#14213D").opacity(0.5),
-                    Color(hex: "#000000").opacity(0.3)
-                ],
+                colors: colorScheme == .dark
+                    ? [
+                        Color(hex: "#14213D").opacity(0.5),
+                        Color(hex: "#000000").opacity(0.3)
+                    ]
+                    : [
+                        AppColorRoles.surfaceElevated,
+                        AppColorRoles.surfaceElevated
+                    ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             ),
@@ -92,7 +98,7 @@ struct WHRDetailView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(hex: result.category.color).opacity(0.3), lineWidth: 1.5)
+                .stroke(Color(hex: result.category.color).opacity(colorScheme == .dark ? 0.3 : 0.18), lineWidth: 1.5)
         )
     }
     
@@ -100,26 +106,31 @@ struct WHRDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "info.circle.fill")
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(Color.appAccent)
                 
                 Text(AppLocalization.string("About WHR"))
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
             }
             
             Text(AppLocalization.string("health.whr.description"))
                 .font(AppTypography.body)
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
-                colors: [
-                    Color(hex: "#14213D").opacity(0.4),
-                    Color(hex: "#000000")
-                ],
+                colors: colorScheme == .dark
+                    ? [
+                        Color(hex: "#14213D").opacity(0.4),
+                        Color(hex: "#000000")
+                    ]
+                    : [
+                        AppColorRoles.surfacePrimary,
+                        AppColorRoles.surfacePrimary
+                    ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             ),
@@ -127,7 +138,7 @@ struct WHRDetailView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(hex: "#FCA311").opacity(0.2), lineWidth: 1)
+                .stroke(Color.appAccent.opacity(colorScheme == .dark ? 0.2 : 0.12), lineWidth: 1)
         )
     }
     
@@ -135,13 +146,13 @@ struct WHRDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 8) {
                 Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(Color.appAccent)
                 
                 Text(gender == .male
                     ? AppLocalization.string("WHR Ranges (Male)")
                     : AppLocalization.string("WHR Ranges (Female)"))
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
             }
             
             VStack(spacing: 12) {
@@ -160,10 +171,15 @@ struct WHRDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
-                colors: [
-                    Color(hex: "#14213D").opacity(0.4),
-                    Color(hex: "#000000")
-                ],
+                colors: colorScheme == .dark
+                    ? [
+                        Color(hex: "#14213D").opacity(0.4),
+                        Color(hex: "#000000")
+                    ]
+                    : [
+                        AppColorRoles.surfacePrimary,
+                        AppColorRoles.surfacePrimary
+                    ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             ),
@@ -171,7 +187,7 @@ struct WHRDetailView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(hex: "#FCA311").opacity(0.2), lineWidth: 1)
+                .stroke(Color.appAccent.opacity(colorScheme == .dark ? 0.2 : 0.12), lineWidth: 1)
         )
     }
     
@@ -179,32 +195,32 @@ struct WHRDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "person.fill.questionmark")
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(Color.appAccent)
                 
                 Text(AppLocalization.string("Gender not specified"))
                     .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColorRoles.textPrimary)
             }
             
             Text(AppLocalization.string("WHR thresholds differ between males and females. Set your gender in Settings for more accurate ranges."))
                 .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(AppColorRoles.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             
             Text(AppLocalization.string("Currently showing female ranges (more conservative)."))
                 .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(AppColorRoles.textTertiary)
                 .italic()
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            Color(hex: "#FCA311").opacity(0.1),
+            Color.appAccent.opacity(colorScheme == .dark ? 0.10 : 0.08),
             in: RoundedRectangle(cornerRadius: 12, style: .continuous)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(hex: "#FCA311").opacity(0.3), lineWidth: 1)
+                .stroke(Color.appAccent.opacity(colorScheme == .dark ? 0.3 : 0.16), lineWidth: 1)
         )
     }
 }

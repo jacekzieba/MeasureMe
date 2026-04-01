@@ -1,14 +1,6 @@
 import Foundation
 
 extension OnboardingView {
-    enum FocusField: Hashable {
-        case name
-        case age
-        case height
-        case feet
-        case inches
-    }
-
     enum WelcomeGoal: String, CaseIterable {
         case loseWeight
         case buildMuscle
@@ -28,17 +20,14 @@ extension OnboardingView {
 
     enum Step: Int, CaseIterable {
         case welcome
-        case profile
-        case boosters
+        case firstMeasurement
 
         var title: String {
             switch self {
             case .welcome:
                 return AppLocalization.systemString("MeasureMe")
-            case .profile:
-                return AppLocalization.systemString("A few details")
-            case .boosters:
-                return AppLocalization.systemString("Boosters")
+            case .firstMeasurement:
+                return AppLocalization.systemString("Your starting point")
             }
         }
 
@@ -46,11 +35,20 @@ extension OnboardingView {
             switch self {
             case .welcome:
                 return ""
-            case .profile:
-                return AppLocalization.systemString("Optional details for more accurate health indicators.")
-            case .boosters:
-                return AppLocalization.systemString("Optional automations to keep momentum.")
+            case .firstMeasurement:
+                return AppLocalization.systemString("One number is all you need to begin.")
             }
+        }
+
+        var countsInProgressBar: Bool {
+            switch self {
+            case .welcome, .firstMeasurement: return true
+            }
+        }
+
+        /// Steps shown in the progress bar.
+        static var progressSteps: [Step] {
+            allCases.filter(\.countsInProgressBar)
         }
     }
 }

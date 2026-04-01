@@ -80,19 +80,7 @@ struct SettingsCardHeader: View {
 struct SettingsRowDivider: View {
     var body: some View {
         Rectangle()
-            .fill(
-                LinearGradient(
-                    colors: [
-                        .clear,
-                        AppColorRoles.borderSubtle,
-                        AppColorRoles.borderStrong,
-                        AppColorRoles.borderSubtle,
-                        .clear
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
+            .fill(AppColorRoles.borderSubtle)
             .frame(height: 1)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 4)
