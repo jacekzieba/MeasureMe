@@ -68,6 +68,11 @@ struct RootView: View {
             RootPresentationModifier(
                 isAuditCaptureEnabled: isAuditCaptureEnabled,
                 premiumStore: premiumStore,
+                trialReminderOptInPrompt: $premiumStore.showTrialReminderOptInPrompt,
+                trialThankYouAlert: $premiumStore.showTrialThankYouAlert,
+                trialNotificationPermissionPrompt: $premiumStore.showTrialNotificationPermissionPrompt,
+                isPaywallPresented: $premiumStore.isPaywallPresented,
+                showPostPurchaseSetup: $premiumStore.showPostPurchaseSetup,
                 dismissTrialReminderOptIn: dismissTrialReminderOptIn,
                 confirmTrialReminderOptIn: confirmTrialReminderOptIn,
                 dismissTrialNotificationPermissionOptIn: dismissTrialNotificationPermissionOptIn,

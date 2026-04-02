@@ -10,6 +10,7 @@ struct OnboardingWelcomeStep: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var isRecommendedMetricsExpanded = false
 
     private var shouldAnimate: Bool {
         AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
@@ -43,20 +44,24 @@ struct OnboardingWelcomeStep: View {
 
     private var recommendedMetricsPreview: some View {
         let kinds = GoalMetricPack.recommendedKinds(for: selectedGoals)
+        let recommendedMetricsText = kinds.map(\.title).joined(separator: ", ")
+        let shouldExpandRecommendedMetrics = recommendedMetricsText.count > 28
+
         return HStack(spacing: 8) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.appAccent)
 
-            Text(AppLocalization.systemString("You'll track:"))
-                .font(AppTypography.captionEmphasis)
-                .foregroundStyle(AppColorRoles.textSecondary)
-
-            Text(kinds.map(\.title).joined(separator: ", "))
-                .font(AppTypography.captionEmphasis)
-                .foregroundStyle(AppColorRoles.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            (
+                Text(AppLocalization.systemString("You'll track:"))
+                    .foregroundStyle(AppColorRoles.textSecondary) +
+                Text(" ") +
+                Text(recommendedMetricsText)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+            )
+            .font(AppTypography.captionEmphasis)
+            .lineLimit(isRecommendedMetricsExpanded ? 3 : 1)
+            .minimumScaleFactor(isRecommendedMetricsExpanded ? 1.0 : 0.8)
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -70,6 +75,30 @@ struct OnboardingWelcomeStep: View {
         )
         .transition(.opacity.combined(with: .move(edge: .top)))
         .animation(shouldAnimate ? AppMotion.quick : .none, value: selectedGoals)
+        .animation(shouldAnimate ? AppMotion.quick : .none, value: isRecommendedMetricsExpanded)
+        .onAppear {
+            guard shouldExpandRecommendedMetrics else { return }
+            if shouldAnimate {
+                withAnimation(AppMotion.quick) {
+                    isRecommendedMetricsExpanded = true
+                }
+            } else {
+                isRecommendedMetricsExpanded = true
+            }
+        }
+        .onChange(of: recommendedMetricsText) { _, _ in
+            if !shouldExpandRecommendedMetrics {
+                isRecommendedMetricsExpanded = false
+                return
+            }
+            if shouldAnimate {
+                withAnimation(AppMotion.quick) {
+                    isRecommendedMetricsExpanded = true
+                }
+            } else {
+                isRecommendedMetricsExpanded = true
+            }
+        }
     }
 
     // MARK: - Goal selector

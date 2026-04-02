@@ -83,7 +83,12 @@ struct RootContentLayer: View {
 
 struct RootPresentationModifier: ViewModifier {
     let isAuditCaptureEnabled: Bool
-    @ObservedObject var premiumStore: PremiumStore
+    let premiumStore: PremiumStore
+    let trialReminderOptInPrompt: Binding<Bool>
+    let trialThankYouAlert: Binding<Bool>
+    let trialNotificationPermissionPrompt: Binding<Bool>
+    let isPaywallPresented: Binding<Bool>
+    let showPostPurchaseSetup: Binding<Bool>
     let dismissTrialReminderOptIn: () -> Void
     let confirmTrialReminderOptIn: () -> Void
     let dismissTrialNotificationPermissionOptIn: () -> Void
@@ -93,21 +98,21 @@ struct RootPresentationModifier: ViewModifier {
         if isAuditCaptureEnabled {
             return .constant(false)
         }
-        return $premiumStore.showTrialReminderOptInPrompt
+        return trialReminderOptInPrompt
     }
 
     private var trialThankYouAlertBinding: Binding<Bool> {
         if isAuditCaptureEnabled {
             return .constant(false)
         }
-        return $premiumStore.showTrialThankYouAlert
+        return trialThankYouAlert
     }
 
     private var trialNotificationPermissionPromptBinding: Binding<Bool> {
         if isAuditCaptureEnabled {
             return .constant(false)
         }
-        return $premiumStore.showTrialNotificationPermissionPrompt
+        return trialNotificationPermissionPrompt
     }
 
     func body(content: Content) -> some View {
@@ -141,15 +146,15 @@ struct RootPresentationModifier: ViewModifier {
             } message: {
                 Text(AppLocalization.string("premium.trial.thankyou.message"))
             }
-            .sheet(isPresented: $premiumStore.isPaywallPresented) {
+            .sheet(isPresented: isPaywallPresented) {
                 PremiumPaywallView()
                     .environmentObject(premiumStore)
             }
-            .onChange(of: premiumStore.isPaywallPresented) { _, isPresented in
+            .onChange(of: isPaywallPresented.wrappedValue) { _, isPresented in
                 guard !isPresented else { return }
                 premiumStore.handlePaywallDismissed()
             }
-            .sheet(isPresented: $premiumStore.showPostPurchaseSetup) {
+            .sheet(isPresented: showPostPurchaseSetup) {
                 PostPurchaseSetupView()
                     .presentationDetents([.fraction(0.72)])
                     .presentationDragIndicator(.visible)

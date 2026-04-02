@@ -44,6 +44,7 @@ enum AppSettingsKeys {
         static let onboardingChecklistCollapsed = "onboarding_checklist_collapsed"
         static let onboardingChecklistHideCompleted = "onboarding_checklist_hide_completed"
         static let onboardingChecklistMetricsCompleted = "onboarding_checklist_metrics_completed"
+        static let onboardingChecklistMetricsExplored = "onboarding_checklist_metrics_explored"
         static let onboardingChecklistPremiumExplored = "onboarding_checklist_premium_explored"
         static let onboardingPrimaryGoal = "onboarding_primary_goal"
         static let onboardingActivationCompleted = "onboarding_activation_completed"

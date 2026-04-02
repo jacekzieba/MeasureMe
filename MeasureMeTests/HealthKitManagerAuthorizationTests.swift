@@ -126,7 +126,7 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
         let manager = HealthKitManager(store: store, settings: settings)
 
         try await manager.requestAuthorization()
-        XCTAssertTrue(store.didRequestAuthorization)
+        XCTAssertFalse(store.didRequestAuthorization, "Should use fast-path without re-requesting when already authorized.")
     }
 
     /// Co sprawdza: Sprawdza scenariusz: ReconcileStoredSyncStateDisablesSyncWhenHealthUnavailable.

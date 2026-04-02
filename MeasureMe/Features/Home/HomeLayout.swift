@@ -11,14 +11,16 @@ enum HomeModuleKind: String, Codable, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 
     static var activeCases: [HomeModuleKind] {
-        allCases.filter { $0 != .quickActions }
+        allCases
     }
 
     var defaultSize: HomeModuleSize {
         switch self {
         case .summaryHero, .keyMetrics, .recentPhotos, .healthSummary:
             return .large
-        case .quickActions, .setupChecklist:
+        case .quickActions:
+            return .large
+        case .setupChecklist:
             return .wide
         }
     }
@@ -88,7 +90,7 @@ struct HomeModuleLayoutItem: Codable, Equatable, Identifiable, Sendable {
 }
 
 struct HomeLayoutSnapshot: Codable, Equatable, Sendable {
-    static let currentSchemaVersion = 3
+    static let currentSchemaVersion = 4
 
     var schemaVersion: Int
     var items: [HomeModuleLayoutItem]
@@ -98,6 +100,7 @@ struct HomeLayoutSnapshot: Codable, Equatable, Sendable {
             schemaVersion: currentSchemaVersion,
             items: [
                 HomeModuleLayoutItem(kind: .summaryHero, isVisible: true, size: .large, row: 0, column: 0),
+                HomeModuleLayoutItem(kind: .quickActions, isVisible: false, size: .large, row: 0, column: 2),
                 HomeModuleLayoutItem(kind: .setupChecklist, isVisible: settings.onboarding.onboardingChecklistShow, size: .wide, row: 0, column: 2),
                 HomeModuleLayoutItem(kind: .keyMetrics, isVisible: settings.home.showMeasurementsOnHome, size: .large, row: 2, column: 0),
                 HomeModuleLayoutItem(kind: .recentPhotos, isVisible: settings.home.showLastPhotosOnHome, size: .large, row: 2, column: 2),

@@ -33,11 +33,11 @@ struct OnboardingHealthKitStep: View {
                     }
                     Text(isSyncEnabled
                          ? AppLocalization.systemString("Connected")
-                         : AppLocalization.systemString("Use Apple Health"))
+                         : AppLocalization.systemString("Connect Apple Health"))
                         .frame(maxWidth: .infinity)
                 }
             }
-            .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
+            .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: AppRadius.md))
             .disabled(isRequesting || isSyncEnabled)
             .accessibilityIdentifier("onboarding.booster.healthkit")
 

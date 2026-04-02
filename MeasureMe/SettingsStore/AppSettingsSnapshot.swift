@@ -38,6 +38,7 @@ struct AppSettingsSnapshot: Sendable {
         var onboardingChecklistCollapsed: Bool
         var onboardingChecklistHideCompleted: Bool
         var onboardingChecklistMetricsCompleted: Bool
+        var onboardingChecklistMetricsExplored: Bool
         var onboardingChecklistPremiumExplored: Bool
         var onboardingPrimaryGoal: String
         /// v2: true after the post-onboarding activation screen has been seen/dismissed.
@@ -193,6 +194,7 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.Onboarding.onboardingChecklistCollapsed: false,
         AppSettingsKeys.Onboarding.onboardingChecklistHideCompleted: false,
         AppSettingsKeys.Onboarding.onboardingChecklistMetricsCompleted: false,
+        AppSettingsKeys.Onboarding.onboardingChecklistMetricsExplored: false,
         AppSettingsKeys.Onboarding.onboardingChecklistPremiumExplored: false,
         AppSettingsKeys.Home.settingsOpenTrackedMeasurements: false,
         AppSettingsKeys.Home.settingsOpenReminders: false,
@@ -252,6 +254,7 @@ struct AppSettingsSnapshot: Sendable {
                 onboardingChecklistCollapsed: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistCollapsed),
                 onboardingChecklistHideCompleted: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistHideCompleted),
                 onboardingChecklistMetricsCompleted: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistMetricsCompleted),
+                onboardingChecklistMetricsExplored: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistMetricsExplored),
                 onboardingChecklistPremiumExplored: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistPremiumExplored),
                 onboardingPrimaryGoal: defaults.string(forKey: AppSettingsKeys.Onboarding.onboardingPrimaryGoal) ?? "",
                 onboardingActivationCompleted: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingActivationCompleted),

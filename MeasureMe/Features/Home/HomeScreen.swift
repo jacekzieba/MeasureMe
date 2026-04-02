@@ -45,6 +45,7 @@ struct HomeView: View {
     // activationTriggerQuickAdd removed — first measurement now happens during onboarding
     @AppSetting(\.onboarding.onboardingChecklistShow) private var showOnboardingChecklistOnHome: Bool = true
     @AppSetting(\.onboarding.onboardingChecklistMetricsCompleted) private var onboardingChecklistMetricsCompleted: Bool = false
+    @AppSetting(\.onboarding.onboardingChecklistMetricsExplored) private var onboardingChecklistMetricsExplored: Bool = false
     @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
     @AppSetting(\.onboarding.onboardingChecklistCollapsed) private var onboardingChecklistCollapsed: Bool = false
     @AppSetting(\.onboarding.onboardingPrimaryGoal) private var onboardingPrimaryGoalsRaw: String = ""
@@ -125,6 +126,10 @@ struct HomeView: View {
 
     private var isFreshHomeState: Bool {
         !hasAnyMeasurements && !hasAnyPhotoContent && homeHealthStatItems.isEmpty
+    }
+
+    private var isWelcomeHomeState: Bool {
+        !discoverySteps.allSatisfy(\.isCompleted)
     }
 
     private var userAge: Int? {
@@ -1096,7 +1101,9 @@ struct HomeView: View {
 
         let observedContent = contentWithChecklistObservers
             .onChange(of: activeChecklistItems.count) { _, newCount in
-                rebuildDashboardItemsCache()
+                withAnimation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate)) {
+                    rebuildDashboardItemsCache()
+                }
                 if newCount <= collapsedChecklistItems.count {
                     showMoreChecklistItems = false
                 }
@@ -1113,6 +1120,14 @@ struct HomeView: View {
             }
             .onChange(of: showOnboardingChecklistOnHome) { _, _ in
                 rebuildDashboardItemsCache()
+            }
+            .onChange(of: router.selectedTab) { _, newTab in
+                if newTab == .measurements && !onboardingChecklistMetricsExplored && isWelcomeHomeState {
+                    onboardingChecklistMetricsExplored = true
+                    withAnimation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate)) {
+                        rebuildDashboardItemsCache()
+                    }
+                }
             }
 
         return observedContent
@@ -1184,14 +1199,18 @@ struct HomeView: View {
         case .summaryHero:
             return true
         case .quickActions:
-            return false
+            return isWelcomeHomeState
         case .keyMetrics:
+            if isWelcomeHomeState { return hasAnyMeasurements && showMeasurementsOnHome }
             return showMeasurementsOnHome
         case .recentPhotos:
+            if isWelcomeHomeState { return hasAnyPhotoContent && showLastPhotosOnHome }
             return showLastPhotosOnHome
         case .healthSummary:
+            if isWelcomeHomeState { return isSyncEnabled && showHealthMetricsOnHome }
             return showHealthMetricsOnHome
         case .setupChecklist:
+            if isWelcomeHomeState { return false }
             return showOnboardingChecklistOnHome && !activeChecklistItems.isEmpty
         }
     }
@@ -1292,7 +1311,135 @@ struct HomeView: View {
     }
 
     private var quickActionsModule: some View {
-        EmptyView()
+        HomeWidgetCard(
+            tint: FeatureTheme.home.softTint,
+            depth: .floating,
+            contentPadding: 14,
+            accessibilityIdentifier: "home.module.quickActions"
+        ) {
+            VStack(alignment: .leading, spacing: 14) {
+                // Header with step counter
+                HStack {
+                    Text(AppLocalization.string("home.quickactions.title"))
+                        .font(AppTypography.headline)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                    Spacer()
+                    Text(AppLocalization.string("home.discovery.counter", completedDiscoverySteps.count, discoverySteps.count))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColorRoles.textTertiary)
+                }
+
+                // Completed steps — compact checkmarks
+                if !completedDiscoverySteps.isEmpty {
+                    FlowLayout(spacing: 6) {
+                        ForEach(completedDiscoverySteps, id: \.id) { step in
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(AppColorRoles.stateSuccess)
+                                Text(step.title)
+                                    .font(AppTypography.microEmphasis)
+                                    .foregroundStyle(AppColorRoles.textTertiary)
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(AppColorRoles.stateSuccess.opacity(0.1))
+                            .clipShape(Capsule())
+                        }
+                    }
+                }
+
+                // Current step — prominent single action
+                if let current = currentDiscoveryStep {
+                    Button {
+                        performChecklistAction(current.id)
+                    } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: current.icon)
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(Color.appAccent)
+                                .frame(width: 44, height: 44)
+                                .background(Color.appAccent.opacity(0.16))
+                                .clipShape(Circle())
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(current.title)
+                                    .font(AppTypography.bodyEmphasis)
+                                    .foregroundStyle(AppColorRoles.textPrimary)
+                                Text(current.detail)
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(AppColorRoles.textSecondary)
+                            }
+
+                            Spacer(minLength: 0)
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(AppColorRoles.textTertiary)
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 14)
+                        .background(AppColorRoles.surfaceSecondary.opacity(0.6))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var discoverySteps: [SetupChecklistItem] {
+        [
+            SetupChecklistItem(
+                id: "explore_metrics",
+                title: AppLocalization.string("home.discovery.explore_metrics.title"),
+                detail: AppLocalization.string("home.discovery.explore_metrics.detail"),
+                icon: "chart.line.uptrend.xyaxis",
+                isCompleted: onboardingChecklistMetricsExplored,
+                isLoading: false
+            ),
+            SetupChecklistItem(
+                id: "first_measurement",
+                title: AppLocalization.string("home.discovery.first_measurement.title"),
+                detail: AppLocalization.string("home.discovery.first_measurement.detail"),
+                icon: "ruler.fill",
+                isCompleted: hasAnyMeasurements,
+                isLoading: false
+            ),
+            SetupChecklistItem(
+                id: "first_photo",
+                title: AppLocalization.string("home.discovery.first_photo.title"),
+                detail: AppLocalization.string("home.discovery.first_photo.detail"),
+                icon: "camera.fill",
+                isCompleted: hasAnyPhotoContent,
+                isLoading: false
+            ),
+            SetupChecklistItem(
+                id: "choose_metrics",
+                title: AppLocalization.string("home.discovery.choose_metrics.title"),
+                detail: AppLocalization.string("home.discovery.choose_metrics.detail"),
+                icon: "slider.horizontal.3",
+                isCompleted: onboardingChecklistMetricsCompleted,
+                isLoading: false
+            ),
+            SetupChecklistItem(
+                id: "premium",
+                title: AppLocalization.string("home.discovery.premium.title"),
+                detail: AppLocalization.string("home.discovery.premium.detail"),
+                icon: "sparkles",
+                isCompleted: onboardingChecklistPremiumExplored || premiumStore.isPremium,
+                isLoading: false
+            ),
+        ]
+    }
+
+    private var currentDiscoveryStep: SetupChecklistItem? {
+        discoverySteps.first(where: { !$0.isCompleted })
+    }
+
+    private var completedDiscoverySteps: [SetupChecklistItem] {
+        discoverySteps.filter(\.isCompleted)
     }
 
     private var keyMetricsModule: some View {
@@ -2261,16 +2408,33 @@ struct HomeView: View {
         return .onTrack
     }
 
-    private var selectedOnboardingGoals: [OnboardingView.WelcomeGoal] {
-        onboardingPrimaryGoalsRaw
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .compactMap(OnboardingView.WelcomeGoal.init(rawValue:))
-            .sorted { $0.rawValue < $1.rawValue }
+    private var onboardingPrimaryGoalsResolvedRaw: String {
+        let trimmed = onboardingPrimaryGoalsRaw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            return trimmed
+        }
+        return UserDefaults.standard
+            .string(forKey: AppSettingsKeys.Onboarding.onboardingPrimaryGoal)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
     private var selectedOnboardingGoalTitle: String? {
-        selectedOnboardingGoals.first?.title
+        let firstToken = onboardingPrimaryGoalsResolvedRaw
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first
+
+        guard let firstToken else { return nil }
+        switch firstToken {
+        case "loseWeight", "lose_weight":
+            return AppLocalization.systemString("Lose weight")
+        case "buildMuscle", "build_muscle":
+            return AppLocalization.systemString("Build muscles")
+        case "trackHealth", "track_health":
+            return AppLocalization.systemString("Improve my health")
+        default:
+            return nil
+        }
     }
 
     private var goalStatusText: String {
@@ -2651,6 +2815,9 @@ struct HomeView: View {
     private func performChecklistAction(_ id: String) {
         Analytics.shared.track(.checklistTaskCompleted)
         switch id {
+        case "explore_metrics":
+            Haptics.selection()
+            router.selectedTab = .measurements
         case "first_measurement":
             Haptics.selection()
             showQuickAddSheet = true

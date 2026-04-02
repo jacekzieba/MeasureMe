@@ -342,6 +342,7 @@ final class HealthKitManager {
             throw HealthKitAuthorizationError.notAvailable
         }
 
+        let startedAt = Date()
         let quantityTypes = try supportedQuantityIdentifiers.map { identifier in
             guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else {
                 throw HealthKitAuthorizationError.typeUnavailable(identifier.rawValue)
@@ -355,10 +356,16 @@ final class HealthKitManager {
         let typesToShare = Set(quantityTypes.map { $0 as HKSampleType })
         let typesToRead = Set(quantityTypes.map { $0 as HKObjectType } + [dateOfBirthType])
 
-        try await store.requestAuthorization(
-            toShare: typesToShare,
-            read: typesToRead
-        )
+        // Fast path: if at least one quantity type is already authorized, skip re-request.
+        let preAuthStatuses = try supportedQuantityIdentifiers.map { try store.authorizationStatus(for: $0) }
+        let alreadyAuthorized = preAuthStatuses.contains(.sharingAuthorized)
+
+        if !alreadyAuthorized {
+            try await store.requestAuthorization(
+                toShare: typesToShare,
+                read: typesToRead
+            )
+        }
 
         let statuses = try supportedQuantityIdentifiers.map { try store.authorizationStatus(for: $0) }
         let hasAnyAuthorizedType = statuses.contains(.sharingAuthorized)
@@ -366,10 +373,17 @@ final class HealthKitManager {
             throw HealthKitAuthorizationError.denied
         }
 
-        startObservingHealthKitUpdates()
         Task(priority: .utility) { [weak self] in
-            await self?.importHistoricalDataIfNeeded()
+            await self?.finishAuthorizationSetup()
         }
+
+        let durationMs = Int(Date().timeIntervalSince(startedAt) * 1_000)
+        AppLog.debug("ℹ️ HealthKit authorization completed in \(durationMs) ms (alreadyAuthorized=\(alreadyAuthorized))")
+    }
+
+    private func finishAuthorizationSetup() async {
+        startObservingHealthKitUpdates()
+        await importHistoricalDataIfNeeded()
     }
 
     @MainActor
