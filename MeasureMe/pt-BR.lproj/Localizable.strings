@@ -143,6 +143,7 @@
 "home.goalstatus.slightlyoff" = "Pequenos passos ainda contam. Continue.";
 "home.goalstatus.needsattention" = "Você consegue. Um registro de cada vez.";
 "home.goalstatus.nogoals" = "Defina uma meta sempre que estiver pronto.";
+"home.goalstatus.selectedgoal" = "Meta selecionada: %@. Defina uma meta de métrica para começar a acompanhar o progresso.";
 "home.goalstatus.accessibility.hint.legend" = "Toque para saber o que esse status significa.";
 "home.goalstatus.accessibility.hint.nogoals" = "Toque para acessar as medições e definir uma meta.";
 "home.goalstatus.legend.navtitle" = "Status da meta";
@@ -1100,7 +1101,6 @@ O IMC não distingue entre massa muscular e massa gorda, portanto atletas ou pes
 "Your starting point" = "Seu ponto de partida";
 "One number is all you need to begin." = "Um número é tudo o que você precisa para começar.";
 "optional" = "opcional";
-"Want less manual typing?" = "Quer digitar menos manualmente?";
 "You'll track:" = "Você vai acompanhar:";
 "You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Você está apresentando uma tendência de queda constante. Mantenha 3 sessões de força e mais de 8k passos esta semana.";
 "onboarding.trend.delta" = "-0,3 kg/semana";

@@ -20,6 +20,9 @@
 "intent.openQuickAdd.title" = "Open Quick Add";
 "intent.openQuickAdd.description" = "Opens Quick Add in MeasureMe.";
 "intent.openQuickAdd.success" = "Opening Quick Add.";
+"intent.openQuickAddMetric.title" = "Open Quick Add for Metric";
+"intent.openQuickAddMetric.description" = "Opens Quick Add in MeasureMe with a preselected metric.";
+"intent.openQuickAddMetric.metric" = "Metric";
 
 "intent.openAddPhoto.title" = "Open Add Photo";
 "intent.openAddPhoto.description" = "Opens the Add Photo flow in MeasureMe.";

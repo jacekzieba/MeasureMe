@@ -1,4 +1,5 @@
 import AppIntents
+import Foundation
 import SwiftUI
 
 // MARK: - WidgetMetricKind
@@ -126,20 +127,6 @@ enum WidgetMetricKind: String, AppEnum, CaseIterable {
         }
     }
 
-    func formattedMetricValue(
-        fromMetric metricValue: Double,
-        isMetric: Bool,
-        includeUnit: Bool = true,
-        alwaysShowSign: Bool = false
-    ) -> String {
-        formattedDisplayValue(
-            valueForDisplay(fromMetric: metricValue, isMetric: isMetric),
-            isMetric: isMetric,
-            includeUnit: includeUnit,
-            alwaysShowSign: alwaysShowSign
-        )
-    }
-
     // MARK: - Trend
 
     var favorsDecrease: Bool {
@@ -155,7 +142,7 @@ enum WidgetMetricKind: String, AppEnum, CaseIterable {
                       goalTarget: Double?, goalDirection: String?) -> TrendOutcome {
         if let target = goalTarget {
             let startDist = abs(target - start)
-            let endDist   = abs(target - end)
+            let endDist = abs(target - end)
             if endDist < startDist { return .positive }
             if endDist > startDist { return .negative }
             return .neutral
@@ -164,6 +151,71 @@ enum WidgetMetricKind: String, AppEnum, CaseIterable {
         if delta == 0 { return .neutral }
         return (favorsDecrease ? delta < 0 : delta > 0) ? .positive : .negative
     }
+}
+
+enum WidgetDisplayMode: String, AppEnum, CaseIterable {
+    case trend
+    case goalProgress
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = TypeDisplayRepresentation(name: "Display Mode")
+    static var caseDisplayRepresentations: [WidgetDisplayMode: DisplayRepresentation] = [
+        .trend: DisplayRepresentation(title: "Trend"),
+        .goalProgress: DisplayRepresentation(title: "Goal Progress")
+    ]
+}
+
+enum WidgetTrendWindow: String, AppEnum, CaseIterable {
+    case sevenDays
+    case thirtyDays
+    case ninetyDays
+
+    var days: Int {
+        switch self {
+        case .sevenDays: return 7
+        case .thirtyDays: return 30
+        case .ninetyDays: return 90
+        }
+    }
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = TypeDisplayRepresentation(name: "Trend Window")
+    static var caseDisplayRepresentations: [WidgetTrendWindow: DisplayRepresentation] = [
+        .sevenDays: DisplayRepresentation(title: "7 days"),
+        .thirtyDays: DisplayRepresentation(title: "30 days"),
+        .ninetyDays: DisplayRepresentation(title: "90 days")
+    ]
+}
+
+enum WidgetMediumLayout: String, AppEnum, CaseIterable {
+    case twoColumns
+    case threeColumns
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = TypeDisplayRepresentation(name: "Medium Layout")
+    static var caseDisplayRepresentations: [WidgetMediumLayout: DisplayRepresentation] = [
+        .twoColumns: DisplayRepresentation(title: "Two Columns"),
+        .threeColumns: DisplayRepresentation(title: "Three Columns")
+    ]
+}
+
+enum WidgetInteractionTarget: String, AppEnum, CaseIterable {
+    case quickAdd
+    case openApp
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = TypeDisplayRepresentation(name: "Interaction")
+    static var caseDisplayRepresentations: [WidgetInteractionTarget: DisplayRepresentation] = [
+        .quickAdd: DisplayRepresentation(title: "Quick Add"),
+        .openApp: DisplayRepresentation(title: "Open App")
+    ]
+}
+
+enum SmartMetricStrategy: String, AppEnum, CaseIterable {
+    case mostNeglected
+    case mostVolatile
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = TypeDisplayRepresentation(name: "Strategy")
+    static var caseDisplayRepresentations: [SmartMetricStrategy: DisplayRepresentation] = [
+        .mostNeglected: DisplayRepresentation(title: "Most Neglected"),
+        .mostVolatile: DisplayRepresentation(title: "Most Volatile")
+    ]
 }
 
 // MARK: - MetricIntent
@@ -180,4 +232,64 @@ struct MetricIntent: AppIntent, WidgetConfigurationIntent {
 
     @Parameter(title: "Third Metric", default: .waist)
     var metric3: WidgetMetricKind
+
+    @Parameter(title: "Display Mode", default: .trend)
+    var displayMode: WidgetDisplayMode
+
+    @Parameter(title: "Trend Window", default: .thirtyDays)
+    var trendWindow: WidgetTrendWindow
+
+    @Parameter(title: "Medium Layout", default: .threeColumns)
+    var mediumLayout: WidgetMediumLayout
+
+    @Parameter(title: "Interaction", default: .quickAdd)
+    var interactionTarget: WidgetInteractionTarget
+}
+
+struct SmartMetricIntent: AppIntent, WidgetConfigurationIntent {
+    static var title: LocalizedStringResource = "Smart Metric Widget"
+    static var description = IntentDescription("Picks the best metric automatically.")
+
+    @Parameter(title: "Strategy", default: .mostNeglected)
+    var strategy: SmartMetricStrategy
+
+    @Parameter(title: "Display Mode", default: .trend)
+    var displayMode: WidgetDisplayMode
+
+    @Parameter(title: "Trend Window", default: .thirtyDays)
+    var trendWindow: WidgetTrendWindow
+
+    @Parameter(title: "Interaction", default: .quickAdd)
+    var interactionTarget: WidgetInteractionTarget
+}
+
+struct StreakWidgetIntent: AppIntent, WidgetConfigurationIntent {
+    static var title: LocalizedStringResource = "Streak Widget"
+    static var description = IntentDescription("Shows your streak and today's logging status.")
+
+    @Parameter(title: "Interaction", default: .quickAdd)
+    var interactionTarget: WidgetInteractionTarget
+}
+
+struct OpenQuickAddFromWidgetIntent: AppIntent {
+    static var title: LocalizedStringResource = "Open Quick Add"
+    static var openAppWhenRun: Bool = true
+
+    @Parameter(title: "Metric")
+    var metric: WidgetMetricKind?
+
+    init() {}
+
+    init(metric: WidgetMetricKind?) {
+        self.metric = metric
+    }
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        guard let defaults = UserDefaults(suiteName: widgetAppGroupID) else {
+            return .result()
+        }
+        defaults.set(metric?.rawValue ?? "__NONE__", forKey: "widget_pending_quick_add_kind")
+        return .result()
+    }
 }

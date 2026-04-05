@@ -7,6 +7,30 @@ struct ComplicationMetricIntent: AppIntent, WidgetConfigurationIntent {
 
     @Parameter(title: "Metric", default: .weight)
     var metric: ComplicationMetricKind
+
+    @Parameter(title: "Trend Window", default: .thirtyDays)
+    var trendWindow: ComplicationTrendWindow
+}
+
+enum ComplicationTrendWindow: String, AppEnum, CaseIterable {
+    case sevenDays
+    case thirtyDays
+    case ninetyDays
+
+    var days: Int {
+        switch self {
+        case .sevenDays: return 7
+        case .thirtyDays: return 30
+        case .ninetyDays: return 90
+        }
+    }
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = TypeDisplayRepresentation(name: "Trend Window")
+    static var caseDisplayRepresentations: [ComplicationTrendWindow: DisplayRepresentation] = [
+        .sevenDays: DisplayRepresentation(title: "7 days"),
+        .thirtyDays: DisplayRepresentation(title: "30 days"),
+        .ninetyDays: DisplayRepresentation(title: "90 days")
+    ]
 }
 
 /// Lightweight AppEnum for complication metric selection.

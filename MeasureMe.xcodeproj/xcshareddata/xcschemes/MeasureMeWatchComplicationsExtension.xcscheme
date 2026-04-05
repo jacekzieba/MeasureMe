@@ -1,12 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "2630"
-   version = "1.3">
+   LastUpgradeVersion = "2640"
+   wasCreatedForAppExtension = "YES"
+   version = "2.0">
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
       buildArchitectures = "Automatic">
       <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A3E6B7E82F701C6F008A7C46"
+               BuildableName = "MeasureMeWatchComplicationsExtension.appex"
+               BlueprintName = "MeasureMeWatchComplicationsExtension"
+               ReferencedContainer = "container:MeasureMe.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
          <BuildActionEntry
             buildForTesting = "YES"
             buildForRunning = "YES"
@@ -23,29 +38,15 @@
          </BuildActionEntry>
          <BuildActionEntry
             buildForTesting = "YES"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "B10000012F28000100000020"
-               BuildableName = "MeasureMeTests.xctest"
-               BlueprintName = "MeasureMeTests"
-               ReferencedContainer = "container:MeasureMe.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "B10000012F28000100000021"
-               BuildableName = "MeasureMeUITests.xctest"
-               BlueprintName = "MeasureMeUITests"
+               BlueprintIdentifier = "A36108522F6FE5E300DD7BF0"
+               BuildableName = "MeasureMeWatch Watch App.app"
+               BlueprintName = "MeasureMeWatch Watch App"
                ReferencedContainer = "container:MeasureMe.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -55,52 +56,22 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES">
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A3BAF7BB2F27B74C00269A9A"
-            BuildableName = "MeasureMe.app"
-            BlueprintName = "MeasureMe"
-            ReferencedContainer = "container:MeasureMe.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
-      <Testables>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "B10000012F28000100000020"
-               BuildableName = "MeasureMeTests.xctest"
-               BlueprintName = "MeasureMeTests"
-               ReferencedContainer = "container:MeasureMe.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "B10000012F28000100000021"
-               BuildableName = "MeasureMeUITests.xctest"
-               BlueprintName = "MeasureMeUITests"
-               ReferencedContainer = "container:MeasureMe.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      shouldAutocreateTestPlan = "YES">
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
-      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
-      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      language = "en"
-      region = "US"
+      selectedDebuggerIdentifier = ""
+      selectedLauncherIdentifier = "Xcode.IDEFoundation.Launcher.PosixSpawn"
       launchStyle = "0"
+      askForAppToLaunch = "Yes"
       useCustomWorkingDirectory = "NO"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
-      allowLocationSimulation = "YES">
+      allowLocationSimulation = "YES"
+      launchAutomaticallySubstyle = "2"
+      queueDebuggingEnableBacktraceRecording = "Yes">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference
@@ -111,12 +82,23 @@
             ReferencedContainer = "container:MeasureMe.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <CommandLineArguments>
-         <CommandLineArgument
-            argument = "-uiTestForcePremium"
-            isEnabled = "NO">
-         </CommandLineArgument>
-      </CommandLineArguments>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "_XCWidgetKind"
+            value = ""
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "_XCWidgetDefaultView"
+            value = "timeline"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "_XCWidgetFamily"
+            value = "systemMedium"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -128,9 +110,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A3BAF7BB2F27B74C00269A9A"
-            BuildableName = "MeasureMe.app"
-            BlueprintName = "MeasureMe"
+            BlueprintIdentifier = "A3E6B7E82F701C6F008A7C46"
+            BuildableName = "MeasureMeWatchComplicationsExtension.appex"
+            BlueprintName = "MeasureMeWatchComplicationsExtension"
             ReferencedContainer = "container:MeasureMe.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

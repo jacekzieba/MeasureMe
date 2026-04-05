@@ -12,7 +12,7 @@ struct ComplicationEntryView: View {
     private var data: ComplicationMetricData? { entry.data }
 
     private var recentSamples: [ComplicationMetricData.SampleDTO] {
-        data?.last30DaySamples ?? []
+        data?.samples(for: entry.configuration.trendWindow) ?? []
     }
 
     var body: some View {

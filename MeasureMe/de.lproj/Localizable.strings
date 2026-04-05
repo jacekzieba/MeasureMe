@@ -143,6 +143,7 @@
 "home.goalstatus.slightlyoff" = "Kleine Schritte zählen trotzdem. Bleiben Sie dran.";
 "home.goalstatus.needsattention" = "Sie schaffen das. Ein Eintrag nach dem anderen.";
 "home.goalstatus.nogoals" = "Setzen Sie sich ein Ziel, sobald Sie bereit sind.";
+"home.goalstatus.selectedgoal" = "Ausgewähltes Ziel: %@. Legen Sie einen Kennzahlen-Zielwert fest, um den Fortschritt zu verfolgen.";
 "home.goalstatus.accessibility.hint.legend" = "Tippen Sie hier, um zu erfahren, was dieser Status bedeutet.";
 "home.goalstatus.accessibility.hint.nogoals" = "Tippen Sie hier, um zu den Messungen zu gelangen und ein Ziel festzulegen.";
 "home.goalstatus.legend.navtitle" = "Zielstatus";
@@ -1100,7 +1101,6 @@ Der BMI unterscheidet nicht zwischen Muskel- und Fettmasse. Deshalb können Spor
 "Your starting point" = "Ihr Ausgangspunkt";
 "One number is all you need to begin." = "Eine Zahl genügt für den Start.";
 "optional" = "optional";
-"Want less manual typing?" = "Möchten Sie weniger manuell eingeben?";
 "You'll track:" = "Sie werden erfassen:";
 "You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Ihr Trend geht stetig nach unten. Halten Sie diese Woche 3 Krafttrainingseinheiten und mehr als 8.000 Schritte ab.";
 "onboarding.trend.delta" = "-0,3 kg/Woche";

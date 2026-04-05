@@ -40,10 +40,16 @@ final class WatchSessionManager: NSObject, ObservableObject {
     // MARK: - Send Config to Watch
 
     func sendApplicationContext() {
-        guard WCSession.isSupported(),
-              WCSession.default.activationState == .activated,
-              WCSession.default.isPaired,
-              WCSession.default.isWatchAppInstalled else { return }
+        guard WCSession.isSupported() else { return }
+
+        let session = WCSession.default
+        let canSendContext = Self.shouldSendApplicationContext(
+            activationState: session.activationState,
+            isPaired: session.isPaired,
+            isWatchAppInstalled: session.isWatchAppInstalled,
+            isRunningOnSimulator: Self.isRunningOnSimulator
+        )
+        guard canSendContext else { return }
 
         let settings = AppSettingsStore.shared
         let activeStore = ActiveMetricsStore(settings: settings)
@@ -74,7 +80,26 @@ final class WatchSessionManager: NSObject, ObservableObject {
             }
         }
 
-        try? WCSession.default.updateApplicationContext(context)
+        try? session.updateApplicationContext(context)
+    }
+
+    nonisolated static func shouldSendApplicationContext(
+        activationState: WCSessionActivationState,
+        isPaired: Bool,
+        isWatchAppInstalled: Bool,
+        isRunningOnSimulator: Bool
+    ) -> Bool {
+        guard activationState == .activated else { return false }
+        if isRunningOnSimulator { return true }
+        return isPaired && isWatchAppInstalled
+    }
+
+    nonisolated private static var isRunningOnSimulator: Bool {
+        #if targetEnvironment(simulator)
+        true
+        #else
+        false
+        #endif
     }
 
     // MARK: - Handle Incoming Measurements

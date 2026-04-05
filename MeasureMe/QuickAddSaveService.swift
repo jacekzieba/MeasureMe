@@ -42,6 +42,7 @@ final class QuickAddSaveService {
         }
         try context.save()
         AnalyticsFirstEventTracker.trackFirstMetricIfNeeded(previousMetricCount: previousMetricCount)
+        AnalyticsFirstEventTracker.trackSecondMetricIfNeeded(previousMetricCount: previousMetricCount)
         streak.recordMetricSaved(date: date)
         widgetWriter.writeAndReload(kinds: entries.map(\.kind), context: context, unitsSystem: unitsSystem)
         WatchSessionManager.shared.sendApplicationContext()

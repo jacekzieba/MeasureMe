@@ -42,7 +42,7 @@ final class HomeLayoutTests: XCTestCase {
 
         XCTAssertEqual(normalized.items.count, HomeModuleKind.activeCases.count)
         XCTAssertEqual(normalized.item(for: .summaryHero)?.isVisible, true)
-        XCTAssertNil(normalized.item(for: .quickActions))
+        XCTAssertEqual(normalized.item(for: .quickActions)?.isVisible, false)
         XCTAssertNotNil(normalized.item(for: .healthSummary))
     }
 

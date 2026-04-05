@@ -8,6 +8,7 @@ struct AddPhotoView: View {
     @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
 
     private let initialPreviewSource: PhotoLibraryImageSource?
+    private let onSaved: (() -> Void)?
     @State private var selectedImage: UIImage?
     @State private var didLoadInitialSource = false
     @State private var isLoadingPreview = false
@@ -29,8 +30,13 @@ struct AddPhotoView: View {
         #endif
     }
     
-    init(previewImage: UIImage? = nil, previewSource: PhotoLibraryImageSource? = nil) {
+    init(
+        previewImage: UIImage? = nil,
+        previewSource: PhotoLibraryImageSource? = nil,
+        onSaved: (() -> Void)? = nil
+    ) {
         self.initialPreviewSource = previewSource
+        self.onSaved = onSaved
         self._selectedImage = State(initialValue: previewImage)
         self._isLoadingPreview = State(initialValue: previewImage == nil && previewSource != nil)
     }
@@ -355,6 +361,7 @@ private extension AddPhotoView {
             let dismissStart = ContinuousClock.now
 
             isSaving = false
+            onSaved?()
             dismiss()
             let enqueueToDismissMs = milliseconds(from: dismissStart.duration(to: .now))
             AppLog.debug(

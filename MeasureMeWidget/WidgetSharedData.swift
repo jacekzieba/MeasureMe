@@ -26,13 +26,16 @@ struct WidgetMetricData: Codable {
     var isMetric: Bool { unitsSystem != "imperial" }
 
     var last30DaySamples: [SampleDTO] {
-        let cutoff = Date().addingTimeInterval(-30 * 24 * 3600)
-        // `samples` are already persisted as oldest-first, so avoid re-sorting on every access.
-        return samples.filter { $0.date >= cutoff }
+        samples(for: .thirtyDays)
     }
 
     var latestSample: SampleDTO? {
         samples.max(by: { $0.date < $1.date })
+    }
+
+    func samples(for window: WidgetTrendWindow) -> [SampleDTO] {
+        let cutoff = Date().addingTimeInterval(-Double(window.days) * 24 * 3600)
+        return samples.filter { $0.date >= cutoff }
     }
 
     func latestDisplayValue(for kind: WidgetMetricKind) -> Double? {
@@ -49,6 +52,17 @@ struct WidgetMetricData: Codable {
         let oldVal = kind.valueForDisplay(fromMetric: oldest.value, isMetric: isMetric)
         let delta = newVal - oldVal
         return kind.formattedDisplayValue(delta, isMetric: isMetric, alwaysShowSign: true)
+    }
+
+    func goalProgress(for kind: WidgetMetricKind) -> Double? {
+        guard let goal, let latest = latestDisplayValue(for: kind) else { return nil }
+        let startMetric = goal.startValue ?? goal.targetValue
+        let start = kind.valueForDisplay(fromMetric: startMetric, isMetric: isMetric)
+        let target = kind.valueForDisplay(fromMetric: goal.targetValue, isMetric: isMetric)
+        let total = abs(target - start)
+        guard total > 0 else { return 1.0 }
+        let progress = 1.0 - abs(target - latest) / total
+        return min(max(progress, 0), 1)
     }
 
     func trendOutcome(for kind: WidgetMetricKind, recentSamples: [SampleDTO]? = nil) -> WidgetMetricKind.TrendOutcome {
@@ -133,6 +147,32 @@ struct WidgetMetricData: Codable {
         decoder.dateDecodingStrategy = .secondsSince1970
         return try? decoder.decode(WidgetMetricData.self, from: data)
     }
+
+    static func allData() -> [(kind: WidgetMetricKind, data: WidgetMetricData)] {
+        WidgetMetricKind.allCases.compactMap { kind in
+            guard let data = load(for: kind) else { return nil }
+            return (kind: kind, data: data)
+        }
+    }
+}
+
+struct WidgetStreakPayload: Codable {
+    let currentStreak: Int
+    let maxStreak: Int
+    let loggedToday: Bool
+}
+
+func widgetPremiumEnabled() -> Bool {
+    let defaults = UserDefaults(suiteName: widgetAppGroupID)
+    return defaults?.bool(forKey: "widget_premium_enabled") ?? false
+}
+
+func widgetStreakPayload() -> WidgetStreakPayload? {
+    guard let defaults = UserDefaults(suiteName: widgetAppGroupID),
+          let data = defaults.data(forKey: "widget_streak_payload") else {
+        return nil
+    }
+    return try? JSONDecoder().decode(WidgetStreakPayload.self, from: data)
 }
 
 func widgetLocalized(_ english: String, _ polish: String) -> String {

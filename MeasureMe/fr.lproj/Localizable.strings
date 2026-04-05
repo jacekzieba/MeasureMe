@@ -143,6 +143,7 @@
 "home.goalstatus.slightlyoff" = "Les petits pas comptent aussi. Continuez.";
 "home.goalstatus.needsattention" = "Vous allez y arriver. Un relevé après l’autre.";
 "home.goalstatus.nogoals" = "Fixez-vous un objectif quand vous serez prêt.";
+"home.goalstatus.selectedgoal" = "Objectif sélectionné : %@. Définissez une cible de métrique pour commencer à suivre vos progrès.";
 "home.goalstatus.accessibility.hint.legend" = "Appuyez pour savoir ce que signifie ce statut.";
 "home.goalstatus.accessibility.hint.nogoals" = "Appuyez pour accéder aux mesures et définir un objectif.";
 "home.goalstatus.legend.navtitle" = "Statut de l'objectif";
@@ -1100,7 +1101,6 @@ L'IMC ne distingue pas la masse musculaire de la masse grasse. Les sportifs ou l
 "Your starting point" = "Votre point de départ";
 "One number is all you need to begin." = "Un seul chiffre suffit pour commencer.";
 "optional" = "facultatif";
-"Want less manual typing?" = "Vous voulez moins saisir manuellement ?";
 "You'll track:" = "Vous suivrez :";
 "You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Vous avez une tendance à la baisse constante. Gardez 3 séances de musculation et plus de 8 000 pas cette semaine.";
 "onboarding.trend.delta" = "-0,3 kg/semaine";

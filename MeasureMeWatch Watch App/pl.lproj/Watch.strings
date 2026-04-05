@@ -1,6 +1,6 @@
 /* Metric names */
 "Weight" = "Waga";
-"Body Fat" = "Tkanka tÅuszczowa";
+"Body Fat" = "Tkanka tłuszczowa";
 "Height" = "Wzrost";
 "Lean Body Mass" = "Beztłuszczowa masa ciała";
 "Waist" = "Talia";
@@ -15,32 +15,31 @@
 "Hips" = "Biodra";
 "Left Thigh" = "Lewe udo";
 "Right Thigh" = "Prawe udo";
-"Left Calf" = "Lewa Åydka";
-"Right Calf" = "Prawa Åydka";
+"Left Calf" = "Lewa łydka";
+"Right Calf" = "Prawa łydka";
 
 /* Short names (for Quick Add) */
-"Fat" = "TÅuszcz";
-"Lean" = "BeztÅ.";
+"Fat" = "Tłuszcz";
+"Lean" = "Beztł.";
 "L Bicep" = "L biceps";
 "R Bicep" = "P biceps";
 "L Forearm" = "L przedr.";
 "R Forearm" = "P przedr.";
 "L Thigh" = "L udo";
 "R Thigh" = "P udo";
-"L Calf" = "L Åydka";
-"R Calf" = "P Åydka";
+"L Calf" = "L łydka";
+"R Calf" = "P łydka";
 
 /* UI */
 "Add" = "Dodaj";
 "No Metrics" = "Brak metryk";
-"Enable metrics on your iPhone to see them here." = "WÅÄ
-cz metryki na iPhonie, aby zobaczyÄ je tutaj.";
+"Enable metrics on your iPhone to see them here." = "Włącz metryki na iPhonie, aby zobaczyć je tutaj.";
 "Recent" = "Ostatnie";
 "30-Day Trend" = "Trend 30-dniowy";
 "Save" = "Zapisz";
 "Saved" = "Zapisano";
 "Premium Feature" = "Funkcja Premium";
-"Upgrade to Premium on your iPhone to use MeasureMe on Apple Watch." = "PrzejdÅº na Premium na swoim iPhonie, aby korzystaÄ z MeasureMe na Apple Watch.";
+"Upgrade to Premium on your iPhone to use MeasureMe on Apple Watch." = "Przejdź na Premium na swoim iPhonie, aby korzystać z MeasureMe na Apple Watch.";
 
 "Opens Quick Add" = "Otwiera szybkie dodawanie";
 "Not enough data" = "Brak danych";
@@ -61,6 +60,6 @@ cz metryki na iPhonie, aby zobaczyÄ je tutaj.";
 "Goal" = "Cel";
 "Shows metric details" = "Pokazuje szczegóły metryki";
 "Selected. Rotate Digital Crown to adjust this metric." = "Wybrano. Obróć Digital Crown, aby zmienić tę metrykę.";
-"Selects this metric for Digital Crown editing." = "Wybiera tÄ metrykÄ do edycji za pomocÄ Digital Crown.";
+"Selects this metric for Digital Crown editing." = "Wybiera tę metrykę do edycji za pomocą Digital Crown.";
 "Saves %d edited metrics" = "Zapisuje %d edytowane metryki";
-"Saves the selected metric" = "Zapisuje wybranÄ metrykÄ";
+"Saves the selected metric" = "Zapisuje wybraną metrykę";

@@ -20,6 +20,9 @@
 "intent.openQuickAdd.title" = "Schnell hinzufügen öffnen";
 "intent.openQuickAdd.description" = "Öffnet Schnell hinzufügen in MeasureMe.";
 "intent.openQuickAdd.success" = "Schnell hinzufügen wird geöffnet.";
+"intent.openQuickAddMetric.title" = "Schnell hinzufügen für Messgröße öffnen";
+"intent.openQuickAddMetric.description" = "Öffnet Schnell hinzufügen in MeasureMe mit vorausgewählter Messgröße.";
+"intent.openQuickAddMetric.metric" = "Messgröße";
 
 "intent.openAddPhoto.title" = "Foto hinzufügen öffnen";
 "intent.openAddPhoto.description" = "Öffnet Foto hinzufügen in MeasureMe.";

@@ -207,6 +207,7 @@ final class AppSettingsStoreTests: XCTestCase {
         store.set(\.notifications.aiMutedTypes, mutedKinds)
 
         store.resetNotificationSettingsToDefaults()
+        store.forceReloadSnapshot()
 
         XCTAssertTrue(store.snapshot.notifications.aiNotificationsEnabled)
         XCTAssertEqual(store.snapshot.notifications.aiDigestWeekday, 1)

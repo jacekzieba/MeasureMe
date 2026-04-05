@@ -7,6 +7,8 @@ import WidgetKit
 enum WidgetDataWriter {
     static let appGroupID = "group.com.jacek.measureme"
     static let widgetKind = "MetricWidget"
+    static let smartWidgetKind = "SmartMetricWidget"
+    static let streakWidgetKind = "StreakWidget"
 
     private struct PendingWriteSnapshot {
         let kinds: Set<MetricKind>
@@ -42,6 +44,12 @@ enum WidgetDataWriter {
         let samples: [SamplePayload]
         let goal: GoalPayload?
         let unitsSystem: String
+    }
+
+    private struct StreakPayload: Encodable {
+        let currentStreak: Int
+        let maxStreak: Int
+        let loggedToday: Bool
     }
 
     // MARK: - Public API
@@ -100,6 +108,18 @@ enum WidgetDataWriter {
         triggerReload()
     }
 
+    static func syncPremiumAndReload(isPremium: Bool) {
+        guard let defaults = resolveDefaults() else { return }
+        defaults.set(isPremium, forKey: "widget_premium_enabled")
+        triggerReload()
+    }
+
+    static func syncSharedPayloadsAndReload() {
+        guard let defaults = resolveDefaults() else { return }
+        writeSharedWidgetPayloads(defaults: defaults)
+        triggerReload()
+    }
+
     // MARK: - Internal test hooks
 
     static func setTestHooks(
@@ -134,6 +154,7 @@ enum WidgetDataWriter {
         let kindsSet = Set(kinds)
         guard !kindsSet.isEmpty else { return }
         guard let defaults = resolveDefaults() else { return }
+        writeSharedWidgetPayloads(defaults: defaults)
 
         let cutoff = AppClock.now.addingTimeInterval(-90 * 24 * 3600)
         let encoder = JSONEncoder()
@@ -209,6 +230,28 @@ enum WidgetDataWriter {
         return override?(appGroupID) ?? UserDefaults(suiteName: appGroupID)
     }
 
+    private static func writeSharedWidgetPayloads(defaults: UserDefaults) {
+        let localDefaults = UserDefaults.standard
+        defaults.set(localDefaults.bool(forKey: AppSettingsKeys.Premium.entitlement), forKey: "widget_premium_enabled")
+
+        let streakCurrent = localDefaults.integer(forKey: "streak_current_count")
+        let streakMax = localDefaults.integer(forKey: "streak_max_count")
+        let currentWeek = AppClock.now.isoWeekIdentifier(calendar: Calendar(identifier: .iso8601))
+        let loggedToday = hasActiveWeek(currentWeek, defaults: localDefaults)
+        let payload = StreakPayload(currentStreak: streakCurrent, maxStreak: streakMax, loggedToday: loggedToday)
+        if let data = try? JSONEncoder().encode(payload) {
+            defaults.set(data, forKey: "widget_streak_payload")
+        }
+    }
+
+    private static func hasActiveWeek(_ week: String, defaults: UserDefaults) -> Bool {
+        guard let data = defaults.data(forKey: "streak_active_weeks"),
+              let activeWeeks = try? JSONDecoder().decode([String].self, from: data) else {
+            return false
+        }
+        return activeWeeks.contains(week)
+    }
+
     private static func triggerReload() {
         stateLock.lock()
         let override = testReloadHandlerOverride
@@ -217,6 +260,8 @@ enum WidgetDataWriter {
             override(widgetKind)
         } else {
             WidgetCenter.shared.reloadTimelines(ofKind: widgetKind)
+            WidgetCenter.shared.reloadTimelines(ofKind: smartWidgetKind)
+            WidgetCenter.shared.reloadTimelines(ofKind: streakWidgetKind)
         }
     }
 }

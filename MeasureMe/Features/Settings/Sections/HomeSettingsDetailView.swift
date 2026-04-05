@@ -13,6 +13,8 @@ private extension HomeModuleKind {
             return AppLocalization.string("Recent photos")
         case .healthSummary:
             return AppLocalization.string("Health summary")
+        case .activationHub:
+            return FlowLocalization.app("Activation hub", "Hub aktywacji", "Hub de activación", "Aktivierungs-Hub", "Hub d'activation", "Hub de ativação")
         case .setupChecklist:
             return AppLocalization.string("Setup checklist")
         }
@@ -30,6 +32,8 @@ private extension HomeModuleKind {
             return AppLocalization.string("Latest progress photos")
         case .healthSummary:
             return AppLocalization.string("Compact health indicator summary")
+        case .activationHub:
+            return FlowLocalization.app("Guided actions for new users", "Prowadzone akcje dla nowych użytkowników", "Acciones guiadas para nuevos usuarios", "Geführte Aktionen für neue Nutzer", "Actions guidées pour les nouveaux utilisateurs", "Ações guiadas para novos usuários")
         case .setupChecklist:
             return AppLocalization.string("Remaining onboarding and setup tasks")
         }
@@ -47,6 +51,8 @@ private extension HomeModuleKind {
             return "photo.on.rectangle"
         case .healthSummary:
             return "heart.text.square"
+        case .activationHub:
+            return "sparkles.rectangle.stack.fill"
         case .setupChecklist:
             return "list.bullet.clipboard"
         }

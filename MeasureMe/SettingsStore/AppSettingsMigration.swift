@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppSettingsMigration {
-    private static let currentSchemaVersion = 5
+    private static let currentSchemaVersion = 6
 
     static func applyIfNeeded(defaults: UserDefaults) {
         let schemaVersion = defaults.integer(forKey: AppSettingsKeys.settingsSchemaVersion)
@@ -11,6 +11,8 @@ enum AppSettingsMigration {
         migrateHomeLayoutIfNeeded(defaults: defaults)
         migrateHomePinnedActionIfNeeded(defaults: defaults)
         migrateActivationCompletedIfNeeded(defaults: defaults)
+        migrateOnboardingFlowVersionIfNeeded(defaults: defaults)
+        migrateActivationStateIfNeeded(defaults: defaults)
         defaults.set(currentSchemaVersion, forKey: AppSettingsKeys.settingsSchemaVersion)
     }
 
@@ -51,11 +53,44 @@ enum AppSettingsMigration {
     }
 
     private static func migrateHomePinnedActionIfNeeded(defaults: UserDefaults) {
+        if let currentRaw = defaults.string(forKey: AppSettingsKeys.Home.homePinnedAction),
+           currentRaw == "finishSetup" {
+            let comparePhotosUnlocked = defaults.double(forKey: AppSettingsKeys.Notifications.lastPhotoDate) > 0
+            defaults.set(
+                comparePhotosUnlocked ? HomePinnedAction.comparePhotos.rawValue : HomePinnedAction.addMeasurement.rawValue,
+                forKey: AppSettingsKeys.Home.homePinnedAction
+            )
+            return
+        }
+
         guard defaults.object(forKey: AppSettingsKeys.Home.homePinnedAction) == nil else { return }
-        let shouldFinishSetup = defaults.object(forKey: AppSettingsKeys.Onboarding.onboardingChecklistShow) as? Bool ?? true
-        defaults.set(
-            shouldFinishSetup ? HomePinnedAction.finishSetup.rawValue : HomePinnedAction.addMeasurement.rawValue,
-            forKey: AppSettingsKeys.Home.homePinnedAction
-        )
+        defaults.set(HomePinnedAction.addMeasurement.rawValue, forKey: AppSettingsKeys.Home.homePinnedAction)
+    }
+
+    private static func migrateOnboardingFlowVersionIfNeeded(defaults: UserDefaults) {
+        let versionKey = AppSettingsKeys.Onboarding.onboardingFlowVersion
+        guard defaults.object(forKey: versionKey) == nil else { return }
+
+        let hasCompleted = defaults.bool(forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding)
+        defaults.set(hasCompleted ? 1 : 0, forKey: versionKey)
+    }
+
+    private static func migrateActivationStateIfNeeded(defaults: UserDefaults) {
+        guard defaults.bool(forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding) else { return }
+
+        if defaults.object(forKey: AppSettingsKeys.Onboarding.activationCurrentTaskID) == nil {
+            defaults.set("", forKey: AppSettingsKeys.Onboarding.activationCurrentTaskID)
+        }
+        if defaults.object(forKey: AppSettingsKeys.Onboarding.activationCompletedTaskIDs) == nil {
+            defaults.set("", forKey: AppSettingsKeys.Onboarding.activationCompletedTaskIDs)
+        }
+        if defaults.object(forKey: AppSettingsKeys.Onboarding.activationSkippedTaskIDs) == nil {
+            defaults.set("", forKey: AppSettingsKeys.Onboarding.activationSkippedTaskIDs)
+        }
+        if defaults.object(forKey: AppSettingsKeys.Onboarding.activationIsDismissed) == nil {
+            defaults.set(true, forKey: AppSettingsKeys.Onboarding.activationIsDismissed)
+        }
+
+        defaults.set(false, forKey: AppSettingsKeys.Onboarding.onboardingChecklistShow)
     }
 }

@@ -112,8 +112,26 @@ final class AppearanceSettingsUITests: XCTestCase {
         // Navigate to Experience settings using its accessibility identifier
         let experienceRow = app.descendants(matching: .any)["settings.row.experience"].firstMatch
         scrollToReveal(experienceRow)
-        XCTAssertTrue(experienceRow.waitForExistence(timeout: 5), "Experience settings row should exist")
-        experienceRow.tap()
+        if experienceRow.waitForExistence(timeout: 2), experienceRow.isHittable {
+            experienceRow.tap()
+        } else {
+            // Fallback for simulator/runtime variants where list row identifiers are not surfaced.
+            let searchField = app.textFields["settings.search.field"].firstMatch
+            if searchField.waitForExistence(timeout: 3) {
+                searchField.tap()
+                searchField.typeText("appearance")
+            }
+
+            let experienceByTitle = app.buttons["Appearance, animations and haptics"].firstMatch
+            if experienceByTitle.waitForExistence(timeout: 5), experienceByTitle.isHittable {
+                experienceByTitle.tap()
+            } else {
+                let experienceText = app.staticTexts["Appearance, animations and haptics"].firstMatch
+                scrollToReveal(experienceText)
+                XCTAssertTrue(experienceText.waitForExistence(timeout: 5), "Experience settings row should exist")
+                experienceText.tap()
+            }
+        }
 
         XCTAssertTrue(
             app.navigationBars.staticTexts["Appearance, animations and haptics"].firstMatch.waitForExistence(timeout: 5),

@@ -30,6 +30,7 @@ struct AppSettingsSnapshot: Sendable {
 
     struct Onboarding: Sendable {
         var hasCompletedOnboarding: Bool
+        var onboardingFlowVersion: Int
         var onboardingSkippedHealthKit: Bool
         var onboardingSkippedReminders: Bool
         var onboardingViewedICloudBackupOffer: Bool
@@ -46,6 +47,10 @@ struct AppSettingsSnapshot: Sendable {
         var onboardingActivationCompleted: Bool = false
         /// v2: set to true by OnboardingActivationView (manual path) to trigger QuickAdd on HomeView appear.
         var activationTriggerQuickAdd: Bool = false
+        var activationCurrentTaskID: String = ""
+        var activationCompletedTaskIDs: String = ""
+        var activationSkippedTaskIDs: String = ""
+        var activationIsDismissed: Bool = false
     }
 
     struct Health: Sendable {
@@ -133,6 +138,9 @@ struct AppSettingsSnapshot: Sendable {
         var analyticsEnabled: Bool
         var firstMetricAddedTracked: Bool
         var firstPhotoAddedTracked: Bool
+        var secondMetricAddedTracked: Bool
+        var secondPhotoAddedTracked: Bool
+        var firstCompareSessionTracked: Bool
         var appleIntelligenceEnabled: Bool
     }
 
@@ -164,6 +172,7 @@ struct AppSettingsSnapshot: Sendable {
 
     static let registeredDefaults: [String: Any] = [
         AppSettingsKeys.Onboarding.hasCompletedOnboarding: false,
+        AppSettingsKeys.Onboarding.onboardingFlowVersion: 0,
         AppSettingsKeys.Profile.userName: "",
         AppSettingsKeys.Profile.userAge: 0,
         AppSettingsKeys.Metrics.weightEnabled: true,
@@ -215,7 +224,14 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.ICloudBackup.isEnabled: false,
         AppSettingsKeys.ICloudBackup.autoRestoreCompleted: false,
         AppSettingsKeys.Onboarding.onboardingActivationCompleted: false,
-        AppSettingsKeys.Onboarding.activationTriggerQuickAdd: false
+        AppSettingsKeys.Onboarding.activationTriggerQuickAdd: false,
+        AppSettingsKeys.Onboarding.activationCurrentTaskID: "",
+        AppSettingsKeys.Onboarding.activationCompletedTaskIDs: "",
+        AppSettingsKeys.Onboarding.activationSkippedTaskIDs: "",
+        AppSettingsKeys.Onboarding.activationIsDismissed: false,
+        AppSettingsKeys.Analytics.secondMetricAddedTracked: false,
+        AppSettingsKeys.Analytics.secondPhotoAddedTracked: false,
+        AppSettingsKeys.Analytics.firstCompareSessionTracked: false
     ]
 
     static func load(from defaults: UserDefaults) -> AppSettingsSnapshot {
@@ -246,6 +262,7 @@ struct AppSettingsSnapshot: Sendable {
             ),
             onboarding: .init(
                 hasCompletedOnboarding: defaults.bool(forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding),
+                onboardingFlowVersion: defaults.integer(forKey: AppSettingsKeys.Onboarding.onboardingFlowVersion),
                 onboardingSkippedHealthKit: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingSkippedHealthKit),
                 onboardingSkippedReminders: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingSkippedReminders),
                 onboardingViewedICloudBackupOffer: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingViewedICloudBackupOffer),
@@ -258,7 +275,11 @@ struct AppSettingsSnapshot: Sendable {
                 onboardingChecklistPremiumExplored: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistPremiumExplored),
                 onboardingPrimaryGoal: defaults.string(forKey: AppSettingsKeys.Onboarding.onboardingPrimaryGoal) ?? "",
                 onboardingActivationCompleted: defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingActivationCompleted),
-                activationTriggerQuickAdd: defaults.bool(forKey: AppSettingsKeys.Onboarding.activationTriggerQuickAdd)
+                activationTriggerQuickAdd: defaults.bool(forKey: AppSettingsKeys.Onboarding.activationTriggerQuickAdd),
+                activationCurrentTaskID: defaults.string(forKey: AppSettingsKeys.Onboarding.activationCurrentTaskID) ?? "",
+                activationCompletedTaskIDs: defaults.string(forKey: AppSettingsKeys.Onboarding.activationCompletedTaskIDs) ?? "",
+                activationSkippedTaskIDs: defaults.string(forKey: AppSettingsKeys.Onboarding.activationSkippedTaskIDs) ?? "",
+                activationIsDismissed: defaults.bool(forKey: AppSettingsKeys.Onboarding.activationIsDismissed)
             ),
             health: .init(
                 isSyncEnabled: defaults.bool(forKey: AppSettingsKeys.Health.isSyncEnabled),
@@ -339,6 +360,9 @@ struct AppSettingsSnapshot: Sendable {
                 analyticsEnabled: defaults.object(forKey: AppSettingsKeys.Analytics.analyticsEnabled) as? Bool ?? true,
                 firstMetricAddedTracked: defaults.bool(forKey: AppSettingsKeys.Analytics.firstMetricAddedTracked),
                 firstPhotoAddedTracked: defaults.bool(forKey: AppSettingsKeys.Analytics.firstPhotoAddedTracked),
+                secondMetricAddedTracked: defaults.bool(forKey: AppSettingsKeys.Analytics.secondMetricAddedTracked),
+                secondPhotoAddedTracked: defaults.bool(forKey: AppSettingsKeys.Analytics.secondPhotoAddedTracked),
+                firstCompareSessionTracked: defaults.bool(forKey: AppSettingsKeys.Analytics.firstCompareSessionTracked),
                 appleIntelligenceEnabled: defaults.object(forKey: AppSettingsKeys.Analytics.appleIntelligenceEnabled) as? Bool ?? true
             ),
             iCloudBackup: .init(

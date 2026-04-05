@@ -555,6 +555,7 @@ final class PendingPhotoSaveStore: ObservableObject {
         context.insert(entry)
         try context.save()
         AnalyticsFirstEventTracker.trackFirstPhotoIfNeeded(previousPhotoCount: previousPhotoCount)
+        AnalyticsFirstEventTracker.trackSecondPhotoIfNeeded(previousPhotoCount: previousPhotoCount)
 
         return (
             entryPersistentModelID: entry.persistentModelID,

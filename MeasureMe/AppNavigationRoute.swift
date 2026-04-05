@@ -8,6 +8,8 @@ enum AppNavigationRoute: Codable, Equatable, Sendable {
 
 enum AppNavigationRouteDispatcher {
     static let didEnqueueNotification = Notification.Name("appNavigationRouteDidEnqueue")
+    private static let appGroupID = "group.com.jacek.measureme"
+    private static let widgetPendingQuickAddKindKey = "widget_pending_quick_add_kind"
 
     @MainActor
     static func enqueue(_ route: AppNavigationRoute) {
@@ -24,9 +26,20 @@ enum AppNavigationRouteDispatcher {
             let data = settings.data(forKey: AppSettingsKeys.Entry.pendingNavigationRoute),
             let route = try? JSONDecoder().decode(AppNavigationRoute.self, from: data)
         else {
-            return nil
+            return consumePendingRouteFromAppGroup()
         }
         settings.removeObject(forKey: AppSettingsKeys.Entry.pendingNavigationRoute)
         return route
+    }
+
+    @MainActor
+    private static func consumePendingRouteFromAppGroup() -> AppNavigationRoute? {
+        guard let defaults = UserDefaults(suiteName: appGroupID) else { return nil }
+        guard let kindRaw = defaults.string(forKey: widgetPendingQuickAddKindKey) else { return nil }
+        defaults.removeObject(forKey: widgetPendingQuickAddKindKey)
+        if kindRaw == "__NONE__" {
+            return .quickAdd(kindRaw: nil)
+        }
+        return .quickAdd(kindRaw: kindRaw)
     }
 }

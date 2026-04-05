@@ -354,6 +354,7 @@ private struct SettingsOverviewRouteRow: View {
         ) {
             onOpenRoute(route)
         }
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
 

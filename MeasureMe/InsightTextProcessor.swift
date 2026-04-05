@@ -1,6 +1,7 @@
 import Foundation
 
 nonisolated enum InsightTextProcessor {
+    private static let appLanguageDefaultsKey = "appLanguage"
 
     // MARK: - Parse
 
@@ -23,11 +24,11 @@ nonisolated enum InsightTextProcessor {
         if detail.isEmpty { detail = sanitizedWhole }
 
         if short.isEmpty {
-            short = AppLocalization.string("Your trend is being analyzed.")
+            short = localizedString("Your trend is being analyzed.")
         }
 
         if detail.isEmpty {
-            detail = AppLocalization.string("Keep logging consistently to get a clearer trend signal.")
+            detail = localizedString("Keep logging consistently to get a clearer trend signal.")
         }
 
         return MetricInsightPair(shortText: short, detailedText: detail)
@@ -218,27 +219,58 @@ nonisolated enum InsightTextProcessor {
     }
 
     private static func responseLanguageDirective() -> String {
-        switch AppLocalization.currentLanguage {
-        case .pl:
+        switch resolvedAppLanguageCode {
+        case "pl":
             return "Respond in Polish."
-        case .de:
+        case "de":
             return "Respond in German."
-        case .fr:
+        case "fr":
             return "Respond in French."
-        case .system:
-            switch AppLanguage.resolvedSystemLanguage {
-            case .pl:
-                return "Respond in Polish."
-            case .de:
-                return "Respond in German."
-            case .fr:
-                return "Respond in French."
-            case .en, .es, .ptBR, .system:
-                return "Respond in English."
-            }
-        case .en, .es, .ptBR:
+        case "en", "es", "pt-BR":
+            return "Respond in English."
+        default:
             return "Respond in English."
         }
+    }
+
+    /// Resolves current app language code without touching MainActor-isolated settings/localization types.
+    private static var resolvedAppLanguageCode: String {
+        let raw = UserDefaults.standard.string(forKey: appLanguageDefaultsKey) ?? "system"
+        if raw == "system" {
+            return resolvedSystemLanguageCode
+        }
+        if raw == "pt" {
+            return "pt-BR"
+        }
+        switch raw {
+        case "en", "pl", "es", "de", "fr", "pt-BR":
+            return raw
+        default:
+            return "en"
+        }
+    }
+
+    private static var resolvedSystemLanguageCode: String {
+        let preferred = Locale.preferredLanguages.first?.lowercased() ?? ""
+        if preferred.hasPrefix("pl") { return "pl" }
+        if preferred.hasPrefix("es") { return "es" }
+        if preferred.hasPrefix("de") { return "de" }
+        if preferred.hasPrefix("fr") { return "fr" }
+        if preferred.hasPrefix("pt") { return "pt-BR" }
+        return "en"
+    }
+
+    private static var currentLocalizationBundle: Bundle {
+        let code = resolvedAppLanguageCode
+        if let path = Bundle.main.path(forResource: code, ofType: "lproj"),
+           let bundle = Bundle(path: path) {
+            return bundle
+        }
+        return .main
+    }
+
+    private static func localizedString(_ key: String) -> String {
+        currentLocalizationBundle.localizedString(forKey: key, value: key, table: nil)
     }
 
     private static func sectionTaskHint(for sectionID: String) -> String {

@@ -36,6 +36,7 @@ enum AppSettingsKeys {
 
     enum Onboarding {
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
+        static let onboardingFlowVersion = "onboarding_flow_version"
         static let onboardingSkippedHealthKit = "onboarding_skipped_healthkit"
         static let onboardingSkippedReminders = "onboarding_skipped_reminders"
         static let onboardingViewedICloudBackupOffer = "onboarding_viewed_icloud_backup_offer"
@@ -49,6 +50,10 @@ enum AppSettingsKeys {
         static let onboardingPrimaryGoal = "onboarding_primary_goal"
         static let onboardingActivationCompleted = "onboarding_activation_completed"
         static let activationTriggerQuickAdd = "onboarding_activation_trigger_quick_add"
+        static let activationCurrentTaskID = "activation_current_task_id"
+        static let activationCompletedTaskIDs = "activation_completed_task_ids"
+        static let activationSkippedTaskIDs = "activation_skipped_task_ids"
+        static let activationIsDismissed = "activation_is_dismissed"
     }
 
     enum Health {
@@ -152,6 +157,9 @@ enum AppSettingsKeys {
         static let analyticsEnabled = "analytics_enabled"
         static let firstMetricAddedTracked = "analytics_first_metric_added_tracked"
         static let firstPhotoAddedTracked = "analytics_first_photo_added_tracked"
+        static let secondMetricAddedTracked = "analytics_second_metric_added_tracked"
+        static let secondPhotoAddedTracked = "analytics_second_photo_added_tracked"
+        static let firstCompareSessionTracked = "analytics_first_compare_session_tracked"
         static let appleIntelligenceEnabled = "apple_intelligence_enabled"
         static let onboardingGoalSelectionStatPrefix = "onboarding_goal_selection_stat_"
     }

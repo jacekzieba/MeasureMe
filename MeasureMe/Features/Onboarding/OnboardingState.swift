@@ -6,49 +6,44 @@ extension OnboardingView {
         case buildMuscle
         case trackHealth
 
-        var title: String {
+        var priority: OnboardingPriority {
             switch self {
             case .loseWeight:
-                return AppLocalization.systemString("Lose weight")
+                return .loseWeight
             case .buildMuscle:
-                return AppLocalization.systemString("Build muscles")
+                return .buildMuscle
             case .trackHealth:
-                return AppLocalization.systemString("Improve my health")
+                return .improveHealth
             }
         }
     }
 
-    enum Step: Int, CaseIterable {
-        case welcome
-        case firstMeasurement
+    enum InputStep: Int, CaseIterable {
+        case name
+        case greeting
+        case priority
+        case personalizing
+        case health
+        case notifications
+        case completion
 
-        var title: String {
+        var analyticsName: String {
             switch self {
-            case .welcome:
-                return AppLocalization.systemString("MeasureMe")
-            case .firstMeasurement:
-                return AppLocalization.systemString("Your starting point")
+            case .name:
+                return "name"
+            case .greeting:
+                return "greeting"
+            case .priority:
+                return "priority"
+            case .personalizing:
+                return "personalizing"
+            case .health:
+                return "health"
+            case .notifications:
+                return "notifications"
+            case .completion:
+                return "completion"
             }
-        }
-
-        var subtitle: String {
-            switch self {
-            case .welcome:
-                return ""
-            case .firstMeasurement:
-                return AppLocalization.systemString("One number is all you need to begin.")
-            }
-        }
-
-        var countsInProgressBar: Bool {
-            switch self {
-            case .welcome, .firstMeasurement: return true
-            }
-        }
-
-        /// Steps shown in the progress bar.
-        static var progressSteps: [Step] {
-            allCases.filter(\.countsInProgressBar)
         }
     }
 }

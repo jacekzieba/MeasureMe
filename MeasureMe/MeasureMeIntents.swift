@@ -186,6 +186,25 @@ struct OpenQuickAddIntent: AppIntent {
     }
 }
 
+struct OpenQuickAddMetricIntent: AppIntent {
+    static let title = LocalizedStringResource("intent.openQuickAddMetric.title", table: "AppIntents")
+    static let description = IntentDescription(LocalizedStringResource("intent.openQuickAddMetric.description", table: "AppIntents"))
+    static let openAppWhenRun = true
+
+    @Parameter(
+        title: LocalizedStringResource("intent.openQuickAddMetric.metric", table: "AppIntents"),
+        optionsProvider: ActiveMetricIntentOptionsProvider()
+    )
+    var metric: IntentMetricKind
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        await MainActor.run {
+            AppNavigationRouteDispatcher.enqueue(.quickAdd(kindRaw: metric.metricKind.rawValue))
+        }
+        return .result(dialog: IntentDialog(LocalizedStringResource("intent.openQuickAdd.success", table: "AppIntents")))
+    }
+}
+
 struct OpenAddPhotoIntent: AppIntent {
     static let title = LocalizedStringResource("intent.openAddPhoto.title", table: "AppIntents")
     static let description = IntentDescription(LocalizedStringResource("intent.openAddPhoto.description", table: "AppIntents"))

@@ -207,7 +207,10 @@ enum GoalPredictionEngine {
         let remaining = abs(goal.remainingToGoal(currentValue: latest.value))
 
         // --- Current rate (ostatnie 30 dni) ---
-        let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? AppClock.now
+        // Anchor "current" rate to the latest sample date, not wall clock date.
+        // This keeps the calculation stable for historical datasets and tests.
+        let referenceDate = latest.date
+        let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: referenceDate) ?? referenceDate
         let recent = sorted.filter { $0.date >= thirtyDaysAgo }
         let currentRate: Double? = {
             guard recent.count >= 2,

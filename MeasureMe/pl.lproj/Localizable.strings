@@ -590,7 +590,7 @@
 "Insight" = "Wgląd";
 "Last Photos" = "Ostatnie zdjęcia";
 "Latest height" = "Najnowszy wzrost";
-"Lean Body Mass" = "Masa beztłuszczowa";
+"Lean Body Mass" = "Beztłuszczowa masa ciała";
 "Learn more" = "Dowiedz się więcej";
 "Limit reached" = "Osiągnięto limit";
 "Load More" = "Załaduj więcej";
@@ -1466,7 +1466,6 @@
 "Your starting point" = "Twój punkt startowy";
 "One number is all you need to begin." = "Na start wystarczy jedna liczba.";
 "optional" = "opcjonalnie";
-"Want less manual typing?" = "Chcesz mniej wpisywać ręcznie?";
 "You'll track:" = "Będziesz śledzić:";
 "You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Trend spadkowy jest stabilny. W tym tygodniu utrzymaj 3 treningi siłowe i ponad 8 tys. kroków.";
 "onboarding.trend.delta" = "-0,3 kg/tydz.";
@@ -1680,7 +1679,7 @@
 "Top" = "Najwyższy poziom";
 "Required for range interpretation" = "Wymagane do interpretacji zakresów";
 "Shoulders" = "Barki";
-"Chest" = "Klatka";
+"Chest" = "Klatka piersiowa";
 "Bust or chest" = "Biust lub klatka";
 "Hips" = "Biodra";
 "Are physique indicators medical?" = "Czy wskaźniki sylwetki są medyczne?";
@@ -1896,3 +1895,7 @@
 "If you already track weight, body fat, or lean body mass in Apple Health, we can import that automatically." = "Jeśli zapisujesz w aplikacji Zdrowie wagę, tkankę tłuszczową lub masę beztłuszczową, możemy zaimportować je automatycznie.";
 "Use Apple Health" = "Użyj aplikacji Zdrowie";
 "You can skip this and enter everything manually. You can also connect later in Settings." = "Możesz to pominąć i wpisywać wszystko ręcznie. Aplikację Zdrowie możesz też połączyć później w Ustawieniach.";
+"German" = "Niemiecki";
+"French" = "Francuski";
+"Your trend is being analyzed." = "Twój trend jest analizowany.";
+"Keep logging consistently to get a clearer trend signal." = "Dodawaj wpisy regularnie, aby uzyskać wyraźniejszy sygnał trendu.";

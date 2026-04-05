@@ -318,6 +318,7 @@ final class StreakManager: ObservableObject {
             defaults.set(computed, forKey: Keys.maxCount)
         }
         refreshVacationState()
+        WidgetDataWriter.syncSharedPayloadsAndReload()
     }
 
     /// Checks SwiftData for any MetricSample or PhotoEntry in the given

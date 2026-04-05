@@ -40,6 +40,7 @@ struct HomeView: View {
     @AppSetting(\.home.showHealthMetricsOnHome) private var showHealthMetricsOnHome: Bool = true
     @AppSetting(\.home.showStreakOnHome) private var showStreakOnHome: Bool = true
     @AppSetting(\.home.homeTabScrollOffset) private var homeTabScrollOffset: Double = 0.0
+    @AppSetting(\.onboarding.onboardingFlowVersion) private var onboardingFlowVersion: Int = 0
     @AppSetting(\.onboarding.onboardingSkippedHealthKit) private var onboardingSkippedHealthKit: Bool = false
     @AppSetting(\.onboarding.onboardingSkippedReminders) private var onboardingSkippedReminders: Bool = false
     // activationTriggerQuickAdd removed — first measurement now happens during onboarding
@@ -49,6 +50,10 @@ struct HomeView: View {
     @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
     @AppSetting(\.onboarding.onboardingChecklistCollapsed) private var onboardingChecklistCollapsed: Bool = false
     @AppSetting(\.onboarding.onboardingPrimaryGoal) private var onboardingPrimaryGoalsRaw: String = ""
+    @AppSetting(\.onboarding.activationCurrentTaskID) private var activationCurrentTaskID: String = ""
+    @AppSetting(\.onboarding.activationCompletedTaskIDs) private var activationCompletedTaskIDsRaw: String = ""
+    @AppSetting(\.onboarding.activationSkippedTaskIDs) private var activationSkippedTaskIDsRaw: String = ""
+    @AppSetting(\.onboarding.activationIsDismissed) private var activationIsDismissed: Bool = false
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
     @AppSetting(\.home.settingsOpenHomeSettings) private var settingsOpenHomeSettings: Bool = false
@@ -68,6 +73,10 @@ struct HomeView: View {
     @Query private var customDefinitions: [CustomMetricDefinition]
     
     @State private var showQuickAddSheet = false
+    @State private var quickAddKinds: [MetricKind] = []
+    @State private var showActivationMetricsSheet = false
+    @State private var showActivationPremiumSheet = false
+    @State private var showActivationAddPhotoSheet = false
     @State private var showHomeSettingsSheet = false
     @State private var showHomeCompareChooser = false
     @State private var showStreakDetail = false
@@ -129,7 +138,7 @@ struct HomeView: View {
     }
 
     private var isWelcomeHomeState: Bool {
-        !discoverySteps.allSatisfy(\.isCompleted)
+        showActivationHub
     }
 
     private var userAge: Int? {
@@ -835,54 +844,35 @@ struct HomeView: View {
 
     private var quickAddSheet: some View {
         QuickAddSheetView(
-            kinds: metricsStore.activeKinds,
+            kinds: quickAddKinds.isEmpty ? metricsStore.activeKinds : quickAddKinds,
             latest: Dictionary(
                 uniqueKeysWithValues: cachedLatestByKind.map { ($0.key, ($0.value.value, $0.value.date)) }
             ),
             unitsSystem: unitsSystem
         ) {
+            if !quickAddKinds.isEmpty, activationCurrentTask == .addMetric {
+                completeActivationTask(.addMetric)
+                quickAddKinds = []
+            }
             showQuickAddSheet = false
         }
     }
 
     private var homeUITestHooks: some View {
         VStack(spacing: 0) {
-            if shouldRenderModule(.setupChecklist) {
+            if shouldRenderModule(.activationHub) {
                 Text("1")
                     .font(.system(size: 1))
                     .foregroundStyle(.clear)
-                    .accessibilityIdentifier("home.module.setupChecklist.visible")
+                    .accessibilityIdentifier("home.module.activationHub.visible")
                     .frame(width: 1, height: 1)
                     .clipped()
-
-                Text("\(shownChecklistItems.count)")
+                Text(activationCurrentTask?.rawValue ?? "")
                     .font(.system(size: 1))
                     .foregroundStyle(.clear)
-                    .accessibilityIdentifier("home.checklist.visibleCount")
+                    .accessibilityIdentifier("home.activation.currentTask")
                     .frame(width: 1, height: 1)
                     .clipped()
-
-                Text(shownChecklistItems.map(\.id).joined(separator: ","))
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .accessibilityIdentifier("home.checklist.visibleIDs")
-                    .frame(width: 1, height: 1)
-                    .clipped()
-
-                Text("\(max(activeChecklistItems.count - collapsedChecklistItems.count, 0))")
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .accessibilityIdentifier("home.checklist.remainingCount")
-                    .frame(width: 1, height: 1)
-                    .clipped()
-
-                if activeChecklistItems.count > collapsedChecklistItems.count {
-                    Button("expand", action: handleUITestShowMoreChecklistTap)
-                    .buttonStyle(.plain)
-                    .frame(width: 44, height: 44)
-                    .opacity(0.01)
-                    .accessibilityIdentifier("home.checklist.showMore.hook")
-                }
             }
 
             if showHomeSettingsSheet {
@@ -995,6 +985,33 @@ struct HomeView: View {
             .sheet(isPresented: $showQuickAddSheet) {
                 quickAddSheet
             }
+            .sheet(isPresented: $showActivationAddPhotoSheet) {
+                NavigationStack {
+                    AddPhotoView {
+                        completeActivationTask(.addPhoto)
+                    }
+                    .environmentObject(metricsStore)
+                }
+            }
+            .sheet(isPresented: $showActivationMetricsSheet) {
+                ActivationMetricSelectionSheet(
+                    recommendedKinds: activationRecommendedKinds,
+                    metricsStore: metricsStore
+                ) {
+                    completeActivationTask(.chooseMetrics)
+                }
+            }
+            .sheet(isPresented: $showActivationPremiumSheet) {
+                ActivationPremiumExplainerView(
+                    onContinueFree: {
+                        completeActivationTask(.premium)
+                    },
+                    onSeePremium: {
+                        completeActivationTask(.premium)
+                        premiumStore.presentPaywall(reason: .onboarding)
+                    }
+                )
+            }
             .sheet(isPresented: $showHomeSettingsSheet) {
                 NavigationStack {
                     HomeSettingsDetailView()
@@ -1098,6 +1115,15 @@ struct HomeView: View {
             .onChange(of: onboardingSkippedReminders) { _, _ in
                 refreshChecklistState()
             }
+            .onChange(of: activationCurrentTaskID) { _, _ in
+                rebuildDashboardItemsCache()
+            }
+            .onChange(of: activationIsDismissed) { _, _ in
+                rebuildDashboardItemsCache()
+            }
+            .onChange(of: onboardingFlowVersion) { _, _ in
+                rebuildDashboardItemsCache()
+            }
 
         let observedContent = contentWithChecklistObservers
             .onChange(of: activeChecklistItems.count) { _, newCount in
@@ -1159,7 +1185,7 @@ struct HomeView: View {
 
     private func scrollToChecklist(using scrollProxy: ScrollViewProxy) {
         withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-            scrollProxy.scrollTo(HomeModuleKind.setupChecklist.rawValue, anchor: .top)
+            scrollProxy.scrollTo(HomeModuleKind.activationHub.rawValue, anchor: .top)
         }
     }
 
@@ -1199,7 +1225,7 @@ struct HomeView: View {
         case .summaryHero:
             return true
         case .quickActions:
-            return isWelcomeHomeState
+            return false
         case .keyMetrics:
             if isWelcomeHomeState { return hasAnyMeasurements && showMeasurementsOnHome }
             return showMeasurementsOnHome
@@ -1209,9 +1235,10 @@ struct HomeView: View {
         case .healthSummary:
             if isWelcomeHomeState { return isSyncEnabled && showHealthMetricsOnHome }
             return showHealthMetricsOnHome
+        case .activationHub:
+            return showActivationHub
         case .setupChecklist:
-            if isWelcomeHomeState { return false }
-            return showOnboardingChecklistOnHome && !activeChecklistItems.isEmpty
+            return false
         }
     }
 
@@ -1228,8 +1255,10 @@ struct HomeView: View {
             recentPhotosModule
         case .healthSummary:
             healthSummaryModule
+        case .activationHub:
+            activationHubModule
         case .setupChecklist:
-            checklistModule
+            EmptyView()
         }
     }
 
@@ -1565,6 +1594,26 @@ struct HomeView: View {
         }
     }
 
+    private var activationHubModule: some View {
+        HomeActivationCard(
+            snapshot: HomeActivationSnapshot(
+                stepIndex: activationStepIndex,
+                totalSteps: ActivationTask.allCases.count,
+                title: OnboardingCopy.activationTaskTitle(activationCurrentTask ?? .celebrate),
+                body: OnboardingCopy.activationTaskBody(
+                    activationCurrentTask ?? .celebrate,
+                    metricName: activationPrimaryMetric?.title
+                ),
+                primaryCTA: OnboardingCopy.activationPrimaryCTA(activationCurrentTask ?? .celebrate),
+                skipCTA: OnboardingCopy.activationSkipCTA,
+                dismissCTA: OnboardingCopy.activationDismissCTA
+            ),
+            onPrimary: performActivationPrimaryAction,
+            onSkip: skipActivationTask,
+            onDismiss: dismissActivationHub
+        )
+    }
+
     private var checklistModule: some View {
         HomeChecklistCard(
             snapshot: HomeChecklistSnapshot(
@@ -1600,6 +1649,44 @@ struct HomeView: View {
                 showMoreChecklistItems = true
             }
         )
+    }
+
+    private var activationCurrentTask: ActivationTask? {
+        guard onboardingFlowVersion >= 2 else { return nil }
+        guard !activationCurrentTaskID.isEmpty else { return nil }
+        return ActivationTask(rawValue: activationCurrentTaskID)
+    }
+
+    private var activationCompletedTaskIDs: Set<String> {
+        activationIDSet(from: activationCompletedTaskIDsRaw)
+    }
+
+    private var activationSkippedTaskIDs: Set<String> {
+        activationIDSet(from: activationSkippedTaskIDsRaw)
+    }
+
+    private var activationRecommendedKinds: [MetricKind] {
+        GoalMetricPack.recommendedKinds(for: resolvedOnboardingPriority)
+    }
+
+    private var activationPrimaryMetric: MetricKind? {
+        activationRecommendedKinds.first
+    }
+
+    private var showActivationHub: Bool {
+        onboardingFlowVersion >= 2 && !activationIsDismissed && activationCurrentTask != nil
+    }
+
+    private var activationStepIndex: Int {
+        guard let activationCurrentTask,
+              let index = ActivationTask.allCases.firstIndex(of: activationCurrentTask) else {
+            return ActivationTask.allCases.count
+        }
+        return index + 1
+    }
+
+    private var resolvedOnboardingPriority: OnboardingPriority {
+        OnboardingPriority(rawValue: onboardingPrimaryGoalsRaw) ?? .improveHealth
     }
 
     private var goalStatusColor: Color {
@@ -2772,11 +2859,93 @@ struct HomeView: View {
         guard hasEnoughSavedPhotosForCompare else { return }
         Haptics.selection()
         comparePhotosCardDismissed = true
+        AnalyticsFirstEventTracker.trackFirstCompareSessionIfNeeded(source: "home_recent_photos")
         if premiumStore.isPremium {
             showHomeCompareChooser = true
         } else {
             premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
         }
+    }
+
+    private func activationIDSet(from raw: String) -> Set<String> {
+        Set(
+            raw.split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        )
+    }
+
+    private func performActivationPrimaryAction() {
+        guard let task = activationCurrentTask else { return }
+        Analytics.shared.track(
+            signalName: "com.jacekzieba.measureme.activation.task_started",
+            parameters: ["task": task.rawValue]
+        )
+        Haptics.selection()
+
+        switch task {
+        case .addMetric:
+            quickAddKinds = activationPrimaryMetric.map { [$0] } ?? [.weight]
+            showQuickAddSheet = true
+        case .addPhoto:
+            showActivationAddPhotoSheet = true
+        case .chooseMetrics:
+            showActivationMetricsSheet = true
+        case .premium:
+            Analytics.shared.track(
+                signalName: "com.jacekzieba.measureme.activation.premium_explainer_viewed",
+                parameters: [:]
+            )
+            showActivationPremiumSheet = true
+        case .celebrate:
+            completeActivationTask(.celebrate)
+            activationCurrentTaskID = ""
+            activationIsDismissed = true
+        }
+    }
+
+    private func skipActivationTask() {
+        guard let task = activationCurrentTask else { return }
+        var skipped = activationSkippedTaskIDs
+        skipped.insert(task.rawValue)
+        activationSkippedTaskIDsRaw = skipped.sorted().joined(separator: ",")
+        Analytics.shared.track(
+            signalName: "com.jacekzieba.measureme.activation.task_skipped",
+            parameters: ["task": task.rawValue]
+        )
+        advanceActivation(from: task)
+    }
+
+    private func completeActivationTask(_ task: ActivationTask) {
+        var completed = activationCompletedTaskIDs
+        completed.insert(task.rawValue)
+        activationCompletedTaskIDsRaw = completed.sorted().joined(separator: ",")
+        Analytics.shared.track(
+            signalName: "com.jacekzieba.measureme.activation.task_completed",
+            parameters: ["task": task.rawValue]
+        )
+        advanceActivation(from: task)
+    }
+
+    private func advanceActivation(from task: ActivationTask) {
+        guard let currentIndex = ActivationTask.allCases.firstIndex(of: task) else { return }
+        let nextIndex = currentIndex + 1
+        if nextIndex < ActivationTask.allCases.count {
+            activationCurrentTaskID = ActivationTask.allCases[nextIndex].rawValue
+        } else {
+            activationCurrentTaskID = ""
+            activationIsDismissed = true
+            Analytics.shared.track(
+                signalName: "com.jacekzieba.measureme.activation.completed_all",
+                parameters: [:]
+            )
+        }
+        rebuildDashboardItemsCache()
+    }
+
+    private func dismissActivationHub() {
+        activationIsDismissed = true
+        rebuildDashboardItemsCache()
     }
 
     private func homeMetricAccessibilityLabel(kind: MetricKind) -> String {

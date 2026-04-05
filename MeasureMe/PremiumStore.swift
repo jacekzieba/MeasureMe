@@ -162,16 +162,19 @@ final class PremiumStore: ObservableObject {
             Task { @MainActor in
                 self.isPremium = true
                 settings.set(\.premium.premiumEntitlement, true)
+                WidgetDataWriter.syncPremiumAndReload(isPremium: true)
             }
         } else if forceNonPremiumForUITests {
             Task { @MainActor in
                 self.isPremium = false
                 settings.set(\.premium.premiumEntitlement, false)
+                WidgetDataWriter.syncPremiumAndReload(isPremium: false)
             }
         } else if forcePremiumOnSimulator {
             Task { @MainActor in
                 self.isPremium = true
                 settings.set(\.premium.premiumEntitlement, true)
+                WidgetDataWriter.syncPremiumAndReload(isPremium: true)
             }
         }
         #endif
@@ -372,6 +375,7 @@ final class PremiumStore: ObservableObject {
 
         isPremium = true
         settings.set(\.premium.premiumEntitlement, true)
+        WidgetDataWriter.syncPremiumAndReload(isPremium: true)
         currentOffering = nil
         productsLoadError = nil
         actionMessage = nil
@@ -502,16 +506,19 @@ final class PremiumStore: ObservableObject {
         if forcePremiumForUITests {
             isPremium = true
             settings.set(\.premium.premiumEntitlement, true)
+            WidgetDataWriter.syncPremiumAndReload(isPremium: true)
             return
         }
         if forceNonPremiumForUITests {
             isPremium = false
             settings.set(\.premium.premiumEntitlement, false)
+            WidgetDataWriter.syncPremiumAndReload(isPremium: false)
             return
         }
         if forcePremiumOnSimulator {
             isPremium = true
             settings.set(\.premium.premiumEntitlement, true)
+            WidgetDataWriter.syncPremiumAndReload(isPremium: true)
             return
         }
         #endif
@@ -591,6 +598,7 @@ final class PremiumStore: ObservableObject {
             .contains(PremiumConstants.entitlementID)
         isPremium = isEntitled
         settings.set(\.premium.premiumEntitlement, isEntitled)
+        WidgetDataWriter.syncPremiumAndReload(isPremium: isEntitled)
     }
 
     func markPurchaseTrackedIfNeeded(purchaseKey: String) -> Bool {

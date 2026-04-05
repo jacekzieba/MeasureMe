@@ -20,6 +20,9 @@
 "intent.openQuickAdd.title" = "Abrir Registro rápido";
 "intent.openQuickAdd.description" = "Abre Registro rápido en MeasureMe.";
 "intent.openQuickAdd.success" = "Abriendo Registro rápido.";
+"intent.openQuickAddMetric.title" = "Abrir registro rápido para métrica";
+"intent.openQuickAddMetric.description" = "Abre Registro rápido en MeasureMe con una métrica preseleccionada.";
+"intent.openQuickAddMetric.metric" = "Métrica";
 
 "intent.openAddPhoto.title" = "Abrir flujo para agregar foto";
 "intent.openAddPhoto.description" = "Abre el flujo para agregar foto en MeasureMe.";

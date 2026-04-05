@@ -24,7 +24,11 @@ struct ComplicationMetricData: Codable {
     var isMetric: Bool { unitsSystem != "imperial" }
 
     var last30DaySamples: [SampleDTO] {
-        let cutoff = Date().addingTimeInterval(-30 * 24 * 3600)
+        samples(for: .thirtyDays)
+    }
+
+    func samples(for window: ComplicationTrendWindow) -> [SampleDTO] {
+        let cutoff = Date().addingTimeInterval(-Double(window.days) * 24 * 3600)
         return samples.filter { $0.date >= cutoff }
     }
 

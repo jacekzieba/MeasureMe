@@ -501,6 +501,7 @@ struct MeasureMeApp: App {
 
         if args.contains(UITestArgument.onboardingMode.rawValue) {
             defaults.set(\.onboarding.hasCompletedOnboarding, false)
+            defaults.set(\.onboarding.onboardingFlowVersion, 0)
             defaults.set(\.experience.appAppearance, AppAppearance.dark.rawValue)
             defaults.set(\.experience.appLanguage, uiTestLanguage)
             defaults.set(\.premium.premiumEntitlement, false)
@@ -509,6 +510,10 @@ struct MeasureMeApp: App {
             defaults.set(\.onboarding.onboardingSkippedICloudBackup, false)
             defaults.set(\.analytics.appleIntelligenceEnabled, true)
             defaults.set(\.onboarding.onboardingChecklistShow, true)
+            defaults.set(\.onboarding.activationCurrentTaskID, "")
+            defaults.set(\.onboarding.activationCompletedTaskIDs, "")
+            defaults.set(\.onboarding.activationSkippedTaskIDs, "")
+            defaults.set(\.onboarding.activationIsDismissed, false)
             defaults.set(\.home.homeTabScrollOffset, 0.0)
             for key in metricKeys {
                 defaults.set(enabledByDefault.contains(key), forKey: key)
@@ -526,6 +531,16 @@ struct MeasureMeApp: App {
             }
         }
 
+        if args.contains(UITestArgument.openSettingsTab.rawValue) {
+            defaults.set(\.onboarding.hasCompletedOnboarding, true)
+            defaults.set(\.experience.appLanguage, uiTestLanguage)
+            defaults.set(\.home.settingsOpenTrackedMeasurements, false)
+            defaults.set(\.home.settingsOpenReminders, false)
+            defaults.set(\.home.settingsOpenHomeSettings, false)
+            defaults.removeObject(forKey: AppSettingsKeys.Entry.pendingAppEntryAction)
+            defaults.removeObject(forKey: AppSettingsKeys.Entry.pendingHealthKitSyncFromIntent)
+        }
+
         if shouldPrepareUITestTouchHandling {
             // SwiftUI buttons inside onboarding/home scroll views can miss XCTest taps
             // unless the default UIScrollView touch delay is disabled for UI tests.
@@ -537,6 +552,7 @@ struct MeasureMeApp: App {
         defaults.removeObject(forKey: AppSettingsKeys.Home.homeLayoutData)
         defaults.set(\.homeLayout.layoutSchemaVersion, HomeLayoutSnapshot.currentSchemaVersion)
         defaults.set(\.onboarding.hasCompletedOnboarding, true)
+        defaults.set(\.onboarding.onboardingFlowVersion, 1)
         defaults.set(\.experience.appAppearance, AppAppearance.dark.rawValue)
         defaults.set(\.experience.appLanguage, uiTestLanguage)
         defaults.set(\.premium.premiumEntitlement, true)
@@ -549,6 +565,10 @@ struct MeasureMeApp: App {
         defaults.set(\.onboarding.onboardingChecklistPremiumExplored, false)
         defaults.set(\.onboarding.onboardingChecklistCollapsed, false)
         defaults.set(\.onboarding.onboardingSkippedReminders, false)
+        defaults.set(\.onboarding.activationCurrentTaskID, "")
+        defaults.set(\.onboarding.activationCompletedTaskIDs, "")
+        defaults.set(\.onboarding.activationSkippedTaskIDs, "")
+        defaults.set(\.onboarding.activationIsDismissed, true)
         defaults.set(\.home.homeTabScrollOffset, -20.0)
         defaults.set(\.home.showLastPhotosOnHome, true)
         defaults.set(\.home.showMeasurementsOnHome, true)

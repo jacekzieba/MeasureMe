@@ -146,7 +146,10 @@ final class AppSettingsStore: ObservableObject {
         set(\.home.showMeasurementsOnHome, normalized.item(for: .keyMetrics)?.isVisible ?? true)
         set(\.home.showLastPhotosOnHome, normalized.item(for: .recentPhotos)?.isVisible ?? true)
         set(\.home.showHealthMetricsOnHome, normalized.item(for: .healthSummary)?.isVisible ?? true)
-        set(\.onboarding.onboardingChecklistShow, normalized.item(for: .setupChecklist)?.isVisible ?? true)
+        let activationVisibility = normalized.item(for: .activationHub)?.isVisible
+            ?? normalized.item(for: .setupChecklist)?.isVisible
+            ?? true
+        set(\.onboarding.onboardingChecklistShow, activationVisibility)
     }
 
     func setHomeModuleVisibility(_ isVisible: Bool, for kind: HomeModuleKind) {
@@ -330,6 +333,7 @@ final class AppSettingsStore: ObservableObject {
 
             let onboarding = snapshot.onboarding
             defaults.set(onboarding.hasCompletedOnboarding, forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding)
+            defaults.set(onboarding.onboardingFlowVersion, forKey: AppSettingsKeys.Onboarding.onboardingFlowVersion)
             defaults.set(onboarding.onboardingSkippedHealthKit, forKey: AppSettingsKeys.Onboarding.onboardingSkippedHealthKit)
             defaults.set(onboarding.onboardingSkippedReminders, forKey: AppSettingsKeys.Onboarding.onboardingSkippedReminders)
             defaults.set(onboarding.onboardingViewedICloudBackupOffer, forKey: AppSettingsKeys.Onboarding.onboardingViewedICloudBackupOffer)
@@ -343,6 +347,10 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(onboarding.onboardingPrimaryGoal, forKey: AppSettingsKeys.Onboarding.onboardingPrimaryGoal)
             defaults.set(onboarding.onboardingActivationCompleted, forKey: AppSettingsKeys.Onboarding.onboardingActivationCompleted)
             defaults.set(onboarding.activationTriggerQuickAdd, forKey: AppSettingsKeys.Onboarding.activationTriggerQuickAdd)
+            defaults.set(onboarding.activationCurrentTaskID, forKey: AppSettingsKeys.Onboarding.activationCurrentTaskID)
+            defaults.set(onboarding.activationCompletedTaskIDs, forKey: AppSettingsKeys.Onboarding.activationCompletedTaskIDs)
+            defaults.set(onboarding.activationSkippedTaskIDs, forKey: AppSettingsKeys.Onboarding.activationSkippedTaskIDs)
+            defaults.set(onboarding.activationIsDismissed, forKey: AppSettingsKeys.Onboarding.activationIsDismissed)
 
             let health = snapshot.health
             defaults.set(health.isSyncEnabled, forKey: AppSettingsKeys.Health.isSyncEnabled)
@@ -423,6 +431,9 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(analytics.analyticsEnabled, forKey: AppSettingsKeys.Analytics.analyticsEnabled)
             defaults.set(analytics.firstMetricAddedTracked, forKey: AppSettingsKeys.Analytics.firstMetricAddedTracked)
             defaults.set(analytics.firstPhotoAddedTracked, forKey: AppSettingsKeys.Analytics.firstPhotoAddedTracked)
+            defaults.set(analytics.secondMetricAddedTracked, forKey: AppSettingsKeys.Analytics.secondMetricAddedTracked)
+            defaults.set(analytics.secondPhotoAddedTracked, forKey: AppSettingsKeys.Analytics.secondPhotoAddedTracked)
+            defaults.set(analytics.firstCompareSessionTracked, forKey: AppSettingsKeys.Analytics.firstCompareSessionTracked)
             defaults.set(analytics.appleIntelligenceEnabled, forKey: AppSettingsKeys.Analytics.appleIntelligenceEnabled)
 
             let iCloudBackup = snapshot.iCloudBackup

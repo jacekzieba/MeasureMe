@@ -3,6 +3,8 @@ import SwiftData
 
 protocol OnboardingHealthKitAuthorizing {
     func requestAuthorization() async throws
+    func fetchDateOfBirth() throws -> Date?
+    func fetchLatestHeightInCentimeters() async throws -> (value: Double, date: Date)?
 }
 
 extension HealthKitManager: OnboardingHealthKitAuthorizing {}
@@ -72,24 +74,29 @@ struct OnboardingEffects {
         try await healthKit.requestAuthorization()
     }
 
-    // MARK: - Deprecated notification/reminder functions (no longer called from onboarding v2)
-
-    @available(*, deprecated, message: "Reminders are deferred out of onboarding; use NotificationManager directly from Settings")
     func requestNotificationAuthorization() async -> Bool {
         await notifications.requestAuthorization()
     }
 
-    @available(*, deprecated, message: "Reminders are deferred out of onboarding")
     func setNotificationsEnabled(_ value: Bool) {
         notifications.notificationsEnabled = value
     }
 
-    @available(*, deprecated, message: "Reminders are deferred out of onboarding")
-    func setSmartTime(_ date: Date) {
-        notifications.smartTime = date
+    func importProfileFromHealthIfAvailable() async -> (age: Int?, height: Double?) {
+        async let birthDate = Result { try healthKit.fetchDateOfBirth() }
+        async let latestHeight = Result { try await healthKit.fetchLatestHeightInCentimeters() }
+
+        let resolvedBirthDate = await birthDate
+        let resolvedHeight = await latestHeight
+
+        let age = (try? resolvedBirthDate.get())
+            .flatMap { $0 }
+            .flatMap(HealthKitManager.calculateAge(from:))
+        let height = (try? resolvedHeight.get())
+            .flatMap { $0?.value }
+        return (age: age, height: height)
     }
 
-    @available(*, deprecated, message: "Reminders are deferred out of onboarding")
     func loadReminderSeed(defaultWeeklyReminderDate: Date, calendar: Calendar = .current) -> OnboardingReminderSeedState {
         let reminders = notifications.loadReminders()
         if let weeklyReminder = reminders.first(where: { $0.repeatRule == .weekly }) {
@@ -128,12 +135,10 @@ struct OnboardingEffects {
         )
     }
 
-    @available(*, deprecated, message: "Reminders are deferred out of onboarding")
     func isReminderScheduled() -> Bool {
         isReminderScheduled(reminders: notifications.loadReminders())
     }
 
-    @available(*, deprecated, message: "Reminders are deferred out of onboarding")
     func upsertReminder(date: Date, repeatRule: ReminderRepeat) {
         var reminders = notifications.loadReminders()
         if let index = reminders.firstIndex(where: { $0.repeatRule == repeatRule }) {

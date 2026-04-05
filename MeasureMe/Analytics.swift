@@ -87,6 +87,41 @@ enum AnalyticsFirstEventTracker {
         settings.set(\.analytics.firstPhotoAddedTracked, true)
     }
 
+    static func trackSecondMetricIfNeeded(previousMetricCount: Int) {
+        guard previousMetricCount == 1 else { return }
+        guard settings.snapshot.onboarding.hasCompletedOnboarding else { return }
+        guard settings.snapshot.analytics.secondMetricAddedTracked == false else { return }
+
+        Analytics.shared.track(
+            signalName: "com.jacekzieba.measureme.metric.second_added",
+            parameters: [:]
+        )
+        settings.set(\.analytics.secondMetricAddedTracked, true)
+    }
+
+    static func trackSecondPhotoIfNeeded(previousPhotoCount: Int) {
+        guard previousPhotoCount == 1 else { return }
+        guard settings.snapshot.onboarding.hasCompletedOnboarding else { return }
+        guard settings.snapshot.analytics.secondPhotoAddedTracked == false else { return }
+
+        Analytics.shared.track(
+            signalName: "com.jacekzieba.measureme.photo.second_added",
+            parameters: [:]
+        )
+        settings.set(\.analytics.secondPhotoAddedTracked, true)
+    }
+
+    static func trackFirstCompareSessionIfNeeded(source: String) {
+        guard settings.snapshot.onboarding.hasCompletedOnboarding else { return }
+        guard settings.snapshot.analytics.firstCompareSessionTracked == false else { return }
+
+        Analytics.shared.track(
+            signalName: "com.jacekzieba.measureme.photo.compare.first_session",
+            parameters: ["source": source]
+        )
+        settings.set(\.analytics.firstCompareSessionTracked, true)
+    }
+
     static func metricCount(in context: ModelContext) -> Int {
         (try? context.fetchCount(FetchDescriptor<MetricSample>())) ?? 0
     }
