@@ -56,48 +56,45 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertEqual(tileCount.label, "3", "Recent photos should expose three visible tiles on Home")
     }
 
-    func testFinishSetupShowsThreeTasksAndShowMore() {
+    func testActivationHubShowsCurrentTaskAndAdvancesAfterFirstMetric() {
         launchApp(extraArguments: [
-            "-uiTestShowChecklist",
-            "-uiTestChecklistNeedsReminders"
+            "-uiTestActivationHub",
+            "-uiTestActivationTask", "addMetric"
         ], isPremium: false, seedMeasurements: false, seedPhotos: 0)
 
-        XCTAssertTrue(app.staticTexts["home.module.setupChecklist.visible"].waitForExistence(timeout: 5), "Checklist should be visible on Home")
+        XCTAssertTrue(app.staticTexts["home.module.activationHub.visible"].waitForExistence(timeout: 5), "Activation hub should be visible on Home")
+        let currentTask = app.staticTexts["home.activation.currentTask"].firstMatch
+        XCTAssertTrue(currentTask.waitForExistence(timeout: 5), "Activation hub should expose the current task")
+        XCTAssertEqual(currentTask.label, "addMetric", "Activation hub should start from the metric task")
 
-        let visibleCount = app.staticTexts["home.checklist.visibleCount"].firstMatch
-        let visibleIDs = app.staticTexts["home.checklist.visibleIDs"].firstMatch
-        let remainingCount = app.staticTexts["home.checklist.remainingCount"].firstMatch
-        XCTAssertTrue(visibleCount.waitForExistence(timeout: 5), "Checklist should expose visible item count")
-        XCTAssertTrue(visibleIDs.waitForExistence(timeout: 5), "Checklist should expose visible item ids")
-        XCTAssertTrue(remainingCount.waitForExistence(timeout: 5), "Checklist should expose remaining item count")
-        XCTAssertEqual(visibleCount.label, "3", "Collapsed checklist should show exactly three items")
-        XCTAssertTrue(visibleIDs.label.contains("first_measurement"), "Checklist should include first measurement item")
-        XCTAssertTrue(visibleIDs.label.contains("first_photo"), "Checklist should include first photo item")
-        XCTAssertTrue(visibleIDs.label.contains("healthkit"), "Checklist should include health item")
-        let collapsedVisible = Int(visibleCount.label) ?? -1
-        let collapsedRemaining = Int(remainingCount.label) ?? -1
-        XCTAssertEqual(collapsedVisible, 3, "Collapsed checklist should show exactly three items")
-        XCTAssertGreaterThanOrEqual(collapsedRemaining, 1, "Collapsed checklist should expose at least one hidden item")
-        XCTAssertFalse(app.buttons["home.checklist.item.premium"].exists, "Collapsed checklist should hide later tasks")
+        app.buttons["home.activation.primary"].firstMatch.tap()
 
-        app.terminate()
+        let quickAddSheet = app.otherElements["quickadd.sheet"].firstMatch
+        XCTAssertTrue(quickAddSheet.waitForExistence(timeout: 5), "Primary CTA should open the simplified metric composer")
+
+        let weightInput = app.textFields["quickadd.input.weight"].firstMatch
+        XCTAssertTrue(weightInput.waitForExistence(timeout: 5), "Weight input should be visible for the first activation step")
+        weightInput.tap()
+        weightInput.typeText("80")
+        app.buttons["quickadd.save"].firstMatch.tap()
+
+        XCTAssertTrue(currentTask.waitForExistence(timeout: 5), "Activation task hook should still be present after saving")
+        XCTAssertEqual(currentTask.label, "addPhoto", "Saving the first metric should advance activation to the photo step")
+    }
+
+    func testActivationHubSkipAdvancesToNextTask() {
         launchApp(extraArguments: [
-            "-uiTestShowChecklist",
-            "-uiTestChecklistNeedsReminders",
-            "-uiTestExpandChecklist"
+            "-uiTestActivationHub",
+            "-uiTestActivationTask", "chooseMetrics"
         ], isPremium: false, seedMeasurements: false, seedPhotos: 0)
 
-        let expandedVisibleCount = app.staticTexts["home.checklist.visibleCount"].firstMatch
-        let expandedVisibleIDs = app.staticTexts["home.checklist.visibleIDs"].firstMatch
-        XCTAssertTrue(expandedVisibleCount.waitForExistence(timeout: 5), "Expanded checklist should expose visible item count")
-        XCTAssertTrue(expandedVisibleIDs.waitForExistence(timeout: 5), "Expanded checklist should expose visible item ids")
-        let expandedVisible = Int(expandedVisibleCount.label) ?? -1
-        XCTAssertEqual(
-            expandedVisible,
-            collapsedVisible + collapsedRemaining,
-            "Expanded checklist should reveal all previously hidden items"
-        )
-        XCTAssertGreaterThan(expandedVisible, collapsedVisible, "Expanded checklist should show more items than collapsed")
+        let currentTask = app.staticTexts["home.activation.currentTask"].firstMatch
+        XCTAssertTrue(currentTask.waitForExistence(timeout: 5), "Activation task hook should exist")
+        XCTAssertEqual(currentTask.label, "chooseMetrics")
+
+        app.buttons["home.activation.skip"].firstMatch.tap()
+
+        XCTAssertEqual(currentTask.label, "premium", "Skip should move the user to the next activation task")
     }
 
     func testNextFocusShowsMetricInsightWhenProgressExists() {

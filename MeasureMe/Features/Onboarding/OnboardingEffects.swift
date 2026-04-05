@@ -83,17 +83,12 @@ struct OnboardingEffects {
     }
 
     func importProfileFromHealthIfAvailable() async -> (age: Int?, height: Double?) {
-        async let birthDate = Result { try healthKit.fetchDateOfBirth() }
-        async let latestHeight = Result { try await healthKit.fetchLatestHeightInCentimeters() }
+        // Fetch birth date (synchronous) and latest height (asynchronous) without wrapping in Result
+        let birthDate: Date? = try? healthKit.fetchDateOfBirth()
+        let latestHeight = try? await healthKit.fetchLatestHeightInCentimeters()
 
-        let resolvedBirthDate = await birthDate
-        let resolvedHeight = await latestHeight
-
-        let age = (try? resolvedBirthDate.get())
-            .flatMap { $0 }
-            .flatMap(HealthKitManager.calculateAge(from:))
-        let height = (try? resolvedHeight.get())
-            .flatMap { $0?.value }
+        let age = birthDate.flatMap(HealthKitManager.calculateAge(from:))
+        let height = latestHeight?.value
         return (age: age, height: height)
     }
 

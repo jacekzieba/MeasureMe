@@ -116,7 +116,7 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertEqual(layout.item(for: .keyMetrics)?.isVisible, false)
         XCTAssertEqual(layout.item(for: .recentPhotos)?.isVisible, true)
         XCTAssertEqual(layout.item(for: .healthSummary)?.isVisible, false)
-        XCTAssertEqual(layout.item(for: .setupChecklist)?.isVisible, false)
+        XCTAssertEqual(layout.item(for: .activationHub)?.isVisible, false)
         XCTAssertNotNil(store.data(forKey: AppSettingsKeys.Home.homeLayoutData))
     }
 
@@ -125,12 +125,12 @@ final class AppSettingsStoreTests: XCTestCase {
         let store = AppSettingsStore(defaults: defaults)
 
         store.setHomeModuleVisibility(false, for: .recentPhotos)
-        store.setHomeModuleVisibility(false, for: .setupChecklist)
+        store.setHomeModuleVisibility(false, for: .activationHub)
 
         XCTAssertFalse(store.snapshot.home.showLastPhotosOnHome)
         XCTAssertFalse(store.snapshot.onboarding.onboardingChecklistShow)
         XCTAssertEqual(store.homeLayoutSnapshot().item(for: .recentPhotos)?.isVisible, false)
-        XCTAssertEqual(store.homeLayoutSnapshot().item(for: .setupChecklist)?.isVisible, false)
+        XCTAssertEqual(store.homeLayoutSnapshot().item(for: .activationHub)?.isVisible, false)
     }
 
     func testPinnedHomeActionPersistsAndReloads() {
@@ -143,14 +143,14 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertEqual(defaults.string(forKey: AppSettingsKeys.Home.homePinnedAction), HomePinnedAction.comparePhotos.rawValue)
     }
 
-    func testHomePinnedActionMigratesToFinishSetupWhenChecklistIsVisible() {
+    func testHomePinnedActionFallsBackToMeasurementWhenLegacyChecklistWasVisible() {
         let defaults = makeDefaults()
         defaults.removeObject(forKey: AppSettingsKeys.Home.homePinnedAction)
         defaults.set(true, forKey: AppSettingsKeys.Onboarding.onboardingChecklistShow)
 
         let store = AppSettingsStore(defaults: defaults)
 
-        XCTAssertEqual(store.homePinnedAction(default: .addMeasurement), .finishSetup)
+        XCTAssertEqual(store.homePinnedAction(default: .addMeasurement), .addMeasurement)
     }
 
     func testFallbackBoolSemanticsForFeatureFlags() async {

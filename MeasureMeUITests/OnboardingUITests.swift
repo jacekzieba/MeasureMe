@@ -1,7 +1,3 @@
-/// Cel testow: Weryfikuje onboarding (kolejnosc krokow, akcje premium, linki prawne).
-/// Dlaczego to wazne: Onboarding ustawia konfiguracje startowa; blad blokuje dalsze uzycie.
-/// Kryteria zaliczenia: Kroki sa dostepne, mozna je przejsc, a kluczowe elementy sa widoczne.
-
 import XCTest
 
 final class OnboardingUITests: XCTestCase {
@@ -34,76 +30,87 @@ final class OnboardingUITests: XCTestCase {
         app.buttons["UITest Skip"].firstMatch
     }
 
-    @MainActor
-    /// Co sprawdza: Sprawdza scenariusz: WelcomeGoalAccessibilityValueReflectsSelection.
-    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
-    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
-    func testWelcomeGoalAccessibilityValueReflectsSelection() {
-        let goalIDs = [
-            "onboarding.goal.loseWeight",
-            "onboarding.goal.buildMuscle",
-            "onboarding.goal.trackHealth"
-        ]
-
-        guard let goalButton = goalIDs
-            .map({ app.buttons[$0] })
-            .first(where: { $0.waitForExistence(timeout: 10) }) else {
-            XCTFail("Expected at least one onboarding goal button")
-            return
+    private func advanceIntroSlides() {
+        for _ in 0..<5 {
+            XCTAssertTrue(nextButton.waitForExistence(timeout: 10), "Next button should exist on intro slides")
+            nextButton.tap()
         }
-
-        goalButton.tap()
-        let value = goalButton.value as? String
-        XCTAssertNotNil(value, "Cel powinien udostepniac wartosc dostepnosci")
-        XCTAssertFalse((value ?? "").isEmpty, "Wartosc dostepnosci nie powinna byc pusta")
     }
 
-    @MainActor
-    /// Co sprawdza: Sprawdza scenariusz: NavigateThroughAllStepsSequentially.
-    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
-    /// Kryteria: Asercje na elementach UI przechodza (m.in. `onboarding.next`).
-    func testNavigateThroughAllStepsSequentially() {
-        let firstNext = nextButton
-        XCTAssertTrue(firstNext.waitForExistence(timeout: 10), "Przycisk Dalej powinien istniec")
-        XCTAssertTrue(firstNext.isEnabled, "Przycisk Dalej powinien byc aktywny")
-        firstNext.tap()
-
-        XCTAssertTrue(app.buttons["onboarding.booster.healthkit"].waitForExistence(timeout: 5), "Na ekranie pierwszego pomiaru powinien byc widoczny prompt HealthKit")
-        XCTAssertTrue(app.buttons["onboarding.skip"].waitForExistence(timeout: 5), "Na ekranie pierwszego pomiaru powinien byc widoczny przycisk pominiecia")
-
-        app.buttons["onboarding.skip"].tap()
-
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8), "Po pominieciu drugiego kroku onboarding powinien sie zakonczyc")
+    private func reachPriorityStep() {
+        advanceIntroSlides()
+        XCTAssertTrue(app.textFields["onboarding.name.field"].waitForExistence(timeout: 5), "Name field should appear after intro")
+        skipButton.tap()
+        nextButton.tap()
+        XCTAssertTrue(app.buttons["onboarding.priority.loseWeight"].waitForExistence(timeout: 5), "Priority step should appear")
     }
 
-    @MainActor
-    /// Co sprawdza: Sprawdza, ze karta HealthKit jest widoczna na ekranie pierwszego pomiaru.
-    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
-    /// Kryteria: Asercje na elementach UI przechodza (m.in. `onboarding.next`, `onboarding.booster.healthkit`).
-    func testHealthKitPromptIsVisibleOnFirstMeasurementStep() {
-        let next = nextButton
-        XCTAssertTrue(next.waitForExistence(timeout: 10))
-        next.tap()
+    func testIntroSlidesAdvanceToNameStep() {
+        advanceIntroSlides()
 
-        let healthKitButton = app.buttons["onboarding.booster.healthkit"]
-        XCTAssertTrue(healthKitButton.waitForExistence(timeout: 5), "Przycisk HealthKit powinien istniec na ekranie pierwszego pomiaru")
+        XCTAssertTrue(app.textFields["onboarding.name.field"].waitForExistence(timeout: 5), "Name field should appear after the intro carousel")
+        XCTAssertTrue(skipButton.waitForExistence(timeout: 5), "Input steps should expose skip")
     }
 
-    @MainActor
-    func testHealthKitPromptDoesNotReplaceMeasurementFields() {
-        let next = nextButton
-        XCTAssertTrue(next.waitForExistence(timeout: 10))
-        next.tap()
+    func testBackNavigationReturnsToPreviousIntroSlide() {
+        XCTAssertTrue(nextButton.waitForExistence(timeout: 10))
+        nextButton.tap()
 
-        XCTAssertTrue(app.buttons["onboarding.booster.healthkit"].exists, "Prompt HealthKit powinien byc widoczny")
-        XCTAssertTrue(app.buttons["onboarding.skip"].exists, "Drugi krok powinien miec opcje pominiecia")
-        XCTAssertTrue(app.textFields["onboarding.measurement.weight"].waitForExistence(timeout: 5), "Pole wagi powinno pozostac widoczne obok promptu HealthKit")
+        let stepHook = app.staticTexts["root.onboarding.test.step"].firstMatch
+        XCTAssertTrue(stepHook.waitForExistence(timeout: 5))
+        XCTAssertEqual(stepHook.label, "step:1")
+
+        backButton.tap()
+        XCTAssertEqual(stepHook.label, "step:0")
     }
 
-    @MainActor
-    /// Co sprawdza: Sprawdza, ze elementy UI sa widoczne zgodnie z oczekiwaniem (PrivacyNoteVisibleOnWelcome).
-    /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
-    /// Kryteria: Asercje na elementach UI przechodza (m.in. `onboarding.privacy.note`).
+    func testPriorityStepShowsThreePrimaryGoals() {
+        reachPriorityStep()
+
+        XCTAssertTrue(app.buttons["onboarding.priority.loseWeight"].exists)
+        XCTAssertTrue(app.buttons["onboarding.priority.buildMuscle"].exists)
+        XCTAssertTrue(app.buttons["onboarding.priority.improveHealth"].exists)
+    }
+
+    func testHealthPromptAppearsAfterPrioritySelection() {
+        reachPriorityStep()
+
+        app.buttons["onboarding.priority.buildMuscle"].tap()
+        nextButton.tap()
+
+        let healthButton = app.buttons["onboarding.health.allow"].firstMatch
+        XCTAssertTrue(healthButton.waitForExistence(timeout: 5), "Health soft ask should appear after personalization")
+        XCTAssertTrue(skipButton.exists, "Health step should allow skipping")
+    }
+
+    func testSkippingHealthShowsNotificationsStep() {
+        reachPriorityStep()
+
+        app.buttons["onboarding.priority.improveHealth"].tap()
+        nextButton.tap()
+
+        XCTAssertTrue(app.buttons["onboarding.health.allow"].waitForExistence(timeout: 5))
+        skipButton.tap()
+
+        XCTAssertTrue(app.buttons["onboarding.notifications.allow"].waitForExistence(timeout: 5), "Notifications step should follow the Health step")
+    }
+
+    func testOnboardingCanReachDashboardWithSkips() {
+        reachPriorityStep()
+
+        app.buttons["onboarding.priority.loseWeight"].tap()
+        nextButton.tap()
+
+        XCTAssertTrue(app.buttons["onboarding.health.allow"].waitForExistence(timeout: 5))
+        skipButton.tap()
+        XCTAssertTrue(app.buttons["onboarding.notifications.allow"].waitForExistence(timeout: 5))
+        skipButton.tap()
+        XCTAssertTrue(nextButton.waitForExistence(timeout: 5), "Completion step should still expose the final CTA")
+        nextButton.tap()
+
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8), "Finishing onboarding should open the main app")
+    }
+
     func testPrivacyNoteVisibleOnWelcome() {
         let privacyNote = app.descendants(matching: .any)["onboarding.privacy.note"].firstMatch
         let privacyCopy = app.staticTexts.matching(
@@ -115,7 +122,7 @@ final class OnboardingUITests: XCTestCase {
             privacyNote.waitForExistence(timeout: 10)
                 || privacyCopy.waitForExistence(timeout: 10)
                 || privacyHookCopy.waitForExistence(timeout: 10),
-            "Notatka o prywatnosci powinna byc widoczna na ekranie powitalnym onboardingu"
+            "Privacy note should remain visible in onboarding test mode"
         )
     }
 }

@@ -8,7 +8,7 @@ enum GoalMetricPack {
         case .buildMuscle:
             return [.weight, .chest, .leftBicep, .rightBicep, .leftThigh, .rightThigh]
         case .improveHealth:
-            return [.weight, .waist, .bodyFat, .leanBodyMass]
+            return [.weight, .waist, .bodyFat, .height]
         }
     }
 

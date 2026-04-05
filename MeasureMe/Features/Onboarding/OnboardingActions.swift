@@ -1,7 +1,8 @@
 import SwiftUI
 
 extension OnboardingView {
-    func safeCardHeight(from containerHeight: CGFloat, reserved: CGFloat, extra: CGFloat = 0) -> CGFloat {
+
+    func safeCardHeight(from containerHeight: CGFloat, reserved: CGFloat, extra: CGFloat = 0, dynamicTypeSize: DynamicTypeSize = Environment(\.dynamicTypeSize).wrappedValue) -> CGFloat {
         guard containerHeight.isFinite, containerHeight > 0 else { return 1 }
         let safeReserved = reserved.isFinite ? max(reserved, 0) : 82
         let safeExtra = extra.isFinite ? extra : 0

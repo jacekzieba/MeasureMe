@@ -49,14 +49,14 @@ final class HomeLayoutTests: XCTestCase {
     func testCompactorProducesTopDownLayoutWithoutGaps() {
         let items = [
             HomeModuleLayoutItem(kind: .summaryHero, isVisible: true, size: .large, row: 0, column: 0),
-            HomeModuleLayoutItem(kind: .setupChecklist, isVisible: true, size: .wide, row: 5, column: 0),
+            HomeModuleLayoutItem(kind: .activationHub, isVisible: true, size: .wide, row: 5, column: 0),
             HomeModuleLayoutItem(kind: .recentPhotos, isVisible: false, size: .large, row: 8, column: 0),
             HomeModuleLayoutItem(kind: .keyMetrics, isVisible: true, size: .large, row: 12, column: 0)
         ]
 
         let compacted = HomeLayoutCompactor.compact(items, columns: 2)
 
-        XCTAssertEqual(compacted.map(\.kind), [.summaryHero, .setupChecklist, .keyMetrics])
+        XCTAssertEqual(compacted.map(\.kind), [.summaryHero, .activationHub, .keyMetrics])
         XCTAssertEqual(compacted[0].row, 0)
         XCTAssertEqual(compacted[1].row, 2)
         XCTAssertEqual(compacted[2].row, 3)
@@ -66,13 +66,13 @@ final class HomeLayoutTests: XCTestCase {
         let snapshot = makeSnapshot()
         var layout = HomeLayoutSnapshot.defaultV1(using: snapshot)
         layout.setVisibility(false, for: .keyMetrics)
-        layout.setVisibility(false, for: .setupChecklist)
+        layout.setVisibility(false, for: .activationHub)
 
         let reset = layout.resettingToDefaultGeometry(using: snapshot)
 
         XCTAssertEqual(reset.item(for: .keyMetrics)?.isVisible, false)
-        XCTAssertEqual(reset.item(for: .setupChecklist)?.isVisible, false)
+        XCTAssertEqual(reset.item(for: .activationHub)?.isVisible, false)
         XCTAssertEqual(reset.item(for: .summaryHero)?.row, 0)
-        XCTAssertEqual(reset.item(for: .setupChecklist)?.column, 2)
+        XCTAssertEqual(reset.item(for: .activationHub)?.column, 2)
     }
 }

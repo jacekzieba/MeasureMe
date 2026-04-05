@@ -60,6 +60,8 @@ enum UITestArgument: String {
     // Home
     case homePinnedAction = "-uiTestHomePinnedAction"
     case pendingAppEntryAction = "-uiTestPendingAppEntryAction"
+    case activationHub = "-uiTestActivationHub"
+    case activationTask = "-uiTestActivationTask"
 }
 
 extension UITestArgument {

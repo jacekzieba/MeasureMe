@@ -599,6 +599,14 @@ struct MeasureMeApp: App {
         if args.contains(UITestArgument.showChecklist.rawValue) {
             defaults.set(\.onboarding.onboardingChecklistShow, true)
         }
+        if args.contains(UITestArgument.activationHub.rawValue) {
+            defaults.set(\.onboarding.onboardingFlowVersion, 2)
+            defaults.set(\.onboarding.onboardingPrimaryGoal, OnboardingPriority.improveHealth.rawValue)
+            defaults.set(\.onboarding.activationCurrentTaskID, requestedActivationTask(from: args)?.rawValue ?? ActivationTask.initial.rawValue)
+            defaults.set(\.onboarding.activationCompletedTaskIDs, "")
+            defaults.set(\.onboarding.activationSkippedTaskIDs, "")
+            defaults.set(\.onboarding.activationIsDismissed, false)
+        }
         if args.contains(UITestArgument.checklistNeedsReminders.rawValue) {
             defaults.set(\.onboarding.onboardingSkippedReminders, true)
         }
@@ -705,6 +713,11 @@ struct MeasureMeApp: App {
     private func requestedPendingAppEntryAction(from args: [String]) -> AppEntryAction? {
         guard let value = UITestArgument.value(for: .pendingAppEntryAction, in: args) else { return nil }
         return AppEntryAction(rawValue: value)
+    }
+
+    private func requestedActivationTask(from args: [String]) -> ActivationTask? {
+        guard let value = UITestArgument.value(for: .activationTask, in: args) else { return nil }
+        return ActivationTask(rawValue: value)
     }
 
     private func seedUITestPhotos(count: Int, into context: ModelContext, withLinkedMetrics: Bool = false) {
