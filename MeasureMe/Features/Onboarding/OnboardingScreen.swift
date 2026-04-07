@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 struct OnboardingView: View {
     private enum Phase: Equatable {
         case intro
@@ -356,37 +357,43 @@ struct OnboardingView: View {
                 Spacer(minLength: 0)
             }
         } else {
-            VStack(alignment: .leading, spacing: 22) {
-                Spacer(minLength: 10)
+            ZStack {
+                ambientBlobs(for: index)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
 
-                onboardingSlideHeader(
-                    title: OnboardingCopy.introTitle(index: index),
-                    subtitle: OnboardingCopy.introSubtitle(index: index)
-                )
-                .opacity(slideAppeared ? 1 : 0)
-                .offset(y: slideAppeared ? 0 : 20)
-                .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.1) : .none, value: slideAppeared)
+                VStack(alignment: .leading, spacing: 22) {
+                    Spacer(minLength: 10)
 
-                Group {
-                    switch index {
-                    case 1:
-                        introMetricsVisual
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                            .padding(.top, AppSpacing.sm)
-                    case 2:
-                        introPhotosVisual
-                    case 3:
-                        introHealthVisual
-                    default:
-                        introPrivacyVisual
+                    onboardingSlideHeader(
+                        title: OnboardingCopy.introTitle(index: index),
+                        subtitle: OnboardingCopy.introSubtitle(index: index)
+                    )
+                    .opacity(slideAppeared ? 1 : 0)
+                    .offset(y: slideAppeared ? 0 : 20)
+                    .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.1) : .none, value: slideAppeared)
+
+                    Group {
+                        switch index {
+                        case 1:
+                            introMetricsVisual
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                                .padding(.top, AppSpacing.sm)
+                        case 2:
+                            introPhotosVisual
+                        case 3:
+                            introHealthVisual
+                        default:
+                            introPrivacyVisual
+                        }
                     }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .opacity(slideAppeared ? 1 : 0)
-                .offset(y: slideAppeared ? 0 : 24)
-                .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.25) : .none, value: slideAppeared)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .opacity(slideAppeared ? 1 : 0)
+                    .offset(y: slideAppeared ? 0 : 24)
+                    .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.25) : .none, value: slideAppeared)
 
-                Spacer(minLength: 0)
+                    Spacer(minLength: 0)
+                }
             }
         }
     }
@@ -683,7 +690,7 @@ struct OnboardingView: View {
         }
     }
 
-    @State private var welcomeBlobAnimate = false
+    @State private var slideBlobAnimate = false
     @State private var welcomeShimmerEnabled = true
 
     private var introWelcomeVisual: some View {
@@ -691,7 +698,7 @@ struct OnboardingView: View {
             Spacer()
 
             ZStack {
-                welcomeAmbientBlobs
+                ambientBlobs(for: 0)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
 
@@ -737,7 +744,7 @@ struct OnboardingView: View {
             Spacer()
         }
         .onAppear {
-            welcomeBlobAnimate = true
+            slideBlobAnimate = true
             if shouldAnimate {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                     welcomeShimmerEnabled = false
@@ -748,49 +755,12 @@ struct OnboardingView: View {
         }
     }
 
-    private var welcomeAmbientBlobs: some View {
-        GeometryReader { geo in
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color.appAccent.opacity(0.40), Color.appAccent.opacity(0.10), .clear],
-                            center: .center, startRadius: 30, endRadius: 220
-                        )
-                    )
-                    .frame(width: 440, height: 440)
-                    .offset(x: welcomeBlobAnimate ? 40 : -30, y: welcomeBlobAnimate ? -40 : 20)
-                    .blur(radius: 30)
-
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color.cyan.opacity(0.25), Color.cyan.opacity(0.06), .clear],
-                            center: .center, startRadius: 20, endRadius: 180
-                        )
-                    )
-                    .frame(width: 360, height: 360)
-                    .offset(x: welcomeBlobAnimate ? -50 : 30, y: welcomeBlobAnimate ? 40 : -20)
-                    .blur(radius: 24)
-
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color.appIndigo.opacity(0.20), Color.appIndigo.opacity(0.04), .clear],
-                            center: .center, startRadius: 10, endRadius: 150
-                        )
-                    )
-                    .frame(width: 280, height: 280)
-                    .offset(x: welcomeBlobAnimate ? 20 : -40, y: welcomeBlobAnimate ? -30 : 40)
-                    .blur(radius: 20)
-            }
-            .frame(width: geo.size.width, height: geo.size.height)
-            .animation(
-                AppMotion.repeating(.easeInOut(duration: 5).repeatForever(autoreverses: true), enabled: shouldAnimate),
-                value: welcomeBlobAnimate
-            )
-        }
-        .allowsHitTesting(false)
+    private func ambientBlobs(for slideIndex: Int) -> some View {
+        AmbientBlobsView(
+            blobs: Self.blobSpecs(for: slideIndex),
+            animate: slideBlobAnimate,
+            shouldAnimate: shouldAnimate
+        )
     }
 
     private var welcomeHeroLogo: some View {
@@ -898,7 +868,6 @@ struct OnboardingView: View {
         let waistValueLabel = FlowLocalization.system("84.0 cm", "84,0 cm", "84,0 cm", "84,0 cm", "84,0 cm", "84,0 cm")
         let weightDeltaLabel = FlowLocalization.system("-2.1 kg", "-2,1 kg", "-2,1 kg", "-2,1 kg", "-2,1 kg", "-2,1 kg")
         let waistDeltaLabel = FlowLocalization.system("-4.0 cm", "-4,0 cm", "-4,0 cm", "-4,0 cm", "-4,0 cm", "-4,0 cm")
-        let addLabel = FlowLocalization.system("Add metric", "Dodaj metrykę", "Añadir métrica", "Messung hinzufügen", "Ajouter une mesure", "Adicionar métrica")
         let goalLabel = FlowLocalization.system("Goal", "Cel", "Meta", "Ziel", "Objectif", "Meta")
         let trendLabel = FlowLocalization.system("Trend", "Trend", "Tendencia", "Trend", "Tendance", "Tendência")
 
@@ -943,19 +912,7 @@ struct OnboardingView: View {
                 )
             }
 
-            HStack(alignment: .top, spacing: IntroMetricsLayout.columnSpacing) {
-                DummyMiniAddMetricCard(
-                    systemName: "scalemass.fill",
-                    title: addLabel,
-                    subtitle: "\(weightLabel) \(weightValueLabel)"
-                )
-
-                DummyMiniAddMetricCard(
-                    systemName: "ruler.fill",
-                    title: addLabel,
-                    subtitle: "\(waistLabel) \(waistValueLabel)"
-                )
-            }
+            DummyAIInsightCard()
         }
     }
 
@@ -968,31 +925,13 @@ struct OnboardingView: View {
 
         return HStack(spacing: 14) {
             // Before card
-            ZStack {
-                AppGlassBackground(depth: .base, cornerRadius: 26)
-                VStack(spacing: 12) {
-                    OnboardingSilhouette(tint: AppColorRoles.textTertiary.opacity(0.4))
-                        .frame(width: 54, height: 90)
-                    Text(beforeLabel)
-                        .font(AppTypography.captionEmphasis)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                }
-            }
+            photoCard(imageName: "onboarding-before", label: beforeLabel, borderColor: Color.white.opacity(0.15))
 
             // After card
-            ZStack {
-                AppGlassBackground(depth: .base, cornerRadius: 26, tint: Color.appAccent)
-                VStack(spacing: 12) {
-                    OnboardingSilhouette(tint: Color.appAccent)
-                        .frame(width: 54, height: 90)
-                    Text(afterLabel)
-                        .font(AppTypography.captionEmphasis)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                }
-            }
-            .opacity(photoAfterAppeared ? 1 : 0)
-            .offset(x: photoAfterAppeared ? 0 : 40)
-            .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.4) : .none, value: photoAfterAppeared)
+            photoCard(imageName: "onboarding-after", label: afterLabel, borderColor: Color.appAccent.opacity(0.5))
+                .opacity(photoAfterAppeared ? 1 : 0)
+                .offset(x: photoAfterAppeared ? 0 : 40)
+                .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.4) : .none, value: photoAfterAppeared)
         }
         .frame(height: 280)
         .overlay(alignment: .bottom) {
@@ -1007,8 +946,9 @@ struct OnboardingView: View {
                     .font(AppTypography.captionEmphasis)
                     .foregroundStyle(Color.appWhite)
                 }
-                .offset(y: 24)
+                .offset(y: 28)
         }
+        .padding(.bottom, 28)
         .onAppear {
             if shouldAnimate {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -1017,6 +957,35 @@ struct OnboardingView: View {
             } else {
                 photoAfterAppeared = true
             }
+        }
+    }
+
+    private func photoCard(imageName: String, label: String, borderColor: Color) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .bottom) {
+                Image(imageName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.5)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+
+                Text(label)
+                    .font(AppTypography.captionEmphasis)
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.6), radius: 4, y: 2)
+                    .padding(.bottom, 14)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .strokeBorder(borderColor, lineWidth: 1)
+            )
         }
     }
 
@@ -1174,6 +1143,7 @@ struct OnboardingView: View {
         trackCurrentStep()
         syncUITestBridge(stepIndex: overallStepIndex)
         triggerSlideAppearance()
+        slideBlobAnimate = true
     }
 
     private func triggerSlideAppearance() {
@@ -1481,6 +1451,83 @@ struct OnboardingView: View {
             ]
         )
     }
+    fileprivate static func blobSpecs(for slideIndex: Int) -> [AmbientBlobSpec] {
+        switch slideIndex {
+        case 0:
+            return [
+                AmbientBlobSpec(color: .appAccent, innerOpacity: 0.35, outerOpacity: 0.0, size: 320, blurRadius: 40, startRadius: 20, endRadius: 160, offsetA: CGSize(width: 30, height: -30), offsetB: CGSize(width: -20, height: 15)),
+                AmbientBlobSpec(color: .cyan, innerOpacity: 0.20, outerOpacity: 0.0, size: 260, blurRadius: 30, startRadius: 15, endRadius: 130, offsetA: CGSize(width: -35, height: 30), offsetB: CGSize(width: 20, height: -15)),
+                AmbientBlobSpec(color: .appIndigo, innerOpacity: 0.15, outerOpacity: 0.0, size: 200, blurRadius: 24, startRadius: 8, endRadius: 100, offsetA: CGSize(width: 15, height: -20), offsetB: CGSize(width: -25, height: 25)),
+            ]
+        case 1:
+            return [
+                AmbientBlobSpec(color: .appAccent, innerOpacity: 0.25, outerOpacity: 0.0, size: 300, blurRadius: 40, startRadius: 18, endRadius: 150, offsetA: CGSize(width: 35, height: -20), offsetB: CGSize(width: -15, height: 20)),
+                AmbientBlobSpec(color: .appTeal, innerOpacity: 0.15, outerOpacity: 0.0, size: 250, blurRadius: 30, startRadius: 12, endRadius: 125, offsetA: CGSize(width: -30, height: 35), offsetB: CGSize(width: 25, height: -10)),
+                AmbientBlobSpec(color: .cyan, innerOpacity: 0.10, outerOpacity: 0.0, size: 190, blurRadius: 24, startRadius: 8, endRadius: 95, offsetA: CGSize(width: 20, height: -30), offsetB: CGSize(width: -25, height: 18)),
+            ]
+        case 2:
+            return [
+                AmbientBlobSpec(color: .appRose, innerOpacity: 0.25, outerOpacity: 0.0, size: 310, blurRadius: 40, startRadius: 20, endRadius: 155, offsetA: CGSize(width: -30, height: -25), offsetB: CGSize(width: 18, height: 18)),
+                AmbientBlobSpec(color: .appAccent, innerOpacity: 0.15, outerOpacity: 0.0, size: 240, blurRadius: 30, startRadius: 12, endRadius: 120, offsetA: CGSize(width: 40, height: 20), offsetB: CGSize(width: -22, height: -18)),
+                AmbientBlobSpec(color: .appIndigo, innerOpacity: 0.10, outerOpacity: 0.0, size: 200, blurRadius: 24, startRadius: 8, endRadius: 100, offsetA: CGSize(width: -18, height: 30), offsetB: CGSize(width: 28, height: -25)),
+            ]
+        case 3:
+            return [
+                AmbientBlobSpec(color: .appEmerald, innerOpacity: 0.25, outerOpacity: 0.0, size: 300, blurRadius: 40, startRadius: 18, endRadius: 150, offsetA: CGSize(width: 25, height: -35), offsetB: CGSize(width: -18, height: 15)),
+                AmbientBlobSpec(color: .appTeal, innerOpacity: 0.15, outerOpacity: 0.0, size: 240, blurRadius: 30, startRadius: 12, endRadius: 120, offsetA: CGSize(width: -40, height: 25), offsetB: CGSize(width: 15, height: -20)),
+                AmbientBlobSpec(color: .appAccent, innerOpacity: 0.10, outerOpacity: 0.0, size: 180, blurRadius: 24, startRadius: 8, endRadius: 90, offsetA: CGSize(width: 18, height: 28), offsetB: CGSize(width: -30, height: -15)),
+            ]
+        default:
+            return [
+                AmbientBlobSpec(color: .appIndigo, innerOpacity: 0.25, outerOpacity: 0.0, size: 320, blurRadius: 40, startRadius: 20, endRadius: 160, offsetA: CGSize(width: -28, height: -30), offsetB: CGSize(width: 22, height: 10)),
+                AmbientBlobSpec(color: .appAccent, innerOpacity: 0.15, outerOpacity: 0.0, size: 260, blurRadius: 30, startRadius: 14, endRadius: 130, offsetA: CGSize(width: 32, height: 28), offsetB: CGSize(width: -25, height: -18)),
+                AmbientBlobSpec(color: .appCyan, innerOpacity: 0.10, outerOpacity: 0.0, size: 200, blurRadius: 24, startRadius: 8, endRadius: 100, offsetA: CGSize(width: -15, height: -25), offsetB: CGSize(width: 28, height: 22)),
+            ]
+        }
+    }
+}
+
+fileprivate struct AmbientBlobSpec {
+    let color: Color
+    let innerOpacity: Double
+    let outerOpacity: Double
+    let size: CGFloat
+    let blurRadius: CGFloat
+    let startRadius: CGFloat
+    let endRadius: CGFloat
+    let offsetA: CGSize
+    let offsetB: CGSize
+}
+
+private struct AmbientBlobsView: View {
+    let blobs: [AmbientBlobSpec]
+    let animate: Bool
+    let shouldAnimate: Bool
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                ForEach(Array(blobs.enumerated()), id: \.offset) { _, spec in
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [spec.color.opacity(spec.innerOpacity), spec.color.opacity(spec.outerOpacity), .clear],
+                                center: .center, startRadius: spec.startRadius, endRadius: spec.endRadius
+                            )
+                        )
+                        .frame(width: spec.size, height: spec.size)
+                        .offset(x: animate ? spec.offsetA.width : spec.offsetB.width, y: animate ? spec.offsetA.height : spec.offsetB.height)
+                        .blur(radius: spec.blurRadius)
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .animation(
+                AppMotion.repeating(.easeInOut(duration: 5).repeatForever(autoreverses: true), enabled: shouldAnimate),
+                value: animate
+            )
+        }
+        .allowsHitTesting(false)
+    }
 }
 
 private struct DummyLineChart: View {
@@ -1545,13 +1592,12 @@ private struct DummyChartLegendItem {
 
 private enum IntroMetricsLayout {
     static let columnSpacing: CGFloat = 12
-    static let rowSpacing: CGFloat = 14
+    static let rowSpacing: CGFloat = 20
     static let cardPadding: CGFloat = 14
-    static let chartCardHeight: CGFloat = 166
-    static let addCardHeight: CGFloat = 76
-    static let chartHeight: CGFloat = 68
+    static let chartCardHeight: CGFloat = 210
+    static let chartHeight: CGFloat = 90
     static let legendHeight: CGFloat = 16
-    static let valueBlockHeight: CGFloat = 42
+    static let valueBlockHeight: CGFloat = 48
 }
 
 private struct DummyMiniMetricChartCard: View {
@@ -1638,14 +1684,14 @@ private struct DummyMiniMetricChartCard: View {
                 .frame(height: IntroMetricsLayout.legendHeight, alignment: .leading)
                 .opacity(legends.isEmpty ? 0 : 1)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(value)
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.appWhite)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                     Text(delta)
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .foregroundStyle(tint)
                 }
                 .frame(maxWidth: .infinity, minHeight: IntroMetricsLayout.valueBlockHeight, alignment: .bottomLeading)
@@ -1657,39 +1703,53 @@ private struct DummyMiniMetricChartCard: View {
     }
 }
 
-private struct DummyMiniAddMetricCard: View {
-    let systemName: String
-    let title: String
-    let subtitle: String
-
+private struct DummyAIInsightCard: View {
     var body: some View {
+        let insightText = FlowLocalization.system(
+            "Weight is down 2.1 kg and waist shrunk 4.0 cm — steady progress. Keep your routine consistent and results will follow.",
+            "Waga spadła o 2,1 kg, a obwód pasa o 4,0 cm — stały postęp. Trzymaj się rutyny, a wyniki przyjdą same.",
+            "El peso bajó 2,1 kg y la cintura 4,0 cm — progreso constante. Mantén tu rutina y los resultados llegarán.",
+            "Gewicht um 2,1 kg und Taille um 4,0 cm gesunken — stetiger Fortschritt. Bleib bei deiner Routine und die Ergebnisse kommen.",
+            "Poids en baisse de 2,1 kg et tour de taille de 4,0 cm — progrès régulier. Gardez votre routine et les résultats suivront.",
+            "Peso caiu 2,1 kg e cintura 4,0 cm — progresso constante. Mantenha sua rotina e os resultados virão."
+        )
+        let footerText = FlowLocalization.system(
+            "AI generated",
+            "Wygenerowane przez AI",
+            "Generado por IA",
+            "KI-generiert",
+            "Généré par l'IA",
+            "Gerado por IA"
+        )
+
         ZStack {
             AppGlassBackground(depth: .base, cornerRadius: 20)
 
-            HStack(spacing: AppSpacing.sm) {
-                GlassPillIcon(systemName: systemName)
-                    .frame(width: 54)
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(AppTypography.iconSmall)
+                    .foregroundStyle(AppColorRoles.accentPrimary)
+                    .padding(8)
+                    .background(AppColorRoles.accentPrimary.opacity(0.12))
+                    .clipShape(Circle())
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(insightText)
+                        .font(AppTypography.caption)
                         .foregroundStyle(AppColorRoles.textPrimary)
-                        .lineLimit(1)
-                    Text(subtitle)
-                        .font(.system(size: 11, weight: .regular, design: .rounded))
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Text(footerText)
+                        .font(AppTypography.micro)
                         .foregroundStyle(AppColorRoles.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-
-                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
+            .padding(IntroMetricsLayout.cardPadding)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: IntroMetricsLayout.addCardHeight)
     }
 }
 
@@ -1793,3 +1853,4 @@ private struct OnboardingConfettiView: View {
         .onAppear { animate = true }
     }
 }
+

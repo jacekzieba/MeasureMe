@@ -2,6 +2,18 @@ import XCTest
 @testable import MeasureMe
 
 private final class OnboardingHealthKitMock: OnboardingHealthKitAuthorizing {
+    func prepareAuthorizationRequest() async {
+        <#code#>
+    }
+    
+    func fetchDateOfBirth() throws -> Date? {
+        <#code#>
+    }
+    
+    func fetchLatestHeightInCentimeters() async throws -> (value: Double, date: Date)? {
+        <#code#>
+    }
+    
     private(set) var requestAuthorizationCallCount = 0
 
     func requestAuthorization() async throws {

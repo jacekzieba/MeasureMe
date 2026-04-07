@@ -91,21 +91,23 @@ struct AppScreenBackground: View {
     }
 
     private func blob(color: Color, width: CGFloat, height: CGFloat) -> some View {
-        Rectangle()
+        Ellipse()
             .fill(
                 RadialGradient(
                     colors: [
                         color,
-                        color.opacity(0.28),
+                        color.opacity(0.32),
+                        color.opacity(0.10),
+                        color.opacity(0.02),
                         .clear
                     ],
                     center: .center,
                     startRadius: 0,
-                    endRadius: max(width, height) / 2
+                    endRadius: min(width, height) * 0.48
                 )
             )
-            .frame(width: width * 1.4, height: height * 1.4)
-            .blur(radius: 14)
+            .frame(width: width, height: height)
+            .blur(radius: 32)
     }
 }
 
