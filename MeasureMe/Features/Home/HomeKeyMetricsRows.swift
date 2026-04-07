@@ -1,52 +1,69 @@
 import SwiftUI
 
-struct HomeSecondaryMetricToggleRow: View {
+struct HomeSecondaryMetricToggleRow<ExpandedContent: View>: View {
     let kind: MetricKind
     let latestText: String
     let detailText: String
     let isExpanded: Bool
     let onToggle: () -> Void
+    @ViewBuilder let expandedContent: () -> ExpandedContent
 
     var body: some View {
-        Button(action: onToggle) {
-            HStack(spacing: 12) {
-                HStack(spacing: 8) {
-                    kind.iconView(font: AppTypography.captionEmphasis, size: 14, tint: Color.appAccent)
-                    Text(kind.title)
-                        .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                        .lineLimit(1)
+        VStack(spacing: 0) {
+            Button(action: onToggle) {
+                HStack(spacing: 12) {
+                    HStack(spacing: 8) {
+                        kind.iconView(font: AppTypography.captionEmphasis, size: 14, tint: Color.appAccent)
+                        Text(kind.title)
+                            .font(AppTypography.bodyEmphasis)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    VStack(alignment: .trailing, spacing: 3) {
+                        Text(latestText)
+                            .font(AppTypography.captionEmphasis.monospacedDigit())
+                            .foregroundStyle(AppColorRoles.textPrimary)
+                        Text(detailText)
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                            .lineLimit(1)
+                    }
+
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(AppColorRoles.textTertiary)
+                        .contentTransition(.symbolEffect(.replace))
                 }
-
-                Spacer(minLength: 8)
-
-                VStack(alignment: .trailing, spacing: 3) {
-                    Text(latestText)
-                        .font(AppTypography.captionEmphasis.monospacedDigit())
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                    Text(detailText)
-                        .font(AppTypography.micro)
-                        .foregroundStyle(AppColorRoles.textSecondary)
-                        .lineLimit(1)
-                }
-
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(AppColorRoles.textTertiary)
-                    .contentTransition(.symbolEffect(.replace))
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(AppColorRoles.surfaceInteractive)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
-                    )
-            )
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(AppColorRoles.borderSubtle.opacity(0.7))
+                        .frame(height: 1)
+                        .padding(.horizontal, 12)
+
+                    expandedContent()
+                        .padding(12)
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                )
+        )
         .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).toggle")
     }
 }

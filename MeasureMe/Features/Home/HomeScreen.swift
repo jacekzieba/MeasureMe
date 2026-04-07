@@ -75,7 +75,6 @@ struct HomeView: View {
     @State private var showQuickAddSheet = false
     @State private var quickAddKinds: [MetricKind] = []
     @State private var showActivationMetricsSheet = false
-    @State private var showActivationPremiumSheet = false
     @State private var showActivationAddPhotoSheet = false
     @State private var showHomeSettingsSheet = false
     @State private var showHomeCompareChooser = false
@@ -860,7 +859,7 @@ struct HomeView: View {
 
     private var homeUITestHooks: some View {
         VStack(spacing: 0) {
-            if shouldRenderModule(.activationHub) {
+            if showActivationHub {
                 Text("1")
                     .font(.system(size: 1))
                     .foregroundStyle(.clear)
@@ -1000,17 +999,6 @@ struct HomeView: View {
                 ) {
                     completeActivationTask(.chooseMetrics)
                 }
-            }
-            .sheet(isPresented: $showActivationPremiumSheet) {
-                ActivationPremiumExplainerView(
-                    onContinueFree: {
-                        completeActivationTask(.premium)
-                    },
-                    onSeePremium: {
-                        completeActivationTask(.premium)
-                        premiumStore.presentPaywall(reason: .onboarding)
-                    }
-                )
             }
             .sheet(isPresented: $showHomeSettingsSheet) {
                 NavigationStack {
@@ -1236,7 +1224,7 @@ struct HomeView: View {
             if isWelcomeHomeState { return isSyncEnabled && showHealthMetricsOnHome }
             return showHealthMetricsOnHome
         case .activationHub:
-            return showActivationHub
+            return false
         case .setupChecklist:
             return false
         }
@@ -1256,7 +1244,7 @@ struct HomeView: View {
         case .healthSummary:
             healthSummaryModule
         case .activationHub:
-            activationHubModule
+            EmptyView()
         case .setupChecklist:
             EmptyView()
         }
@@ -1326,16 +1314,32 @@ struct HomeView: View {
                     summary: nextFocusInsight.summary
                 ),
                 weekTitle: summaryThisWeekTitle,
-                weekDetail: summaryThisWeekDetail
+                weekDetail: summaryThisWeekDetail,
+                shouldShowPostOnboardingSummary: !showActivationHub
             ),
             accent: homeTheme.accent,
             pillFill: homeTheme.pillFill,
             pillStroke: homeTheme.pillStroke,
             border: homeTheme.border,
+            activationSnapshot: showActivationHub ? HomeActivationSnapshot(
+                stepIndex: activationStepIndex,
+                totalSteps: ActivationTask.allCases.count,
+                title: OnboardingCopy.activationTaskTitle(activationCurrentTask ?? .celebrate),
+                body: OnboardingCopy.activationTaskBody(
+                    activationCurrentTask ?? .celebrate,
+                    metricName: activationPrimaryMetric?.title
+                ),
+                primaryCTA: OnboardingCopy.activationPrimaryCTA(activationCurrentTask ?? .celebrate),
+                skipCTA: OnboardingCopy.activationSkipCTA,
+                dismissCTA: OnboardingCopy.activationDismissCTA
+            ) : nil,
             onGoalStatusTap: handleGoalStatusTap,
             onNextFocusTap: handleNextFocusAction,
             onStreakTap: { showStreakDetail = true },
-            onStreakAnimationComplete: { streakManager.markAnimationPlayed() }
+            onStreakAnimationComplete: { streakManager.markAnimationPlayed() },
+            onActivationPrimary: performActivationPrimaryAction,
+            onActivationSkip: skipActivationTask,
+            onActivationDismiss: dismissActivationHub
         )
     }
 
@@ -1674,7 +1678,8 @@ struct HomeView: View {
     }
 
     private var showActivationHub: Bool {
-        onboardingFlowVersion >= 2 && !activationIsDismissed && activationCurrentTask != nil
+        let isEnabledInLayout = settingsStore.homeLayoutSnapshot().item(for: .activationHub)?.isVisible ?? true
+        return onboardingFlowVersion >= 2 && isEnabledInLayout && !activationIsDismissed && activationCurrentTask != nil
     }
 
     private var activationStepIndex: Int {
@@ -2517,7 +2522,7 @@ struct HomeView: View {
             return AppLocalization.systemString("Lose weight")
         case "buildMuscle", "build_muscle":
             return AppLocalization.systemString("Build muscles")
-        case "trackHealth", "track_health":
+        case "trackHealth", "track_health", "improveHealth", "improve_health":
             return AppLocalization.systemString("Improve my health")
         default:
             return nil
@@ -2554,18 +2559,14 @@ struct HomeView: View {
         let detailText = metricDeltaTextFromCache(kind: kind, days: 7)
             ?? secondaryMetricGoalSummary(for: kind)
             ?? AppLocalization.string("Log another check-in to reveal the trend.")
-        return VStack(spacing: 0) {
-            HomeSecondaryMetricToggleRow(
-                kind: kind,
-                latestText: latestText,
-                detailText: detailText,
-                isExpanded: isExpanded
-            ) {
-                toggleSecondaryMetric(kind)
-            }
-            .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
-            .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
-
+        return HomeSecondaryMetricToggleRow(
+            kind: kind,
+            latestText: latestText,
+            detailText: detailText,
+            isExpanded: isExpanded
+        ) {
+            toggleSecondaryMetric(kind)
+        } expandedContent: {
             NavigationLink {
                 MetricDetailView(kind: kind)
             } label: {
@@ -2574,16 +2575,16 @@ struct HomeView: View {
                     latest: cachedLatestByKind[kind],
                     goal: cachedGoalsByKind[kind],
                     samples: samplesForKind(kind),
-                    unitsSystem: unitsSystem
+                    unitsSystem: unitsSystem,
+                    showsBackground: false
                 )
             }
             .buttonStyle(PressableTileStyle())
             .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).openDetail")
-            .frame(maxHeight: isExpanded ? .none : 0, alignment: .top)
-            .clipped()
-            .opacity(isExpanded ? 1 : 0)
-            .allowsHitTesting(isExpanded)
-
+        }
+        .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
+        .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
+        .overlay(alignment: .topLeading) {
             if isUITestMode && isExpanded {
                 Button("collapse") { collapseSecondaryMetric(kind) }
                 .buttonStyle(.plain)
@@ -2892,11 +2893,8 @@ struct HomeView: View {
         case .chooseMetrics:
             showActivationMetricsSheet = true
         case .premium:
-            Analytics.shared.track(
-                signalName: "com.jacekzieba.measureme.activation.premium_explainer_viewed",
-                parameters: [:]
-            )
-            showActivationPremiumSheet = true
+            completeActivationTask(.premium)
+            premiumStore.presentPaywall(reason: .onboarding)
         case .celebrate:
             completeActivationTask(.celebrate)
             activationCurrentTaskID = ""
@@ -2935,6 +2933,7 @@ struct HomeView: View {
         } else {
             activationCurrentTaskID = ""
             activationIsDismissed = true
+            settingsStore.setHomeModuleVisibility(false, for: .activationHub)
             Analytics.shared.track(
                 signalName: "com.jacekzieba.measureme.activation.completed_all",
                 parameters: [:]
@@ -2945,6 +2944,7 @@ struct HomeView: View {
 
     private func dismissActivationHub() {
         activationIsDismissed = true
+        settingsStore.setHomeModuleVisibility(false, for: .activationHub)
         rebuildDashboardItemsCache()
     }
 

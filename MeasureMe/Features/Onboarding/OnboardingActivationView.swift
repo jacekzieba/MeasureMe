@@ -22,10 +22,18 @@ struct OnboardingActivationView: View {
         AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 
+    @State private var successRippleScale: CGFloat = 0.5
+    @State private var successRippleOpacity: Double = 0.6
+
     var body: some View {
         ZStack {
-            AppBackground()
+            AppScreenBackground(topHeight: 400, tint: Color.appAccent.opacity(0.2))
             backdrop
+            FilmGrainOverlay()
+                .blendMode(.softLight)
+                .opacity(0.11)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
 
             VStack(spacing: 0) {
                 Spacer()
@@ -55,10 +63,18 @@ struct OnboardingActivationView: View {
     private var healthKitPath: some View {
         VStack(spacing: 28) {
             if showSuccessState {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 72, weight: .semibold))
-                    .foregroundStyle(AppColorRoles.stateSuccess)
-                    .transition(.scale.combined(with: .opacity))
+                ZStack {
+                    Circle()
+                        .stroke(AppColorRoles.stateSuccess.opacity(successRippleOpacity), lineWidth: 2)
+                        .frame(width: 80, height: 80)
+                        .scaleEffect(successRippleScale)
+                        .opacity(successRippleOpacity)
+
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 72, weight: .semibold))
+                        .foregroundStyle(AppColorRoles.stateSuccess)
+                }
+                .transition(.scale.combined(with: .opacity))
 
                 VStack(spacing: 10) {
                     Text(AppLocalization.systemString("Your baseline is ready"))
@@ -162,23 +178,43 @@ struct OnboardingActivationView: View {
 
     private var backdrop: some View {
         ZStack {
-            Circle()
+            Ellipse()
                 .fill(
                     RadialGradient(
-                        colors: [Color.appAccent.opacity(0.25), .clear],
-                        center: .center,
-                        startRadius: 30,
-                        endRadius: 260
+                        colors: [Color.appAccent.opacity(0.30), Color.appAccent.opacity(0.06), .clear],
+                        center: .center, startRadius: 20, endRadius: 180
                     )
                 )
-                .frame(width: 360, height: 360)
+                .frame(width: 320, height: 280)
                 .offset(x: animateBackdrop ? 100 : 60, y: animateBackdrop ? -200 : -150)
                 .blur(radius: 14)
-                .animation(
-                    AppMotion.repeating(.easeInOut(duration: 5).repeatForever(autoreverses: true), enabled: shouldAnimate),
-                    value: animateBackdrop
+
+            Ellipse()
+                .fill(
+                    RadialGradient(
+                        colors: [Color.cyan.opacity(0.18), Color.cyan.opacity(0.04), .clear],
+                        center: .center, startRadius: 14, endRadius: 140
+                    )
                 )
+                .frame(width: 240, height: 200)
+                .offset(x: animateBackdrop ? -60 : -20, y: animateBackdrop ? 60 : 20)
+                .blur(radius: 16)
+
+            Ellipse()
+                .fill(
+                    RadialGradient(
+                        colors: [Color.white.opacity(0.10), .clear],
+                        center: .center, startRadius: 10, endRadius: 100
+                    )
+                )
+                .frame(width: 180, height: 140)
+                .offset(x: animateBackdrop ? 50 : 10, y: animateBackdrop ? -40 : 30)
+                .blur(radius: 12)
         }
+        .animation(
+            AppMotion.repeating(.easeInOut(duration: 5).repeatForever(autoreverses: true), enabled: shouldAnimate),
+            value: animateBackdrop
+        )
         .allowsHitTesting(false)
     }
 
@@ -187,11 +223,16 @@ struct OnboardingActivationView: View {
     private func scheduleSuccessTransition() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             if shouldAnimate {
-                withAnimation(AppMotion.reveal) {
+                withAnimation(AppMotion.emphasized) {
                     showSuccessState = true
+                }
+                withAnimation(.easeOut(duration: 0.8)) {
+                    successRippleScale = 2.0
+                    successRippleOpacity = 0
                 }
             } else {
                 showSuccessState = true
+                successRippleOpacity = 0
             }
         }
     }

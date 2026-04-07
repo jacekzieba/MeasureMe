@@ -219,12 +219,12 @@ enum OnboardingCopy {
 
     static var priorityPrompt: String {
         FlowLocalization.app(
-            "What's your main priority right now?",
-            "Jaki jest teraz Twój główny priorytet?",
-            "¿Cuál es tu prioridad principal ahora mismo?",
-            "Was ist gerade deine wichtigste Priorität?",
-            "Quelle est votre priorité principale en ce moment ?",
-            "Qual é sua principal prioridade agora?"
+            "What are your main priorities right now?",
+            "Jakie są teraz Twoje główne priorytety?",
+            "¿Cuáles son tus prioridades principales ahora mismo?",
+            "Was sind gerade deine wichtigsten Prioritäten?",
+            "Quelles sont vos priorités principales en ce moment ?",
+            "Quais são suas principais prioridades agora?"
         )
     }
 

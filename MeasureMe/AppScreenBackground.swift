@@ -91,7 +91,7 @@ struct AppScreenBackground: View {
     }
 
     private func blob(color: Color, width: CGFloat, height: CGFloat) -> some View {
-        Ellipse()
+        Rectangle()
             .fill(
                 RadialGradient(
                     colors: [
@@ -100,16 +100,16 @@ struct AppScreenBackground: View {
                         .clear
                     ],
                     center: .center,
-                    startRadius: 14,
-                    endRadius: max(width, height) * 0.52
+                    startRadius: 0,
+                    endRadius: max(width, height) / 2
                 )
             )
-            .frame(width: width, height: height)
+            .frame(width: width * 1.4, height: height * 1.4)
             .blur(radius: 14)
     }
 }
 
-private struct FilmGrainOverlay: View {
+struct FilmGrainOverlay: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {

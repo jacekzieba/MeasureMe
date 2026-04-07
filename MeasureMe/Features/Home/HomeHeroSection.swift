@@ -21,6 +21,7 @@ struct HomeHeroSnapshot {
     let nextFocus: HomeHeroNextFocusSnapshot
     let weekTitle: String
     let weekDetail: String
+    let shouldShowPostOnboardingSummary: Bool
 }
 
 struct HomeHeroSection: View {
@@ -32,10 +33,14 @@ struct HomeHeroSection: View {
     let pillFill: Color
     let pillStroke: Color
     let border: Color
+    let activationSnapshot: HomeActivationSnapshot?
     let onGoalStatusTap: () -> Void
     let onNextFocusTap: () -> Void
     let onStreakTap: () -> Void
     let onStreakAnimationComplete: () -> Void
+    let onActivationPrimary: () -> Void
+    let onActivationSkip: () -> Void
+    let onActivationDismiss: () -> Void
 
     var body: some View {
         HomeWidgetCard(
@@ -54,7 +59,9 @@ struct HomeHeroSection: View {
                         .lineLimit(snapshot.prefersStackedPanels ? 3 : 2)
                         .minimumScaleFactor(0.82)
 
-                    goalStatusRow
+                    if snapshot.shouldShowPostOnboardingSummary {
+                        goalStatusRow
+                    }
                 }
 
                 if snapshot.isFreshState {
@@ -62,20 +69,29 @@ struct HomeHeroSection: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
                 }
 
-                Group {
-                    if snapshot.prefersStackedPanels {
-                        VStack(spacing: 10) {
-                            nextFocusCard
-                            thisWeekCard
-                        }
-                    } else {
-                        HStack(alignment: .top, spacing: 12) {
-                            nextFocusCard
-                            thisWeekCard
+                if let activationSnapshot {
+                    HomeActivationCard(
+                        snapshot: activationSnapshot,
+                        onPrimary: onActivationPrimary,
+                        onSkip: onActivationSkip,
+                        onDismiss: onActivationDismiss
+                    )
+                } else if snapshot.shouldShowPostOnboardingSummary {
+                    Group {
+                        if snapshot.prefersStackedPanels {
+                            VStack(spacing: 10) {
+                                nextFocusCard
+                                thisWeekCard
+                            }
+                        } else {
+                            HStack(alignment: .top, spacing: 12) {
+                                nextFocusCard
+                                thisWeekCard
+                            }
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }

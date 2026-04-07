@@ -6,7 +6,7 @@ private extension HomeModuleKind {
         case .summaryHero:
             return AppLocalization.string("Summary hero")
         case .quickActions:
-            return ""
+            return AppLocalization.string("Quick actions")
         case .keyMetrics:
             return AppLocalization.string("Key metrics")
         case .recentPhotos:
@@ -25,7 +25,7 @@ private extension HomeModuleKind {
         case .summaryHero:
             return AppLocalization.string("Greeting, streak, goals, and momentum")
         case .quickActions:
-            return ""
+            return AppLocalization.string("Shortcuts for the most common logging flows")
         case .keyMetrics:
             return AppLocalization.string("Your top tracked measurements")
         case .recentPhotos:
@@ -150,10 +150,21 @@ struct HomeSettingsDetailView: View {
 
     private func binding(for kind: HomeModuleKind) -> Binding<Bool> {
         Binding(
-            get: { layout.item(for: kind)?.isVisible ?? true },
+            get: {
+                switch kind {
+                case .activationHub:
+                    let isVisible = layout.item(for: kind)?.isVisible ?? true
+                    return isVisible && !settingsStore.snapshot.onboarding.activationIsDismissed
+                default:
+                    return layout.item(for: kind)?.isVisible ?? true
+                }
+            },
             set: { newValue in
                 Haptics.selection()
                 settingsStore.setHomeModuleVisibility(newValue, for: kind)
+                if kind == .activationHub {
+                    settingsStore.set(\.onboarding.activationIsDismissed, !newValue)
+                }
             }
         )
     }

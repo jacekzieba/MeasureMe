@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "MeasureMe (iOS Simulator)",
+      "runtimeExecutable": "xcodebuild",
+      "runtimeArgs": [
+        "-project", "MeasureMe.xcodeproj",
+        "-scheme", "MeasureMe",
+        "-destination", "platform=iOS Simulator,name=iPhone 16",
+        "-configuration", "Debug",
+        "build"
+      ],
+      "port": 0
+    }
+  ]
+}

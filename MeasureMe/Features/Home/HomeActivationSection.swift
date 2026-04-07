@@ -51,8 +51,23 @@ struct HomeActivationCard: View {
                     .buttonStyle(.plain)
                 }
 
-                ProgressView(value: Double(snapshot.stepIndex), total: Double(snapshot.totalSteps))
-                    .tint(Color.appAccent)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule(style: .continuous)
+                            .fill(AppColorRoles.surfaceInteractive)
+                        Capsule(style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.appAccent, Color.appAccent.opacity(0.7)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geo.size.width * (Double(snapshot.stepIndex) / Double(snapshot.totalSteps)))
+                    }
+                }
+                .frame(height: 4)
+                .clipShape(Capsule(style: .continuous))
 
                 VStack(alignment: .leading, spacing: 10) {
                     Text(snapshot.title)

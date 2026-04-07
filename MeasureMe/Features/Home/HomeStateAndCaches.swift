@@ -36,6 +36,7 @@ struct HomeKeyMetricRow: View {
     let goal: MetricGoal?
     let samples: [MetricSample]
     let unitsSystem: String
+    var showsBackground: Bool = true
 
     private let cornerRadius: CGFloat = 16
     private let accent = Color.appAccent
@@ -111,30 +112,32 @@ struct HomeKeyMetricRow: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            ZStack {
-                AppGlassBackground(
-                    depth: .base,
-                    cornerRadius: cornerRadius,
-                    tint: accent.opacity(0.10)
-                )
-
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(
-                        ClaudeLightStyle.directionalGradient(
-                            colors: [
-                                accent.opacity(0.10),
-                                accent.opacity(0.03),
-                                .clear
-                            ],
-                            colorScheme: colorScheme,
-                            lightColor: .clear,
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+        .background {
+            if showsBackground {
+                ZStack {
+                    AppGlassBackground(
+                        depth: .base,
+                        cornerRadius: cornerRadius,
+                        tint: accent.opacity(0.10)
                     )
+
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(
+                            ClaudeLightStyle.directionalGradient(
+                                colors: [
+                                    accent.opacity(0.10),
+                                    accent.opacity(0.03),
+                                    .clear
+                                ],
+                                colorScheme: colorScheme,
+                                lightColor: .clear,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
             }
-        )
+        }
     }
 
     private func valueString(metricValue: Double) -> String {

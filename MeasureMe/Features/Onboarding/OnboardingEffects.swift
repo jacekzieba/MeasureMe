@@ -2,6 +2,7 @@ import Foundation
 import SwiftData
 
 protocol OnboardingHealthKitAuthorizing {
+    func prepareAuthorizationRequest() async
     func requestAuthorization() async throws
     func fetchDateOfBirth() throws -> Date?
     func fetchLatestHeightInCentimeters() async throws -> (value: Double, date: Date)?
@@ -68,6 +69,10 @@ struct OnboardingEffects {
 
     func track(_ signal: AnalyticsSignal) {
         analytics.track(signal)
+    }
+
+    func prewarmHealthKitAuthorization() async {
+        await healthKit.prepareAuthorizationRequest()
     }
 
     func requestHealthKitAuthorization() async throws {

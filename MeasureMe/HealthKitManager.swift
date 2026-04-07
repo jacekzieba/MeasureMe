@@ -265,6 +265,12 @@ final class RealHealthStore: HealthStore {
 
 @MainActor
 final class HealthKitManager {
+    private struct AuthorizationPreparation {
+        let typesToShare: Set<HKSampleType>
+        let typesToRead: Set<HKObjectType>
+        let alreadyAuthorized: Bool
+        let preparedAt: Date
+    }
 
     static let shared = HealthKitManager()
 
@@ -297,6 +303,7 @@ final class HealthKitManager {
     private let appBundleID = Bundle.main.bundleIdentifier
     private let initialHistoricalKinds: Set<MetricKind> = [.weight, .bodyFat, .leanBodyMass, .waist]
     private let importDateTolerance: TimeInterval = 60
+    private let authorizationPreparationTTL: TimeInterval = 15
     private let supportedQuantityIdentifiers: [HKQuantityTypeIdentifier] = [
         .waistCircumference,
         .bodyMassIndex,
@@ -305,6 +312,7 @@ final class HealthKitManager {
         .bodyFatPercentage,
         .leanBodyMass
     ]
+    private var authorizationPreparation: AuthorizationPreparation?
 
     // Produkcyjny init
     convenience init() {
@@ -327,6 +335,10 @@ final class HealthKitManager {
 
     // MARK: - Permissions
 
+    func prepareAuthorizationRequest() async {
+        _ = try? prepareAuthorizationPayload(forceRefresh: false)
+    }
+
     func requestAuthorization() async throws {
         #if DEBUG
         let launchArgs = ProcessInfo.processInfo.arguments
@@ -343,27 +355,12 @@ final class HealthKitManager {
         }
 
         let startedAt = Date()
-        let quantityTypes = try supportedQuantityIdentifiers.map { identifier in
-            guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else {
-                throw HealthKitAuthorizationError.typeUnavailable(identifier.rawValue)
-            }
-            return type
-        }
-        guard let dateOfBirthType = HKObjectType.characteristicType(forIdentifier: .dateOfBirth) else {
-            throw HealthKitAuthorizationError.typeUnavailable(HKCharacteristicTypeIdentifier.dateOfBirth.rawValue)
-        }
+        let preparation = try prepareAuthorizationPayload(forceRefresh: false)
 
-        let typesToShare = Set(quantityTypes.map { $0 as HKSampleType })
-        let typesToRead = Set(quantityTypes.map { $0 as HKObjectType } + [dateOfBirthType])
-
-        // Fast path: if at least one quantity type is already authorized, skip re-request.
-        let preAuthStatuses = try supportedQuantityIdentifiers.map { try store.authorizationStatus(for: $0) }
-        let alreadyAuthorized = preAuthStatuses.contains(.sharingAuthorized)
-
-        if !alreadyAuthorized {
+        if !preparation.alreadyAuthorized {
             try await store.requestAuthorization(
-                toShare: typesToShare,
-                read: typesToRead
+                toShare: preparation.typesToShare,
+                read: preparation.typesToRead
             )
         }
 
@@ -378,7 +375,38 @@ final class HealthKitManager {
         }
 
         let durationMs = Int(Date().timeIntervalSince(startedAt) * 1_000)
-        AppLog.debug("ℹ️ HealthKit authorization completed in \(durationMs) ms (alreadyAuthorized=\(alreadyAuthorized))")
+        AppLog.debug("ℹ️ HealthKit authorization completed in \(durationMs) ms (alreadyAuthorized=\(preparation.alreadyAuthorized))")
+    }
+
+    private func prepareAuthorizationPayload(forceRefresh: Bool) throws -> AuthorizationPreparation {
+        let now = Date()
+        if !forceRefresh,
+           let authorizationPreparation,
+           now.timeIntervalSince(authorizationPreparation.preparedAt) < authorizationPreparationTTL {
+            return authorizationPreparation
+        }
+
+        let quantityTypes = try supportedQuantityIdentifiers.map { identifier in
+            guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else {
+                throw HealthKitAuthorizationError.typeUnavailable(identifier.rawValue)
+            }
+            return type
+        }
+        guard let dateOfBirthType = HKObjectType.characteristicType(forIdentifier: .dateOfBirth) else {
+            throw HealthKitAuthorizationError.typeUnavailable(HKCharacteristicTypeIdentifier.dateOfBirth.rawValue)
+        }
+
+        let typesToShare = Set(quantityTypes.map { $0 as HKSampleType })
+        let typesToRead = Set(quantityTypes.map { $0 as HKObjectType } + [dateOfBirthType])
+        let preAuthStatuses = try supportedQuantityIdentifiers.map { try store.authorizationStatus(for: $0) }
+        let preparation = AuthorizationPreparation(
+            typesToShare: typesToShare,
+            typesToRead: typesToRead,
+            alreadyAuthorized: preAuthStatuses.contains(.sharingAuthorized),
+            preparedAt: now
+        )
+        authorizationPreparation = preparation
+        return preparation
     }
 
     private func finishAuthorizationSetup() async {
