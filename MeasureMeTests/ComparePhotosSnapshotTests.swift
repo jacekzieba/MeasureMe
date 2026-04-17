@@ -75,6 +75,7 @@ final class ComparePhotosSnapshotTests: XCTestCase {
             .preferredColorScheme(.dark)
 
         let vc = UIHostingController(rootView: view)
+        vc.overrideUserInterfaceStyle = .dark
         vc.view.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()

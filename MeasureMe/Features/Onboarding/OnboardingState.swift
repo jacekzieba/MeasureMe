@@ -20,27 +20,18 @@ extension OnboardingView {
 
     enum InputStep: Int, CaseIterable {
         case name
-        case greeting
         case priority
-        case personalizing
         case health
-        case notifications
         case completion
 
         var analyticsName: String {
             switch self {
             case .name:
                 return "name"
-            case .greeting:
-                return "greeting"
             case .priority:
                 return "priority"
-            case .personalizing:
-                return "personalizing"
             case .health:
                 return "health"
-            case .notifications:
-                return "notifications"
             case .completion:
                 return "completion"
             }
@@ -78,8 +69,7 @@ extension OnboardingView.WelcomeGoal {
         case .buildMuscle:
             return AppLocalization.systemString("Build muscle")
         case .trackHealth:
-            return AppLocalization.systemString("Improve health")
+            return AppLocalization.systemString("Maintain / recomp")
         }
     }
 }
-

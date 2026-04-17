@@ -159,6 +159,7 @@ struct SettingsNavigationRow<Destination: View>: View {
                 trailingText: trailingText,
                 trailingSymbol: nil
             )
+            .accessibilityIdentifier(accessibilityIdentifier ?? "")
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(accessibilityIdentifier ?? "")
@@ -181,6 +182,7 @@ struct SettingsActionRow: View {
                 systemImage: systemImage,
                 trailingText: trailingText
             )
+            .accessibilityIdentifier(accessibilityIdentifier ?? "")
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(accessibilityIdentifier ?? "")

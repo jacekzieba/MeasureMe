@@ -31,7 +31,7 @@ final class OnboardingUITests: XCTestCase {
     }
 
     private func advanceIntroSlides() {
-        for _ in 0..<5 {
+        for _ in 0..<3 {
             XCTAssertTrue(nextButton.waitForExistence(timeout: 10), "Next button should exist on intro slides")
             nextButton.tap()
         }
@@ -41,7 +41,6 @@ final class OnboardingUITests: XCTestCase {
         advanceIntroSlides()
         XCTAssertTrue(app.textFields["onboarding.name.field"].waitForExistence(timeout: 5), "Name field should appear after intro")
         skipButton.tap()
-        nextButton.tap()
         XCTAssertTrue(app.buttons["onboarding.priority.loseWeight"].waitForExistence(timeout: 5), "Priority step should appear")
     }
 
@@ -64,12 +63,45 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertEqual(stepHook.label, "step:0")
     }
 
+    func testIntroSkipAppearsOnlyAfterFirstSlideAndJumpsToName() {
+        XCTAssertFalse(app.buttons["onboarding.intro.skip"].firstMatch.exists, "First intro slide should not expose skip intro")
+
+        nextButton.tap()
+
+        let introSkip = app.buttons["onboarding.intro.skip"].firstMatch
+        XCTAssertTrue(introSkip.waitForExistence(timeout: 5), "Second intro slide should expose skip intro")
+        introSkip.tap()
+
+        XCTAssertTrue(app.textFields["onboarding.name.field"].waitForExistence(timeout: 5), "Skip intro should jump to name")
+    }
+
+    func testNameContinueRequiresNonEmptyInput() {
+        advanceIntroSlides()
+
+        let stepHook = app.staticTexts["root.onboarding.test.step"].firstMatch
+        XCTAssertTrue(stepHook.waitForExistence(timeout: 5))
+        XCTAssertEqual(stepHook.label, "step:3")
+
+        nextButton.tap()
+
+        XCTAssertEqual(stepHook.label, "step:3", "Empty name should not advance through the UITest Next bridge")
+
+        let nameField = app.textFields["onboarding.name.field"].firstMatch
+        nameField.tap()
+        nameField.typeText("Alex")
+        nextButton.tap()
+
+        XCTAssertTrue(app.buttons["onboarding.priority.loseWeight"].waitForExistence(timeout: 5), "Non-empty name should advance to priorities")
+    }
+
     func testPriorityStepShowsThreePrimaryGoals() {
         reachPriorityStep()
 
         XCTAssertTrue(app.buttons["onboarding.priority.loseWeight"].exists)
         XCTAssertTrue(app.buttons["onboarding.priority.buildMuscle"].exists)
         XCTAssertTrue(app.buttons["onboarding.priority.improveHealth"].exists)
+        XCTAssertTrue(app.staticTexts["Maintain / recomp"].exists)
+        XCTAssertTrue(app.staticTexts["Pick one or two to continue."].exists)
     }
 
     func testHealthPromptAppearsAfterPrioritySelection() {
@@ -79,11 +111,11 @@ final class OnboardingUITests: XCTestCase {
         nextButton.tap()
 
         let healthButton = app.buttons["onboarding.health.allow"].firstMatch
-        XCTAssertTrue(healthButton.waitForExistence(timeout: 5), "Health soft ask should appear after personalization")
+        XCTAssertTrue(healthButton.waitForExistence(timeout: 5), "Health soft ask should appear after priority selection")
         XCTAssertTrue(skipButton.exists, "Health step should allow skipping")
     }
 
-    func testSkippingHealthShowsNotificationsStep() {
+    func testSkippingHealthCollapsesToContinueAndNoNotificationsStep() {
         reachPriorityStep()
 
         app.buttons["onboarding.priority.improveHealth"].tap()
@@ -92,7 +124,8 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertTrue(app.buttons["onboarding.health.allow"].waitForExistence(timeout: 5))
         skipButton.tap()
 
-        XCTAssertTrue(app.buttons["onboarding.notifications.allow"].waitForExistence(timeout: 5), "Notifications step should follow the Health step")
+        XCTAssertFalse(app.buttons["onboarding.notifications.allow"].waitForExistence(timeout: 1), "Notifications should no longer be part of onboarding")
+        XCTAssertTrue(app.buttons["onboarding.health.allow"].exists, "Health step should remain visible after skip")
     }
 
     func testOnboardingCanReachDashboardWithSkips() {
@@ -103,18 +136,18 @@ final class OnboardingUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["onboarding.health.allow"].waitForExistence(timeout: 5))
         skipButton.tap()
-        XCTAssertTrue(app.buttons["onboarding.notifications.allow"].waitForExistence(timeout: 5))
-        skipButton.tap()
-        XCTAssertTrue(nextButton.waitForExistence(timeout: 5), "Completion step should still expose the final CTA")
         nextButton.tap()
 
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8), "Finishing onboarding should open the main app")
     }
 
-    func testPrivacyNoteVisibleOnWelcome() {
+    func testPrivacyNoteVisibleInIntro() {
+        nextButton.tap()
+        nextButton.tap()
+
         let privacyNote = app.descendants(matching: .any)["onboarding.privacy.note"].firstMatch
         let privacyCopy = app.staticTexts.matching(
-            NSPredicate(format: "label CONTAINS[c] %@", "Your data stays on this device by default")
+            NSPredicate(format: "label CONTAINS[c] %@", "never leave your device")
         ).firstMatch
         let privacyHookCopy = app.staticTexts["Privacy note"].firstMatch
 

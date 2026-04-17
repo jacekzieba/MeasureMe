@@ -1,5 +1,7 @@
 import SwiftData
 import SwiftUI
+import Combine
+import LocalAuthentication
 
 // MARK: - Photo Entry
 
@@ -36,5 +38,49 @@ final class PhotoEntry {
         self.date = date
         self.tags = tags
         self.linkedMetrics = linkedMetrics
+    }
+}
+
+@MainActor
+final class PhotoPrivacyGate: ObservableObject {
+    static let shared = PhotoPrivacyGate()
+
+    @Published private(set) var isUnlocked = false
+    @Published private(set) var lastErrorMessage: String?
+
+    private init() {}
+
+    func canDisplayPhotos(requireBiometric: Bool) -> Bool {
+        guard requireBiometric else { return true }
+        if UITestArgument.isPresent(.mode) { return true }
+        return isUnlocked
+    }
+
+    func lock() {
+        isUnlocked = false
+    }
+
+    func unlock(reason: String? = nil) async {
+        guard !UITestArgument.isPresent(.mode) else {
+            isUnlocked = true
+            return
+        }
+
+        let context = LAContext()
+        var error: NSError?
+        let policy: LAPolicy = .deviceOwnerAuthenticationWithBiometrics
+        guard context.canEvaluatePolicy(policy, error: &error) else {
+            lastErrorMessage = error?.localizedDescription
+            return
+        }
+
+        do {
+            let localizedReason = reason ?? AppLocalization.string("Unlock photos")
+            let success = try await context.evaluatePolicy(policy, localizedReason: localizedReason)
+            isUnlocked = success
+            lastErrorMessage = success ? nil : AppLocalization.string("Could not unlock photos.")
+        } catch {
+            lastErrorMessage = error.localizedDescription
+        }
     }
 }

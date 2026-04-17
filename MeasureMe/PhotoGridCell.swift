@@ -8,6 +8,8 @@ struct PhotoGridCell: View {
     let photo: PhotoEntry
     let isSelected: Bool
     let isSelecting: Bool
+    var size: CGFloat = 110
+    var showsMetadata: Bool = true
     var revealIndex: Int = 0
     @State private var isVisible = false
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
@@ -23,6 +25,12 @@ struct PhotoGridCell: View {
                         .stroke(isSelected ? Color(hex: "#FCA311") : Color.clear, lineWidth: 3)
                 }
                 .scaleEffect(isSelected ? 0.95 : 1.0)
+
+            if showsMetadata {
+                PhotoGridMetadataOverlay(photo: photo)
+                    .padding(6)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+            }
 
             if isSelecting {
                 selectionIndicator
@@ -109,13 +117,55 @@ private extension PhotoGridCell {
     var photoImage: some View {
         DownsampledImageView(
             imageData: photo.preferredGridImageData,
-            targetSize: CGSize(width: 110, height: 110),
+            targetSize: CGSize(width: size, height: size),
             contentMode: .fill,
             cornerRadius: 12,
             showsProgress: false,
             cacheID: String(describing: photo.id)
         )
-        .frame(width: 110, height: 110)
+        .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+struct PhotoGridMetadataOverlay: View {
+    let photo: PhotoEntry
+
+    private var dateText: String {
+        photo.date.formatted(.dateTime.month(.abbreviated).day())
+    }
+
+    private var poseText: String? {
+        PhotoTag.primaryPose(in: photo.tags)?.shortLabel
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(dateText)
+                .font(AppTypography.microEmphasis)
+                .monospacedDigit()
+
+            if let poseText {
+                Text(poseText)
+                    .font(AppTypography.microEmphasis)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(Color.white.opacity(0.16), in: RoundedRectangle(cornerRadius: 4))
+            }
+        }
+        .foregroundStyle(.white)
+        .lineLimit(1)
+        .minimumScaleFactor(0.78)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 5)
+        .background(
+            LinearGradient(
+                colors: [Color.black.opacity(0.68), Color.black.opacity(0.36)],
+                startPoint: .leading,
+                endPoint: .trailing
+            ),
+            in: RoundedRectangle(cornerRadius: 7)
+        )
+        .accessibilityHidden(true)
     }
 }

@@ -40,32 +40,28 @@ struct OnboardingView: View {
     @State private var nameInput: String = ""
     @State private var selectedPriorities: Set<OnboardingPriority> = []
     @State private var isRequestingHealthKit = false
-    @State private var isRequestingNotifications = false
     @State private var healthStatusLines: [String] = []
     @State private var healthAuthorizationPhase: HealthAuthorizationPhase = .idle
     @State private var healthAuthorizationVisualProgress: CGFloat = 0
     @State private var didPrewarmHealthKitAuthorization = false
-    @State private var didAutoAdvancePersonalizing = false
     @State private var hasTrackedStart = false
     @State private var slideAppeared = false
     @State private var inputContentAppeared = false
-    @State private var personalizingTextIndex = 0
-    @State private var personalizingProgress: CGFloat = 0
     @State private var completionAppeared = false
     @State private var completionRippleScale: CGFloat = 0.5
     @State private var completionRippleOpacity: Double = 0.6
 
     private let isUITestOnboardingMode = UITestArgument.isPresent(.onboardingMode)
 
-    init(effects: OnboardingEffects = .live) {
-        self.effects = effects
+    init(effects: OnboardingEffects? = nil) {
+        self.effects = effects ?? .live
     }
 
     private var shouldAnimate: Bool {
         AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 
-    private var totalIntroSlides: Int { 5 }
+    private var totalIntroSlides: Int { 3 }
     private var activationTasksCount: Int { ActivationTask.allCases.count }
 
     private var overallStepIndex: Int {
@@ -91,7 +87,13 @@ struct OnboardingView: View {
         case .intro:
             return false
         case .input(let step):
-            return step != .personalizing
+            if step == .name {
+                return true
+            }
+            if step == .health {
+                return !onboardingSkippedHealthKit && !isSyncEnabled
+            }
+            return false
         }
     }
 
@@ -118,10 +120,7 @@ struct OnboardingView: View {
         switch phase {
         case .intro:
             return ""
-        case .input(let step):
-            if step == .notifications {
-                return AppLocalization.systemString("Skip for now")
-            }
+        case .input:
             return FlowLocalization.system("Skip", "Pomiń", "Omitir", "Überspringen", "Passer", "Pular")
         }
     }
@@ -132,14 +131,12 @@ struct OnboardingView: View {
             return true
         case .input(let step):
             switch step {
-            case .personalizing:
-                return false
+            case .name:
+                return !nameInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             case .priority:
                 return !selectedPriorities.isEmpty
             case .health:
                 return !isRequestingHealthKit
-            case .notifications:
-                return !isRequestingNotifications
             default:
                 return true
             }
@@ -281,9 +278,34 @@ struct OnboardingView: View {
             if case .intro = phase {
                 introDots
             }
+
+            Spacer()
+
+            introSkipLink
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.top, 12)
+    }
+
+    @ViewBuilder
+    private var introSkipLink: some View {
+        if case .intro = phase, introIndex > 0 {
+            Button {
+                skipCurrentStep()
+            } label: {
+                Text(FlowLocalization.system("Skip intro", "Pomiń intro", "Saltar intro", "Intro überspringen", "Passer l'intro", "Pular intro"))
+                    .font(AppTypography.captionEmphasis)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .frame(width: 92, alignment: .trailing)
+                    .frame(minHeight: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("onboarding.intro.skip")
+        } else {
+            Color.clear
+                .frame(width: 92, height: 44)
+                .accessibilityHidden(true)
+        }
     }
 
     private var introDots: some View {
@@ -347,53 +369,40 @@ struct OnboardingView: View {
 
     @ViewBuilder
     private func introSlide(index: Int) -> some View {
-        if index == 0 {
-            VStack(spacing: 0) {
+        ZStack {
+            ambientBlobs(for: index)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+
+            VStack(alignment: .leading, spacing: 22) {
                 Spacer(minLength: 10)
 
-                introWelcomeVisual
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                onboardingSlideHeader(
+                    title: OnboardingCopy.introTitle(index: index),
+                    subtitle: OnboardingCopy.introSubtitle(index: index)
+                )
+                .opacity(slideAppeared ? 1 : 0)
+                .offset(y: slideAppeared ? 0 : 20)
+                .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.05) : .none, value: slideAppeared)
+
+                Group {
+                    switch index {
+                    case 0:
+                        introMetricsVisual
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                            .padding(.top, AppSpacing.sm)
+                    case 1:
+                        introPhotosVisual
+                    default:
+                        introPrivacyVisual
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .opacity(slideAppeared ? 1 : 0)
+                .offset(y: slideAppeared ? 0 : 24)
+                .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.10) : .none, value: slideAppeared)
 
                 Spacer(minLength: 0)
-            }
-        } else {
-            ZStack {
-                ambientBlobs(for: index)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-
-                VStack(alignment: .leading, spacing: 22) {
-                    Spacer(minLength: 10)
-
-                    onboardingSlideHeader(
-                        title: OnboardingCopy.introTitle(index: index),
-                        subtitle: OnboardingCopy.introSubtitle(index: index)
-                    )
-                    .opacity(slideAppeared ? 1 : 0)
-                    .offset(y: slideAppeared ? 0 : 20)
-                    .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.1) : .none, value: slideAppeared)
-
-                    Group {
-                        switch index {
-                        case 1:
-                            introMetricsVisual
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                                .padding(.top, AppSpacing.sm)
-                        case 2:
-                            introPhotosVisual
-                        case 3:
-                            introHealthVisual
-                        default:
-                            introPrivacyVisual
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .opacity(slideAppeared ? 1 : 0)
-                    .offset(y: slideAppeared ? 0 : 24)
-                    .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.25) : .none, value: slideAppeared)
-
-                    Spacer(minLength: 0)
-                }
             }
         }
     }
@@ -424,35 +433,22 @@ struct OnboardingView: View {
                         .accessibilityIdentifier("onboarding.name.field")
                 }
             }
-        case .greeting:
-            onboardingInputCard {
-                VStack(alignment: .leading, spacing: 18) {
-                    Text("👋")
-                        .font(.system(size: 44))
-                    Text(OnboardingCopy.greeting(name: effectiveName))
-                        .font(AppTypography.displaySection)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                    Text(OnboardingCopy.greetingBody)
-                        .font(AppTypography.body)
-                        .foregroundStyle(AppColorRoles.textSecondary)
-                }
-            }
         case .priority:
             onboardingInputCard {
-                VStack(alignment: .leading, spacing: 18) {
-                    Text(OnboardingCopy.priorityPrompt)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(OnboardingCopy.priorityPrompt(name: effectiveNameForGreeting))
                         .font(AppTypography.displaySection)
                         .foregroundStyle(AppColorRoles.textPrimary)
+
+                    Text(OnboardingCopy.priorityHelper)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary)
 
                     ForEach(OnboardingPriority.allCases, id: \.self) { priority in
                         let isSelected = selectedPriorities.contains(priority)
                         Button {
                             Haptics.selection()
-                            if isSelected {
-                                selectedPriorities.remove(priority)
-                            } else {
-                                selectedPriorities.insert(priority)
-                            }
+                            selectedPriorities = OnboardingPrioritySelectionPolicy.toggled(priority, in: selectedPriorities)
                         } label: {
                             HStack(spacing: 14) {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -485,59 +481,6 @@ struct OnboardingView: View {
                         .accessibilityIdentifier("onboarding.priority.\(priority.rawValue)")
                     }
                 }
-            }
-        case .personalizing:
-            onboardingInputCard {
-                VStack(alignment: .leading, spacing: 18) {
-                    VStack(spacing: 10) {
-                        SkeletonBlock(cornerRadius: AppRadius.sm)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 14)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.trailing, UIScreen.main.bounds.width * 0.22)
-                            .skeletonShimmer(enabled: true)
-                        SkeletonBlock(cornerRadius: AppRadius.sm)
-                            .frame(height: 14)
-                            .padding(.trailing, UIScreen.main.bounds.width * 0.08)
-                            .skeletonShimmer(enabled: true)
-                        SkeletonBlock(cornerRadius: AppRadius.sm)
-                            .frame(height: 14)
-                            .padding(.trailing, UIScreen.main.bounds.width * 0.36)
-                            .skeletonShimmer(enabled: true)
-                    }
-
-                    Text(personalizingStatusText)
-                        .font(AppTypography.displaySection)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                        .contentTransition(.opacity)
-
-                    Capsule(style: .continuous)
-                        .fill(Color.appAccent)
-                        .frame(height: 4)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .scaleEffect(x: personalizingProgress, anchor: .leading)
-                        .animation(shouldAnimate ? .linear(duration: 1.2) : .none, value: personalizingProgress)
-                }
-            }
-            .task {
-                guard !didAutoAdvancePersonalizing else { return }
-                didAutoAdvancePersonalizing = true
-                personalizingProgress = 1.0
-                let texts = personalizingTexts
-                for i in 1..<texts.count {
-                    try? await Task.sleep(for: .milliseconds(400))
-                    guard phase == .input(.personalizing) else { return }
-                    if shouldAnimate {
-                        withAnimation(AppMotion.standard) {
-                            personalizingTextIndex = i
-                        }
-                    } else {
-                        personalizingTextIndex = i
-                    }
-                }
-                try? await Task.sleep(for: .milliseconds(450))
-                guard phase == .input(.personalizing) else { return }
-                animateToInputStep(.health)
             }
         case .health:
             onboardingInputCard {
@@ -589,32 +532,6 @@ struct OnboardingView: View {
                 guard !didPrewarmHealthKitAuthorization else { return }
                 didPrewarmHealthKitAuthorization = true
                 await effects.prewarmHealthKitAuthorization()
-            }
-        case .notifications:
-            onboardingInputCard {
-                VStack(alignment: .leading, spacing: 18) {
-                    Image(systemName: "bell.badge.fill")
-                        .font(.system(size: 38))
-                        .foregroundStyle(Color.appAccent)
-                    Text(OnboardingCopy.notificationsTitle)
-                        .font(AppTypography.displaySection)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                    Text(OnboardingCopy.notificationsBody)
-                        .font(AppTypography.body)
-                        .foregroundStyle(AppColorRoles.textSecondary)
-
-                    Button {
-                        requestNotificationAccess()
-                    } label: {
-                        Text(OnboardingCopy.notificationsCTA)
-                            .foregroundStyle(AppColorRoles.textOnAccent)
-                            .frame(maxWidth: .infinity)
-                            .frame(minHeight: 50)
-                    }
-                    .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-                    .disabled(isRequestingNotifications)
-                    .accessibilityIdentifier("onboarding.notifications.allow")
-                }
             }
         case .completion:
             onboardingInputCard {
@@ -1051,12 +968,12 @@ struct OnboardingView: View {
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.appWhite)
                     Text(FlowLocalization.system(
-                        "Your photos and measurements stay on your device unless you choose otherwise.",
-                        "Twoje zdjęcia i pomiary pozostają na urządzeniu, chyba że sam zdecydujesz inaczej.",
-                        "Tus fotos y medidas permanecen en tu dispositivo salvo que elijas lo contrario.",
-                        "Deine Fotos und Messwerte bleiben auf deinem Gerät, sofern du nichts anderes entscheidest.",
-                        "Vos photos et mesures restent sur votre appareil sauf choix contraire.",
-                        "Suas fotos e medições ficam no seu dispositivo, a menos que você escolha o contrário."
+                        "Your photos and measurements never leave your device.",
+                        "Twoje zdjęcia i pomiary nigdy nie opuszczają urządzenia.",
+                        "Tus fotos y medidas nunca salen de tu dispositivo.",
+                        "Deine Fotos und Messwerte verlassen dein Gerät nie.",
+                        "Vos photos et mesures ne quittent jamais votre appareil.",
+                        "Suas fotos e medições nunca saem do seu dispositivo."
                     ))
                     .font(AppTypography.body)
                     .foregroundStyle(AppColorRoles.textSecondary)
@@ -1078,19 +995,6 @@ struct OnboardingView: View {
             .padding(.top, 12)
         }
         .scrollIndicators(.hidden)
-    }
-
-    private var personalizingTexts: [String] {
-        [
-            FlowLocalization.system("Analyzing your goals…", "Analizuję Twoje cele…", "Analizando tus objetivos…", "Deine Ziele werden analysiert…", "Analyse de vos objectifs…", "Analisando seus objetivos…"),
-            FlowLocalization.system("Setting up your metrics…", "Konfiguruję Twoje metryki…", "Configurando tus métricas…", "Messwerte werden eingerichtet…", "Configuration de vos mesures…", "Configurando suas métricas…"),
-            FlowLocalization.system("Almost there…", "Prawie gotowe…", "Casi listo…", "Fast fertig…", "Presque prêt…", "Quase pronto…")
-        ]
-    }
-
-    private var personalizingStatusText: String {
-        let texts = personalizingTexts
-        return texts[min(personalizingTextIndex, texts.count - 1)]
     }
 
     private func flowSummaryRow(title: String, value: String, multilineValue: Bool = false) -> some View {
@@ -1133,6 +1037,14 @@ struct OnboardingView: View {
         let trimmedStored = userName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedStored.isEmpty { return trimmedStored }
         return FlowLocalization.system("there", "tam", "ahí", "da", "là", "aí")
+    }
+
+    private var effectiveNameForGreeting: String? {
+        let trimmedInput = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedInput.isEmpty { return trimmedInput }
+        let trimmedStored = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedStored.isEmpty { return trimmedStored }
+        return nil
     }
 
     private func handleAppear() {
@@ -1196,6 +1108,7 @@ struct OnboardingView: View {
     }
 
     private func goToNextStep() {
+        guard isPrimaryEnabled else { return }
         switch phase {
         case .intro:
             if introIndex < totalIntroSlides - 1 {
@@ -1207,19 +1120,17 @@ struct OnboardingView: View {
             switch step {
             case .name:
                 persistNameIfNeeded()
-                animateToInputStep(.greeting)
-            case .greeting:
                 animateToInputStep(.priority)
             case .priority:
                 persistPriority()
-                animateToInputStep(.personalizing)
-            case .personalizing:
-                break
+                animateToInputStep(.health)
             case .health:
                 onboardingSkippedHealthKit = !isSyncEnabled
-                animateToInputStep(.notifications)
-            case .notifications:
-                animateToInputStep(.completion)
+                if isSyncEnabled {
+                    animateToInputStep(.completion)
+                } else {
+                    finishOnboarding()
+                }
             case .completion:
                 finishOnboarding()
             }
@@ -1237,19 +1148,22 @@ struct OnboardingView: View {
             )
             switch step {
             case .name:
-                animateToInputStep(.greeting)
-            case .greeting:
                 animateToInputStep(.priority)
             case .priority:
                 persistPriority()
                 animateToInputStep(.health)
-            case .personalizing:
-                animateToInputStep(.health)
             case .health:
                 onboardingSkippedHealthKit = true
-                animateToInputStep(.notifications)
-            case .notifications:
-                onboardingSkippedReminders = true
+                healthStatusLines = [
+                    FlowLocalization.system(
+                        "You can connect Health later in Settings.",
+                        "Health możesz połączyć później w Ustawieniach.",
+                        "Puedes conectar Salud más tarde en Ajustes.",
+                        "Du kannst Health später in den Einstellungen verbinden.",
+                        "Vous pourrez connecter Santé plus tard dans Réglages.",
+                        "Você pode conectar o Health depois nos Ajustes."
+                    )
+                ]
                 animateToInputStep(.completion)
             case .completion:
                 finishOnboarding()
@@ -1394,33 +1308,6 @@ struct OnboardingView: View {
             }
         } else {
             healthAuthorizationVisualProgress = targetProgress
-        }
-    }
-
-    private func requestNotificationAccess() {
-        guard !isRequestingNotifications else { return }
-        isRequestingNotifications = true
-        Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.onboarding.notifications.prompt_shown",
-            parameters: ["source": "onboarding"]
-        )
-
-        Task { @MainActor in
-            let granted = await effects.requestNotificationAuthorization()
-            effects.setNotificationsEnabled(granted)
-            onboardingSkippedReminders = !granted
-            isRequestingNotifications = false
-
-            Analytics.shared.track(
-                signalName: granted
-                    ? "com.jacekzieba.measureme.onboarding.notifications.accepted"
-                    : "com.jacekzieba.measureme.onboarding.notifications.declined",
-                parameters: ["source": "onboarding"]
-            )
-
-            if granted {
-                animateToInputStep(.completion)
-            }
         }
     }
 
@@ -1853,4 +1740,3 @@ private struct OnboardingConfettiView: View {
         .onAppear { animate = true }
     }
 }
-

@@ -13,29 +13,22 @@ struct PhotoPreviewSection: View {
     
     var body: some View {
         AppGlassCard(depth: .floating, cornerRadius: 24, tint: FeatureTheme.photos.strongTint, contentPadding: 12) {
-            VStack(spacing: 10) {
-                DownsampledImageView(
-                    imageData: imageData,
-                    targetSize: CGSize(width: 600, height: 600),
-                    contentMode: .fill,
-                    cornerRadius: 20,
-                    cacheID: cacheID
-                )
-                .aspectRatio(imageAspectRatio, contentMode: .fit)
-                .frame(maxWidth: .infinity)
-                .shadow(radius: 5)
-                .onTapGesture {
-                    onTapFullScreen()
-                }
-
-                Button {
-                    onTapFullScreen()
-                } label: {
-                    Label(AppLocalization.string("View Full Screen"), systemImage: "arrow.up.left.and.arrow.down.right")
-                        .font(AppTypography.captionEmphasis)
-                        .foregroundStyle(FeatureTheme.photos.accent)
-                }
+            DownsampledImageView(
+                imageData: imageData,
+                targetSize: CGSize(width: 600, height: 600),
+                contentMode: .fill,
+                cornerRadius: 20,
+                cacheID: cacheID
+            )
+            .aspectRatio(imageAspectRatio, contentMode: .fit)
+            .frame(maxWidth: .infinity)
+            .shadow(radius: 5)
+            .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .onTapGesture {
+                onTapFullScreen()
             }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel(AppLocalization.string("View Full Screen"))
         }
     }
 }

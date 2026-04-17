@@ -12,15 +12,21 @@ struct ActiveFiltersView: View {
                     if filters.dateRange != .all {
                         FilterChip(
                             icon: "calendar",
-                            title: filters.dateRange.title
+                            title: filters.dateRange.title,
+                            onRemove: {
+                                filters.dateRange = .all
+                            }
                         )
                     }
                     
                     // Tags chips
-                    if !filters.selectedTags.isEmpty {
+                    ForEach(Array(filters.selectedTags).sorted { $0.title < $1.title }, id: \.self) { tag in
                         FilterChip(
                             icon: "tag.fill",
-                            title: AppLocalization.plural("photos.tags.count", filters.selectedTags.count)
+                            title: tag.title,
+                            onRemove: {
+                                filters.selectedTags.remove(tag)
+                            }
                         )
                     }
                     
@@ -48,11 +54,18 @@ struct ActiveFiltersView: View {
 private struct FilterChip: View {
     let icon: String
     let title: String
+    let onRemove: () -> Void
     
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
             Text(title)
+            Button(action: onRemove) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .bold))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(AppLocalization.string("Remove filter"))
         }
         .font(.caption)
         .fontWeight(.medium)

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DataSettingsDetailView: View {
     @AppSetting(\.analytics.analyticsEnabled) private var analyticsEnabled: Bool = true
+    @AppSetting(\.privacy.requireBiometricForPhotos) private var requireBiometricForPhotos: Bool = false
     @AppSetting(\.iCloudBackup.lastBackupSizeBytes) private var lastBackupSizeBytes: Int64 = 0
     @Binding var iCloudBackupEnabled: Bool
     @Binding var isBackingUp: Bool
@@ -175,6 +176,37 @@ struct DataSettingsDetailView: View {
                     }
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     .accessibilityIdentifier("settings.data.analytics.toggle")
+
+                    SettingsRowDivider()
+
+                    HStack(alignment: .top, spacing: 12) {
+                        GlassPillIcon(systemName: "faceid")
+                            .padding(.top, 2)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(AppLocalization.string("Require Face ID to view photos"))
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                            Text(AppLocalization.string("Blurs progress photos until you unlock them."))
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColorRoles.textSecondary)
+                        }
+
+                        Spacer(minLength: 12)
+
+                        Toggle("", isOn: $requireBiometricForPhotos)
+                            .labelsHidden()
+                            .frame(width: 52, alignment: .trailing)
+                            .accessibilityLabel(AppLocalization.string("Require Face ID to view photos"))
+                            .accessibilityValue(requireBiometricForPhotos ? AppLocalization.string("Enabled") : AppLocalization.string("Disabled"))
+                    }
+                    .tint(theme.accent)
+                    .onChange(of: requireBiometricForPhotos) { _, _ in
+                        Haptics.selection()
+                        PhotoPrivacyGate.shared.lock()
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .accessibilityIdentifier("settings.data.photosPrivacy.toggle")
 
                     SettingsRowDivider()
 

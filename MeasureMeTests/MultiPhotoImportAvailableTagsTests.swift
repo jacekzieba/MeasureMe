@@ -9,13 +9,22 @@ import XCTest
 
 final class MultiPhotoImportAvailableTagsTests: XCTestCase {
 
+    func testPrimaryPoseTagsEncodeDecode() throws {
+        let data = try JSONEncoder().encode(PhotoTag.primaryPoseTags)
+        let decoded = try JSONDecoder().decode([PhotoTag].self, from: data)
+
+        XCTAssertEqual(decoded, [.front, .side, .back, .detail])
+        XCTAssertEqual(PhotoTag.primaryPose(in: decoded), .front)
+        XCTAssertEqual(PhotoTag.side.shortLabel, "S")
+    }
+
     // MARK: - Pomocnik: replika logiki availableTags
 
     /// Izolowana kopia logiki z MultiPhotoImportView.availableTags.
     /// Testując tę funkcję testujemy zachowanie widoku bez konieczności
     /// instancjowania SwiftUI View.
     private func availableTags(for activeKinds: [MetricKind]) -> [PhotoTag] {
-        var tags: [PhotoTag] = [.wholeBody]
+        var tags: [PhotoTag] = PhotoTag.primaryPoseTags
         let activeTags = activeKinds
             .filter { $0 != .weight && $0 != .bodyFat && $0 != .leanBodyMass }
             .compactMap { PhotoTag(metricKind: $0) }
@@ -28,18 +37,18 @@ final class MultiPhotoImportAvailableTagsTests: XCTestCase {
     /// Co sprawdza: wholeBody jest zawsze pierwszym elementem, niezależnie od aktywnych metryk.
     /// Dlaczego: wholeBody to domyślny tag — musi być dostępny zawsze.
     /// Kryteria: tags.first == .wholeBody dla dowolnego wejścia.
-    func testAvailableTagsAlwaysStartsWithWholeBody() {
-        XCTAssertEqual(availableTags(for: []).first, .wholeBody)
-        XCTAssertEqual(availableTags(for: [.waist, .hips]).first, .wholeBody)
-        XCTAssertEqual(availableTags(for: [.weight, .bodyFat]).first, .wholeBody)
+    func testAvailableTagsAlwaysStartsWithPrimaryPoseTags() {
+        XCTAssertEqual(Array(availableTags(for: []).prefix(PhotoTag.primaryPoseTags.count)), PhotoTag.primaryPoseTags)
+        XCTAssertEqual(Array(availableTags(for: [.waist, .hips]).prefix(PhotoTag.primaryPoseTags.count)), PhotoTag.primaryPoseTags)
+        XCTAssertEqual(Array(availableTags(for: [.weight, .bodyFat]).prefix(PhotoTag.primaryPoseTags.count)), PhotoTag.primaryPoseTags)
     }
 
     /// Co sprawdza: Brak aktywnych metryk → tylko [.wholeBody].
     /// Dlaczego: Użytkownik bez aktywnych metryk powinien widzieć dokładnie jeden tag.
     /// Kryteria: tags == [.wholeBody].
-    func testNoActiveMetricsReturnsOnlyWholeBody() {
+    func testNoActiveMetricsReturnsOnlyPrimaryPoseTags() {
         let result = availableTags(for: [])
-        XCTAssertEqual(result, [.wholeBody])
+        XCTAssertEqual(result, PhotoTag.primaryPoseTags)
     }
 
     // MARK: - Wykluczone metryki
@@ -68,33 +77,33 @@ final class MultiPhotoImportAvailableTagsTests: XCTestCase {
     /// Co sprawdza: availableTags nie zawiera żadnego tagu z weight gdy jest jedyną aktywną metryką.
     /// Dlaczego: Filter musi działać na poziomie MetricKind, nie tylko PhotoTag.init.
     /// Kryteria: result == [.wholeBody] (tylko wholeBody, bez żadnego dodatkowego tagu z weight).
-    func testWeightOnlyActiveKindsGivesOnlyWholeBody() {
+    func testWeightOnlyActiveKindsGivesOnlyPrimaryPoseTags() {
         let result = availableTags(for: [.weight])
-        XCTAssertEqual(result, [.wholeBody])
+        XCTAssertEqual(result, PhotoTag.primaryPoseTags)
     }
 
     /// Co sprawdza: availableTags nie zawiera tagów z bodyFat gdy jest jedyną aktywną metryką.
     /// Dlaczego: Analogicznie do weight — kompletność filtru.
     /// Kryteria: result == [.wholeBody].
-    func testBodyFatOnlyActiveKindsGivesOnlyWholeBody() {
+    func testBodyFatOnlyActiveKindsGivesOnlyPrimaryPoseTags() {
         let result = availableTags(for: [.bodyFat])
-        XCTAssertEqual(result, [.wholeBody])
+        XCTAssertEqual(result, PhotoTag.primaryPoseTags)
     }
 
     /// Co sprawdza: availableTags nie zawiera tagów z leanBodyMass gdy jest jedyną aktywną metryką.
     /// Dlaczego: Analogicznie do weight i bodyFat.
     /// Kryteria: result == [.wholeBody].
-    func testLeanBodyMassOnlyActiveKindsGivesOnlyWholeBody() {
+    func testLeanBodyMassOnlyActiveKindsGivesOnlyPrimaryPoseTags() {
         let result = availableTags(for: [.leanBodyMass])
-        XCTAssertEqual(result, [.wholeBody])
+        XCTAssertEqual(result, PhotoTag.primaryPoseTags)
     }
 
     /// Co sprawdza: Zestaw tylko wykluczonych metryk (weight + bodyFat + leanBodyMass) → [.wholeBody].
     /// Dlaczego: Upewniamy się, że żaden z nich nie przemknie przez filter.
     /// Kryteria: result == [.wholeBody].
-    func testAllExcludedMetricsGiveOnlyWholeBody() {
+    func testAllExcludedMetricsGiveOnlyPrimaryPoseTags() {
         let result = availableTags(for: [.weight, .bodyFat, .leanBodyMass])
-        XCTAssertEqual(result, [.wholeBody])
+        XCTAssertEqual(result, PhotoTag.primaryPoseTags)
     }
 
     // MARK: - Poprawne mapowanie
@@ -122,11 +131,11 @@ final class MultiPhotoImportAvailableTagsTests: XCTestCase {
     /// Kryteria: Wynik zawiera dokładnie [.wholeBody, .waist, .hips, .leftBicep].
     func testMultipleActiveMetricsMappedCorrectly() {
         let result = availableTags(for: [.waist, .hips, .leftBicep])
-        XCTAssertTrue(result.contains(.wholeBody))
+        XCTAssertTrue(result.contains(.front))
         XCTAssertTrue(result.contains(.waist))
         XCTAssertTrue(result.contains(.hips))
         XCTAssertTrue(result.contains(.leftBicep))
-        XCTAssertEqual(result.count, 4, "Powinny być dokładnie 4 tagi: wholeBody + 3 metryki")
+        XCTAssertEqual(result.count, PhotoTag.primaryPoseTags.count + 3)
     }
 
     /// Co sprawdza: Wykluczone metryki wśród aktywnych nie trafiają do tagów.
@@ -136,18 +145,18 @@ final class MultiPhotoImportAvailableTagsTests: XCTestCase {
         let result = availableTags(for: [.weight, .waist, .bodyFat, .hips, .leanBodyMass])
         XCTAssertTrue(result.contains(.waist), "waist powinien być w tagach")
         XCTAssertTrue(result.contains(.hips), "hips powinien być w tagach")
-        XCTAssertEqual(result.count, 3, "Powinny być 3 tagi: wholeBody + waist + hips (weight, bodyFat, leanBodyMass wykluczone)")
+        XCTAssertEqual(result.count, PhotoTag.primaryPoseTags.count + 2)
     }
 
     /// Co sprawdza: Kolejność tagów: wholeBody jest pierwszy, reszta po kolei jak w activeKinds.
     /// Dlaczego: Widok renderuje tagi w kolejności — nieprzewidywalna kolejność psuje UX.
     /// Kryteria: result[0] == .wholeBody, dalej w kolejności wejścia.
-    func testWholeBodyIsAlwaysFirst() {
+    func testPrimaryPoseTagsAreAlwaysFirst() {
         let result = availableTags(for: [.neck, .shoulders, .waist])
-        XCTAssertEqual(result[0], .wholeBody)
-        XCTAssertEqual(result[1], .neck)
-        XCTAssertEqual(result[2], .shoulders)
-        XCTAssertEqual(result[3], .waist)
+        XCTAssertEqual(Array(result.prefix(PhotoTag.primaryPoseTags.count)), PhotoTag.primaryPoseTags)
+        XCTAssertEqual(result[4], .neck)
+        XCTAssertEqual(result[5], .shoulders)
+        XCTAssertEqual(result[6], .waist)
     }
 
     // MARK: - Wszystkie obsługiwane metryki

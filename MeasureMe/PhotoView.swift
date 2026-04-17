@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 /// Main Photos view in the Tab Bar
 /// Displays photos in a grid with selection and comparison modes
@@ -13,6 +14,7 @@ struct PhotoView: View {
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
     @EnvironmentObject private var router: AppRouter
+    @ObservedObject private var photoPrivacyGate = PhotoPrivacyGate.shared
     @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)]) private var allPhotos: [PhotoEntry]
     
     @StateObject private var filters = PhotoFilters()
@@ -23,6 +25,8 @@ struct PhotoView: View {
     @State private var didDismissPendingLaunchSourceChooser = false
     @State private var showCamera = false
     @State private var cameraPickerImage: UIImage? = nil
+    @State private var capturedImportImage: UIImage? = nil
+    @State private var showCapturedImportSheet = false
     @State private var showLibraryPicker = false   // PHPicker (1 and multiple)
     @State private var pendingLibrarySelection: MultiPhotoLibrarySelectionPayload? = nil
     @State private var singlePickerImage: UIImage? = nil
@@ -49,12 +53,17 @@ struct PhotoView: View {
     
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.experience.photosFilterTag) private var photosFilterTag: String = ""
+    @AppSetting(\.privacy.requireBiometricForPhotos) private var requireBiometricForPhotos: Bool = false
     private var shouldAnimate: Bool {
         AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 
     private var uiTestModeEnabled: Bool {
         UITestArgument.isPresent(.mode)
+    }
+
+    private var canDisplayPhotos: Bool {
+        photoPrivacyGate.canDisplayPhotos(requireBiometric: requireBiometricForPhotos)
     }
 
     private var shouldShowPendingLaunchSourceChooser: Bool {
@@ -67,7 +76,7 @@ struct PhotoView: View {
     }
 
     private var canUsePremiumCompare: Bool {
-        premiumStore.isPremium || uiTestModeEnabled
+        true
     }
 
     private let heroCompareOverrideLifetime: TimeInterval = 30 * 60
@@ -120,6 +129,16 @@ struct PhotoView: View {
                         recentlySavedPhotoEventID: recentlySavedPhotoEventID,
                         pendingItems: pendingPhotoSaveStore.pendingItems
                     )
+                    .blur(radius: canDisplayPhotos ? 0 : 18)
+                    .allowsHitTesting(canDisplayPhotos)
+                    .overlay {
+                        if !canDisplayPhotos {
+                            PhotoPrivacyLockedView {
+                                Task { await photoPrivacyGate.unlock() }
+                            }
+                            .padding(.horizontal, 24)
+                        }
+                    }
                     .refreshable {
                         refreshPhotoContent()
                     }
@@ -194,6 +213,12 @@ struct PhotoView: View {
             .onChange(of: pendingPhotoSaveStore.lastFailureMessage) { _, newValue in
                 handlePendingPhotoFailure(newValue)
             }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+                photoPrivacyGate.lock()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+                photoPrivacyGate.lock()
+            }
             // Deep link / empty state — opens AddPhotoView without a photo
             .sheet(isPresented: $showAddPhoto) {
                 NavigationStack {
@@ -204,11 +229,27 @@ struct PhotoView: View {
             // Camera → AddPhotoView with preview (onDismiss after dismiss, which follows onSelect)
             .sheet(isPresented: $showCamera, onDismiss: {
                 if let img = cameraPickerImage {
-                    presentSingleImport(images: [img])
+                    capturedImportImage = img
+                    showCapturedImportSheet = true
                     cameraPickerImage = nil
                 }
             }) {
-                CameraPickerView(selectedImage: $cameraPickerImage)
+                if UIImagePickerController.isSourceTypeAvailable(.camera), !uiTestModeEnabled {
+                    GuidedCameraView(
+                        selectedImage: $cameraPickerImage,
+                        overlayImageData: allPhotos.first?.thumbnailOrImageData
+                    )
+                } else {
+                    CameraPickerView(selectedImage: $cameraPickerImage)
+                }
+            }
+            .sheet(isPresented: $showCapturedImportSheet, onDismiss: {
+                capturedImportImage = nil
+            }) {
+                NavigationStack {
+                    AddPhotoView(previewImage: capturedImportImage)
+                        .environmentObject(metricsStore)
+                }
             }
             // PHPicker (1 and multiple) — routing based on the number of selected photos.
             .sheet(isPresented: $showLibraryPicker, onDismiss: {
@@ -360,15 +401,11 @@ struct PhotoView: View {
 
     private func handleAddPhotoTap() {
         Haptics.light()
-        showSourceChooserSheet = true
+        showCamera = true
     }
 
     private func handleOpenCompareChooserTap() {
         Haptics.light()
-        guard canUsePremiumCompare else {
-            premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
-            return
-        }
         compareChooserContext = CompareChooserContext(
             olderPhoto: nil,
             newerPhoto: nil,
@@ -378,10 +415,6 @@ struct PhotoView: View {
 
     private func handleChooseHeroSlot(_ pair: PhotoComparePairSuggestion, _ slot: CompareChooserSlot) {
         Haptics.light()
-        guard canUsePremiumCompare else {
-            premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
-            return
-        }
         compareChooserContext = CompareChooserContext(
             olderPhoto: pair.older,
             newerPhoto: pair.newer,
@@ -390,10 +423,6 @@ struct PhotoView: View {
     }
 
     private func handleOpenSuggestedCompare(_ pair: PhotoComparePairSuggestion) {
-        guard canUsePremiumCompare else {
-            premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
-            return
-        }
         openCompare(using: pair.older, pair.newer)
     }
 
@@ -466,41 +495,19 @@ private extension PhotoView {
             .accessibilityLabel(AppLocalization.plural("photos.delete.count.a11y", selectedPhotos.count))
 
             if selectedPhotos.count == 2 {
-                let canCompare = premiumStore.isPremium || uiTestModeEnabled
-
                 Button {
-                    if canCompare {
-                        let selectedArray = Array(selectedPhotos).sorted(by: { $0.date < $1.date })
-                        if selectedArray.count == 2 {
-                            openCompare(using: selectedArray[0], selectedArray[1])
-                        }
-                    } else {
-                        Haptics.selection()
-                        premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
+                    let selectedArray = Array(selectedPhotos).sorted(by: { $0.date < $1.date })
+                    if selectedArray.count == 2 {
+                        openCompare(using: selectedArray[0], selectedArray[1])
                     }
                 } label: {
-                    ZStack(alignment: .topTrailing) {
-                        Label(AppLocalization.string("Compare"), systemImage: "photo.on.rectangle.angled")
-                            .frame(maxWidth: .infinity)
-
-                        if !canCompare {
-                            Image(systemName: "lock.fill")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(Color(hex: "#FCA311"))
-                                .padding(4)
-                                .offset(x: 6, y: -6)
-                        }
-                    }
+                    Label(AppLocalization.string("Compare"), systemImage: "photo.on.rectangle.angled")
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-                .opacity(canCompare ? 1.0 : 0.55)
                 .accessibilityIdentifier("photos.compare.open")
-                .accessibilityLabel(canCompare
-                    ? AppLocalization.string("Compare selected photos")
-                    : AppLocalization.string("Compare selected photos — Premium required"))
-                .accessibilityHint(canCompare
-                    ? AppLocalization.string("accessibility.compare.opens")
-                    : AppLocalization.string("Tap to unlock Photo Comparison with Premium"))
+                .accessibilityLabel(AppLocalization.string("Compare selected photos"))
+                .accessibilityHint(AppLocalization.string("accessibility.compare.opens"))
             }
         }
         .padding(.horizontal, AppSpacing.md)
@@ -1180,6 +1187,45 @@ private enum PhotoGridRenderItem: Identifiable {
     }
 }
 
+private enum PhotoGridLayoutMode: String {
+    case review
+    case compact
+
+    var columnCount: Int {
+        switch self {
+        case .review: return 2
+        case .compact: return 3
+        }
+    }
+
+    var toggleTitle: String {
+        switch self {
+        case .review: return AppLocalization.string("Compact")
+        case .compact: return AppLocalization.string("Review")
+        }
+    }
+
+    var toggleIcon: String {
+        switch self {
+        case .review: return "square.grid.3x2"
+        case .compact: return "rectangle.grid.2x2"
+        }
+    }
+
+    var next: PhotoGridLayoutMode {
+        switch self {
+        case .review: return .compact
+        case .compact: return .review
+        }
+    }
+}
+
+private struct PhotoMonthSection: Identifiable {
+    let id: String
+    let title: String
+    let items: [PhotoGridRenderItem]
+}
+
 // MARK: - Photo Grid View (Reusable)
 private struct PhotoGridView: View {
     private let photosTheme = FeatureTheme.photos
@@ -1203,6 +1249,43 @@ private struct PhotoGridView: View {
     let hasMore: Bool
     let loadMoreToken: Int
     let onLoadMore: () -> Void
+    @AppStorage("photos.gridLayoutMode") private var gridLayoutModeRaw: String = PhotoGridLayoutMode.review.rawValue
+
+    private var gridLayoutMode: PhotoGridLayoutMode {
+        PhotoGridLayoutMode(rawValue: gridLayoutModeRaw) ?? .review
+    }
+
+    private var monthSections: [PhotoMonthSection] {
+        let calendar = Calendar.current
+        let formatter = DateFormatter()
+        formatter.dateFormat = "LLLL yyyy"
+
+        var sections: [PhotoMonthSection] = []
+        var currentKey: String?
+        var currentTitle = ""
+        var currentItems: [PhotoGridRenderItem] = []
+
+        for item in archiveItems {
+            let components = calendar.dateComponents([.year, .month], from: item.date)
+            let key = "\(components.year ?? 0)-\(components.month ?? 0)"
+            if currentKey != key {
+                if let currentKey {
+                    sections.append(PhotoMonthSection(id: currentKey, title: currentTitle, items: currentItems))
+                }
+                currentKey = key
+                currentTitle = formatter.string(from: item.date)
+                currentItems = [item]
+            } else {
+                currentItems.append(item)
+            }
+        }
+
+        if let currentKey {
+            sections.append(PhotoMonthSection(id: currentKey, title: currentTitle, items: currentItems))
+        }
+
+        return sections
+    }
     
     var body: some View {
         Group {
@@ -1278,7 +1361,7 @@ private struct PhotoGridView: View {
                         
                         Text(filtersActive && hasAnySavedPhotos
                              ? AppLocalization.string("Try adjusting your filters or add a new photo")
-                             : AppLocalization.string("Photos make progress easier to notice."))
+                             : AppLocalization.string("Take one full-body photo. In 4 weeks, the comparison will show changes your eye missed."))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -1287,7 +1370,7 @@ private struct PhotoGridView: View {
                         Button {
                             onAddPhoto()
                         } label: {
-                            Label(AppLocalization.string("Add Photo"), systemImage: "plus")
+                            Label(filtersActive && hasAnySavedPhotos ? AppLocalization.string("Add Photo") : AppLocalization.string("Take your first photo"), systemImage: "plus")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(AppAccentButtonStyle())
@@ -1321,6 +1404,15 @@ private struct PhotoGridView: View {
                     .font(AppTypography.headlineEmphasis)
                     .foregroundStyle(AppColorRoles.textPrimary)
                 Spacer()
+                Button {
+                    gridLayoutModeRaw = gridLayoutMode.next.rawValue
+                } label: {
+                    Label(gridLayoutMode.toggleTitle, systemImage: gridLayoutMode.toggleIcon)
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(photosTheme.accent)
+                .accessibilityLabel(gridLayoutMode.toggleTitle)
             }
 
             photoGrid
@@ -1328,50 +1420,89 @@ private struct PhotoGridView: View {
     }
 
     private var photoGrid: some View {
-        LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 110), spacing: 8)],
-            spacing: 8
-        ) {
-            ForEach(Array(archiveItems.enumerated()), id: \.element.id) { index, item in
-                switch item {
-                case .persisted(let photo):
-                    Button {
-                        onPhotoTap(photo)
-                    } label: {
-                        PhotoGridCell(
-                            photo: photo,
-                            isSelected: selectedPhotos.contains(photo),
-                            isSelecting: isSelecting,
-                            revealIndex: index
-                        )
+        VStack(alignment: .leading, spacing: 18) {
+            ForEach(monthSections) { section in
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(section.title)
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                        .padding(.horizontal, 2)
+                        .accessibilityIdentifier("photos.grid.monthHeader")
+
+                    LazyVGrid(
+                        columns: Array(
+                            repeating: GridItem(.flexible(), spacing: 8),
+                            count: gridLayoutMode.columnCount
+                        ),
+                        spacing: 8
+                    ) {
+                        ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
+                            let globalIndex = archiveItems.firstIndex(where: { $0.id == item.id }) ?? index
+                            renderGridItem(item, index: globalIndex)
+                                .gridCellColumns(isHeroItem(item, globalIndex: globalIndex) ? gridLayoutMode.columnCount : 1)
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .onLongPressGesture(minimumDuration: 0.5) {
-                        onPhotoLongPress(photo)
-                    }
-                    .accessibilityIdentifier("photos.grid.item")
-                    .accessibilityLabel(AppLocalization.string("Photo"))
-                    .accessibilityValue(photoAccessibilityValue(for: photo))
-                    .accessibilityHint(
-                        isSelecting
-                        ? AppLocalization.string("Double tap to select or deselect this photo")
-                        : AppLocalization.string("Double tap to open photo details")
-                    )
-                case .pending(let pending):
-                    PendingPhotoGridCell(
-                        thumbnailData: pending.thumbnailData,
-                        progress: pending.progress,
-                        status: pending.status,
-                        targetSize: CGSize(width: 110, height: 120),
-                        cornerRadius: 12,
-                        cacheID: pending.id.uuidString,
-                        accessibilityIdentifier: "photos.grid.pending.item"
-                    )
-                    .frame(width: 110, height: 120)
                 }
             }
         }
         .padding(.bottom, isSelecting && !selectedPhotos.isEmpty ? 80 : 0)
+    }
+
+    @ViewBuilder
+    private func renderGridItem(_ item: PhotoGridRenderItem, index: Int) -> some View {
+        let availableWidth = max(UIScreen.main.bounds.width - 24, 1)
+        let spacing = CGFloat(gridLayoutMode.columnCount - 1) * 8
+        let cellSize = floor((availableWidth - spacing) / CGFloat(gridLayoutMode.columnCount))
+        let isHero = isHeroItem(item, globalIndex: index)
+        let displaySize = isHero ? (cellSize * 2 + 8) : cellSize
+
+        switch item {
+        case .persisted(let photo):
+            Button {
+                onPhotoTap(photo)
+            } label: {
+                PhotoGridCell(
+                    photo: photo,
+                    isSelected: selectedPhotos.contains(photo),
+                    isSelecting: isSelecting,
+                    size: displaySize,
+                    revealIndex: index
+                )
+            }
+            .buttonStyle(.plain)
+            .onLongPressGesture(minimumDuration: 0.5) {
+                onPhotoLongPress(photo)
+            }
+            .accessibilityIdentifier("photos.grid.item")
+            .accessibilityLabel(AppLocalization.string("Photo"))
+            .accessibilityValue(photoAccessibilityValue(for: photo))
+            .accessibilityHint(
+                isSelecting
+                ? AppLocalization.string("Double tap to select or deselect this photo")
+                : AppLocalization.string("Double tap to open photo details")
+            )
+        case .pending(let pending):
+            PendingPhotoGridCell(
+                thumbnailData: pending.thumbnailData,
+                progress: pending.progress,
+                status: pending.status,
+                targetSize: CGSize(width: cellSize, height: cellSize),
+                cornerRadius: 12,
+                cacheID: pending.id.uuidString,
+                accessibilityIdentifier: "photos.grid.pending.item"
+            )
+            .frame(width: cellSize, height: cellSize)
+        }
+    }
+
+    private func isHeroItem(_ item: PhotoGridRenderItem, globalIndex: Int) -> Bool {
+        guard gridLayoutMode == .review else { return false }
+        guard archiveItems.count >= 3 else { return false }
+        guard globalIndex == 0 else { return false }
+        if case .persisted = item {
+            return true
+        }
+        return false
     }
 
     private func chooseOlderHeroPhoto() {
@@ -1415,6 +1546,41 @@ private struct PhotoGridHeroSkeleton: View {
         SkeletonBlock(cornerRadius: 24, opacity: 0.18)
             .frame(height: 280)
             .skeletonShimmer(enabled: shouldShimmer)
+    }
+}
+
+private struct PhotoPrivacyLockedView: View {
+    let onUnlock: () -> Void
+
+    var body: some View {
+        AppGlassCard(
+            depth: .floating,
+            cornerRadius: 18,
+            tint: FeatureTheme.photos.strongTint,
+            contentPadding: 18
+        ) {
+            VStack(spacing: 14) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(FeatureTheme.photos.accent)
+
+                Text(AppLocalization.string("Photos locked"))
+                    .font(AppTypography.headlineEmphasis)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+
+                Text(AppLocalization.string("Unlock to view progress photos."))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .multilineTextAlignment(.center)
+
+                Button(action: onUnlock) {
+                    Label(AppLocalization.string("Unlock photos"), systemImage: "faceid")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                .accessibilityIdentifier("photos.privacy.unlock")
+            }
+        }
     }
 }
 
@@ -1474,30 +1640,22 @@ private extension PhotoView {
                     Haptics.selection()
                     showFilters = true
                 } label: {
-                    ZStack(alignment: .topTrailing) {
-                        Image(systemName: filters.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(filters.isActive ? Color.appAccent : .primary)
-
-                        if filters.isActive {
-                            Circle()
-                                .fill(Color.red)
-                                .frame(width: 8, height: 8)
-                                .offset(x: 4, y: -4)
-                        }
-                    }
+                    Image(systemName: filters.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(filters.isActive ? Color.appAccent : .primary)
                 }
                 .accessibilityLabel(AppLocalization.string("Open photo filters"))
 
                 if !isSelecting {
-                    Menu {
-                        Button {
-                            openCameraFlow(fromSourceChooserSheet: false)
-                        } label: {
-                            Label(AppLocalization.string("Take Photo"), systemImage: "camera.fill")
-                        }
-                        .accessibilityIdentifier("photos.add.menu.camera")
+                    Button {
+                        openCameraFlow(fromSourceChooserSheet: false)
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityIdentifier("photos.add.button")
+                    .accessibilityLabel(AppLocalization.string("Take Photo"))
 
+                    Menu {
                         Button {
                             openLibraryFlow(fromSourceChooserSheet: false)
                         } label: {
@@ -1505,10 +1663,10 @@ private extension PhotoView {
                         }
                         .accessibilityIdentifier("photos.add.menu.library")
                     } label: {
-                        Image(systemName: "plus")
+                        Image(systemName: "ellipsis.circle")
                     }
-                    .accessibilityIdentifier("photos.add.button")
-                    .accessibilityLabel(AppLocalization.string("Add photo"))
+                    .accessibilityIdentifier("photos.add.more.button")
+                    .accessibilityLabel(AppLocalization.string("More photo options"))
                 }
             }
         }

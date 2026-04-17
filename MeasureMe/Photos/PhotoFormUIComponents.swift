@@ -5,6 +5,7 @@ struct PhotoFormTagsSection: View {
     let tags: [PhotoTag]
     let accessibilityPrefix: String
     let tagBinding: (PhotoTag) -> Binding<Bool>
+    @State private var showsAdvancedTags = false
 
     var body: some View {
         AppGlassCard(depth: .base) {
@@ -13,25 +14,50 @@ struct PhotoFormTagsSection: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(.secondary)
 
-                FlowLayout(spacing: AppSpacing.xs) {
-                    ForEach(tags) { tag in
-                        Toggle(isOn: tagBinding(tag)) {
-                            HStack(spacing: AppSpacing.xxs) {
-                                if let kind = tag.metricKind {
-                                    kind.iconView(size: 14)
-                                        .frame(width: 14, height: 14)
-                                } else {
-                                    Image(systemName: tag.systemImage)
-                                        .font(AppTypography.captionEmphasis)
-                                        .frame(width: 14, height: 14)
-                                }
-                                Text(tag.title)
-                            }
+                tagFlow(for: primaryTags)
+
+                if !advancedTags.isEmpty {
+                    DisclosureGroup(isExpanded: $showsAdvancedTags) {
+                        tagFlow(for: advancedTags)
+                            .padding(.top, AppSpacing.xs)
+                    } label: {
+                        Text(AppLocalization.string("Advanced area tags"))
+                            .font(AppTypography.captionEmphasis)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                    }
+                    .tint(AppColorRoles.textSecondary)
+                }
+            }
+        }
+    }
+
+    private var primaryTags: [PhotoTag] {
+        let availablePrimary = tags.filter(\.isPrimaryPose)
+        return availablePrimary.isEmpty ? PhotoTag.primaryPoseTags : availablePrimary
+    }
+
+    private var advancedTags: [PhotoTag] {
+        tags.filter(\.isLegacyAreaTag)
+    }
+
+    private func tagFlow(for tags: [PhotoTag]) -> some View {
+        FlowLayout(spacing: AppSpacing.xs) {
+            ForEach(tags) { tag in
+                Toggle(isOn: tagBinding(tag)) {
+                    HStack(spacing: AppSpacing.xxs) {
+                        if let kind = tag.metricKind {
+                            kind.iconView(size: 14)
+                                .frame(width: 14, height: 14)
+                        } else {
+                            Image(systemName: tag.systemImage)
+                                .font(AppTypography.captionEmphasis)
+                                .frame(width: 14, height: 14)
                         }
-                        .toggleStyle(PhotoTagChipToggleStyle())
-                        .accessibilityIdentifier("\(accessibilityPrefix).tagToggle.\(tag.rawValue)")
+                        Text(tag.title)
                     }
                 }
+                .toggleStyle(PhotoTagChipToggleStyle())
+                .accessibilityIdentifier("\(accessibilityPrefix).tagToggle.\(tag.rawValue)")
             }
         }
     }

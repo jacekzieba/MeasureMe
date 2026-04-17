@@ -27,8 +27,30 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertEqual(merged.count, Set(merged).count)
     }
 
-    func testActivationTaskOrderingStartsWithMetricAndEndsWithCelebrate() {
-        XCTAssertEqual(ActivationTask.initial, .addMetric)
-        XCTAssertEqual(ActivationTask.allCases.last, .celebrate)
+    func testMaintainRecompKeepsImproveHealthRawValueForCompatibility() {
+        XCTAssertEqual(OnboardingPriority.improveHealth.rawValue, "improveHealth")
+        XCTAssertEqual(OnboardingCopy.priorityTitle(.improveHealth), "Maintain / recomp")
+        XCTAssertEqual(OnboardingView.WelcomeGoal.trackHealth.priority, .improveHealth)
+        XCTAssertEqual(OnboardingView.WelcomeGoal.trackHealth.title, "Maintain / recomp")
+    }
+
+    func testPrioritySelectionPolicyCapsAtTwoSelections() {
+        var selected: Set<OnboardingPriority> = []
+
+        selected = OnboardingPrioritySelectionPolicy.toggled(.loseWeight, in: selected)
+        selected = OnboardingPrioritySelectionPolicy.toggled(.buildMuscle, in: selected)
+        selected = OnboardingPrioritySelectionPolicy.toggled(.improveHealth, in: selected)
+
+        XCTAssertEqual(selected, [.loseWeight, .buildMuscle])
+
+        selected = OnboardingPrioritySelectionPolicy.toggled(.loseWeight, in: selected)
+        selected = OnboardingPrioritySelectionPolicy.toggled(.improveHealth, in: selected)
+
+        XCTAssertEqual(selected, [.buildMuscle, .improveHealth])
+    }
+
+    func testActivationTaskOrderingStartsAfterFirstMeasurementAndHasNoUpsellOrNoOp() {
+        XCTAssertEqual(ActivationTask.initial, .addPhoto)
+        XCTAssertEqual(ActivationTask.allCases, [.addPhoto, .chooseMetrics, .setGoal])
     }
 }

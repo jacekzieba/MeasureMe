@@ -61,18 +61,6 @@ struct PhotoCompareHeroCard: View {
                     }
 
                     Spacer(minLength: 12)
-
-                    if !isPremium {
-                        Text(AppLocalization.string("Premium"))
-                            .font(AppTypography.badge)
-                            .foregroundStyle(AppColorRoles.textPrimary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule(style: .continuous)
-                                    .fill(photosTheme.pillFill)
-                            )
-                    }
                 }
 
                 switch state {
@@ -80,12 +68,12 @@ struct PhotoCompareHeroCard: View {
                     HStack(spacing: 10) {
                         compareSlot(
                             photo: pair.older,
-                            title: AppLocalization.string("Earlier"),
+                            title: comparisonSlotTitle(for: pair.older),
                             action: onChooseOlderPhoto
                         )
                         compareSlot(
                             photo: pair.newer,
-                            title: AppLocalization.string("Now"),
+                            title: comparisonSlotTitle(for: pair.newer),
                             action: onChooseNewerPhoto
                         )
                     }
@@ -130,14 +118,14 @@ struct PhotoCompareHeroCard: View {
                     }
                 case .onboarding:
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(AppLocalization.string("Add your first photo now. Come back later to compare progress."))
+                        Text(AppLocalization.string("Take your first photo. In a few weeks, you’ll see what the mirror can’t show you."))
                             .font(AppTypography.body)
                             .foregroundStyle(AppColorRoles.textSecondary)
 
                         Button {
                             onAddPhoto()
                         } label: {
-                            Label(AppLocalization.string("Add Photo"), systemImage: "plus")
+                            Label(AppLocalization.string("Take your first photo"), systemImage: "plus")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(AppAccentButtonStyle())
@@ -180,6 +168,19 @@ struct PhotoCompareHeroCard: View {
         }
         .buttonStyle(.plain)
     }
+
+    private func comparisonSlotTitle(for photo: PhotoEntry) -> String {
+        let dateText = photo.date.formatted(.dateTime.month(.abbreviated).day())
+        let days = Calendar.current.dateComponents([.day], from: photo.date, to: AppClock.now).day ?? 0
+        if days >= 14 {
+            let weeks = max(days / 7, 1)
+            return AppLocalization.string("%d weeks ago", weeks) + " · " + dateText
+        }
+        if Calendar.current.isDateInToday(photo.date) {
+            return AppLocalization.string("Today") + " · " + dateText
+        }
+        return dateText
+    }
 }
 
 struct PhotoSessionSummaryCard: View {
@@ -202,7 +203,7 @@ struct PhotoSessionSummaryCard: View {
             contentPadding: 16
         ) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(AppLocalization.string("Session"))
+                Text(AppLocalization.string("Details"))
                     .font(AppTypography.eyebrow)
                     .foregroundStyle(photosTheme.accent)
 

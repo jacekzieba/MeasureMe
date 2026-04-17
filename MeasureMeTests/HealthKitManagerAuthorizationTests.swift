@@ -7,19 +7,32 @@ import HealthKit
 @testable import MeasureMe
 
 private final class MockHealthStore: HealthStore {
+    static let supportedIdentifiers: [HKQuantityTypeIdentifier] = [
+        .waistCircumference,
+        .bodyMassIndex,
+        .height,
+        .bodyMass,
+        .bodyFatPercentage,
+        .leanBodyMass
+    ]
+
     var healthDataAvailable = true
     var requestAuthorizationError: Error?
     var quantityStatuses: [HKQuantityTypeIdentifier: HKAuthorizationStatus] = [:]
-    private(set) var didRequestAuthorization = false
+    var statusesAfterRequest: [HKQuantityTypeIdentifier: HKAuthorizationStatus]?
+    private(set) var requestAuthorizationCallCount = 0
 
     func isHealthDataAvailable() -> Bool {
         healthDataAvailable
     }
 
     func requestAuthorization(toShare: Set<HKSampleType>, read: Set<HKObjectType>) async throws {
-        didRequestAuthorization = true
+        requestAuthorizationCallCount += 1
         if let requestAuthorizationError {
             throw requestAuthorizationError
+        }
+        if let statusesAfterRequest {
+            quantityStatuses.merge(statusesAfterRequest) { _, new in new }
         }
     }
 
@@ -117,16 +130,65 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
         }
     }
 
-    /// Co sprawdza: Sprawdza scenariusz: RequestAuthorizationSucceedsWhenAtLeastOneTypeAuthorized.
-    /// Dlaczego: Zapewnia poprawna obsluge uprawnien i integracji z systemem.
-    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
-    func testRequestAuthorizationSucceedsWhenAtLeastOneTypeAuthorized() async throws {
+    /// Co sprawdza: Brak wstepnych zgód nadal prowadzi przez żądanie systemowe.
+    /// Dlaczego: Pierwsza autoryzacja nie może zostać pominięta.
+    /// Kryteria: Manager wywołuje requestAuthorization i kończy powodzeniem po nadaniu zgód.
+    func testRequestAuthorizationRequestsWhenNoTypesAuthorized() async throws {
         let store = MockHealthStore()
-        store.quantityStatuses[.bodyMass] = .sharingAuthorized
+        store.statusesAfterRequest = Dictionary(
+            uniqueKeysWithValues: MockHealthStore.supportedIdentifiers.map { ($0, .sharingAuthorized) }
+        )
         let manager = HealthKitManager(store: store, settings: settings)
 
         try await manager.requestAuthorization()
-        XCTAssertFalse(store.didRequestAuthorization, "Should use fast-path without re-requesting when already authorized.")
+        XCTAssertEqual(store.requestAuthorizationCallCount, 1, "Expected first-time authorization to call HealthKit.")
+    }
+
+    /// Co sprawdza: Częściowe zgody nadal prowadzą przez żądanie systemowe.
+    /// Dlaczego: Nowe typy metryk po aktualizacji muszą zostać dopytane.
+    /// Kryteria: Manager nie używa fast-pathu, jeśli tylko część typów ma autoryzację.
+    func testRequestAuthorizationRequestsWhenOnlySomeTypesAuthorized() async throws {
+        let store = MockHealthStore()
+        store.quantityStatuses[.bodyMass] = .sharingAuthorized
+        store.statusesAfterRequest = Dictionary(
+            uniqueKeysWithValues: MockHealthStore.supportedIdentifiers.map { ($0, .sharingAuthorized) }
+        )
+        let manager = HealthKitManager(store: store, settings: settings)
+
+        try await manager.requestAuthorization()
+        XCTAssertEqual(store.requestAuthorizationCallCount, 1, "Expected HealthKit to re-request missing metric types.")
+    }
+
+    /// Co sprawdza: Pełna autoryzacja używa fast-pathu bez kolejnego promptu.
+    /// Dlaczego: Nie chcemy niepotrzebnie ponawiać systemowego okna uprawnień.
+    /// Kryteria: RequestAuthorization nie jest wywoływane ponownie, gdy wszystkie typy są już autoryzowane.
+    func testRequestAuthorizationSkipsPromptWhenAllTypesAuthorized() async throws {
+        let store = MockHealthStore()
+        store.quantityStatuses = Dictionary(
+            uniqueKeysWithValues: MockHealthStore.supportedIdentifiers.map { ($0, .sharingAuthorized) }
+        )
+        let manager = HealthKitManager(store: store, settings: settings)
+
+        try await manager.requestAuthorization()
+        XCTAssertEqual(store.requestAuthorizationCallCount, 0, "Expected fast-path when every supported type is already authorized.")
+    }
+
+    /// Co sprawdza: Nowo dodane typy po upgrade wymuszają ponowne żądanie zgody.
+    /// Dlaczego: Użytkownik może mieć stare zgody bez nowszych metryk.
+    /// Kryteria: Manager ponawia requestAuthorization, gdy choć jeden wspierany typ nie jest jeszcze autoryzowany.
+    func testRequestAuthorizationRequestsWhenUpgradeAddsNewTypes() async throws {
+        let store = MockHealthStore()
+        let previouslyAuthorized: [HKQuantityTypeIdentifier] = [.bodyMass, .bodyFatPercentage]
+        for identifier in previouslyAuthorized {
+            store.quantityStatuses[identifier] = .sharingAuthorized
+        }
+        store.statusesAfterRequest = Dictionary(
+            uniqueKeysWithValues: MockHealthStore.supportedIdentifiers.map { ($0, .sharingAuthorized) }
+        )
+        let manager = HealthKitManager(store: store, settings: settings)
+
+        try await manager.requestAuthorization()
+        XCTAssertEqual(store.requestAuthorizationCallCount, 1, "Expected authorization refresh when upgrade adds unsupported-yet-ungranted types.")
     }
 
     /// Co sprawdza: Sprawdza scenariusz: ReconcileStoredSyncStateDisablesSyncWhenHealthUnavailable.

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 enum HomeRecentPhotoTileViewModel: Identifiable {
     case persisted(PhotoEntry)
@@ -27,6 +28,9 @@ struct HomeRecentPhotosSnapshot {
 }
 
 struct HomeRecentPhotosCard: View {
+    @ObservedObject private var photoPrivacyGate = PhotoPrivacyGate.shared
+    @AppSetting(\.privacy.requireBiometricForPhotos) private var requireBiometricForPhotos: Bool = false
+
     let snapshot: HomeRecentPhotosSnapshot
     let tiles: [HomeRecentPhotoTileViewModel]
     let onOpenPhotos: () -> Void
@@ -34,6 +38,10 @@ struct HomeRecentPhotosCard: View {
     let onCompare: () -> Void
 
     private let theme = FeatureTheme.photos
+
+    private var canDisplayPhotos: Bool {
+        photoPrivacyGate.canDisplayPhotos(requireBiometric: requireBiometricForPhotos)
+    }
 
     var body: some View {
         HomeWidgetCard(
@@ -68,20 +76,40 @@ struct HomeRecentPhotosCard: View {
                                     .hidden()
                             }
                         }
+                        .blur(radius: canDisplayPhotos ? 0 : 10)
+                        .allowsHitTesting(canDisplayPhotos)
+                        .overlay {
+                            if !canDisplayPhotos {
+                                Button {
+                                    Task { await photoPrivacyGate.unlock() }
+                                } label: {
+                                    Label(AppLocalization.string("Unlock photos"), systemImage: "faceid")
+                                        .font(AppTypography.captionEmphasis)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color.black.opacity(0.52), in: Capsule())
+                                        .foregroundStyle(.white)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("home.recentPhotos.unlock")
+                            }
+                        }
                     }
                     .frame(maxWidth: .infinity, minHeight: 112, maxHeight: 112)
                 }
 
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) {
-                        infoPill(text: snapshot.contextPrimary, tint: theme.accent)
-                        infoPill(text: snapshot.contextSecondary, tint: AppColorRoles.textSecondary)
-                        Spacer(minLength: 0)
-                    }
+                if canDisplayPhotos {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 8) {
+                            infoPill(text: snapshot.contextPrimary, tint: theme.accent)
+                            infoPill(text: snapshot.contextSecondary, tint: AppColorRoles.textSecondary)
+                            Spacer(minLength: 0)
+                        }
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        infoPill(text: snapshot.contextPrimary, tint: theme.accent)
-                        infoPill(text: snapshot.contextSecondary, tint: AppColorRoles.textSecondary)
+                        VStack(alignment: .leading, spacing: 8) {
+                            infoPill(text: snapshot.contextPrimary, tint: theme.accent)
+                            infoPill(text: snapshot.contextSecondary, tint: AppColorRoles.textSecondary)
+                        }
                     }
                 }
 
@@ -97,6 +125,12 @@ struct HomeRecentPhotosCard: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+            photoPrivacyGate.lock()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            photoPrivacyGate.lock()
+        }
     }
 
     private var header: some View {
@@ -107,7 +141,7 @@ struct HomeRecentPhotosCard: View {
                     .foregroundStyle(theme.accent)
                     .textCase(.uppercase)
 
-                Text(AppLocalization.string("Recent photos"))
+                Text(AppLocalization.string("Photo comparison"))
                     .font(AppTypography.sectionTitle)
                     .foregroundStyle(AppColorRoles.textPrimary)
 
@@ -232,7 +266,7 @@ struct HomeRecentPhotosEmptyCard: View {
                         .foregroundStyle(theme.accent)
                         .textCase(.uppercase)
 
-                    Text(AppLocalization.string("Recent photos"))
+                    Text(AppLocalization.string("Photo comparison"))
                         .font(AppTypography.sectionTitle)
                         .foregroundStyle(AppColorRoles.textPrimary)
 
@@ -252,12 +286,12 @@ struct HomeRecentPhotosEmptyCard: View {
                             .font(AppTypography.bodyEmphasis)
                             .foregroundStyle(AppColorRoles.textPrimary)
 
-                        Text(AppLocalization.string("home.photos.empty.detail"))
+                        Text(AppLocalization.string("Take one full-body photo. In 4 weeks, the comparison will show changes your eye missed."))
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColorRoles.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text(AppLocalization.string("Open Photos"))
+                        Text(AppLocalization.string("Take your first photo"))
                             .font(AppTypography.microEmphasis)
                             .foregroundStyle(theme.accent)
                     }

@@ -60,8 +60,13 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         .preferredColorScheme(colorScheme)
     }
 
-    private func makeHostingController(view: some View, height: CGFloat = 844) -> UIHostingController<some View> {
+    private func makeHostingController(
+        view: some View,
+        colorScheme: ColorScheme,
+        height: CGFloat = 844
+    ) -> UIHostingController<some View> {
         let vc = UIHostingController(rootView: view)
+        vc.overrideUserInterfaceStyle = colorScheme == .dark ? .dark : .light
         vc.view.frame = CGRect(x: 0, y: 0, width: 390, height: height)
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()
@@ -101,7 +106,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         AppLocalization.reloadLanguage()
         UIView.setAnimationsEnabled(false)
 
-        let vc = makeHostingController(view: makeView(colorScheme: .dark))
+        let vc = makeHostingController(view: makeView(colorScheme: .dark), colorScheme: .dark)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
         assertSnapshot(of: vc, as: .image, record: shouldRecord)
@@ -138,7 +143,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         AppLocalization.reloadLanguage()
         UIView.setAnimationsEnabled(false)
 
-        let vc = makeHostingController(view: makeView(colorScheme: .dark))
+        let vc = makeHostingController(view: makeView(colorScheme: .dark), colorScheme: .dark)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
         assertSnapshot(of: vc, as: .image, record: shouldRecord)
@@ -174,7 +179,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         AppLocalization.reloadLanguage()
         UIView.setAnimationsEnabled(false)
 
-        let vc = makeHostingController(view: makeView(colorScheme: .dark))
+        let vc = makeHostingController(view: makeView(colorScheme: .dark), colorScheme: .dark)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
         assertSnapshot(of: vc, as: .image, record: shouldRecord)
@@ -211,7 +216,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         AppLocalization.reloadLanguage()
         UIView.setAnimationsEnabled(false)
 
-        let vc = makeHostingController(view: makeView(colorScheme: .light))
+        let vc = makeHostingController(view: makeView(colorScheme: .light), colorScheme: .light)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
         assertSnapshot(of: vc, as: .image, record: shouldRecord)
@@ -246,7 +251,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         AppLocalization.reloadLanguage()
         UIView.setAnimationsEnabled(false)
 
-        let vc = makeHostingController(view: makeView(colorScheme: .light))
+        let vc = makeHostingController(view: makeView(colorScheme: .light), colorScheme: .light)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
         assertSnapshot(of: vc, as: .image, record: shouldRecord)
@@ -281,7 +286,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         AppLocalization.reloadLanguage()
         UIView.setAnimationsEnabled(false)
 
-        let vc = makeHostingController(view: makeView(colorScheme: .light))
+        let vc = makeHostingController(view: makeView(colorScheme: .light), colorScheme: .light)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
         assertSnapshot(of: vc, as: .image, record: shouldRecord)

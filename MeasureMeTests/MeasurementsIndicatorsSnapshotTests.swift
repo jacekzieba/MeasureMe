@@ -141,6 +141,7 @@ final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
         .preferredColorScheme(.dark)
 
         let vc = UIHostingController(rootView: view)
+        vc.overrideUserInterfaceStyle = .dark
         vc.view.frame = CGRect(x: 0, y: 0, width: 390, height: 1200)
         let window = UIWindow(frame: vc.view.frame)
         window.rootViewController = vc

@@ -2,6 +2,23 @@ import XCTest
 @testable import MeasureMe
 
 final class InsightTextProcessorTests: XCTestCase {
+    private var baselineLanguage: Any?
+
+    override func setUp() {
+        super.setUp()
+        baselineLanguage = UserDefaults.standard.object(forKey: "appLanguage")
+        UserDefaults.standard.set("en", forKey: "appLanguage")
+    }
+
+    override func tearDown() {
+        if let baselineLanguage {
+            UserDefaults.standard.set(baselineLanguage, forKey: "appLanguage")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "appLanguage")
+        }
+        baselineLanguage = nil
+        super.tearDown()
+    }
 
     // MARK: - parse()
 

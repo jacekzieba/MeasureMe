@@ -56,45 +56,28 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertEqual(tileCount.label, "3", "Recent photos should expose three visible tiles on Home")
     }
 
-    func testActivationHubShowsCurrentTaskAndAdvancesAfterFirstMetric() {
+    func testActivationHubStartsAfterFirstMeasurementOnPhotoTask() {
         launchApp(extraArguments: [
             "-uiTestActivationHub",
-            "-uiTestActivationTask", "addMetric"
-        ], isPremium: false, seedMeasurements: false, seedPhotos: 0)
+            "-uiTestActivationTask", "addPhoto"
+        ], isPremium: false, seedMeasurements: true, seedPhotos: 0)
 
-        XCTAssertTrue(app.staticTexts["home.module.activationHub.visible"].waitForExistence(timeout: 5), "Activation hub should be visible on Home")
-        let currentTask = app.staticTexts["home.activation.currentTask"].firstMatch
-        XCTAssertTrue(currentTask.waitForExistence(timeout: 5), "Activation hub should expose the current task")
-        XCTAssertEqual(currentTask.label, "addMetric", "Activation hub should start from the metric task")
-
-        app.buttons["home.activation.primary"].firstMatch.tap()
-
-        let quickAddSheet = app.otherElements["quickadd.sheet"].firstMatch
-        XCTAssertTrue(quickAddSheet.waitForExistence(timeout: 5), "Primary CTA should open the simplified metric composer")
-
-        let weightInput = app.textFields["quickadd.input.weight"].firstMatch
-        XCTAssertTrue(weightInput.waitForExistence(timeout: 5), "Weight input should be visible for the first activation step")
-        weightInput.tap()
-        weightInput.typeText("80")
-        app.buttons["quickadd.save"].firstMatch.tap()
-
-        XCTAssertTrue(currentTask.waitForExistence(timeout: 5), "Activation task hook should still be present after saving")
-        XCTAssertEqual(currentTask.label, "addPhoto", "Saving the first metric should advance activation to the photo step")
+        XCTAssertTrue(app.otherElements["home.module.activationHub"].waitForExistence(timeout: 5), "Activation hub should be visible on Home")
+        XCTAssertTrue(app.staticTexts["Add your first photo"].waitForExistence(timeout: 5), "Activation hub should start after the first measurement, on the photo task")
     }
 
     func testActivationHubSkipAdvancesToNextTask() {
         launchApp(extraArguments: [
             "-uiTestActivationHub",
             "-uiTestActivationTask", "chooseMetrics"
-        ], isPremium: false, seedMeasurements: false, seedPhotos: 0)
+        ], isPremium: false, seedMeasurements: true, seedPhotos: 0)
 
-        let currentTask = app.staticTexts["home.activation.currentTask"].firstMatch
-        XCTAssertTrue(currentTask.waitForExistence(timeout: 5), "Activation task hook should exist")
-        XCTAssertEqual(currentTask.label, "chooseMetrics")
+        XCTAssertTrue(app.otherElements["home.module.activationHub"].waitForExistence(timeout: 5), "Activation hub should be visible on Home")
+        XCTAssertTrue(app.staticTexts["Choose what to track"].waitForExistence(timeout: 5), "Activation hub should expose the requested task")
 
         app.buttons["home.activation.skip"].firstMatch.tap()
 
-        XCTAssertEqual(currentTask.label, "premium", "Skip should move the user to the next activation task")
+        XCTAssertTrue(app.staticTexts["Set your first goal"].waitForExistence(timeout: 5), "Skip should move the user to the next real activation task")
     }
 
     func testNextFocusShowsMetricInsightWhenProgressExists() {

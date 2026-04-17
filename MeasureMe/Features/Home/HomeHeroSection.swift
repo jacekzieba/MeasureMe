@@ -7,6 +7,12 @@ struct HomeHeroNextFocusSnapshot {
     let summary: String
 }
 
+struct HomeHeroMeasurementSnapshot {
+    let label: String
+    let value: String
+    let detail: String
+}
+
 struct HomeHeroSnapshot {
     let tint: Color
     let greetingTitle: String
@@ -18,6 +24,7 @@ struct HomeHeroSnapshot {
     let streakCount: Int
     let shouldAnimateStreak: Bool
     let prefersStackedPanels: Bool
+    let primaryMeasurement: HomeHeroMeasurementSnapshot?
     let nextFocus: HomeHeroNextFocusSnapshot
     let weekTitle: String
     let weekDetail: String
@@ -50,22 +57,29 @@ struct HomeHeroSection: View {
             accessibilityIdentifier: "home.module.summaryHero"
         ) {
             VStack(alignment: .leading, spacing: 16) {
-                headerRow
+                if snapshot.isFreshState || activationSnapshot != nil {
+                    headerRow
+                }
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(snapshot.greetingTitle)
-                        .font(AppTypography.displayHero)
+                        .font(AppTypography.titleCompact)
                         .foregroundStyle(AppColorRoles.textPrimary)
                         .lineLimit(snapshot.prefersStackedPanels ? 3 : 2)
-                        .minimumScaleFactor(0.82)
+                        .minimumScaleFactor(0.9)
 
                     if snapshot.shouldShowPostOnboardingSummary {
-                        goalStatusRow
+                        statusRow
                     }
                 }
 
                 if snapshot.isFreshState {
                     freshPromptCard
+                        .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
+                }
+
+                if let measurement = snapshot.primaryMeasurement {
+                    measurementHighlightCard(measurement)
                         .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
                 }
 
@@ -76,20 +90,8 @@ struct HomeHeroSection: View {
                         onSkip: onActivationSkip,
                         onDismiss: onActivationDismiss
                     )
-                } else if snapshot.shouldShowPostOnboardingSummary {
-                    Group {
-                        if snapshot.prefersStackedPanels {
-                            VStack(spacing: 10) {
-                                nextFocusCard
-                                thisWeekCard
-                            }
-                        } else {
-                            HStack(alignment: .top, spacing: 12) {
-                                nextFocusCard
-                                thisWeekCard
-                            }
-                        }
-                    }
+                } else if snapshot.shouldShowPostOnboardingSummary && !snapshot.isFreshState {
+                    todayInsightCard
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -111,16 +113,28 @@ struct HomeHeroSection: View {
                 .foregroundStyle(AppColorRoles.textSecondary)
 
             Spacer()
+        }
+    }
 
-            if snapshot.showStreak {
-                Button(action: onStreakTap) {
-                    StreakBadge(
-                        count: snapshot.streakCount,
-                        shouldAnimate: snapshot.shouldAnimateStreak,
-                        onAnimationComplete: onStreakAnimationComplete
-                    )
+    private var statusRow: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) {
+                goalStatusRow
+                if snapshot.showStreak {
+                    streakStatusChip
                 }
-                .buttonStyle(.plain)
+                weekStatusChip
+                Spacer(minLength: 0)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    goalStatusRow
+                    if snapshot.showStreak {
+                        streakStatusChip
+                    }
+                }
+                weekStatusChip
             }
         }
     }
@@ -151,6 +165,126 @@ struct HomeHeroSection: View {
         .buttonStyle(.plain)
         .accessibilityIdentifier("home.goalStatus.button")
         .accessibilityHint(snapshot.goalStatusAccessibilityHint)
+    }
+
+    private var streakStatusChip: some View {
+        Button(action: onStreakTap) {
+            StreakBadge(
+                count: snapshot.streakCount,
+                shouldAnimate: snapshot.shouldAnimateStreak,
+                onAnimationComplete: onStreakAnimationComplete
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(AppLocalization.string("accessibility.streak.count", snapshot.streakCount))
+    }
+
+    private var weekStatusChip: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "calendar")
+                .font(AppTypography.iconSmall)
+                .foregroundStyle(AppColorRoles.textSecondary)
+
+            Text(snapshot.weekTitle)
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(AppColorRoles.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            Capsule(style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                )
+        )
+        .accessibilityIdentifier("home.weekStatus.chip")
+    }
+
+    private var todayInsightCard: some View {
+        Button(action: onNextFocusTap) {
+            VStack(alignment: .leading, spacing: summaryCardVerticalSpacing) {
+                HStack(alignment: .center, spacing: 8) {
+                    miniLabel(
+                        title: FlowLocalization.app("Today", "Dzisiaj", "Hoy", "Heute", "Aujourd'hui", "Hoje"),
+                        icon: "sparkle.magnifyingglass",
+                        accent: accent
+                    )
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: "arrow.up.right")
+                        .font(AppTypography.iconSmall)
+                        .foregroundStyle(accent.opacity(0.84))
+                }
+
+                if let primaryValue = snapshot.nextFocus.primaryValue {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(primaryValue)
+                            .font(summaryCardPrimaryFont)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                            .accessibilityIdentifier("home.nextFocus.primaryValue")
+
+                        if let supportingLabel = snapshot.nextFocus.supportingLabel {
+                            Text(supportingLabel)
+                                .font(summaryCardBadgeFont)
+                                .foregroundStyle(colorScheme == .dark ? accent : AppColorRoles.textPrimary)
+                                .lineLimit(1)
+                                .padding(.horizontal, summaryCardBadgeHorizontalPadding)
+                                .padding(.vertical, summaryCardBadgeVerticalPadding)
+                                .background(
+                                    Capsule(style: .continuous)
+                                        .fill(pillFill)
+                                        .overlay(
+                                            Capsule(style: .continuous)
+                                                .stroke(pillStroke, lineWidth: 1)
+                                        )
+                                )
+                                .accessibilityIdentifier("home.nextFocus.supportingLabel")
+                        }
+                    }
+                } else if let headline = snapshot.nextFocus.headline {
+                    Text(headline)
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .accessibilityIdentifier("home.nextFocus.headline")
+                }
+
+                Text(snapshot.nextFocus.summary)
+                    .font(summaryCardCaptionFont)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .lineLimit(summaryCardSummaryLineLimit)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("home.nextFocus.summary")
+
+                Text(snapshot.weekDetail)
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppColorRoles.textTertiary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.86)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(summaryCardPadding)
+            .frame(maxWidth: .infinity, minHeight: snapshot.prefersStackedPanels ? 116 : 104, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(pillFill)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(border, lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("home.nextFocus.button")
     }
 
     private var nextFocusCard: some View {
@@ -312,6 +446,40 @@ struct HomeHeroSection: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    private func measurementHighlightCard(_ measurement: HomeHeroMeasurementSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            miniLabel(
+                title: measurement.label,
+                icon: "ruler.fill",
+                accent: accent
+            )
+
+            Text(measurement.value)
+                .font(.system(size: dynamicTypeSize.isAccessibilitySize ? 28 : 34, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundStyle(AppColorRoles.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+                .accessibilityIdentifier("home.hero.primaryMeasurement.value")
+
+            Text(measurement.detail)
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(AppColorRoles.textSecondary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(pillFill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(pillStroke, lineWidth: 1)
+                )
+        )
+        .accessibilityIdentifier("home.hero.primaryMeasurement")
     }
 
     private func miniLabel(title: String, icon: String, accent: Color) -> some View {

@@ -602,6 +602,7 @@ struct MeasureMeApp: App {
         if args.contains(UITestArgument.activationHub.rawValue) {
             defaults.set(\.onboarding.onboardingFlowVersion, 2)
             defaults.set(\.onboarding.onboardingPrimaryGoal, OnboardingPriority.improveHealth.rawValue)
+            defaults.set(\.onboarding.onboardingChecklistShow, true)
             defaults.set(\.onboarding.activationCurrentTaskID, requestedActivationTask(from: args)?.rawValue ?? ActivationTask.initial.rawValue)
             defaults.set(\.onboarding.activationCompletedTaskIDs, "")
             defaults.set(\.onboarding.activationSkippedTaskIDs, "")
@@ -664,12 +665,23 @@ struct MeasureMeApp: App {
         guard shouldSeedMeasurements || effectivePhotoCount > 0 else { return }
 
         let context = ModelContext(container)
+        if args.contains(UITestArgument.activationHub.rawValue) {
+            for sample in try context.fetch(FetchDescriptor<MetricSample>()) {
+                context.delete(sample)
+            }
+            for photo in try context.fetch(FetchDescriptor<PhotoEntry>()) {
+                context.delete(photo)
+            }
+        }
+
         if shouldSeedMeasurements {
             let existingCount = try context.fetchCount(FetchDescriptor<MetricSample>())
             if existingCount == 0 {
                 let now = AppClock.now
-                let older = Calendar.current.date(byAdding: .day, value: -10, to: now) ?? now
-                context.insert(MetricSample(kind: .weight, value: 82, date: older))
+                if !args.contains(UITestArgument.activationHub.rawValue) {
+                    let older = Calendar.current.date(byAdding: .day, value: -10, to: now) ?? now
+                    context.insert(MetricSample(kind: .weight, value: 82, date: older))
+                }
                 context.insert(MetricSample(kind: .weight, value: 80, date: now))
             }
         }

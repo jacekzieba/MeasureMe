@@ -39,6 +39,10 @@ private enum CompareMode: String, CaseIterable, Identifiable {
             return AppLocalization.string("accessibility.compare.mode.ghost")
         }
     }
+
+    var requiresPremium: Bool {
+        self == .ghost
+    }
 }
 
 /// Widok porównujący dwa zdjęcia obok siebie
@@ -48,6 +52,7 @@ struct ComparePhotosView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var premiumStore: PremiumStore
 
     let olderPhoto: PhotoEntry
     let newerPhoto: PhotoEntry
@@ -123,7 +128,7 @@ struct ComparePhotosView: View {
                     }
 
                     Button {
-                        showTransformationSheet = true
+                        openTransformationCard()
                     } label: {
                         Image(systemName: "sparkles.rectangle.stack")
                     }
@@ -207,6 +212,10 @@ struct ComparePhotosView: View {
         let isSelected = compareMode == mode
 
         return Button {
+            guard !mode.requiresPremium || premiumStore.isPremium else {
+                premiumStore.presentPaywall(reason: .feature("Ghost Photo Comparison"))
+                return
+            }
             withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
                 compareMode = mode
             }
@@ -218,6 +227,10 @@ struct ComparePhotosView: View {
                     .font(AppTypography.captionEmphasis)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                if mode.requiresPremium && !premiumStore.isPremium {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 9, weight: .bold))
+                }
             }
             .foregroundStyle(isSelected ? AppColorRoles.textOnAccent : AppColorRoles.textPrimary)
             .frame(maxWidth: .infinity)
@@ -400,6 +413,10 @@ struct ComparePhotosView: View {
                     .gesture(ghostPinchGesture)
                     .accessibilityIdentifier("photos.compare.ghost.afterImage")
 
+                    CompareAlignmentGrid()
+                        .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                        .allowsHitTesting(false)
+
                     // Date badges
                     VStack {
                         HStack {
@@ -487,7 +504,7 @@ struct ComparePhotosView: View {
                     Button {
                         resetGhostAlignment()
                     } label: {
-                        Label(AppLocalization.string("compare.ghost.reset"), systemImage: "arrow.counterclockwise")
+                        Label(AppLocalization.string("Snap to center"), systemImage: "scope")
                             .font(AppTypography.captionEmphasis)
                     }
                     .buttonStyle(LiquidCapsuleButtonStyle(tint: photosTheme.accent))
@@ -591,7 +608,7 @@ struct ComparePhotosView: View {
 
                 // Prominent share transformation button
                 Button {
-                    showTransformationSheet = true
+                    openTransformationCard()
                 } label: {
                     Label(AppLocalization.string("transformation.card.share"), systemImage: "sparkles.rectangle.stack")
                         .font(AppTypography.bodyEmphasis)
@@ -622,6 +639,11 @@ struct ComparePhotosView: View {
     // MARK: - Export
     
     private func exportMergedComparison() {
+        guard premiumStore.isPremium else {
+            premiumStore.presentPaywall(reason: .feature("Comparison Export"))
+            return
+        }
+
         guard !isExporting else { return }
         isExporting = true
         
@@ -651,6 +673,14 @@ struct ComparePhotosView: View {
         
         performExport()
     }
+
+    private func openTransformationCard() {
+        guard premiumStore.isPremium else {
+            premiumStore.presentPaywall(reason: .feature("Transformation Card"))
+            return
+        }
+        showTransformationSheet = true
+    }
     
     private func performExport() {
         let olderData = olderPhoto.imageData
@@ -679,7 +709,7 @@ struct ComparePhotosView: View {
                     DispatchQueue.main.async {
                         switch result {
                         case .success:
-                            saveMessage = AppLocalization.string("Saved to Photos.")
+                            saveMessage = AppLocalization.string("Saved to MeasureMe album.")
                         case .failure(let message):
                             saveMessage = message
                         }
@@ -781,6 +811,75 @@ enum ImageSaveResult {
     case failure(String)
 }
 
+enum PhotoAlbumSaver {
+    static let albumTitle = "MeasureMe"
+
+    static func saveToMeasureMeAlbum(_ image: UIImage, completion: @escaping (ImageSaveResult) -> Void) {
+        Task {
+            do {
+                let album = try await ensureAlbum()
+                try await add(image: image, to: album)
+                await MainActor.run {
+                    completion(.success)
+                }
+            } catch {
+                await MainActor.run {
+                    completion(.failure(error.localizedDescription))
+                }
+            }
+        }
+    }
+
+    private static func ensureAlbum() async throws -> PHAssetCollection {
+        if let existing = fetchAlbum() {
+            return existing
+        }
+
+        var placeholder: PHObjectPlaceholder?
+        try await PHPhotoLibrary.shared().performChanges {
+            let request = PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle: albumTitle)
+            placeholder = request.placeholderForCreatedAssetCollection
+        }
+
+        guard let localIdentifier = placeholder?.localIdentifier else {
+            throw AlbumError.creationFailed
+        }
+
+        let collections = PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: [localIdentifier], options: nil)
+        guard let created = collections.firstObject else {
+            throw AlbumError.creationFailed
+        }
+        return created
+    }
+
+    private static func add(image: UIImage, to album: PHAssetCollection) async throws {
+        try await PHPhotoLibrary.shared().performChanges {
+            let assetRequest = PHAssetChangeRequest.creationRequestForAsset(from: image)
+            guard let placeholder = assetRequest.placeholderForCreatedAsset,
+                  let albumRequest = PHAssetCollectionChangeRequest(for: album) else {
+                return
+            }
+            albumRequest.addAssets([placeholder] as NSArray)
+        }
+    }
+
+    private static func fetchAlbum() -> PHAssetCollection? {
+        let options = PHFetchOptions()
+        options.predicate = NSPredicate(format: "title = %@", albumTitle)
+        return PHAssetCollection
+            .fetchAssetCollections(with: .album, subtype: .albumRegular, options: options)
+            .firstObject
+    }
+
+    private enum AlbumError: LocalizedError {
+        case creationFailed
+
+        var errorDescription: String? {
+            AppLocalization.string("Could not create MeasureMe album.")
+        }
+    }
+}
+
 final class ImageSaver: NSObject {
     private static var activeSavers: [ImageSaver] = []
     private let completion: (ImageSaveResult) -> Void
@@ -790,6 +889,10 @@ final class ImageSaver: NSObject {
     }
     
     static func save(_ image: UIImage, completion: @escaping (ImageSaveResult) -> Void) {
+        PhotoAlbumSaver.saveToMeasureMeAlbum(image, completion: completion)
+    }
+
+    static func saveLegacy(_ image: UIImage, completion: @escaping (ImageSaveResult) -> Void) {
         let saver = ImageSaver(completion: completion)
         activeSavers.append(saver)
         UIImageWriteToSavedPhotosAlbum(
@@ -808,6 +911,22 @@ final class ImageSaver: NSObject {
             completion(.success)
         }
         Self.activeSavers.removeAll { $0 === self }
+    }
+}
+
+private struct CompareAlignmentGrid: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        for index in 1...2 {
+            let x = rect.minX + rect.width * CGFloat(index) / 3
+            path.move(to: CGPoint(x: x, y: rect.minY))
+            path.addLine(to: CGPoint(x: x, y: rect.maxY))
+
+            let y = rect.minY + rect.height * CGFloat(index) / 3
+            path.move(to: CGPoint(x: rect.minX, y: y))
+            path.addLine(to: CGPoint(x: rect.maxX, y: y))
+        }
+        return path
     }
 }
 

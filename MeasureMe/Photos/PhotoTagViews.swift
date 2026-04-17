@@ -35,7 +35,8 @@ struct TagSelectionGrid: View {
     
     private var tagGroups: [(title: String, tags: [PhotoTag])] {
         [
-            ("Special", [.wholeBody]),
+            (AppLocalization.string("Pose"), PhotoTag.primaryPoseTags),
+            (AppLocalization.string("Advanced area tags"), [.wholeBody]),
             ("Body Size", [.height, .waist]),
             ("Upper Body", [.neck, .shoulders, .bust, .chest]),
             ("Arms", [.leftBicep, .rightBicep, .leftForearm, .rightForearm]),
@@ -69,6 +70,12 @@ private struct TagGroupView: View {
     }
     
     private func toggleTag(_ tag: PhotoTag) {
+        if tag.isPrimaryPose {
+            selectedTags.subtract(Set(PhotoTag.primaryPoseTags))
+            selectedTags.insert(tag)
+            return
+        }
+
         if selectedTags.contains(tag) {
             selectedTags.remove(tag)
         } else {

@@ -12,7 +12,7 @@ struct MultiPhotoImportView: View {
     let payload: MultiPhotoImportPayload
 
     @State private var date: Date = AppClock.now
-    @State private var selectedTags: Set<PhotoTag> = [.wholeBody]
+    @State private var selectedTags: Set<PhotoTag> = [.front]
     @State private var isSaving = false
     @State private var loadedImages: [UUID: UIImage] = [:]
     @State private var loadedThumbnails: [UUID: UIImage] = [:]
@@ -208,7 +208,7 @@ private extension MultiPhotoImportView {
 private extension MultiPhotoImportView {
 
     var availableTags: [PhotoTag] {
-        var tags: [PhotoTag] = [.wholeBody]
+        var tags: [PhotoTag] = PhotoTag.primaryPoseTags
         let activeTags = activeMetrics.activeKinds
             .filter { $0 != .weight && $0 != .bodyFat && $0 != .leanBodyMass }
             .compactMap { PhotoTag(metricKind: $0) }
@@ -220,6 +220,11 @@ private extension MultiPhotoImportView {
         Binding(
             get: { selectedTags.contains(tag) },
             set: { isOn in
+                if tag.isPrimaryPose {
+                    selectedTags.subtract(Set(PhotoTag.primaryPoseTags))
+                    selectedTags.insert(isOn ? tag : .front)
+                    return
+                }
                 if isOn { selectedTags.insert(tag) } else { selectedTags.remove(tag) }
             }
         )

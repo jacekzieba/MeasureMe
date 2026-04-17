@@ -7,7 +7,7 @@ final class AppearanceSettingsUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-uiTestMode", "-uiTestOpenSettingsTab"]
+        app.launchArguments = ["-uiTestOpenSettingsTab"]
     }
 
     // MARK: - Tests
@@ -109,6 +109,8 @@ final class AppearanceSettingsUITests: XCTestCase {
     }
 
     private func openExperienceSettings() {
+        scrollToTop(maxSwipes: 8)
+
         // Navigate to Experience settings using its accessibility identifier
         let experienceRow = app.descendants(matching: .any)["settings.row.experience"].firstMatch
         scrollToReveal(experienceRow)
@@ -117,6 +119,9 @@ final class AppearanceSettingsUITests: XCTestCase {
         } else {
             // Fallback for simulator/runtime variants where list row identifiers are not surfaced.
             let searchField = app.textFields["settings.search.field"].firstMatch
+            if !searchField.exists {
+                scrollToTop(maxSwipes: 8)
+            }
             if searchField.waitForExistence(timeout: 3) {
                 searchField.tap()
                 searchField.typeText("appearance")
@@ -137,6 +142,16 @@ final class AppearanceSettingsUITests: XCTestCase {
             app.navigationBars.staticTexts["Appearance, animations and haptics"].firstMatch.waitForExistence(timeout: 5),
             "Experience settings detail should open"
         )
+    }
+
+    private func scrollToTop(maxSwipes: Int = 6) {
+        for _ in 0..<maxSwipes {
+            let searchField = app.textFields["settings.search.field"].firstMatch
+            if searchField.exists {
+                return
+            }
+            app.swipeDown()
+        }
     }
 
     private func scrollToReveal(_ element: XCUIElement, maxSwipes: Int = 6) {

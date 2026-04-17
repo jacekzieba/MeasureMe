@@ -402,7 +402,7 @@ final class HealthKitManager {
         let preparation = AuthorizationPreparation(
             typesToShare: typesToShare,
             typesToRead: typesToRead,
-            alreadyAuthorized: preAuthStatuses.contains(.sharingAuthorized),
+            alreadyAuthorized: preAuthStatuses.allSatisfy { $0 == .sharingAuthorized },
             preparedAt: now
         )
         authorizationPreparation = preparation

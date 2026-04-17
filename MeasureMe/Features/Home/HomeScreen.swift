@@ -80,6 +80,10 @@ struct HomeView: View {
     @State private var showHomeCompareChooser = false
     @State private var showStreakDetail = false
     @State private var showGoalStatusLegendSheet = false
+    @State private var showActivationReminderPrompt = false
+    @State private var isRequestingActivationReminder = false
+    @State private var pendingActivationMetricCompletion = false
+    @State private var didShowActivationReminderPrompt = false
     @State private var selectedPhotoForFullScreen: PhotoEntry?
     @State private var selectedHomeComparePair: HomeComparePair?
     @State private var scrollOffset: CGFloat = 0
@@ -107,6 +111,7 @@ struct HomeView: View {
     @State var latestBodyFat: Double?
     @State var latestLeanMass: Double?
     @State private var hasAnyMeasurements = false
+    @State private var totalMetricSampleCount = 0
 
     // Zbuforowane dane pochodne - odswiezane przez onChange zamiast przeliczania przy kazdym renderze
     @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
@@ -137,7 +142,7 @@ struct HomeView: View {
     }
 
     private var isWelcomeHomeState: Bool {
-        showActivationHub
+        showActivationHub || isFreshHomeState
     }
 
     private var userAge: Int? {
@@ -468,19 +473,14 @@ struct HomeView: View {
         }
         cachedCustomGoalsByIdentifier = customGoals
 
-        if !recentSamples.isEmpty {
-            hasAnyMeasurements = true
-        } else if allowFallbackFetch {
-            var descriptor = FetchDescriptor<MetricSample>(
-                sortBy: [SortDescriptor(\.date, order: .reverse)]
-            )
-            descriptor.fetchLimit = 1
-            hasAnyMeasurements = ((try? modelContext.fetch(descriptor).isEmpty) == false)
-        } else {
-            hasAnyMeasurements = false
-        }
+        let fetchedMetricCount = allowFallbackFetch
+            ? ((try? modelContext.fetchCount(FetchDescriptor<MetricSample>())) ?? recentSamples.count)
+            : recentSamples.count
+        totalMetricSampleCount = fetchedMetricCount
+        hasAnyMeasurements = fetchedMetricCount > 0
 
         rebuildNextFocusInsightCache()
+        refreshActivationProgress()
         autoHideChecklistIfCompleted()
     }
 
@@ -849,11 +849,10 @@ struct HomeView: View {
             ),
             unitsSystem: unitsSystem
         ) {
-            if !quickAddKinds.isEmpty, activationCurrentTask == .addMetric {
-                completeActivationTask(.addMetric)
-                quickAddKinds = []
-            }
+            quickAddKinds = []
             showQuickAddSheet = false
+            refreshMeasurementCaches()
+            refreshChecklistState()
         }
     }
 
@@ -1038,6 +1037,36 @@ struct HomeView: View {
                 Button(AppLocalization.string("Not now"), role: .cancel) {}
             } message: {
                 Text(AppLocalization.string("To enable Apple Health sync, go to iOS Settings → MeasureMe → Health."))
+            }
+            .alert(
+                FlowLocalization.app(
+                    "Want a nudge to log again tomorrow?",
+                    "Chcesz przypomnienie, żeby jutro znów coś zapisać?",
+                    "¿Quieres un recordatorio para registrar de nuevo mañana?",
+                    "Möchtest du morgen an den nächsten Eintrag erinnert werden?",
+                    "Voulez-vous un rappel pour enregistrer à nouveau demain ?",
+                    "Quer um lembrete para registrar de novo amanhã?"
+                ),
+                isPresented: $showActivationReminderPrompt
+            ) {
+                Button(FlowLocalization.app("Not now", "Nie teraz", "Ahora no", "Nicht jetzt", "Pas maintenant", "Agora não"), role: .cancel) {
+                    declineActivationReminderPrompt()
+                }
+                .accessibilityIdentifier("home.activation.reminder.skip")
+
+                Button(FlowLocalization.app("Remind me tomorrow", "Przypomnij mi jutro", "Recordarme mañana", "Morgen erinnern", "Me le rappeler demain", "Lembrar amanhã")) {
+                    acceptActivationReminderPrompt()
+                }
+                .accessibilityIdentifier("home.activation.reminder.accept")
+            } message: {
+                Text(FlowLocalization.app(
+                    "You just logged your first measurement. A timely reminder can help make the second one easier.",
+                    "Właśnie zapisano pierwszy pomiar. Dobre przypomnienie może ułatwić drugi.",
+                    "Acabas de registrar tu primera medida. Un recordatorio a tiempo puede facilitar la segunda.",
+                    "Du hast gerade deine erste Messung eingetragen. Eine passende Erinnerung macht die zweite leichter.",
+                    "Vous venez d'enregistrer votre première mesure. Un rappel au bon moment peut faciliter la deuxième.",
+                    "Você acabou de registrar sua primeira medição. Um lembrete no momento certo pode facilitar a segunda."
+                ))
             }
     }
 
@@ -1307,6 +1336,7 @@ struct HomeView: View {
                 streakCount: streakManager.currentStreak,
                 shouldAnimateStreak: streakManager.shouldPlayAnimation,
                 prefersStackedPanels: prefersStackedHeroPanels,
+                primaryMeasurement: heroPrimaryMeasurement,
                 nextFocus: HomeHeroNextFocusSnapshot(
                     headline: nextFocusInsight.headline,
                     primaryValue: nextFocusInsight.primaryValue,
@@ -1315,7 +1345,7 @@ struct HomeView: View {
                 ),
                 weekTitle: summaryThisWeekTitle,
                 weekDetail: summaryThisWeekDetail,
-                shouldShowPostOnboardingSummary: !showActivationHub
+                shouldShowPostOnboardingSummary: !showActivationHub && !isFreshHomeState
             ),
             accent: homeTheme.accent,
             pillFill: homeTheme.pillFill,
@@ -1324,12 +1354,12 @@ struct HomeView: View {
             activationSnapshot: showActivationHub ? HomeActivationSnapshot(
                 stepIndex: activationStepIndex,
                 totalSteps: ActivationTask.allCases.count,
-                title: OnboardingCopy.activationTaskTitle(activationCurrentTask ?? .celebrate),
+                title: OnboardingCopy.activationTaskTitle(activationCurrentTask ?? .initial),
                 body: OnboardingCopy.activationTaskBody(
-                    activationCurrentTask ?? .celebrate,
+                    activationCurrentTask ?? .initial,
                     metricName: activationPrimaryMetric?.title
                 ),
-                primaryCTA: OnboardingCopy.activationPrimaryCTA(activationCurrentTask ?? .celebrate),
+                primaryCTA: OnboardingCopy.activationPrimaryCTA(activationCurrentTask ?? .initial),
                 skipCTA: OnboardingCopy.activationSkipCTA,
                 dismissCTA: OnboardingCopy.activationDismissCTA
             ) : nil,
@@ -1454,14 +1484,6 @@ struct HomeView: View {
                 detail: AppLocalization.string("home.discovery.choose_metrics.detail"),
                 icon: "slider.horizontal.3",
                 isCompleted: onboardingChecklistMetricsCompleted,
-                isLoading: false
-            ),
-            SetupChecklistItem(
-                id: "premium",
-                title: AppLocalization.string("home.discovery.premium.title"),
-                detail: AppLocalization.string("home.discovery.premium.detail"),
-                icon: "sparkles",
-                isCompleted: onboardingChecklistPremiumExplored || premiumStore.isPremium,
                 isLoading: false
             ),
         ]
@@ -1603,12 +1625,12 @@ struct HomeView: View {
             snapshot: HomeActivationSnapshot(
                 stepIndex: activationStepIndex,
                 totalSteps: ActivationTask.allCases.count,
-                title: OnboardingCopy.activationTaskTitle(activationCurrentTask ?? .celebrate),
+                title: OnboardingCopy.activationTaskTitle(activationCurrentTask ?? .initial),
                 body: OnboardingCopy.activationTaskBody(
-                    activationCurrentTask ?? .celebrate,
+                    activationCurrentTask ?? .initial,
                     metricName: activationPrimaryMetric?.title
                 ),
-                primaryCTA: OnboardingCopy.activationPrimaryCTA(activationCurrentTask ?? .celebrate),
+                primaryCTA: OnboardingCopy.activationPrimaryCTA(activationCurrentTask ?? .initial),
                 skipCTA: OnboardingCopy.activationSkipCTA,
                 dismissCTA: OnboardingCopy.activationDismissCTA
             ),
@@ -1658,7 +1680,13 @@ struct HomeView: View {
     private var activationCurrentTask: ActivationTask? {
         guard onboardingFlowVersion >= 2 else { return nil }
         guard !activationCurrentTaskID.isEmpty else { return nil }
-        return ActivationTask(rawValue: activationCurrentTaskID)
+        if let task = ActivationTask(rawValue: activationCurrentTaskID) {
+            return task
+        }
+        if ["addMetric", "premium", "celebrate"].contains(activationCurrentTaskID) {
+            return .initial
+        }
+        return nil
     }
 
     private var activationCompletedTaskIDs: Set<String> {
@@ -1679,7 +1707,14 @@ struct HomeView: View {
 
     private var showActivationHub: Bool {
         let isEnabledInLayout = settingsStore.homeLayoutSnapshot().item(for: .activationHub)?.isVisible ?? true
-        return onboardingFlowVersion >= 2 && isEnabledInLayout && !activationIsDismissed && activationCurrentTask != nil
+        let isActivationHubUITest = isUITestMode && UITestArgument.isPresent(.activationHub)
+        let hasActivationPrerequisite = hasAnyMeasurements || isActivationHubUITest
+        let isActivationDismissed = activationIsDismissed && !isActivationHubUITest
+        return onboardingFlowVersion >= 2
+            && (isEnabledInLayout || isActivationHubUITest)
+            && hasActivationPrerequisite
+            && !isActivationDismissed
+            && activationCurrentTask != nil
     }
 
     private var activationStepIndex: Int {
@@ -1719,6 +1754,56 @@ struct HomeView: View {
 
     private var nextFocusInsight: HomeNextFocusInsight {
         cachedNextFocusInsight ?? fallbackNextFocusInsight
+    }
+
+    private var heroPrimaryMeasurement: HomeHeroMeasurementSnapshot? {
+        guard hasAnyMeasurements else {
+            return nil
+        }
+
+        let fallbackSample = recentSamples.first
+        let fallbackKind = fallbackSample.flatMap { MetricKind(rawValue: $0.kindRaw) }
+        guard let kind = dashboardVisibleMetrics.first ?? fallbackKind else {
+            return nil
+        }
+
+        let sample = cachedLatestByKind[kind] ?? fallbackSample
+        guard let sample else { return nil }
+
+        let value = kind.formattedMetricValue(fromMetric: sample.value, unitsSystem: unitsSystem)
+        let label = totalMetricSampleCount == 1
+            ? FlowLocalization.app(
+                "First check-in",
+                "Pierwszy zapis",
+                "Primer registro",
+                "Erster Check-in",
+                "Premier relevé",
+                "Primeiro registro"
+            )
+            : FlowLocalization.app(
+                "Primary",
+                "Główna",
+                "Principal",
+                "Primär",
+                "Principal",
+                "Principal"
+            )
+        let detail = metricDeltaTextFromCache(kind: kind, days: 7)
+            ?? secondaryMetricGoalSummary(for: kind)
+            ?? FlowLocalization.app(
+                "\(kind.title) is your lead metric on Home.",
+                "\(kind.title) jest główną metryką na ekranie Home.",
+                "\(kind.title) es tu métrica principal en Inicio.",
+                "\(kind.title) ist deine wichtigste Metrik auf Home.",
+                "\(kind.title) est votre mesure principale sur l'accueil.",
+                "\(kind.title) é sua métrica principal na Home."
+            )
+
+        return HomeHeroMeasurementSnapshot(
+            label: label,
+            value: value,
+            detail: detail
+        )
     }
 
     private var fallbackNextFocusInsight: HomeNextFocusInsight {
@@ -1895,6 +1980,12 @@ struct HomeView: View {
 
     private var recentPhotosInsightTitle: String {
         if hasEnoughSavedPhotosForCompare {
+            if let secondLatestSavedPhoto {
+                return AppLocalization.string(
+                    "Latest vs. %@",
+                    relativeDescription(since: secondLatestSavedPhoto.date)
+                )
+            }
             return AppLocalization.string("home.photos.compare.title")
         }
         return AppLocalization.string("home.photos.first.title")
@@ -1903,17 +1994,14 @@ struct HomeView: View {
     private var recentPhotosInsightDetail: String {
         if comparePhotosCardDismissed { return "" }
         if hasEnoughSavedPhotosForCompare {
-            return premiumStore.isPremium
-                ? AppLocalization.string("home.photos.compare.detail.home")
-                : AppLocalization.string("home.photos.compare.detail.locked")
+            return AppLocalization.string("home.photos.compare.detail.home")
         }
         return AppLocalization.string("home.photos.first.detail")
     }
 
     private var recentPhotosInsightNote: String? {
         if comparePhotosCardDismissed { return nil }
-        guard hasEnoughSavedPhotosForCompare, !premiumStore.isPremium else { return nil }
-        return AppLocalization.string("home.photos.compare.note.premium")
+        return nil
     }
 
     private var latestSavedPhoto: PhotoEntry? {
@@ -2180,17 +2268,6 @@ struct HomeView: View {
             )
         }
 
-        items.append(
-            SetupChecklistItem(
-                id: "premium",
-                title: AppLocalization.string("Explore Premium"),
-                detail: AppLocalization.string("Try deeper insights and compare photos side-by-side."),
-                icon: "sparkles",
-                isCompleted: onboardingChecklistPremiumExplored || premiumStore.isPremium,
-                isLoading: false
-            )
-        )
-
         return items
     }
 
@@ -2432,6 +2509,26 @@ struct HomeView: View {
 
     private var greetingTitle: String {
         let name = trimmedUserName
+        if totalMetricSampleCount == 1 && hasAnyMeasurements {
+            if name.isEmpty {
+                return FlowLocalization.app(
+                    "Week 1 - you're on the board.",
+                    "Tydzień 1 - jesteś na planszy.",
+                    "Semana 1 - ya estás en marcha.",
+                    "Woche 1 - du bist dabei.",
+                    "Semaine 1 - vous êtes lancé.",
+                    "Semana 1 - você começou."
+                )
+            }
+            return FlowLocalization.app(
+                "Week 1 - \(name), you're on the board.",
+                "Tydzień 1 - \(name), jesteś na planszy.",
+                "Semana 1 - \(name), ya estás en marcha.",
+                "Woche 1 - \(name), du bist dabei.",
+                "Semaine 1 - \(name), vous êtes lancé.",
+                "Semana 1 - \(name), você começou."
+            )
+        }
         switch dayPart {
         case .morning:
             return name.isEmpty
@@ -2839,6 +2936,11 @@ struct HomeView: View {
 
     private func handleNextFocusAction() {
         Haptics.selection()
+        if isFreshHomeState {
+            quickAddKinds = [.weight]
+            showQuickAddSheet = true
+            return
+        }
         switch nextFocusInsight.action {
         case .metric(_):
             router.selectedTab = .measurements
@@ -2861,11 +2963,7 @@ struct HomeView: View {
         Haptics.selection()
         comparePhotosCardDismissed = true
         AnalyticsFirstEventTracker.trackFirstCompareSessionIfNeeded(source: "home_recent_photos")
-        if premiumStore.isPremium {
-            showHomeCompareChooser = true
-        } else {
-            premiumStore.presentPaywall(reason: .feature("Photo Comparison Tool"))
-        }
+        showHomeCompareChooser = true
     }
 
     private func activationIDSet(from raw: String) -> Set<String> {
@@ -2885,21 +2983,48 @@ struct HomeView: View {
         Haptics.selection()
 
         switch task {
-        case .addMetric:
-            quickAddKinds = activationPrimaryMetric.map { [$0] } ?? [.weight]
-            showQuickAddSheet = true
         case .addPhoto:
             showActivationAddPhotoSheet = true
         case .chooseMetrics:
             showActivationMetricsSheet = true
-        case .premium:
-            completeActivationTask(.premium)
-            premiumStore.presentPaywall(reason: .onboarding)
-        case .celebrate:
-            completeActivationTask(.celebrate)
-            activationCurrentTaskID = ""
-            activationIsDismissed = true
+        case .setGoal:
+            if !goals.isEmpty {
+                completeActivationTask(.setGoal)
+            } else {
+                router.selectedTab = .measurements
+            }
         }
+    }
+
+    private func acceptActivationReminderPrompt() {
+        guard !isRequestingActivationReminder else { return }
+        isRequestingActivationReminder = true
+        Analytics.shared.track(.notificationsPromptShown)
+
+        Task { @MainActor in
+            let granted = await effects.requestNotificationAuthorization()
+            effects.setNotificationsEnabled(granted)
+            onboardingSkippedReminders = !granted
+
+            if granted {
+                effects.seedTomorrowReminder()
+                Analytics.shared.track(.notificationsAccepted)
+                Analytics.shared.track(.remindersSetupCompleted)
+            }
+
+            isRequestingActivationReminder = false
+            finishPendingActivationMetricCompletion()
+        }
+    }
+
+    private func declineActivationReminderPrompt() {
+        onboardingSkippedReminders = true
+        finishPendingActivationMetricCompletion()
+    }
+
+    private func finishPendingActivationMetricCompletion() {
+        guard pendingActivationMetricCompletion else { return }
+        pendingActivationMetricCompletion = false
     }
 
     private func skipActivationTask() {
@@ -2958,8 +3083,39 @@ struct HomeView: View {
 
     private func refreshChecklistState() {
         reminderChecklistCompleted = effects.reminderChecklistCompleted()
+        refreshActivationProgress()
         autoHideChecklistIfCompleted()
         trackPrimaryChecklistShownIfNeeded()
+    }
+
+    private func refreshActivationProgress() {
+        guard onboardingFlowVersion >= 2 else { return }
+
+        if totalMetricSampleCount == 1,
+           !didShowActivationReminderPrompt,
+           !onboardingSkippedReminders,
+           !effects.reminderChecklistCompleted() {
+            didShowActivationReminderPrompt = true
+            showActivationReminderPrompt = true
+        }
+
+        if totalMetricSampleCount >= 2 {
+            dismissActivationHub()
+            return
+        }
+
+        guard let task = activationCurrentTask else { return }
+
+        switch task {
+        case .addPhoto where hasAnyPhotoContent:
+            completeActivationTask(.addPhoto)
+        case .chooseMetrics where onboardingChecklistMetricsCompleted:
+            completeActivationTask(.chooseMetrics)
+        case .setGoal where !goals.isEmpty:
+            completeActivationTask(.setGoal)
+        default:
+            break
+        }
     }
 
     private func trackPrimaryChecklistShownIfNeeded() {

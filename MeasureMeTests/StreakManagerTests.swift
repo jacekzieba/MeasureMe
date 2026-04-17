@@ -292,6 +292,11 @@ final class StreakManagerIntegrationTests: XCTestCase {
         XCTAssertEqual(manager.currentStreak, 1)
     }
 
+    func testRecordMetricSaved_playsFirstWeekAnimationImmediately() {
+        manager.recordMetricSaved(date: fixedDate)
+        XCTAssertTrue(manager.shouldPlayAnimation)
+    }
+
     func testRecordPhotoSaved_addsActiveWeek() {
         manager.recordPhotoSaved(date: fixedDate)
         XCTAssertEqual(manager.currentStreak, 1)

@@ -34,6 +34,18 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertTrue(store.snapshot.notifications.aiRoundNumbersEnabled)
         XCTAssertTrue(store.snapshot.notifications.aiConsistencyEnabled)
         XCTAssertEqual(store.snapshot.notifications.aiDigestWeekday, 1)
+        XCTAssertFalse(store.snapshot.privacy.requireBiometricForPhotos)
+    }
+
+    func testPhotosPrivacySettingPersists() {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+
+        store.set(\.privacy.requireBiometricForPhotos, true)
+        store.forceReloadSnapshot()
+
+        XCTAssertTrue(store.snapshot.privacy.requireBiometricForPhotos)
+        XCTAssertTrue(defaults.bool(forKey: AppSettingsKeys.Privacy.requireBiometricForPhotos))
     }
 
     func testSetAndReloadUpdatesSnapshot() async {

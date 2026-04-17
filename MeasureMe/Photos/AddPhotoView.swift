@@ -15,11 +15,12 @@ struct AddPhotoView: View {
     @State private var showCamera = false
     @State private var showPhotoLibrary = false
     @State private var date: Date = AppClock.now
-    @State private var selectedTags: Set<PhotoTag> = [.wholeBody]
+    @State private var selectedTags: Set<PhotoTag> = [.front]
     @State private var metricValues: [MetricKind: Double] = [:]
     @State private var isMeasurementsExpanded = false
     @State private var saveErrorMessage: String?
     @State private var isSaving = false
+    @State private var didUserChoosePose = false
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
     private var shouldStartExpandedForUITests: Bool {
@@ -125,10 +126,16 @@ struct AddPhotoView: View {
             if newValue != nil {
                 isLoadingPreview = false
             }
+            if let newValue {
+                Task { await applySuggestedPoseIfNeeded(from: newValue) }
+            }
         }
         .onAppear {
             if shouldStartExpandedForUITests && !activeMetrics.activeKinds.isEmpty {
                 isMeasurementsExpanded = true
+            }
+            if let selectedImage {
+                Task { await applySuggestedPoseIfNeeded(from: selectedImage) }
             }
         }
     }
@@ -257,7 +264,7 @@ private extension AddPhotoView {
     
     /// Tags available for selection (whole body + active metrics except weight, body fat, lean mass)
     var availableTags: [PhotoTag] {
-        var tags: [PhotoTag] = [.wholeBody]
+        var tags: [PhotoTag] = PhotoTag.primaryPoseTags
         
         let activeTags = activeMetrics.activeKinds
             .filter { $0 != .weight && $0 != .bodyFat && $0 != .leanBodyMass }
@@ -308,6 +315,17 @@ private extension AddPhotoView {
         Binding(
             get: { selectedTags.contains(tag) },
             set: { isSelected in
+                if tag.isPrimaryPose {
+                    didUserChoosePose = true
+                    selectedTags.subtract(Set(PhotoTag.primaryPoseTags))
+                    if isSelected {
+                        selectedTags.insert(tag)
+                    } else {
+                        selectedTags.insert(.front)
+                    }
+                    return
+                }
+
                 if isSelected {
                     selectedTags.insert(tag)
                 } else {
@@ -373,6 +391,14 @@ private extension AddPhotoView {
             saveErrorMessage = AppLocalization.string("Could not save photo. Please try again.")
             Haptics.error()
         }
+    }
+
+    @MainActor
+    func applySuggestedPoseIfNeeded(from image: UIImage) async {
+        guard !didUserChoosePose else { return }
+        guard let suggestedPose = await PhotoPoseClassifier.suggestedPose(for: image) else { return }
+        selectedTags.subtract(Set(PhotoTag.primaryPoseTags))
+        selectedTags.insert(suggestedPose)
     }
 
     func milliseconds(from duration: Duration) -> Int {

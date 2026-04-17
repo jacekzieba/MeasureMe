@@ -3,15 +3,15 @@ import XCTest
 
 private final class OnboardingHealthKitMock: OnboardingHealthKitAuthorizing {
     func prepareAuthorizationRequest() async {
-        <#code#>
+        // No-op for onboarding tests.
     }
     
     func fetchDateOfBirth() throws -> Date? {
-        <#code#>
+        nil
     }
     
     func fetchLatestHeightInCentimeters() async throws -> (value: Double, date: Date)? {
-        <#code#>
+        nil
     }
     
     private(set) var requestAuthorizationCallCount = 0

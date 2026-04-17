@@ -109,6 +109,10 @@ enum AppSettingsKeys {
         static let lastNagDate = "premium_last_nag_date"
     }
 
+    enum Privacy {
+        static let requireBiometricForPhotos = "privacy_require_biometric_for_photos"
+    }
+
     enum Diagnostics {
         static let diagnosticsLoggingEnabled = "diagnostics_logging_enabled"
         static let crashReporterHasUnreported = "crashreporter_has_unreported"

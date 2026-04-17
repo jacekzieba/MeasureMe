@@ -104,6 +104,10 @@ struct AppSettingsSnapshot: Sendable {
         var premiumLastNagDate: Double
     }
 
+    struct Privacy: Sendable {
+        var requireBiometricForPhotos: Bool
+    }
+
     struct Diagnostics: Sendable {
         var diagnosticsLoggingEnabled: Bool
         var crashReporterHasUnreported: Bool
@@ -164,6 +168,7 @@ struct AppSettingsSnapshot: Sendable {
     var indicators: Indicators
     var experience: Experience
     var premium: Premium
+    var privacy: Privacy
     var diagnostics: Diagnostics
     var notifications: Notifications
     var analytics: Analytics
@@ -231,7 +236,8 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.Onboarding.activationIsDismissed: false,
         AppSettingsKeys.Analytics.secondMetricAddedTracked: false,
         AppSettingsKeys.Analytics.secondPhotoAddedTracked: false,
-        AppSettingsKeys.Analytics.firstCompareSessionTracked: false
+        AppSettingsKeys.Analytics.firstCompareSessionTracked: false,
+        AppSettingsKeys.Privacy.requireBiometricForPhotos: false
     ]
 
     static func load(from defaults: UserDefaults) -> AppSettingsSnapshot {
@@ -327,6 +333,9 @@ struct AppSettingsSnapshot: Sendable {
                 premiumEntitlement: defaults.bool(forKey: AppSettingsKeys.Premium.entitlement),
                 premiumFirstLaunchDate: defaults.double(forKey: AppSettingsKeys.Premium.firstLaunchDate),
                 premiumLastNagDate: defaults.double(forKey: AppSettingsKeys.Premium.lastNagDate)
+            ),
+            privacy: .init(
+                requireBiometricForPhotos: defaults.object(forKey: AppSettingsKeys.Privacy.requireBiometricForPhotos) as? Bool ?? false
             ),
             diagnostics: .init(
                 diagnosticsLoggingEnabled: defaults.object(forKey: AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled) as? Bool ?? true,

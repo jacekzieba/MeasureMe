@@ -221,19 +221,17 @@ struct OnboardingActivationView: View {
     // MARK: - Helpers
 
     private func scheduleSuccessTransition() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            if shouldAnimate {
-                withAnimation(AppMotion.emphasized) {
-                    showSuccessState = true
-                }
-                withAnimation(.easeOut(duration: 0.8)) {
-                    successRippleScale = 2.0
-                    successRippleOpacity = 0
-                }
-            } else {
+        if shouldAnimate {
+            withAnimation(AppMotion.emphasized) {
                 showSuccessState = true
+            }
+            withAnimation(.easeOut(duration: 0.8)) {
+                successRippleScale = 2.0
                 successRippleOpacity = 0
             }
+        } else {
+            showSuccessState = true
+            successRippleOpacity = 0
         }
     }
 }

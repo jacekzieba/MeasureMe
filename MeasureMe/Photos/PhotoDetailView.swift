@@ -12,7 +12,6 @@ struct PhotoDetailView: View {
     @Bindable var photo: PhotoEntry
     
     @State private var showFullScreen = false
-    @State private var isEditing = false
     @State private var showSaveAlert = false
     @State private var saveAlertTitle = AppLocalization.string("Photo Saved")
     @State private var saveAlertMessage = ""
@@ -44,21 +43,16 @@ struct PhotoDetailView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     photoSection
-                    if isEditing {
-                        dateSection
-                        tagsSection
-                        metricsSection
-                    } else {
-                        sessionSummarySection
-                        secondaryActionsSection
-                        tagsSection
-                        metricsSection
-                        deleteButton
-                    }
+                    sessionSummarySection
+                    primaryActionsSection
+                    dateSection
+                    tagsSection
+                    metricsSection
+                    deleteButton
                 }
                 .padding()
             }
-            .navigationTitle(isEditing ? AppLocalization.string("Edit Photo") : AppLocalization.string("Photo Details"))
+            .navigationTitle(AppLocalization.string("Photo Details"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -68,19 +62,25 @@ struct PhotoDetailView: View {
                 }
                 
                 ToolbarItem(placement: .primaryAction) {
-                    if isEditing {
+                    if hasUnsavedChanges {
                         Button(AppLocalization.string("Save")) {
                             saveChanges()
                         }
                     }
                 }
-                
-                if isEditing {
-                    ToolbarItem(placement: .secondaryAction) {
-                        Button(AppLocalization.string("Cancel"), role: .cancel) {
-                            cancelEditing()
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            saveToPhotos()
+                        } label: {
+                            Label(AppLocalization.string("Save to Photos"), systemImage: "square.and.arrow.down")
                         }
+                        .disabled(isSavingToPhotos)
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
                     }
+                    .accessibilityLabel(AppLocalization.string("More actions"))
                 }
             }
             .fullScreenCover(isPresented: $showFullScreen) {
@@ -123,36 +123,15 @@ private extension PhotoDetailView {
     }
 
     @ViewBuilder
-    var secondaryActionsSection: some View {
-        VStack(spacing: 12) {
-            if let previousPhoto, let onCompareRequested {
-                Button {
-                    onCompareRequested(previousPhoto, photo)
-                } label: {
-                    Label(AppLocalization.string("Compare"), systemImage: "arrow.left.and.right")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+    var primaryActionsSection: some View {
+        if let previousPhoto, let onCompareRequested {
+            Button {
+                onCompareRequested(previousPhoto, photo)
+            } label: {
+                Label(AppLocalization.string("Compare"), systemImage: "arrow.left.and.right")
+                    .frame(maxWidth: .infinity)
             }
-
-            HStack(spacing: 12) {
-                Button {
-                    saveToPhotos()
-                } label: {
-                    Label(AppLocalization.string("Save to Photos"), systemImage: "square.and.arrow.down")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
-                .disabled(isSavingToPhotos)
-
-                Button {
-                    startEditing()
-                } label: {
-                    Label(AppLocalization.string("Edit"), systemImage: "slider.horizontal.3")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
-            }
+            .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
         }
     }
     
@@ -160,7 +139,7 @@ private extension PhotoDetailView {
         PhotoDateSection(
             date: photo.date,
             editedDate: $editedDate,
-            isEditing: isEditing
+            isEditing: true
         )
     }
     
@@ -168,7 +147,7 @@ private extension PhotoDetailView {
         PhotoTagsSection(
             tags: photo.tags,
             editedTags: $editedTags,
-            isEditing: isEditing
+            isEditing: true
         )
     }
     
@@ -177,7 +156,7 @@ private extension PhotoDetailView {
             metrics: photo.linkedMetrics,
             editedMetrics: $editedMetrics,
             metricsStore: metricsStore,
-            isEditing: isEditing
+            isEditing: true
         )
     }
     
@@ -210,19 +189,10 @@ private extension PhotoDetailView {
 
 // MARK: - Actions
 private extension PhotoDetailView {
-    
-    func startEditing() {
-        editedDate = photo.date
-        editedTags = Set(photo.tags)
-        editedMetrics = photo.linkedMetrics
-        isEditing = true
-    }
-    
-    func cancelEditing() {
-        editedDate = photo.date
-        editedTags = Set(photo.tags)
-        editedMetrics = photo.linkedMetrics
-        isEditing = false
+    var hasUnsavedChanges: Bool {
+        editedDate != photo.date
+            || editedTags != Set(photo.tags)
+            || editedMetrics != photo.linkedMetrics
     }
     
     func saveChanges() {
@@ -232,7 +202,6 @@ private extension PhotoDetailView {
 
         do {
             try context.save()
-            isEditing = false
         } catch {
             presentSaveFailure(message: AppLocalization.string("Could not save photo changes. Please try again."))
             AppLog.debug("⚠️ Failed saving photo changes: \(error.localizedDescription)")
@@ -268,11 +237,18 @@ private extension PhotoDetailView {
             }
 
             do {
-                try await PHPhotoLibrary.shared().performChanges {
-                    PHAssetChangeRequest.creationRequestForAsset(from: image)
+                try await withCheckedThrowingContinuation { continuation in
+                    PhotoAlbumSaver.saveToMeasureMeAlbum(image) { result in
+                        switch result {
+                        case .success:
+                            continuation.resume()
+                        case .failure(let message):
+                            continuation.resume(throwing: PhotoAlbumSaveError(message: message))
+                        }
+                    }
                 }
                 saveAlertTitle = AppLocalization.string("Photo Saved")
-                saveAlertMessage = AppLocalization.string("Saved to Photos.")
+                saveAlertMessage = AppLocalization.string("Saved to MeasureMe album.")
                 showSaveAlert = true
                 Haptics.success()
             } catch {
@@ -286,6 +262,14 @@ private extension PhotoDetailView {
         saveAlertMessage = message
         showSaveAlert = true
         Haptics.error()
+    }
+}
+
+private struct PhotoAlbumSaveError: LocalizedError {
+    let message: String
+
+    var errorDescription: String? {
+        message
     }
 }
 

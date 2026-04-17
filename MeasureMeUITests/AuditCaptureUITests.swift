@@ -162,8 +162,8 @@ final class AuditCaptureUITests: XCTestCase {
         saveScreenshot(screen: "onboarding_profile")
 
         onboardingNextButton(in: app).tap()
-        XCTAssertTrue(app.buttons["onboarding.booster.reminders"].waitForExistence(timeout: 8))
-        saveScreenshot(screen: "onboarding_boosters")
+        XCTAssertTrue(app.buttons["onboarding.booster.healthkit"].waitForExistence(timeout: 8))
+        saveScreenshot(screen: "onboarding_healthkit")
     }
 
     @MainActor
@@ -231,10 +231,10 @@ final class AuditCaptureUITests: XCTestCase {
         let onboardingBack = onboardingBackButton(in: onboardingApp)
         XCTAssertTrue(onboardingBack.waitForExistence(timeout: 8))
         XCTAssertTrue(onboardingBack.isHittable)
-        let reminders = onboardingApp.buttons["onboarding.booster.reminders"].firstMatch
-        XCTAssertTrue(waitForExistenceWithScroll(reminders, in: onboardingApp, timeout: 10, maxSwipes: 8))
-        scrollToReveal(reminders, in: onboardingApp, maxSwipes: 6)
-        if !reminders.isHittable {
+        let healthKit = onboardingApp.buttons["onboarding.booster.healthkit"].firstMatch
+        XCTAssertTrue(waitForExistenceWithScroll(healthKit, in: onboardingApp, timeout: 10, maxSwipes: 8))
+        scrollToReveal(healthKit, in: onboardingApp, maxSwipes: 6)
+        if !healthKit.isHittable {
             _ = onboardingApp.wait(for: .runningForeground, timeout: 3)
         }
     }
@@ -308,11 +308,11 @@ final class AuditCaptureUITests: XCTestCase {
             onboardingNextButton(in: onboardingApp).tap()
         }
 
-        let reminders = onboardingApp.buttons["onboarding.booster.reminders"]
-        XCTAssertTrue(waitForExistenceWithScroll(reminders, in: onboardingApp, timeout: 10, maxSwipes: 8))
-        scrollToReveal(reminders, in: onboardingApp, maxSwipes: 6)
-        XCTAssertTrue(reminders.isHittable)
-        assertMinHitTarget(reminders, minSize: 44, name: "onboarding.booster.reminders")
+        let healthKit = onboardingApp.buttons["onboarding.booster.healthkit"]
+        XCTAssertTrue(waitForExistenceWithScroll(healthKit, in: onboardingApp, timeout: 10, maxSwipes: 8))
+        scrollToReveal(healthKit, in: onboardingApp, maxSwipes: 6)
+        XCTAssertTrue(healthKit.isHittable)
+        assertMinHitTarget(healthKit, minSize: 44, name: "onboarding.booster.healthkit")
     }
 
     private func openTab(_ app: XCUIApplication, candidates: [String]) {

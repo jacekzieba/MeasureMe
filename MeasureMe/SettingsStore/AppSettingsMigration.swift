@@ -34,7 +34,10 @@ enum AppSettingsMigration {
         guard defaults.data(forKey: AppSettingsKeys.Home.homeLayoutData) == nil else { return }
 
         let settingsSnapshot = AppSettingsSnapshot.load(from: defaults)
-        let layout = HomeLayoutSnapshot.defaultV1(using: settingsSnapshot)
+        var layout = HomeLayoutSnapshot.defaultV1(using: settingsSnapshot)
+        if defaults.object(forKey: AppSettingsKeys.Onboarding.onboardingChecklistShow) != nil {
+            layout.setVisibility(defaults.bool(forKey: AppSettingsKeys.Onboarding.onboardingChecklistShow), for: .activationHub)
+        }
         guard let encoded = try? JSONEncoder().encode(layout) else { return }
 
         defaults.set(HomeLayoutSnapshot.currentSchemaVersion, forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion)

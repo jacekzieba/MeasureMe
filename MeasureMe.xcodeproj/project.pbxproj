@@ -743,6 +743,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = MeasureMe;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "MeasureMe reads your weight, body fat, height, lean body mass, and waist measurements to display trends and track progress.\n\n";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "MeasureMe saves weight, body fat, height, lean body mass, and waist measurements you log on Apple Watch so they stay in sync with Health.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jacek.measureme;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -777,6 +778,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = MeasureMe;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "MeasureMe reads your weight, body fat, height, lean body mass, and waist measurements to display trends and track progress.\n\n";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "MeasureMe saves weight, body fat, height, lean body mass, and waist measurements you log on Apple Watch so they stay in sync with Health.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jacek.measureme;
 				LD_RUNPATH_SEARCH_PATHS = (

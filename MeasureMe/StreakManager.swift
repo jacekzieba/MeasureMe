@@ -113,16 +113,20 @@ final class StreakManager: ObservableObject {
 
     /// Records that a metric was manually saved.
     func recordMetricSaved(date: Date) {
+        let previousStreak = currentStreak
         let week = date.isoWeekIdentifier(calendar: calendar)
         addActiveWeek(week)
         recomputeStreak()
+        prepareSaveAnimationIfNeeded(savedWeek: week, previousStreak: previousStreak)
     }
 
     /// Records that a photo was saved.
     func recordPhotoSaved(date: Date) {
+        let previousStreak = currentStreak
         let week = date.isoWeekIdentifier(calendar: calendar)
         addActiveWeek(week)
         recomputeStreak()
+        prepareSaveAnimationIfNeeded(savedWeek: week, previousStreak: previousStreak)
     }
 
     /// Records HealthKit-imported samples. Only credits weeks where the
@@ -319,6 +323,14 @@ final class StreakManager: ObservableObject {
         }
         refreshVacationState()
         WidgetDataWriter.syncSharedPayloadsAndReload()
+    }
+
+    private func prepareSaveAnimationIfNeeded(savedWeek: String, previousStreak: Int) {
+        let currentWeek = clock().isoWeekIdentifier(calendar: calendar)
+        guard savedWeek == currentWeek else { return }
+        guard currentStreak > 0 && currentStreak >= previousStreak else { return }
+        guard defaults.string(forKey: Keys.animationPlayedWeek) != currentWeek else { return }
+        shouldPlayAnimation = true
     }
 
     /// Checks SwiftData for any MetricSample or PhotoEntry in the given

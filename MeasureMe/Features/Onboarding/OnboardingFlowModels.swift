@@ -8,14 +8,26 @@ enum OnboardingPriority: String, CaseIterable, Sendable {
     var analyticsValue: String { rawValue }
 }
 
+enum OnboardingPrioritySelectionPolicy {
+    static let maxSelections = 2
+
+    static func toggled(_ priority: OnboardingPriority, in selected: Set<OnboardingPriority>) -> Set<OnboardingPriority> {
+        var next = selected
+        if next.contains(priority) {
+            next.remove(priority)
+        } else if next.count < maxSelections {
+            next.insert(priority)
+        }
+        return next
+    }
+}
+
 enum ActivationTask: String, CaseIterable, Sendable {
-    case addMetric
     case addPhoto
     case chooseMetrics
-    case premium
-    case celebrate
+    case setGoal
 
-    static let initial: ActivationTask = .addMetric
+    static let initial: ActivationTask = .addPhoto
 }
 
 enum FlowLocalization {
@@ -80,7 +92,7 @@ enum OnboardingCopy {
         case .buildMuscle:
             return FlowLocalization.app("Build muscle", "Budować mięśnie", "Ganar músculo", "Muskeln aufbauen", "Prendre du muscle", "Ganhar massa muscular")
         case .improveHealth:
-            return FlowLocalization.app("Improve health", "Poprawić zdrowie", "Mejorar la salud", "Gesundheit verbessern", "Améliorer la santé", "Melhorar a saúde")
+            return FlowLocalization.app("Maintain / recomp", "Utrzymać / rekompozycja", "Mantener / recomposición", "Halten / Recomp", "Maintenir / recomposition", "Manter / recomposição")
         }
     }
 
@@ -106,12 +118,12 @@ enum OnboardingCopy {
             )
         case .improveHealth:
             return FlowLocalization.app(
-                "Stay close to the signals linked to metabolic and overall health.",
-                "Trzymaj się sygnałów powiązanych ze zdrowiem metabolicznym i ogólnym.",
-                "Mantente cerca de las señales ligadas a la salud metabólica y general.",
-                "Bleib bei Signalen, die mit Stoffwechsel- und Gesamtgesundheit verbunden sind.",
-                "Restez proche des signaux liés à la santé métabolique et globale.",
-                "Fique perto dos sinais ligados à saúde metabólica e geral."
+                "Keep weight, waist, body fat, and height in view while your body composition changes.",
+                "Trzymaj wagę, pas, tkankę tłuszczową i wzrost w zasięgu, gdy zmienia się kompozycja ciała.",
+                "Mantén peso, cintura, grasa corporal y altura visibles mientras cambia tu composición corporal.",
+                "Behalte Gewicht, Taille, Körperfett und Größe im Blick, während sich deine Körperzusammensetzung verändert.",
+                "Gardez le poids, la taille, la masse grasse et la stature en vue pendant que votre composition corporelle évolue.",
+                "Mantenha peso, cintura, gordura corporal e altura em vista enquanto sua composição corporal muda."
             )
         }
     }
@@ -122,10 +134,8 @@ enum OnboardingCopy {
 
     static func introTitle(index: Int) -> String {
         switch index {
-        case 0: return "MeasureMe"
-        case 1: return "Metrics"
-        case 2: return FlowLocalization.app("Photos that show the change", "Zdjęcia, które pokazują zmianę", "Fotos que muestran el cambio", "Fotos, die Veränderung sichtbar machen", "Des photos qui montrent le changement", "Fotos que mostram a mudança")
-        case 3: return FlowLocalization.app("Health and Aesthetics", "Zdrowie i estetyka", "Salud y estética", "Gesundheit und Ästhetik", "Santé et esthétique", "Saúde e estética")
+        case 0: return "Metrics"
+        case 1: return FlowLocalization.app("Photos that show the change", "Zdjęcia, które pokazują zmianę", "Fotos que muestran el cambio", "Fotos, die Veränderung sichtbar machen", "Des photos qui montrent le changement", "Fotos que mostram a mudança")
         default: return FlowLocalization.app("Private insights, on device", "Prywatne analizy, na urządzeniu", "Insights privados, en el dispositivo", "Private Einblicke, auf dem Gerät", "Insights privés, sur l'appareil", "Insights privados, no dispositivo")
         }
     }
@@ -133,15 +143,6 @@ enum OnboardingCopy {
     static func introSubtitle(index: Int) -> String {
         switch index {
         case 0:
-            return FlowLocalization.system(
-                motto,
-                "Mierz to, co naprawdę ma znaczenie",
-                "Mide lo que importa",
-                "Miss, was wichtig ist",
-                "Mesurez ce qui compte",
-                "Meça o que importa"
-            )
-        case 1:
             return FlowLocalization.app(
                 "Track the numbers that actually move your progress, not a wall of data.",
                 "Śledź liczby, które naprawdę poruszają Twój progres, a nie ścianę danych.",
@@ -150,7 +151,7 @@ enum OnboardingCopy {
                 "Suivez les chiffres qui font réellement avancer votre progression, pas un mur de données.",
                 "Acompanhe os números que realmente movem seu progresso, não uma parede de dados."
             )
-        case 2:
+        case 1:
             return FlowLocalization.app(
                 "Compare progress over time with views that make subtle changes obvious.",
                 "Porównuj postępy w czasie widokami, które wyciągają subtelne zmiany na pierwszy plan.",
@@ -159,23 +160,14 @@ enum OnboardingCopy {
                 "Comparez les progrès dans le temps avec des vues qui rendent les changements subtils évidents.",
                 "Compare o progresso ao longo do tempo com visões que deixam mudanças sutis óbvias."
             )
-        case 3:
-            return FlowLocalization.app(
-                "Turn raw measurements into signals for health risk, body composition, and physique balance.",
-                "Zamień surowe pomiary w sygnały o ryzyku zdrowotnym, kompozycji ciała i proporcjach sylwetki.",
-                "Convierte medidas en señales sobre riesgo de salud, composición corporal y equilibrio físico.",
-                "Verwandle rohe Messwerte in Signale für Gesundheitsrisiko, Körperzusammensetzung und Körperbalance.",
-                "Transformez des mesures brutes en signaux pour le risque santé, la composition corporelle et l'équilibre physique.",
-                "Transforme medidas brutas em sinais sobre risco à saúde, composição corporal e equilíbrio físico."
-            )
         default:
             return FlowLocalization.app(
-                "Apple Intelligence helps summarize your trends on device. Your photos and measurements stay yours.",
-                "Apple Intelligence pomaga podsumować trendy na urządzeniu. Twoje zdjęcia i pomiary pozostają Twoje.",
-                "Apple Intelligence ayuda a resumir tus tendencias en el dispositivo. Tus fotos y medidas siguen siendo tuyas.",
-                "Apple Intelligence fasst deine Trends auf dem Gerät zusammen. Deine Fotos und Messwerte bleiben deine.",
-                "Apple Intelligence aide à résumer vos tendances sur l'appareil. Vos photos et mesures restent les vôtres.",
-                "A Apple Intelligence ajuda a resumir suas tendências no dispositivo. Suas fotos e medições continuam sendo suas."
+                "Apple Intelligence helps summarize your trends on device. Your photos and measurements never leave your device.",
+                "Apple Intelligence pomaga podsumować trendy na urządzeniu. Twoje zdjęcia i pomiary nigdy nie opuszczają urządzenia.",
+                "Apple Intelligence ayuda a resumir tus tendencias en el dispositivo. Tus fotos y medidas nunca salen de tu dispositivo.",
+                "Apple Intelligence fasst deine Trends auf dem Gerät zusammen. Deine Fotos und Messwerte verlassen dein Gerät nie.",
+                "Apple Intelligence aide à résumer vos tendances sur l'appareil. Vos photos et mesures ne quittent jamais votre appareil.",
+                "A Apple Intelligence ajuda a resumir suas tendências no dispositivo. Suas fotos e medições nunca saem do seu dispositivo."
             )
         }
     }
@@ -228,12 +220,36 @@ enum OnboardingCopy {
         )
     }
 
+    static func priorityPrompt(name: String?) -> String {
+        let trimmed = (name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return priorityPrompt }
+        return FlowLocalization.app(
+            "Nice to meet you, \(trimmed). What are your priorities right now?",
+            "Miło Cię poznać, \(trimmed). Jakie są teraz Twoje priorytety?",
+            "Encantado de conocerte, \(trimmed). ¿Cuáles son tus prioridades ahora?",
+            "Schön, dich kennenzulernen, \(trimmed). Was sind gerade deine Prioritäten?",
+            "Ravi de vous rencontrer, \(trimmed). Quelles sont vos priorités en ce moment ?",
+            "Prazer em conhecer você, \(trimmed). Quais são suas prioridades agora?"
+        )
+    }
+
+    static var priorityHelper: String {
+        FlowLocalization.app(
+            "Pick one or two to continue.",
+            "Wybierz jedną lub dwie opcje, aby kontynuować.",
+            "Elige una o dos para continuar.",
+            "Wähle eine oder zwei aus, um fortzufahren.",
+            "Choisissez-en une ou deux pour continuer.",
+            "Escolha uma ou duas para continuar."
+        )
+    }
+
     static var personalizingTitle: String {
         FlowLocalization.app("Personalizing your experience", "Personalizujemy Twoje doświadczenie", "Personalizando tu experiencia", "Wir personalisieren dein Erlebnis", "Personnalisation de votre expérience", "Personalizando sua experiência")
     }
 
     static var healthPromptTitle: String {
-        FlowLocalization.app("Recommended metrics for you", "Polecane metryki dla Ciebie", "Métricas recomendadas para ti", "Empfohlene Messwerte für dich", "Mesures recommandées pour vous", "Métricas recomendadas para você")
+        FlowLocalization.app("Import from Apple Health?", "Zaimportować z Apple Health?", "¿Importar desde Apple Health?", "Aus Apple Health importieren?", "Importer depuis Apple Health ?", "Importar do Apple Health?")
     }
 
     static var healthPromptBody: String {
@@ -248,7 +264,7 @@ enum OnboardingCopy {
     }
 
     static var healthAllowCTA: String {
-        FlowLocalization.app("Allow access to Health", "Zezwól na dostęp do Health", "Permitir acceso a Salud", "Zugriff auf Health erlauben", "Autoriser l'accès à Santé", "Permitir acesso ao Health")
+        FlowLocalization.app("Import history", "Importuj historię", "Importar historial", "Verlauf importieren", "Importer l'historique", "Importar histórico")
     }
 
     static var healthSkipCTA: String {
@@ -294,7 +310,7 @@ enum OnboardingCopy {
     }
 
     static var activationTitle: String {
-        FlowLocalization.app("Learn the core flows", "Poznaj najważniejsze ścieżki", "Aprende los flujos clave", "Lerne die Kernabläufe kennen", "Découvrez les parcours clés", "Conheça os fluxos principais")
+        FlowLocalization.app("Make it yours", "Dostosuj pod siebie", "Hazlo tuyo", "Mach es zu deinem", "Personnalisez-le", "Deixe com a sua cara")
     }
 
     static func activationSubtitle(step: Int, total: Int) -> String {
@@ -310,83 +326,55 @@ enum OnboardingCopy {
 
     static func activationTaskTitle(_ task: ActivationTask) -> String {
         switch task {
-        case .addMetric:
-            return FlowLocalization.app("Add one metric", "Dodaj jedną metrykę", "Añade una métrica", "Füge eine Messung hinzu", "Ajoutez une mesure", "Adicione uma métrica")
         case .addPhoto:
             return FlowLocalization.app("Add your first photo", "Dodaj pierwsze zdjęcie", "Añade tu primera foto", "Füge dein erstes Foto hinzu", "Ajoutez votre première photo", "Adicione sua primeira foto")
         case .chooseMetrics:
             return FlowLocalization.app("Choose what to track", "Wybierz, co śledzić", "Elige qué seguir", "Wähle, was du verfolgen willst", "Choisissez quoi suivre", "Escolha o que acompanhar")
-        case .premium:
-            return FlowLocalization.app("See what Premium unlocks", "Zobacz, co odblokowuje Premium", "Mira lo que desbloquea Premium", "Sieh, was Premium freischaltet", "Voyez ce que Premium débloque", "Veja o que o Premium desbloqueia")
-        case .celebrate:
-            return FlowLocalization.app("You're ready to go", "Jesteś gotowy do startu", "Ya estás listo", "Du bist startklar", "Vous êtes prêt", "Você está pronto")
+        case .setGoal:
+            return FlowLocalization.app("Set your first goal", "Ustaw pierwszy cel", "Define tu primer objetivo", "Setze dein erstes Ziel", "Définissez votre premier objectif", "Defina sua primeira meta")
         }
     }
 
     static func activationTaskBody(_ task: ActivationTask, metricName: String? = nil) -> String {
         switch task {
-        case .addMetric:
-            let fallback = FlowLocalization.app("your recommended metric", "polecaną metrykę", "tu métrica recomendada", "deinen empfohlenen Messwert", "votre mesure recommandée", "sua métrica recomendada")
-            let resolved = metricName ?? fallback
-            return FlowLocalization.app(
-                "Log \(resolved) yourself once so the app can anchor your trend around a real check-in.",
-                "Zapisz samodzielnie \(resolved) jeden raz, aby aplikacja mogła oprzeć trend o realny check-in.",
-                "Registra \(resolved) una vez para que la app ancle tu tendencia en un check-in real.",
-                "Trage \(resolved) einmal selbst ein, damit die App deinen Trend auf einen echten Check-in stützen kann.",
-                "Enregistrez \(resolved) une fois vous-même pour ancrer la tendance sur un vrai check-in.",
-                "Registre \(resolved) uma vez para que o app ancore sua tendência em um check-in real."
-            )
         case .addPhoto:
             return FlowLocalization.app(
-                "A single progress photo makes later comparisons dramatically more useful.",
-                "Jedno zdjęcie progresu sprawia, że późniejsze porównania stają się dużo bardziej użyteczne.",
-                "Una sola foto de progreso vuelve mucho más útil la comparación posterior.",
-                "Ein einziges Fortschrittsfoto macht spätere Vergleiche deutlich nützlicher.",
-                "Une seule photo de progression rend les comparaisons futures bien plus utiles.",
-                "Uma única foto de progresso torna comparações futuras muito mais úteis."
+                "Add one photo to make this starting point visual.",
+                "Dodaj jedno zdjęcie, aby punkt startowy był widoczny.",
+                "Añade una foto para hacer visual este punto de partida.",
+                "Füge ein Foto hinzu, damit dein Startpunkt sichtbar wird.",
+                "Ajoutez une photo pour rendre ce point de départ visuel.",
+                "Adicione uma foto para deixar esse ponto inicial visual."
             )
         case .chooseMetrics:
             return FlowLocalization.app(
-                "Pick the metrics that deserve space on your home and quick-add surfaces.",
-                "Wybierz metryki, które mają dostać miejsce na home i w szybkim dodawaniu.",
-                "Elige las métricas que merecen espacio en inicio y en el acceso rápido.",
-                "Wähle die Messwerte, die Platz auf Home und im Schnellzugriff bekommen sollen.",
-                "Choisissez les mesures qui méritent une place sur l'accueil et dans l'ajout rapide.",
-                "Escolha as métricas que merecem espaço na home e no atalho de adição."
+                "Pin the metrics you want on Home and Quick Add.",
+                "Przypnij metryki, które chcesz widzieć na Home i w szybkim dodawaniu.",
+                "Fija las métricas que quieres en Inicio y Añadir rápido.",
+                "Pinne die Messwerte, die du auf Home und in Quick Add sehen willst.",
+                "Épinglez les mesures à afficher sur l'accueil et l'ajout rapide.",
+                "Fixe as métricas que você quer na Home e no atalho de adição."
             )
-        case .premium:
+        case .setGoal:
             return FlowLocalization.app(
-                "Compare photos side by side, unlock deeper insights, and keep your progress story richer.",
-                "Porównuj zdjęcia obok siebie, odblokuj głębsze analizy i zbuduj pełniejszą historię progresu.",
-                "Compara fotos lado a lado, desbloquea insights más profundos y enriquece tu historia de progreso.",
-                "Vergleiche Fotos nebeneinander, schalte tiefere Einblicke frei und erzähle deine Fortschrittsgeschichte besser.",
-                "Comparez les photos côte à côte, débloquez des insights plus profonds et enrichissez votre histoire de progression.",
-                "Compare fotos lado a lado, desbloqueie insights mais profundos e enriqueça sua história de progresso."
-            )
-        case .celebrate:
-            return FlowLocalization.app(
-                "You have everything needed to start building momentum inside MeasureMe.",
-                "Masz już wszystko, czego potrzeba, aby zacząć budować rozpęd w MeasureMe.",
-                "Ya tienes todo lo necesario para empezar a ganar impulso en MeasureMe.",
-                "Du hast jetzt alles, was du brauchst, um in MeasureMe Momentum aufzubauen.",
-                "Vous avez maintenant tout ce qu'il faut pour lancer votre dynamique dans MeasureMe.",
-                "Você já tem tudo para começar a ganhar ritmo no MeasureMe."
+                "Give one tracked measurement a target to work toward.",
+                "Nadaj jednej śledzonej metryce cel do osiągnięcia.",
+                "Dale a una métrica un objetivo hacia el que avanzar.",
+                "Gib einem Messwert ein Ziel, auf das du hinarbeitest.",
+                "Donnez un objectif à une mesure suivie.",
+                "Dê uma meta para uma métrica acompanhada."
             )
         }
     }
 
     static func activationPrimaryCTA(_ task: ActivationTask) -> String {
         switch task {
-        case .addMetric:
-            return FlowLocalization.app("Add metric", "Dodaj metrykę", "Añadir métrica", "Messung hinzufügen", "Ajouter une mesure", "Adicionar métrica")
         case .addPhoto:
             return FlowLocalization.app("Add photo", "Dodaj zdjęcie", "Añadir foto", "Foto hinzufügen", "Ajouter une photo", "Adicionar foto")
         case .chooseMetrics:
             return FlowLocalization.app("Review metrics", "Przejrzyj metryki", "Revisar métricas", "Messwerte prüfen", "Voir les mesures", "Revisar métricas")
-        case .premium:
-            return FlowLocalization.app("See Premium", "Zobacz Premium", "Ver Premium", "Premium ansehen", "Voir Premium", "Ver Premium")
-        case .celebrate:
-            return FlowLocalization.app("Go to dashboard", "Przejdź do dashboardu", "Ir al panel", "Zum Dashboard", "Aller au tableau de bord", "Ir para o dashboard")
+        case .setGoal:
+            return FlowLocalization.app("Set goal", "Ustaw cel", "Definir objetivo", "Ziel setzen", "Définir un objectif", "Definir meta")
         }
     }
 

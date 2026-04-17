@@ -399,6 +399,9 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(premium.premiumFirstLaunchDate, forKey: AppSettingsKeys.Premium.firstLaunchDate)
             defaults.set(premium.premiumLastNagDate, forKey: AppSettingsKeys.Premium.lastNagDate)
 
+            let privacy = snapshot.privacy
+            defaults.set(privacy.requireBiometricForPhotos, forKey: AppSettingsKeys.Privacy.requireBiometricForPhotos)
+
             let diagnostics = snapshot.diagnostics
             defaults.set(diagnostics.diagnosticsLoggingEnabled, forKey: AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled)
             defaults.set(diagnostics.crashReporterHasUnreported, forKey: AppSettingsKeys.Diagnostics.crashReporterHasUnreported)
