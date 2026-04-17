@@ -588,21 +588,6 @@ struct MetricDetailView: View {
         }
     }
 
-    @ViewBuilder
-    private var listContent: some View {
-        if samples.isEmpty {
-            emptyStateSection
-            howToMeasureSection
-        } else {
-            heroSection
-            goalPredictionSection
-            insightSection
-            trendsSection
-            historySection
-            howToMeasureSection
-        }
-    }
-
     private var currentValueTrendSummary: (text: String, color: Color, icon: String)? {
         guard let start = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) else { return nil }
         let window = sortedSamplesAscending.filter { $0.date >= start }

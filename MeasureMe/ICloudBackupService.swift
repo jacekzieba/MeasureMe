@@ -56,6 +56,10 @@ enum ICloudBackupService {
 
     // MARK: - Test overrides
 
+#if DEBUG
+    // These are DEBUG-only so they cannot race with production code.
+    // XCTest mutates them serially from setUp/tearDown; concurrent release-time
+    // access is impossible because the symbols don't exist in release builds.
     nonisolated(unsafe) static var testBackupRootURLOverride: URL?
     nonisolated(unsafe) static var testNowOverride: (() -> Date)?
     nonisolated(unsafe) static var testEncryptionKeyOverride: SymmetricKey?
@@ -65,6 +69,7 @@ enum ICloudBackupService {
         testNowOverride = nil
         testEncryptionKeyOverride = nil
     }
+#endif
 
     // MARK: - Constants
 
@@ -585,7 +590,9 @@ enum ICloudBackupService {
     // MARK: - Encryption key management
 
     private static func encryptionKey() -> SymmetricKey? {
+#if DEBUG
         if let override = testEncryptionKeyOverride { return override }
+#endif
         return loadOrCreateKeychainKey()
     }
 
@@ -642,13 +649,18 @@ enum ICloudBackupService {
     // MARK: - Backup discovery & retention
 
     private nonisolated static func backupRootURL() -> URL? {
+#if DEBUG
         if let override = testBackupRootURLOverride { return override }
+#endif
         return FileManager.default.url(forUbiquityContainerIdentifier: "iCloud.com.jacek.measureme")?
             .appendingPathComponent("Documents/Backups", isDirectory: true)
     }
 
     private nonisolated static func now() -> Date {
-        testNowOverride?() ?? Date()
+#if DEBUG
+        if let override = testNowOverride { return override() }
+#endif
+        return Date()
     }
 
     private nonisolated static func allBackupPackages(in rootURL: URL) -> [URL] {

@@ -98,21 +98,6 @@ struct HomeRecentPhotosCard: View {
                     .frame(maxWidth: .infinity, minHeight: 112, maxHeight: 112)
                 }
 
-                if canDisplayPhotos {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 8) {
-                            infoPill(text: snapshot.contextPrimary, tint: theme.accent)
-                            infoPill(text: snapshot.contextSecondary, tint: AppColorRoles.textSecondary)
-                            Spacer(minLength: 0)
-                        }
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            infoPill(text: snapshot.contextPrimary, tint: theme.accent)
-                            infoPill(text: snapshot.contextSecondary, tint: AppColorRoles.textSecondary)
-                        }
-                    }
-                }
-
                 Spacer(minLength: 2)
 
                 Button(action: onCompare) {
@@ -213,11 +198,6 @@ struct HomeRecentPhotosCard: View {
 
     private var insightCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(AppLocalization.string("home.photos.latestsession"))
-                .font(AppTypography.eyebrow)
-                .foregroundStyle(theme.accent)
-                .textCase(.uppercase)
-
             Text(snapshot.insightTitle)
                 .font(AppTypography.bodyEmphasis)
                 .foregroundStyle(AppColorRoles.textPrimary)

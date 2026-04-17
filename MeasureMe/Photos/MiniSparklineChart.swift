@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(Accessibility)
+import Accessibility
+#endif
 
 /// Minimalist line chart (sparkline) without axes or background - only the trend line
 /// Shows trend for the last 30 days with coloring: increase = green, decrease = red
@@ -107,6 +110,7 @@ struct MiniSparklineChart: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(kind.title)
         .accessibilityValue(trendAccessibilityValue)
+        .accessibilityChartDescriptor(self)
     }
     
     /// Normalizes data points to the view dimensions
@@ -129,12 +133,77 @@ struct MiniSparklineChart: View {
             let x = recentSamples.count > 1
                 ? size.width * CGFloat(index) / CGFloat(recentSamples.count - 1)
                 : size.width / 2
-            
+
             // Invert Y axis (0 at top, height at bottom) + padding
             let normalizedValue = (sample.value - minValue) / useRange
             let y = size.height * padding + adjustedHeight * (1 - normalizedValue)
-            
+
             return CGPoint(x: x, y: y)
         }
+    }
+}
+
+// MARK: - Accessibility — chart navigation via VoiceOver rotor
+
+extension MiniSparklineChart: AXChartDescriptorRepresentable {
+    func makeChartDescriptor() -> AXChartDescriptor {
+        // Snapshot once; closures below are called by AX subsystem later.
+        let samples = recentSamples
+        let kind = self.kind
+        let unitsSystem = AppSettingsStore.shared.snapshot.profile.unitsSystem
+        let summary = trendAccessibilityValue
+
+        let values = samples.map { $0.value }
+        let minValue = values.min() ?? 0
+        let maxValue = values.max() ?? 0
+        // Ensure a non-zero range so AX subsystem does not divide by zero.
+        let paddedMax = maxValue > minValue ? maxValue : minValue + 1
+
+        let indexRange: ClosedRange<Double> = 0...Double(max(samples.count - 1, 1))
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .none
+
+        let xAxis = AXNumericDataAxisDescriptor(
+            title: AppLocalization.string("Date"),
+            range: indexRange,
+            gridlinePositions: [],
+            valueDescriptionProvider: { position in
+                let index = Int(position.rounded())
+                guard samples.indices.contains(index) else { return "" }
+                return dateFormatter.string(from: samples[index].date)
+            }
+        )
+
+        let yAxis = AXNumericDataAxisDescriptor(
+            title: kind.title,
+            range: minValue...paddedMax,
+            gridlinePositions: [],
+            valueDescriptionProvider: { metricValue in
+                kind.formattedMetricValue(
+                    fromMetric: metricValue,
+                    unitsSystem: unitsSystem
+                )
+            }
+        )
+
+        let dataPoints: [AXDataPoint] = samples.enumerated().map { index, sample in
+            AXDataPoint(x: Double(index), y: sample.value)
+        }
+
+        let series = AXDataSeriesDescriptor(
+            name: kind.title,
+            isContinuous: true,
+            dataPoints: dataPoints
+        )
+
+        return AXChartDescriptor(
+            title: kind.title,
+            summary: summary,
+            xAxis: xAxis,
+            yAxis: yAxis,
+            series: [series]
+        )
     }
 }

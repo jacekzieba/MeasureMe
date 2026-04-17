@@ -557,7 +557,9 @@ struct StreakDetailView: View {
     private let milestones = [4, 8, 13, 26, 52, 104]
 
     private var nextMilestone: Int {
-        milestones.first(where: { $0 > streakManager.currentStreak }) ?? milestones.last!
+        milestones.first(where: { $0 > streakManager.currentStreak })
+            ?? milestones.last
+            ?? max(streakManager.currentStreak, 1)
     }
 
     private var previousMilestone: Int {

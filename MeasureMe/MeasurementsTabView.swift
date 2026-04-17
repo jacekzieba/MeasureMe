@@ -452,6 +452,18 @@ struct MeasurementsTabView: View {
             requestedMetricDetailKind = kind
             router.consumeMetricDetailRequest(requestID)
         }
+        .onChange(of: router.measurementsSectionRequestID) { _, requestID in
+            guard let requestID, let section = router.requestedMeasurementsSection else { return }
+            switch section {
+            case "health":
+                selectedTab = .health
+            case "physique":
+                selectedTab = .physique
+            default:
+                selectedTab = .metrics
+            }
+            router.consumeMeasurementsSectionRequest(requestID)
+        }
     }
 
     private var trackedMetricsFooter: some View {

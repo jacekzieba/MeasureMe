@@ -1,2551 +1,0 @@
-/* Localizable.strings */
-
-"notification.log.title" = "%@zapisz pomiary";
-"notification.log.body" = "Szybki wpis teraz pomaga utrzymaÃÂ postÃÂpy.";
-"notification.smart.title" = "%@czas na szybki wpis";
-"notification.smart.body" = "MinÃÂÃÂo %d dni od ostatniego wpisu Ã¢ÂÂ dodaj pomiar, by utrzymaÃÂ rytm.";
-"notification.smart.body.one" = "MinÄ
-Å %d dzieÅ od ostatniego wpisu â dodaj pomiar, by utrzymaÄ rytm.";
-"notification.smart.body.few" = "MinÃÂÃÂy %d dni od ostatniego wpisu Ã¢ÂÂ dodaj pomiar, by utrzymaÃÂ rytm.";
-"notification.smart.body.many" = "MinÃÂÃÂo %d dni od ostatniego wpisu Ã¢ÂÂ dodaj pomiar, by utrzymaÃÂ rytm.";
-"notification.photo.title" = "%@czas na zdjÃÂcie postÃÂpÃÂ³w";
-"notification.photo.body" = "MinÄÅo %d dni od ostatniego zdjÄcia â zdjÄcia pokazujÄ
- zmiany, ktÃ³rych nie widaÄ na wadze.";
-"notification.photo.body.one" = "MinÄ
-Å %d dzieÅ od ostatniego zdjÄcia â zdjÄcia pokazujÄ
- zmiany, ktÃ³rych nie widaÄ na wadze.";
-"notification.photo.body.few" = "MinÄÅy %d dni od ostatniego zdjÄcia â zdjÄcia pokazujÄ
- zmiany, ktÃ³rych nie widaÄ na wadze.";
-"notification.photo.body.many" = "MinÄÅo %d dni od ostatniego zdjÄcia â zdjÄcia pokazujÄ
- zmiany, ktÃ³rych nie widaÄ na wadze.";
-"notification.import.title" = "Nowe %@ ze Zdrowia";
-"notification.import.body" = "Dodano automatycznie do MeasureMe.";
-"notification.import.summary.title" = "Nowe dane ze Zdrowia";
-"notification.import.summary.body.single" = "Zaimportowano: %@.";
-"notification.import.summary.body.double" = "Zaimportowano: %@ i %@.";
-"notification.import.summary.body.multiple" = "Zaimportowano: %@, %@ i inne metryki.";
-"notification.goal.title" = "Powiadomienie o osiÄ
-gniÄciu celu%@";
-"notification.goal.body" = "UdaÅo Ci siÄ osiÄ
-gnÄ
-Ä cel dla %@. Åwietna robota.";
-"notification.smart.after.days.one" = "Po %d dniu braku aktywnoÃÂci";
-"notification.smart.after.days.few" = "Po %d dniach braku aktywnoÃÂci";
-"notification.smart.after.days.many" = "Po %d dniach braku aktywnoÃÂci";
-"validation.metric.range" = "WprowadÃÂº wartoÃÂÃÂ od %.2f do %.2f %@.";
-"Enter a valid number." = "WprowadÅº poprawnÄ
- liczbÄ.";
-"Age must be between 5 and 120." = "Wiek musi mieÃÂciÃÂ siÃÂ w zakresie 5Ã¢ÂÂ120 lat.";
-"Height must be between 50 and 300 cm." = "Wzrost musi mieÃÂciÃÂ siÃÂ w zakresie 50Ã¢ÂÂ300 cm.";
-"Height must be between 1 and 8 ft 11 in." = "Wzrost musi mieÃÂciÃÂ siÃÂ w zakresie od 1 stopy do 8 stÃÂ³p 11 cali.";
-"Fix highlighted values before saving." = "Popraw zaznaczone wartoÃÂci przed zapisaniem.";
-"Could not save measurements. Please try again." = "Nie udaÃÂo siÃÂ zapisaÃÂ pomiarÃÂ³w. SprÃÂ³buj ponownie.";
-"Could not save photo. Please try again." = "Nie udaÃÂo siÃÂ zapisaÃÂ zdjÃÂcia. SprÃÂ³buj ponownie.";
-"Could not save photo changes. Please try again." = "Nie udaÃÂo siÃÂ zapisaÃÂ zmian zdjÃÂcia. SprÃÂ³buj ponownie.";
-"Could not delete photo. Please try again." = "Nie udaÅo siÄ usunÄ
-Ä zdjÄcia. SprÃ³buj ponownie.";
-"Could not import height from Health." = "Nie udaÃÂo siÃÂ zaimportowaÃÂ wzrostu z aplikacji Zdrowie.";
-"Notification error" = "BÅÄ
-d powiadomieÅ";
-"Could not schedule notifications. Please check notification permissions and try again." = "Nie udaÃÂo siÃÂ zaplanowaÃÂ powiadomieÃÂ. SprawdÃÂº uprawnienia i sprÃÂ³buj ponownie.";
-"Include diagnostic logs in crash reports" = "DoÅÄ
-cz logi diagnostyczne do raportÃ³w awarii";
-"Share anonymous analytics" = "UdostÄpniaj anonimowÄ
- analitykÄ";
-"Share app" = "UdostÃÂpnij aplikacjÃÂ";
-"share.app.message" = "SprawdÃÂº %@ w App Store: %@";
-"Helps improve app quality and UX. No health values or personal data are sent." = "Pomaga ulepszaÃÂ jakoÃÂÃÂ aplikacji i UX. Nie wysyÃÂamy wartoÃÂci zdrowotnych ani danych osobowych.";
-"When enabled, recent app logs may be attached to reports you share." = "Po wÅÄ
-czeniu do udostÄpnianych raportÃ³w mogÄ
- byÄ doÅÄ
-czane ostatnie logi aplikacji.";
-"Could not start the app because local storage failed to initialize. Please retry. Error: %@" = "Nie udaÅo siÄ uruchomiÄ aplikacji, poniewaÅ¼ nie moÅ¼na zainicjalizowaÄ pamiÄci lokalnej. SprÃ³buj ponownie. BÅÄ
-d: %@";
-"photos.active.filters.count" = "%d aktywnych filtrÃÂ³w";
-"photos.active.filters.count.one" = "%d aktywny filtr";
-"photos.active.filters.count.few" = "%d aktywne filtry";
-"photos.active.filters.count.many" = "%d aktywnych filtrÃÂ³w";
-"photos.showing.count" = "WyÃÂwietlanie %d z %d zdjÃÂÃÂ";
-"photos.showing.range" = "WyÃÂwietlanie zdjÃÂÃÂ od %@ do %@";
-"photos.showing.tags.selected" = "WyÃÂwietlanie zdjÃÂÃÂ z dowolnym z wybranych tagÃÂ³w (wybrano %d)";
-"photos.tags.count" = "%d tagÃÂ³w";
-"photos.tags.count.one" = "%d tag";
-"photos.tags.count.few" = "%d tagi";
-"photos.tags.count.many" = "%d tagÃÂ³w";
-"photos.dateRange.all" = "Wszystkie zdjÃÂcia";
-"photos.dateRange.last7Days" = "Ostatnie 7 dni";
-"photos.dateRange.last30Days" = "Ostatnie 30 dni";
-"photos.dateRange.last90Days" = "Ostatnie 90 dni";
-"photos.dateRange.custom" = "WÃÂasny zakres";
-"photo.metrics.recorded" = "Zapisano %d metryk";
-"photo.metrics.recorded.one" = "Zapisano %d metrykÃÂ";
-"photo.metrics.recorded.few" = "Zapisano %d metryki";
-"photo.metrics.recorded.many" = "Zapisano %d metryk";
-"compare.days.apart" = "%d dni odstÃÂpu";
-"compare.days.apart.one" = "%d dzieÃÂ odstÃÂpu";
-"compare.days.apart.few" = "%d dni odstÃÂpu";
-"compare.days.apart.many" = "%d dni odstÃÂpu";
-"transformation.card.title" = "MOJA PRZEMIANA";
-"transformation.card.days" = "%d DNI";
-"transformation.card.days.one" = "1 DZIEÃÂ";
-"transformation.card.days.zero" = "TEN SAM DZIEÃÂ";
-"transformation.card.days.few" = "%d DNI";
-"transformation.card.days.many" = "%d DNI";
-"transformation.card.before" = "KIEDYÃÂ";
-"transformation.card.after" = "TERAZ";
-"transformation.card.share" = "UdostÃÂpnij kartÃÂ przemiany";
-"transformation.card.save" = "Zapisz do ZdjÃÂÃÂ";
-"transformation.card.shareAction" = "UdostÃÂpnij";
-"transformation.card.preview.title" = "Karta przemiany";
-"transformation.card.preview.error" = "Nie udaÃÂo siÃÂ wygenerowaÃÂ karty.";
-"transformation.card.ratio.story" = "Story 9:16";
-"transformation.card.ratio.square" = "Kwadrat 1:1";
-"trend.vs.relative" = "wzglÃÂdem %@";
-"trend.relative.30d" = "30 dni temu";
-"accessibility.opens.details" = "Otwiera szczegÃÂ³ÃÂy: %@";
-"accessibility.metric.summary.trend" = "%@, %@, %@ wzglÃÂdem %@";
-"accessibility.metric.summary.value" = "%@, %@";
-"accessibility.metric.summary.nodata" = "%@, brak danych";
-"accessibility.value" = "WartoÃÂÃÂ %@";
-"quickadd.last.summary" = "Ostatnio: %@, %@";
-"metric.goal.update.value" = "Zaktualizuj %@";
-"accessibility.goal.set" = "Ustaw cel";
-"accessibility.goal.update" = "Zaktualizuj cel";
-"accessibility.trendline" = "Linia trendu";
-"accessibility.visible" = "Widoczne";
-"accessibility.hidden" = "Ukryte";
-"accessibility.entry.detail" = "%@, %@";
-"accessibility.update.metric" = "Zaktualizuj %@";
-"accessibility.chart" = "Wykres %@";
-"metric.goal.projected.date" = "Przewidywana data celu: %@.";
-"accessibility.progress.hint" = "Aktualna wartoÃÂÃÂ %@, cel %@";
-"metric.goal.set.help" = "Ustaw docelowÄ
- wartoÅÄ %@, aby ÅledziÄ postÄp. Cel pojawi siÄ jako linia przerywana na wykresie.";
-"goal.delete.confirmation" = "Spowoduje to usuniÃÂcie celu i ukrycie ÃÂledzenia postÃÂpu dla tej metryki.";
-"goal.start.section.title" = "ZmieÅ datÄ i wartoÅÄ poczÄ
-tkowÄ
-";
-"goal.start.toggle.label" = "Dostosuj punkt startowy";
-"goal.start.value.label" = "WartoÃÂÃÂ startowa";
-"goal.start.date.label" = "Data startowa";
-"goal.start.help.default" = "PostÃÂp jest liczony od tej wartoÃÂci. DomyÃÂlnie: ostatni pomiar.";
-"goal.start.help.first" = "Brak pomiarÃÂ³w Ã¢ÂÂ ta wartoÃÂÃÂ zostanie zapisana jako pierwszy wpis.";
-
-// Goal Prediction
-"metric.goal.prediction.title" = "Prognoza celu";
-"metric.goal.trend.opposite" = "TwÃ³j ostatni trend oddala siÄ od celu. Drobne zmiany w codziennej rutynie mogÄ
- pomÃ³c w powrocie na wÅaÅciwy tor.";
-"metric.goal.trend.flat" = "TwÃ³j trend jest obecnie stabilny. Gdy pojawi siÄ postÄp, oszacujemy datÄ osiÄ
-gniÄcia celu.";
-"metric.goal.trend.too_far" = "W obecnym tempie cel jest oddalony o ponad 5 lat. RozwaÃÂ¼ dostosowanie celu.";
-"metric.goal.premium.locked.title" = "Prognoza celu";
-"metric.goal.premium.locked.message" = "PrzejdÅº na Premium, aby zobaczyÄ, kiedy osiÄ
-gniesz swÃ³j cel.";
-
-// Prediction Rates (expandable card)
-"prediction.commitment" = "ZaÃÂoÃÂ¼enie";
-"prediction.current_rate" = "Obecne tempo";
-"prediction.overall_rate" = "OgÃÂ³lne tempo";
-"prediction.description" = "Przy %@ %@/tydzieÅ osiÄ
-gniesz cel";
-"prediction.commitment.edit_title" = "Tygodniowe zaÃÂoÃÂ¼enie";
-"prediction.commitment.edit_message" = "Podaj docelowe tygodniowe tempo (%@/tydzieÃÂ)";
-"prediction.in_days" = "za %d dni";
-"prediction.in_days.one" = "za 1 dzieÃÂ";
-"prediction.in_days.few" = "za %d dni";
-"prediction.in_days.many" = "za %d dni";
-"prediction.in_weeks" = "za %d tygodni";
-"prediction.in_weeks.one" = "za 1 tydzieÃÂ";
-"prediction.in_weeks.few" = "za %d tygodnie";
-"prediction.in_weeks.many" = "za %d tygodni";
-"prediction.expand" = "RozwiÃÂ";
-"prediction.collapse" = "ZwiÃÂ";
-
-"quickadd.first.value.hint" = "Wpisz swojÄ
- pierwszÄ
- wartoÅÄ";
-"metric.add.title" = "Dodaj %@";
-"metric.edit.title" = "Edytuj %@";
-"home.greeting.morning" = "DzieÃÂ dobry";
-"home.greeting.morning.named" = "DzieÃÂ dobry, %@";
-"home.greeting.afternoon" = "DzieÃÂ dobry";
-"home.greeting.afternoon.named" = "DzieÃÂ dobry, %@";
-"home.greeting.evening" = "Dobry wieczÃÂ³r";
-"home.greeting.evening.named" = "Dobry wieczÃÂ³r, %@";
-"home.encouragement" = "Budujesz dziÃÂ stabilny rytm.";
-"home.thisweek.empty" = "Brak wpisÃÂ³w";
-"home.thisweek.single" = "Aktywne dni: 1";
-"home.thisweek.multiple" = "Aktywne dni: %d";
-"home.thisweek.multiple.one" = "%d wpis";
-"home.thisweek.multiple.few" = "%d wpisy";
-"home.thisweek.multiple.many" = "%d wpisÃÂ³w";
-"insight.thinking" = "MyÃÂlÃÂ...";
-"insight.ask.about" = "Zapytaj o";
-"insight.ask.placeholder" = "Zadaj pytanie...";
-"insight.followup.limit" = "WykorzystaÅeÅ limit pytaÅ uzupeÅniajÄ
-cych";
-"insight.error.response" = "Przepraszam, nie udaÃÂo siÃÂ wygenerowaÃÂ odpowiedzi. SprÃÂ³buj ponownie.";
-"home.thisweek.detail.empty" = "Dodaj pierwszy pomiar w tym tygodniu.";
-"home.thisweek.detail.logged" = "Ostatni wpis: %@.";
-"home.goalstatus.ontrack" = "JesteÃÂ na dobrej, zrÃÂ³wnowaÃÂ¼onej ÃÂcieÃÂ¼ce.";
-"home.goalstatus.slightlyoff" = "MaÅe kroki teÅ¼ siÄ liczÄ
-. DziaÅaj dalej.";
-"home.goalstatus.needsattention" = "Dasz radÃÂ. Jeden wpis na raz.";
-"home.goalstatus.nogoals" = "Ustaw cel, gdy bÃÂdziesz gotowy.";
-"home.goalstatus.accessibility.hint.legend" = "Dotknij, aby zobaczyÃÂ, co oznacza ten status.";
-"home.goalstatus.accessibility.hint.nogoals" = "Dotknij, aby przejÃÂÃÂ do pomiarÃÂ³w i ustawiÃÂ cel.";
-"home.goalstatus.legend.navtitle" = "Status celu";
-"home.goalstatus.legend.title" = "Co oznaczajÄ
- kolory";
-"home.goalstatus.legend.subtitle" = "Kolor to szybki sygnaÅ pokazujÄ
-cy, jak ostatni wynik ma siÄ do Twojego celu.";
-"home.goalstatus.legend.ontrack.title" = "Dobry kierunek";
-"home.goalstatus.legend.ontrack.description" = "TwÃ³j ostatni wynik idzie w dobrÄ
- stronÄ albo juÅ¼ osiÄ
-gnÄ
-Å cel.";
-"home.goalstatus.legend.slightlyoff.title" = "Blisko celu";
-"home.goalstatus.legend.slightlyoff.description" = "WciÄ
-Å¼ jesteÅ relatywnie blisko celu, ale warto obserwowaÄ ten kierunek.";
-"home.goalstatus.legend.needsattention.title" = "Warto przyjrzeÃÂ siÃÂ bliÃÂ¼ej";
-"home.goalstatus.legend.needsattention.description" = "TwÃÂ³j ostatni wynik jest teraz wyraÃÂºniej oddalony od celu. Kolejny wpis pomoÃÂ¼e lepiej oceniÃÂ sytuacjÃÂ.";
-"home.goalstatus.legend.nogoals.description" = "Ustaw cel dla metryki, aby tutaj zobaczyÃÂ kolorowy status postÃÂpu.";
-"home.goalstatus.legend.current.title" = "Aktualny status";
-"home.goalstatus.legend.current.ontrack" = "JesteÃÂ teraz na dobrej drodze";
-"home.goalstatus.legend.current.slightlyoff" = "JesteÃÂ blisko celu";
-"home.goalstatus.legend.current.needsattention" = "Ta metryka wymaga uwagi";
-"home.goalstatus.legend.current.nogoals" = "Nie masz jeszcze ustawionego celu";
-"home.hero.fresh.title" = "Zacznij od pierwszego kroku";
-"home.hero.fresh.detail" = "Jeden pomiar albo zdjÄcie wystarczy, aby zaczÄ
-Ä.";
-"home.hero.fresh.cta" = "Zacznij teraz";
-"home.nextfocus.label" = "Progres";
-"home.nextfocus.cta" = "ZrÃÂ³b to teraz";
-"home.nextfocus.cta.metric" = "Zobacz metrykÃÂ";
-"home.nextfocus.cta.goal" = "Ustaw cel";
-"home.nextfocus.uitest.long.primary" = "-4.5 cm";
-"home.nextfocus.uitest.long.supporting" = "30 dni";
-"home.nextfocus.uitest.long.summary" = "Talia spada w ostatnich 30 dniach. To mocny sygnaÃÂ progresu.";
-"home.nextfocus.insight.goal.title" = "Tylko %@ do celu %@";
-"home.nextfocus.insight.goal.detail" = "JesteÃÂ juÃÂ¼ wyraÃÂºnie bliÃÂ¼ej niÃÂ¼ na starcie.";
-"home.nextfocus.insight.goal.summary" = "Tylko %@ do celu %@.";
-"home.nextfocus.insight.trend.up.title" = "%@: +%@ w ciÄ
-gu %@";
-"home.nextfocus.insight.trend.down.title" = "%@: -%@ w ciÄ
-gu %@";
-"home.nextfocus.insight.trend.up.summary" = "%@ roÅnie w ciÄ
-gu %@.";
-"home.nextfocus.insight.trend.down.summary" = "%@ spada w ciÄ
-gu %@.";
-"home.nextfocus.insight.trend.detail" = "To jeden z najmocniejszych pozytywnych sygnaÃÂÃÂ³w na ten moment.";
-"home.nextfocus.period.7d" = "ostatnich 7 dni";
-"home.nextfocus.period.30d" = "ostatnich 30 dni";
-"home.nextfocus.periodchip.7d" = "7 dni";
-"home.nextfocus.periodchip.30d" = "30 dni";
-"home.nextfocus.fallback.summary" = "Ustaw cel, aby widzieÃÂ tutaj sygnaÃÂy progresu.";
-"home.thisweek.momentum.start" = "Dobry tydzieÃÂ zaczyna siÃÂ od jednego sygnaÃÂu.";
-"home.thisweek.momentum.keep" = "Masz juÃÂ¼ jeden wpis. Utrzymaj rytm.";
-"home.thisweek.momentum.strong" = "Budujesz solidny rytm w tym tygodniu.";
-"home.empty.eyebrow" = "Zacznij tutaj";
-"home.module.metrics.eyebrow" = "ÃÂledÃÂº";
-"home.keymetrics.empty.subtitle" = "Twoja tablica pomiarÃÂ³w czeka na pierwszy sygnaÃÂ.";
-"home.keymetrics.empty.title" = "Dodawaj regularnie dane";
-"home.keymetrics.empty.detail" = "Dodaj nowe dane, a na Stronie gÃÂÃÂ³wnej pojawi siÃÂ trend przy Twoich metrykach.";
-"home.keymetrics.empty.selection.subtitle" = "Wybierz pomiary, ktÃ³re naprawdÄ zasÅugujÄ
- na miejsce na Stronie gÅÃ³wnej.";
-"home.keymetrics.empty.selection.title" = "PokaÃÂ¼ tylko metryki, ktÃÂ³re naprawdÃÂ obserwujesz";
-"home.keymetrics.empty.selection.detail" = "Utrzymaj StronÄ gÅÃ³wnÄ
- skupionÄ
- na pomiarach, ktÃ³re najlepiej odzwierciedlajÄ
- TwÃ³j cel.";
-"home.keymetrics.ready.subtitle" = "%d metryki prowadzÄ
- ten ekran.";
-"home.focus.firstcheckin.title" = "Dodaj pierwszy wpis";
-"home.focus.firstcheckin.detail" = "Zacznij od wagi albo talii, aby uruchomiÃÂ trendy.";
-"home.focus.choosemetrics.title" = "Wybierz kluczowe metryki";
-"home.focus.choosemetrics.detail" = "WskaÅ¼ pomiary, ktÃ³re majÄ
- byÄ widoczne na Stronie gÅÃ³wnej.";
-"home.focus.logagain.title" = "Dodaj ponownie: %@";
-"home.focus.logagain.detail" = "%@ Utrzymaj tempo w tym tygodniu.";
-"home.focus.goal.title" = "Ustaw cel dla %@";
-"home.focus.goal.detail" = "Ostatni odczyt: %@.";
-"home.focus.protect.title" = "Utrzymaj progres: %@";
-"home.focus.protect.detail" = "JesteÃÂ na celu. Trzymaj rytm w tym tygodniu.";
-"home.focus.logtoday.title" = "Dodaj dziÃÂ %@";
-"home.focus.logtoday.detail" = "Jeszcze jeden wpis wyostrzy trend.";
-"home.focus.latest.detail" = "Ostatni odczyt: %@.";
-"home.photos.compare.title" = "PorÃÂ³wnaj swoje zdjÃÂcia";
-"home.photos.compare.detail" = "OtwÃ³rz ZdjÄcia i porÃ³wnaj ostatniÄ
- sesjÄ obok siebie.";
-"home.photos.compare.detail.home" = "PrzeglÄ
-daj wszystkie zdjÄcia, filtruj je po czasie i porÃ³wnaj dowolne dwa bez wychodzenia ze Strony gÅÃ³wnej.";
-"home.photos.compare.detail.locked" = "Uruchom porÃÂ³wnanie premium bezpoÃÂrednio ze Strony gÃÂÃÂ³wnej.";
-"home.photos.compare.note.premium" = "Tylko Premium";
-"home.photos.first.title" = "Pierwsze zdjÃÂcie postÃÂpu zapisane";
-"home.photos.first.detail" = "Dodaj jeszcze jedno zdjÃÂcie, aby sensownie je porÃÂ³wnaÃÂ.";
-"home.photos.latestsession" = "Ostatnia sesja";
-"home.photos.empty.subtitle" = "ZdjÄcia sprawiajÄ
-, Å¼e progres jest namacalny, a nie abstrakcyjny.";
-"home.photos.empty.title" = "Dodaj zdjÃÂcia, aby je porÃÂ³wnaÃÂ";
-"home.photos.empty.detail" = "Dodaj zdjÄcie i porÃ³wnaj swÃ³j obecny wyglÄ
-d z wczeÅniejszymi zapisami.";
-"home.photos.meta.latest" = "Ostatnia sesja %@.";
-"home.photos.context.primary" = "Ostatnie %@";
-"home.photos.context.primary.empty" = "Zacznij pierwszÄ
- sesjÄ";
-"home.photos.context.secondary.gap" = "%d dni miÃÂdzy sesjami";
-"home.photos.context.secondary.empty" = "Potrzeba jeszcze jednego zdjÃÂcia";
-"home.photos.context.secondary.pending" = "Trwa import ostatniej sesji";
-"home.nextfocus.addMeasurement.title" = "Szybkie dodawanie";
-"home.nextfocus.addMeasurement.detail" = "Dodaj nowy wpis.";
-"home.nextfocus.setGoal.title" = "Przejrzyj cele";
-"home.nextfocus.setGoal.detail" = "OtwÃÂ³rz Pomiary i dopracuj swoje cele.";
-"home.nextfocus.comparePhotos.title" = "PorÃÂ³wnaj zdjÃÂcia";
-"home.nextfocus.comparePhotos.detail" = "Wybierz dwa ostatnie zdjÃÂcia.";
-"home.nextfocus.comparePhotos.detail.locked" = "OtwÃÂ³rz porÃÂ³wnanie premium ze Strony gÃÂÃÂ³wnej. Tylko Premium.";
-"home.nextfocus.comparePhotos.detail.disabled" = "Dodaj jeszcze jedno zdjÃÂcie, aby odblokowaÃÂ porÃÂ³wnanie.";
-"home.nextfocus.finishSetup.title" = "Zadania startowe";
-"home.nextfocus.finishSetup.detail" = "WrÃÂ³ÃÂ do pozostaÃÂych zadaÃÂ.";
-"home.nextfocus.finishSetup.detail.done" = "Konfiguracja jest zakoÃÂczona.";
-"home.health.synced" = "Synchronizacja";
-"home.health.snapshot" = "Zdrowie w skrÃÂ³cie";
-"home.health.latestreadings" = "Ostatnie zsynchronizowane odczyty";
-"home.health.incomplete.title" = "Dane zdrowotne sÄ
- jeszcze niepeÅne";
-"home.health.incomplete.detail" = "Zsynchronizuj wagÃÂ, taliÃÂ albo skÃÂad ciaÃÂa, aby ten moduÃÂ byÃÂ uÃÂ¼yteczny.";
-"home.health.subtitle.setup" = "PoÅÄ
-cz aplikacjÄ Zdrowie, aby zamieniÄ to w uÅ¼ytecznÄ
- migawkÄ.";
-"home.health.subtitle.waiting" = "Synchronizacja dziaÃÂa. Dodaj wiÃÂcej danych o ciele.";
-"home.health.subtitle.preview" = "Na Stronie gÃÂÃÂ³wnej widzisz jeden zsynchronizowany sygnaÃÂ. PeÃÂne podsumowanie zdrowia i sylwetki jest w Premium.";
-"home.health.subtitle.ready" = "Szybki odczyt najwaÃÂ¼niejszych sygnaÃÂÃÂ³w zdrowotnych, ktÃÂ³re synchronizujesz.";
-"home.health.pill.setup" = "Konfiguracja";
-"home.health.pill.preview" = "PodglÄ
-d";
-"home.health.pill.ready" = "Gotowe";
-"home.health.empty.disconnected.title" = "PoÅÄ
-cz aplikacjÄ Zdrowie, jeÅli chcesz mniej rÄcznej pracy";
-"home.health.empty.disconnected.detail" = "PoÅÄ
-cz MeasureME z aplikacjÄ
- Zdrowie, aby widzieÄ metryki.";
-"home.health.empty.disconnected.detail.preview" = "Pobierz dane z aplikacji Zdrowie, aby podejrzeÃÂ metryki na Stronie gÃÂÃÂ³wnej. PeÃÂne podsumowanie jest dostÃÂpne Premium.";
-"home.health.empty.synced.title" = "Dane z aplikacji Zdrowie sÄ
- pobierane, ale brakuje nam kilku danych.";
-"home.health.empty.synced.detail" = "Dodaj kilka pomiarÃÂ³w, aby ta karta staÃÂa siÃÂ uÃÂ¼yteczna.";
-"home.health.empty.synced.detail.preview" = "Tutaj zobaczysz podglÄ
-d jednej zsynchronizowanej metryki. WiÄcej metryk zdrowia, sylwetka i peÅne podsumowanie sÄ
- w Premium.";
-"home.health.summary.card" = "Podsumowanie zdrowia";
-"home.health.premium.title" = "Odblokuj peÃÂny widok Zdrowia";
-"home.health.premium.detail" = "Zobacz wiÃÂcej metryk zdrowotnych, sylwetkÃÂ i peÃÂne podsumowanie zdrowia w Premium.";
-"home.health.summary.bodyfat" = "Tkanka tÃÂuszczowa: %@";
-"home.health.summary.leanmass" = "BeztÃÂuszczowa masa: %@";
-"home.health.summary.weight" = "Zsynchronizowana waga: %@";
-"home.health.summary.default" = "Synchronizacja zdrowia jest aktywna";
-"home.health.summary.detail.default" = "Dodaj wiÃÂcej zsynchronizowanych pomiarÃÂ³w, aby rozbudowaÃÂ to podsumowanie.";
-"home.metric.accessibility.value" = "%@, %@";
-"home.metric.accessibility.nodata" = "%@, brak danych";
-"home.keymetrics.delta.empty" = "Dodaj jeszcze jeden wpis, aby zobaczyÃÂ trend 7-dniowy.";
-"home.keymetrics.openDetails" = "OtwÃÂ³rz peÃÂne szczegÃÂ³ÃÂy";
-"home.keymetrics.goal.achieved" = "Cel osiÄ
-gniÄty";
-"home.keymetrics.goal.remaining" = "Do celu pozostaÃÂo %@";
-"home.compare.chooser.title" = "PorÃÂ³wnaj zdjÃÂcia";
-"home.compare.chooser.uihook" = "Wybierz dwa pierwsze zdjÃÂcia";
-"home.compare.filter.title" = "Zakres czasu";
-"home.compare.filter.count" = "%d zdjÃÂÃÂ";
-"home.compare.filter.empty" = "Brak zdjÃÂÃÂ w tym zakresie";
-"home.compare.filter.empty.detail" = "Wybierz inny zakres czasu, ÃÂ¼eby znaleÃÂºÃÂ zdjÃÂcia do porÃÂ³wnania.";
-"home.module.setup.eyebrow" = "Rytm";
-"home.module.setup.subtitle.one" = "DokoÃÂcz %d zadanie testowe";
-"home.module.setup.subtitle.few" = "DokoÃÂcz %d zadania testowe";
-"home.module.setup.subtitle.many" = "DokoÃÂcz %d zadaÃÂ testowych";
-"home.module.setup.subtitle" = "DokoÃÂcz %d zadaÃÂ testowych";
-"home.module.setup.pill" = "ZostaÃÂo %d";
-"home.card.open" = "OtwÃÂ³rz";
-"Key metrics" = "Kluczowe metryki";
-"Recent photos" = "Najnowsze zdjÃÂcia";
-"Open Photos" = "OtwÃÂ³rz ZdjÃÂcia";
-"Preparing" = "Dodawanie";
-"Import 1 Photo" = "Importuj 1 zdjÃÂcie";
-"Import %d Photos" = "Importuj %d zdjÃÂÃÂ";
-"import.photos.title" = "Importuj %@";
-"import.photos.count.one" = "%d zdjÃÂcie";
-"import.photos.count.few" = "%d zdjÃÂcia";
-"import.photos.count.many" = "%d zdjÃÂÃÂ";
-"import.photos.count" = "%d zdjÃÂÃÂ";
-"multiImport.editHint" = "NaciÃÂnij zdjÃÂcie powyÃÂ¼ej, aby edytowaÃÂ jego datÃÂ lub tagi osobno";
-"Shoulder-to-Hip Ratio" = "Stosunek barkÃÂ³w do bioder";
-"Waist" = "Talia";
-"You're trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Trend stabilnie spada. Utrzymaj 3 treningi siÃÂowe i 8k+ krokÃÂ³w w tym tygodniu.";
-"This week" = "Ten tydzieÃÂ";
-"progress.now" = "Teraz %@";
-"progress.start" = "Start %@";
-"progress.goal" = "Cel %@";
-"accessibility.open.measurements" = "OtwÃÂ³rz wszystkie pomiary";
-"accessibility.opens.measurements" = "Otwiera zakÃÂadkÃÂ Pomiary";
-"accessibility.open.photos" = "OtwÃÂ³rz wszystkie zdjÃÂcia";
-"Could not access iCloud backup right now." = "Nie moÃÂ¼na teraz uzyskaÃÂ dostÃÂpu do kopii zapasowej iCloud. SprÃÂ³buj ponownie za chwilÃÂ.";
-"iCloud storage is full. Free up space in Settings Ã¢ÂÂ iCloud to continue backups." = "PamiÃÂÃÂ iCloud jest peÃÂna. Zwolnij miejsce w Ustawienia Ã¢ÂÂ iCloud, aby kontynuowaÃÂ tworzenie kopii zapasowych.";
-"Encrypted backup for your measurements and photos. Premium only." = "Zaszyfrowana kopia zapasowa pomiarÃÂ³w i zdjÃÂÃÂ. DostÃÂpna tylko w Premium.";
-"Encrypted backup. Premium only." = "Szyfrowana kopia. Tylko Premium.";
-"Why: optional iCloud backup keeps a protected copy when you choose Premium." = "Dlaczego: opcjonalna kopia zapasowa iCloud pozwala zachowaÄ chronionÄ
- kopiÄ danych, jeÅli korzystasz z Premium.";
-"Enable backup" = "WÅÄ
-cz kopiÄ zapasowÄ
-";
-"Unlock in Premium" = "Odblokuj w Premium";
-"Upgrade to Premium to enable encrypted iCloud backup and restore." = "PrzejdÅº na Premium, aby wÅÄ
-czyÄ zaszyfrowanÄ
- kopiÄ zapasowÄ
- iCloud i przywracanie danych.";
-"Enable automatic iCloud backup first." = "Najpierw wÅÄ
-cz automatycznÄ
- kopiÄ zapasowÄ
- iCloud.";
-"Your data stays on this device by default. Encrypted iCloud backup is optional and available with Premium if you enable it." = "DomyÅlnie Twoje dane pozostajÄ
- na tym urzÄ
-dzeniu. Zaszyfrowany backup iCloud jest opcjonalny i dostÄpny w Premium, jeÅli go wÅÄ
-czysz.";
-"accessibility.opens.photos" = "Otwiera zakÃÂadkÃÂ ZdjÃÂcia";
-"accessibility.open.photo.details" = "OtwÃÂ³rz szczegÃÂ³ÃÂy zdjÃÂcia";
-"accessibility.compare.mode.side" = "PrzeÅÄ
-cz na tryb obok siebie";
-"accessibility.compare.mode.slider" = "PrzeÅÄ
-cz na tryb suwaka";
-"accessibility.compare.mode.ghost" = "PrzeÅÄ
-cz na tryb nakÅadki";
-"accessibility.compare.ghost.opacity" = "PrzezroczystoÃÂÃÂ zdjÃÂcia po";
-"compare.mode.slider" = "Suwak";
-"compare.mode.sideBySide" = "Obok siebie";
-"compare.mode.ghost" = "NakÃÂadka";
-"compare.ghost.opacity.label" = "PrzezroczystoÃÂÃÂ nakÃÂadki";
-"compare.ghost.reset" = "Resetuj wyrÃÂ³wnanie";
-"compare.ghost.hint" = "PrzeciÄ
-gnij, aby przesunÄ
-Ä Â· ÅciÅnij, aby skalowaÄ Â· Suwak zmienia przezroczystoÅÄ";
-"accessibility.compare.enter" = "WejdÃÂº w tryb porÃÂ³wnania";
-"accessibility.compare.exit" = "WyjdÃÂº z trybu porÃÂ³wnania";
-"accessibility.setup.checklist.options" = "Opcje checklisty";
-"accessibility.setup.checklist.options.hint" = "Otwiera akcje ukrycia lub zwiniÃÂcia checklisty konfiguracji.";
-"accessibility.setup.checklist.completed" = "UkoÃÂczone";
-"accessibility.setup.checklist.incomplete" = "NieukoÃÂczone";
-"accessibility.setup.checklist.loading" = "W toku";
-"accessibility.close.premium.paywall" = "Zamknij ekran Premium";
-"accessibility.close.premium.paywall.hint" = "Zamyka Premium i wraca do poprzedniego ekranu.";
-"accessibility.save.photo.to.gallery.hint" = "Zapisuje to zdjÃÂcie do systemowej aplikacji ZdjÃÂcia.";
-"accessibility.toggle.on" = "WÅÄ
-czone";
-"accessibility.toggle.off" = "WyÅÄ
-czone";
-"accessibility.keymetric.add" = "Dodaj kluczowÄ
- metrykÄ";
-"accessibility.keymetric.remove" = "UsuÅ kluczowÄ
- metrykÄ";
-"accessibility.measurements.section" = "Sekcja pomiarÃÂ³w";
-"accessibility.measurements.switch" = "PrzeÅÄ
-cz miÄdzy metrykami a wskaÅºnikami zdrowia";
-"accessibility.compare.opens" = "Otwiera porÃÂ³wnanie Ã¢ÂÂwtedy i terazÃ¢ÂÂ dla dwÃÂ³ch wybranych zdjÃÂÃÂ";
-"accessibility.compare.select.two" = "Wybierz dwa zdjÃÂcia do porÃÂ³wnania";
-"accessibility.photos.filtered" = "Otwiera zakÃÂadkÃÂ ZdjÃÂcia z filtrem tej metryki";
-"accessibility.entry.edit" = "Stuknij dwukrotnie, aby edytowaÃÂ wpis";
-"accessibility.add.measurement" = "Dodaj nowy pomiar";
-"accessibility.chart.hint" = "Pokazuje trend w czasie";
-"accessibility.goal.define" = "Ustaw cel dla tej metryki";
-"accessibility.trendline.toggle" = "Stuknij dwukrotnie, aby przeÅÄ
-czyÄ liniÄ trendu";
-"premium.trial.reminder.prompt.decline" = "Nie";
-"Compare photos" = "PorÃÂ³wnaj zdjÃÂcia";
-"Set goal" = "Ustaw cel";
-"Open Quick Add from Home" = "OtwÃÂ³rz Szybkie dodawanie ze Strony gÃÂÃÂ³wnej";
-"Jump to Measurements and review goals" = "PrzejdÃÂº do PomiarÃÂ³w i sprawdÃÂº cele";
-"Start premium photo comparison from Home" = "Uruchom porÃÂ³wnywanie zdjÃÂÃÂ dziÃÂki kontu Premium";
-"Guide the user back to setup tasks" = "Skieruj uÃÂ¼ytkownika z powrotem do zadaÃÂ konfiguracji";
-"Choose what the highlighted Home action should do." = "Wybierz, co ma robiÃÂ wyrÃÂ³ÃÂ¼niona akcja na Stronie gÃÂÃÂ³wnej.";
-"age.years.old" = "%d lat";
-"age.years.old.one" = "%d rok";
-"age.years.old.few" = "%d lata";
-"age.years.old.many" = "%d lat";
-"profile.unit.age" = "lat";
-"health.last.import" = "Ostatni import: %@";
-"height.last.updated" = "Ostatnia aktualizacja: %@";
-"bmi.age.group" = "Wiek: %d lat (%@)";
-"bmi.for.agegroup" = "dla: %@";
-"leanmass.value" = "%@ %@ masy beztÃÂuszczowej";
-"health.indicator.missing.subtitle" = "Dodaj wymagane dane, aby odblokowaÃÂ ten wskaÃÂºnik.";
-"health.indicator.missing.requirements.title" = "Czego jeszcze brakuje";
-"health.indicator.missing.info.title" = "Jak dziaÃÂa ten ekran";
-"health.indicator.missing.info.body" = "Gdy te wartoÅci bÄdÄ
- dostÄpne, ten ekran automatycznie pokaÅ¼e wynik, interpretacjÄ i zakresy referencyjne.";
-"health.indicator.missing.legend.title" = "Jak czytaÃÂ status";
-"health.indicator.missing.legend.inrange" = "Zdrowa / oczekiwana strefa";
-"health.indicator.missing.legend.above" = "PodwyÃÂ¼szona wartoÃÂÃÂ, warto obserwowaÃÂ";
-"health.indicator.missing.legend.high" = "Strefa wyÃÂ¼szego ryzyka";
-"reference.ranges.with.age" = "Zakresy referencyjne%@";
-"age.range.19_39" = " (19Ã¢ÂÂ39 lat)";
-"age.range.40_59" = " (40Ã¢ÂÂ59 lat)";
-"age.range.60_79" = " (60Ã¢ÂÂ79 lat)";
-"health.requires" = "Wymaga: %@";
-"photos.optimization.count" = "MoÃÂ¼na zoptymalizowaÃÂ %d zdjÃÂÃÂ";
-"photos.optimization.count.one" = "MoÃÂ¼na zoptymalizowaÃÂ %d zdjÃÂcie";
-"photos.optimization.count.few" = "MoÃÂ¼na zoptymalizowaÃÂ %d zdjÃÂcia";
-"photos.optimization.count.many" = "MoÃÂ¼na zoptymalizowaÃÂ %d zdjÃÂÃÂ";
-"onboarding.step.count" = "Krok %d z %d";
-"healthkit.import.failed" = "Nie udaÃÂo siÃÂ zaimportowaÃÂ: %@";
-"reference.ranges.gender" = "Zakresy referencyjne (%@)";
-"metric.weight" = "Waga";
-"metric.bodyfat" = "Tkanka tÃÂuszczowa";
-"metric.height" = "Wzrost";
-"metric.leanbodymass" = "Masa beztÃÂuszczowa";
-"metric.waist" = "Talia";
-"metric.neck" = "Szyja";
-"metric.shoulders" = "Barki";
-"metric.bust" = "Biust";
-"metric.chest" = "Klatka piersiowa";
-"metric.leftbicep" = "Lewy biceps";
-"metric.rightbicep" = "Prawy biceps";
-"metric.leftforearm" = "Lewe przedramiÃÂ";
-"metric.rightforearm" = "Prawe przedramiÃÂ";
-"metric.hips" = "Biodra";
-"metric.leftthigh" = "Lewe udo";
-"metric.rightthigh" = "Prawe udo";
-"metric.leftcalf" = "Lewa ÃÂydka";
-"metric.rightcalf" = "Prawa ÃÂydka";
-"Excellence" = "ÃÂwietnie";
-"Keep steady" = "Trzymaj tempo";
-"Worth attention" = "Warte uwagi";
-"Building up" = "Budowanie";
-"On track" = "Na dobrej drodze";
-"Room to improve" = "Jest przestrzeÃÂ do poprawy";
-"Focus area" = "Obszar do pracy";
-"Optimal" = "Optymalnie";
-"High" = "Wysoki";
-"Low" = "Nisko";
-"Normal" = "Norma";
-"Elevated" = "PodwyÃÂ¼szone";
-"Essential" = "Podstawowe";
-"Athletic" = "Sportowe";
-"Fitness" = "Fitness";
-"Normal weight" = "PrawidÃÂowa waga";
-"Increased weight" = "PodwyÃÂ¼szona waga";
-"High weight" = "Wysoka waga";
-"Normal fat level" = "PrawidÃÂowy poziom tÃÂuszczu";
-"Increased fat level" = "PodwyÃÂ¼szony poziom tÃÂuszczu";
-"High fat level" = "Wysoki poziom tÃÂuszczu";
-"Underweight" = "Niedowaga";
-"Overweight" = "Nadwaga";
-"Obese" = "Znaczna nadwaga";
-"Low risk" = "Niskie ryzyko";
-"Increased risk" = "PodwyÃÂ¼szone ryzyko";
-"Moderate risk" = "Umiarkowane ryzyko";
-"High risk" = "PodwyÃÂ¼szone ryzyko";
-"Child/Adolescent" = "Dziecko/Nastolatek";
-"Adult" = "DorosÃÂy";
-"Senior" = "Senior";
-"About" = "O aplikacji";
-"About BMI" = "O BMI";
-"About Health Metrics" = "O metrykach zdrowia";
-"About Measure" = "O MeasureMe";
-"About WHR" = "O WHR";
-"About WHtR" = "O WHtR";
-"About this metric" = "O tej metryce";
-"Active" = "Aktywne";
-"Add" = "Dodaj";
-"Add Metric" = "Dodaj metrykÃÂ";
-"Add Photo" = "Dodaj zdjÃÂcie";
-"Add Reminder" = "Dodaj przypomnienie";
-"Add at least one valid value to save." = "Dodaj co najmniej jednÄ
- prawidÅowÄ
- wartoÅÄ, aby zapisaÄ.";
-"Add at least one value before saving." = "Dodaj co najmniej jednÄ
- wartoÅÄ przed zapisem.";
-"Add measurement" = "Dodaj pomiar";
-"Add one-time or repeatable reminders. You can edit or remove them any time." = "Dodaj jednorazowe lub cykliczne przypomnienia. MoÃÂ¼esz je edytowaÃÂ lub usuwaÃÂ w dowolnym momencie.";
-"Add photo" = "Dodaj zdjÃÂcie";
-"Add reminder" = "Dodaj przypomnienie";
-"Add the missing measurements to calculate these health indicators:" = "Dodaj brakujÄ
-ce pomiary, aby obliczyÄ te wskaÅºniki zdrowia:";
-"Add your first entry to see history and charts." = "Dodaj pierwszy wpis, aby zobaczyÃÂ historiÃÂ i wykresy.";
-"Age" = "Wiek";
-"Age can be used for:" = "Wiek jest uÃÂ¼ywany do:";
-"All photos are optimized!" = "Wszystkie zdjÄcia sÄ
- zoptymalizowane!";
-"All photos have been optimized." = "Wszystkie zdjÃÂcia zostaÃÂy zoptymalizowane.";
-"All tags" = "Wszystkie tagi";
-"Allow notifications" = "ZezwÃÂ³l na powiadomienia";
-"Animations" = "Animacje";
-"Apple Intelligence isnât available on this device." = "Analizy AI nie sÄ
- dostÄpne na tym urzÄ
-dzeniu.";
-"Apply" = "Zastosuj";
-"Auto-renewable subscription. You can cancel anytime in your App Store account settings. Payment is charged to your Apple ID at confirmation. The subscription renews unless canceled at least 24 hours before the end of the current period." = "Subskrypcja odnawialna automatycznie. MoÅ¼esz anulowaÄ w dowolnym momencie w ustawieniach konta App Store. PÅatnoÅÄ zostanie pobrana z Twojego Apple ID przy potwierdzeniu. Subskrypcja odnawia siÄ, jeÅli nie zostanie anulowana co najmniej 24 godziny przed koÅcem bieÅ¼Ä
-cego okresu.";
-"Back" = "Wstecz";
-"BMI" = "BMI";
-"BMI Ranges" = "Zakresy BMI";
-"Built for real-life change" = "Stworzone do realnych zmian";
-"Cancel" = "Anuluj";
-"Centimeters" = "Centymetry";
-"Changes" = "Zmiany";
-"Chart" = "Wykres";
-"Checking photos..." = "Sprawdzanie zdjÃÂÃÂ...";
-"Choose from Library" = "Wybierz z biblioteki";
-"Choose one-time, daily or weekly schedule." = "Wybierz jednorazowy, dzienny lub tygodniowy harmonogram.";
-"Choose indicators to show" = "Wybierz wskaÃÂºniki do wyÃÂwietlenia";
-"Choose metrics" = "Wybierz metryki";
-"Choose up to 3 to show on Home and Measurements." = "Wybierz do 3, aby wyÃÂwietlaÃÂ na Stronie gÃÂÃÂ³wnej i w Pomiarach.";
-"Choose whether you want to increase or decrease this metric." = "Wybierz, czy chcesz zwiÃÂkszaÃÂ czy zmniejszaÃÂ tÃÂ metrykÃÂ.";
-"Choose your units" = "Wybierz jednostki";
-"Choose..." = "Wybierz...";
-"Clear" = "WyczyÃÂÃÂ";
-"Clear All" = "WyczyÃÂÃÂ wszystko";
-"Clear Filters" = "WyczyÃÂÃÂ filtry";
-"Clear all filters" = "WyczyÃÂÃÂ wszystkie filtry";
-"Close" = "Zamknij";
-"Compare" = "PorÃÂ³wnaj";
-"Compare selected photos" = "PorÃÂ³wnaj wybrane zdjÃÂcia";
-"Current" = "BieÅ¼Ä
-cy";
-"Current Height" = "Aktualny wzrost";
-"Current age" = "Aktualny wiek";
-"Currently showing female ranges (more conservative)." = "Obecnie wyÅwietlane sÄ
- zakresy dla kobiet.";
-"Data Source" = "ÃÂ¹rÃÂ³dÃÂo danych";
-"Date" = "Data";
-"Date Range" = "Zakres dat";
-"Decrease" = "Zmniejsz";
-"Delete" = "UsuÃÂ";
-"Delete Goal" = "UsuÃÂ cel";
-"Delete Photo" = "UsuÃÂ zdjÃÂcie";
-"Direction" = "Kierunek";
-"Done" = "Gotowe";
-"Drag to compare" = "PrzesuÃÂ, aby porÃÂ³wnaÃÂ";
-"Edit" = "Edytuj";
-"Edit measurement" = "Edytuj pomiar";
-"Enable Apple Intelligence" = "WÅÄ
-cz Analizy AI";
-"Enable health indicators in Settings to generate your summary." = "WÅÄ
-cz wskaÅºniki zdrowia w Ustawieniach, aby wygenerowaÄ podsumowanie.";
-"Enable health indicators in Settings to see results here." = "WÅÄ
-cz wskaÅºniki zdrowia w Ustawieniach, aby zobaczyÄ wyniki tutaj.";
-"Enable metrics below to pick key metrics for Home." = "WÅÄ
-cz metryki poniÅ¼ej, aby wybraÄ kluczowe metryki na Stronie gÅÃ³wnej.";
-"Enable metrics in the Measurements tab to add values quickly." = "WÅÄ
-cz metryki w zakÅadce Pomiary, aby szybko dodawaÄ wartoÅci.";
-"Enable reminders" = "WÅÄ
-cz przypomnienia";
-"Enter value" = "Wpisz wartoÃÂÃÂ";
-"Enter value in 0Ã¢ÂÂ100 range" = "Wpisz wartoÃÂÃÂ w zakresie 0Ã¢ÂÂ100";
-"Enter your age" = "Podaj swÃÂ³j wiek";
-"Enter your height" = "Podaj swÃÂ³j wzrost";
-"Export" = "Eksportuj";
-"Export comparison image" = "Eksportuj obraz porÃÂ³wnania";
-"Export data" = "Eksportuj dane";
-"Feet" = "Stopy";
-"Female" = "Kobieta";
-"Filter" = "Filtruj";
-"Filter Photos" = "Filtruj zdjÃÂcia";
-"Filters" = "Filtry";
-"From" = "Od";
-"From HealthKit" = "Z aplikacji Zdrowie";
-"Gender" = "PÃÂeÃÂ";
-"Gender not specified" = "PÃÂeÃÂ nieokreÃÂlona";
-"Generate diagnostics" = "Generuj diagnostykÃÂ";
-"Go to Settings" = "PrzejdÃÂº do UstawieÃÂ";
-"Goal" = "Cel";
-"Goal & Trend" = "Cel i trend";
-"Goal achieved" = "Powiadomienie o osiÄ
-gniÄciu celu";
-"Goal type" = "Typ celu";
-"Haptics" = "Haptyka";
-"Health Metrics" = "WskaÃÂºniki zdrowia";
-"Health import notifications" = "Powiadomienia o imporcie z aplikacji Zdrowie";
-"Health Note" = "Notatka zdrowotna";
-"Height" = "Wzrost";
-"Height (cm)" = "Wzrost (cm)";
-"Height is stored in Settings and used to calculate health indicators like WHtR and BMI." = "Wzrost jest przechowywany w Ustawieniach i uÃÂ¼ywany do obliczeÃÂ wskaÃÂºnikÃÂ³w zdrowia, takich jak WHtR i BMI.";
-"Height is used to calculate important health metrics:" = "Wzrost jest uÃÂ¼ywany do obliczeÃÂ waÃÂ¼nych metryk zdrowotnych:";
-"History" = "Historia";
-"Home" = "Strona gÃÂÃÂ³wna";
-"Home key metrics" = "Kluczowe metryki na Stronie gÃÂÃÂ³wnej";
-"How old are you?" = "Ile masz lat?";
-"How to measure" = "Jak mierzyÃÂ";
-"Imperial" = "Imperialne";
-"Import from Health" = "Importuj z aplikacji Zdrowie";
-"Import latest from Health" = "Importuj najnowsze dane z aplikacji Zdrowie";
-"Important" = "WaÃÂ¼ne";
-"Inches" = "Cale";
-"Increase" = "ZwiÃÂksz";
-"Information" = "Informacja";
-"Insight" = "WglÄ
-d";
-"Last Photos" = "Ostatnie zdjÃÂcia";
-"Latest height" = "Najnowszy wzrost";
-"Lean Body Mass" = "Beztłuszczowa masa ciała";
-"Learn more" = "Dowiedz siÃÂ wiÃÂcej";
-"Limit reached" = "OsiÄ
-gniÄto limit";
-"Load More" = "ZaÃÂaduj wiÃÂcej";
-"Male" = "MÃÂÃÂ¼czyzna";
-"Manage reminders" = "ZarzÄ
-dzaj przypomnieniami";
-"Manage subscription" = "ZarzÄ
-dzaj subskrypcjÄ
-";
-"Manual height" = "Wzrost rÃÂczny";
-"Maximum Photos Selected" = "Wybrano maksymalnÄ
- liczbÄ zdjÄÄ";
-"Measurement" = "Pomiar";
-"Measurement time" = "Czas pomiaru";
-"Measurements" = "Pomiary";
-"Measurements (Optional)" = "Pomiary (opcjonalnie)";
-"Measurement reminders" = "Przypomnienia o pomiarach";
-"Measurements section" = "Sekcja pomiarÃÂ³w";
-"Metric" = "Metryczny";
-"Metric Snapshots" = "Podsumowanie pomiarÃÂ³w";
-"Metrics" = "Metryki";
-"Migration Complete!" = "Migracja zakoÃÂczona!";
-"Missing data" = "Brak danych";
-"Missing measurements" = "BrakujÄ
-ce pomiary";
-"More Info" = "WiÃÂcej informacji";
-"Name" = "ImiÃÂ";
-"Next: you can choose what to track, and change it anytime." = "Dalej: moÃÂ¼esz wybraÃÂ, co ÃÂledziÃÂ, i zmieniÃÂ to w dowolnym momencie.";
-"No Photos Found" = "Nie znaleziono zdjÃÂÃÂ";
-"No age set" = "Nie ustawiono wieku";
-"No change" = "Bez zmian";
-"No data yet" = "Brak danych";
-"No height set" = "Nie ustawiono wzrostu";
-"No indicators selected" = "Nie wybrano wskaÃÂºnikÃÂ³w";
-"No metrics recorded" = "Brak zapisanych metryk";
-"No related photos for this metric." = "Brak powiÄ
-zanych zdjÄÄ dla tej metryki.";
-"No related photos yet." = "Brak powiÄ
-zanych zdjÄÄ.";
-"No reminders yet" = "Brak przypomnieÃÂ";
-"No tags" = "Brak tagÃÂ³w";
-"No tags selected" = "Nie wybrano tagÃÂ³w";
-"Not available" = "NiedostÃÂpne";
-"Not specified" = "Nie okreÃÂlono";
-"Nothing to save" = "Nie ma czego zapisaÃÂ";
-"Notifications" = "Powiadomienia";
-"Now" = "Teraz";
-"OK" = "OK";
-"Open all measurements" = "OtwÃÂ³rz wszystkie pomiary";
-"Open all photos" = "OtwÃÂ³rz wszystkie zdjÃÂcia";
-"Open photo details" = "OtwÃÂ³rz szczegÃÂ³ÃÂy zdjÃÂcia";
-"Open photo filters" = "OtwÃÂ³rz filtry zdjÃÂÃÂ";
-"Optimization Available" = "DostÃÂpna optymalizacja";
-"Optimize Photos" = "Optymalizuj zdjÃÂcia";
-"Options" = "Opcje";
-"Other" = "Inne";
-"Photo" = "ZdjÃÂcie";
-"Photo Optimization" = "Optymalizacja zdjÃÂÃÂ";
-"Photo Saved" = "ZdjÃÂcie zapisane";
-"Photo actions" = "Akcje zdjÃÂÃÂ";
-"Photo reminders" = "Przypomnienia o zdjÃÂciach";
-"Photos" = "ZdjÃÂcia";
-"Pick your focus" = "Wybierz swÃÂ³j fokus";
-"Premium Edition required" = "Wymagana jest wersja Premium";
-"Premium Edition" = "Wersja Premium";
-"See Premium Edition" = "Zobacz wersjÃÂ Premium";
-"Upgrade to Premium Edition to unlock Health Indicators." = "PrzejdÃÂº na wersjÃÂ Premium, aby odblokowaÃÂ wskaÃÂºniki zdrowia.";
-"Apple Intelligence: unavailable (Premium Edition required)" = "Analizy AI: niedostÃÂpne (wymagana jest wersja Premium)";
-"Premium helps you stay consistent, hit your goals, and supports a small business from Poland." = "Premium pomaga utrzymaÄ konsekwencjÄ, osiÄ
-gaÄ cele i wspiera maÅy biznes z Polski.";
-"Progress" = "PostÃÂp";
-"Range" = "Zakres";
-"Read frequently asked questions" = "Przeczytaj FAQ";
-"Reference Ranges" = "Zakresy referencyjne";
-"Relative Fat Mass" = "WzglÃÂdna masa tÃÂuszczowa";
-"Reminders" = "Przypomnienia";
-"Repeat" = "Powtarzaj";
-"Reset" = "Resetuj";
-"Reset Filters" = "Resetuj filtry";
-"Restore purchases" = "PrzywrÃÂ³ÃÂ zakupy";
-"Risk Categories" = "Kategorie ryzyka";
-"Save" = "Zapisz";
-"Save Measurements" = "Zapisz pomiary";
-"Save photo to gallery" = "Zapisz zdjÃÂcie do galerii";
-"Save to Photos" = "Zapisz do ZdjÃÂÃÂ";
-"Save unchanged values" = "Zapisuj niezmienione wartoÃÂci";
-"Scheduled" = "Zaplanowane";
-"Section" = "Sekcja";
-"Select Metric" = "Wybierz metrykÃÂ";
-"Select tags to filter photos. Photos matching any selected tag will be shown." = "Wybierz tagi do filtrowania zdjÄÄ. ZdjÄcia z wybranym tagiem zostanÄ
- wyÅwietlone.";
-"Select up to three key metrics in Settings." = "Wybierz do trzech kluczowych metryk w Ustawieniach.";
-"Select your gender" = "Wybierz pÃÂeÃÂ";
-"Set Height" = "Ustaw wzrost";
-"Set a calm baseline, then focus on small, repeatable wins." = "Ustal punkt odniesienia, a potem skup siÃÂ na maÃÂych, powtarzalnych sukcesach.";
-"Set a goal to see progress." = "Ustaw cel, aby zobaczyÃÂ postÃÂp.";
-"Set a target" = "Ustaw cel";
-"Set height manually" = "Ustaw wzrost rÃÂcznie";
-"Set your age to improve health metric accuracy." = "Ustaw wiek, aby poprawiÃÂ dokÃÂadnoÃÂÃÂ wskaÃÂºnikÃÂ³w zdrowotnych.";
-"Set your height to calculate health metrics like WHtR (Waist-to-Height Ratio)." = "Ustaw wzrost, aby obliczaÃÂ wskaÃÂºniki zdrowotne, takie jak WHtR (stosunek talii do wzrostu).";
-"Settings" = "Ustawienia";
-"Show health summary on Home" = "PokaÃÂ¼ podsumowanie zdrowia na Stronie gÃÂÃÂ³wnej";
-"Show measurements on Home" = "PokaÃÂ¼ pomiary na Stronie gÃÂÃÂ³wnej";
-"Show photos on Home" = "PokaÃÂ¼ zdjÃÂcia na Stronie gÃÂÃÂ³wnej";
-"Showing all photos" = "WyÃÂwietlanie wszystkich zdjÃÂÃÂ";
-"Skip" = "PomiÃÂ";
-"\"What is measured is managed\"
-- Peter Drucker" = "âTo, co mierzone, jest zarzÄ
-dzaneâ
-- Peter Drucker";
-"Smart Notifications" = "Inteligentne powiadomienia";
-"Smart reminders" = "Inteligentne przypomnienia";
-"Smart reminders only trigger after a period of inactivity. When you log a measurement, the timer resets." = "Powiadomienia wyÅwietlÄ
- siÄ dopiero po okresie braku aktywnoÅci. Gdy zapiszesz pomiar, licznik siÄ resetuje.";
-"Some health metrics cannot be calculated because the following measurements are missing:" = "NiektÃ³rych metryk zdrowotnych nie moÅ¼na obliczyÄ, poniewaÅ¼ brakuje nastÄpujÄ
-cych pomiarÃ³w:";
-"Start Premium" = "Zacznij korzystaÃÂ z wersji Premium";
-"Sync height for calculations" = "Synchronizuj wzrost do obliczeÃÂ";
-"Sync with Health" = "Synchronizuj z aplikacjÄ
- Zdrowie";
-"Synced from Health app" = "Zsynchronizowano z aplikacjÄ
- Zdrowie";
-"Tags" = "Tagi";
-"Take Photo" = "ZrÃÂ³b zdjÃÂcie";
-"photos.add.camera.subtitle" = "ZrÃÂ³b nowe zdjÃÂcie aparatem";
-"photos.add.library.subtitle" = "Wybierz jedno lub wiÃÂcej zdjÃÂÃÂ z biblioteki";
-"Target Value" = "WartoÃÂÃÂ docelowa";
-"Then" = "Wtedy";
-"These notifications are sent when specific events happen." = "Te powiadomienia sÄ
- wysyÅane, gdy wydarzÄ
- siÄ okreÅlone zdarzenia.";
-"This data comes from the Health app. Lean body mass measurements can vary based on the device and method used. For tracking progress, use the same measurement method consistently." = "Te dane pochodzÄ
- z aplikacji Zdrowie. Pomiary masy beztÅuszczowej mogÄ
- siÄ rÃ³Å¼niÄ w zaleÅ¼noÅci od urzÄ
-dzenia i metody. Dla spÃ³jnego Åledzenia uÅ¼ywaj zawsze tej samej metody.";
-"This data is sourced from the Health app, which may collect it from compatible scales, fitness devices, or manual entries." = "Te dane pochodzÄ
- z aplikacji Zdrowie, ktÃ³ra moÅ¼e je zbieraÄ z kompatybilnych wag, urzÄ
-dzeÅ fitness lub wpisÃ³w rÄcznych.";
-"This height is used for health metric calculations." = "Wzrost jest uÃÂ¼ywany do obliczeÃÂ metryk zdrowotnych.";
-"This height will be used for health metric calculations like WHtR." = "Wzrost bÃÂdzie uÃÂ¼ywany do obliczeÃÂ metryk zdrowotnych, takich jak WHtR.";
-"Time of day" = "Pora dnia";
-"To" = "Do";
-"To calculate all indicators, add:" = "Aby obliczyÃÂ wszystkie wskaÃÂºniki, dodaj:";
-"To calculate health metrics, please add:" = "Aby obliczyÃÂ metryki zdrowotne, dodaj:";
-"Tracked measurements" = "ÃÂledzone pomiary";
-"Trend" = "Trend";
-"Trendline" = "Linia trendu";
-"Try adjusting your filters or add a new photo" = "SprÃÂ³buj zmieniÃÂ filtry lub dodaj nowe zdjÃÂcie";
-"Units" = "Jednostki";
-"Unlock" = "Odblokuj";
-"Unlock your full progress system." = "Odblokuj peÃÂny system postÃÂpu.";
-"Update measurements" = "Aktualizuj pomiary";
-"Upgrade to Premium" = "PrzejdÃÂº na Premium";
-"Use age from HealthKit" = "UÃÂ¼yj wieku z aplikacji Zdrowie";
-"Used for health metrics" = "UÃÂ¼ywane w metrykach zdrowotnych";
-"Value" = "WartoÃÂÃÂ";
-"View All" = "Zobacz wszystkie";
-"View Full Screen" = "PeÃÂny ekran";
-"View More" = "Wybierz zdjÃÂcia";
-"Choose Photos" = "Wybierz zdjÃÂcia";
-"View more" = "Zobacz wiÃÂcej";
-"View more photos" = "Zobacz wiÃÂcej zdjÃÂÃÂ";
-"Weekly check-ins" = "Cotygodniowe wpisy";
-"What is Body Fat Percentage?" = "Czym jest procent tkanki tÃÂuszczowej?";
-"What is Body Shape Risk?" = "Czym jest ryzyko wg ABSI?";
-"What is Central Fat Risk?" = "Czym jest otyÃÂoÃÂÃÂ brzuszna?";
-"What is Lean Body Mass?" = "Czym jest masa beztÃÂuszczowa?";
-"What is RFM?" = "Czym jest RFM?";
-"What should we call you?" = "Jak mamy siÃÂ do Ciebie zwracaÃÂ?";
-"When enabled, current values are saved even if unchanged." = "Po wÅÄ
-czeniu bieÅ¼Ä
-ce wartoÅci sÄ
- zapisywane nawet jeÅli siÄ nie zmieniÅy.";
-"Why It Matters" = "Dlaczego to waÃÂ¼ne";
-"Why: gentle nudges keep you consistent." = "Dlaczego: delikatne przypomnienia pomagajÄ
- w regularnoÅci.";
-"Why is age important?" = "Dlaczego wiek jest istotny?";
-"Why is height important?" = "Dlaczego wzrost jest istotny?";
-"You can choose up to 3 key metrics for Home." = "MoÅ¼esz wybraÄ do 3 kluczowych metryk na StronÄ gÅÃ³wnÄ
-.";
-"You can only compare two photos at a time. Please deselect one photo before selecting another." = "MoÃÂ¼esz porÃÂ³wnywaÃÂ tylko dwa zdjÃÂcia naraz. Odznacz jedno zdjÃÂcie przed wybraniem kolejnego.";
-"You've set your height manually. Health metrics will use this value." = "UstawiÅeÅ wzrost rÄcznie. Metryki zdrowotne bÄdÄ
- wykorzystywaÄ te wartoÅci.";
-"Your data stays on this device. Nothing is shared with us." = "Twoje dane pozostajÄ
- na tym urzÄ
-dzeniu. Nic nie jest udostÄpniane.";
-"YouÃ¢ÂÂre all set." = "Wszystko gotowe.";
-"Language" = "JÃÂzyk";
-"App language" = "JÃÂzyk aplikacji";
-"System" = "Systemowy";
-"English" = "Angielski";
-"Polish" = "Polski";
-"Spanish" = "HiszpaÃÂski";
-"Portuguese" = "Portugalski";
-"Portuguese (Brazil)" = "Portugalski (Brazylia)";
-"A Body Shape Index (ABSI) measures the health risk associated with your abdominal fat distribution, independent of your total body weight. It focuses on health outcomes rather than appearance." = "WskaÅºnik ABSI mierzy ryzyko zdrowotne zwiÄ
-zane z rozkÅadem tÅuszczu w okolicy brzucha, niezaleÅ¼nie od caÅkowitej masy ciaÅa. Skupia siÄ na zdrowiu, a nie na wyglÄ
-dzie.";
-"ABSI is a research-based indicator and should be considered alongside other health metrics. It is not a medical diagnosis. Consult with healthcare professionals for personalized health assessments and recommendations." = "ABSI jest wskaÅºnikiem opartym na badaniach i powinien byÄ rozpatrywany razem z innymi metrykami zdrowotnymi. Nie stanowi diagnozy medycznej. Skonsultuj siÄ ze specjalistÄ
- w celu indywidualnej oceny i zaleceÅ.";
-"Body fat percentage is the proportion of your body weight that is fat tissue. It provides a more accurate picture of your body composition than weight or BMI alone." = "Procent tkanki tÃÂuszczowej to udziaÃÂ tÃÂuszczu w masie ciaÃÂa. Daje dokÃÂadniejszy obraz skÃÂadu ciaÃÂa niÃÂ¼ sama waga lub BMI.";
-"Body fat percentage measurements can vary depending on the measurement method. For the most accurate assessment, use the same device consistently and measure under similar conditions." = "Pomiary procentu tkanki tÅuszczowej mogÄ
- siÄ rÃ³Å¼niÄ w zaleÅ¼noÅci od metody. Aby uzyskaÄ wiarygodne porÃ³wnania, uÅ¼ywaj konsekwentnie tego samego urzÄ
-dzenia i podobnych warunkÃ³w.";
-"Higher ABSI values indicate more abdominal fat relative to your BMI and height, which is associated with increased cardiovascular and metabolic health risks." = "WyÅ¼sze wartoÅci ABSI wskazujÄ
- na wiÄcej tÅuszczu brzusznego wzglÄdem BMI i wzrostu, co wiÄ
-Å¼e siÄ z wiÄkszym ryzykiem sercowoâmetabolicznym.";
-"Higher values indicate more fat concentrated in the abdominal area, which is associated with increased risk of cardiovascular disease, type 2 diabetes, and metabolic syndrome." = "WyÅ¼sze wartoÅci oznaczajÄ
- wiÄcej tÅuszczu w okolicy brzucha, co wiÄ
-Å¼e siÄ ze zwiÄkszonym ryzykiem chorÃ³b sercowoânaczyniowych, cukrzycy typu 2 i zespoÅu metabolicznego.";
-"LBM percentage represents how much of your total body weight is lean mass. Higher percentages generally indicate better muscle mass and metabolic health." = "Procent LBM pokazuje, jaki udziaÅ masy ciaÅa stanowi masa beztÅuszczowa. WyÅ¼sze wartoÅci zwykle oznaczajÄ
- lepszÄ
- masÄ miÄÅniowÄ
- i zdrowie metaboliczne.";
-"Lean body mass is your total body weight minus body fat. It includes muscle, bone, organs, and water - everything except fat tissue." = "Masa beztÅuszczowa to masa ciaÅa bez tÅuszczu. Obejmuje miÄÅnie, koÅci, narzÄ
-dy i wodÄ â wszystko poza tkankÄ
- tÅuszczowÄ
-.";
-"RFM is an estimation tool and may not be accurate for athletes, pregnant women, or people with certain medical conditions. For the most accurate body composition analysis, consult with a healthcare professional." = "RFM to wskaÅºnik szacunkowy i moÅ¼e byÄ niedokÅadny u sportowcÃ³w, kobiet w ciÄ
-Å¼y lub osÃ³b z pewnymi schorzeniami. Dla najdokÅadniejszej analizy skÅadu ciaÅa skonsultuj siÄ ze specjalistÄ
-.";
-"Relative Fat Mass (RFM) is an estimate of total body fat percentage based on your height and waist circumference. It provides a simple way to assess body composition without specialized equipment." = "RFM (Relative Fat Mass) to szacunkowy procent tkanki tÃÂuszczowej na podstawie wzrostu i obwodu talii. To prosty sposÃÂ³b oceny skÃÂadu ciaÃÂa bez specjalistycznego sprzÃÂtu.";
-"The Conicity Index is a screening tool and should be interpreted alongside other health indicators. It is not a medical diagnosis. Consult with healthcare professionals for comprehensive health assessments." = "WskaÅºnik Conicity jest narzÄdziem przesiewowym i powinien byÄ interpretowany wraz z innymi wskaÅºnikami. Nie stanowi diagnozy medycznej. Skonsultuj siÄ ze specjalistÄ
- w celu peÅnej oceny zdrowia.";
-"The Conicity Index is an indicator of central (abdominal) fat accumulation. It evaluates how your body mass is distributed around your waist relative to your height and weight." = "WskaÃÂºnik Conicity opisuje nagromadzenie tÃÂuszczu w okolicy brzucha. Ocena dotyczy rozkÃÂadu masy ciaÃÂa wokÃÂ³ÃÂ talii wzglÃÂdem wzrostu i masy.";
-"WHR thresholds differ between males and females. Set your gender in Settings for more accurate ranges." = "Progi WHR rÃ³Å¼niÄ
- siÄ dla kobiet i mÄÅ¼czyzn. Ustaw pÅeÄ w Ustawieniach, aby uzyskaÄ dokÅadniejsze zakresy.";
-"WHtR Ranges" = "Zakresy WHtR";
-"WHtR" = "WHtR";
-"WHR" = "WHR";
-"Waist-to-Height Ratio" = "Stosunek talii do wzrostu";
-"Waist-to-Hip Ratio" = "Stosunek talii do bioder";
-"Waist-Height Ratio" = "Stosunek talii do wzrostu";
-"Body Mass Index" = "WskaÃÂºnik masy ciaÃÂa";
-"Body Fat Percentage" = "Procent tkanki tÃÂuszczowej";
-"Body Shape Risk" = "Ryzyko wg ABSI";
-"Central Fat Risk" = "OtyÃÂoÃÂÃÂ brzuszna";
-"Why it matters" = "Dlaczego to waÃÂ¼ne";
-"FAQ" = "FAQ";
-"Getting started" = "Na start";
-"Data and privacy" = "Dane i prywatnoÃÂÃÂ";
-"Usage" = "UÃÂ¼ytkowanie";
-"How do I take measurements?" = "Jak wykonywaÃÂ pomiary?";
-"Measure at a consistent time of day, in similar conditions, and record trends rather than single readings." = "Mierz o staÃÂej porze dnia, w podobnych warunkach, i zapisuj trendy zamiast pojedynczych odczytÃÂ³w.";
-"Why are circumference measurements important?" = "Dlaczego pomiary obwodÃ³w sÄ
- waÅ¼ne?";
-"You can build muscle and lose fat at the same time, so the scale might not change much. Waist circumference often reflects fat loss more clearly than weight alone." = "MoÃÂ¼esz budowaÃÂ miÃÂÃÂnie i traciÃÂ tÃÂuszcz jednoczeÃÂnie, wiÃÂc waga moÃÂ¼e siÃÂ niewiele zmieniaÃÂ. ObwÃÂ³d pasa czÃÂsto lepiej pokazuje utratÃÂ tÃÂuszczu niÃÂ¼ sama waga.";
-"What tools should I use for measurements?" = "Czym dokonywaÃÂ pomiarÃÂ³w?";
-"Use a soft measuring tape for circumferences. For weight and body fat, a smart scale can be helpful, but it can have a margin of error. The most accurate body composition results come from a DEXA scan." = "Do obwodÃÂ³w uÃÂ¼ywaj miÃÂkkiej miary krawieckiej. Do wagi i procentu tÃÂuszczu moÃÂ¼e pomÃÂ³c inteligentna waga, ale ma ona margines bÃÂÃÂdu. NajdokÃÂadniejsze pomiary skÃÂadu ciaÃÂa daje skan DEXA.";
-"What time of day should I measure?" = "O jakiej porze dnia mierzyÃÂ?";
-"For best consistency, measure in the morning after using the bathroom and before eating or drinking." = "Dla najlepszej spÃÂ³jnoÃÂci mierz rano, po skorzystaniu z toalety i przed jedzeniem lub piciem.";
-"How do I add measurements?" = "Jak dodaÃÂ pomiary?";
-"Use Quick Add or open a metric and tap Update to enter a new value with date and time." = "UÅ¼yj Szybkiego dodawania albo otwÃ³rz metrykÄ i stuknij Aktualizuj, aby dodaÄ nowÄ
- wartoÅÄ z datÄ
- i godzinÄ
-.";
-"How do I set goals?" = "Jak ustawiÃÂ cele?";
-"Open a metric, tap Goal, and set a target value and direction (increase or decrease)." = "OtwÃ³rz metrykÄ, stuknij Cel i ustaw wartoÅÄ docelowÄ
- oraz kierunek (zwiÄkszanie lub zmniejszanie).";
-"How is progress calculated?" = "Jak liczony jest progres?";
-"Progress starts at the value you had when the goal was created and moves toward the target. It reaches 100% when the goal is met." = "Progres startuje od wartoÅci z chwili utworzenia celu i przesuwa siÄ w stronÄ celu. OsiÄ
-ga 100%, gdy cel zostanie speÅniony.";
-"What happens to my data?" = "Co siÃÂ dzieje z moimi danymi?";
-"Your data is stored on device and encrypted. MeasureMe works offline by default." = "Twoje dane sÄ
- przechowywane na urzÄ
-dzeniu i szyfrowane. MeasureMe dziaÅa domyÅlnie offline.";
-"Do I have to connect HealthKit?" = "Czy muszÄ poÅÄ
-czyÄ aplikacjÄ Zdrowie?";
-"No. HealthKit is optional. You can log everything manually." = "Nie. Aplikacja Zdrowie jest opcjonalna. Wszystko moÃÂ¼esz wpisywaÃÂ rÃÂcznie.";
-"Are health indicators a reliable source?" = "Czy wskaÅºniki zdrowia sÄ
- wiarygodnym ÅºrÃ³dÅem?";
-"Health indicators are informational and based on simple algorithms from reputable health and medical institutions. They are not a diagnosis and should be reviewed with a medical professional." = "WskaÅºniki zdrowia majÄ
- charakter informacyjny i opierajÄ
- siÄ na prostych algorytmach opracowanych przez renomowane instytucje prozdrowotne i medyczne. Nie stanowiÄ
- diagnozy i powinny byÄ konsultowane z lekarzem.";
-"What is the privacy policy?" = "Jaka jest polityka prywatnoÃÂci?";
-"Your data stays on device. If you choose to export or share, you control where it goes." = "Twoje dane pozostajÄ
- na urzÄ
-dzeniu. JeÅli zdecydujesz siÄ je wyeksportowaÄ lub udostÄpniÄ, sam kontrolujesz gdzie trafiajÄ
-.";
-"Is any data processed on the internet?" = "Czy dane sÄ
- przetwarzane w internecie?";
-"No. Measurements and photos are not sent to external servers." = "Nie. Pomiary i zdjÄcia nie sÄ
- wysyÅane na zewnÄtrzne serwery.";
-"Can I export my data or photos?" = "Czy mogÃÂ wyeksportowaÃÂ dane albo zdjÃÂcia?";
-"Yes. Use Export data in Settings. Photos can be saved from the photo detail view." = "Tak. UÃÂ¼yj Eksportuj dane w Ustawieniach. ZdjÃÂcia moÃÂ¼na zapisaÃÂ z widoku szczegÃÂ³ÃÂÃÂ³w zdjÃÂcia.";
-"Do I need to measure every day?" = "Czy muszÃÂ mierzyÃÂ siÃÂ codziennie?";
-"No. Regular, consistent checkâins are more valuable than daily measurements." = "Nie. Regularne, konsekwentne wpisy sÄ
- bardziej wartoÅciowe niÅ¼ codzienne pomiary.";
-"Why do my measurements fluctuate?" = "Dlaczego moje pomiary siÄ wahajÄ
-?";
-"Dayâtoâday changes are normal and can be caused by hydration, salt intake, sleep, stress, and training." = "Wahania z dnia na dzieÅ sÄ
- normalne i mogÄ
- wynikaÄ z nawodnienia, soli, snu, stresu i treningu.";
-"Can I edit or delete a measurement?" = "Czy mogÄ edytowaÄ lub usunÄ
-Ä pomiar?";
-"Yes. Open a metric, go to History, and tap an entry to edit or swipe to delete." = "Tak. OtwÃ³rz metrykÄ, przejdÅº do Historii i stuknij wpis, aby edytowaÄ, lub przesuÅ, aby usunÄ
-Ä.";
-"What units does the app support?" = "Jakie jednostki obsÃÂuguje aplikacja?";
-"Metric and Imperial. You can switch anytime in Settings â Units." = "Metryczne i imperialne. MoÅ¼esz przeÅÄ
-czyÄ w dowolnym momencie w Ustawienia â Jednostki.";
-"How do photos help?" = "Jak zdjÄcia pomagajÄ
-?";
-"Photos show visual changes that the scale doesnât capture, especially when body composition is changing." = "ZdjÄcia pokazujÄ
- zmiany wizualne, ktÃ³rych nie widaÄ na wadze, szczegÃ³lnie gdy zmienia siÄ skÅad ciaÅa.";
-"Whatâs the difference between weight, body fat %, and lean body mass?" = "Jaka jest rÃ³Å¼nica miÄdzy wagÄ
-, procentem tÅuszczu i masÄ
- beztÅuszczowÄ
-?";
-"Weight is total body mass. Body fat % estimates fat as a portion of total weight. Lean body mass is everything except fat." = "Waga to caÃÂkowita masa ciaÃÂa. Procent tkanki tÃÂuszczowej to udziaÃÂ tÃÂuszczu w masie. Masa beztÃÂuszczowa to wszystko poza tÃÂuszczem.";
-"Why do HealthKit values look different from manual entries?" = "Dlaczego wartoÅci z aplikacji Zdrowie rÃ³Å¼niÄ
- siÄ od wpisÃ³w rÄcznych?";
-"Different devices and methods can produce different values. Trends are more important than single readings." = "RÃ³Å¼ne urzÄ
-dzenia i metody mogÄ
- dawaÄ rÃ³Å¼ne wartoÅci. WaÅ¼niejsze sÄ
- trendy niÅ¼ pojedyncze odczyty.";
-"What happens if I set the wrong goal?" = "Co jeÃÂli ustawiÃÂ zÃÂy cel?";
-"No problemÃ¢ÂÂgo to the metric and update or delete the goal at any time." = "Nie ma problemu Ã¢ÂÂ przejdÃÂº do metryki i zaktualizuj lub usuÃÂ cel w dowolnym momencie.";
-"Can I use the app offline?" = "Czy mogÃÂ uÃÂ¼ywaÃÂ aplikacji offline?";
-"Yes. The app works fully offline; HealthKit sync is optional." = "Tak. Aplikacja dziaÅa w peÅni offline, a synchronizacja z aplikacjÄ
- Zdrowie jest opcjonalna.";
-"Do you send notifications automatically?" = "Czy wysyÃÂacie powiadomienia automatycznie?";
-"Only if you enable reminders in Settings â Notifications." = "Tylko jeÅli wÅÄ
-czysz przypomnienia w Ustawienia â Powiadomienia.";
-"Can I compare photos?" = "Czy mogÃÂ porÃÂ³wnywaÃÂ zdjÃÂcia?";
-"Yes. Use Compare in the Photos tab and select two photos to view them side by side." = "Tak. UÃÂ¼yj PorÃÂ³wnaj w zakÃÂadce ZdjÃÂcia i wybierz dwa zdjÃÂcia, aby zobaczyÃÂ je obok siebie.";
-"metric.compare.title" = "PorÃÂ³wnaj";
-"metric.compare.button" = "PorÃÂ³wnaj metryki";
-"metric.compare.button.hint" = "Otwiera arkusz i nakÅada drugÄ
- metrykÄ na ten sam wykres";
-"metric.compare.cta.idle" = "Wybierz drugÄ
- metrykÄ";
-"metric.compare.cta.empty" = "ÅledÅº innÄ
- metrykÄ, aby porÃ³wnaÄ jÄ
- tutaj";
-"metric.compare.clear" = "WyÅÄ
-cz porÃ³wnanie";
-"metric.compare.clear.current" = "WyÅÄ
-cz porÃ³wnanie %@";
-"metric.compare.description.dual_axis" = "Oba trendy sÄ
- na tej samej osi czasu. Druga metryka korzysta z prawej osi.";
-"metric.compare.description.shared_axis" = "Obie metryki majÄ
- tÄ samÄ
- skalÄ jednostek, wiÄc pozostajÄ
- na jednej osi.";
-"metric.compare.axis.trailing" = "Prawa oÃÂ";
-"metric.compare.sheet.title" = "PorÃÂ³wnaj na jednym wykresie";
-"metric.compare.sheet.subtitle" = "Wybierz drugÄ
- metrykÄ do porÃ³wnania z %@.";
-"metric.compare.sheet.selector" = "Druga metryka";
-"metric.compare.sheet.section" = "DostÃÂpne metryki";
-"metric.compare.chart.empty" = "Wybierz drugÄ
- metrykÄ, aby zobaczyÄ wykres porÃ³wnania.";
-"metric.compare.empty.title" = "Nie ma jeszcze czego porÃÂ³wnaÃÂ";
-"metric.compare.empty.message" = "Dodaj co najmniej jednÄ
- innÄ
- ÅledzonÄ
- metrykÄ, a pojawi siÄ tutaj.";
-"metric.compare.badge.recommended" = "Najlepszy wybÃÂ³r";
-"metric.compare.badge.second_axis" = "Druga oÃÂ";
-"metric.compare.option.meta.dual" = "%d wpisÃÂ³w ÃÂ· ostatni %@ ÃÂ· prawa oÃÂ";
-"metric.compare.option.meta.shared" = "%d wpisÃÂ³w ÃÂ· ostatni %@ ÃÂ· wspÃÂ³lna oÃÂ";
-"metric.compare.chart.summary" = "%@ porÃÂ³wnano z %@ dla zakresu %@. GÃÂÃÂ³wna skala od %@ do %@, trend %@. Ostatnia wartoÃÂÃÂ porÃÂ³wnania %@.";
-"How do I choose which metrics to track?" = "Jak wybraÃÂ metryki, ktÃÂ³re chcÃÂ mierzyÃÂ?";
-"Go to Settings Ã¢ÂÂ Tracked Measurements and select the metrics you want to follow." = "PrzejdÃÂº do Ustawienia Ã¢ÂÂ ÃÂledzone pomiary i wybierz metryki, ktÃÂ³re chcesz ÃÂledziÃÂ.";
-"Can I disable animations or haptics?" = "Czy mogÄ wyÅÄ
-czyÄ animacje albo haptykÄ?";
-"Yes. In Settings â Experience you can turn off animations and haptics." = "Tak. W Ustawienia â DoÅwiadczenie moÅ¼esz wyÅÄ
-czyÄ animacje i haptykÄ.";
-"BMI is below the typical range for this age." = "BMI jest poniÃÂ¼ej typowego zakresu dla tego wieku.";
-"Your BMI is below the healthy range." = "Twoje BMI jest poniÃÂ¼ej zdrowego zakresu.";
-"BMI is within the typical range for this age." = "BMI mieÃÂci siÃÂ w typowym zakresie dla tego wieku.";
-"Your BMI is within the healthy range." = "Twoje BMI mieÃÂci siÃÂ w zdrowym zakresie.";
-"BMI is above the typical range for this age." = "BMI jest powyÃÂ¼ej typowego zakresu dla tego wieku.";
-"Your BMI indicates overweight." = "Twoje BMI wskazuje na nadwagÃÂ.";
-"BMI is significantly above the typical range for this age." = "BMI jest znaczÄ
-co powyÅ¼ej typowego zakresu dla tego wieku.";
-"Your BMI indicates obesity." = "Twoje BMI wskazuje na otyÃÂoÃÂÃÂ.";
-"Note: For children and adolescents, BMI interpretation should ideally use age and gender-specific percentile charts. These simplified ranges are approximations." = "Uwaga: u dzieci i mÅodzieÅ¼y interpretacja BMI powinna opieraÄ siÄ na siatkach centylowych zaleÅ¼nych od wieku i pÅci. Te uproszczone zakresy sÄ
- przybliÅ¼eniem.";
-"This will reduce photo file sizes while maintaining quality. Photos will be resized to max 1920px and compressed to ~2MB." = "To zmniejszy rozmiar plikÃ³w zdjÄÄ przy zachowaniu jakoÅci. ZdjÄcia zostanÄ
- zmniejszone do maks. 1920 px i skompresowane do ok. 2 MB.";
-"Total photos:" = "ÅÄ
-cznie zdjÄÄ:";
-"Total size:" = "ÅÄ
-czny rozmiar:";
-"Average size:" = "ÃÂredni rozmiar:";
-"Largest photo:" = "NajwiÃÂksze zdjÃÂcie:";
-"To see your LBM percentage, please add your weight measurements. This helps provide more accurate health insights." = "Aby zobaczyÃÂ procent LBM, dodaj pomiary wagi. To pomaga uzyskaÃÂ dokÃÂadniejsze wnioski zdrowotne.";
-"years old" = "lat";
-"Waist -1.8 cm" = "Talia -1,8 cm";
-"Weight -0.9 kg" = "Waga -0,9 kg";
-"photo.tag.wholebody" = "CaÃÂe ciaÃÂo";
-"Low health risk" = "Niskie ryzyko zdrowotne";
-"Increased health risk" = "PodwyÃÂ¼szone ryzyko zdrowotne";
-"High health risk" = "Wysokie ryzyko zdrowotne";
-"Moderate health risk" = "Umiarkowane ryzyko zdrowotne";
-"Below healthy weight" = "PoniÃÂ¼ej zdrowej wagi";
-"Healthy weight range" = "Zdrowy zakres wagi";
-"Above healthy weight" = "PowyÃÂ¼ej zdrowej wagi";
-"Below typical range" = "PoniÃÂ¼ej typowego zakresu";
-"Typical range" = "Typowy zakres";
-"Above typical range" = "PowyÃÂ¼ej typowego zakresu";
-"Significantly above range" = "Znacznie powyÃÂ¼ej zakresu";
-"WHR Ranges (Male)" = "Zakresy WHR (mÃÂÃÂ¼czyÃÂºni)";
-"WHR Ranges (Female)" = "Zakresy WHR (kobiety)";
-"The waist-to-height ratio (WHtR) is a measure of body fat distribution. It is calculated by dividing waist circumference by height.
-
-Research suggests that WHtR is a good predictor of cardiovascular disease risk and metabolic syndrome.
-
-A WHtR of 0.5 or less is considered healthy for most adults, meaning your waist circumference should be less than half your height." = "Stosunek talii do wzrostu (WHtR) to miara rozkÅadu tkanki tÅuszczowej. Oblicza siÄ go, dzielÄ
-c obwÃ³d talii przez wzrost.
-
-Badania sugerujÄ
-, Å¼e WHtR jest dobrym wskaÅºnikiem ryzyka chorÃ³b sercowoânaczyniowych i zespoÅu metabolicznego.
-
-WHtR rÃ³wne 0,5 lub mniej uznaje siÄ za zdrowe u wiÄkszoÅci dorosÅych, co oznacza, Å¼e obwÃ³d talii powinien byÄ mniejszy niÅ¼ poÅowa wzrostu.";
-"The waist-to-hip ratio (WHR) is a measure of body fat distribution. It is calculated by dividing waist circumference by hip circumference.
-
-WHR is used as a measurement of obesity, which in turn is a possible indicator of health risk. A higher WHR suggests more abdominal fat, which is associated with increased health risks.
-
-The thresholds differ between males and females due to different body compositions." = "Stosunek talii do bioder (WHR) to miara rozkÅadu tkanki tÅuszczowej. Oblicza siÄ go, dzielÄ
-c obwÃ³d talii przez obwÃ³d bioder.
-
-WHR jest uÅ¼ywany jako miara otyÅoÅci, a tym samym moÅ¼liwy wskaÅºnik ryzyka zdrowotnego. WyÅ¼szy WHR sugeruje wiÄcej tÅuszczu brzusznego, co wiÄ
-Å¼e siÄ ze zwiÄkszonym ryzykiem zdrowotnym.
-
-Progi rÃ³Å¼niÄ
- siÄ dla kobiet i mÄÅ¼czyzn ze wzglÄdu na rÃ³Å¼nice w budowie ciaÅa.";
-"Body Mass Index (BMI) is a measure of body fat based on height and weight. It is calculated by dividing weight in kilograms by height in meters squared.
-
-BMI is a useful screening tool for identifying weight categories that may lead to health problems, but it's not diagnostic of body fatness or health.
-
-BMI interpretation varies by age:
-â¢ Children & adolescents (< 18): Simplified ranges are used (ideally percentile charts)
-â¢ Adults (18-65): Standard WHO ranges apply
-â¢ Seniors (> 65): Slightly higher ranges may be healthier
-
-BMI does not distinguish between muscle and fat mass, so athletes or people with high muscle mass may have a high BMI despite having low body fat." = "WskaÅºnik masy ciaÅa (BMI) to miara tkanki tÅuszczowej na podstawie wzrostu i wagi. Oblicza siÄ go, dzielÄ
-c wagÄ w kilogramach przez wzrost w metrach do kwadratu.
-
-BMI jest przydatnym narzÄdziem przesiewowym do identyfikacji kategorii masy ciaÅa mogÄ
-cych prowadziÄ do problemÃ³w zdrowotnych, ale nie jest diagnozÄ
- skÅadu ciaÅa ani zdrowia.
-
-Interpretacja BMI zaleÅ¼y od wieku:
-â¢ Dzieci i mÅodzieÅ¼ (< 18): stosuje siÄ uproszczone zakresy (najlepiej siatki centylowe)
-â¢ DoroÅli (18â65): obowiÄ
-zujÄ
- standardowe zakresy WHO
-â¢ Seniorzy (> 65): nieco wyÅ¼sze zakresy mogÄ
- byÄ zdrowsze
-
-BMI nie rozrÃ³Å¼nia masy miÄÅniowej i tÅuszczowej, dlatego sportowcy lub osoby z duÅ¼Ä
- masÄ
- miÄÅni mogÄ
- mieÄ wysokie BMI mimo niskiego poziomu tÅuszczu.";
-"Your waist-to-height ratio is within the healthy range." = "TwÃÂ³j stosunek talii do wzrostu mieÃÂci siÃÂ w zdrowym zakresie.";
-"Your waist-to-height ratio indicates increased health risks." = "TwÃÂ³j stosunek talii do wzrostu wskazuje na podwyÃÂ¼szone ryzyko zdrowotne.";
-"Your waist-to-height ratio indicates high health risks." = "TwÃÂ³j stosunek talii do wzrostu wskazuje na wysokie ryzyko zdrowotne.";
-"Your waist-to-hip ratio is within the healthy range." = "TwÃÂ³j stosunek talii do bioder mieÃÂci siÃÂ w zdrowym zakresie.";
-"Your waist-to-hip ratio indicates overweight." = "TwÃÂ³j stosunek talii do bioder wskazuje na nadwagÃÂ.";
-"Your waist-to-hip ratio indicates obesity." = "TwÃÂ³j stosunek talii do bioder wskazuje na otyÃÂoÃÂÃÂ.";
-"Your waist-to-hip ratio is within the low-risk range." = "TwÃÂ³j stosunek talii do bioder mieÃÂci siÃÂ w zakresie niskiego ryzyka.";
-"Your waist-to-hip ratio is above the low-risk threshold." = "TwÃÂ³j stosunek talii do bioder przekracza prÃÂ³g niskiego ryzyka.";
-"Your relative fat mass is within a healthy range." = "Twoja wzglÃÂdna masa tÃÂuszczu mieÃÂci siÃÂ w zdrowym zakresie.";
-"Your relative fat mass indicates increased body fat." = "Twoja wzglÃÂdna masa tÃÂuszczu wskazuje na podwyÃÂ¼szony poziom tkanki tÃÂuszczowej.";
-"Your relative fat mass indicates high body fat." = "Twoja wzglÃÂdna masa tÃÂuszczu wskazuje na wysoki poziom tkanki tÃÂuszczowej.";
-"Your body shape indicates low health risk from abdominal fat distribution." = "TwÃ³j ksztaÅt sylwetki wskazuje na niskie ryzyko zdrowotne wynikajÄ
-ce z rozkÅadu tÅuszczu brzusznego.";
-"Your body shape indicates moderate health risk from abdominal fat distribution." = "TwÃ³j ksztaÅt sylwetki wskazuje na umiarkowane ryzyko zdrowotne wynikajÄ
-ce z rozkÅadu tÅuszczu brzusznego.";
-"Your body shape indicates high health risk from abdominal fat distribution." = "TwÃ³j ksztaÅt sylwetki wskazuje na wysokie ryzyko zdrowotne wynikajÄ
-ce z rozkÅadu tÅuszczu brzusznego.";
-"Your central fat distribution indicates low health risk." = "RozkÃÂad tÃÂuszczu centralnego wskazuje na niskie ryzyko zdrowotne.";
-"Your central fat distribution indicates moderate health risk." = "RozkÃÂad tÃÂuszczu centralnego wskazuje na umiarkowane ryzyko zdrowotne.";
-"Your central fat distribution indicates high health risk." = "RozkÃÂad tÃÂuszczu centralnego wskazuje na wysokie ryzyko zdrowotne.";
-"Central fat focus" = "TÃÂuszcz centralny";
-"Beyond weight" = "Poza wagÄ
-";
-"Guides action" = "Wskazuje kierunek";
-"Central fat" = "TÃÂuszcz centralny";
-"Risk insight" = "WglÄ
-d w ryzyko";
-"Trackable" = "Do ÃÂledzenia";
-"Body composition" = "SkÃÂad ciaÃÂa";
-"Metabolic health" = "Zdrowie metaboliczne";
-"Tracking change" = "ÃÂledzenie zmian";
-"ABSI highlights abdominal fat, which is linked to cardiometabolic risk." = "ABSI podkreÅla tÅuszcz brzuszny, ktÃ³ry wiÄ
-Å¼e siÄ z ryzykiem sercowoâmetabolicznym.";
-"It adds context beyond scale weight or BMI alone." = "Dodaje kontekst poza samÄ
- wagÄ lub BMI.";
-"Waist changes can shift risk category over time." = "Zmiany w talii mogÄ
- z czasem zmieniaÄ kategoriÄ ryzyka.";
-"Conicity highlights abdominal fat linked to cardiometabolic risk." = "Conicity podkreÅla tÅuszcz brzuszny zwiÄ
-zany z ryzykiem sercowoâmetabolicznym.";
-"It can reveal risk even when weight looks stable." = "MoÅ¼e ujawniÄ ryzyko nawet wtedy, gdy waga wyglÄ
-da stabilnie.";
-"Waist changes help move this index in a healthier direction." = "Zmiany w talii pomagajÄ
- przesunÄ
-Ä ten wskaÅºnik w zdrowszym kierunku.";
-"RFM gives a quick read on fat percentage without special equipment." = "RFM daje szybki odczyt poziomu tÃÂuszczu bez specjalistycznego sprzÃÂtu.";
-"Higher fat levels can increase metabolic strain over time." = "WyÅ¼szy poziom tÅuszczu moÅ¼e z czasem zwiÄkszaÄ obciÄ
-Å¼enie metaboliczne.";
-"Waist updates help you see meaningful shifts in composition." = "Aktualizacje obwodu talii pomagajÄ
- zauwaÅ¼yÄ realne zmiany skÅadu ciaÅa.";
-"Quick context" = "Szybki kontekst";
-"Risk signal" = "SygnaÃÂ ryzyka";
-"Use with context" = "UÃÂ¼ywaj z kontekstem";
-"Cardio health" = "Zdrowie serca";
-"Metabolic risk" = "Ryzyko metaboliczne";
-"Actionable" = "Do dziaÃÂania";
-"Composition focus" = "Skupienie na skÃÂadzie";
-"Progress clarity" = "JasnoÃÂÃÂ postÃÂpu";
-"BMI gives a fast, broad view of weight status over time." = "BMI daje szybki, szeroki obraz statusu masy ciaÃÂa w czasie.";
-"Large shifts can correlate with cardiometabolic risk." = "DuÅ¼e zmiany mogÄ
- korelowaÄ z ryzykiem sercowoâmetabolicznym.";
-"Pair it with waist and body fat for a fuller picture." = "ÅÄ
-cz z taliÄ
- i procentem tÅuszczu dla peÅniejszego obrazu.";
-"WHtR reflects central fat, a strong signal for cardiovascular risk." = "WHtR odzwierciedla tÃÂuszcz centralny Ã¢ÂÂ silny sygnaÃÂ ryzyka sercowoÃ¢ÂÂnaczyniowego.";
-"Higher ratios are linked to insulin resistance and metabolic strain." = "WyÅ¼sze wartoÅci wiÄ
-Å¼Ä
- siÄ z insulinoopornoÅciÄ
- i obciÄ
-Å¼eniem metabolicznym.";
-"Waist changes can move this ratio quickly, making it useful for progress." = "Zmiany w talii mogÄ
- szybko zmieniaÄ ten wskaÅºnik, co czyni go uÅ¼ytecznym do Åledzenia postÄpu.";
-"Body fat percentage shows how weight is split between fat and lean mass." = "Procent tkanki tÅuszczowej pokazuje, jak masa ciaÅa dzieli siÄ na tÅuszcz i masÄ beztÅuszczowÄ
-.";
-"Very high levels can add cardiometabolic strain over time." = "Bardzo wysokie wartoÅci mogÄ
- z czasem zwiÄkszaÄ obciÄ
-Å¼enie sercowoâmetaboliczne.";
-"It helps track recomposition even when scale weight is steady." = "Pomaga ÃÂledziÃÂ rekompozycjÃÂ nawet wtedy, gdy waga siÃÂ nie zmienia.";
-"Missing waist or height measurement" = "Brak pomiaru talii lub wzrostu";
-"Missing waist or hip measurement" = "Brak pomiaru talii lub bioder";
-"health.whtr.description" = "Stosunek talii do wzrostu (WHtR) to miara rozkÅadu tkanki tÅuszczowej. Oblicza siÄ go, dzielÄ
-c obwÃ³d talii przez wzrost.
-
-Badania sugerujÄ
-, Å¼e WHtR jest dobrym wskaÅºnikiem ryzyka chorÃ³b sercowoânaczyniowych i zespoÅu metabolicznego.
-
-WHtR rÃ³wne 0,5 lub mniej uznaje siÄ za zdrowe u wiÄkszoÅci dorosÅych, co oznacza, Å¼e obwÃ³d talii powinien byÄ mniejszy niÅ¼ poÅowa wzrostu.";
-"health.whr.description" = "Stosunek talii do bioder (WHR) to miara rozkÅadu tkanki tÅuszczowej. Oblicza siÄ go, dzielÄ
-c obwÃ³d talii przez obwÃ³d bioder.
-
-WHR jest uÅ¼ywany jako miara otyÅoÅci, a tym samym moÅ¼liwy wskaÅºnik ryzyka zdrowotnego. WyÅ¼szy WHR sugeruje wiÄcej tÅuszczu brzusznego, co wiÄ
-Å¼e siÄ ze zwiÄkszonym ryzykiem zdrowotnym.
-
-Progi rÃ³Å¼niÄ
- siÄ dla kobiet i mÄÅ¼czyzn ze wzglÄdu na rÃ³Å¼nice w budowie ciaÅa.";
-"health.bmi.description" = "WskaÅºnik masy ciaÅa (BMI) to miara tkanki tÅuszczowej na podstawie wzrostu i wagi. Oblicza siÄ go, dzielÄ
-c wagÄ w kilogramach przez wzrost w metrach do kwadratu.
-
-BMI jest przydatnym narzÄdziem przesiewowym do identyfikacji kategorii masy ciaÅa mogÄ
-cych prowadziÄ do problemÃ³w zdrowotnych, ale nie jest diagnozÄ
- skÅadu ciaÅa ani zdrowia.
-
-Interpretacja BMI zaleÅ¼y od wieku:
-â¢ Dzieci i mÅodzieÅ¼ (< 18): stosuje siÄ uproszczone zakresy (najlepiej siatki centylowe)
-â¢ DoroÅli (18â65): obowiÄ
-zujÄ
- standardowe zakresy WHO
-â¢ Seniorzy (> 65): nieco wyÅ¼sze zakresy mogÄ
- byÄ zdrowsze
-
-BMI nie rozrÃ³Å¼nia masy miÄÅniowej i tÅuszczowej, dlatego sportowcy lub osoby z duÅ¼Ä
- masÄ
- miÄÅni mogÄ
- mieÄ wysokie BMI mimo niskiego poziomu tÅuszczu.";
-"MeasureMe" = "MeasureMe";
-"Measurements Matter" = "Pomiary majÄ
- znaczenie";
-"Welcome" = "Witamy";
-"Your Age" = "TwÃÂ³j wiek";
-"Your Gender" = "Twoja pÃÂeÃÂ";
-"Your Units" = "Twoje jednostki";
-"Your Height" = "TwÃÂ³j wzrost";
-"Health Sync" = "Synchronizacja z aplikacjÄ
- Zdrowie";
-"Add Your First Data" = "Dodaj pierwsze dane";
-"See the Trend" = "Zobacz trend";
-"Photo Progress" = "PostÃÂpy na zdjÃÂciach";
-"Your Settings" = "Ustawienia";
-"Body tracking that feels grounded and motivating." = "Åledzenie ciaÅa, ktÃ³re jest spokojne i motywujÄ
-ce.";
-"Body changes show up in measurements first." = "Zmiany ciaÃÂa najpierw widaÃÂ w pomiarach.";
-"LetÃ¢ÂÂs personalize your experience." = "Spersonalizujmy Twoje doÃÂwiadczenie.";
-"A quick detail for accurate metrics." = "KrÃÂ³tka informacja dla dokÃÂadniejszych metryk.";
-"Used only for gender-specific formulas." = "Wykorzystywane tylko w formuÃÂach zaleÃÂ¼nych od pÃÂci.";
-"Pick the units that feel natural." = "Wybierz jednostki, ktÃ³re sÄ
- dla Ciebie naturalne.";
-"Used for core health calculations." = "Potrzebne do kluczowych obliczeÃÂ zdrowotnych.";
-"Keep measurements in sync with Apple Health." = "Synchronizuj pomiary z aplikacjÄ
- Zdrowie.";
-"Get gentle reminders to stay consistent." = "Delikatne przypomnienia pomagajÄ
- utrzymaÄ regularnoÅÄ.";
-"Log a measurement in seconds." = "Zapisz pomiar w kilka sekund.";
-"Trends matter more than daily noise." = "Trendy sÄ
- waÅ¼niejsze niÅ¼ dzienny szum.";
-"See changes that numbers miss." = "Zobacz zmiany, ktÃ³rych nie pokaÅ¼Ä
- liczby.";
-"Tune your tracking anytime." = "Dopasuj ÃÂledzenie w dowolnym momencie.";
-"Optional support, stronger insights." = "Opcjonalne wsparcie i gÅÄbsze wglÄ
-dy.";
-"You can skip any step and change everything later in Settings." = "MoÅ¼esz pominÄ
-Ä dowolny krok i zmieniÄ wszystko pÃ³Åºniej w Ustawieniach.";
-"Waist and body composition often tell a clearer story than weight alone." = "Talia i skÅad ciaÅa czÄsto mÃ³wiÄ
- wiÄcej niÅ¼ sama waga.";
-"Why we ask: we use your name to personalize insights and goals." = "Po co pytamy: uÅ¼ywamy imienia, by personalizowaÄ wglÄ
-dy i cele.";
-"Why we ask: age adjusts BMI and body composition ranges for accuracy." = "Po co pytamy: wiek wpÃÂywa na zakresy BMI i skÃÂadu ciaÃÂa.";
-"Why we ask: some formulas (like RFM and body fat ranges) differ by gender." = "Po co pytamy: niektÃ³re formuÅy (np. RFM) rÃ³Å¼niÄ
- siÄ zaleÅ¼nie od pÅci.";
-"Why we ask: units keep measurements readable and consistent across the app." = "Po co pytamy: jednostki zapewniajÄ
- spÃ³jnoÅÄ w caÅej aplikacji.";
-"Why we ask: height powers metrics like WHtR and BMI." = "Po co pytamy: wzrost jest potrzebny do WHtR i BMI.";
-"Why we ask: HealthKit sync keeps measurements up to date automatically." = "Po co pytamy: synchronizacja z aplikacjÄ
- Zdrowie automatycznie aktualizuje pomiary.";
-"Why we ask: reminders help you build a consistent tracking habit." = "Po co pytamy: przypomnienia pomagajÄ
- w regularnoÅci.";
-"Why we ask: consistent entries turn into reliable trends." = "Po co pytamy: regularne wpisy dajÄ
- wiarygodne trendy.";
-"Why we ask: a single data point never tells the full story." = "Po co pytamy: pojedynczy pomiar nie pokazuje caÃÂego obrazu.";
-"Why we ask: photos capture composition changes that scales miss." = "Po co pytamy: zdjÄcia pokazujÄ
- zmiany, ktÃ³rych nie widaÄ na wadze.";
-"Why we ask: youâre always in control of what you track." = "Po co pytamy: masz peÅnÄ
- kontrolÄ nad tym, co Åledzisz.";
-"Premium is optional, but it unlocks deeper insights and keeps MeasureMe growing." = "Premium jest opcjonalne, ale daje gÅÄbsze wglÄ
-dy i wspiera rozwÃ³j MeasureMe.";
-"Step %d of %d" = "Krok %d z %d";
-"See trends that matter" = "Zobacz trendy, ktÃ³re majÄ
- znaczenie";
-"Track weight, waist, and body composition with clear signals - not noise." = "ÃÂledÃÂº wagÃÂ, taliÃÂ i skÃÂad ciaÃÂa - bez szumu, tylko jasne sygnaÃÂy.";
-"Stay consistent" = "BÄ
-dÅº konsekwentny/a";
-"Gentle check-ins help habits stick for diet, training, or health goals." = "Regularne wpisy pomagajÄ
- utrzymaÄ nawyki zwiÄ
-zane z dietÄ
-, treningiem i zdrowiem.";
-"Understand your body" = "Zrozum swoje ciaÃÂo";
-"Smart metrics like WHtR and BMI give context to the numbers." = "Inteligentne metryki jak WHtR i BMI dajÄ
- kontekst liczbom.";
-"Measurements beat the scale" = "Pomiary sÄ
- waÅ¼niejsze niÅ¼ sama waga";
-"Waist + hips show real change" = "Talia + biodra pokazujÄ
- realne zmiany";
-"You can build muscle and lose fat at the same time, so weight alone can mislead." = "MoÅ¼esz budowaÄ miÄÅnie i traciÄ tÅuszcz jednoczeÅnie, wiÄc waga bywa mylÄ
-ca.";
-"Composition beats weight" = "SkÅad ciaÅa wygrywa z wagÄ
-";
-"Track body fat and lean mass to see your true progress." = "ÅledÅº tÅuszcz i beztÅuszczowÄ
- masÄ, aby widzieÄ prawdziwy postÄp.";
-"Your name" = "Twoje imiÃÂ";
-"Age in years" = "Wiek w latach";
-"Enabled" = "WÅÄ
-czone";
-"Not now" = "Nie teraz";
-"Add a quick measurement" = "Dodaj szybki pomiar";
-"Log in seconds" = "Zapis w kilka sekund";
-"Quick Add lets you update multiple metrics without extra taps." = "Szybkie dodawanie pozwala uzupeÃÂniÃÂ kilka metryk bez zbÃÂdnych krokÃÂ³w.";
-"Add your first measurement" = "Dodaj pierwszy pomiar";
-"Charts show momentum" = "Wykresy pokazujÄ
- momentum";
-"Focus on trends" = "Skup siÃÂ na trendach";
-"We highlight 30-day changes so you can see whatÃ¢ÂÂs working." = "PodkreÃÂlamy zmiany z 30 dni, abyÃÂ widziaÃÂ/a, co dziaÃÂa.";
-"Capture the visual wins" = "UchwyÃÂ wizualne zmiany";
-"Youâll soon see changes with MeasureMe â capture them in photos." = "Zobaczysz, jak z pomocÄ
- MeasureMe juÅ¼ niedÅugo pojawiÄ
- siÄ zmiany. Uwiecznij je na zdjÄciach.";
-"Add your first photo" = "Dodaj pierwsze zdjÃÂcie";
-"Youâre in control" = "Masz peÅnÄ
- kontrolÄ";
-"Choose your metrics" = "Wybierz swoje metryki";
-"Pick the measurements that matter most to you." = "Wybierz pomiary, ktÃ³re sÄ
- dla Ciebie najwaÅ¼niejsze.";
-"Set reminders" = "Ustaw przypomnienia";
-"Stay consistent with gentle nudges." = "Utrzymaj regularnoÃÂÃÂ dziÃÂki delikatnym przypomnieniom.";
-"Premium stays optional" = "Premium pozostaje opcjonalne";
-"Deeper insights" = "GÅÄbsze wglÄ
-dy";
-"Apple Intelligence insights, Health Indicators, and photo comparison." = "Analizy AI, wskaÃÂºniki zdrowia, wskaÃÂºniki sylwetki i porÃÂ³wnywanie zdjÃÂÃÂ.";
-"Finish" = "ZakoÃÂcz";
-"Continue" = "Dalej";
-"Requesting Health access..." = "ProÃÂba o dostÃÂp do aplikacji Zdrowie...";
-"Health sync enabled." = "Synchronizacja z aplikacjÄ
- Zdrowie jest wÅÄ
-czona.";
-"Health access denied. You can enable it later in Settings." = "DostÄp do Zdrowie odrzucony. MoÅ¼esz go wÅÄ
-czyÄ pÃ³Åºniej w Ustawieniach.";
-"Health access denied. Go to iOS Settings â MeasureMe â Health and allow access." = "DostÄp do Zdrowie odrzucony. WejdÅº w Ustawienia iOS â MeasureMe â Zdrowie i wÅÄ
-cz dostÄp.";
-"Open iOS Settings now?" = "OtworzyÃÂ teraz Ustawienia iOS?";
-"To enable Apple Health sync, go to iOS Settings â MeasureMe â Health." = "Aby wÅÄ
-czyÄ synchronizacjÄ z aplikacjÄ
- Zdrowie, przejdÅº do Ustawienia iOS â MeasureMe â Zdrowie.";
-"Requesting notification permission..." = "ProÃÂba o dostÃÂp do powiadomieÃÂ...";
-"Notifications enabled." = "Powiadomienia wÅÄ
-czone.";
-"Notifications denied. You can enable them later in Settings." = "Powiadomienia odrzucone. MoÅ¼esz je wÅÄ
-czyÄ pÃ³Åºniej w Ustawieniach.";
-"Health sync enabled, but we couldnât import data." = "Synchronizacja z aplikacjÄ
- Zdrowie jest wÅÄ
-czona, ale nie udaÅo siÄ zaimportowaÄ danych.";
-"Open iOS Settings" = "OtwÃÂ³rz Ustawienia iOS";
-"Indicators" = "WskaÃÂºniki";
-"Health indicators" = "WskaÃÂºniki zdrowia";
-"Choose health and physique indicators" = "Wybierz wskaÃÂºniki zdrowia i sylwetki";
-"Apple Intelligence isnât available right now." = "Analizy AI sÄ
- teraz niedostÄpne.";
-"Learn more in FAQ" = "Dowiedz siÃÂ wiÃÂcej w FAQ";
-"measure.instructions.weight" = "WaÃÂ¼ siÃÂ o tej samej porze dnia, najlepiej rano. UÃÂ¼ywaj tej samej wagi na twardym, rÃÂ³wnym podÃÂoÃÂ¼u. Zapisz wynik po skorzystaniu z toalety i przed jedzeniem lub piciem.";
-"measure.instructions.waist" = "StaÃÂ rozluÃÂºniony/a i mierz na wysokoÃÂci pÃÂpka po normalnym wydechu. TaÃÂma ma przylegaÃÂ, ale nie uciskaÃÂ i byÃÂ rÃÂ³wnolegÃÂa do podÃÂogi. Mierz zawsze w tym samym miejscu.";
-"measure.instructions.bodyFat" = "UÅ¼ywaj tego samego urzÄ
-dzenia i podobnych warunkÃ³w. Mierz siÄ, gdy jesteÅ nawodniony/a i o staÅej porze dnia. Unikaj pomiaru tuÅ¼ po treningu lub duÅ¼ym posiÅku.";
-"measure.instructions.leanBodyMass" = "Korzystaj z tego samego urzÄ
-dzenia i podobnych warunkÃ³w. Mierz o tej samej porze i przy podobnym nawodnieniu. ÅledÅº trendy, a nie pojedyncze odczyty.";
-"measure.instructions.height" = "Mierz siÃÂ boso na pÃÂaskim podÃÂoÃÂ¼u, plecami przy ÃÂcianie. GÃÂowa prosto, barki rozluÃÂºnione, piÃÂty razem. Dla spÃÂ³jnoÃÂci mierz o tej samej porze dnia.";
-"measure.instructions.circumference" = "UÃÂ¼ywaj miÃÂkkiej taÃÂmy krawieckiej na goÃÂej skÃÂ³rze lub cienkiej odzieÃÂ¼y. TaÃÂma ma byÃÂ poziomo i przylegaÃÂ bez uciskania. Mierz zawsze w tych samych punktach.";
-"premium.benefit.ai" = "Analizy AI";
-"premium.benefit.indicators" = "WskaÃÂºniki zdrowia i sylwetki";
-"premium.benefit.export" = "Eksport danych";
-"premium.benefit.photos" = "PorÃÂ³wnywanie zdjÃÂÃÂ";
-"premium.plan.monthly" = "MiesiÃÂcznie";
-"premium.plan.yearly" = "Rocznie";
-"premium.plan.trial" = "14-dniowy okres prÃÂ³bny";
-"premium.plan.savings" = "OszczÃÂdzasz wzglÃÂdem planu miesiÃÂcznego";
-"premium.paywall.subtitle" = "Zobacz, co odblokowujesz, i wybierz plan dopasowany do swojego tempa.";
-"premium.cta.trial" = "Rozpocznij mÃÂ³j 14-dniowy okres prÃÂ³bny";
-"premium.cta.renewal.note" = "Subskrypcja odnawia siÃÂ automatycznie po okresie prÃÂ³bnym. MoÃÂ¼esz anulowaÃÂ w dowolnym momencie w Ustawieniach.";
-"premium.subscription.loading" = "ÃÂadowanie opcji subskrypcji...";
-"premium.subscription.error" = "Nie udaÃÂo siÃÂ wczytaÃÂ subskrypcji (%@)";
-"premium.subscription.retry" = "PonÃÂ³w ÃÂadowanie";
-"premium.subscription.disabled" = "Åadowanie subskrypcji jest wyÅÄ
-czone przez bieÅ¼Ä
-ce flagi debugowania i audytu.";
-"premium.purchase.success" = "Zakup zakoÃÂczony. Premium jest aktywne.";
-"premium.purchase.cancelled" = "Zakup anulowany.";
-"premium.purchase.pending" = "Zakup oczekuje na zatwierdzenie.";
-"premium.purchase.failed" = "Zakup nieudany (%@)";
-"premium.purchase.trial.success" = "DziÃÂkujemy za rozpoczÃÂcie 14-dniowego okresu prÃÂ³bnego.";
-"premium.purchase.trial.enable.notifications" = "DziÄkujemy za rozpoczÄcie okresu prÃ³bnego. WÅÄ
-cz powiadomienia, aby otrzymaÄ przypomnienie przed jego koÅcem.";
-"premium.restore.success" = "Zakupy zostaÃÂy przywrÃÂ³cone.";
-"premium.restore.already.active" = "Premium jest juÃÂ¼ aktywne na tym koncie.";
-"premium.restore.none" = "Brak zakupÃÂ³w do przywrÃÂ³cenia.";
-"premium.restore.failed" = "Przywracanie nieudane (%@)";
-"premium.plan.billing.monthly" = "Rozliczane co miesiÄ
-c";
-"premium.plan.billing.yearly" = "Rozliczane co rok";
-"premium.plan.billing.default" = "Plan odnawialny automatycznie";
-"premium.plan.best.value" = "Najlepsza oferta";
-"premium.plan.save.percent" = "OszczÃÂdzasz %d%%";
-"premium.plan.period.month" = "mies.";
-"premium.plan.period.year" = "rok";
-"premium.plan.just.monthly" = "Tylko 8,33/mies.";
-"premium.plan.just.monthly.dynamic" = "Tylko %@/mies.";
-"premium.plan.equivalent.monthly.dynamic" = "RÃÂ³wnowartoÃÂÃÂ %@/mies.";
-"premium.carousel.analyst.title" = "TwÃÂ³j osobisty analityk sylwetki";
-"premium.carousel.analyst.body" = "ZamieÃÂ kaÃÂ¼dy wpis w jasny kolejny krok. Zobacz, co dziaÃÂa i co warto poprawiÃÂ.";
-"premium.carousel.photos.title" = "Twoja transformacja widoczna goÃÂym okiem";
-"premium.carousel.photos.body" = "PorÃÂ³wnuj zdjÃÂcia w czasie. Zobacz zmiany, ktÃÂ³rych nie pokazuje sama waga.";
-"premium.carousel.indicators.title" = "WiÃÂcej niÃÂ¼ waga";
-"premium.carousel.indicators.body" = "WskaÅºniki zdrowia i sylwetki pokazujÄ
-, co Twoje liczby oznaczajÄ
- dla zdrowia i wyglÄ
-du.";
-"premium.carousel.unlock.title" = "Trenuj mÄ
-drzej, zobacz progres";
-"premium.carousel.unlock.body" = "Miej wszystko w jednym miejscu, w tym synchronizacjÄ i kopiÄ zapasowÄ
- w iCloud, aby utrzymaÄ regularnoÅÄ i przyspieszyÄ postÄpy.";
-"premium.carousel.unlock.item.ai" = "Nielimitowane analizy AI";
-"premium.carousel.unlock.item.compare" = "NarzÃÂdzie porÃÂ³wnywania zdjÃÂÃÂ";
-"premium.carousel.unlock.item.health" = "Analiza zdrowia i trendÃÂ³w";
-"premium.carousel.unlock.item.export" = "Eksport danych (CSV, JSON, PDF)";
-"premium.carousel.unlock.item.prediction" = "Prognoza celu";
-"premium.carousel.unlock.item.icloud" = "Synchronizacja i kopia zapasowa w iCloud";
-"premium.carousel.unlock.item.overlay" = "PorÃ³wnywanie zdjÄÄ z nakÅadkÄ
- ghost";
-"premium.carousel.unlock.item.social" = "Karta przemiany na media spoÃÂecznoÃÂciowe";
-"premium.carousel.unlock.item.widgets" = "WidÃÂ¼ety na ekranie gÃÂÃÂ³wnym i ekranie blokady";
-"premium.carousel.unlock.item.support" = "Wspierasz niezaleÃÂ¼nego dewelopera z Polski Ã°ÂÂÂªÃ°ÂÂÂº Ã°ÂÂÂµÃ°ÂÂÂ±";
-"premium.trial.timeline.title" = "TwÃÂ³j 14-dniowy okres prÃÂ³bny";
-"premium.trial.timeline.today" = "Dzisiaj Ã¢ÂÂ odblokowujesz wszystko. Bez opÃÂat.";
-"premium.trial.timeline.day12" = "DzieÅ 12 â opcjonalnie moÅ¼esz wÅÄ
-czyÄ przypomnienie przed koÅcem okresu prÃ³bnego.";
-"premium.trial.timeline.day14" = "DzieÃÂ 14 Ã¢ÂÂ zdecyduj, czy kontynuujesz, czy rezygnujesz. Bez presji.";
-"premium.trial.thankyou.title" = "DziÃÂkujemy!";
-"premium.trial.thankyou.message" = "TwÃÂ³j 14-dniowy okres prÃÂ³bny jest aktywny. Korzystaj z Premium.";
-"premium.trial.reminder.prompt.title" = "WÅÄ
-czyÄ przypomnienie o koÅcu okresu prÃ³bnego?";
-"premium.trial.reminder.prompt.message" = "Czy chcesz otrzymaÃÂ przypomnienie 2 dni przed koÃÂcem okresu prÃÂ³bnego?";
-"premium.trial.reminder.prompt.confirm" = "Tak, przypomnij mi";
-"premium.trial.notification_permission.prompt.title" = "ZezwoliÃÂ na powiadomienia o przypomnieniu o okresie prÃÂ³bnym?";
-"premium.trial.notification_permission.prompt.message" = "Aby wysÃÂaÃÂ przypomnienie 2 dni przed koÃÂcem okresu prÃÂ³bnego, MeasureMe potrzebuje zgody na powiadomienia.";
-"premium.trial.notification_permission.prompt.confirm" = "WÅÄ
-cz powiadomienia";
-"premium.cta.free.forever" = "Na zawsze za darmo Ã¢ÂÂ¢ Anuluj Premium w dowolnym momencie";
-"premium.cta.billed.prefix" = "Po okresie prÃÂ³bnym: ";
-"premium.cta.billed.suffix" = "";
-"premium.cta.billed.after.trial.fallback" = "Rozliczenie po okresie prÃÂ³bnym";
-"notification.trial.ends.soon.title" = "Przypomnienie o okresie prÃÂ³bnym";
-"notification.trial.ends.soon.body" = "TwÃ³j okres prÃ³bny koÅczy siÄ za 2 dni. OtwÃ³rz aplikacjÄ i zobacz, co juÅ¼ udaÅo Ci siÄ osiÄ
-gnÄ
-Ä!";
-"premium.carousel.insight.header" = "Podsumowanie zdrowia";
-"premium.carousel.insight.body.part1" = "Budujesz rozpÃÂd. W ostatnich wpisach TwÃÂ³j trend jest";
-"premium.carousel.insight.body.part2" = "a podstawowe wskaÅºniki idÄ
- w dobrym kierunku.";
-"premium.carousel.insight.body.part3" = "Masa beztÃÂuszczowa pozostaje stabilna, a trend bicepsa to";
-"premium.carousel.insight.body.part4" = "mocny sygnaÃÂ, ÃÂ¼e poprawiasz skÃÂad ciaÃÂa, a nie tylko wagÃÂ na wadze.";
-"premium.carousel.insight.tip" = "Tempo redukcji tÃÂuszczu zwolniÃÂo w tym tygodniu. Dodaj jeden posiÃÂek bogaty w biaÃÂko i dwie krÃÂ³tkie sesje cardio, aby znowu ruszyÃÂ z postÃÂpem.";
-"premium.carousel.insight.language.note" = "* Podsumowania AI sÄ
- generowane tylko po angielsku.";
-"premium.carousel.compare.before" = "Przed";
-"premium.carousel.compare.after" = "Po";
-"premium.compare.when.past" = "KiedyÃÂ";
-"premium.compare.when.present" = "Teraz";
-"premium.compare.pose.front" = "PrzÃÂ³d";
-"premium.compare.pose.side" = "Bok";
-"premium.compare.pose.back" = "TyÃÂ";
-"premium.carousel.indicator.absi" = "WskaÃÂºnik ksztaÃÂtu ciaÃÂa";
-"premium.carousel.indicator.whtr" = "Stosunek talii do wzrostu";
-"premium.carousel.indicator.bodyfat" = "Procent tkanki tÃÂuszczowej";
-"premium.carousel.indicator.status.attention" = "Warto obserwowaÃÂ";
-"premium.carousel.indicator.status.good" = "W normie";
-"premium.carousel.indicator.status.stable" = "Stabilny trend";
-"premium.slide.ai.title" = "Analizy AI";
-"premium.slide.ai.body" = "Aplikacja wyciÄ
-gnie wnioski za Ciebie, zasugeruje na co zwrÃ³ciÄ uwagÄ, pomoÅ¼e utrzymaÄ motywacjÄ i systematycznoÅÄ oraz pokaÅ¼e to, co moÅ¼e Ci umknÄ
-Ä.";
-"premium.slide.indicators.title" = "WskaÃÂºniki zdrowia i sylwetki";
-"premium.slide.indicators.body" = "Zdrowie to najcenniejsze, co mamy. Wymiary i waga to jedno, ale najwaÅ¼niejsze jest to, jak wszystkie zmiany wpÅywajÄ
- na Twoje zdrowie.";
-"premium.slide.export.title" = "Eksport danych";
-"premium.slide.export.body" = "Twoje dane sÄ
- bezpieczne. MoÅ¼esz utworzyÄ kopiÄ zapasowÄ
- albo wygenerowaÄ eksport, aby pokazaÄ postÄpy trenerowi lub dietetykowi.";
-"premium.slide.photos.title" = "PorÃÂ³wnaj zdjÃÂcia";
-"premium.slide.photos.body" = "Czasem dopiero na zdjÄciach widzimy, jaki progres udaÅo siÄ osiÄ
-gnÄ
-Ä. PorÃ³wnuj ujÄcia obok siebie i zobacz zmianÄ, ktÃ³rej nie pokaÅ¼e sama waga.";
-"premium.slide.support.title" = "Wspierasz polski jednoosobowy biznes";
-"premium.slide.support.body" = "Wspierasz twÃ³rcÄ z Polski, ktÃ³ry robi wszystko, aby zbudowaÄ najlepszÄ
- aplikacjÄ do rejestrowania pomiarÃ³w, i dajesz nam realny wpÅyw na kierunek rozwoju produktu.";
-"premium.disclaimer" = "Subskrypcja odnawialna automatycznie. MoÅ¼esz anulowaÄ w dowolnym momencie w ustawieniach konta App Store. PÅatnoÅÄ jest pobierana z Apple ID przy potwierdzeniu. Subskrypcja odnawia siÄ automatycznie, chyba Å¼e zostanie anulowana co najmniej 24 godziny przed koÅcem bieÅ¼Ä
-cego okresu.";
-"Core indicators" = "WskaÃÂºniki podstawowe";
-"Risk signals" = "SygnaÃÂy ryzyka";
-"WHtR (Waist-to-Height Ratio)" = "WHtR (stosunek talii do wzrostu)";
-"RFM (Relative Fat Mass)" = "RFM (wzglÃÂdna masa tÃÂuszczowa)";
-"BMI (Body Mass Index)" = "BMI (wskaÃÂºnik masy ciaÃÂa)";
-"Body Shape Risk (ABSI)" = "WskaÃÂºnik ksztaÃÂtu ciaÃÂa";
-"Central Fat Risk (Conicity)" = "OtyÃÂoÃÂÃÂ brzuszna (Conicity)";
-"What if Apple Intelligence is unavailable?" = "Co jeÅli Analizy AI sÄ
- niedostÄpne?";
-"Premium and subscriptions" = "Premium i subskrypcje";
-"What is Premium Edition?" = "Czym jest wersja Premium?";
-"Premium unlocks Apple Intelligence insights, Health Indicators, data export, and photo comparison. It also supports a small business from Poland." = "Premium odblokowuje Analizy AI, wskaÅºniki zdrowia, wskaÅºniki sylwetki, eksport danych i porÃ³wnywanie zdjÄÄ. Analizy AI w MeasureMe uÅ¼ywajÄ
- Apple Intelligence, ktÃ³re musi byÄ dostÄpne i wÅÄ
-czone.";
-"Is there a free trial?" = "Czy jest okres prÃÂ³bny?";
-"Yes. Premium includes a free trial period when available. You can cancel before it ends to avoid being charged." = "Tak. Premium oferuje okres prÃ³bny, gdy jest dostÄpny. MoÅ¼esz anulowaÄ przed jego koÅcem, aby uniknÄ
-Ä opÅaty.";
-"How do I cancel or manage my subscription?" = "Jak anulowaÄ lub zarzÄ
-dzaÄ subskrypcjÄ
-?";
-"Open Settings in iOS â your Apple ID â Subscriptions, and manage MeasureMe there." = "WejdÅº w Ustawienia iOS â Apple ID â Subskrypcje i tam zarzÄ
-dzaj MeasureMe.";
-"How do I restore purchases?" = "Jak przywrÃÂ³ciÃÂ zakupy?";
-"Go to Settings Ã¢ÂÂ Premium Edition and tap Restore purchases." = "PrzejdÃÂº do UstawieÃÂ Ã¢ÂÂ Wersja Premium i stuknij PrzywrÃÂ³ÃÂ zakupy.";
-"What happens if I cancel Premium?" = "Co siÃÂ stanie, jeÃÂli anulujÃÂ Premium?";
-"You keep all your data. Premium-only features become locked, but your measurements and photos remain safe on device." = "Zachowujesz wszystkie dane. Funkcje premium zostanÄ
- zablokowane, ale pomiary i zdjÄcia pozostanÄ
- bezpiecznie na urzÄ
-dzeniu.";
-"Health" = "Zdrowie";
-"Profile" = "Profil";
-"Show" = "PokaÃÂ¼";
-"Disabled" = "WyÅÄ
-czone";
-"Tracked" = "Metryki";
-"Apple Intelligence" = "Analizy AI";
-"Experience" = "DoÃÂwiadczenie";
-"Data" = "Dane";
-"Diagnostics" = "Diagnostyka";
-"App" = "Aplikacja";
-"Feature request" = "ZgÃÂoÃÂ funkcjÃÂ";
-"Above range" = "PowyÃÂ¼ej zakresu";
-"Add data" = "Dodaj dane";
-"Add name" = "Dodaj imiÃÂ";
-"Add your first measurement to unlock charts and progress." = "Dodaj pierwszy pomiar, aby odblokowaÃÂ wykresy.";
-"Add your first measurement to unlock trends and goal progress." = "Dodaj pierwszy pomiar, aby odblokowaÃÂ trendy i cele.";
-"Below range" = "PoniÃÂ¼ej zakresu";
-"Custom metrics" = "Metryki niestandardowe";
-"Edit Photo" = "Edytuj zdjÃÂcie";
-"Generating diagnostics..." = "Generowanie diagnostyki...";
-"Generating your health summary..." = "Generowanie podsumowania zdrowia...";
-"AI summary needs measurement data. Add your first measurement to get personalized insights." = "Podsumowanie AI wymaga danych z pomiarÃÂ³w. Dodaj pierwszy pomiar, aby otrzymywaÃÂ spersonalizowane porady.";
-"Goal Value" = "WartoÃÂÃÂ celu";
-"Health App Synced" = "Zsynchronizowano z aplikacjÄ
- Zdrowie";
-"Higher range" = "WyÃÂ¼szy zakres";
-"In range" = "W zakresie";
-"Lean range" = "Niski zakres";
-"Manage" = "ZarzÄ
-dzaj";
-"Unlock all features" = "Odblokuj wszystkie funkcje";
-"What is in The Premium Edition?" = "Co zawiera wersja Premium?";
-"MeasureMe data export" = "Eksport danych MeasureMe";
-"MeasureMe diagnostics" = "Diagnostyka MeasureMe";
-"No measurements yet" = "Brak pomiarÃÂ³w";
-"No measurements yet." = "Brak pomiarÃÂ³w.";
-"No photos yet. Capture progress photos to see changes beyond the scale." = "Brak zdjÃÂÃÂ. Dodaj zdjÃÂcia postÃÂpu, aby zobaczyÃÂ zmiany, ktÃÂ³rych nie pokaÃÂ¼e sama waga.";
-"Not active" = "Nieaktywne";
-"Photo Details" = "SzczegÃÂ³ÃÂy zdjÃÂcia";
-"Preparing data export..." = "Przygotowywanie eksportu danych...";
-"Privacy" = "PrywatnoÃÂÃÂ";
-"Privacy Policy" = "Polityka prywatnoÃÂci";
-"Restart required after changing language." = "Uruchom ponownie aplikacjÃÂ.";
-"Send diagnostics to ziebajacek@pm.me" = "WyÃÂlij diagnostykÃÂ na ziebajacek@pm.me";
-"Terms" = "Warunki";
-"Terms of Use" = "Warunki uÃÂ¼ytkowania";
-"Accessibility" = "DostÃÂpnoÃÂÃÂ";
-"Upgrade" = "Ulepsz";
-"Waist circumference" = "ObwÃÂ³d talii";
-"Weight" = "Waga";
-"Visible" = "Widoczny";
-"Hidden" = "Ukryty";
-"Go deeper when you need it." = "PrzejdÃÂº gÃÂÃÂbiej, gdy tego potrzebujesz.";
-"Premium adds advanced analysis while core tracking stays free." = "Premium dodaje zaawansowanÄ
- analizÄ, a podstawowe Åledzenie pozostaje darmowe.";
-"Built to support your goals and a small business from Poland." = "Stworzone, by wspieraÃÂ Twoje cele i maÃÂy biznes z Polski.";
-"Core tracking stays free. Premium unlocks deeper analysis only when you need it." = "Podstawowe Åledzenie pozostaje darmowe. Premium odblokowuje gÅÄbszÄ
- analizÄ tylko wtedy, gdy jej potrzebujesz.";
-"View Premium options" = "Zobacz opcje Premium";
-"Photos make body-composition change easier to notice week to week." = "ZdjÄcia uÅatwiajÄ
- zauwaÅ¼anie zmian skÅadu ciaÅa z tygodnia na tydzieÅ.";
-"Health sync enabled. Importing data in background." = "Synchronizacja z aplikacjÄ
- Zdrowie jest wÅÄ
-czona. Import danych trwa w tle.";
-"Health data imported in background." = "Dane z aplikacji Zdrowie zaimportowano w tle.";
-"No data" = "Brak danych";
-"Generating insight..." = "Generowanie wglÄ
-du...";
-"Last 30 days" = "Ostatnie 30 dni";
-"Goal reached" = "Cel osiÄ
-gniÄty";
-"goal.remaining" = "%.2f %@ do celu";
-"goal.away" = "%.2f %@ od celu";
-"Importing Health data in background. You can continue." = "Import danych z aplikacji Zdrowie trwa w tle. MoÃÂ¼esz przejÃÂÃÂ dalej.";
-"Your first check-in" = "TwÃÂ³j pierwszy wpis";
-"A few details (optional)" = "Kilka danych (opcjonalnie)";
-"Make it effortless" = "UÃÂatw sobie start";
-"Pick one measurement to start. You can add more later." = "Wybierz jeden pomiar na start. Kolejne dodasz pÃÂ³ÃÂºniej.";
-"They help calculate health indicators more accurately." = "PomagajÄ
- dokÅadniej liczyÄ wskaÅºniki zdrowia.";
-"Two optional boosters to stay consistent." = "Dwa opcjonalne wsparcia, ktÃ³re pomagajÄ
- utrzymaÄ regularnoÅÄ.";
-"You can skip any step and change everything later." = "MoÅ¼esz pominÄ
-Ä kaÅ¼dy krok i zmieniÄ wszystko pÃ³Åºniej.";
-"Body measurements often show changes before the scale does." = "Pomiary ciaÅa czÄsto pokazujÄ
- zmiany wczeÅniej niÅ¼ waga.";
-"Stored on this device. You can edit this anytime." = "Dane sÄ
- zapisane na tym urzÄ
-dzeniu. MoÅ¼esz je zmieniÄ w dowolnym momencie.";
-"You stay in control. Both options are optional." = "To Ty decydujesz. Obie opcje sÄ
- dobrowolne.";
-"\"What gets measured, gets managed.\"
-- Peter Drucker" = "\"To, co mierzone, jest zarzÄ
-dzane.\"
-- Peter Drucker";
-"Weekly check-ins turn into clear momentum." = "Cotygodniowe wpisy przekÅadajÄ
- siÄ na wyraÅºny postÄp.";
-"Loading photos" = "ÃÂadowanie zdjÃÂÃÂ";
-"Gentle reminders help habits stick." = "Delikatne przypomnienia pomagajÄ
- utrzymaÄ nawyk.";
-"Measurements reveal changes weight cannot." = "Pomiary pokazujÄ
- zmiany, ktÃ³rych sama waga nie pokaÅ¼e.";
-"Pick one measurement" = "Wybierz jeden pomiar";
-"Waist (recommended)" = "Talia (polecane)";
-"Waist often changes before the scale does - especially when you build muscle." = "Talia czÃÂsto zmienia siÃÂ wczeÃÂniej niÃÂ¼ waga, zwÃÂaszcza gdy budujesz miÃÂÃÂnie.";
-"Weight is useful. We will focus on trends, not daily noise." = "Waga jest pomocna. Skupiamy siÃÂ na trendzie, nie codziennym szumie.";
-"Current value" = "Aktualna wartoÃÂÃÂ";
-"Latest entry: %@" = "Ostatni wpis: %@";
-"Tip: log at roughly the same time for cleaner trends." = "WskazÃÂ³wka: zapisuj mniej wiÃÂcej o tej samej porze, aby trend byÃÂ czytelniejszy.";
-"Great start - your trend begins today." = "ÃÂwietny start - TwÃÂ³j trend zaczyna siÃÂ dziÃÂ.";
-"e.g., Jacek" = "np. Jacek";
-"Sex" = "PÃÂeÃÂ";
-"Why we ask" = "Po co pytamy";
-"Name: personalizes your experience and insights." = "ImiÄ: personalizuje komunikaty i wglÄ
-dy.";
-"Height: used for BMI and waist-to-height." = "Wzrost: uÃÂ¼ywany do BMI i wskaÃÂºnika talia/wzrost.";
-"Sex: used only for sex-specific formulas." = "PÃÂeÃÂ: uÃÂ¼ywana tylko w formuÃÂach zaleÃÂ¼nych od pÃÂci.";
-"Age: adjusts ranges for selected indicators." = "Wiek: dopasowuje zakresy dla wybranych wskaÃÂºnikÃÂ³w.";
-"Sync with Apple Health" = "Synchronizuj z aplikacjÄ
- Zdrowie";
-"Import your history instantly and keep measurements up to date automatically." = "Zaimportuj historiÃÂ od razu i aktualizuj pomiary automatycznie.";
-"Why: so your charts do not start from zero." = "Dlaczego: dziÄki temu wykresy nie zaczynajÄ
- siÄ od zera.";
-"Connect" = "PoÅÄ
-cz";
-"Connected" = "PoÅÄ
-czono";
-"Next" = "Dalej";
-"Weekly reminder" = "Cotygodniowe przypomnienie";
-"One gentle nudge a week helps the habit stick." = "Jedno delikatne przypomnienie tygodniowo pomaga utrzymaÃÂ nawyk.";
-"Why: consistency beats intensity." = "Dlaczego: regularnoÅÄ wygrywa z intensywnoÅciÄ
-.";
-"Set schedule" = "Ustaw harmonogram";
-"Smarter insights from your trends" = "Porady i analizy AI";
-"See clear weekly direction with deeper analysis." = "Wykorzystaj lokalne AI do analizy wielu danych naraz i otrzymaj spersonalizowane porady";
-"Side-by-side photo progress" = "PorÃÂ³wnaj zdjÃÂcia";
-"Catch visual changes that numbers can miss." = "Zobacz jak zmienia siÄ Twoje ciaÅo. Tego nie oddadzÄ
- Å¼adne liczby";
-"Export and backups anytime" = "Eksport i kopie zapasowe w kaÃÂ¼dej chwili";
-"Share progress with your coach or keep a backup." = "UdostÄpnij postÄpy trenerowi albo zachowaj kopiÄ zapasowÄ
-.";
-"Start my 14-day free trial" = "Uruchom mÃÂ³j 14-dniowy okres prÃÂ³bny";
-"Cancel anytime in your App Store account settings." = "Anuluj w dowolnym momencie w ustawieniach konta App Store.";
-"Save baseline" = "Zapisz punkt startowy";
-"Continue free" = "UÃÂ¼ywaj bez opÃÂat";
-"Connected to Apple Health." = "PoÅÄ
-czono z aplikacjÄ
- Zdrowie.";
-"Weekly reminder is set." = "Cotygodniowe przypomnienie zostaÃÂo ustawione.";
-"First Photo" = "Pierwsze zdjÃÂcie";
-"Photos make progress easier to notice." = "ZdjÄcia uÅatwiajÄ
- zauwaÅ¼enie postÄpu.";
-"Add your first photo now. Come back later to compare progress." = "Dodaj pierwsze zdjÃÂcie teraz. WrÃÂ³ÃÂ pÃÂ³ÃÂºniej, aby porÃÂ³wnaÃÂ postÃÂp.";
-"Too early for an automatic comparison. Choose photos manually." = "Za wczeÃÂnie na automatyczne porÃÂ³wnanie. Wybierz zdjÃÂcia rÃÂcznie.";
-"Track only what matters to you." = "ÃÂledÃÂº tylko to, co jest dla Ciebie waÃÂ¼ne.";
-"One weekly nudge helps keep the habit." = "Jedno przypomnienie tygodniowo pomaga utrzymaÃÂ nawyk.";
-"Connect Apple Health" = "PoÅÄ
-cz aplikacjÄ Zdrowie";
-"Import history and keep data in sync." = "Zaimportuj historiÄ i utrzymuj dane na bieÅ¼Ä
-co.";
-"Explore Premium" = "SprawdÃÂº Premium";
-"Explore Premium (14 days free)" = "SprawdÃÂº Premium (14 dni za darmo)";
-"Try deeper insights and compare photos side-by-side." = "Otrzymuj Analizy AI i porÃÂ³wnuj zdjÃÂcia obok siebie.";
-"Finish setup (optional)" = "DokoÃÂcz konfiguracjÃÂ (opcjonalnie)";
-"Hide checklist" = "Ukryj checklistÃÂ";
-"Show setup checklist on Home" = "PokaÃÂ¼ checklistÃÂ konfiguracji na Stronie gÃÂÃÂ³wnej";
-"Show streak on Home" = "PokaÃÂ¼ passÃÂ na stronie gÃÂÃÂ³wnej";
-"accessibility.streak.count" = "Passa %d tygodni";
-"Your Progress" = "Twoje postÃÂpy";
-"total measurements" = "wszystkich pomiarÃÂ³w";
-"profile.stats.accessibility" = "%d zarejestrowanych pomiarÃÂ³w";
-"profile.stats.phrase.0" = "Dodaj pierwszy pomiar, Å¼eby zaczÄ
-Ä swojÄ
- historiÄ.";
-"profile.stats.phrase.1" = "KaÃÂ¼dy pomiar to krok ku poznaniu siebie.";
-"profile.stats.phrase.2" = "Budujesz nawyk. JesteÃÂ na dobrej drodze.";
-"profile.stats.phrase.3" = "Konsekwencja to prawdziwa miara postÃÂpu.";
-"profile.stats.phrase.4" = "Ponad 100 wpisÃ³w â Twoje dane opowiadajÄ
- prawdziwÄ
- historiÄ.";
-"profile.stats.phrase.5" = "250+ wpisÃÂ³w. Znasz swoje ciaÃÂo lepiej niÃÂ¼ ktokolwiek.";
-"profile.stats.phrase.6" = "500+ wpisÃÂ³w. Prawdziwe oddanie.";
-"profile.stats.phrase.7" = "1000+ wpisÃÂ³w. Legendarna konsekwencja.";
-"A few details" = "Kilka danych";
-"Boosters" = "Automatyzacja";
-"Progress tracking that feels clear and motivating." = "Åledzenie postÄpu, ktÃ³re jest czytelne i motywujÄ
-ce.";
-"Start with one metric. Add more whenever you want." = "Zacznij od jednej metryki. Kolejne dodasz kiedy chcesz.";
-"Optional details for more accurate health indicators." = "Opcjonalne dane dla dokÃÂadniejszych wskaÃÂºnikÃÂ³w zdrowia.";
-"Optional automations to keep momentum." = "Opcjonalne automatyzacje, ktÃ³re pomagajÄ
- utrzymaÄ regularnoÅÄ.";
-"Optional support with deeper insights." = "Analizy AI, wskaÃÂºniki zdrowia, porÃÂ³wnywanie zdjÃÂÃÂ, eksport danych i wsparcie polskiej aplikacji.";
-"Great start. Your trend begins today." = "ÃÂwietny start. TwÃÂ³j trend zaczyna siÃÂ dziÃÂ.";
-"Save and continue" = "Zapisz i kontynuuj";
-"Weight is useful. We focus on trend, not daily noise." = "Waga jest pomocna. Skupiamy siÃÂ na trendzie, nie na codziennym szumie.";
-"Name helps personalize your experience." = "ImiÃÂ pomaga spersonalizowaÃÂ aplikacjÃÂ.";
-"Height improves BMI and waist-to-height indicators." = "Wzrost poprawia dokÃÂadnoÃÂÃÂ BMI i wskaÃÂºnika talia/wzrost.";
-"Age and sex tune ranges for selected indicators." = "Wiek i pÅeÄ dopasowujÄ
- zakresy dla wybranych wskaÅºnikÃ³w.";
-"Import history and keep measurements updated automatically." = "Zaimportuj historiÃÂ i aktualizuj pomiary automatycznie.";
-"One gentle nudge per week keeps momentum." = "Jedno delikatne przypomnienie tygodniowo pomaga utrzymaÃÂ rytm.";
-"Why: your charts start with more context." = "Dlaczego: Twoje wykresy od poczÄ
-tku majÄ
- wiÄcej kontekstu.";
-"You can always connect later in Settings." = "Zawsze moÅ¼esz poÅÄ
-czyÄ pÃ³Åºniej w Ustawieniach.";
-"Your baseline is ready" = "Twoja baza jest gotowa";
-"Your history is in. Charts will show your progress over time." = "Dane historyczne zostaÅy zaimportowane. Wykresy pokaÅ¼Ä
- TwÃ³j postÄp w czasie.";
-"See my dashboard" = "PrzejdÃÂº do pulpitu";
-"Your data is coming in" = "Dane sÄ
- importowane";
-"We're pulling in your history. Your trends will be ready soon." = "Pobieramy TwojÄ
- historiÄ. Trendy bÄdÄ
- gotowe za chwilÄ.";
-"Let's start with one measurement" = "Zacznijmy od jednego pomiaru";
-"This becomes your baseline. Even one check-in unlocks your progress view." = "To stanie siÄ TwojÄ
- bazÄ
-. Nawet jeden wpis odblokowuje widok postÄpÃ³w.";
-"Log now" = "Dodaj wpis";
-"Skip for now" = "PomiÃÂ na razie";
-"Welcome screen placeholder" = "Placeholder ekranu powitalnego";
-"Check-in screen placeholder" = "Placeholder ekranu wpisu";
-"Boosters screen placeholder" = "Placeholder ekranu wzmocnieÃÂ";
-"Premium screen placeholder" = "Placeholder ekranu premium";
-"Drop your hero screenshot here later." = "Tutaj pÃÂ³ÃÂºniej dodamy gÃÂÃÂ³wny screenshot.";
-"Drop the measurement input screenshot here later." = "Tutaj pÃÂ³ÃÂºniej dodamy screenshot wpisywania pomiaru.";
-"Drop Health/Reminder preview screenshot here later." = "Tutaj pÃ³Åºniej dodamy podglÄ
-d Health/PrzypomnieÅ.";
-"Drop premium preview screenshot here later." = "Tutaj pÃ³Åºniej dodamy podglÄ
-d premium.";
-"What you'll see inside" = "Co zobaczysz w ÃÂrodku";
-"Cancel anytime in App Store settings." = "Anuluj w dowolnym momencie w ustawieniach App Store.";
-"Finish setup" = "DokoÃÂcz konfiguracjÃÂ";
-"Collapse checklist" = "ZwiÃÂ checklistÃÂ";
-"Expand checklist" = "RozwiÃÂ checklistÃÂ";
-"Remove completed" = "Ukryj odznaczone";
-"Show completed" = "PokaÃÂ¼ odznaczone";
-"Checklist collapsed. Open menu to expand." = "Checklista jest zwiniÄta. OtwÃ³rz menu, aby jÄ
- rozwinÄ
-Ä.";
-"All checklist items are completed." = "Wszystkie pozycje checklisty sÄ
- ukoÅczone.";
-"14 days free" = "14 dni za darmo";
-"Beyond the scale" = "Ponad samÄ
- wagÄ
-";
-"See clearer weekly direction with deeper analysis." = "Wykorzystaj lokalne AI do analizy wielu danych naraz i otrzymaj spersonalizowane porady";
-"Reminder schedule" = "Harmonogram przypomnienia";
-"Reminder day" = "DzieÃÂ przypomnienia";
-"Reminder time" = "Godzina przypomnienia";
-"Set reminder" = "Ustaw przypomnienie";
-"notification.smart.after.days" = "Po %d dniach braku aktywnoÃÂci";
-"Enable AI Insights" = "WÅÄ
-cz Analizy AI";
-"AI Insights" = "Analizy AI";
-"AI Insights arenât available right now." = "Analizy AI sÄ
- teraz niedostÄpne.";
-"Show more" = "PokaÃÂ¼ wiÃÂcej";
-"Show less" = "PokaÃÂ¼ mniej";
-"Not enough data to generate insights yet." = "Za maÃÂo danych, aby wygenerowaÃÂ podsumowanie.";
-"Not enough data in the selected range to generate insights yet." = "Za maÃÂo danych w wybranym zakresie, aby wygenerowaÃÂ podsumowanie.";
-"Couldn't generate an insight right now. Please try again in a moment." = "Nie udaÃÂo siÃÂ teraz wygenerowaÃÂ podsumowania. SprÃÂ³buj ponownie za chwilÃÂ.";
-"AI generated" = "Wygenerowano przez AI";
-"AI Insights: unavailable (Premium Edition required)" = "Analizy AI: niedostÃÂpne (wymagana jest wersja Premium)";
-"What if AI Insights are unavailable?" = "Co jeÅli Analizy AI sÄ
- niedostÄpne?";
-"AI Insights in MeasureMe use Apple Intelligence. You need a supported device and language, plus Apple Intelligence enabled in system settings." = "Analizy AI w MeasureMe korzystajÄ
- z Apple Intelligence. Potrzebujesz obsÅugiwanego urzÄ
-dzenia i jÄzyka oraz wÅÄ
-czonego Apple Intelligence w ustawieniach systemu.";
-"Premium unlocks AI Insights, Goal Prediction, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled." = "Premium odblokowuje Analizy AI, PrognozÄ celu, wskaÅºniki zdrowia, wskaÅºniki sylwetki, eksport danych i porÃ³wnanie zdjÄÄ. Analizy AI w MeasureMe korzystajÄ
- z Apple Intelligence, wiÄc Apple Intelligence musi byÄ dostÄpne i wÅÄ
-czone.";
-"premium.carousel.indicators.more" = "I 5 wiÃÂcej";
-"premium.compare.benefit.visual" = "Wizualny dowÃÂ³d";
-"premium.compare.benefit.timeline" = "Kontekst czasu";
-"premium.compare.benefit.motivation" = "WiÃÂksza motywacja";
-"premium.compare.placeholder.before" = "Dodaj wczeÃÂniejsze zdjÃÂcie";
-"premium.compare.placeholder.now" = "Dodaj nowsze zdjÃÂcie";
-"premium.carousel.indicator.preview.copy" = "Stosunek talii do wzrostu szybko pokazuje ryzyko tkanki trzewnej i szybko reaguje na zmiany w Twojej rutynie.";
-"premium.carousel.indicator.preview.about" = "Premium wyjaÃÂnia kaÃÂ¼dy wskaÃÂºnik prostym jÃÂzykiem i podpowiada, co poprawiÃÂ dalej.";
-"premium.unlock.bundle.title" = "Wszystko w Premium";
-"premium.carousel.unlock.more" = "i wiÃÂcej";
-"Crash Reports" = "Raporty bÃÂÃÂdÃÂ³w";
-"No crash reports" = "Brak raportÃÂ³w bÃÂÃÂdÃÂ³w";
-"Everything looks good. No crashes have been recorded." = "Wszystko w porzÄ
-dku. Nie zarejestrowano Å¼adnych awarii.";
-"Send diagnostic report" = "WyÃÂlij raport diagnostyczny";
-"Share recent logs to help debug issues." = "UdostÃÂpnij ostatnie logi, aby pomÃÂ³c w diagnozowaniu problemÃÂ³w.";
-"Crash Detected" = "Wykryto awariÃÂ";
-"View Report" = "Zobacz raport";
-"Dismiss" = "Zamknij";
-"The app crashed last time. You can view and share the crash report in Settings Ã¢ÂÂ Data Ã¢ÂÂ Crash Reports." = "Aplikacja ulegÃÂa awarii ostatnim razem. MoÃÂ¼esz zobaczyÃÂ i udostÃÂpniÃÂ raport w Ustawienia Ã¢ÂÂ Dane Ã¢ÂÂ Raporty bÃÂÃÂdÃÂ³w.";
-"Delete Report?" = "UsunÄ
-Ä raport?";
-"Delete all data" = "UsuÃÂ wszystkie dane";
-"This removes all measurements, goals, photos, reminders, and imported HealthKit data stored in MeasureMe on this device. Apple Health records are not deleted and can be re-imported if sync is enabled again." = "To usuwa wszystkie pomiary, cele, zdjÄcia, przypomnienia i dane zaimportowane z aplikacji Zdrowie zapisane lokalnie w MeasureMe na tym urzÄ
-dzeniu. Dane z aplikacji Zdrowie nie sÄ
- usuwane i moÅ¼na je ponownie zaimportowaÄ po ponownym wÅÄ
-czeniu synchronizacji.";
-"All local app data has been deleted." = "Wszystkie lokalne dane aplikacji zostaÃÂy usuniÃÂte.";
-"Could not delete all data. Please try again." = "Nie udaÅo siÄ usunÄ
-Ä wszystkich danych. SprÃ³buj ponownie.";
-"How to set a weight goal" = "Jak ustawiÃÂ cel wagi";
-"Open Measurements, choose Weight, tap Goal, then set your target value and direction." = "OtwÃ³rz Pomiary, wybierz WagÄ, stuknij Cel i ustaw wartoÅÄ docelowÄ
- oraz kierunek.";
-"Open Measurements" = "OtwÃÂ³rz Pomiary";
-"Shows how to set your first weight goal" = "Pokazuje, jak ustawiÄ pierwszy cel dotyczÄ
-cy wagi";
-"First measurement" = "Pierwszy pomiar";
-"Start your trend with one quick check-in." = "Rozpocznij trend jednym szybkim wpisem.";
-"Tracked metric visibility can be changed in Settings." = "WidocznoÃÂÃÂ ÃÂledzonych metryk moÃÂ¼esz zmieniÃÂ w Ustawieniach.";
-"Open tracked metrics settings" = "OtwÃÂ³rz ustawienia ÃÂledzonych metryk";
-"Open profile settings" = "OtwÃÂ³rz ustawienia profilu";
-"Open Home settings" = "OtwÃÂ³rz ustawienia strony gÃÂÃÂ³wnej";
-"Animations and haptics" = "Animacje i haptyka";
-"Open animation and haptics settings" = "OtwÃÂ³rz ustawienia animacji i haptyki";
-"Language changes are applied immediately." = "Zmiany jÄzyka sÄ
- stosowane od razu.";
-"Open data settings" = "OtwÃÂ³rz ustawienia danych";
-"Synced data" = "Synchronizowane dane";
-"Report a bug" = "ZgÅoÅ bÅÄ
-d";
-"settings.app.subscription.active" = "Aktywna subskrypcja Premium";
-"settings.app.subscription.view.benefits" = "Zobacz dostÃÂpne benefity";
-"settings.app.subscription.active.detail" = "Twoja subskrypcja jest aktywna. Masz peÃÂny dostÃÂp do funkcji Premium.";
-"Yes. In Settings â Animations and haptics you can turn off animations and haptics." = "Tak. W Ustawienia â Animacje i haptyka moÅ¼esz wyÅÄ
-czyÄ animacje i haptykÄ.";
-"Name, gender, age, height" = "ImiÃÂ, pÃÂeÃÂ, wiek, wzrost";
-"Sync and synced data" = "Synchronizacja i dane zsynchronizowane";
-"Home sections visibility" = "WidocznoÃÂÃÂ sekcji strony gÃÂÃÂ³wnej";
-"Metric or imperial" = "Metryczny lub imperialny";
-"Appearance" = "WyglÄ
-d";
-"Appearance, animations and haptics" = "WyglÄ
-d, animacje i haptyka";
-"Light" = "Jasny";
-"Dark" = "Ciemny";
-"Export and delete" = "Eksport i usuwanie";
-"Search Settings" = "Przeszukaj ustawienia";
-"No matching settings" = "Brak pasujÄ
-cych ustawieÅ";
-"settings.section.account" = "Konto i Premium";
-"settings.section.setup" = "Twoja konfiguracja";
-"settings.section.measurements" = "Pomiary i cele";
-"settings.section.insights" = "Analizy";
-"settings.section.health" = "Zdrowie i integracje";
-"settings.section.support" = "Dane i wsparcie";
-"settings.summary.premium.active" = "Premium aktywne";
-"settings.summary.premium.free" = "Plan darmowy";
-"settings.summary.premium.pitch" = "Odblokuj porÃÂ³wnywanie zdjÃÂÃÂ, analizy AI, wskaÃÂºniki i eksport w jednym miejscu.";
-"settings.action.explorePremium" = "Poznaj Premium";
-"settings.summary.subscription.manage" = "Rozliczenia, odnowienie i szczegÃÂ³ÃÂy okresu prÃÂ³bnego";
-"settings.summary.home.modules" = "Widoczne moduÃÂy: %d";
-"settings.summary.home.modules.one" = "Widoczny %d moduÃÂ";
-"settings.summary.home.modules.few" = "Widoczne %d moduÃÂy";
-"settings.summary.home.modules.many" = "Widocznych %d moduÃÂÃÂ³w";
-"Customer Center" = "Centrum klienta";
-"settings.summary.notifications.off" = "Przypomnienia wyÅÄ
-czone";
-"settings.summary.notifications.none" = "Przypomnienia wÅÄ
-czone, ale brak harmonogramu";
-"settings.summary.notifications.count" = "Zaplanowane przypomnienia: %d";
-"settings.summary.experience.full" = "Animacje i haptyka wÅÄ
-czone";
-"settings.summary.experience.reduced" = "Animacje i haptyka wyÅÄ
-czone";
-"settings.summary.experience.mixed" = "CzÄÅÄ informacji zwrotnej jest wyÅÄ
-czona";
-"settings.summary.appearance.system" = "WyglÄ
-d systemowy";
-"settings.summary.appearance.light" = "WyglÄ
-d jasny";
-"settings.summary.appearance.dark" = "WyglÄ
-d ciemny";
-"settings.summary.profile.empty" = "Dodaj swoje dane";
-"settings.summary.profile.incomplete" = "Profil uzupeÃÂniony czÃÂÃÂciowo";
-"settings.summary.metrics.count" = "ÃÂledzone pomiary: %d";
-"settings.summary.indicators.count" = "WÅÄ
-czone wskaÅºniki: %d";
-"settings.summary.health.off" = "Synchronizacja z aplikacjÄ
- Zdrowie jest wyÅÄ
-czona";
-"settings.summary.health.on" = "Synchronizacja z aplikacjÄ
- Zdrowie jest wÅÄ
-czona";
-"settings.summary.health.on.lastimport" = "Synchronizacja wÅÄ
-czona, ostatni import: %@";
-"settings.summary.ai.available" = "WÅÄ
-czone na tym urzÄ
-dzeniu";
-"settings.summary.ai.disabled" = "DostÄpne, obecnie wyÅÄ
-czone";
-"settings.summary.ai.unavailable" = "NiedostÄpne na tym urzÄ
-dzeniu";
-"settings.summary.ai.locked" = "Wymaga Premium";
-"settings.summary.data" = "Eksport, import i usuwanie danych lokalnych";
-"settings.summary.support" = "FAQ i pomoc";
-"Lose weight" = "SchudnÄ
-Ä";
-"Build muscles" = "ZbudowaÃÂ miÃÂÃÂnie";
-"Improve my health" = "PoprawiÃÂ zdrowie";
-"What's your goal?" = "Jaki jest TwÃÂ³j cel?";
-"YouÃ¢ÂÂre trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Trend spadkowy jest stabilny. W tym tygodniu utrzymaj 3 treningi siÃÂowe i ponad 8 tys. krokÃÂ³w.";
-"onboarding.trend.delta" = "-0,3 kg/tydz.";
-"onboarding.goal.badge" = "Cel %.2f kg";
-"onboarding.week.label" = "T%d";
-"onboarding.example.label" = "Dane przykÃÂadowe";
-"onboarding.example.data" = "Dane przykÃÂadowe";
-"You can skip and fill this later." = "MoÅ¼esz pominÄ
-Ä i uzupeÅniÄ to pÃ³Åºniej.";
-"Show %d more" = "PokaÃÂ¼ %d wiÃÂcej";
-"Show %d more.one" = "PokaÃÂ¼ jeszcze %d pozycjÃÂ";
-"Show %d more.few" = "PokaÃÂ¼ jeszcze %d pozycje";
-"Show %d more.many" = "PokaÃÂ¼ jeszcze %d pozycji";
-"trend.steady" = "stabilnie";
-"trend.up" = "trend wzrostowy";
-"trend.down" = "trend spadkowy";
-"chart.summary.metric" = "%1$@, %2$@, od %3$@ do %4$@, %5$@.";
-"chart.summary.empty" = "%@, brak danych wykresu.";
-"chart.title.metric" = "Trend %@";
-
-// MARK: - Trends Card
-"trends.title" = "Trendy: %@";
-"trends.gained_in" = "PrzybyÅo
-w %@";
-"trends.lost_in" = "UbyÅo
-w %@";
-"trends.increased_in" = "Wzrost
-w %@";
-"trends.decreased_in" = "Spadek
-w %@";
-"trends.no_change_in" = "Bez zmian
-w %@";
-"trends.period.7d" = "7 dni";
-"trends.period.30d" = "30 dni";
-"trends.period.90d" = "90 dni";
-"trends.period.alltime" = "od poczÄ
-tku";
-
-"Set Goal" = "Ustaw cel";
-"Update Goal" = "Zaktualizuj cel";
-"Set" = "Ustaw";
-"Update" = "Aktualizuj";
-"Last 7 days" = "Ostatnie 7 dni";
-"Last 90 days" = "Ostatnie 90 dni";
-"Last year" = "Ostatni rok";
-"All time" = "CaÃÂy okres";
-"Goal already achieved." = "Cel zostaÅ juÅ¼ osiÄ
-gniÄty.";
-"No products returned by StoreKit." = "StoreKit nie zwrÃÂ³ciÃÂ ÃÂ¼adnych produktÃÂ³w.";
-"Unable to save this image." = "Nie udaÃÂo siÃÂ zapisaÃÂ tego obrazu.";
-"Permission denied. Enable Photos access in Settings." = "Brak uprawnieÅ. WÅÄ
-cz dostÄp do ZdjÄÄ w Ustawieniach.";
-"Saved" = "Zapisano";
-"Saved to Photos." = "Zapisano w ZdjÃÂciach.";
-"Save Failed" = "Zapisywanie nieudane";
-"Photo access denied. Enable Photos access in Settings to save." = "Brak dostÄpu do ZdjÄÄ. WÅÄ
-cz dostÄp w Ustawieniach, aby zapisaÄ.";
-"Failed to prepare the comparison image." = "Nie udaÃÂo siÃÂ przygotowaÃÂ obrazu porÃÂ³wnania.";
-"Permission denied. Enable notifications in Settings." = "Brak uprawnieÅ. WÅÄ
-cz powiadomienia w Ustawieniach.";
-"Once" = "Jednorazowo";
-"Daily" = "Codziennie";
-"Weekly" = "Co tydzieÃÂ";
-"Failed to delete HealthKit samples." = "Nie udaÅo siÄ usunÄ
-Ä prÃ³bek z aplikacji Zdrowie.";
-"Show Less" = "PokaÃÂ¼ mniej";
-"No active measurements" = "Brak aktywnych pomiarÃÂ³w";
-"Photo Date" = "Data zdjÃÂcia";
-"tracked.keymetrics.header" = "Przypnij do Strony gÃÂÃÂ³wnej";
-"tracked.keymetrics.description" = "Stuknij ikonę pinezki, aby przypiąć 1–3 metryki na ekranie głównym i w zakładce Pomiary. Sam decydujesz, ile.";
-"tracked.keymetrics.counter" = "%d z 3 przypiÃÂtych";
-"tracked.keymetrics.empty" = "Najpierw wÅÄ
-cz metrykÄ poniÅ¼ej, a potem wrÃ³Ä tutaj, aby przypiÄ
-Ä jÄ
- do ekranu gÅÃ³wnego.";
-"tracked.active.header" = "Aktualnie ÃÂledzone";
-"tracked.active.description" = "Stuknij ikonę pinezki, aby przypiąć do 3 metryk na ekranie głównym. Przesuń, aby przestać śledzić. Przeciągnij, aby zmienić kolejność.";
-"tracked.section.health.subtitle" = "WÅÄ
-cz, aby rozpoczÄ
-Ä Åledzenie. Synchronizowane automatycznie z aplikacjÄ
- Zdrowie.";
-"tracked.section.custom.subtitle" = "WÅÄ
-cz, aby rozpoczÄ
-Ä Åledzenie. WartoÅci wpisujesz rÄcznie.";
-"tracked.section.allempty" = "Wszystkie metryki z tej grupy sÄ
- juÅ¼ aktywne powyÅ¼ej.";
-"tracked.active.editorder" = "KolejnoÃÂÃÂ";
-"tracked.active.stoptracking" = "PrzestaÃÂ ÃÂledziÃÂ";
-"tracked.snackbar.added" = "Dodano do ÃÂledzenia";
-"tracked.snackbar.removed" = "UsuniÃÂto ze ÃÂledzenia";
-"tracked.snackbar.undo" = "Cofnij";
-"metric.input.tap_to_edit" = "Stuknij, aby edytowaÃÂ";
-"measurements.empty.title" = "Rozpocznij pierwszy pomiar";
-"measurements.empty.body" = "ÅledÅº wagÄ, wymiary ciaÅa i wiÄcej. Twoje wykresy postÄpÃ³w pojawiÄ
- siÄ tutaj.";
-"measurements.quickadd.hint" = "Porada: stuknij + w prawym dolnym rogu, aby szybko dodaÃÂ pomiar";
-"measurements.metric.nodata" = "Brak danych";
-"measurements.discovery.hint" = "ÃÂledzisz %d z %d metryk. Dodaj bicepsy, biodra, uda i wiÃÂcej.";
-"measurements.discovery.cta" = "Dostosuj";
-"measurements.footer.dynamic" = "ÃÂledzisz %d z %d metryk. Kolejne dodasz w Ustawieniach.";
-"checklist.choosemetrics.detail.dynamic" = "ÃÂledzisz %d. DostÃÂpnych jest jeszcze %d Ã¢ÂÂ bicepsy, biodra, udaÃ¢ÂÂ¦";
-"Select" = "Zaznacz";
-"Delete Photos" = "UsuÃÂ zdjÃÂcia";
-"photos.selected.count" = "Wybrano: %d";
-"photos.selected.count.one" = "Wybrano: %d";
-"photos.selected.count.few" = "Wybrano: %d";
-"photos.selected.count.many" = "Wybrano: %d";
-"photos.delete.confirmation" = "Czy na pewno chcesz usunÄ
-Ä %d zdjÄÄ? Tej czynnoÅci nie moÅ¼na cofnÄ
-Ä.";
-"photos.delete.confirmation.one" = "Czy na pewno chcesz usunÄ
-Ä %d zdjÄcie? Tej czynnoÅci nie moÅ¼na cofnÄ
-Ä.";
-"photos.delete.confirmation.few" = "Czy na pewno chcesz usunÄ
-Ä %d zdjÄcia? Tej czynnoÅci nie moÅ¼na cofnÄ
-Ä.";
-"photos.delete.confirmation.many" = "Czy na pewno chcesz usunÄ
-Ä %d zdjÄÄ? Tej czynnoÅci nie moÅ¼na cofnÄ
-Ä.";
-"photos.delete.single.confirmation" = "Czy na pewno chcesz usunÄ
-Ä to zdjÄcie? Tej czynnoÅci nie moÅ¼na cofnÄ
-Ä.";
-"photos.delete.count.a11y" = "UsuÃÂ %d wybranych zdjÃÂÃÂ";
-"photos.delete.count.a11y.one" = "UsuÃÂ %d wybrane zdjÃÂcie";
-"photos.delete.count.a11y.few" = "UsuÃÂ %d wybrane zdjÃÂcia";
-"photos.delete.count.a11y.many" = "UsuÃÂ %d wybranych zdjÃÂÃÂ";
-"Double tap to select or deselect this photo" = "Stuknij dwukrotnie, aby zaznaczyÃÂ lub odznaczyÃÂ to zdjÃÂcie";
-"Import data" = "Importuj dane";
-"Merge (keep existing data)" = "PoÅÄ
-cz (zachowaj istniejÄ
-ce dane)";
-"Replace (delete existing data)" = "ZastÄ
-p (usuÅ istniejÄ
-ce dane)";
-"How should MeasureMe handle existing data?" = "Jak MeasureMe ma obsÅuÅ¼yÄ istniejÄ
-ce dane?";
-"Import complete" = "Import zakoÃÂczony";
-"Imported %d measurements and %d goals." = "Zaimportowano %d pomiarÃÂ³w i %d celÃÂ³w.";
-"%d rows skipped." = "PominiÃÂto %d wierszy.";
-"Could not open file: %@" = "Nie moÃÂ¼na otworzyÃÂ pliku: %@";
-"import.error.no_supported_files" = "Nie wybrano obsÃÂugiwanych plikÃÂ³w CSV.";
-"import.error.invalid_schema" = "Wybrany plik CSV ma nieprawidÃÂowy schemat.";
-"import.error.file_read_failed" = "Nie moÃÂ¼na odczytaÃÂ wybranego pliku.";
-"import.error.persistence_failed" = "Nie udaÃÂo siÃÂ zaimportowaÃÂ danych. SprÃÂ³buj ponownie.";
-"Seed dummy data" = "Dodaj dane testowe";
-"This will add realistic sample measurements for recent weeks. Existing data will remain unchanged." = "To doda realistyczne przykÅadowe pomiary z ostatnich tygodni. IstniejÄ
-ce dane pozostanÄ
- bez zmian.";
-"Dummy data added: %d measurements." = "Dodano dane testowe: %d pomiarÃÂ³w.";
-"Could not seed dummy data. Please try again." = "Nie udaÃÂo siÃÂ dodaÃÂ danych testowych. SprÃÂ³buj ponownie.";
-"Website" = "Strona internetowa";
-"About MeasureMe" = "O MeasureMe";
-"Credits" = "PodziÃÂkowania";
-"Icons by Icons8" = "Ikony: Icons8";
-"Physique indicators" = "WskaÃÂºniki sylwetki";
-"Choose physique indicators" = "Wybierz wskaÃÂºniki sylwetki";
-"Upgrade to Premium Edition to unlock Physique indicators." = "PrzejdÃÂº na wersjÃÂ Premium, aby odblokowaÃÂ wskaÃÂºniki sylwetki.";
-"Enable physique indicators in Settings to see results here." = "WÅÄ
-cz wskaÅºniki sylwetki w Ustawieniach, aby zobaczyÄ wyniki.";
-"Proportion ratios" = "WskaÃÂºniki proporcji";
-"Hybrid metrics" = "WskaÃÂºniki hybrydowe";
-"Shoulder-to-Waist Ratio" = "Stosunek barkÃÂ³w do talii";
-"Chest-to-Waist Ratio" = "Stosunek klatki do talii";
-"Hip-to-Waist Ratio" = "Stosunek bioder do talii";
-"Bust-to-Waist Ratio" = "Stosunek biustu do talii";
-"Set gender" = "Ustaw pÃÂeÃÂ";
-"Set gender to unlock these indicators" = "Ustaw pÃÂeÃÂ, aby odblokowaÃÂ te wskaÃÂºniki";
-"Physique ratio interpretation in this section is sex-specific. Set your profile gender to view values and ranges." = "Interpretacja wskaÃÂºnikÃÂ³w sylwetki w tej sekcji zaleÃÂ¼y od pÃÂci. Ustaw pÃÂeÃÂ w profilu, aby zobaczyÃÂ wartoÃÂci i zakresy.";
-"Set your gender in Profile to unlock this indicator and its ranges." = "Ustaw pÃÂeÃÂ w Profilu, aby odblokowaÃÂ ten wskaÃÂºnik i jego zakresy.";
-"Body Shape Risk in this app is standardized ABSI (z-score), not an arbitrary composite." = "W tej aplikacji ryzyko wg ABSI oznacza standaryzowany wynik ABSI (z-score), a nie arbitralny wskaÃÂºnik zÃÂoÃÂ¼ony.";
-"Fat distribution" = "Dystrybucja tÃÂuszczu";
-"ABSI (technical)" = "WskaÃÂºnik ksztaÃÂtu ciaÃÂa";
-"To calculate this indicator, add:" = "Aby obliczyÃÂ ten wskaÃÂºnik, dodaj:";
-"Formula" = "WzÃÂ³r";
-"formula.swr" = "SWR = barki / talia";
-"formula.cwr" = "CWR = klatka / talia";
-"formula.shr" = "SHR = barki / biodra";
-"formula.hwr" = "HWR = biodra / talia";
-"formula.bwr" = "BWR = biust lub klatka / talia";
-"formula.whtr" = "WHtR = talia / wzrost";
-"formula.bf" = "BF% = szacowana masa tÃÂuszczu / masa ciaÃÂa";
-"formula.rfm" = "RFM = 64/76 - 20*(wzrost / talia)";
-"What it means" = "Co to oznacza";
-"How to improve" = "Jak poprawiÃÂ";
-"Reference ranges" = "Zakresy referencyjne";
-"Reference interpretation" = "Interpretacja zakresÃÂ³w";
-"A simple scale based on WHtR where 1.00 is the core threshold." = "Prosta skala oparta na WHtR, w ktÃÂ³rej 1,00 jest gÃÂÃÂ³wnym progiem odniesienia.";
-"Adjust upper or lower body training based on your aesthetic goal." = "Dostosuj trening gÃÂ³rnej lub dolnej czÃÂÃÂci ciaÃÂa do swojego celu sylwetkowego.";
-"AI Insights aren't available right now." = "Analizy AI sÄ
- teraz niedostÄpne.";
-"Apple Health" = "Aplikacja Zdrowie";
-"Build delts/back or lower body depending on your desired look." = "Rozwijaj barki i plecy albo dÃÂ³ÃÂ sylwetki, zaleÃÂ¼nie od oczekiwanego efektu.";
-"Build upper chest and back while reducing waist." = "Rozwijaj gÃ³rÄ klatki i plecy, jednoczeÅnie zmniejszajÄ
-c taliÄ.";
-"Collapsed" = "ZwiniÃÂte";
-"Compact health indicator summary" = "SkrÃÂ³cone podsumowanie wskaÃÂºnikÃÂ³w zdrowia";
-"Compare selected photos Ã¢ÂÂ Premium required" = "PorÃÂ³wnaj wybrane zdjÃÂcia Ã¢ÂÂ wymagana wersja Premium";
-"Could not enable Health sync. Please try again." = "Nie udaÅo siÄ wÅÄ
-czyÄ synchronizacji z aplikacjÄ
- Zdrowie. SprÃ³buj ponownie.";
-"Could not load photo. Please try again." = "Nie udaÃÂo siÃÂ wczytaÃÂ zdjÃÂcia. SprÃÂ³buj ponownie.";
-"Could not save photos. Please try again." = "Nie udaÃÂo siÃÂ zapisaÃÂ zdjÃÂÃÂ. SprÃÂ³buj ponownie.";
-"Double tap to open photo details" = "Stuknij dwukrotnie, aby otworzyÃÂ szczegÃÂ³ÃÂy zdjÃÂcia";
-"Double tap to show or hide this metrics group" = "Stuknij dwukrotnie, aby pokazaÃÂ lub ukryÃÂ tÃÂ grupÃÂ metryk";
-"Expanded" = "RozwiniÃÂte";
-"Finalizing" = "Finalizowanie";
-"Greeting, streak, goals, and momentum" = "Powitanie, passa, cele i tempo";
-"Health data is not available on this device." = "Dane zdrowotne nie sÄ
- dostÄpne na tym urzÄ
-dzeniu.";
-"Health date range is invalid." = "Zakres dat danych zdrowotnych jest nieprawidÃÂowy.";
-"Health summary" = "Podsumowanie zdrowia";
-"Higher value means narrower waist relative to hips." = "WyÅ¼sza wartoÅÄ oznacza wÄÅ¼szÄ
- taliÄ wzglÄdem bioder.";
-"Home modules" = "ModuÃÂy Strony gÃÂÃÂ³wnej";
-"Home now uses a modular dashboard. Full drag-and-drop editing will come later directly on the Home screen." = "Strona gÅÃ³wna korzysta teraz z moduÅowego ukÅadu. PeÅna edycja metodÄ
- przeciÄ
-gnij i upuÅÄ pojawi siÄ pÃ³Åºniej bezpoÅrednio na ekranie gÅÃ³wnym.";
-"Improve posture, upper body training, and reduce waist gradually." = "Popraw postawÃÂ, wzmacniaj gÃÂ³rÃÂ ciaÃÂa i stopniowo zmniejszaj taliÃÂ.";
-"In physique view, BF% mostly controls sharpness and visible muscle separation." = "W widoku sylwetki BF% gÅÃ³wnie wpÅywa na ostroÅÄ i widocznÄ
- separacjÄ miÄÅni.";
-"In physique view, WHtR is a visibility filter for proportions and definition." = "W widoku sylwetki WHtR dziaÃÂa jak filtr widocznoÃÂci proporcji i definicji.";
-"Latest progress photos" = "Najnowsze zdjÃÂcia postÃÂpÃÂ³w";
-"Layout" = "UkÃÂad";
-"Log another check-in to reveal the trend." = "Dodaj kolejny wpis, aby zobaczyÃÂ trend.";
-"Lower waist and build delts/lats for a stronger silhouette." = "Zmniejsz taliÄ i rozwijaj barki oraz najszersze grzbietu, aby uzyskaÄ mocniejszÄ
- sylwetkÄ.";
-"Lower waist and build glutes/legs progressively." = "Stopniowo zmniejszaj taliÃÂ i rozwijaj poÃÂladki oraz nogi.";
-"Lower waist while maintaining strength to improve visual definition." = "Zmniejszaj taliÄ, utrzymujÄ
-c siÅÄ, aby poprawiÄ definicjÄ sylwetki.";
-"Main lever is waist reduction while preserving muscle." = "GÅÃ³wnÄ
- dÅºwigniÄ
- jest zmniejszanie talii przy zachowaniu miÄÅni.";
-"Not selected" = "Niewybrane";
-"RFM acts as a body-fat estimator interpreted through a visual lens in this section." = "W tej sekcji RFM dziaÅa jako estymator poziomu tkanki tÅuszczowej interpretowany przez pryzmat wyglÄ
-du.";
-"Reduce gradually to protect lean mass and visual quality." = "Zmniejszaj stopniowo, aby chroniÄ beztÅuszczowÄ
- masÄ ciaÅa i jakoÅÄ sylwetki.";
-"Remaining onboarding and setup tasks" = "PozostaÃÂe zadania onboardingu i konfiguracji";
-"Reset Home layout" = "PrzywrÃÂ³ÃÂ ukÃÂad Strony gÃÂÃÂ³wnej";
-"Restore the recommended Home arrangement while keeping your current module visibility choices." = "PrzywrÃ³Ä zalecany ukÅad Strony gÅÃ³wnej, zachowujÄ
-c bieÅ¼Ä
-ce ustawienia widocznoÅci moduÅÃ³w.";
-"Retry" = "SprÃÂ³buj ponownie";
-"Saving" = "Zapisywanie";
-"Selected" = "Wybrane";
-"Setup checklist" = "Lista konfiguracji";
-"Share" = "UdostÃÂpnij";
-"Shows how much upper torso dominates over waist." = "Pokazuje, jak bardzo gÃ³rna czÄÅÄ tuÅowia dominuje nad taliÄ
-.";
-"Simplest V-taper indicator: wider upper body relative to waist." = "Najprostszy wskaÃÂºnik typu V: szersza gÃÂ³ra ciaÃÂa wzglÃÂdem talii.";
-"Some Health data types are unavailable on this device." = "NiektÃ³re typy danych zdrowotnych sÄ
- niedostÄpne na tym urzÄ
-dzeniu.";
-"Startup failed" = "Nie udaÃÂo siÃÂ uruchomiÃÂ aplikacji.";
-"Summary hero" = "GÃÂÃÂ³wny moduÃÂ podsumowania";
-"Tap to unlock Photo Comparison with Premium" = "Stuknij, aby odblokowaÃÂ porÃÂ³wnywanie zdjÃÂÃÂ w Premium";
-"Upper torso to waist proportion used in visual silhouette assessment." = "Proporcja gÃÂ³rnej czÃÂÃÂci tuÃÂowia do talii uÃÂ¼ywana w ocenie sylwetki.";
-"Upper-to-lower balance is goal-dependent and should be tracked as trend." = "RÃ³wnowaga gÃ³ra-dÃ³Å zaleÅ¼y od celu i najlepiej ÅledziÄ jÄ
- jako trend.";
-"Upper-to-lower body balance. This is preference-dependent, not good/bad." = "RÃ³wnowaga miÄdzy gÃ³rÄ
- a doÅem ciaÅa. To kwestia preferencji, nie ocena dobra lub zÅa.";
-"Visible modules" = "Widoczne moduÃÂy";
-"Waist circumference is a direct marker of central fat distribution." = "ObwÃÂ³d talii jest bezpoÃÂrednim wskaÃÂºnikiem rozmieszczenia tkanki tÃÂuszczowej w okolicy centralnej.";
-"Your top tracked measurements" = "Twoje najwaÃÂ¼niejsze ÃÂledzone pomiary";
-"Visible definition" = "Widoczna definicja";
-"Soft definition" = "MiÃÂkka definicja";
-"Hidden proportions" = "Ukryte proporcje";
-"Lower-body dominant" = "Dominacja dolnej czÃÂÃÂci";
-"Balanced frame" = "Zbalansowana sylwetka";
-"Upper-body dominant" = "Dominacja gÃÂ³rnej czÃÂÃÂci";
-"Athletes" = "Atletycznie";
-"Average" = "ÃÂrednio";
-"Top" = "NajwyÃÂ¼szy poziom";
-"Required for range interpretation" = "Wymagane do interpretacji zakresÃÂ³w";
-"Shoulders" = "Barki";
-"Chest" = "Klatka piersiowa";
-"Bust or chest" = "Biust lub klatka";
-"Hips" = "Biodra";
-"Are physique indicators medical?" = "Czy wskaÅºniki sylwetki sÄ
- medyczne?";
-"No. Physique indicators are visual and proportion-focused heuristics designed for appearance tracking, not medical diagnosis." = "Nie. WskaÅºniki sylwetki to heurystyki wizualne i proporcyjne do Åledzenia wyglÄ
-du, a nie diagnoza medyczna.";
-"photo.measurements.filled" = "%d uzupeÃÂnione";
-"startup.loading.status.initializingStorage" = "InicjalizujÄ TwojÄ
- przestrzeÅ...";
-"startup.loading.status.preparingData" = "PrzygotowujÃÂ dane...";
-"startup.loading.status.finalizing" = "FinalizujÃÂ uruchamianie...";
-"startup.loading.progress.label" = "PostÃÂp uruchamiania";
-"widget.metric.name" = "Metryka";
-"widget.metric.description" = "Pokazuje wybranÄ
- metrykÄ z wykresem trendu i zmianÄ
- z 30 dni.";
-"widget.metric.no_data" = "Brak danych";
-"widget.metric.chart_label" = "30 dni";
-"streak.detail.title" = "SERIA";
-"streak.detail.weekStreak" = "SERIA TYGODNI";
-"streak.detail.streakStarted" = "Seria od";
-"streak.detail.memberSince" = "UÃÂ¼ywasz od";
-"streak.detail.best" = "Rekord";
-"streak.detail.thisWeek" = "TEN TYDZIEÃÂ";
-"streak.detail.heatmap.title" = "AKTYWNOÃÂÃÂ";
-"streak.detail.heatmap.less" = "Mniej";
-"streak.detail.heatmap.more" = "WiÃÂcej";
-"streak.detail.totalLogs" = "ÅÄ
-czna liczba wpisÃ³w";
-"streak.detail.nextMilestone.label" = "%lld tyg. do celu";
-"streak.detail.nextMilestone.sub" = "do odblokowania kolejnego kamienia milowego.";
-"streak.detail.milestone.reached" = "Wszystkie cele odblokowane! Ã°ÂÂÂ";
-"streak.detail.motivational.0.title" = "Zaczynasz";
-"streak.detail.motivational.0.body" = "KaÃÂ¼dy tydzieÃÂ siÃÂ liczy. KaÃÂ¼dy wpis daje Ci wyraÃÂºniejszy obraz Twojego ciaÃÂa i jego potrzeb.";
-"streak.detail.motivational.1.title" = "Budujesz impet";
-"streak.detail.motivational.1.body" = "Budujesz prawdziwy nawyk. SystematycznoÅÄ teraz jest tym, co oddziela tych, ktÃ³rzy ÅledzÄ
-, od tych, ktÃ³rzy siÄ zmieniajÄ
-.";
-"streak.detail.motivational.2.title" = "Idzie jak z pÃÂatka";
-"streak.detail.motivational.2.body" = "Åwietna konsekwencja! KaÅ¼dy tydzieÅ danych daje Ci ostrzejsze wglÄ
-dy i trzyma Twoje cele w zasiÄgu.";
-"streak.detail.motivational.3.title" = "WyjÄ
-tkowe zaangaÅ¼owanie";
-"streak.detail.motivational.3.body" = "KwartaÅ ciÄ
-gÅego Åledzenia. To rzadka wytrwaÅoÅÄ â Twoje dane opowiadajÄ
- potÄÅ¼nÄ
- historiÄ.";
-"streak.detail.motivational.4.title" = "Nie do zatrzymania";
-"streak.detail.motivational.4.body" = "PÃ³Å roku lub wiÄcej Åledzenia â jesteÅ w elitarnym gronie. Kontynuuj, a dane mÃ³wiÄ
- same za siebie.";
-"streak.detail.vacation.title" = "TRYB URLOPU";
-"streak.detail.vacation.inactive" = "ZamroÃÂº seriÃÂ na czas urlopu lub choroby, aby opuszczony tydzieÃÂ jej nie przerwaÃÂ.";
-"streak.detail.vacation.active" = "Tryb urlopu jest aktywny. Twoja seria pozostaje zamroÃÂ¼ona do %@.";
-"streak.detail.vacation.active.date" = "%@";
-"streak.detail.vacation.endDate.label" = "ZamroÃÂº seriÃÂ do";
-"streak.detail.vacation.duration.value" = "%d tygodni";
-"streak.detail.vacation.duration.value.one" = "1 tydzieÃÂ";
-"streak.detail.vacation.duration.value.few" = "%d tygodnie";
-"streak.detail.vacation.duration.value.many" = "%d tygodni";
-"streak.detail.vacation.ends" = "Koniec: %@";
-"streak.detail.vacation.enable" = "WÅÄ
-cz tryb urlopu";
-"streak.detail.vacation.update" = "Zaktualizuj czas";
-"streak.detail.vacation.disable" = "WyÅÄ
-cz";
-"streak.detail.vacation.confirmation.enabled" = "Tryb urlopu wÅÄ
-czony.";
-"streak.detail.vacation.confirmation.updated" = "Tryb urlopu zaktualizowany.";
-"alllogs.title" = "Wszystkie wpisy";
-"alllogs.filter.source" = "ÃÂ¹rÃÂ³dÃÂo";
-"alllogs.filter.all" = "Wszystkie";
-"alllogs.filter.manual" = "RÃÂczne";
-"alllogs.filter.healthkit" = "Zdrowie";
-"alllogs.empty" = "Brak wpisÃÂ³w w wybranym zakresie.";
-"Automatic iCloud backup" = "Automatyczna kopia zapasowa w iCloud";
-"Back up now" = "UtwÃ³rz kopiÄ zapasowÄ
- teraz";
-"Restore latest backup" = "PrzywrÃ³Ä najnowszÄ
- kopiÄ zapasowÄ
-";
-"No iCloud backup yet." = "Brak kopii zapasowej w iCloud.";
-"Last iCloud backup: %@" = "Ostatnia kopia zapasowa w iCloud: %@";
-"iCloud backup" = "Kopia zapasowa w iCloud";
-"This will replace current local data with the latest iCloud backup." = "To zastÄ
-pi bieÅ¼Ä
-ce dane lokalne najnowszÄ
- kopiÄ
- zapasowÄ
- z iCloud.";
-"Creating iCloud backup..." = "Tworzenie kopii zapasowej w iCloud...";
-"iCloud backup created successfully." = "Kopia zapasowa w iCloud zostaÃÂa utworzona.";
-"Restoring latest iCloud backup..." = "Przywracanie najnowszej kopii zapasowej z iCloud...";
-"Latest iCloud backup restored." = "PrzywrÃ³cono najnowszÄ
- kopiÄ zapasowÄ
- z iCloud.";
-"iCloud backup requires Premium." = "Kopia zapasowa w iCloud wymaga wersji Premium.";
-"iCloud backup is disabled." = "Kopia zapasowa w iCloud jest wyÅÄ
-czona.";
-"iCloud Drive is unavailable on this device." = "iCloud Drive jest niedostÄpny na tym urzÄ
-dzeniu.";
-"No iCloud backup was found." = "Nie znaleziono kopii zapasowej w iCloud.";
-"The backup is incompatible with this app version." = "Kopia zapasowa jest niezgodna z tÄ
- wersjÄ
- aplikacji.";
-"Could not create iCloud backup: %@." = "Nie udaÃÂo siÃÂ utworzyÃÂ kopii zapasowej w iCloud: %@.";
-"Could not restore iCloud backup: %@." = "Nie udaÃÂo siÃÂ przywrÃÂ³ciÃÂ kopii zapasowej z iCloud: %@.";
-"iCloud Backup" = "Kopia zapasowa iCloud";
-"Automatic backup" = "Automatyczna kopia zapasowa";
-"Last backup" = "Ostatnia kopia";
-"Restore from backup" = "PrzywrÃÂ³ÃÂ z kopii";
-"Restore" = "PrzywrÃÂ³ÃÂ";
-"This will replace all current measurements, goals, photos, and settings with the latest iCloud backup." = "Spowoduje to zastÄ
-pienie wszystkich pomiarÃ³w, celÃ³w, zdjÄÄ i ustawieÅ najnowszÄ
- kopiÄ
- zapasowÄ
- z iCloud.";
-"Backup complete. %d measurements, %d goals, %d photos saved." = "Kopia gotowa. Zapisano %d pomiarÃÂ³w, %d celÃÂ³w, %d zdjÃÂÃÂ.";
-"Backup failed: %@" = "Kopia nieudana: %@";
-"Data restored successfully from iCloud backup." = "Dane przywrÃÂ³cone z kopii zapasowej iCloud.";
-"Restore failed: %@" = "Przywracanie nieudane: %@";
-"Your data: %d measurements, %d goals, %d photos." = "Twoje dane: %d pomiarÃÂ³w, %d celÃÂ³w, %d zdjÃÂÃÂ.";
-"Latest iCloud backup was restored automatically. Review your measurements and photos to confirm everything looks right." = "Najnowsza kopia zapasowa iCloud zostaÅa przywrÃ³cona automatycznie. SprawdÅº pomiary i zdjÄcia, aby upewniÄ siÄ, Å¼e wszystko wyglÄ
-da poprawnie.";
-"Turns encrypted iCloud backup on or off for your measurements and photos." = "WÅÄ
-cza lub wyÅÄ
-cza zaszyfrowanÄ
- kopiÄ zapasowÄ
- iCloud dla pomiarÃ³w i zdjÄÄ.";
-"Turns anonymous product analytics on or off." = "WÅÄ
-cza lub wyÅÄ
-cza anonimowÄ
- analitykÄ produktu.";
-"Select the first date for photo comparison." = "Wybierz datÄ poczÄ
-tkowÄ
- porÃ³wnania zdjÄÄ.";
-"Select the last date for photo comparison." = "Wybierz datÄ koÅcowÄ
- porÃ³wnania zdjÄÄ.";
-"Backup from %@ contains %d measurements, %d goals, %d photos." = "Kopia z %@ zawiera %d pomiarÃÂ³w, %d celÃÂ³w, %d zdjÃÂÃÂ.";
-"Replace all local data with backup?" = "ZastÄ
-piÄ wszystkie lokalne dane kopiÄ
- zapasowÄ
-?";
-"Replace" = "ZastÄ
-p";
-"Reminder is set." = "Przypomnienie ustawione.";
-"Earlier" = "WczeÃÂniej";
-"Session" = "Sesja";
-"Select Date" = "Wybierz datÃÂ";
-"Premium" = "Premium";
-"Apple Intelligence insights, Health Indicators, Physique Indicators, and photo comparison." = "Analizy Apple Intelligence, wskaÃÂºniki zdrowia, wskaÃÂºniki sylwetki i porÃÂ³wnywanie zdjÃÂÃÂ.";
-"sanity.warning.title" = "Nietypowe zmiany";
-"sanity.warning.save" = "Zapisz mimo to";
-
-/* Export format picker */
-"Export format" = "Format eksportu";
-"Choose an export format" = "Wybierz format eksportu";
-"PDF Report" = "Raport PDF";
-"Preparing JSON export..." = "Przygotowywanie eksportu JSON...";
-"Generating PDF report..." = "Generowanie raportu PDF...";
-
-/* PDF range sheet */
-"Choose date range" = "Wybierz zakres dat";
-"Last month" = "Ostatni miesiÄ
-c";
-"Last 3 months" = "Ostatnie 3 miesiÄ
-ce";
-"Last 6 months" = "Ostatnie 6 miesiÃÂcy";
-
-/* PDF content */
-"MeasureMe Report" = "Raport MeasureMe";
-"Generated by MeasureMe" = "Wygenerowano przez MeasureMe";
-"Goals" = "Cele";
-"No data in selected range." = "Brak danych w wybranym zakresie.";
-
-/* Post-purchase setup */
-"postpurchase.title" = "Witaj w Premium";
-"postpurchase.subtitle" = "Skonfiguruj kilka rzeczy, aby w peÃÂni korzystaÃÂ z MeasureMe.";
-"postpurchase.notifications.title" = "Przypomnienia";
-"postpurchase.notifications.subtitle" = "Otrzymuj powiadomienia, aby regularnie zapisywaÃÂ pomiary.";
-"postpurchase.backup.title" = "Kopia iCloud";
-"postpurchase.backup.subtitle" = "Automatycznie twÃ³rz kopiÄ zapasowÄ
- danych w iCloud.";
-"postpurchase.getstarted" = "Zaczynamy";
-
-/* FAQ – Użytkowanie */
-"faq.usage.goalstatuscolors.q" = "Co oznaczajÄ
- kolory statusu celu?";
-"faq.usage.goalstatuscolors.a" = "Kolor obok statusu celu to szybki sygnaÃÂ postÃÂpu oparty na Twoim ostatnim wyniku. Zielony oznacza, ÃÂ¼e jesteÃÂ na dobrej drodze, ÃÂ¼ÃÂ³ÃÂty ÃÂ¼e nadal jesteÃÂ blisko celu, ale warto to obserwowaÃÂ, a czerwony ÃÂ¼e ostatni wynik wyraÃÂºniej oddala siÃÂ od celu. To ma pomagaÃÂ szybko oceniÃÂ postÃÂp, a nie oceniaÃÂ Twoje zdrowie.";
-"faq.usage.photocomparison.q" = "Jak dziaÃÂa porÃÂ³wnanie zdjÃÂÃÂ?";
-"faq.usage.photocomparison.a" = "PrzejdÅº do zakÅadki ZdjÄcia i dotknij PorÃ³wnaj. Wybierz zdjÄcie Przed i Po, a nastÄpnie wybierz tryb obok siebie lub suwaka. PrzesuÅ, aby przeÅÄ
-czyÄ widoki.";
-"faq.usage.ghostoverlay.q" = "Jak uÃÂ¼ywaÃÂ nakÃÂadki duchÃÂ³w?";
-"faq.usage.ghostoverlay.a" = "Podczas porÃ³wnania zdjÄÄ dotknij ikony nakÅadki, aby przeÅÄ
-czyÄ siÄ w tryb Duch. PrzeciÄ
-gnij, aby zmieniÄ pozycjÄ, szczypnij, aby skalowaÄ, i uÅ¼yj suwaka, aby dostosowaÄ przezroczystoÅÄ.";
-"faq.usage.sharetransformation.q" = "Jak udostÄpniÄ swojÄ
- transformacjÄ?";
-"faq.usage.sharetransformation.a" = "Podczas porÃ³wnywania dwÃ³ch zdjÄÄ dotknij UdostÄpnij transformacjÄ, aby wygenerowaÄ kartÄ przed/po. MoÅ¼esz udostÄpniÄ jÄ
- w mediach spoÅecznoÅciowych lub zapisaÄ do biblioteki zdjÄÄ.";
-
-/* FAQ – Premium */
-"faq.premium.widgets.q" = "Czym sÄ
- widÅ¼ety?";
-"faq.premium.widgets.a" = "WidÅ¼ety wyÅwietlajÄ
- najnowszÄ
- wartoÅÄ metryki bezpoÅrednio na ekranie gÅÃ³wnym lub ekranie blokady. PrzejdÅº do Ustawienia â WidÅ¼ety, aby skonfigurowaÄ, ktÃ³rÄ
- metrykÄ wyÅwietla kaÅ¼dy widÅ¼et.";
-"faq.premium.aiinsights.q" = "Jak dziaÅajÄ
- SpostrzeÅ¼enia AI?";
-"faq.premium.aiinsights.a" = "SpostrzeÅ¼enia AI uÅ¼ywajÄ
- Apple Intelligence do analizy ostatniego trendu i generowania krÃ³tkiego, spersonalizowanego podsumowania. DziaÅa na urzÄ
-dzeniu, wymaga obsÅugiwanego urzÄ
-dzenia z wÅÄ
-czonym Apple Intelligence i odÅwieÅ¼a siÄ raz dziennie lub po zapisaniu nowej wartoÅci.";
-"faq.premium.icloudbackup.q" = "Co obejmuje kopia zapasowa iCloud?";
-"faq.premium.icloudbackup.a" = "Kopia zapasowa iCloud przechowuje wszystkie Twoje pomiary, cele i zdjÄcia w zaszyfrowanej formie na Twoim osobistym koncie iCloud. DziaÅa automatycznie, gdy aplikacja jest w tle, i moÅ¼na jÄ
- przywrÃ³ciÄ z Ustawienia â Dane â PrzywrÃ³Ä z kopii zapasowej.";
-"faq.premium.goalprediction.q" = "Jak dziaÃÂa Prognoza celu?";
-"faq.premium.goalprediction.a" = "Po ustawieniu celu Prognoza celu wykorzystuje podwÃ³jne wygÅadzanie wykÅadnicze do analizy ostatniego trendu i oszacowania, kiedy osiÄ
-gniesz cel. Wymaga co najmniej 7 pomiarÃ³w w ciÄ
-gu 7 dni. JeÅli trend oddala siÄ od celu lub jest pÅaski, zamiast daty wyÅwietlany jest pomocny komunikat.";
-
-/* Settings search catalog */
-"App version and legal" = "Wersja aplikacji i regulaminy";
-"Export, backup and delete" = "Eksport, kopia zapasowa i usuwanie";
-
-/* Custom Metrics */
-"custom.metric.section.title" = "Twoje metryki";
-"custom.metric.section.subtitle" = "TwÃÂ³rz i ÃÂledÃÂº wÃÂasne pomiary.";
-"custom.metric.add" = "Dodaj metrykÃÂ";
-"custom.metric.empty" = "Brak metryk. Dotknij +, aby utworzyÃÂ.";
-"custom.metric.create.title" = "Nowa metryka";
-"custom.metric.edit.title" = "Edytuj metrykÃÂ";
-"custom.metric.name.placeholder" = "Nazwa metryki";
-"custom.metric.unit.placeholder" = "Jednostka (np. cm, powt., ml)";
-"custom.metric.section.basic" = "Podstawowe";
-"custom.metric.section.icon" = "Ikona";
-"custom.metric.icon.label" = "Ikona";
-"custom.metric.icon.title" = "Wybierz ikonÃÂ";
-"custom.metric.icon.search" = "Szukaj symboli";
-"custom.metric.section.trend" = "Kierunek trendu";
-"custom.metric.trend.label" = "Korzystny kierunek";
-"custom.metric.trend.increase" = "Wzrost jest lepszy";
-"custom.metric.trend.decrease" = "Spadek jest lepszy";
-"custom.metric.trend.neutral" = "Neutralny";
-"custom.metric.trend.footer" = "OkreÃÂla kolorowanie trendÃÂ³w Ã¢ÂÂ zielony dla korzystnego, czerwony dla niekorzystnego.";
-"custom.metric.section.range" = "Zakres wartoÃÂci";
-"custom.metric.range.label" = "Granice wartoÃÂci (opcjonalne)";
-"custom.metric.range.min" = "Minimum";
-"custom.metric.range.max" = "Maksimum";
-"custom.metric.range.footer" = "Opcjonalne granice do walidacji danych wejÃÂciowych.";
-"custom.metric.delete" = "UsuÃÂ metrykÃÂ";
-"custom.metric.goal.target" = "WartoÃÂÃÂ docelowa";
-"Target value" = "WartoÃÂÃÂ docelowa";
-"Remove goal" = "UsuÃÂ cel";
-"No goal set" = "Brak ustawionego celu";
-"Goal:" = "Cel:";
-"Delete measurement" = "UsuÃÂ pomiar";
-"Show all" = "PokaÃÂ¼ wszystko";
-
-// MARK: - Smart per-metric notifications
-"notification.smart.stale.title" = "Czas na aktualizacjÃÂ";
-"notification.smart.stale.body" = "Nie podawaÃÂeÃÂ %@ od %d dni. Czas na update?";
-"notification.smart.pattern.title" = "PominÄ
-ÅeÅ swojÄ
- rutynÄ?";
-"notification.smart.pattern.body" = "Zwykle w %2$@ o tej porze podajesz %1$@. Chcesz dodaÃÂ?";
-"notification.smart.permetric.toggle" = "Powiadomienia per-metryka";
-"notification.smart.permetric.footer" = "Otrzymuj przypomnienia o konkretnych pomiarach, ktÃ³rych dawno nie podawaÅeÅ, lub gdy pominiesz swojÄ
- rutynÄ.";
-"notification.ai.header" = "Powiadomienia AI";
-"notification.ai.title" = "Powiadomienia AI";
-"notification.ai.subtitle" = "Apple Intelligence na urzÄ
-dzeniu wychwytuje istotne postÄpy, zmiany trendu i tygodniowy rytm.";
-"notification.ai.master" = "WÅÄ
-cz powiadomienia AI";
-"notification.ai.weekly" = "Podsumowanie tygodnia";
-"notification.ai.trend" = "Zmiany trendu";
-"notification.ai.goal" = "Kamienie milowe celu";
-"notification.ai.round" = "OkrÄ
-gÅe liczby";
-"notification.ai.consistency" = "Przypomnienia o regularnoÃÂci";
-"notification.ai.digest.day" = "DzieÃÂ podsumowania";
-"notification.ai.digest.time" = "Godzina podsumowania";
-"notification.ai.disclosure" = "TreÅÄ jest generowana na urzÄ
-dzeniu przez Apple Intelligence. MoÅ¼e zawieraÄ bÅÄdy i nie stanowi porady medycznej.";
-"notification.ai.unavailable" = "Powiadomienia AI wymagajÄ
- wersji Premium, Apple Intelligence i obsÅugiwanego jÄzyka. V1 wspiera obecnie angielski i polski.";
-"notification.ai.mute.action" = "Wycisz ten typ";
-
-/* Onboarding v3: First measurement step */
-"Your starting point" = "TwÃÂ³j punkt wyjÃÂcia";
-"One number is all you need to begin." = "Wystarczy jedna liczba, Å¼eby zaczÄ
-Ä.";
-"optional" = "opcjonalne";
-
-/* Onboarding v3: Value preview step */
-"You're all set" = "Gotowe!";
-"Here's what your dashboard will look like" = "Tak bÄdzie wyglÄ
-daÅ TwÃ³j pulpit";
-"Add more check-ins to see trends" = "Dodawaj pomiary, ÃÂ¼eby zobaczyÃÂ trendy";
-
-/* Onboarding v3: Recommended metrics preview */
-"You'll track:" = "BÃÂdziesz ÃÂledziÃÂ:";
-
-"German" = "Niemiecki";
-"French" = "Francuski";
-"Your trend is being analyzed." = "TwÃ³j trend jest analizowany.";
-"Keep logging consistently to get a clearer trend signal." = "Dodawaj wpisy regularnie, aby uzyskaÄ wyraÅºniejszy obraz trendu.";

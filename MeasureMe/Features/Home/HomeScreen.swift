@@ -722,8 +722,8 @@ struct HomeView: View {
 
     private func runCriticalStartupPhaseA() {
         hasAnyMeasurements = !recentSamples.isEmpty
-        isLastPhotosSectionMounted = false
-        isHealthSectionMounted = false
+        isLastPhotosSectionMounted = true
+        isHealthSectionMounted = true
     }
 
     private func scheduleDeferredStartupPhaseB() {
@@ -759,13 +759,11 @@ struct HomeView: View {
     private func scheduleDeferredSectionMounts() {
         deferredSectionMountTask?.cancel()
         deferredSectionMountTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(450))
             guard !Task.isCancelled else { return }
             StartupInstrumentation.event("HomeLastPhotosMountStart")
             isLastPhotosSectionMounted = true
             StartupInstrumentation.event("HomeLastPhotosMountEnd")
 
-            try? await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled else { return }
             StartupInstrumentation.event("HomeHealthMountStart")
             isHealthSectionMounted = true
@@ -1210,7 +1208,7 @@ struct HomeView: View {
         scrollOffset = value
         let normalizedOffset = Double(value)
         // Defer AppSetting write to avoid publishing during the view-update pass.
-        if abs(homeTabScrollOffset - normalizedOffset) > 0.5 {
+        if abs(homeTabScrollOffset - normalizedOffset) > 8 {
             Task { @MainActor in
                 homeTabScrollOffset = normalizedOffset
             }
@@ -1609,6 +1607,7 @@ struct HomeView: View {
                     previewItems: visibleHomeHealthStatItemViewModels,
                     onConnectHealth: connectHealthKitFromChecklist,
                     onOpenSettings: { router.selectTab(.settings) },
+                    onOpenHealth: { router.openMeasurementsSection("health") },
                     onOpenPremium: {
                         Haptics.selection()
                         premiumStore.presentPaywall(reason: .feature("Health Summary & Physique"))
@@ -2651,63 +2650,90 @@ struct HomeView: View {
     }
 
     private func secondaryMetricCard(for kind: MetricKind) -> some View {
-        let isExpanded = expandedSecondaryMetrics.contains(kind)
         let latestText = cachedLatestByKind[kind].map { formattedMetricValue(for: kind, metricValue: $0.value) } ?? AppLocalization.string("No data yet")
-        let detailText = metricDeltaTextFromCache(kind: kind, days: 7)
-            ?? secondaryMetricGoalSummary(for: kind)
-            ?? AppLocalization.string("Log another check-in to reveal the trend.")
-        return HomeSecondaryMetricToggleRow(
-            kind: kind,
-            latestText: latestText,
-            detailText: detailText,
-            isExpanded: isExpanded
-        ) {
-            toggleSecondaryMetric(kind)
-        } expandedContent: {
-            NavigationLink {
-                MetricDetailView(kind: kind)
-            } label: {
-                HomeKeyMetricRow(
-                    kind: kind,
-                    latest: cachedLatestByKind[kind],
-                    goal: cachedGoalsByKind[kind],
-                    samples: samplesForKind(kind),
-                    unitsSystem: unitsSystem,
-                    showsBackground: false
-                )
-            }
-            .buttonStyle(PressableTileStyle())
-            .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).openDetail")
+        let deltaChip = metricDeltaChip(for: kind)
+        let detailText = secondaryMetricGoalSummary(for: kind)
+            ?? (deltaChip == nil
+                ? AppLocalization.string("Log another check-in to reveal the trend.")
+                : FlowLocalization.app("Last 7 days", "Ostatnie 7 dni", "Últimos 7 días", "Letzte 7 Tage", "7 derniers jours", "Últimos 7 dias"))
+
+        return NavigationLink {
+            MetricDetailView(kind: kind)
+        } label: {
+            HomeSecondaryMetricNavigationRow(
+                kind: kind,
+                latestText: latestText,
+                detailText: detailText,
+                deltaChip: deltaChip
+            )
         }
+        .buttonStyle(.plain)
         .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
         .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
-        .overlay(alignment: .topLeading) {
-            if isUITestMode && isExpanded {
-                Button("collapse") { collapseSecondaryMetric(kind) }
-                .buttonStyle(.plain)
-                .frame(width: 1, height: 1)
-                .opacity(0.01)
-                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).collapseHook")
-            }
-        }
     }
 
+    private func metricDeltaChip(for kind: MetricKind) -> HomeMetricDeltaChip? {
+        guard let text = metricDeltaTextFromCache(kind: kind, days: 7) else { return nil }
+        let tint: Color
+        if let window = trendWindowSamples(for: kind, days: 7) ?? trendWindowSamples(for: kind, days: 30) {
+            switch kind.trendOutcome(from: window.oldest.value, to: window.newest.value, goal: cachedGoalsByKind[kind]) {
+            case .positive:
+                tint = AppColorRoles.stateSuccess
+            case .negative:
+                tint = Color(hex: "#EF4444")
+            case .neutral:
+                tint = AppColorRoles.textTertiary
+            }
+        } else {
+            tint = Color.appAccent
+        }
+        return HomeMetricDeltaChip(text: text, tint: tint)
+    }
 
     private func customSecondaryMetricCard(for definition: CustomMetricDefinition) -> some View {
         let id = definition.identifier
         let latestText = cachedCustomLatestByIdentifier[id].map {
             String(format: "%.1f %@", $0.value, definition.unitLabel)
         } ?? AppLocalization.string("No data yet")
+        let deltaChip = customMetricDeltaChip(for: definition)
 
         return NavigationLink {
             CustomMetricDetailView(definition: definition)
         } label: {
             HomeCustomSecondaryMetricRow(
                 definition: definition,
-                latestText: latestText
+                latestText: latestText,
+                deltaChip: deltaChip
             )
         }
         .buttonStyle(.plain)
+    }
+
+    private func customMetricDeltaChip(for definition: CustomMetricDefinition) -> HomeMetricDeltaChip? {
+        guard let startDate = Calendar.current.date(byAdding: .day, value: -7, to: AppClock.now) else {
+            return nil
+        }
+        let window = (cachedCustomSamplesByIdentifier[definition.identifier] ?? [])
+            .filter { $0.date >= startDate }
+        guard let newest = window.max(by: { $0.date < $1.date }),
+              let oldest = window.min(by: { $0.date < $1.date }),
+              newest.persistentModelID != oldest.persistentModelID else {
+            return nil
+        }
+
+        let delta = newest.value - oldest.value
+        guard abs(delta) > 0.0001 else {
+            return HomeMetricDeltaChip(
+                text: String(format: "%.1f %@", abs(delta), definition.unitLabel),
+                tint: AppColorRoles.textTertiary
+            )
+        }
+
+        let isPositive = definition.favorsDecrease ? delta < 0 : delta > 0
+        return HomeMetricDeltaChip(
+            text: String(format: "%@%.1f %@", delta >= 0 ? "+" : "-", abs(delta), definition.unitLabel),
+            tint: isPositive ? AppColorRoles.stateSuccess : Color(hex: "#EF4444")
+        )
     }
 
     private func toggleSecondaryMetric(_ kind: MetricKind) {

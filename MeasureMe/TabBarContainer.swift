@@ -14,7 +14,7 @@ struct TabBarContainer: View {
 
     var body: some View {
         let isUITest = UITestArgument.isAnyTestMode
-        let tabBarShouldBeVisible = isUITest || router.selectedTab != .home || homeTabScrollOffset < -14
+        let tabBarShouldBeVisible = isUITest || router.selectedTab != .home || homeTabScrollOffset < -60
 
         ZStack {
             AppColorRoles.surfaceCanvas

@@ -8,6 +8,8 @@ final class AppRouter: ObservableObject {
     @Published private(set) var photoComposerRequestID: UUID?
     @Published private(set) var metricDetailRequestID: UUID?
     @Published private(set) var requestedMetricDetailKind: MetricKind?
+    @Published private(set) var measurementsSectionRequestID: UUID?
+    @Published private(set) var requestedMeasurementsSection: String?
 
     init() {
         self.selectedTab = AppRouter.defaultSelectedTab()
@@ -58,6 +60,12 @@ final class AppRouter: ObservableObject {
         metricDetailRequestID = UUID()
     }
 
+    func openMeasurementsSection(_ section: String) {
+        selectTab(.measurements)
+        requestedMeasurementsSection = section
+        measurementsSectionRequestID = UUID()
+    }
+
     func consumePhotoComposerRequest(_ requestID: UUID) {
         guard photoComposerRequestID == requestID else { return }
         photoComposerRequestID = nil
@@ -67,6 +75,12 @@ final class AppRouter: ObservableObject {
         guard metricDetailRequestID == requestID else { return }
         metricDetailRequestID = nil
         requestedMetricDetailKind = nil
+    }
+
+    func consumeMeasurementsSectionRequest(_ requestID: UUID) {
+        guard measurementsSectionRequestID == requestID else { return }
+        measurementsSectionRequestID = nil
+        requestedMeasurementsSection = nil
     }
 }
 

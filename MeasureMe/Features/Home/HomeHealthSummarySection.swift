@@ -26,6 +26,7 @@ struct HomeHealthSummaryCard: View {
     let previewItems: [HomeHealthStatItemViewModel]
     let onConnectHealth: () -> Void
     let onOpenSettings: () -> Void
+    let onOpenHealth: () -> Void
     let onOpenPremium: () -> Void
 
     private let healthTheme = FeatureTheme.health
@@ -70,10 +71,8 @@ struct HomeHealthSummaryCard: View {
 
                 if items.isEmpty {
                     emptyStateCard
-                } else if snapshot.isPremium {
-                    premiumContent
                 } else {
-                    previewContent
+                    summaryContent
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -96,63 +95,58 @@ struct HomeHealthSummaryCard: View {
         .buttonStyle(.plain)
     }
 
-    private var premiumContent: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            insightCard(
-                eyebrow: AppLocalization.string("home.health.summary.card"),
-                title: snapshot.summaryTitle,
-                detail: snapshot.summaryDetail,
-                tint: healthTheme.pillFill,
-                stroke: AppColorRoles.borderSubtle,
-                accent: healthTheme.accent
-            )
+    private var summaryContent: some View {
+        Button(action: snapshot.isPremium ? onOpenHealth : onOpenPremium) {
+            VStack(alignment: .leading, spacing: 10) {
+                insightCard(
+                    eyebrow: AppLocalization.string("home.health.summary.card"),
+                    title: snapshot.summaryTitle,
+                    detail: snapshot.summaryDetail,
+                    tint: healthTheme.pillFill,
+                    stroke: AppColorRoles.borderSubtle,
+                    accent: healthTheme.accent
+                )
 
-            LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: 10),
-                    GridItem(.flexible(), spacing: 10)
-                ],
-                spacing: 10
-            ) {
-                ForEach(items) { item in
-                    compactHealthStatCard(item)
+                if let headlineItem {
+                    headlineHealthStatCard(headlineItem)
+                        .accessibilityIdentifier("home.health.preview.metric")
+                }
+
+                HStack(spacing: 6) {
+                    Text(additionalIndicatorsText)
+                        .font(AppTypography.microEmphasis)
+                        .foregroundStyle(healthTheme.accent)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(healthTheme.accent)
                 }
             }
         }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(snapshot.isPremium ? "home.health.open.button" : "home.health.premium.button")
     }
 
-    private var previewContent: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ForEach(previewItems) { item in
-                compactHealthStatCard(item)
-                    .accessibilityIdentifier("home.health.preview.metric")
-            }
+    private var headlineItem: HomeHealthStatItemViewModel? {
+        previewItems.first ?? items.first
+    }
 
-            if let previewLabel = previewItems.first?.label {
-                hiddenAccessibilityMarker(text: previewLabel, identifier: "home.health.preview.label")
-            }
-
-            if let previewBadge = previewItems.first?.badge {
-                hiddenAccessibilityMarker(text: previewBadge, identifier: "home.health.preview.badge")
-            }
-
-            Button(action: onOpenPremium) {
-                insightCard(
-                    eyebrow: AppLocalization.string("home.health.summary.card"),
-                    title: AppLocalization.string("home.health.premium.title"),
-                    detail: AppLocalization.string("home.health.premium.detail"),
-                    note: AppLocalization.string("home.photos.compare.note.premium"),
-                    tint: premiumTheme.pillFill,
-                    stroke: premiumTheme.border,
-                    accent: healthTheme.accent
-                )
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("home.health.premium.button")
+    private var additionalIndicatorsText: String {
+        let additionalCount = max(items.count - 1, 0)
+        if additionalCount <= 0 {
+            return FlowLocalization.app("Open Health indicators", "Otwórz wskaźniki zdrowia", "Abrir indicadores de salud", "Gesundheitsindikatoren öffnen", "Ouvrir les indicateurs santé", "Abrir indicadores de saúde")
         }
+        return FlowLocalization.app(
+            "\(additionalCount) more indicators",
+            "\(additionalCount) więcej wskaźników",
+            "\(additionalCount) indicadores más",
+            "\(additionalCount) weitere Indikatoren",
+            "\(additionalCount) autres indicateurs",
+            "\(additionalCount) indicadores a mais"
+        )
     }
 
-    private func compactHealthStatCard(_ item: HomeHealthStatItemViewModel) -> some View {
+    private func headlineHealthStatCard(_ item: HomeHealthStatItemViewModel) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(item.label)
                 .font(AppTypography.eyebrow)
@@ -168,17 +162,17 @@ struct HomeHealthSummaryCard: View {
             if let badge = item.badge, !badge.isEmpty {
                 Text(badge)
                     .font(AppTypography.badge)
-                    .foregroundStyle(healthTheme.accent.opacity(0.95))
+                    .foregroundStyle(AppColorRoles.textSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(
                         Capsule(style: .continuous)
-                            .fill(healthTheme.pillFill)
+                            .fill(AppColorRoles.surfaceInteractive)
                             .overlay(
                                 Capsule(style: .continuous)
-                                    .stroke(healthTheme.pillStroke, lineWidth: 1)
+                                    .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                             )
                     )
             }

@@ -14,7 +14,8 @@ actor DiskImageCache {
     private let memoryDataCache = NSCache<NSString, NSData>()
 
     private init() {
-        let base = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        let base = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
         directoryURL = base.appendingPathComponent("MeasureMeImageCache", isDirectory: true)
         memoryDataCache.countLimit = 300
         memoryDataCache.totalCostLimit = 64 * 1024 * 1024

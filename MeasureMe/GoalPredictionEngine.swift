@@ -67,10 +67,11 @@ enum GoalPredictionEngine {
 
         // 2. Aggregate samples to one per day (average) and sort
         let daily = aggregateDaily(sortedAll)
-        guard daily.count >= 7 else { return .insufficientData }
+        guard daily.count >= 7,
+              let firstDate = daily.first?.date,
+              let lastDate = daily.last?.date
+        else { return .insufficientData }
 
-        let firstDate = daily.first!.date
-        let lastDate = daily.last!.date
         let spanDays = lastDate.timeIntervalSince(firstDate) / 86400.0
         guard spanDays >= 7 else { return .insufficientData }
 

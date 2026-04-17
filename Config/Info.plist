@@ -7,6 +7,8 @@
 		<string>com.jacek.measureme.icloud-backup</string>
 		<string>com.jacek.measureme.ai-notifications</string>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>MeasureMe uses the camera to take progress photos you choose to save.</string>
 	<key>NSHealthShareUsageDescription</key>
