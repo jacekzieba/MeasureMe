@@ -109,7 +109,6 @@ struct HomeHealthSummaryCard: View {
 
                 if let headlineItem {
                     headlineHealthStatCard(headlineItem)
-                        .accessibilityIdentifier("home.health.preview.metric")
                 }
 
                 HStack(spacing: 6) {
@@ -148,6 +147,11 @@ struct HomeHealthSummaryCard: View {
 
     private func headlineHealthStatCard(_ item: HomeHealthStatItemViewModel) -> some View {
         VStack(alignment: .leading, spacing: 5) {
+            hiddenAccessibilityMarker(text: item.label, identifier: "home.health.preview.label")
+            if let badge = item.badge, !badge.isEmpty {
+                hiddenAccessibilityMarker(text: badge, identifier: "home.health.preview.badge")
+            }
+
             Text(item.label)
                 .font(AppTypography.eyebrow)
                 .foregroundStyle(AppColorRoles.textTertiary)

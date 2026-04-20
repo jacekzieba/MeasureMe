@@ -70,8 +70,12 @@ final class ComparePhotosSnapshotTests: XCTestCase {
         context.insert(newerPhoto)
         try context.save()
 
+        let premiumStore = PremiumStore(startListener: false)
+        premiumStore.isPremium = true
+
         let view = ComparePhotosView(olderPhoto: olderPhoto, newerPhoto: newerPhoto)
             .modelContainer(container)
+            .environmentObject(premiumStore)
             .preferredColorScheme(.dark)
 
         let vc = UIHostingController(rootView: view)

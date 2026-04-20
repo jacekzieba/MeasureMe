@@ -213,6 +213,11 @@ final class PremiumStore: ObservableObject {
             parameters: reason.analyticsParameters
         )
         isPaywallPresented = true
+        #if DEBUG
+        if UITestArgument.isAnyTestMode {
+            NotificationCenter.default.post(name: .premiumStoreDidPresentPaywallForUITests, object: nil)
+        }
+        #endif
     }
 
     func setPurchaseContext(reason: PaywallReason) {
@@ -358,9 +363,7 @@ final class PremiumStore: ObservableObject {
 
     var canSimulateTrialActivationForUITests: Bool {
         #if DEBUG
-        let args = ProcessInfo.processInfo.arguments
-        let isUITest = args.contains(UITestArgument.mode.rawValue) || args.contains(UITestArgument.onboardingMode.rawValue)
-        return isUITest && args.contains(UITestArgument.simulateTrialActivation.rawValue)
+        return UITestArgument.isAnyTestMode && UITestArgument.shouldSimulateTrialActivation
         #else
         false
         #endif

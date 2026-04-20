@@ -46,9 +46,9 @@ final class OnboardingToGoalJourneyUITests: XCTestCase {
         XCTAssertTrue(skip.waitForExistence(timeout: 8), "Krok imienia powinien pozwalac na pominiecie")
         skip.tap()
 
-        let loseWeight = app.buttons["onboarding.priority.loseWeight"].firstMatch
-        XCTAssertTrue(loseWeight.waitForExistence(timeout: 8), "Krok priorytetow powinien byc widoczny")
-        loseWeight.tap()
+        let buildMuscle = app.buttons["onboarding.priority.buildMuscle"].firstMatch
+        XCTAssertTrue(buildMuscle.waitForExistence(timeout: 8), "Krok priorytetow powinien byc widoczny")
+        buildMuscle.tap()
         next.tap()
 
         XCTAssertTrue(app.buttons["onboarding.health.allow"].firstMatch.waitForExistence(timeout: 8), "Krok Health powinien byc widoczny")
@@ -57,11 +57,11 @@ final class OnboardingToGoalJourneyUITests: XCTestCase {
     }
 
     private func onboardingNextButton() -> XCUIElement {
-        let uiTestNext = app.buttons["UITest Next"].firstMatch
-        if uiTestNext.waitForExistence(timeout: 0.5) {
-            return uiTestNext
+        let identifierNext = app.buttons["onboarding.test.next"].firstMatch
+        if identifierNext.waitForExistence(timeout: 0.5) {
+            return identifierNext
         }
-        return app.buttons["onboarding.next"].firstMatch
+        return app.buttons["UITest Next"].firstMatch
     }
 
     private func openMeasurementsTab() {

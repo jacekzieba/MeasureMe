@@ -33,11 +33,13 @@ struct PhotoFormTagsSection: View {
 
     private var primaryTags: [PhotoTag] {
         let availablePrimary = tags.filter(\.isPrimaryPose)
-        return availablePrimary.isEmpty ? PhotoTag.primaryPoseTags : availablePrimary
+        let resolvedPrimary = availablePrimary.isEmpty ? PhotoTag.primaryPoseTags : availablePrimary
+        guard tags.contains(.wholeBody) else { return resolvedPrimary }
+        return resolvedPrimary + [.wholeBody]
     }
 
     private var advancedTags: [PhotoTag] {
-        tags.filter(\.isLegacyAreaTag)
+        tags.filter { $0.isLegacyAreaTag && $0 != .wholeBody }
     }
 
     private func tagFlow(for tags: [PhotoTag]) -> some View {

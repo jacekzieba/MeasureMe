@@ -186,6 +186,9 @@ struct SettingsOverviewSections: View {
                         Text(AppLocalization.string("settings.action.explorePremium"))
                     }
                     .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                    .simultaneousGesture(TapGesture().onEnded {
+                        onExplorePremium()
+                    })
                     .accessibilityIdentifier("settings.action.explorePremium")
                 }
             }

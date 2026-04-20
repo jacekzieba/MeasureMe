@@ -573,6 +573,9 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             }
             .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+            .simultaneousGesture(TapGesture().onEnded {
+                premiumStore.presentPaywall(reason: .settings)
+            })
             .accessibilityIdentifier("settings.action.explorePremium")
         }
         .listRowSeparator(.hidden)

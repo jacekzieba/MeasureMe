@@ -4,6 +4,7 @@ enum UITestArgument: String {
     case mode = "-uiTestMode"
     case onboardingMode = "-uiTestOnboardingMode"
     case openSettingsTab = "-uiTestOpenSettingsTab"
+    case openExperienceSettings = "-uiTestOpenExperienceSettings"
     case openSingleAdd = "-uiTestOpenSingleAdd"
     case openMultiImport = "-uiTestOpenMultiImport"
 
@@ -12,6 +13,7 @@ enum UITestArgument: String {
     case forceNonPremium = "-uiTestForceNonPremium"
     case simulateTrialActivation = "-uiTestSimulateTrialActivation"
     case showTrialReminderPrompt = "-uiTestShowTrialReminderPrompt"
+    case showSettingsPaywall = "-uiTestShowSettingsPaywall"
 
     // Seeding
     case seedMeasurements = "-uiTestSeedMeasurements"
@@ -74,6 +76,16 @@ extension UITestArgument {
     /// `true` when either `.mode` or `.onboardingMode` was passed.
     nonisolated static var isAnyTestMode: Bool {
         isPresent(.mode) || isPresent(.onboardingMode)
+    }
+
+    nonisolated static var shouldShowSettingsPaywall: Bool {
+        isPresent(.showSettingsPaywall)
+            || ProcessInfo.processInfo.environment["UI_TEST_SHOW_SETTINGS_PAYWALL"] == "1"
+    }
+
+    nonisolated static var shouldSimulateTrialActivation: Bool {
+        isPresent(.simulateTrialActivation)
+            || ProcessInfo.processInfo.environment["UI_TEST_SIMULATE_TRIAL_ACTIVATION"] == "1"
     }
 
     /// Returns the string value following the given flag, e.g. `-uiTestSeedPhotos 24` → `"24"`.

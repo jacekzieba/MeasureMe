@@ -265,12 +265,14 @@ struct HomeHeroSection: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("home.nextFocus.summary")
 
-                Text(snapshot.weekDetail)
-                    .font(AppTypography.micro)
-                    .foregroundStyle(AppColorRoles.textTertiary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.86)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Text(snapshot.weekDetail)
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColorRoles.textTertiary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.86)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
             .padding(summaryCardPadding)
             .frame(maxWidth: .infinity, minHeight: snapshot.prefersStackedPanels ? 116 : 104, alignment: .topLeading)

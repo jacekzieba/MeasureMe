@@ -131,6 +131,10 @@ struct DataSettingsDetailView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(isBackingUp || (isPremium && !isICloudAvailable))
+                    .simultaneousGesture(TapGesture().onEnded {
+                        guard !isPremium else { return }
+                        onUnlockICloudBackup()
+                    })
                     .accessibilityIdentifier("settings.data.icloud.backupNow")
 
                     SettingsRowDivider()
@@ -144,6 +148,10 @@ struct DataSettingsDetailView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(isPremium && !isICloudAvailable)
+                    .simultaneousGesture(TapGesture().onEnded {
+                        guard !isPremium else { return }
+                        onUnlockICloudBackup()
+                    })
                     .accessibilityIdentifier("settings.data.icloud.restoreLatest")
 
                     SettingsRowDivider()

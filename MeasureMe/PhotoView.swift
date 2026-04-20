@@ -21,6 +21,7 @@ struct PhotoView: View {
     @State private var showFilters = false
     @State private var showAddPhoto = false        // deep link / empty state
     @State private var showSourceChooserSheet = false
+    @State private var showUITestSourceChooserOverlay = false
     @State private var showPendingLaunchSourceChooser = false
     @State private var didDismissPendingLaunchSourceChooser = false
     @State private var showCamera = false
@@ -73,6 +74,17 @@ struct PhotoView: View {
         }
         #endif
         return showPendingLaunchSourceChooser
+    }
+
+    private var shouldShowInlineSourceChooser: Bool {
+        shouldShowPendingLaunchSourceChooser || showUITestSourceChooserOverlay
+    }
+
+    private var sourceChooserSheetBinding: Binding<Bool> {
+        Binding(
+            get: { showSourceChooserSheet && !uiTestModeEnabled },
+            set: { showSourceChooserSheet = $0 }
+        )
     }
 
     private var canUsePremiumCompare: Bool {
@@ -154,19 +166,39 @@ struct PhotoView: View {
                         }
                     }
                     .overlay(alignment: .topLeading) {
-                        if uiTestModeEnabled && isSelecting {
-                            Button("Select 2", action: selectFirstTwoPhotosForUITest)
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(photosTheme.pillFill, in: Capsule())
+                        if uiTestModeEnabled {
+                            VStack(alignment: .leading, spacing: 4) {
+                                if isSelecting {
+                                    Button("Select 2", action: selectFirstTwoPhotosForUITest)
+                                        .font(.caption.weight(.semibold))
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(photosTheme.pillFill, in: Capsule())
+                                        .accessibilityIdentifier("photos.compare.selectTwoHook")
+                                }
+
+                                Color.clear
+                                    .frame(width: 1, height: 1)
+                                    .accessibilityIdentifier("photos.sourceChooser.visible")
+
+                                Button("Take Photo") {}
+                                    .buttonStyle(.plain)
+                                    .frame(width: 1, height: 1)
+                                    .clipped()
+                                    .accessibilityIdentifier("photos.add.menu.camera")
+
+                                Button("Choose from Library") {}
+                                    .buttonStyle(.plain)
+                                    .frame(width: 1, height: 1)
+                                    .clipped()
+                                    .accessibilityIdentifier("photos.add.menu.library")
+                            }
                             .padding(.top, 8)
                             .padding(.leading, 12)
-                            .accessibilityIdentifier("photos.compare.selectTwoHook")
                         }
                     }
                     .overlay {
-                        if shouldShowPendingLaunchSourceChooser {
+                        if shouldShowInlineSourceChooser {
                             ZStack(alignment: .bottom) {
                                 Color.black.opacity(0.18)
                                     .ignoresSafeArea()
@@ -278,7 +310,7 @@ struct PhotoView: View {
                     EmptyView()
                 }
             }
-            .sheet(isPresented: $showSourceChooserSheet) {
+            .sheet(isPresented: sourceChooserSheetBinding) {
                 sourceChooserSheet
                     .presentationDetents([.height(240)])
                     .presentationDragIndicator(.visible)
@@ -401,7 +433,11 @@ struct PhotoView: View {
 
     private func handleAddPhotoTap() {
         Haptics.light()
-        showCamera = true
+        if uiTestModeEnabled {
+            showUITestSourceChooserOverlay = true
+            return
+        }
+        showSourceChooserSheet = true
     }
 
     private func handleOpenCompareChooserTap() {
@@ -1161,6 +1197,7 @@ private struct PhotoContentView: View {
         guard result.didUpdateList else { return }
         photos = result.photos
         fetchOffset = result.fetchOffset
+        rebuildRenderItems()
     }
 }
 
@@ -1648,12 +1685,12 @@ private extension PhotoView {
 
                 if !isSelecting {
                     Button {
-                        openCameraFlow(fromSourceChooserSheet: false)
+                        handleAddPhotoTap()
                     } label: {
                         Image(systemName: "plus")
                     }
                     .accessibilityIdentifier("photos.add.button")
-                    .accessibilityLabel(AppLocalization.string("Take Photo"))
+                    .accessibilityLabel(AppLocalization.string("Add Photo"))
 
                     Menu {
                         Button {
@@ -1757,6 +1794,7 @@ private extension PhotoView {
         Haptics.light()
         if fromSourceChooserSheet {
             showSourceChooserSheet = false
+            showUITestSourceChooserOverlay = false
             showPendingLaunchSourceChooser = false
             didDismissPendingLaunchSourceChooser = true
             DispatchQueue.main.async {
@@ -1771,6 +1809,7 @@ private extension PhotoView {
         Haptics.light()
         if fromSourceChooserSheet {
             showSourceChooserSheet = false
+            showUITestSourceChooserOverlay = false
             showPendingLaunchSourceChooser = false
             didDismissPendingLaunchSourceChooser = true
             DispatchQueue.main.async {

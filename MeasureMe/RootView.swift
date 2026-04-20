@@ -59,7 +59,6 @@ struct RootView: View {
             metricsStore: metricsStore,
             pendingPhotoSaveStore: pendingPhotoSaveStore
         )
-        .accessibilityIdentifier("app.root")
         .onAppear(perform: handleAppear)
         .environmentObject(premiumStore)
         .environmentObject(metricsStore)
@@ -154,21 +153,21 @@ struct OnboardingUITestOverlay: View {
         VStack(alignment: .leading, spacing: 8) {
             OnboardingUITestButton(
                 title: "UITest Next",
-                identifier: "onboarding.next",
+                identifier: "onboarding.test.next",
                 style: .borderedProminent,
                 action: onNext
             )
 
             OnboardingUITestButton(
                 title: "UITest Back",
-                identifier: "onboarding.back",
+                identifier: "onboarding.test.back",
                 style: .bordered,
                 action: onBack
             )
 
             OnboardingUITestButton(
                 title: "UITest Skip",
-                identifier: "onboarding.skip",
+                identifier: "onboarding.test.skip",
                 style: .bordered,
                 action: onSkip
             )
@@ -223,9 +222,9 @@ struct OnboardingUITestButtonStyleModifier: ViewModifier {
     func body(content: Content) -> some View {
         switch style {
         case .bordered:
-            content.buttonStyle(AppSecondaryButtonStyle(cornerRadius: 10))
+            content.buttonStyle(.bordered)
         case .borderedProminent:
-            content.buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 10))
+            content.buttonStyle(.borderedProminent)
         }
     }
 }

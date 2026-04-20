@@ -19,15 +19,27 @@ final class OnboardingUITests: XCTestCase {
     }
 
     private var nextButton: XCUIElement {
-        app.buttons["UITest Next"].firstMatch
+        let identifierNext = app.buttons["onboarding.test.next"].firstMatch
+        if identifierNext.waitForExistence(timeout: 0.5) {
+            return identifierNext
+        }
+        return app.buttons["UITest Next"].firstMatch
     }
 
     private var backButton: XCUIElement {
-        app.buttons["UITest Back"].firstMatch
+        let identifierBack = app.buttons["onboarding.test.back"].firstMatch
+        if identifierBack.waitForExistence(timeout: 0.5) {
+            return identifierBack
+        }
+        return app.buttons["UITest Back"].firstMatch
     }
 
     private var skipButton: XCUIElement {
-        app.buttons["UITest Skip"].firstMatch
+        let identifierSkip = app.buttons["onboarding.test.skip"].firstMatch
+        if identifierSkip.waitForExistence(timeout: 0.5) {
+            return identifierSkip
+        }
+        return app.buttons["UITest Skip"].firstMatch
     }
 
     private func advanceIntroSlides() {
@@ -35,6 +47,13 @@ final class OnboardingUITests: XCTestCase {
             XCTAssertTrue(nextButton.waitForExistence(timeout: 10), "Next button should exist on intro slides")
             nextButton.tap()
         }
+    }
+
+    private func waitForOnboardingStep(_ expected: String, timeout: TimeInterval = 5) -> Bool {
+        let stepHook = app.staticTexts["root.onboarding.test.step"].firstMatch
+        let predicate = NSPredicate(format: "label == %@", expected)
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: stepHook)
+        return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
     }
 
     private func reachPriorityStep() {
@@ -60,7 +79,7 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertEqual(stepHook.label, "step:1")
 
         backButton.tap()
-        XCTAssertEqual(stepHook.label, "step:0")
+        XCTAssertTrue(waitForOnboardingStep("step:0"), "Back should return to the previous intro slide")
     }
 
     func testIntroSkipAppearsOnlyAfterFirstSlideAndJumpsToName() {
@@ -125,7 +144,8 @@ final class OnboardingUITests: XCTestCase {
         skipButton.tap()
 
         XCTAssertFalse(app.buttons["onboarding.notifications.allow"].waitForExistence(timeout: 1), "Notifications should no longer be part of onboarding")
-        XCTAssertTrue(app.buttons["onboarding.health.allow"].exists, "Health step should remain visible after skip")
+        XCTAssertFalse(app.buttons["onboarding.health.allow"].exists, "Skipping Health should move to the completion step")
+        XCTAssertTrue(nextButton.waitForExistence(timeout: 5), "Completion should expose the final continue action")
     }
 
     func testOnboardingCanReachDashboardWithSkips() {

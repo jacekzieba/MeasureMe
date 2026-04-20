@@ -894,6 +894,22 @@ struct HomeView: View {
                 .frame(width: 1, height: 1)
                 .clipped()
 
+            ForEach(homeSecondaryMetricUITestKinds, id: \.self) { kind in
+                Button {
+                    if expandedSecondaryMetrics.contains(kind) {
+                        expandedSecondaryMetrics.remove(kind)
+                    } else {
+                        expandedSecondaryMetrics.insert(kind)
+                    }
+                } label: {
+                    Color.clear
+                        .frame(width: 80, height: 80)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).toggle")
+            }
+
             ForEach(Array(expandedSecondaryMetrics), id: \.self) { kind in
                 Color.clear
                     .accessibilityElement()
@@ -924,6 +940,10 @@ struct HomeView: View {
                 .frame(width: 1, height: 1)
                 .clipped()
         }
+    }
+
+    private var homeSecondaryMetricUITestKinds: [MetricKind] {
+        dashboardKeyIdentifiers.dropFirst().compactMap(MetricKind.init(rawValue:))
     }
 
     private var baseHomeRoot: some View {
@@ -2657,19 +2677,45 @@ struct HomeView: View {
                 ? AppLocalization.string("Log another check-in to reveal the trend.")
                 : FlowLocalization.app("Last 7 days", "Ostatnie 7 dni", "Últimos 7 días", "Letzte 7 Tage", "7 derniers jours", "Últimos 7 dias"))
 
-        return NavigationLink {
-            MetricDetailView(kind: kind)
-        } label: {
-            HomeSecondaryMetricNavigationRow(
-                kind: kind,
-                latestText: latestText,
-                detailText: detailText,
-                deltaChip: deltaChip
-            )
+        return HomeSecondaryMetricToggleRow(
+            kind: kind,
+            latestText: latestText,
+            detailText: detailText,
+            isExpanded: expandedSecondaryMetrics.contains(kind),
+            onToggle: {
+                withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+                    if expandedSecondaryMetrics.contains(kind) {
+                        expandedSecondaryMetrics.remove(kind)
+                    } else {
+                        expandedSecondaryMetrics.insert(kind)
+                    }
+                }
+            }
+        ) {
+            VStack(alignment: .leading, spacing: 10) {
+                if let deltaChip {
+                    Text(deltaChip.text)
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(deltaChip.tint)
+                }
+
+                Text(detailText)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                NavigationLink {
+                    MetricDetailView(kind: kind)
+                } label: {
+                    Text(AppLocalization.string("View details"))
+                        .font(AppTypography.microEmphasis)
+                        .foregroundStyle(Color.appAccent)
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .buttonStyle(.plain)
         .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
-        .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
+        .accessibilityHint(detailText)
     }
 
     private func metricDeltaChip(for kind: MetricKind) -> HomeMetricDeltaChip? {
@@ -2987,6 +3033,10 @@ struct HomeView: View {
     private func handleRecentPhotosCompareTap() {
         guard hasEnoughSavedPhotosForCompare else { return }
         Haptics.selection()
+        guard premiumStore.isPremium else {
+            premiumStore.presentPaywall(reason: .feature("photo_compare"))
+            return
+        }
         comparePhotosCardDismissed = true
         AnalyticsFirstEventTracker.trackFirstCompareSessionIfNeeded(source: "home_recent_photos")
         showHomeCompareChooser = true

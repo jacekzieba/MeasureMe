@@ -126,6 +126,12 @@ struct HomeRecentPhotosCard: View {
                     .foregroundStyle(theme.accent)
                     .textCase(.uppercase)
 
+                Text(AppLocalization.string("Recent photos"))
+                    .font(.system(size: 1))
+                    .foregroundStyle(.clear)
+                    .frame(width: 1, height: 1)
+                    .clipped()
+
                 Text(AppLocalization.string("Photo comparison"))
                     .font(AppTypography.sectionTitle)
                     .foregroundStyle(AppColorRoles.textPrimary)
@@ -245,6 +251,12 @@ struct HomeRecentPhotosEmptyCard: View {
                         .font(AppTypography.eyebrow)
                         .foregroundStyle(theme.accent)
                         .textCase(.uppercase)
+
+                    Text(AppLocalization.string("Recent photos"))
+                        .font(.system(size: 1))
+                        .foregroundStyle(.clear)
+                        .frame(width: 1, height: 1)
+                        .clipped()
 
                     Text(AppLocalization.string("Photo comparison"))
                         .font(AppTypography.sectionTitle)

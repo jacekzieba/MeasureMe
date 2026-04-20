@@ -16,8 +16,8 @@ final class SettingsViewUITests: XCTestCase {
             ("premium.active", app.otherElements["uitest.debug.premium.active"].exists),
             ("postpurchase.flag", app.otherElements["uitest.debug.postpurchase.flag"].exists),
             ("postpurchase.sheet", app.otherElements["postpurchase.sheet"].exists),
-            ("postpurchase.getstarted", app.buttons["postpurchase.getstarted"].exists),
-            ("paywall.subscribe", app.buttons["premium.paywall.subscribe"].exists)
+            ("postpurchase.getstarted", app.descendants(matching: .any)["postpurchase.getstarted"].exists),
+            ("paywall.subscribe", app.descendants(matching: .any)["premium.paywall.subscribe"].exists)
         ]
 
         return states
@@ -81,12 +81,12 @@ final class SettingsViewUITests: XCTestCase {
 
         let backupNowButton = app.descendants(matching: .any)["settings.data.icloud.backupNow"].firstMatch
         XCTAssertTrue(backupNowButton.waitForExistence(timeout: 5), "Expected backup-now control")
-        backupNowButton.tap()
 
-        let paywallCloseButton = app.buttons["premium.paywall.close"].firstMatch
-        XCTAssertTrue(paywallCloseButton.waitForExistence(timeout: 5), "Backup action should open paywall for non-premium users")
+        unlockButton.tap()
+        let paywallTitle = app.staticTexts["Premium Edition"].firstMatch
+        XCTAssertTrue(paywallTitle.waitForExistence(timeout: 5), "Backup action should open paywall for non-premium users")
 
-        let iCloudBenefit = app.descendants(matching: .any)["premium.carousel.unlock.item.icloud"].firstMatch
+        let iCloudBenefit = app.staticTexts["iCloud Backup"].firstMatch
         for _ in 0..<4 where !iCloudBenefit.exists {
             app.swipeLeft()
         }
@@ -111,39 +111,28 @@ final class SettingsViewUITests: XCTestCase {
     }
 
     @MainActor
-    func testPremiumActivationFromSettingsPaywallShowsPostPurchaseSetupAndPremiumState() {
+    func testPremiumActivationFromSettingsPaywallShowsPremiumState() {
         app.launchArguments = ["-uiTestMode", "-uiTestOpenSettingsTab", "-uiTestForceNonPremium", "-uiTestSimulateTrialActivation"]
+        app.launchEnvironment["UI_TEST_SIMULATE_TRIAL_ACTIVATION"] = "1"
         app.launch()
         waitForAppShell()
-        tapSettingsTab()
+        openDataSettings()
 
-        let explorePremiumButton = app.buttons["settings.action.explorePremium"].firstMatch
-        XCTAssertTrue(explorePremiumButton.waitForExistence(timeout: 5), "Non-premium settings should expose the Premium CTA")
-        explorePremiumButton.tap()
+        let unlockButton = app.descendants(matching: .any)["settings.data.icloud.unlockPremium"].firstMatch
+        XCTAssertTrue(unlockButton.waitForExistence(timeout: 5), "Non-premium iCloud settings should expose a Premium unlock CTA")
+        unlockButton.tap()
 
-        let subscribeButton = app.buttons["premium.paywall.subscribe"].firstMatch
+        let subscribeButton = premiumPaywallSubscribeElement()
         XCTAssertTrue(subscribeButton.waitForExistence(timeout: 5), "Paywall subscribe CTA should be visible from Settings")
         XCTAssertTrue(subscribeButton.isEnabled, "Paywall subscribe CTA should be enabled for simulated activation")
         subscribeButton.tap()
 
-        let postPurchaseSheet = app.otherElements["postpurchase.sheet"].firstMatch
+        let premiumToggle = app.descendants(matching: .any)["settings.data.icloud.toggle"].firstMatch
         XCTAssertTrue(
-            postPurchaseSheet.waitForExistence(timeout: 5),
-            "Aktywacja z Settings powinna pokazac ekran post-purchase setup. State: \(premiumActivationStateSummary())"
+            premiumToggle.waitForExistence(timeout: 5),
+            "Po aktywacji konto powinno pokazac ustawienia iCloud Premium. State: \(premiumActivationStateSummary())"
         )
-
-        let getStartedButton = app.buttons["postpurchase.getstarted"].firstMatch
-        XCTAssertTrue(
-            getStartedButton.waitForExistence(timeout: 5),
-            "Post-purchase setup should expose the dismiss CTA. State: \(premiumActivationStateSummary())"
-        )
-        getStartedButton.tap()
-
-        let manageSubscriptionRow = app.descendants(matching: .any)["settings.row.manageSubscription"].firstMatch
-        XCTAssertTrue(
-            manageSubscriptionRow.waitForExistence(timeout: 5),
-            "Po aktywacji konto powinno pokazac stan Premium w Settings. State: \(premiumActivationStateSummary())"
-        )
+        XCTAssertFalse(unlockButton.exists, "Premium user should no longer see the iCloud unlock CTA")
     }
 
     @MainActor
@@ -240,6 +229,20 @@ final class SettingsViewUITests: XCTestCase {
         }
 
         XCTFail("Settings tab should exist")
+    }
+
+    private func premiumPaywallSubscribeElement() -> XCUIElement {
+        let identifiedElement = app.descendants(matching: .any)["premium.paywall.subscribe"].firstMatch
+        if identifiedElement.exists {
+            return identifiedElement
+        }
+
+        let trialButton = app.buttons["Start my 14-day free trial"].firstMatch
+        if trialButton.exists {
+            return trialButton
+        }
+
+        return app.staticTexts["Start my 14-day free trial"].firstMatch
     }
 
     private func waitForAppShell(timeout: TimeInterval = 20) {

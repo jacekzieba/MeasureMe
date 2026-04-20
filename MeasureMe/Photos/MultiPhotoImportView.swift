@@ -209,6 +209,7 @@ private extension MultiPhotoImportView {
 
     var availableTags: [PhotoTag] {
         var tags: [PhotoTag] = PhotoTag.primaryPoseTags
+        tags.append(.wholeBody)
         let activeTags = activeMetrics.activeKinds
             .filter { $0 != .weight && $0 != .bodyFat && $0 != .leanBodyMass }
             .compactMap { PhotoTag(metricKind: $0) }

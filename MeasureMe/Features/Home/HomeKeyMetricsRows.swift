@@ -69,7 +69,6 @@ struct HomeSecondaryMetricToggleRow<ExpandedContent: View>: View {
                         .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                 )
         )
-        .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).toggle")
     }
 }
 

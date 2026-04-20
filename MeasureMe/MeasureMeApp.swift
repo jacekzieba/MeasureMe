@@ -502,6 +502,7 @@ struct MeasureMeApp: App {
         if args.contains(UITestArgument.onboardingMode.rawValue) {
             defaults.set(\.onboarding.hasCompletedOnboarding, false)
             defaults.set(\.onboarding.onboardingFlowVersion, 0)
+            defaults.set(\.profile.userName, "")
             defaults.set(\.experience.appAppearance, AppAppearance.dark.rawValue)
             defaults.set(\.experience.appLanguage, uiTestLanguage)
             defaults.set(\.premium.premiumEntitlement, false)
@@ -539,6 +540,12 @@ struct MeasureMeApp: App {
             defaults.set(\.home.settingsOpenHomeSettings, false)
             defaults.removeObject(forKey: AppSettingsKeys.Entry.pendingAppEntryAction)
             defaults.removeObject(forKey: AppSettingsKeys.Entry.pendingHealthKitSyncFromIntent)
+        }
+
+        if args.contains(UITestArgument.openExperienceSettings.rawValue) {
+            defaults.set(\.experience.appAppearance, AppAppearance.system.rawValue)
+            defaults.set(\.experience.animationsEnabled, true)
+            defaults.set(\.experience.hapticsEnabled, true)
         }
 
         if shouldPrepareUITestTouchHandling {
@@ -787,38 +794,67 @@ struct MeasureMeApp: App {
 private struct SettingsUITestHostView: View {
     @StateObject private var premiumStore = PremiumStore(startListener: false)
     @StateObject private var metricsStore = ActiveMetricsStore()
+    @State private var isUITestPaywallPresented = false
+    @State private var isUITestPostPurchasePresented = false
     @AppSetting(\.experience.appAppearance) private var appAppearance: String = AppAppearance.dark.rawValue
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
+    @AppSetting(\.experience.hapticsEnabled) private var hapticsEnabled: Bool = true
 
     var body: some View {
-        NavigationStack {
-            SettingsView()
+        ZStack {
+            Color.clear
+                .frame(width: 1, height: 1)
+                .accessibilityIdentifier("app.root.ready")
+
+            NavigationStack {
+                if UITestArgument.isPresent(.openExperienceSettings) {
+                    ExperienceSettingsDetailView(
+                        appAppearance: $appAppearance,
+                        animationsEnabled: $animationsEnabled,
+                        hapticsEnabled: $hapticsEnabled
+                    )
+                } else {
+                    SettingsView()
+                }
+            }
+
+            if premiumStore.isPaywallPresented || isUITestPaywallPresented {
+                SettingsUITestPaywallOverlay(
+                    premiumStore: premiumStore,
+                    onSubscribe: {
+                        isUITestPostPurchasePresented = true
+                    },
+                    onDismiss: {
+                        isUITestPaywallPresented = false
+                    }
+                )
+                    .transition(.opacity)
+                    .zIndex(10)
+            }
         }
         .environmentObject(premiumStore)
         .environmentObject(metricsStore)
-        .sheet(isPresented: $premiumStore.isPaywallPresented) {
-            PremiumPaywallView()
-                .environmentObject(premiumStore)
-        }
         .onChange(of: premiumStore.isPaywallPresented) { _, isPresented in
             guard !isPresented else { return }
             premiumStore.handlePaywallDismissed()
         }
-        .sheet(isPresented: $premiumStore.showPostPurchaseSetup) {
-            PostPurchaseSetupView()
-                .presentationDetents([.fraction(0.72)])
-                .presentationDragIndicator(.visible)
-                .presentationBackground(.ultraThinMaterial)
+        .onAppear {
+            guard UITestArgument.shouldShowSettingsPaywall else { return }
+            isUITestPaywallPresented = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .premiumStoreDidPresentPaywallForUITests)) { _ in
+            isUITestPaywallPresented = true
         }
         .onChange(of: premiumStore.isPremium) { _, isPremium in
             guard isPremium else { return }
-            guard UITestArgument.isPresent(.simulateTrialActivation) else { return }
+            guard UITestArgument.shouldSimulateTrialActivation else { return }
             guard !premiumStore.isPaywallPresented else { return }
             if !premiumStore.showPostPurchaseSetup {
                 premiumStore.showPostPurchaseSetup = true
             }
         }
         .overlay {
-            if UITestArgument.isPresent(.simulateTrialActivation) && premiumStore.showPostPurchaseSetup {
+            if isUITestPostPurchasePresented {
                 ZStack(alignment: .bottom) {
                     Color.black.opacity(0.18)
                         .ignoresSafeArea()
@@ -829,7 +865,7 @@ private struct SettingsUITestHostView: View {
                             .multilineTextAlignment(.center)
 
                         Button(AppLocalization.string("postpurchase.getstarted")) {
-                            premiumStore.showPostPurchaseSetup = false
+                            isUITestPostPurchasePresented = false
                         }
                         .buttonStyle(AppAccentButtonStyle())
                         .accessibilityIdentifier("postpurchase.getstarted")
@@ -845,8 +881,76 @@ private struct SettingsUITestHostView: View {
         }
         .modelContainer(for: [MetricSample.self, MetricGoal.self, PhotoEntry.self, CustomMetricDefinition.self], inMemory: true)
         .preferredColorScheme((AppAppearance(rawValue: appAppearance) ?? .system).preferredColorScheme)
-        .accessibilityIdentifier("app.root.ready")
     }
+}
+
+private struct SettingsUITestPaywallOverlay: View {
+    @ObservedObject var premiumStore: PremiumStore
+    let onSubscribe: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            AppScreenBackground(topHeight: 430, tint: Color.appAccent.opacity(0.24))
+                .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                Spacer(minLength: 32)
+
+                Text(AppLocalization.string("Premium Edition"))
+                    .font(AppTypography.sectionTitle)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+
+                Text(AppLocalization.string("premium.paywall.subtitle"))
+                    .font(AppTypography.body)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+
+                Text(AppLocalization.string("iCloud Backup"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+                    .padding(12)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .accessibilityIdentifier("premium.carousel.unlock.item.icloud")
+
+                Button {
+                    premiumStore.isPremium = true
+                    AppSettingsStore.shared.set(\.premium.premiumEntitlement, true)
+                    WidgetDataWriter.syncPremiumAndReload(isPremium: true)
+                    onSubscribe()
+                    premiumStore.dismissPaywall()
+                    onDismiss()
+                } label: {
+                    Text(AppLocalization.string("premium.cta.trial"))
+                }
+                .buttonStyle(AppAccentButtonStyle(cornerRadius: 30))
+                .accessibilityIdentifier("premium.paywall.subscribe")
+
+                Spacer(minLength: 32)
+            }
+            .padding()
+
+            Button {
+                premiumStore.dismissPaywall()
+                onDismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(AppTypography.iconMedium)
+                    .frame(width: 44, height: 44)
+                    .background(AppColorRoles.surfacePrimary, in: Circle())
+            }
+            .padding(.top, 12)
+            .padding(.trailing, 16)
+            .accessibilityLabel(AppLocalization.string("accessibility.close.premium.paywall"))
+            .accessibilityIdentifier("premium.paywall.close")
+        }
+        .accessibilityElement(children: .contain)
+    }
+}
+
+extension Notification.Name {
+    static let premiumStoreDidPresentPaywallForUITests = Notification.Name("PremiumStoreDidPresentPaywallForUITests")
 }
 
 private struct UnitTestHostView: View {
