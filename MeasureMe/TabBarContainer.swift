@@ -5,7 +5,6 @@ struct TabBarContainer: View {
     let autoCheckPaywallPrompt: Bool
     let premiumStore: PremiumStore
     @StateObject private var router = AppRouter()
-    @AppSetting(\.home.homeTabScrollOffset) private var homeTabScrollOffset: Double = 0.0
     @Environment(\.modelContext) private var modelContext
     @State private var didApplyAuditRoute = false
     @State private var mountedTabs: Set<AppTab> = TabBarContainer.initialMountedTabs()
@@ -13,9 +12,6 @@ struct TabBarContainer: View {
     @State private var didConsumeUITestPendingEntryFallback = false
 
     var body: some View {
-        let isUITest = UITestArgument.isAnyTestMode
-        let tabBarShouldBeVisible = isUITest || router.selectedTab != .home || homeTabScrollOffset < -60
-
         ZStack {
             AppColorRoles.surfaceCanvas
                 .ignoresSafeArea()
@@ -71,7 +67,7 @@ struct TabBarContainer: View {
                     .accessibilityIdentifier("tab.settings")
                 }
                 .tint(Color.appAccent)
-                .toolbarBackground(tabBarShouldBeVisible ? .visible : .hidden, for: .tabBar)
+                .toolbarBackground(.visible, for: .tabBar)
                 .toolbarBackground(AppColorRoles.surfaceChrome, for: .tabBar)
                 .applyTabBarMinimizeBehaviorIfAvailable()
                 .onChange(of: router.selectedTab) { oldTab, newTab in
@@ -123,7 +119,7 @@ struct TabBarContainer: View {
                         .accessibilityIdentifier("tab.settings")
                 }
                 .tint(Color.appAccent)
-                .toolbarBackground(tabBarShouldBeVisible ? .visible : .hidden, for: .tabBar)
+                .toolbarBackground(.visible, for: .tabBar)
                 .toolbarBackground(AppColorRoles.surfaceChrome, for: .tabBar)
                 .applyTabBarMinimizeBehaviorIfAvailable()
                 .onChange(of: router.selectedTab) { oldTab, newTab in
@@ -343,7 +339,7 @@ private extension View {
     @ViewBuilder
     func applyTabBarMinimizeBehaviorIfAvailable() -> some View {
         if #available(iOS 26.0, *) {
-            self.tabBarMinimizeBehavior(.onScrollDown)
+            self.tabBarMinimizeBehavior(.never)
         } else {
             self
         }

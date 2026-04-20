@@ -840,32 +840,36 @@ struct OnboardingView: View {
         let afterLabel = FlowLocalization.system("After", "Po", "Después", "Nachher", "Après", "Depois")
         let compareLabel = FlowLocalization.system("Compare", "Porównaj", "Comparar", "Vergleichen", "Comparer", "Comparar")
 
-        return HStack(spacing: 14) {
-            // Before card
-            photoCard(imageName: "onboarding-before", label: beforeLabel, borderColor: Color.white.opacity(0.15))
+        return VStack(spacing: 12) {
+            OnboardingBeforeAfterSlider(
+                beforeImageName: "onboarding-before",
+                afterImageName: "onboarding-after",
+                beforeLabel: beforeLabel,
+                afterLabel: afterLabel
+            )
+            .frame(width: 188, height: 280)
+            .frame(maxWidth: .infinity)
+            .opacity(photoAfterAppeared ? 1 : 0)
+            .offset(y: photoAfterAppeared ? 0 : 18)
+            .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.25) : .none, value: photoAfterAppeared)
 
-            // After card
-            photoCard(imageName: "onboarding-after", label: afterLabel, borderColor: Color.appAccent.opacity(0.5))
-                .opacity(photoAfterAppeared ? 1 : 0)
-                .offset(x: photoAfterAppeared ? 0 : 40)
-                .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.4) : .none, value: photoAfterAppeared)
-        }
-        .frame(height: 280)
-        .overlay(alignment: .bottom) {
             Capsule(style: .continuous)
-                .fill(Color.black.opacity(0.34))
-                .frame(width: 160, height: 42)
+                .fill(AppColorRoles.surfaceChrome.opacity(0.92))
+                .frame(width: 168, height: 42)
                 .overlay {
                     HStack(spacing: 10) {
                         Image(systemName: "camera.metering.none")
                         Text(compareLabel)
                     }
                     .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(Color.appWhite)
+                    .foregroundStyle(AppColorRoles.textPrimary)
                 }
-                .offset(y: 28)
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(Color.appAccent.opacity(0.22), lineWidth: 1)
+                )
+                .shadow(color: AppColorRoles.shadowSoft.opacity(0.16), radius: 12, y: 6)
         }
-        .padding(.bottom, 28)
         .onAppear {
             if shouldAnimate {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -1315,7 +1319,9 @@ struct OnboardingView: View {
         let priority = resolvedPriority
         persistPriority()
         onboardingFlowVersion = 2
-        activationCurrentTaskID = ActivationTask.initial.rawValue
+        activationCurrentTaskID = onboardingSkippedHealthKit
+            ? ActivationTask.firstMeasurement.rawValue
+            : ActivationTask.initial.rawValue
         activationCompletedTaskIDsRaw = ""
         activationSkippedTaskIDsRaw = ""
         activationIsDismissed = false
@@ -1592,51 +1598,260 @@ private struct DummyMiniMetricChartCard: View {
 
 private struct DummyAIInsightCard: View {
     var body: some View {
-        let insightText = FlowLocalization.system(
-            "Weight is down 2.1 kg and waist shrunk 4.0 cm — steady progress. Keep your routine consistent and results will follow.",
-            "Waga spadła o 2,1 kg, a obwód pasa o 4,0 cm — stały postęp. Trzymaj się rutyny, a wyniki przyjdą same.",
-            "El peso bajó 2,1 kg y la cintura 4,0 cm — progreso constante. Mantén tu rutina y los resultados llegarán.",
-            "Gewicht um 2,1 kg und Taille um 4,0 cm gesunken — stetiger Fortschritt. Bleib bei deiner Routine und die Ergebnisse kommen.",
-            "Poids en baisse de 2,1 kg et tour de taille de 4,0 cm — progrès régulier. Gardez votre routine et les résultats suivront.",
-            "Peso caiu 2,1 kg e cintura 4,0 cm — progresso constante. Mantenha sua rotina e os resultados virão."
-        )
-        let footerText = FlowLocalization.system(
-            "AI generated",
-            "Wygenerowane przez AI",
-            "Generado por IA",
-            "KI-generiert",
-            "Généré par l'IA",
-            "Gerado por IA"
-        )
-
-        ZStack {
-            AppGlassBackground(depth: .base, cornerRadius: 20)
-
-            HStack(alignment: .top, spacing: 10) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
                 Image(systemName: "sparkles")
-                    .font(AppTypography.iconSmall)
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(AppColorRoles.accentPrimary)
-                    .padding(8)
-                    .background(AppColorRoles.accentPrimary.opacity(0.12))
+                    .frame(width: 30, height: 30)
+                    .background(AppColorRoles.accentPrimary.opacity(0.14))
                     .clipShape(Circle())
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(insightText)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Text(footerText)
-                        .font(AppTypography.micro)
-                        .foregroundStyle(AppColorRoles.textSecondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Text(healthSummaryTitle)
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(AppColorRoles.textPrimary)
             }
-            .padding(IntroMetricsLayout.cardPadding)
+
+            VStack(alignment: .leading, spacing: 6) {
+                summaryLineOne
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                summaryLineTwo
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "lightbulb.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(AppColorRoles.accentPrimary)
+                    .padding(.top, 1)
+
+                Text(tipText)
+                    .font(AppTypography.captionEmphasis)
+                    .foregroundStyle(AppColorRoles.accentPrimary)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(AppColorRoles.accentPrimary.opacity(0.10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(AppColorRoles.accentPrimary.opacity(0.24), lineWidth: 1)
+                    )
+            )
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background {
+            AppGlassBackground(depth: .base, cornerRadius: 20, tint: AppColorRoles.accentPrimary.opacity(0.05))
         }
         .frame(maxWidth: .infinity)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var healthSummaryTitle: String {
+        FlowLocalization.system(
+            "Health Summary",
+            "Podsumowanie zdrowia",
+            "Resumen de salud",
+            "Gesundheitsübersicht",
+            "Résumé santé",
+            "Resumo de saúde"
+        )
+    }
+
+    private var summaryLineOne: Text {
+        Text(FlowLocalization.system(
+            "Weight is down ",
+            "Waga spadła o ",
+            "El peso bajó ",
+            "Gewicht ist um ",
+            "Le poids baisse de ",
+            "O peso caiu "
+        ))
+        + Text(FlowLocalization.system(
+            "-2.1 kg",
+            "-2,1 kg",
+            "-2,1 kg",
+            "-2,1 kg",
+            "-2,1 kg",
+            "-2,1 kg"
+        ))
+        .foregroundColor(AppColorRoles.stateSuccess)
+        + Text(FlowLocalization.system(
+            " and waist is ",
+            ", a talia ",
+            " y la cintura ",
+            " und Taille um ",
+            " et le tour de taille ",
+            " e a cintura "
+        ))
+        + Text(FlowLocalization.system(
+            "-4.0 cm",
+            "-4,0 cm",
+            "-4,0 cm",
+            "-4,0 cm",
+            "-4,0 cm",
+            "-4,0 cm"
+        ))
+        .foregroundColor(AppColorRoles.accentPrimary)
+        + Text(FlowLocalization.system(
+            " over recent check-ins.",
+            " w ostatnich zapisach.",
+            " en los últimos registros.",
+            " in den letzten Check-ins.",
+            " sur les derniers relevés.",
+            " nos check-ins recentes."
+        ))
+    }
+
+    private var summaryLineTwo: Text {
+        Text(FlowLocalization.system(
+            "Core indicators are moving in the right direction, not just scale weight.",
+            "Kluczowe wskaźniki idą w dobrym kierunku, nie tylko waga.",
+            "Los indicadores clave van en la dirección correcta, no solo el peso.",
+            "Die Kernwerte bewegen sich in die richtige Richtung, nicht nur das Gewicht.",
+            "Les indicateurs clés vont dans la bonne direction, pas seulement le poids.",
+            "Os indicadores principais estão indo na direção certa, não só o peso."
+        ))
+    }
+
+    private var tipText: String {
+        FlowLocalization.system(
+            "Keep the same routine this week and add one protein-focused meal.",
+            "Utrzymaj rutynę w tym tygodniu i dodaj jeden posiłek z większą ilością białka.",
+            "Mantén la rutina esta semana y añade una comida con más proteína.",
+            "Bleib diese Woche bei der Routine und ergänze eine proteinreiche Mahlzeit.",
+            "Gardez la même routine cette semaine et ajoutez un repas riche en protéines.",
+            "Mantenha a rotina esta semana e adicione uma refeição com mais proteína."
+        )
+    }
+}
+
+private struct OnboardingBeforeAfterSlider: View {
+    let beforeImageName: String
+    let afterImageName: String
+    let beforeLabel: String
+    let afterLabel: String
+
+    @State private var sliderPosition: CGFloat = 0.5
+    @State private var isDragging = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = max(proxy.size.width, 1)
+            let height = max(proxy.size.height, 1)
+            let clampedSlider = min(max(sliderPosition, 0), 1)
+
+            ZStack {
+                AppColorRoles.surfaceChrome.opacity(0.86)
+
+                Image(beforeImageName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: width, height: height)
+
+                Image(afterImageName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: width, height: height)
+                    .mask(alignment: .leading) {
+                        Rectangle()
+                            .frame(width: width * clampedSlider)
+                    }
+
+                LinearGradient(
+                    colors: [
+                        .black.opacity(0.24),
+                        .clear,
+                        .black.opacity(0.42)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+
+                HStack {
+                    sliderLabel(beforeLabel)
+                        .opacity(clampedSlider > 0.18 ? 1 : 0.35)
+
+                    Spacer()
+
+                    sliderLabel(afterLabel)
+                        .opacity(clampedSlider < 0.82 ? 1 : 0.35)
+                }
+                .padding(14)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+
+                sliderHandle(height: height)
+                    .position(x: width * clampedSlider, y: height / 2)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .strokeBorder(Color.appAccent.opacity(0.38), lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        isDragging = true
+                        let newPosition = value.location.x / width
+                        guard newPosition.isFinite else { return }
+                        sliderPosition = min(max(newPosition, 0), 1)
+                    }
+                    .onEnded { _ in
+                        isDragging = false
+                        if abs(sliderPosition - 0.5) < 0.05 {
+                            withAnimation(AppMotion.standard) {
+                                sliderPosition = 0.5
+                            }
+                        }
+                    }
+            )
+        }
+    }
+
+    private func sliderLabel(_ text: String) -> some View {
+        Text(text)
+            .font(AppTypography.captionEmphasis)
+            .foregroundStyle(Color.appWhite)
+            .lineLimit(1)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.black.opacity(0.34), in: Capsule(style: .continuous))
+            .shadow(color: .black.opacity(0.45), radius: 4, y: 2)
+    }
+
+    private func sliderHandle(height: CGFloat) -> some View {
+        ZStack {
+            Rectangle()
+                .fill(Color.appWhite.opacity(0.94))
+                .frame(width: isDragging ? 4 : 3, height: height)
+                .shadow(color: .black.opacity(0.24), radius: 8)
+
+            Circle()
+                .fill(Color.appWhite)
+                .frame(width: isDragging ? 52 : 46, height: isDragging ? 52 : 46)
+                .shadow(color: .black.opacity(0.32), radius: 10, y: 4)
+                .overlay {
+                    HStack(spacing: 5) {
+                        Image(systemName: "chevron.left")
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(AppColorRoles.textTertiary)
+                }
+        }
     }
 }
 

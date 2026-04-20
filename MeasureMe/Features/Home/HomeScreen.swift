@@ -232,6 +232,7 @@ struct HomeView: View {
         let headline: String?
         let primaryValue: String?
         let supportingLabel: String?
+        let contextLabel: String
         let summary: String
         let cta: String
         let action: Action
@@ -1359,6 +1360,7 @@ struct HomeView: View {
                     headline: nextFocusInsight.headline,
                     primaryValue: nextFocusInsight.primaryValue,
                     supportingLabel: nextFocusInsight.supportingLabel,
+                    contextLabel: nextFocusInsight.contextLabel,
                     summary: nextFocusInsight.summary
                 ),
                 weekTitle: summaryThisWeekTitle,
@@ -1371,7 +1373,7 @@ struct HomeView: View {
             border: homeTheme.border,
             activationSnapshot: showActivationHub ? HomeActivationSnapshot(
                 stepIndex: activationStepIndex,
-                totalSteps: ActivationTask.allCases.count,
+                totalSteps: activationTaskSequence.count,
                 title: OnboardingCopy.activationTaskTitle(activationCurrentTask ?? .initial),
                 body: OnboardingCopy.activationTaskBody(
                     activationCurrentTask ?? .initial,
@@ -1643,7 +1645,7 @@ struct HomeView: View {
         HomeActivationCard(
             snapshot: HomeActivationSnapshot(
                 stepIndex: activationStepIndex,
-                totalSteps: ActivationTask.allCases.count,
+                totalSteps: activationTaskSequence.count,
                 title: OnboardingCopy.activationTaskTitle(activationCurrentTask ?? .initial),
                 body: OnboardingCopy.activationTaskBody(
                     activationCurrentTask ?? .initial,
@@ -1700,12 +1702,27 @@ struct HomeView: View {
         guard onboardingFlowVersion >= 2 else { return nil }
         guard !activationCurrentTaskID.isEmpty else { return nil }
         if let task = ActivationTask(rawValue: activationCurrentTaskID) {
+            if shouldStartActivationWithFirstMeasurement,
+               !activationCompletedTaskIDs.contains(ActivationTask.firstMeasurement.rawValue),
+               !activationSkippedTaskIDs.contains(ActivationTask.firstMeasurement.rawValue) {
+                return .firstMeasurement
+            }
             return task
         }
         if ["addMetric", "premium", "celebrate"].contains(activationCurrentTaskID) {
             return .initial
         }
         return nil
+    }
+
+    private var shouldStartActivationWithFirstMeasurement: Bool {
+        onboardingSkippedHealthKit && !isSyncEnabled
+    }
+
+    private var activationTaskSequence: [ActivationTask] {
+        shouldStartActivationWithFirstMeasurement
+            ? [.firstMeasurement, .addPhoto, .chooseMetrics, .setGoal]
+            : [.addPhoto, .chooseMetrics, .setGoal]
     }
 
     private var activationCompletedTaskIDs: Set<String> {
@@ -1727,19 +1744,17 @@ struct HomeView: View {
     private var showActivationHub: Bool {
         let isEnabledInLayout = settingsStore.homeLayoutSnapshot().item(for: .activationHub)?.isVisible ?? true
         let isActivationHubUITest = isUITestMode && UITestArgument.isPresent(.activationHub)
-        let hasActivationPrerequisite = hasAnyMeasurements || isActivationHubUITest
         let isActivationDismissed = activationIsDismissed && !isActivationHubUITest
         return onboardingFlowVersion >= 2
             && (isEnabledInLayout || isActivationHubUITest)
-            && hasActivationPrerequisite
             && !isActivationDismissed
             && activationCurrentTask != nil
     }
 
     private var activationStepIndex: Int {
         guard let activationCurrentTask,
-              let index = ActivationTask.allCases.firstIndex(of: activationCurrentTask) else {
-            return ActivationTask.allCases.count
+              let index = activationTaskSequence.firstIndex(of: activationCurrentTask) else {
+            return activationTaskSequence.count
         }
         return index + 1
     }
@@ -1780,42 +1795,41 @@ struct HomeView: View {
             return nil
         }
 
-        let fallbackSample = recentSamples.first
-        let fallbackKind = fallbackSample.flatMap { MetricKind(rawValue: $0.kindRaw) }
-        guard let kind = dashboardVisibleMetrics.first ?? fallbackKind else {
+        let selectedPair: (kind: MetricKind, sample: MetricSample)?
+        if let keyKind = dashboardVisibleMetrics.first,
+           let keySample = cachedLatestByKind[keyKind] {
+            selectedPair = (keyKind, keySample)
+        } else if let fallbackSample = recentSamples.first,
+                  let fallbackKind = MetricKind(rawValue: fallbackSample.kindRaw) {
+            selectedPair = (fallbackKind, fallbackSample)
+        } else {
+            selectedPair = nil
+        }
+
+        guard let selectedPair else {
             return nil
         }
 
-        let sample = cachedLatestByKind[kind] ?? fallbackSample
-        guard let sample else { return nil }
-
+        let kind = selectedPair.kind
+        let sample = selectedPair.sample
         let value = kind.formattedMetricValue(fromMetric: sample.value, unitsSystem: unitsSystem)
-        let label = totalMetricSampleCount == 1
-            ? FlowLocalization.app(
-                "First check-in",
-                "Pierwszy zapis",
-                "Primer registro",
-                "Erster Check-in",
-                "Premier relevé",
-                "Primeiro registro"
-            )
-            : FlowLocalization.app(
-                "Primary",
-                "Główna",
-                "Principal",
-                "Primär",
-                "Principal",
-                "Principal"
-            )
+        let label = FlowLocalization.app(
+            "Key metric",
+            "Kluczowa metryka",
+            "Métrica clave",
+            "Schlüsselmetrik",
+            "Mesure clé",
+            "Métrica-chave"
+        )
         let detail = metricDeltaTextFromCache(kind: kind, days: 7)
             ?? secondaryMetricGoalSummary(for: kind)
             ?? FlowLocalization.app(
-                "\(kind.title) is your lead metric on Home.",
-                "\(kind.title) jest główną metryką na ekranie Home.",
-                "\(kind.title) es tu métrica principal en Inicio.",
-                "\(kind.title) ist deine wichtigste Metrik auf Home.",
-                "\(kind.title) est votre mesure principale sur l'accueil.",
-                "\(kind.title) é sua métrica principal na Home."
+                "Selected for Home.",
+                "Wybrana na ekran Home.",
+                "Seleccionada para Inicio.",
+                "Für Home ausgewählt.",
+                "Sélectionnée pour l'accueil.",
+                "Selecionada para a Home."
             )
 
         return HomeHeroMeasurementSnapshot(
@@ -1830,6 +1844,7 @@ struct HomeView: View {
             headline: AppLocalization.string("Set goal"),
             primaryValue: nil,
             supportingLabel: nil,
+            contextLabel: FlowLocalization.app("Setup", "Konfiguracja", "Configurar", "Einrichtung", "Configuration", "Configuração"),
             summary: AppLocalization.string("home.nextfocus.fallback.summary"),
             cta: AppLocalization.string("home.nextfocus.cta.goal"),
             action: .measurements,
@@ -1843,6 +1858,7 @@ struct HomeView: View {
                 headline: nil,
                 primaryValue: AppLocalization.string("home.nextfocus.uitest.long.primary"),
                 supportingLabel: AppLocalization.string("home.nextfocus.uitest.long.supporting"),
+                contextLabel: FlowLocalization.app("30 days", "30 dni", "30 días", "30 Tage", "30 jours", "30 dias"),
                 summary: AppLocalization.string("home.nextfocus.uitest.long.summary"),
                 cta: AppLocalization.string("home.nextfocus.cta.metric"),
                 action: .metric(.waist),
@@ -1884,6 +1900,7 @@ struct HomeView: View {
                 headline: nil,
                 primaryValue: remainingText,
                 supportingLabel: nil,
+                contextLabel: FlowLocalization.app("Goal", "Cel", "Meta", "Ziel", "Objectif", "Meta"),
                 summary: AppLocalization.string("home.nextfocus.insight.goal.summary", remainingText, kind.title),
                 cta: AppLocalization.string("home.nextfocus.cta.metric"),
                 action: .metric(kind),
@@ -1915,7 +1932,8 @@ struct HomeView: View {
             insight: HomeNextFocusInsight(
                 headline: nil,
                 primaryValue: delta >= 0 ? "+\(deltaText)" : "-\(deltaText)",
-                supportingLabel: AppLocalization.string(periodChipKey),
+                supportingLabel: nil,
+                contextLabel: AppLocalization.string(periodChipKey),
                 summary: AppLocalization.string(directionKey, kind.title, AppLocalization.string(periodKey)),
                 cta: AppLocalization.string("home.nextfocus.cta.metric"),
                 action: .metric(kind),
@@ -2672,6 +2690,7 @@ struct HomeView: View {
     private func secondaryMetricCard(for kind: MetricKind) -> some View {
         let latestText = cachedLatestByKind[kind].map { formattedMetricValue(for: kind, metricValue: $0.value) } ?? AppLocalization.string("No data yet")
         let deltaChip = metricDeltaChip(for: kind)
+        let samples = samplesForKind(kind)
         let detailText = secondaryMetricGoalSummary(for: kind)
             ?? (deltaChip == nil
                 ? AppLocalization.string("Log another check-in to reveal the trend.")
@@ -2693,6 +2712,13 @@ struct HomeView: View {
             }
         ) {
             VStack(alignment: .leading, spacing: 10) {
+                HomeExpandedMetricTrendChart(
+                    kind: kind,
+                    samples: samples,
+                    goal: cachedGoalsByKind[kind],
+                    unitsSystem: unitsSystem
+                )
+
                 if let deltaChip {
                     Text(deltaChip.text)
                         .font(AppTypography.captionEmphasis)
@@ -3059,6 +3085,8 @@ struct HomeView: View {
         Haptics.selection()
 
         switch task {
+        case .firstMeasurement:
+            showQuickAddSheet = true
         case .addPhoto:
             showActivationAddPhotoSheet = true
         case .chooseMetrics:
@@ -3127,10 +3155,10 @@ struct HomeView: View {
     }
 
     private func advanceActivation(from task: ActivationTask) {
-        guard let currentIndex = ActivationTask.allCases.firstIndex(of: task) else { return }
+        guard let currentIndex = activationTaskSequence.firstIndex(of: task) else { return }
         let nextIndex = currentIndex + 1
-        if nextIndex < ActivationTask.allCases.count {
-            activationCurrentTaskID = ActivationTask.allCases[nextIndex].rawValue
+        if nextIndex < activationTaskSequence.count {
+            activationCurrentTaskID = activationTaskSequence[nextIndex].rawValue
         } else {
             activationCurrentTaskID = ""
             activationIsDismissed = true
@@ -3183,6 +3211,8 @@ struct HomeView: View {
         guard let task = activationCurrentTask else { return }
 
         switch task {
+        case .firstMeasurement where hasAnyMeasurements:
+            completeActivationTask(.firstMeasurement)
         case .addPhoto where hasAnyPhotoContent:
             completeActivationTask(.addPhoto)
         case .chooseMetrics where onboardingChecklistMetricsCompleted:

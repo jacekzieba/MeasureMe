@@ -23,6 +23,7 @@ enum OnboardingPrioritySelectionPolicy {
 }
 
 enum ActivationTask: String, CaseIterable, Sendable {
+    case firstMeasurement
     case addPhoto
     case chooseMetrics
     case setGoal
@@ -326,6 +327,8 @@ enum OnboardingCopy {
 
     static func activationTaskTitle(_ task: ActivationTask) -> String {
         switch task {
+        case .firstMeasurement:
+            return FlowLocalization.app("Add your first measurement", "Dodaj pierwszy pomiar", "Añade tu primera medida", "Füge deine erste Messung hinzu", "Ajoutez votre première mesure", "Adicione sua primeira medição")
         case .addPhoto:
             return FlowLocalization.app("Add your first photo", "Dodaj pierwsze zdjęcie", "Añade tu primera foto", "Füge dein erstes Foto hinzu", "Ajoutez votre première photo", "Adicione sua primeira foto")
         case .chooseMetrics:
@@ -337,6 +340,15 @@ enum OnboardingCopy {
 
     static func activationTaskBody(_ task: ActivationTask, metricName: String? = nil) -> String {
         switch task {
+        case .firstMeasurement:
+            return FlowLocalization.app(
+                "Log one measurement manually to create your starting point.",
+                "Wpisz jeden pomiar ręcznie, aby utworzyć punkt startowy.",
+                "Registra una medida manualmente para crear tu punto de partida.",
+                "Trage eine Messung manuell ein, um deinen Startpunkt zu setzen.",
+                "Enregistrez une mesure manuellement pour créer votre point de départ.",
+                "Registre uma medição manualmente para criar seu ponto inicial."
+            )
         case .addPhoto:
             return FlowLocalization.app(
                 "Add one photo to make this starting point visual.",
@@ -369,6 +381,8 @@ enum OnboardingCopy {
 
     static func activationPrimaryCTA(_ task: ActivationTask) -> String {
         switch task {
+        case .firstMeasurement:
+            return FlowLocalization.app("Add measurement", "Dodaj pomiar", "Añadir medida", "Messung hinzufügen", "Ajouter une mesure", "Adicionar medição")
         case .addPhoto:
             return FlowLocalization.app("Add photo", "Dodaj zdjęcie", "Añadir foto", "Foto hinzufügen", "Ajouter une photo", "Adicionar foto")
         case .chooseMetrics:

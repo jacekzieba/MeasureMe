@@ -4,6 +4,7 @@ struct HomeHeroNextFocusSnapshot {
     let headline: String?
     let primaryValue: String?
     let supportingLabel: String?
+    let contextLabel: String
     let summary: String
 }
 
@@ -123,7 +124,6 @@ struct HomeHeroSection: View {
                 if snapshot.showStreak {
                     streakStatusChip
                 }
-                weekStatusChip
                 Spacer(minLength: 0)
             }
 
@@ -134,7 +134,6 @@ struct HomeHeroSection: View {
                         streakStatusChip
                     }
                 }
-                weekStatusChip
             }
         }
     }
@@ -179,52 +178,42 @@ struct HomeHeroSection: View {
         .accessibilityLabel(AppLocalization.string("accessibility.streak.count", snapshot.streakCount))
     }
 
-    private var weekStatusChip: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "calendar")
-                .font(AppTypography.iconSmall)
-                .foregroundStyle(AppColorRoles.textSecondary)
-
-            Text(snapshot.weekTitle)
-                .font(AppTypography.captionEmphasis)
-                .foregroundStyle(AppColorRoles.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            Capsule(style: .continuous)
-                .fill(AppColorRoles.surfaceInteractive)
-                .overlay(
-                    Capsule(style: .continuous)
-                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
-                )
-        )
-        .accessibilityIdentifier("home.weekStatus.chip")
-    }
-
     private var todayInsightCard: some View {
         Button(action: onNextFocusTap) {
             VStack(alignment: .leading, spacing: summaryCardVerticalSpacing) {
                 HStack(alignment: .center, spacing: 8) {
                     miniLabel(
-                        title: FlowLocalization.app("Today", "Dzisiaj", "Hoy", "Heute", "Aujourd'hui", "Hoje"),
+                        title: FlowLocalization.app("Next focus", "Następny fokus", "Siguiente foco", "Nächster Fokus", "Prochain focus", "Próximo foco"),
                         icon: "sparkle.magnifyingglass",
-                        accent: accent
+                        accent: AppColorRoles.textSecondary
                     )
 
                     Spacer(minLength: 8)
 
+                    Text(snapshot.nextFocus.contextLabel)
+                        .font(summaryCardBadgeFont)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                        .lineLimit(1)
+                        .padding(.horizontal, summaryCardBadgeHorizontalPadding)
+                        .padding(.vertical, summaryCardBadgeVerticalPadding)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(AppColorRoles.surfaceInteractive)
+                                .overlay(
+                                    Capsule(style: .continuous)
+                                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                                )
+                        )
+
                     Image(systemName: "arrow.up.right")
                         .font(AppTypography.iconSmall)
-                        .foregroundStyle(accent.opacity(0.84))
+                        .foregroundStyle(AppColorRoles.textTertiary)
                 }
 
                 if let primaryValue = snapshot.nextFocus.primaryValue {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(primaryValue)
-                            .font(summaryCardPrimaryFont)
+                            .font(insightCardPrimaryFont)
                             .foregroundStyle(AppColorRoles.textPrimary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.82)
@@ -278,10 +267,10 @@ struct HomeHeroSection: View {
             .frame(maxWidth: .infinity, minHeight: snapshot.prefersStackedPanels ? 116 : 104, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(pillFill)
+                    .fill(AppColorRoles.surfaceInteractive.opacity(colorScheme == .dark ? 0.72 : 1.0))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(border, lineWidth: 1)
+                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )
         }
@@ -499,15 +488,15 @@ struct HomeHeroSection: View {
     }
 
     private var summaryCardPadding: CGFloat {
-        dynamicTypeSize.isAccessibilitySize ? 6 : 10
+        dynamicTypeSize.isAccessibilitySize ? 12 : 16
     }
 
     private var summaryCardVerticalSpacing: CGFloat {
-        dynamicTypeSize.isAccessibilitySize ? 4 : 8
+        dynamicTypeSize.isAccessibilitySize ? 8 : 12
     }
 
     private var summaryCardContentSpacing: CGFloat {
-        dynamicTypeSize.isAccessibilitySize ? 2 : 5
+        dynamicTypeSize.isAccessibilitySize ? 6 : 8
     }
 
     private var summaryCardCaptionFont: Font {
@@ -517,6 +506,11 @@ struct HomeHeroSection: View {
     private var summaryCardPrimaryFont: Font {
         let size = dynamicTypeSize.isAccessibilitySize ? 19.0 : (snapshot.prefersStackedPanels ? 22.0 : 24.0)
         return .system(size: size, weight: .bold, design: .rounded).monospacedDigit()
+    }
+
+    private var insightCardPrimaryFont: Font {
+        let size = dynamicTypeSize.isAccessibilitySize ? 18.0 : (snapshot.prefersStackedPanels ? 20.0 : 21.0)
+        return .system(size: size, weight: .semibold, design: .rounded).monospacedDigit()
     }
 
     private var summaryCardBadgeFont: Font {
@@ -537,8 +531,8 @@ struct HomeHeroSection: View {
 
     private var summaryCardMinHeight: CGFloat {
         if dynamicTypeSize.isAccessibilitySize {
-            return 96
+            return 112
         }
-        return snapshot.prefersStackedPanels ? 120 : 124
+        return snapshot.prefersStackedPanels ? 134 : 138
     }
 }

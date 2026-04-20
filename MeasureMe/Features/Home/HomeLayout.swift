@@ -12,7 +12,7 @@ enum HomeModuleKind: String, Codable, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 
     static var activeCases: [HomeModuleKind] {
-        [.summaryHero, .quickActions, .keyMetrics, .recentPhotos, .healthSummary, .activationHub]
+        [.summaryHero, .quickActions, .setupChecklist, .keyMetrics, .recentPhotos, .healthSummary, .activationHub]
     }
 
     var defaultSize: HomeModuleSize {
@@ -103,9 +103,10 @@ struct HomeLayoutSnapshot: Codable, Equatable, Sendable {
                 HomeModuleLayoutItem(kind: .summaryHero, isVisible: true, size: .large, row: 0, column: 0),
                 HomeModuleLayoutItem(kind: .quickActions, isVisible: false, size: .large, row: 0, column: 2),
                 HomeModuleLayoutItem(kind: .activationHub, isVisible: !settings.onboarding.activationIsDismissed, size: .wide, row: 0, column: 2),
-                HomeModuleLayoutItem(kind: .keyMetrics, isVisible: settings.home.showMeasurementsOnHome, size: .large, row: 2, column: 0),
-                HomeModuleLayoutItem(kind: .recentPhotos, isVisible: settings.home.showLastPhotosOnHome, size: .large, row: 2, column: 2),
-                HomeModuleLayoutItem(kind: .healthSummary, isVisible: settings.home.showHealthMetricsOnHome, size: .large, row: 4, column: 0)
+                HomeModuleLayoutItem(kind: .setupChecklist, isVisible: settings.onboarding.onboardingChecklistShow, size: .wide, row: 2, column: 0),
+                HomeModuleLayoutItem(kind: .keyMetrics, isVisible: settings.home.showMeasurementsOnHome, size: .large, row: 4, column: 0),
+                HomeModuleLayoutItem(kind: .recentPhotos, isVisible: settings.home.showLastPhotosOnHome, size: .large, row: 4, column: 2),
+                HomeModuleLayoutItem(kind: .healthSummary, isVisible: settings.home.showHealthMetricsOnHome, size: .large, row: 6, column: 0)
             ]
         )
     }

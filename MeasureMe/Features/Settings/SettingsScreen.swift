@@ -108,7 +108,6 @@ struct SettingsView: View {
     @AppSetting(\.iCloudBackup.lastSuccessTimestamp) private var iCloudBackupLastSuccessTimestamp: Double = 0
     @AppSetting(\.iCloudBackup.lastErrorMessage) private var iCloudBackupLastErrorMessage: String = ""
 
-    @State private var scrollOffset: CGFloat = 0
     @State private var shareItems: [Any] = []
     @State private var shareSubject: String? = nil
     @State private var isPresentingShareSheet = false
@@ -391,7 +390,6 @@ struct SettingsView: View {
             ZStack(alignment: .top) {
                 SettingsBackdrop(
                     topHeight: 380,
-                    scrollOffset: scrollOffset,
                     tint: Color.cyan.opacity(0.22)
                 )
                 .ignoresSafeArea(edges: .top)
@@ -429,19 +427,6 @@ struct SettingsView: View {
                 }
             }
             .tint(settingsTheme.accent)
-            .background(alignment: .top) {
-                GeometryReader { proxy in
-                    Color.clear.preference(
-                        key: SettingsScrollOffsetKey.self,
-                        value: proxy.frame(in: .named("settingsScroll")).minY
-                    )
-                }
-                .allowsHitTesting(false)
-            }
-            .coordinateSpace(name: "settingsScroll")
-            .onPreferenceChange(SettingsScrollOffsetKey.self) { value in
-                scrollOffset = value
-            }
             .scrollContentBackground(.hidden) // Hide default List background
             .onAppear {
                 schedulePendingDeepLinksHandling()

@@ -21,7 +21,6 @@ struct MeasurementsTabView: View {
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.experience.quickAddHintDismissed) private var quickAddHintDismissed: Bool = false
     @AppSetting(\.experience.hasCustomizedMetrics) private var hasCustomizedMetrics: Bool = false
-    @State private var scrollOffset: CGFloat = 0
     @State private var refreshToken = UUID()
     @Query private var samples: [MetricSample]
     @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
@@ -191,21 +190,11 @@ struct MeasurementsTabView: View {
             ZStack(alignment: .top) {
                 AppScreenBackground(
                     topHeight: 380,
-                    scrollOffset: scrollOffset,
                     tint: sectionTint
                 )
 
                 ScrollView {
                     LazyVStack(spacing: 16) {
-                        GeometryReader { proxy in
-                            Color.clear
-                                .preference(
-                                    key: MeasurementsScrollOffsetKey.self,
-                                    value: proxy.frame(in: .named("measurementsScroll")).minY
-                                )
-                        }
-                        .frame(height: 0)
-
                         ScreenTitleHeader(title: AppLocalization.string("Measurements"), topPadding: 6, bottomPadding: 4)
 
                         MeasurementsCategoryTabs(
@@ -422,12 +411,6 @@ struct MeasurementsTabView: View {
                     .padding(.bottom, 100)
                 }
                 .id(refreshToken)
-                .coordinateSpace(name: "measurementsScroll")
-                .onPreferenceChange(MeasurementsScrollOffsetKey.self) { value in
-                    DispatchQueue.main.async {
-                        scrollOffset = value
-                    }
-                }
                 .accessibilityIdentifier("measurements.scroll")
                 .refreshable {
                     rebuildSamplesCache()
@@ -1211,13 +1194,5 @@ struct MetricChartTile: View {
             additionalAxes: [],
             series: [series]
         )
-    }
-}
-
-private struct MeasurementsScrollOffsetKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }
