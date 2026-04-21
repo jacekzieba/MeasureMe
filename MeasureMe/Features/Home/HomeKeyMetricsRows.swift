@@ -6,6 +6,7 @@ struct HomeMetricDeltaChip {
 }
 
 struct HomeSecondaryMetricToggleRow<ExpandedContent: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
     let kind: MetricKind
     let latestText: String
     let detailText: String
@@ -13,12 +14,15 @@ struct HomeSecondaryMetricToggleRow<ExpandedContent: View>: View {
     let onToggle: () -> Void
     @ViewBuilder let expandedContent: () -> ExpandedContent
 
+    private let cornerRadius: CGFloat = 16
+    private let accent = Color.appAccent
+
     var body: some View {
         VStack(spacing: 0) {
             Button(action: onToggle) {
                 HStack(spacing: 12) {
                     HStack(spacing: 8) {
-                        kind.iconView(font: AppTypography.captionEmphasis, size: 14, tint: Color.appAccent)
+                        kind.iconView(font: AppTypography.captionEmphasis, size: 14, tint: accent)
                         Text(kind.title)
                             .font(AppTypography.bodyEmphasis)
                             .foregroundStyle(AppColorRoles.textPrimary)
@@ -27,14 +31,16 @@ struct HomeSecondaryMetricToggleRow<ExpandedContent: View>: View {
 
                     Spacer(minLength: 8)
 
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text(latestText)
-                            .font(AppTypography.captionEmphasis.monospacedDigit())
-                            .foregroundStyle(AppColorRoles.textPrimary)
-                        Text(detailText)
-                            .font(AppTypography.micro)
-                            .foregroundStyle(AppColorRoles.textSecondary)
-                            .lineLimit(1)
+                    if !isExpanded {
+                        VStack(alignment: .trailing, spacing: 3) {
+                            Text(latestText)
+                                .font(AppTypography.captionEmphasis.monospacedDigit())
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                            Text(detailText)
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColorRoles.textSecondary)
+                                .lineLimit(1)
+                        }
                     }
 
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
@@ -55,20 +61,46 @@ struct HomeSecondaryMetricToggleRow<ExpandedContent: View>: View {
                         .padding(.horizontal, 12)
 
                     expandedContent()
-                        .padding(12)
+                        .padding(.horizontal, 4)
+                        .padding(.bottom, 4)
                 }
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(AppColorRoles.surfaceInteractive)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
-                )
-        )
+        .background {
+            if isExpanded {
+                ZStack {
+                    AppGlassBackground(
+                        depth: .base,
+                        cornerRadius: cornerRadius,
+                        tint: accent.opacity(0.10)
+                    )
+
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(
+                            ClaudeLightStyle.directionalGradient(
+                                colors: [
+                                    accent.opacity(0.10),
+                                    accent.opacity(0.03),
+                                    .clear
+                                ],
+                                colorScheme: colorScheme,
+                                lightColor: .clear,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+            } else {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(AppColorRoles.surfaceInteractive)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                    )
+            }
+        }
     }
 }
 

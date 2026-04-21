@@ -1339,7 +1339,9 @@ struct HomeView: View {
     }
 
     private var summaryHeroModule: some View {
-        HomeHeroSection(
+        let pulseSignal = computeHeroPulseSignal()
+        let hasNextFocusData = nextFocusInsight.primaryValue != nil || nextFocusInsight.headline != nil
+        return HomeHeroSection(
             snapshot: HomeHeroSnapshot(
                 tint: homeHeroTint,
                 greetingTitle: greetingTitle,
@@ -1355,7 +1357,7 @@ struct HomeView: View {
                 streakCount: streakManager.currentStreak,
                 shouldAnimateStreak: streakManager.shouldPlayAnimation,
                 prefersStackedPanels: prefersStackedHeroPanels,
-                primaryMeasurement: heroPrimaryMeasurement,
+                primaryMeasurement: nil,
                 nextFocus: HomeHeroNextFocusSnapshot(
                     headline: nextFocusInsight.headline,
                     primaryValue: nextFocusInsight.primaryValue,
@@ -1365,7 +1367,10 @@ struct HomeView: View {
                 ),
                 weekTitle: summaryThisWeekTitle,
                 weekDetail: summaryThisWeekDetail,
-                shouldShowPostOnboardingSummary: !showActivationHub && !isFreshHomeState
+                shouldShowPostOnboardingSummary: !showActivationHub && !isFreshHomeState,
+                pulseSignal: pulseSignal,
+                showNextFocusChip: hasNextFocusData,
+                showThisWeekChip: !summaryThisWeekTitle.isEmpty
             ),
             accent: homeTheme.accent,
             pillFill: homeTheme.pillFill,
@@ -1389,7 +1394,9 @@ struct HomeView: View {
             onStreakAnimationComplete: { streakManager.markAnimationPlayed() },
             onActivationPrimary: performActivationPrimaryAction,
             onActivationSkip: skipActivationTask,
-            onActivationDismiss: dismissActivationHub
+            onActivationDismiss: dismissActivationHub,
+            onPulseAction: handlePulseAction,
+            onThisWeekTap: { router.selectTab(.measurements) }
         )
     }
 
@@ -1879,6 +1886,273 @@ struct HomeView: View {
         }
 
         return fallbackNextFocusInsight
+    }
+
+    // MARK: - Living Pulse Hero Signal
+
+    private func computeHeroPulseSignal() -> HeroPulseSignal {
+        let streak = streakManager.currentStreak
+        let milestoneThresholds: Set<Int> = [3, 7, 14, 30, 60, 100, 200]
+        let now = AppClock.now
+        let calendar = Calendar.current
+        let lastSampleDate = recentSamples.first?.date
+        let daysSinceLastSample: Int? = lastSampleDate.flatMap {
+            calendar.dateComponents([.day], from: calendar.startOfDay(for: $0), to: calendar.startOfDay(for: now)).day
+        }
+
+        // 1. Fresh state: no samples yet.
+        if !hasAnyMeasurements {
+            return HeroPulseSignal(
+                kind: .fresh,
+                icon: "sparkles",
+                title: FlowLocalization.app(
+                    "Small steps still count.",
+                    "Małe kroki też się liczą.",
+                    "Los pequeños pasos cuentan.",
+                    "Auch kleine Schritte zählen.",
+                    "Les petits pas comptent.",
+                    "Pequenos passos também contam."
+                ),
+                subtitle: FlowLocalization.app(
+                    "Log your first measurement to start.",
+                    "Dodaj pierwszy pomiar, żeby zacząć.",
+                    "Registra tu primera medida para empezar.",
+                    "Erfasse deine erste Messung, um zu starten.",
+                    "Enregistre ta première mesure pour commencer.",
+                    "Registe a primeira medida para começar."
+                ),
+                tint: .accent,
+                useStreakBadge: false,
+                streakCount: 0,
+                animateStreak: false,
+                action: .quickAdd
+            )
+        }
+
+        // 2. Streak milestone — shouldPlayAnimation OR hit a milestone threshold.
+        if streak > 0 && (streakManager.shouldPlayAnimation || milestoneThresholds.contains(streak)) {
+            return HeroPulseSignal(
+                kind: .streakMilestone,
+                icon: "flame.fill",
+                title: FlowLocalization.app(
+                    "\(streak)-week streak!",
+                    "\(streak) tygodni z rzędu!",
+                    "¡Racha de \(streak) semanas!",
+                    "\(streak) Wochen in Folge!",
+                    "Série de \(streak) semaines !",
+                    "Sequência de \(streak) semanas!"
+                ),
+                subtitle: FlowLocalization.app(
+                    "Keep the momentum going.",
+                    "Utrzymaj tempo.",
+                    "Mantén el impulso.",
+                    "Behalte den Schwung.",
+                    "Garde le rythme.",
+                    "Mantém o ritmo."
+                ),
+                tint: .accent,
+                useStreakBadge: true,
+                streakCount: streak,
+                animateStreak: streakManager.shouldPlayAnimation,
+                action: .streakDetail
+            )
+        }
+
+        // 3. Streak risk — active streak but no log in 4+ days (approaching end of week).
+        if streak >= 1, let days = daysSinceLastSample, days >= 4 {
+            return HeroPulseSignal(
+                kind: .streakRisk,
+                icon: "flame.fill",
+                title: FlowLocalization.app(
+                    "\(streak)-week streak at risk",
+                    "Seria \(streak) tygodni zagrożona",
+                    "Racha de \(streak) semanas en riesgo",
+                    "\(streak)-Wochen-Serie in Gefahr",
+                    "Série de \(streak) semaines en danger",
+                    "Sequência de \(streak) semanas em risco"
+                ),
+                subtitle: FlowLocalization.app(
+                    "Log this week to keep it alive.",
+                    "Dodaj pomiar w tym tygodniu, żeby ją utrzymać.",
+                    "Registra esta semana para mantenerla.",
+                    "Trage diese Woche etwas ein, um sie zu halten.",
+                    "Enregistre cette semaine pour la garder.",
+                    "Regista esta semana para a manteres."
+                ),
+                tint: .warning,
+                useStreakBadge: true,
+                streakCount: streak,
+                animateStreak: false,
+                action: .quickAdd
+            )
+        }
+
+        // 4. Goal near complete — best non-achieved goal at >= 75%.
+        if let (kind, progress) = mostProgressedGoalForPulse(), progress >= 0.75 {
+            let pct = Int((progress * 100).rounded())
+            return HeroPulseSignal(
+                kind: .goalNearComplete,
+                icon: "target",
+                title: FlowLocalization.app(
+                    "\(pct)% to your \(kind.title.lowercased()) goal",
+                    "\(pct)% do celu: \(kind.title.lowercased())",
+                    "\(pct)% hacia tu meta de \(kind.title.lowercased())",
+                    "\(pct)% zum \(kind.title)-Ziel",
+                    "\(pct)% vers ton objectif \(kind.title.lowercased())",
+                    "\(pct)% da meta de \(kind.title.lowercased())"
+                ),
+                subtitle: FlowLocalization.app(
+                    "Almost there — keep going.",
+                    "Już blisko — trzymaj kurs.",
+                    "Casi lo logras — sigue así.",
+                    "Fast geschafft — weiter so.",
+                    "Presque fini — continue.",
+                    "Quase lá — continua."
+                ),
+                tint: .success,
+                useStreakBadge: false,
+                streakCount: 0,
+                animateStreak: false,
+                action: .metricDetail(kind)
+            )
+        }
+
+        // 5. Return nudge — > 7 days since last sample.
+        if let days = daysSinceLastSample, days >= 7 {
+            return HeroPulseSignal(
+                kind: .returnNudge,
+                icon: "clock.arrow.circlepath",
+                title: FlowLocalization.app(
+                    "\(days) days since last check-in",
+                    "\(days) dni od ostatniego pomiaru",
+                    "\(days) días desde el último registro",
+                    "\(days) Tage seit deiner letzten Messung",
+                    "\(days) jours depuis ta dernière mesure",
+                    "\(days) dias desde o último registo"
+                ),
+                subtitle: FlowLocalization.app(
+                    "A quick log keeps your trends fresh.",
+                    "Szybki pomiar odświeży Twoje trendy.",
+                    "Un registro rápido mantiene tus tendencias al día.",
+                    "Ein kurzer Eintrag hält deine Trends aktuell.",
+                    "Une mesure rapide garde tes tendances à jour.",
+                    "Um registo rápido mantém as tendências em dia."
+                ),
+                tint: .neutral,
+                useStreakBadge: false,
+                streakCount: 0,
+                animateStreak: false,
+                action: .quickAdd
+            )
+        }
+
+        // 6. Trend highlight — use next-focus insight when it surfaces a real trend.
+        let insight = nextFocusInsight
+        if insight.primaryValue != nil, case .metric(let kind) = insight.action {
+            let detail = [insight.primaryValue, insight.supportingLabel].compactMap { $0 }.joined(separator: " · ")
+            return HeroPulseSignal(
+                kind: .trendHighlight,
+                icon: "chart.line.uptrend.xyaxis",
+                title: insight.summary,
+                subtitle: detail.isEmpty ? insight.contextLabel : detail,
+                tint: .success,
+                useStreakBadge: false,
+                streakCount: 0,
+                animateStreak: false,
+                action: .metricDetail(kind)
+            )
+        }
+
+        // 7. Streak active (idle).
+        if streak >= 1 {
+            return HeroPulseSignal(
+                kind: .streakActive,
+                icon: "flame.fill",
+                title: FlowLocalization.app(
+                    "\(streak)-week streak",
+                    "\(streak) tygodni z rzędu",
+                    "Racha de \(streak) semanas",
+                    "\(streak)-Wochen-Serie",
+                    "Série de \(streak) semaines",
+                    "Sequência de \(streak) semanas"
+                ),
+                subtitle: FlowLocalization.app(
+                    "Keep it going this week.",
+                    "Utrzymaj ją w tym tygodniu.",
+                    "Mantenla esta semana.",
+                    "Halte sie diese Woche aufrecht.",
+                    "Garde-la cette semaine.",
+                    "Mantém-na esta semana."
+                ),
+                tint: .accent,
+                useStreakBadge: true,
+                streakCount: streak,
+                animateStreak: false,
+                action: .streakDetail
+            )
+        }
+
+        // 8. Generic fallback — has data, no streak, no trend, no nudge.
+        return HeroPulseSignal(
+            kind: .fresh,
+            icon: "sparkles",
+            title: FlowLocalization.app(
+                "Small steps still count.",
+                "Małe kroki też się liczą.",
+                "Los pequeños pasos cuentan.",
+                "Auch kleine Schritte zählen.",
+                "Les petits pas comptent.",
+                "Pequenos passos também contam."
+            ),
+            subtitle: FlowLocalization.app(
+                "Log today to build momentum.",
+                "Dodaj pomiar, żeby zbudować tempo.",
+                "Registra hoy para ganar impulso.",
+                "Trage heute etwas ein, um Schwung aufzubauen.",
+                "Enregistre aujourd'hui pour prendre de l'élan.",
+                "Regista hoje para ganhar ritmo."
+            ),
+            tint: .accent,
+            useStreakBadge: false,
+            streakCount: 0,
+            animateStreak: false,
+            action: .quickAdd
+        )
+    }
+
+    private func mostProgressedGoalForPulse() -> (MetricKind, Double)? {
+        var best: (kind: MetricKind, progress: Double)?
+        for (kind, goal) in cachedGoalsByKind {
+            guard let latest = cachedLatestByKind[kind] else { continue }
+            guard !goal.isAchieved(currentValue: latest.value) else { continue }
+            let baseline = goalBaselineValue(for: kind, goal: goal)
+            let fullDistance = abs(goal.targetValue - baseline)
+            guard fullDistance > 0.0001 else { continue }
+            let remaining = abs(goal.remainingToGoal(currentValue: latest.value))
+            let progress = max(0, min(1, 1 - (remaining / fullDistance)))
+            if best == nil || progress > best!.progress {
+                best = (kind, progress)
+            }
+        }
+        return best.map { ($0.kind, $0.progress) }
+    }
+
+    private func handlePulseAction(_ action: HeroPulseAction) {
+        Haptics.selection()
+        switch action {
+        case .streakDetail:
+            showStreakDetail = true
+        case .quickAdd:
+            showQuickAddSheet = true
+        case .metricDetail:
+            // Navigate to measurements tab; in-app navigation to specific metric
+            // uses the existing measurements tab which lists all metrics.
+            router.selectedTab = .measurements
+        case .measurementsTab:
+            router.selectedTab = .measurements
+        case .none:
+            break
+        }
     }
 
     private func goalInsightCandidate(for kind: MetricKind) -> HomeNextFocusCandidate? {
@@ -2711,34 +2985,21 @@ struct HomeView: View {
                 }
             }
         ) {
-            VStack(alignment: .leading, spacing: 10) {
-                HomeExpandedMetricTrendChart(
+            NavigationLink {
+                MetricDetailView(kind: kind)
+            } label: {
+                HomeKeyMetricRow(
                     kind: kind,
-                    samples: samples,
+                    latest: cachedLatestByKind[kind],
                     goal: cachedGoalsByKind[kind],
-                    unitsSystem: unitsSystem
+                    samples: samples,
+                    unitsSystem: unitsSystem,
+                    showsBackground: false
                 )
-
-                if let deltaChip {
-                    Text(deltaChip.text)
-                        .font(AppTypography.captionEmphasis)
-                        .foregroundStyle(deltaChip.tint)
-                }
-
-                Text(detailText)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColorRoles.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                NavigationLink {
-                    MetricDetailView(kind: kind)
-                } label: {
-                    Text(AppLocalization.string("View details"))
-                        .font(AppTypography.microEmphasis)
-                        .foregroundStyle(Color.appAccent)
-                }
-                .buttonStyle(.plain)
             }
+            .buttonStyle(PressableTileStyle())
+            .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
+            .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
         }
         .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
         .accessibilityHint(detailText)
