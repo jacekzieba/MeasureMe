@@ -1319,6 +1319,8 @@ em %@";
 "streak.detail.vacation.endDate.label" = "Congelar sequência até";
 "streak.detail.vacation.duration.value" = "%d semanas";
 "streak.detail.vacation.duration.value.one" = "1 semana";
+"streak.detail.vacation.duration.value.few" = "%d semanas";
+"streak.detail.vacation.duration.value.many" = "%d semanas";
 "streak.detail.vacation.ends" = "Termina em %@";
 "streak.detail.vacation.enable" = "Ativar modo férias";
 "streak.detail.vacation.update" = "Atualizar duração";

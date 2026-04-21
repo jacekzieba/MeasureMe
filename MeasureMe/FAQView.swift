@@ -187,6 +187,14 @@ struct FAQView: View {
                             faqItem(
                                 question: "faq.premium.goalprediction.q",
                                 answer: "faq.premium.goalprediction.a"
+                            ),
+                            faqItem(
+                                question: "faq.usage.ghostoverlay.q",
+                                answer: "faq.usage.ghostoverlay.a"
+                            ),
+                            faqItem(
+                                question: "faq.usage.sharetransformation.q",
+                                answer: "faq.usage.sharetransformation.a"
                             )
                         ]
                     )

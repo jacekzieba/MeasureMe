@@ -759,6 +759,7 @@ struct SettingsView: View {
             let dayOffsets = stride(from: 56, through: 0, by: -4).map { $0 }
             var inserted = 0
 
+            let totalSteps = dayOffsets.count
             for (step, offset) in dayOffsets.enumerated() {
                 guard let day = calendar.date(byAdding: .day, value: -offset, to: startOfToday),
                       let timestamp = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day) else {
@@ -766,7 +767,7 @@ struct SettingsView: View {
                 }
 
                 for kind in MetricKind.allCases {
-                    guard let value = seededMetricValue(for: kind, step: step) else { continue }
+                    guard let value = seededMetricValue(for: kind, step: step, totalSteps: totalSteps) else { continue }
                     let key = metricSampleSeedKey(kindRaw: kind.rawValue, date: timestamp)
                     guard !existingKeys.contains(key) else { continue }
                     modelContext.insert(MetricSample(kind: kind, value: value, date: timestamp))
@@ -799,46 +800,120 @@ struct SettingsView: View {
         }
     }
 
-    private func seededMetricValue(for kind: MetricKind, step: Int) -> Double? {
-        let s = Double(step)
+    private func seededMetricValue(for kind: MetricKind, step: Int, totalSteps: Int) -> Double? {
+        let model = seededBodyModel(step: step, totalSteps: totalSteps)
         switch kind {
         case .weight:
-            return 92.0 - (0.35 * s)
+            return model.weight
         case .bodyFat:
-            return 27.0 - (0.28 * s)
+            return model.bodyFat
         case .height:
-            return 180.0
+            return model.height
         case .leanBodyMass:
-            return 66.0 + (0.08 * s)
+            return model.leanBodyMass
         case .waist:
-            return 101.0 - (0.45 * s)
+            return model.waist
         case .neck:
-            return 40.0 - (0.03 * s)
+            return model.neck
         case .shoulders:
-            return 118.0 + (0.12 * s)
+            return model.shoulders
         case .bust:
-            return 96.0 + (0.05 * s)
+            return model.bust
         case .chest:
-            return 103.0 + (0.11 * s)
+            return model.chest
         case .leftBicep:
-            return 33.0 + (0.10 * s)
+            return model.leftBicep
         case .rightBicep:
-            return 33.2 + (0.10 * s)
+            return model.rightBicep
         case .leftForearm:
-            return 28.0 + (0.05 * s)
+            return model.leftForearm
         case .rightForearm:
-            return 28.1 + (0.05 * s)
+            return model.rightForearm
         case .hips:
-            return 106.0 - (0.20 * s)
+            return model.hips
         case .leftThigh:
-            return 60.0 - (0.07 * s)
+            return model.leftThigh
         case .rightThigh:
-            return 60.3 - (0.07 * s)
+            return model.rightThigh
         case .leftCalf:
-            return 38.0 + (0.03 * s)
+            return model.leftCalf
         case .rightCalf:
-            return 38.2 + (0.03 * s)
+            return model.rightCalf
         }
+    }
+
+    private func seededBodyModel(step: Int, totalSteps: Int) -> SeededBodyModel {
+        let denominator = Double(max(totalSteps - 1, 1))
+        let t = Double(step) / denominator
+
+        let cutTrend = -5.1 * t
+        let waterRetention = 0.85 * sin((t * 7.8) + 0.6) + 0.32 * pseudoNoise(step: step, channel: 1)
+        let trainingPump = 0.52 * sin((t * 12.4) - 0.7) + 0.24 * pseudoNoise(step: step, channel: 2)
+        let recovery = 0.3 * sin((t * 4.6) + 1.8)
+
+        let weight = clamped(
+            92.4 + cutTrend + waterRetention + (0.2 * pseudoNoise(step: step, channel: 3)),
+            min: 78,
+            max: 110
+        )
+        let bodyFat = clamped(
+            27.2 - (4.3 * t) + (0.22 * waterRetention) + (0.18 * pseudoNoise(step: step, channel: 4)),
+            min: 8,
+            max: 45
+        )
+        let leanBodyMass = clamped(
+            (weight * (1 - (bodyFat / 100))) + (0.35 * t) + (0.18 * trainingPump),
+            min: 48,
+            max: 95
+        )
+
+        let waist = clamped(101.6 - (7.4 * t) + (0.75 * waterRetention) + (0.22 * recovery), min: 70, max: 130)
+        let neck = clamped(40.4 - (0.7 * t) + (0.12 * trainingPump), min: 31, max: 50)
+        let shoulders = clamped(118.1 + (1.25 * t) + (0.34 * trainingPump), min: 95, max: 145)
+        let bust = clamped(96.5 - (1.0 * t) + (0.26 * waterRetention), min: 78, max: 125)
+        let chest = clamped(103.0 + (1.05 * t) + (0.42 * trainingPump) + (0.15 * waterRetention), min: 80, max: 140)
+
+        let leftBicep = clamped(33.1 + (1.1 * t) + (0.33 * trainingPump), min: 24, max: 55)
+        let rightBicep = clamped(leftBicep + 0.24 + (0.05 * pseudoNoise(step: step, channel: 5)), min: 24, max: 55)
+        let leftForearm = clamped(28.0 + (0.56 * t) + (0.16 * trainingPump), min: 20, max: 40)
+        let rightForearm = clamped(leftForearm + 0.12 + (0.04 * pseudoNoise(step: step, channel: 6)), min: 20, max: 40)
+
+        let hips = clamped(106.5 - (3.2 * t) + (0.34 * waterRetention), min: 80, max: 140)
+        let leftThigh = clamped(60.2 - (1.2 * t) + (0.15 * trainingPump) + (0.1 * waterRetention), min: 42, max: 80)
+        let rightThigh = clamped(leftThigh + 0.22 + (0.05 * pseudoNoise(step: step, channel: 7)), min: 42, max: 80)
+        let leftCalf = clamped(38.0 + (0.34 * t) + (0.16 * trainingPump), min: 28, max: 52)
+        let rightCalf = clamped(leftCalf + 0.18 + (0.04 * pseudoNoise(step: step, channel: 8)), min: 28, max: 52)
+
+        return SeededBodyModel(
+            weight: weight,
+            bodyFat: bodyFat,
+            height: 180.0,
+            leanBodyMass: leanBodyMass,
+            waist: waist,
+            neck: neck,
+            shoulders: shoulders,
+            bust: bust,
+            chest: chest,
+            leftBicep: leftBicep,
+            rightBicep: rightBicep,
+            leftForearm: leftForearm,
+            rightForearm: rightForearm,
+            hips: hips,
+            leftThigh: leftThigh,
+            rightThigh: rightThigh,
+            leftCalf: leftCalf,
+            rightCalf: rightCalf
+        )
+    }
+
+    private func pseudoNoise(step: Int, channel: Int) -> Double {
+        let x = sin(Double(step * 37 + channel * 101) * 12.9898 + 78.233) * 43_758.5453
+        let fractional = x - floor(x)
+        return (fractional * 2) - 1
+    }
+
+    private func clamped(_ value: Double, min: Double, max: Double) -> Double {
+        Swift.max(min, Swift.min(max, value))
     }
 
     private func metricSampleSeedKey(kindRaw: String, date: Date) -> String {
@@ -896,4 +971,25 @@ struct SettingsView: View {
             setActiveAlert: { activeAlert = $0 }
         )
     }
+}
+
+private struct SeededBodyModel {
+    let weight: Double
+    let bodyFat: Double
+    let height: Double
+    let leanBodyMass: Double
+    let waist: Double
+    let neck: Double
+    let shoulders: Double
+    let bust: Double
+    let chest: Double
+    let leftBicep: Double
+    let rightBicep: Double
+    let leftForearm: Double
+    let rightForearm: Double
+    let hips: Double
+    let leftThigh: Double
+    let rightThigh: Double
+    let leftCalf: Double
+    let rightCalf: Double
 }

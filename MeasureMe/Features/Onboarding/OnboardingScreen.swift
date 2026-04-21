@@ -1,12 +1,8 @@
 import SwiftUI
+import UIKit
 
 @MainActor
 struct OnboardingView: View {
-    private enum Phase: Equatable {
-        case intro
-        case input(InputStep)
-    }
-
     private enum HealthAuthorizationPhase {
         case idle
         case preparing
@@ -34,11 +30,9 @@ struct OnboardingView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var phase: Phase = .intro
-    @State private var introIndex: Int = 0
-    @State private var inputStep: InputStep = .name
+    @State private var currentStep: InputStep = .profile
     @State private var nameInput: String = ""
-    @State private var selectedPriorities: Set<OnboardingPriority> = []
+    @State private var selectedPriority: OnboardingPriority?
     @State private var isRequestingHealthKit = false
     @State private var healthStatusLines: [String] = []
     @State private var healthAuthorizationPhase: HealthAuthorizationPhase = .idle
@@ -46,10 +40,7 @@ struct OnboardingView: View {
     @State private var didPrewarmHealthKitAuthorization = false
     @State private var hasTrackedStart = false
     @State private var slideAppeared = false
-    @State private var inputContentAppeared = false
-    @State private var completionAppeared = false
-    @State private var completionRippleScale: CGFloat = 0.5
-    @State private var completionRippleOpacity: Double = 0.6
+    @FocusState private var isNameFieldFocused: Bool
 
     private let isUITestOnboardingMode = UITestArgument.isPresent(.onboardingMode)
 
@@ -61,115 +52,76 @@ struct OnboardingView: View {
         AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 
-    private var totalIntroSlides: Int { 3 }
     private var activationTasksCount: Int { ActivationTask.allCases.count }
 
-    private var overallStepIndex: Int {
-        switch phase {
-        case .intro:
-            return introIndex
-        case .input(let step):
-            return totalIntroSlides + step.rawValue
-        }
-    }
+    private var overallStepIndex: Int { currentStep.rawValue }
 
-    private var canGoBack: Bool {
-        switch phase {
-        case .intro:
-            return introIndex > 0
-        case .input(let step):
-            return step != .name || introIndex > 0
-        }
-    }
+    private var canGoBack: Bool { currentStep != .profile }
 
-    private var isSkipVisible: Bool {
-        switch phase {
-        case .intro:
-            return false
-        case .input(let step):
-            if step == .name {
-                return true
-            }
-            if step == .health {
-                return !onboardingSkippedHealthKit && !isSyncEnabled
-            }
-            return false
-        }
-    }
+    private var isSkipVisible: Bool { true }
 
     private var primaryButtonTitle: String {
-        switch phase {
-        case .intro:
-            return AppLocalization.systemString("Continue")
-        case .input(let step):
-            if step == .completion {
-                return FlowLocalization.system(
-                    "Go to dashboard",
-                    "Przejdź do dashboardu",
-                    "Ir al panel",
-                    "Zum Dashboard",
-                    "Aller au tableau de bord",
-                    "Ir para o dashboard"
-                )
-            }
-            return AppLocalization.systemString("Continue")
+        switch currentStep {
+        case .profile:
+            return FlowLocalization.system(
+                "Show my metrics",
+                "Pokaż moje metryki",
+                "Mostrar mis métricas",
+                "Zeig mir meine Messwerte",
+                "Montrer mes mesures",
+                "Mostrar minhas métricas"
+            )
+        case .metrics:
+            return FlowLocalization.system(
+                "Show photo check-ins",
+                "Pokaż check-iny zdjęciowe",
+                "Mostrar check-ins de fotos",
+                "Foto-Check-ins zeigen",
+                "Montrer les check-ins photo",
+                "Mostrar check-ins com fotos"
+            )
+        case .photos:
+            return FlowLocalization.system(
+                "Set up Apple Health",
+                "Skonfiguruj Apple Health",
+                "Configurar Apple Health",
+                "Apple Health einrichten",
+                "Configurer Apple Health",
+                "Configurar o Apple Health"
+            )
+        case .health:
+            return FlowLocalization.system(
+                "Start my journey",
+                "Rozpocznij moją drogę",
+                "Empezar mi camino",
+                "Meine Reise starten",
+                "Commencer mon parcours",
+                "Começar minha jornada"
+            )
         }
     }
 
     private var skipButtonTitle: String {
-        switch phase {
-        case .intro:
-            return ""
-        case .input:
-            return FlowLocalization.system("Skip", "Pomiń", "Omitir", "Überspringen", "Passer", "Pular")
-        }
+        FlowLocalization.system("Skip for now", "Pomiń na razie", "Omitir por ahora", "Vorerst überspringen", "Passer pour l'instant", "Pular por enquanto")
     }
 
     private var isPrimaryEnabled: Bool {
-        switch phase {
-        case .intro:
-            return true
-        case .input(let step):
-            switch step {
-            case .name:
-                return !nameInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            case .priority:
-                return !selectedPriorities.isEmpty
-            case .health:
-                return !isRequestingHealthKit
-            default:
-                return true
-            }
-        }
-    }
-
-    private var resolvedPriorities: [OnboardingPriority] {
-        let ordered = OnboardingPriority.allCases.filter { selectedPriorities.contains($0) }
-        return ordered.isEmpty ? [.improveHealth] : ordered
+        !isRequestingHealthKit || currentStep != .health
     }
 
     private var resolvedPriority: OnboardingPriority {
-        resolvedPriorities.first ?? .improveHealth
-    }
-
-    private var resolvedPriorityTitles: String {
-        resolvedPriorities
-            .map(OnboardingCopy.priorityTitle)
-            .joined(separator: ", ")
-    }
-
-    private var recommendedKinds: [MetricKind] {
-        var seen = Set<MetricKind>()
-        var result: [MetricKind] = []
-
-        for priority in resolvedPriorities {
-            for kind in GoalMetricPack.recommendedKinds(for: priority) where seen.insert(kind).inserted {
-                result.append(kind)
-            }
+        if let selectedPriority {
+            return selectedPriority
         }
-
-        return result
+        if let storedPriority = OnboardingPriority(rawValue: onboardingPrimaryGoalRaw) {
+            return storedPriority
+        }
+        return .improveHealth
     }
+
+    private var resolvedPriorityTitle: String { OnboardingCopy.priorityTitle(resolvedPriority) }
+
+    private var recommendedKinds: [MetricKind] { GoalMetricPack.recommendedKinds(for: resolvedPriority) }
 
     private var healthProgressTitle: String {
         switch healthAuthorizationPhase {
@@ -215,8 +167,23 @@ struct OnboardingView: View {
     }
 
     private var healthButtonTitle: String {
-        isRequestingHealthKit ? healthProgressTitle : OnboardingCopy.healthAllowCTA
+        if isRequestingHealthKit {
+            return healthProgressTitle
+        }
+        if isSyncEnabled {
+            return FlowLocalization.system(
+                "Apple Health connected",
+                "Apple Health połączone",
+                "Apple Health conectado",
+                "Apple Health verbunden",
+                "Apple Health connecté",
+                "Apple Health conectado"
+            )
+        }
+        return OnboardingCopy.healthAllowCTA
     }
+
+    private let footerReservedHeight: CGFloat = 94
 
     var body: some View {
         ZStack {
@@ -229,15 +196,29 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.top, AppSpacing.md)
-
-                footer
-                    .padding(.horizontal, AppSpacing.lg)
-                    .padding(.bottom, 18)
-                    .padding(.top, AppSpacing.md)
+                    .padding(.bottom, footerReservedHeight)
             }
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            footer
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.bottom, 12)
+                .padding(.top, 8)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color.clear,
+                            AppColorRoles.surfaceChrome.opacity(0.82),
+                            AppColorRoles.surfacePrimary.opacity(0.96)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+        }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .onAppear(perform: handleAppear)
-        .onChange(of: introIndex) { _, _ in
+        .onChange(of: currentStep) { _, _ in
             triggerSlideAppearance()
         }
         .onChange(of: overallStepIndex) { _, newValue in
@@ -275,65 +256,46 @@ struct OnboardingView: View {
 
             Spacer()
 
-            if case .intro = phase {
-                introDots
-            }
+            stepDots
 
             Spacer()
 
-            introSkipLink
+            skipLink
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.top, 12)
     }
 
-    @ViewBuilder
-    private var introSkipLink: some View {
-        if case .intro = phase, introIndex > 0 {
-            Button {
-                skipCurrentStep()
-            } label: {
-                Text(FlowLocalization.system("Skip intro", "Pomiń intro", "Saltar intro", "Intro überspringen", "Passer l'intro", "Pular intro"))
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(AppColorRoles.textSecondary)
-                    .frame(width: 92, alignment: .trailing)
-                    .frame(minHeight: 44)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("onboarding.intro.skip")
-        } else {
-            Color.clear
-                .frame(width: 92, height: 44)
-                .accessibilityHidden(true)
+    private var skipLink: some View {
+        Button {
+            skipCurrentStep()
+        } label: {
+            Text(skipButtonTitle)
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(AppColorRoles.textSecondary)
+                .frame(width: 116, alignment: .trailing)
+                .frame(minHeight: 44)
         }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("onboarding.skip")
     }
 
-    private var introDots: some View {
+    private var stepDots: some View {
         HStack(spacing: 8) {
-            ForEach(0..<totalIntroSlides, id: \.self) { index in
+            ForEach(InputStep.allCases, id: \.self) { step in
                 Capsule(style: .continuous)
-                    .fill(index == introIndex ? Color.appAccent : AppColorRoles.borderSubtle)
-                    .frame(width: index == introIndex ? 28 : 8, height: 6)
-                    .animation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate), value: introIndex)
+                    .fill(step == currentStep ? Color.appAccent : AppColorRoles.borderSubtle)
+                    .frame(width: step == currentStep ? 28 : 8, height: 6)
+                    .animation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate), value: currentStep)
             }
         }
     }
 
-    @ViewBuilder
     private var content: some View {
-        switch phase {
-        case .intro:
-            TabView(selection: $introIndex) {
-                ForEach(0..<totalIntroSlides, id: \.self) { index in
-                    introSlide(index: index)
-                        .tag(index)
-                        .accessibilityIdentifier("onboarding.intro.\(index)")
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-        case .input(let step):
-            inputStepView(step)
-                .id(step.rawValue)
+        GeometryReader { proxy in
+            stepView(currentStep, availableHeight: proxy.size.height)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .id(currentStep.rawValue)
                 .transition(
                     .asymmetric(
                         insertion: .move(edge: .trailing).combined(with: .opacity),
@@ -345,16 +307,6 @@ struct OnboardingView: View {
 
     private var footer: some View {
         VStack(spacing: 12) {
-            if isSkipVisible {
-                Button(skipButtonTitle) {
-                    skipCurrentStep()
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(AppColorRoles.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .accessibilityIdentifier("onboarding.skip")
-            }
-
             Button(action: goToNextStep) {
                 Text(primaryButtonTitle)
                     .foregroundStyle(AppColorRoles.textOnAccent)
@@ -368,59 +320,36 @@ struct OnboardingView: View {
     }
 
     @ViewBuilder
-    private func introSlide(index: Int) -> some View {
-        ZStack {
-            ambientBlobs(for: index)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
-
-            VStack(alignment: .leading, spacing: 22) {
-                Spacer(minLength: 10)
-
-                onboardingSlideHeader(
-                    title: OnboardingCopy.introTitle(index: index),
-                    subtitle: OnboardingCopy.introSubtitle(index: index)
-                )
-                .opacity(slideAppeared ? 1 : 0)
-                .offset(y: slideAppeared ? 0 : 20)
-                .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.05) : .none, value: slideAppeared)
-
-                Group {
-                    switch index {
-                    case 0:
-                        introMetricsVisual
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                            .padding(.top, AppSpacing.sm)
-                    case 1:
-                        introPhotosVisual
-                    default:
-                        introPrivacyVisual
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .opacity(slideAppeared ? 1 : 0)
-                .offset(y: slideAppeared ? 0 : 24)
-                .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.10) : .none, value: slideAppeared)
-
-                Spacer(minLength: 0)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func inputStepView(_ step: InputStep) -> some View {
+    private func stepView(_ step: InputStep, availableHeight: CGFloat) -> some View {
+        let layout = onboardingLayout(for: availableHeight)
         switch step {
-        case .name:
+        case .profile:
             onboardingInputCard {
-                VStack(alignment: .leading, spacing: 18) {
-                    Text(OnboardingCopy.namePrompt)
-                        .font(AppTypography.displaySection)
-                        .foregroundStyle(AppColorRoles.textPrimary)
+                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                    onboardingSlideHeader(
+                        title: FlowLocalization.system(
+                            "What's your name?",
+                            "Jak masz na imię?",
+                            "¿Cómo te llamas?",
+                            "Wie heißt du?",
+                            "Comment vous appelez-vous ?",
+                            "Como você se chama?"
+                        ),
+                        subtitle: FlowLocalization.system(
+                            "Pick your main goal so MeasureMe starts with the right signals from day one.",
+                            "Wybierz główny cel, aby MeasureMe od pierwszego dnia pokazywało właściwe sygnały.",
+                            "Elige tu meta principal para que MeasureMe empiece con las señales correctas desde el primer día.",
+                            "Wähle dein Hauptziel, damit MeasureMe vom ersten Tag an die richtigen Signale zeigt.",
+                            "Choisissez votre objectif principal pour que MeasureMe démarre avec les bons signaux dès le premier jour.",
+                            "Escolha seu objetivo principal para que o MeasureMe comece com os sinais certos desde o primeiro dia."
+                        ),
+                        titleSize: layout.headerTitleSize
+                    )
 
                     TextField("e.g. Alex", text: $nameInput)
                         .textInputAutocapitalization(.words)
-                        .font(.system(size: 28, weight: .semibold, design: .rounded))
-                        .padding(.vertical, 10)
+                        .font(.system(size: layout.nameFieldFontSize, weight: .semibold, design: .rounded))
+                        .padding(.vertical, layout.nameFieldVerticalPadding)
                         .padding(.horizontal, 14)
                         .background(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -430,67 +359,163 @@ struct OnboardingView: View {
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
                                 .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                         )
+                        .focused($isNameFieldFocused)
+                        .submitLabel(.done)
+                        .onSubmit { isNameFieldFocused = false }
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Done") {
+                                    isNameFieldFocused = false
+                                }
+                            }
+                        }
                         .accessibilityIdentifier("onboarding.name.field")
+
+                    VStack(alignment: .leading, spacing: layout.groupSpacing) {
+                        Text(
+                            FlowLocalization.system(
+                                "What do you want this app to help with first?",
+                                "W czym ta aplikacja ma pomóc Ci najpierw?",
+                                "¿En qué quieres que te ayude primero esta app?",
+                                "Wobei soll dir diese App zuerst helfen?",
+                                "Sur quoi voulez-vous que cette app vous aide en premier ?",
+                                "Em que você quer que este app ajude primeiro?"
+                            )
+                        )
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                        ForEach(OnboardingPriority.allCases, id: \.self) { priority in
+                            let isSelected = selectedPriority == priority
+                            Button {
+                                Haptics.selection()
+                                selectedPriority = isSelected ? nil : priority
+                            } label: {
+                                HStack(spacing: 14) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(OnboardingCopy.priorityTitle(priority))
+                                            .font(AppTypography.bodyEmphasis)
+                                            .foregroundStyle(AppColorRoles.textPrimary)
+                                        Text(OnboardingCopy.prioritySubtitle(priority))
+                                            .font(AppTypography.caption)
+                                            .foregroundStyle(AppColorRoles.textSecondary)
+                                            .lineLimit(3)
+                                            .minimumScaleFactor(0.86)
+                                            .multilineTextAlignment(.leading)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                            .layoutPriority(1)
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundStyle(isSelected ? Color.appAccent : AppColorRoles.textTertiary)
+                                }
+                                .padding(16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .fill(isSelected ? Color.appAccent.opacity(0.12) : AppColorRoles.surfaceInteractive)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                                .stroke(isSelected ? Color.appAccent.opacity(0.45) : AppColorRoles.borderSubtle, lineWidth: 1)
+                                        )
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("onboarding.priority.\(priority.rawValue)")
+                        }
+                    }
+
+                    if let selectedPriority {
+                        recommendedMetricsBanner(for: selectedPriority)
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isNameFieldFocused = false
                 }
             }
-        case .priority:
+        case .metrics:
             onboardingInputCard {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(OnboardingCopy.priorityPrompt(name: effectiveNameForGreeting))
-                        .font(AppTypography.displaySection)
-                        .foregroundStyle(AppColorRoles.textPrimary)
+                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                    onboardingSlideHeader(
+                        title: metricsStepTitle,
+                        subtitle: metricsStepSubtitle,
+                        titleSize: layout.headerTitleSize - 2
+                    )
 
-                    Text(OnboardingCopy.priorityHelper)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColorRoles.textSecondary)
+                    flowChipList(labels: recommendedKinds.map(\.title))
 
-                    ForEach(OnboardingPriority.allCases, id: \.self) { priority in
-                        let isSelected = selectedPriorities.contains(priority)
-                        Button {
-                            Haptics.selection()
-                            selectedPriorities = OnboardingPrioritySelectionPolicy.toggled(priority, in: selectedPriorities)
-                        } label: {
-                            HStack(spacing: 14) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(OnboardingCopy.priorityTitle(priority))
-                                        .font(AppTypography.bodyEmphasis)
-                                        .foregroundStyle(AppColorRoles.textPrimary)
-                                    Text(OnboardingCopy.prioritySubtitle(priority))
-                                        .font(AppTypography.caption)
-                                        .foregroundStyle(AppColorRoles.textSecondary)
-                                        .multilineTextAlignment(.leading)
-                                }
+                    introMetricsVisual(layout: layout)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        case .photos:
+            onboardingInputCard {
+                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                    onboardingSlideHeader(
+                        title: FlowLocalization.system(
+                            "Photos that show the change",
+                            "Zdjęcia, które pokazują zmianę",
+                            "Fotos que muestran el cambio",
+                            "Fotos, die Veränderung zeigen",
+                            "Photos qui montrent le changement",
+                            "Fotos que mostram a mudança"
+                        ),
+                        subtitle: FlowLocalization.system(
+                            "Use consistent check-ins so subtle progress becomes obvious before it feels dramatic.",
+                            "Używaj spójnych check-inów, aby subtelny progres był widoczny, zanim stanie się spektakularny.",
+                            "Usa check-ins consistentes para que el progreso sutil sea evidente antes de parecer drástico.",
+                            "Nutze konsistente Check-ins, damit subtile Fortschritte sichtbar werden, bevor sie drastisch wirken.",
+                            "Utilisez des check-ins cohérents pour rendre les progrès subtils visibles avant qu'ils ne paraissent spectaculaires.",
+                            "Use check-ins consistentes para que o progresso sutil fique visível antes de parecer dramático."
+                        ),
+                        titleSize: layout.headerTitleSize
+                    )
 
-                                Spacer()
+                    introPhotosVisual(layout: layout)
 
-                                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundStyle(isSelected ? Color.appAccent : AppColorRoles.textTertiary)
-                            }
-                            .padding(16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(isSelected ? Color.appAccent.opacity(0.12) : AppColorRoles.surfaceInteractive)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                            .stroke(isSelected ? Color.appAccent.opacity(0.45) : AppColorRoles.borderSubtle, lineWidth: 1)
-                                    )
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("onboarding.priority.\(priority.rawValue)")
-                    }
+                    Text(
+                        FlowLocalization.system(
+                            "Front and side shots taken in similar light will make your weekly comparisons far more useful.",
+                            "Zdjęcia z przodu i z boku robione w podobnym świetle sprawią, że tygodniowe porównania będą dużo bardziej użyteczne.",
+                            "Las fotos de frente y de lado con luz similar harán mucho más útiles tus comparaciones semanales.",
+                            "Front- und Seitenfotos bei ähnlichem Licht machen deine Wochenvergleiche deutlich nützlicher.",
+                            "Des photos de face et de profil prises dans une lumière similaire rendront vos comparaisons hebdomadaires bien plus utiles.",
+                            "Fotos de frente e de lado com luz parecida tornam suas comparações semanais muito mais úteis."
+                        )
+                    )
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
                 }
             }
         case .health:
             onboardingInputCard {
-                VStack(alignment: .leading, spacing: 18) {
-                    Text(OnboardingCopy.healthPromptTitle)
-                        .font(AppTypography.displaySection)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                    Text(OnboardingCopy.healthPromptBody)
-                        .font(AppTypography.body)
-                        .foregroundStyle(AppColorRoles.textSecondary)
+                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                    onboardingSlideHeader(
+                        title: FlowLocalization.system(
+                            "Connect Health. Keep it private.",
+                            "Połącz Zdrowie. Zachowaj prywatność.",
+                            "Conecta Salud. Mantén la privacidad.",
+                            "Health verbinden. Privat bleiben.",
+                            "Connectez Santé. Gardez le contrôle.",
+                            "Conecte o Health. Mantenha a privacidade."
+                        ),
+                        subtitle: FlowLocalization.system(
+                            "Apple Health is optional. Your measurements and photos stay on device, and you can still log everything manually.",
+                            "Apple Health jest opcjonalne. Twoje pomiary i zdjęcia zostają na urządzeniu, a wszystko nadal możesz wpisywać ręcznie.",
+                            "Apple Health es opcional. Tus medidas y fotos se quedan en el dispositivo y también puedes registrar todo manualmente.",
+                            "Apple Health ist optional. Deine Messwerte und Fotos bleiben auf dem Gerät und du kannst alles auch manuell eintragen.",
+                            "Apple Health est facultatif. Vos mesures et photos restent sur l'appareil, et vous pouvez tout enregistrer manuellement.",
+                            "O Apple Health é opcional. Suas medidas e fotos ficam no aparelho, e você ainda pode registrar tudo manualmente."
+                        ),
+                        titleSize: layout.headerTitleSize
+                    )
 
                     flowChipList(labels: recommendedKinds.map(\.title))
 
@@ -508,9 +533,7 @@ struct OnboardingView: View {
                         }
                     }
 
-                    Button {
-                        requestHealthAccess()
-                    } label: {
+                    Button(action: requestHealthAccess) {
                         HStack(spacing: 10) {
                             if isRequestingHealthKit {
                                 ProgressView()
@@ -519,90 +542,21 @@ struct OnboardingView: View {
                             }
                             Text(healthButtonTitle)
                         }
-                            .foregroundStyle(AppColorRoles.textOnAccent)
-                            .frame(maxWidth: .infinity)
-                            .frame(minHeight: 50)
+                        .foregroundStyle(AppColorRoles.textOnAccent)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 50)
                     }
                     .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-                    .disabled(isRequestingHealthKit)
+                    .disabled(isRequestingHealthKit || isSyncEnabled)
                     .accessibilityIdentifier("onboarding.health.allow")
+
+                    privacyCard(compact: layout.isCompact)
                 }
             }
             .task {
                 guard !didPrewarmHealthKitAuthorization else { return }
                 didPrewarmHealthKitAuthorization = true
                 await effects.prewarmHealthKitAuthorization()
-            }
-        case .completion:
-            onboardingInputCard {
-                ZStack(alignment: .top) {
-                    if completionAppeared {
-                        OnboardingConfettiView()
-                            .allowsHitTesting(false)
-                            .transition(.opacity)
-                    }
-
-                    VStack(alignment: .leading, spacing: 18) {
-                        ZStack {
-                            Circle()
-                                .stroke(AppColorRoles.stateSuccess.opacity(completionRippleOpacity), lineWidth: 2)
-                                .frame(width: 72, height: 72)
-                                .scaleEffect(completionRippleScale)
-                                .opacity(completionRippleOpacity)
-
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 52))
-                                .foregroundStyle(AppColorRoles.stateSuccess)
-                                .scaleEffect(completionAppeared ? 1.0 : 0)
-                        }
-                        .animation(shouldAnimate ? AppMotion.emphasized : .none, value: completionAppeared)
-
-                        Text(OnboardingCopy.completionTitle)
-                            .font(AppTypography.displayHero)
-                            .foregroundStyle(AppColorRoles.textPrimary)
-                            .opacity(completionAppeared ? 1 : 0)
-                            .offset(y: completionAppeared ? 0 : 12)
-                            .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.15) : .none, value: completionAppeared)
-
-                        Text(OnboardingCopy.completionBody)
-                            .font(AppTypography.body)
-                            .foregroundStyle(AppColorRoles.textSecondary)
-                            .opacity(completionAppeared ? 1 : 0)
-                            .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.25) : .none, value: completionAppeared)
-
-                        AppGlassCard(depth: .base, cornerRadius: AppRadius.lg, tint: Color.appAccent, contentPadding: 12) {
-                            VStack(alignment: .leading, spacing: 10) {
-                                flowSummaryRow(
-                                    title: FlowLocalization.system("Priority", "Priorytet", "Prioridad", "Priorität", "Priorité", "Prioridade"),
-                                    value: resolvedPriorityTitles,
-                                    multilineValue: true
-                                )
-                                flowSummaryRow(
-                                    title: FlowLocalization.system("Health", "Health", "Salud", "Health", "Santé", "Health"),
-                                    value: isSyncEnabled ? FlowLocalization.system("Connected", "Połączono", "Conectado", "Verbunden", "Connecté", "Conectado") : FlowLocalization.system("Skipped", "Pominięto", "Omitido", "Übersprungen", "Passé", "Ignorado")
-                                )
-                            }
-                        }
-                        .opacity(completionAppeared ? 1 : 0)
-                        .animation(shouldAnimate ? AppMotion.sectionEnter.delay(0.35) : .none, value: completionAppeared)
-                    }
-                }
-            }
-            .onAppear {
-                if shouldAnimate {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        withAnimation(AppMotion.emphasized) {
-                            completionAppeared = true
-                        }
-                        withAnimation(.easeOut(duration: 0.8)) {
-                            completionRippleScale = 2.0
-                            completionRippleOpacity = 0
-                        }
-                    }
-                } else {
-                    completionAppeared = true
-                    completionRippleOpacity = 0
-                }
             }
         }
     }
@@ -778,76 +732,52 @@ struct OnboardingView: View {
         .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
-    private var introMetricsVisual: some View {
-        let weightLabel = FlowLocalization.system("Weight", "Waga", "Peso", "Gewicht", "Poids", "Peso")
-        let waistLabel = FlowLocalization.system("Waist", "Pas", "Cintura", "Taille", "Taille", "Cintura")
-        let weightValueLabel = FlowLocalization.system("75.0 kg", "75,0 kg", "75,0 kg", "75,0 kg", "75,0 kg", "75,0 kg")
-        let waistValueLabel = FlowLocalization.system("84.0 cm", "84,0 cm", "84,0 cm", "84,0 cm", "84,0 cm", "84,0 cm")
-        let weightDeltaLabel = FlowLocalization.system("-2.1 kg", "-2,1 kg", "-2,1 kg", "-2,1 kg", "-2,1 kg", "-2,1 kg")
-        let waistDeltaLabel = FlowLocalization.system("-4.0 cm", "-4,0 cm", "-4,0 cm", "-4,0 cm", "-4,0 cm", "-4,0 cm")
-        let goalLabel = FlowLocalization.system("Goal", "Cel", "Meta", "Ziel", "Objectif", "Meta")
-        let trendLabel = FlowLocalization.system("Trend", "Trend", "Tendencia", "Trend", "Tendance", "Tendência")
-
-        return VStack(spacing: IntroMetricsLayout.rowSpacing) {
+    private func introMetricsVisual(layout: OnboardingCardLayout) -> some View {
+        VStack(spacing: layout.chartRowSpacing) {
             HStack(alignment: .top, spacing: IntroMetricsLayout.columnSpacing) {
-                DummyMiniMetricChartCard(
-                    title: weightLabel,
-                    value: weightValueLabel,
-                    delta: weightDeltaLabel,
-                    tint: Color.appAccent,
-                    backgroundTint: Color.appAccent,
-                    points: [
-                        CGPoint(x: 0.03, y: 0.72),
-                        CGPoint(x: 0.23, y: 0.69),
-                        CGPoint(x: 0.46, y: 0.56),
-                        CGPoint(x: 0.67, y: 0.48),
-                        CGPoint(x: 0.86, y: 0.33),
-                        CGPoint(x: 0.97, y: 0.29)
-                    ]
-                )
-
-                DummyMiniMetricChartCard(
-                    title: waistLabel,
-                    value: waistValueLabel,
-                    delta: waistDeltaLabel,
-                    tint: Color.cyan,
-                    backgroundTint: Color.cyan.opacity(0.45),
-                    points: [
-                        CGPoint(x: 0.03, y: 0.34),
-                        CGPoint(x: 0.22, y: 0.40),
-                        CGPoint(x: 0.42, y: 0.49),
-                        CGPoint(x: 0.63, y: 0.58),
-                        CGPoint(x: 0.83, y: 0.65),
-                        CGPoint(x: 0.97, y: 0.71)
-                    ],
-                    targetY: 0.62,
-                    targetX: 0.84,
-                    legends: [
-                        DummyChartLegendItem(label: goalLabel, color: Color.appAccent),
-                        DummyChartLegendItem(label: trendLabel, color: Color.cyan)
-                    ]
-                )
+                ForEach(Array(metricsPreviewCards.enumerated()), id: \.offset) { _, card in
+                    DummyMiniMetricChartCard(
+                        title: card.title,
+                        value: card.value,
+                        delta: card.delta,
+                        tint: card.tint,
+                        backgroundTint: card.backgroundTint,
+                        points: card.points,
+                        compact: layout.isCompact
+                    )
+                }
             }
 
-            DummyAIInsightCard()
+            DummyAIInsightCard(
+                title: metricsInsightCopy.title,
+                lineOne: metricsInsightCopy.lineOne,
+                lineTwo: metricsInsightCopy.lineTwo,
+                tip: metricsInsightCopy.tip,
+                compact: layout.isCompact
+            )
         }
     }
 
     @State private var photoAfterAppeared = false
 
-    private var introPhotosVisual: some View {
+    private func introPhotosVisual(layout: OnboardingCardLayout) -> some View {
         let beforeLabel = FlowLocalization.system("Before", "Przed", "Antes", "Vorher", "Avant", "Antes")
         let afterLabel = FlowLocalization.system("After", "Po", "Después", "Nachher", "Après", "Depois")
         let compareLabel = FlowLocalization.system("Compare", "Porównaj", "Comparar", "Vergleichen", "Comparer", "Comparar")
+        let isRecomp = resolvedPriority == .improveHealth
+        let photoWidth = isRecomp ? layout.photoWidth + (layout.isCompact ? 24 : 34) : layout.photoWidth
+        let photoHeight = isRecomp ? layout.photoHeight + (layout.isCompact ? 24 : 34) : layout.photoHeight
 
         return VStack(spacing: 12) {
             OnboardingBeforeAfterSlider(
-                beforeImageName: "onboarding-before",
-                afterImageName: "onboarding-after",
+                // The "Before" / "After" assets were authored flipped; swap at the call site.
+                beforeImageName: onboardingAfterAssetName,
+                afterImageName: onboardingBeforeAssetName,
                 beforeLabel: beforeLabel,
-                afterLabel: afterLabel
+                afterLabel: afterLabel,
+                imageAlignment: isRecomp ? .center : .top
             )
-            .frame(width: 188, height: 280)
+            .frame(width: photoWidth, height: photoHeight)
             .frame(maxWidth: .infinity)
             .opacity(photoAfterAppeared ? 1 : 0)
             .offset(y: photoAfterAppeared ? 0 : 18)
@@ -855,7 +785,7 @@ struct OnboardingView: View {
 
             Capsule(style: .continuous)
                 .fill(AppColorRoles.surfaceChrome.opacity(0.92))
-                .frame(width: 168, height: 42)
+                .frame(width: layout.compareChipWidth, height: layout.compareChipHeight)
                 .overlay {
                     HStack(spacing: 10) {
                         Image(systemName: "camera.metering.none")
@@ -991,14 +921,12 @@ struct OnboardingView: View {
     }
 
     private func onboardingInputCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        ScrollView {
-            AppGlassCard(depth: .elevated, cornerRadius: 28, tint: Color.appAccent, contentPadding: 22) {
-                content()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.top, 12)
+        AppGlassCard(depth: .elevated, cornerRadius: 28, tint: Color.appAccent, contentPadding: 20) {
+            content()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .scrollIndicators(.hidden)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .padding(.top, 12)
     }
 
     private func flowSummaryRow(title: String, value: String, multilineValue: Bool = false) -> some View {
@@ -1035,12 +963,40 @@ struct OnboardingView: View {
         }
     }
 
-    private var effectiveName: String {
-        let trimmedInput = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedInput.isEmpty { return trimmedInput }
-        let trimmedStored = userName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedStored.isEmpty { return trimmedStored }
-        return FlowLocalization.system("there", "tam", "ahí", "da", "là", "aí")
+    private func recommendedMetricsBanner(for priority: OnboardingPriority) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.appAccent)
+
+            Text(
+                FlowLocalization.system(
+                    "We'll start with %@.",
+                    "Zaczniemy od %@.",
+                    "Empezaremos con %@.",
+                    "Wir starten mit %@.",
+                    "Nous allons commencer par %@.",
+                    "Vamos começar com %@."
+                )
+                .replacingOccurrences(
+                    of: "%@",
+                    with: GoalMetricPack.recommendedKinds(for: priority).map(\.title).joined(separator: " + ")
+                )
+            )
+            .font(AppTypography.captionEmphasis)
+            .foregroundStyle(AppColorRoles.textPrimary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.appAccent.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.appAccent.opacity(0.24), lineWidth: 1)
+                )
+        )
     }
 
     private var effectiveNameForGreeting: String? {
@@ -1051,10 +1007,447 @@ struct OnboardingView: View {
         return nil
     }
 
+    private var metricsStepTitle: String {
+        if let name = effectiveNameForGreeting {
+            switch resolvedPriority {
+            case .loseWeight:
+                return FlowLocalization.system(
+                    "\(name), start with weight and waist.",
+                    "\(name), zacznij od wagi i pasa.",
+                    "\(name), empieza con peso y cintura.",
+                    "\(name), starte mit Gewicht und Taille.",
+                    "\(name), commencez par le poids et la taille.",
+                    "\(name), comece com peso e cintura."
+                )
+            case .buildMuscle:
+                return FlowLocalization.system(
+                    "\(name), chest and arm size will tell the story.",
+                    "\(name), klatka i ramię pokażą prawdziwy progres.",
+                    "\(name), pecho y brazo contarán la historia.",
+                    "\(name), Brust und Armumfang erzählen die Geschichte.",
+                    "\(name), le torse et le bras raconteront l'histoire.",
+                    "\(name), peito e braço vão contar a história."
+                )
+            case .improveHealth:
+                return FlowLocalization.system(
+                    "\(name), waist and chest will keep this grounded.",
+                    "\(name), pas i klatka dadzą tu najlepszy obraz.",
+                    "\(name), cintura y pecho mantendrán esto claro.",
+                    "\(name), Taille und Brust halten das hier geerdet.",
+                    "\(name), la taille et le torse garderont cela lisible.",
+                    "\(name), cintura e peito vão dar o melhor sinal aqui."
+                )
+            }
+        }
+
+        switch resolvedPriority {
+        case .loseWeight:
+            return FlowLocalization.system(
+                "Start with weight and waist.",
+                "Zacznij od wagi i pasa.",
+                "Empieza con peso y cintura.",
+                "Starte mit Gewicht und Taille.",
+                "Commencez par le poids et la taille.",
+                "Comece com peso e cintura."
+            )
+        case .buildMuscle:
+            return FlowLocalization.system(
+                "Chest and arm size will tell the story.",
+                "Klatka i ramię pokażą prawdziwy progres.",
+                "Pecho y brazo contarán la historia.",
+                "Brust und Armumfang erzählen die Geschichte.",
+                "Le torse et le bras raconteront l'histoire.",
+                "Peito e braço vão contar a história."
+            )
+        case .improveHealth:
+            return FlowLocalization.system(
+                "Waist and chest will keep this grounded.",
+                "Pas i klatka dadzą tu najlepszy obraz.",
+                "Cintura y pecho mantendrán esto claro.",
+                "Taille und Brust halten das hier geerdet.",
+                "La taille et le torse garderont cela lisible.",
+                "Cintura e peito vão dar o melhor sinal aqui."
+            )
+        }
+    }
+
+    private var metricsStepSubtitle: String {
+        switch resolvedPriority {
+        case .loseWeight:
+            return FlowLocalization.system(
+                "Weight shows pace. Waist confirms whether fat loss is actually happening.",
+                "Waga pokazuje tempo. Pas potwierdza, czy utrata tkanki tłuszczowej naprawdę zachodzi.",
+                "El peso muestra el ritmo. La cintura confirma si la pérdida de grasa realmente ocurre.",
+                "Gewicht zeigt das Tempo. Die Taille bestätigt, ob Fettverlust wirklich passiert.",
+                "Le poids montre le rythme. La taille confirme si la perte de graisse se produit vraiment.",
+                "O peso mostra o ritmo. A cintura confirma se a perda de gordura está mesmo acontecendo."
+            )
+        case .buildMuscle:
+            return FlowLocalization.system(
+                "These two measurements surface muscle gain earlier than the scale will.",
+                "Te dwie metryki pokażą budowę mięśni wcześniej niż sama waga.",
+                "Estas dos medidas muestran ganancia muscular antes que la báscula.",
+                "Diese zwei Messwerte zeigen Muskelaufbau früher als die Waage.",
+                "Ces deux mesures révèlent le gain musculaire plus tôt que la balance.",
+                "Essas duas medidas mostram ganho muscular antes da balança."
+            )
+        case .improveHealth:
+            return FlowLocalization.system(
+                "Waist and chest together make recomp easier to trust when weight is noisy.",
+                "Pas i klatka razem ułatwiają ocenę rekompozycji, gdy waga szumi.",
+                "Cintura y pecho juntos facilitan confiar en la recomposición cuando el peso mete ruido.",
+                "Taille und Brust zusammen machen Recomp leichter lesbar, wenn das Gewicht rauscht.",
+                "La taille et le torse ensemble rendent la recomposition plus fiable quand le poids est bruité.",
+                "Cintura e peito juntos tornam a recomposição mais clara quando o peso oscila."
+            )
+        }
+    }
+
+    private struct MetricsPreviewCardData {
+        let title: String
+        let value: String
+        let delta: String
+        let tint: Color
+        let backgroundTint: Color
+        let points: [CGPoint]
+    }
+
+    private struct MetricsInsightCopy {
+        let title: String
+        let lineOne: String
+        let lineTwo: String
+        let tip: String
+    }
+
+    private var metricsPreviewCards: [MetricsPreviewCardData] {
+        switch resolvedPriority {
+        case .loseWeight:
+            return [
+                MetricsPreviewCardData(
+                    title: MetricKind.weight.title,
+                    value: FlowLocalization.system("79.9 kg", "79,9 kg", "79,9 kg", "79,9 kg", "79,9 kg", "79,9 kg"),
+                    delta: FlowLocalization.system("-2.3 kg", "-2,3 kg", "-2,3 kg", "-2,3 kg", "-2,3 kg", "-2,3 kg"),
+                    tint: Color.appAccent,
+                    backgroundTint: Color.appAccent,
+                    points: [
+                        CGPoint(x: 0.03, y: 0.30),
+                        CGPoint(x: 0.24, y: 0.38),
+                        CGPoint(x: 0.45, y: 0.49),
+                        CGPoint(x: 0.66, y: 0.57),
+                        CGPoint(x: 0.86, y: 0.68),
+                        CGPoint(x: 0.97, y: 0.74)
+                    ]
+                ),
+                MetricsPreviewCardData(
+                    title: MetricKind.waist.title,
+                    value: FlowLocalization.system("84.0 cm", "84,0 cm", "84,0 cm", "84,0 cm", "84,0 cm", "84,0 cm"),
+                    delta: FlowLocalization.system("-4.1 cm", "-4,1 cm", "-4,1 cm", "-4,1 cm", "-4,1 cm", "-4,1 cm"),
+                    tint: Color.cyan,
+                    backgroundTint: Color.cyan.opacity(0.45),
+                    points: [
+                        CGPoint(x: 0.03, y: 0.34),
+                        CGPoint(x: 0.22, y: 0.41),
+                        CGPoint(x: 0.42, y: 0.50),
+                        CGPoint(x: 0.63, y: 0.58),
+                        CGPoint(x: 0.83, y: 0.67),
+                        CGPoint(x: 0.97, y: 0.73)
+                    ]
+                )
+            ]
+        case .buildMuscle:
+            return [
+                MetricsPreviewCardData(
+                    title: MetricKind.chest.title,
+                    value: FlowLocalization.system("109.0 cm", "109,0 cm", "109,0 cm", "109,0 cm", "109,0 cm", "109,0 cm"),
+                    delta: FlowLocalization.system("+3.2 cm", "+3,2 cm", "+3,2 cm", "+3,2 cm", "+3,2 cm", "+3,2 cm"),
+                    tint: Color.appAccent,
+                    backgroundTint: Color.appAccent,
+                    points: [
+                        CGPoint(x: 0.03, y: 0.68),
+                        CGPoint(x: 0.24, y: 0.62),
+                        CGPoint(x: 0.45, y: 0.54),
+                        CGPoint(x: 0.66, y: 0.46),
+                        CGPoint(x: 0.86, y: 0.37),
+                        CGPoint(x: 0.97, y: 0.31)
+                    ]
+                ),
+                MetricsPreviewCardData(
+                    title: MetricKind.leftBicep.title,
+                    value: FlowLocalization.system("40.1 cm", "40,1 cm", "40,1 cm", "40,1 cm", "40,1 cm", "40,1 cm"),
+                    delta: FlowLocalization.system("+1.5 cm", "+1,5 cm", "+1,5 cm", "+1,5 cm", "+1,5 cm", "+1,5 cm"),
+                    tint: Color.appTeal,
+                    backgroundTint: Color.appTeal.opacity(0.4),
+                    points: [
+                        CGPoint(x: 0.03, y: 0.71),
+                        CGPoint(x: 0.22, y: 0.67),
+                        CGPoint(x: 0.42, y: 0.59),
+                        CGPoint(x: 0.63, y: 0.48),
+                        CGPoint(x: 0.83, y: 0.40),
+                        CGPoint(x: 0.97, y: 0.33)
+                    ]
+                )
+            ]
+        case .improveHealth:
+            return [
+                MetricsPreviewCardData(
+                    title: MetricKind.waist.title,
+                    value: FlowLocalization.system("82.8 cm", "82,8 cm", "82,8 cm", "82,8 cm", "82,8 cm", "82,8 cm"),
+                    delta: FlowLocalization.system("-2.6 cm", "-2,6 cm", "-2,6 cm", "-2,6 cm", "-2,6 cm", "-2,6 cm"),
+                    tint: Color.cyan,
+                    backgroundTint: Color.cyan.opacity(0.45),
+                    points: [
+                        CGPoint(x: 0.03, y: 0.35),
+                        CGPoint(x: 0.22, y: 0.42),
+                        CGPoint(x: 0.42, y: 0.51),
+                        CGPoint(x: 0.63, y: 0.58),
+                        CGPoint(x: 0.83, y: 0.66),
+                        CGPoint(x: 0.97, y: 0.71)
+                    ]
+                ),
+                MetricsPreviewCardData(
+                    title: MetricKind.chest.title,
+                    value: FlowLocalization.system("102.4 cm", "102,4 cm", "102,4 cm", "102,4 cm", "102,4 cm", "102,4 cm"),
+                    delta: FlowLocalization.system("+1.1 cm", "+1,1 cm", "+1,1 cm", "+1,1 cm", "+1,1 cm", "+1,1 cm"),
+                    tint: Color.appAccent,
+                    backgroundTint: Color.appAccent,
+                    points: [
+                        CGPoint(x: 0.03, y: 0.66),
+                        CGPoint(x: 0.24, y: 0.60),
+                        CGPoint(x: 0.45, y: 0.55),
+                        CGPoint(x: 0.66, y: 0.50),
+                        CGPoint(x: 0.86, y: 0.43),
+                        CGPoint(x: 0.97, y: 0.39)
+                    ]
+                )
+            ]
+        }
+    }
+
+    private var metricsInsightCopy: MetricsInsightCopy {
+        let personalizedIntro: String
+        if let name = effectiveNameForGreeting {
+            personalizedIntro = name
+        } else {
+            personalizedIntro = ""
+        }
+
+        switch resolvedPriority {
+        case .loseWeight:
+            let lineOne = personalizedIntro.isEmpty
+                ? FlowLocalization.system(
+                    "Weight is trending down and waist is tightening too.",
+                    "Waga spada, a pas też się zmniejsza.",
+                    "El peso baja y la cintura también se reduce.",
+                    "Gewicht sinkt und die Taille wird ebenfalls kleiner.",
+                    "Le poids baisse et la taille diminue aussi.",
+                    "O peso está caindo e a cintura também."
+                )
+                : FlowLocalization.system(
+                    "\(personalizedIntro), weight is trending down and waist is tightening too.",
+                    "\(personalizedIntro), waga spada, a pas też się zmniejsza.",
+                    "\(personalizedIntro), el peso baja y la cintura también se reduce.",
+                    "\(personalizedIntro), Gewicht sinkt und die Taille wird ebenfalls kleiner.",
+                    "\(personalizedIntro), le poids baisse et la taille diminue aussi.",
+                    "\(personalizedIntro), o peso está caindo e a cintura também."
+                )
+            return MetricsInsightCopy(
+                title: FlowLocalization.system("AI trend example", "Przykład trendu AI", "Ejemplo de tendencia IA", "KI-Trendbeispiel", "Exemple de tendance IA", "Exemplo de tendência de IA"),
+                lineOne: lineOne,
+                lineTwo: FlowLocalization.system(
+                    "That is a much stronger fat-loss signal than scale weight on its own.",
+                    "To dużo mocniejszy sygnał utraty tkanki tłuszczowej niż sama waga.",
+                    "Eso es una señal de pérdida de grasa mucho más fuerte que el peso por sí solo.",
+                    "Das ist ein deutlich stärkeres Fettverlust-Signal als das Gewicht allein.",
+                    "C'est un signal de perte de graisse bien plus fort que le poids seul.",
+                    "Esse é um sinal muito mais forte de perda de gordura do que o peso sozinho."
+                ),
+                tip: FlowLocalization.system(
+                    "Keep protein high and keep your weekly movement consistent.",
+                    "Trzymaj wysoko białko i utrzymuj regularny ruch w tygodniu.",
+                    "Mantén alta la proteína y el movimiento semanal constante.",
+                    "Halte die Proteinzufuhr hoch und deine Wochenbewegung konstant.",
+                    "Gardez un apport élevé en protéines et un mouvement hebdomadaire régulier.",
+                    "Mantenha proteína alta e movimento semanal consistente."
+                )
+            )
+        case .buildMuscle:
+            let lineOne = personalizedIntro.isEmpty
+                ? FlowLocalization.system(
+                    "Chest and left bicep are growing together.",
+                    "Klatka i lewy biceps rosną razem.",
+                    "Pecho y bíceps izquierdo están creciendo juntos.",
+                    "Brust und linker Bizeps wachsen zusammen.",
+                    "Le torse et le biceps gauche progressent ensemble.",
+                    "Peito e bíceps esquerdo estão crescendo juntos."
+                )
+                : FlowLocalization.system(
+                    "\(personalizedIntro), chest and left bicep are growing together.",
+                    "\(personalizedIntro), klatka i lewy biceps rosną razem.",
+                    "\(personalizedIntro), pecho y bíceps izquierdo están creciendo juntos.",
+                    "\(personalizedIntro), Brust und linker Bizeps wachsen zusammen.",
+                    "\(personalizedIntro), le torse et le biceps gauche progressent ensemble.",
+                    "\(personalizedIntro), peito e bíceps esquerdo estão crescendo juntos."
+                )
+            return MetricsInsightCopy(
+                title: FlowLocalization.system("AI trend example", "Przykład trendu AI", "Ejemplo de tendencia IA", "KI-Trendbeispiel", "Exemple de tendance IA", "Exemplo de tendência de IA"),
+                lineOne: lineOne,
+                lineTwo: FlowLocalization.system(
+                    "This is the kind of signal that shows muscle gain before body weight explains it well.",
+                    "To właśnie taki sygnał pokazuje budowę mięśni, zanim dobrze pokaże ją masa ciała.",
+                    "Este es el tipo de señal que muestra músculo antes de que el peso lo explique.",
+                    "Das ist die Art von Signal, die Muskelaufbau zeigt, bevor das Gewicht es gut erklärt.",
+                    "C'est le type de signal qui montre le gain musculaire avant que le poids l'explique bien.",
+                    "Esse é o tipo de sinal que mostra ganho muscular antes de o peso explicar bem."
+                ),
+                tip: FlowLocalization.system(
+                    "Keep progressive overload steady and do not chase scale swings.",
+                    "Utrzymuj progresywne przeciążenie i nie gon za wahaniami wagi.",
+                    "Mantén la sobrecarga progresiva y no persigas las oscilaciones del peso.",
+                    "Halte progressive Überlastung konstant und jage keinen Gewichtsschwankungen hinterher.",
+                    "Gardez une surcharge progressive régulière et ne courez pas après la balance.",
+                    "Mantenha a sobrecarga progressiva e não corra atrás das oscilações da balança."
+                )
+            )
+        case .improveHealth:
+            let lineOne = personalizedIntro.isEmpty
+                ? FlowLocalization.system(
+                    "Waist is tightening while chest stays full.",
+                    "Pas się zmniejsza, a klatka zostaje pełna.",
+                    "La cintura baja mientras el pecho se mantiene lleno.",
+                    "Die Taille wird kleiner, während die Brust voll bleibt.",
+                    "La taille diminue pendant que le torse reste plein.",
+                    "A cintura está diminuindo enquanto o peito se mantém cheio."
+                )
+                : FlowLocalization.system(
+                    "\(personalizedIntro), waist is tightening while chest stays full.",
+                    "\(personalizedIntro), pas się zmniejsza, a klatka zostaje pełna.",
+                    "\(personalizedIntro), la cintura baja mientras el pecho se mantiene lleno.",
+                    "\(personalizedIntro), die Taille wird kleiner, während die Brust voll bleibt.",
+                    "\(personalizedIntro), la taille diminue pendant que le torse reste plein.",
+                    "\(personalizedIntro), a cintura está diminuindo enquanto o peito se mantém cheio."
+                )
+            return MetricsInsightCopy(
+                title: FlowLocalization.system("AI trend example", "Przykład trendu AI", "Ejemplo de tendencia IA", "KI-Trendbeispiel", "Exemple de tendance IA", "Exemplo de tendência de IA"),
+                lineOne: lineOne,
+                lineTwo: FlowLocalization.system(
+                    "That usually reads like recomposition, not random day-to-day noise.",
+                    "To zwykle wygląda na rekompozycję, a nie losowy codzienny szum.",
+                    "Eso suele parecer recomposición, no ruido diario aleatorio.",
+                    "Das liest sich meist wie Recomposition, nicht wie tägliches Rauschen.",
+                    "Cela ressemble généralement à une recomposition, pas à un bruit quotidien aléatoire.",
+                    "Isso geralmente parece recomposição, não ruído aleatório do dia a dia."
+                ),
+                tip: FlowLocalization.system(
+                    "Trust 2-4 week trends and keep your lifting routine boringly consistent.",
+                    "Ufaj trendom z 2-4 tygodni i trzymaj nudno regularny trening siłowy.",
+                    "Confía en las tendencias de 2-4 semanas y mantén tu rutina de fuerza muy constante.",
+                    "Vertraue 2-4-Wochen-Trends und halte dein Krafttraining langweilig konstant.",
+                    "Fiez-vous aux tendances sur 2 à 4 semaines et gardez votre routine de force très régulière.",
+                    "Confie nas tendências de 2-4 semanas e mantenha sua rotina de treino consistentemente chata."
+                )
+            )
+        }
+    }
+
+    private func privacyCard(compact: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.appAccent)
+                    .frame(width: 34, height: 34)
+                    .background(Color.appAccent.opacity(0.16))
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(
+                        FlowLocalization.system(
+                            "Private by design",
+                            "Prywatność od podstaw",
+                            "Privacidad desde el diseño",
+                            "Datenschutz von Anfang an",
+                            "Confidentialité par conception",
+                            "Privacidade desde a origem"
+                        )
+                    )
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+
+                    Text(
+                        FlowLocalization.system(
+                            "Your photos and measurements never leave your device.",
+                            "Twoje zdjęcia i pomiary nigdy nie opuszczają urządzenia.",
+                            "Tus fotos y medidas nunca salen de tu dispositivo.",
+                            "Deine Fotos und Messwerte verlassen dein Gerät nie.",
+                            "Vos photos et mesures ne quittent jamais votre appareil.",
+                            "Suas fotos e medições nunca saem do seu dispositivo."
+                        )
+                    )
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                }
+            }
+
+            Text(
+                FlowLocalization.system(
+                    "AI summaries run on device where available, and Apple Health access stays optional.",
+                    "Podsumowania AI działają na urządzeniu tam, gdzie są dostępne, a dostęp do Apple Health pozostaje opcjonalny.",
+                    "Los resúmenes de IA se ejecutan en el dispositivo cuando están disponibles y el acceso a Apple Health sigue siendo opcional.",
+                    "KI-Zusammenfassungen laufen, wo verfügbar, auf dem Gerät und Apple Health bleibt optional.",
+                    "Les résumés IA fonctionnent sur l'appareil lorsqu'ils sont disponibles, et l'accès à Apple Health reste facultatif.",
+                    "Os resumos de IA rodam no aparelho quando disponíveis, e o acesso ao Apple Health continua opcional."
+                )
+            )
+            .font(AppTypography.microEmphasis)
+            .foregroundStyle(Color.appAccent)
+        }
+        .padding(compact ? 12 : 14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                )
+        )
+        .accessibilityIdentifier("onboarding.privacy.note")
+    }
+
+    private var onboardingBeforeAssetName: String {
+        let preferred: String
+        switch resolvedPriority {
+        case .loseWeight:
+            preferred = "onboarding-before-lose-weight"
+        case .buildMuscle:
+            preferred = "onboarding-before-build-muscle"
+        case .improveHealth:
+            preferred = "onboarding-before-recomp"
+        }
+        return assetName(preferred: preferred, fallback: "onboarding-before")
+    }
+
+    private var onboardingAfterAssetName: String {
+        let preferred: String
+        switch resolvedPriority {
+        case .loseWeight:
+            preferred = "onboarding-after-lose-weight"
+        case .buildMuscle:
+            preferred = "onboarding-after-build-muscle"
+        case .improveHealth:
+            preferred = "onboarding-after-recomp"
+        }
+        return assetName(preferred: preferred, fallback: "onboarding-after")
+    }
+
+    private func assetName(preferred: String, fallback: String) -> String {
+        UIImage(named: preferred) == nil ? fallback : preferred
+    }
+
     private func handleAppear() {
         guard !hasTrackedStart else { return }
         hasTrackedStart = true
         nameInput = userName
+        selectedPriority = OnboardingPriority(rawValue: onboardingPrimaryGoalRaw)
         effects.track(.onboardingStarted)
         trackCurrentStep()
         syncUITestBridge(stepIndex: overallStepIndex)
@@ -1076,18 +1469,10 @@ struct OnboardingView: View {
     }
 
     private func trackCurrentStep() {
-        switch phase {
-        case .intro:
-            Analytics.shared.track(
-                signalName: "com.jacekzieba.measureme.onboarding.intro.slide_viewed",
-                parameters: ["slide": "\(introIndex + 1)"]
-            )
-        case .input(let step):
-            Analytics.shared.track(
-                signalName: "com.jacekzieba.measureme.onboarding.input.step_viewed",
-                parameters: ["step": step.analyticsName]
-            )
-        }
+        Analytics.shared.track(
+            signalName: "com.jacekzieba.measureme.onboarding.input.step_viewed",
+            parameters: ["step": currentStep.analyticsName]
+        )
     }
 
     private func syncUITestBridge(stepIndex: Int) {
@@ -1096,131 +1481,100 @@ struct OnboardingView: View {
     }
 
     private func goToPreviousStep() {
-        switch phase {
-        case .intro:
-            guard introIndex > 0 else { return }
-            introIndex -= 1
-        case .input(let step):
-            guard canGoBack else { return }
-            if let previous = InputStep(rawValue: step.rawValue - 1) {
-                animateToInputStep(previous)
-            } else {
-                phase = .intro
-                introIndex = totalIntroSlides - 1
-            }
+        guard canGoBack,
+              let previous = InputStep(rawValue: currentStep.rawValue - 1) else {
+            return
         }
+        animateToInputStep(previous)
     }
 
     private func goToNextStep() {
         guard isPrimaryEnabled else { return }
-        switch phase {
-        case .intro:
-            if introIndex < totalIntroSlides - 1 {
-                introIndex += 1
-            } else {
-                animateToInputStep(.name)
-            }
-        case .input(let step):
-            switch step {
-            case .name:
-                persistNameIfNeeded()
-                animateToInputStep(.priority)
-            case .priority:
-                persistPriority()
-                animateToInputStep(.health)
-            case .health:
-                onboardingSkippedHealthKit = !isSyncEnabled
-                if isSyncEnabled {
-                    animateToInputStep(.completion)
-                } else {
-                    finishOnboarding()
-                }
-            case .completion:
-                finishOnboarding()
-            }
+        switch currentStep {
+        case .profile:
+            persistProfileSelections()
+            animateToInputStep(.metrics)
+        case .metrics:
+            Analytics.shared.track(
+                signalName: "com.jacekzieba.measureme.onboarding.input.step_completed",
+                parameters: ["step": InputStep.metrics.analyticsName]
+            )
+            animateToInputStep(.photos)
+        case .photos:
+            Analytics.shared.track(
+                signalName: "com.jacekzieba.measureme.onboarding.input.step_completed",
+                parameters: ["step": InputStep.photos.analyticsName]
+            )
+            animateToInputStep(.health)
+        case .health:
+            onboardingSkippedHealthKit = !isSyncEnabled
+            Analytics.shared.track(
+                signalName: "com.jacekzieba.measureme.onboarding.input.step_completed",
+                parameters: ["step": InputStep.health.analyticsName]
+            )
+            finishOnboarding()
         }
     }
 
     private func skipCurrentStep() {
-        switch phase {
-        case .intro:
-            animateToInputStep(.name)
-        case .input(let step):
-            Analytics.shared.track(
-                signalName: "com.jacekzieba.measureme.onboarding.input.step_skipped",
-                parameters: ["step": step.analyticsName]
-            )
-            switch step {
-            case .name:
-                animateToInputStep(.priority)
-            case .priority:
-                persistPriority()
-                animateToInputStep(.health)
-            case .health:
-                onboardingSkippedHealthKit = true
-                healthStatusLines = [
-                    FlowLocalization.system(
-                        "You can connect Health later in Settings.",
-                        "Health możesz połączyć później w Ustawieniach.",
-                        "Puedes conectar Salud más tarde en Ajustes.",
-                        "Du kannst Health später in den Einstellungen verbinden.",
-                        "Vous pourrez connecter Santé plus tard dans Réglages.",
-                        "Você pode conectar o Health depois nos Ajustes."
-                    )
-                ]
-                animateToInputStep(.completion)
-            case .completion:
-                finishOnboarding()
-            }
+        Analytics.shared.track(
+            signalName: "com.jacekzieba.measureme.onboarding.input.step_skipped",
+            parameters: ["step": currentStep.analyticsName]
+        )
+
+        switch currentStep {
+        case .profile:
+            animateToInputStep(.metrics)
+        case .metrics:
+            animateToInputStep(.photos)
+        case .photos:
+            animateToInputStep(.health)
+        case .health:
+            onboardingSkippedHealthKit = true
+            healthStatusLines = [
+                FlowLocalization.system(
+                    "You can connect Health later in Settings.",
+                    "Health możesz połączyć później w Ustawieniach.",
+                    "Puedes conectar Salud más tarde en Ajustes.",
+                    "Du kannst Health später in den Einstellungen verbinden.",
+                    "Vous pourrez connecter Santé plus tard dans Réglages.",
+                    "Você pode conectar o Health depois nos Ajustes."
+                )
+            ]
+            finishOnboarding()
         }
     }
 
     private func animateToInputStep(_ step: InputStep) {
-        inputContentAppeared = false
+        isNameFieldFocused = false
         if shouldAnimate {
             withAnimation(AppMotion.emphasized) {
-                phase = .input(step)
-                inputStep = step
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(AppMotion.sectionEnter) {
-                    inputContentAppeared = true
-                }
+                currentStep = step
             }
         } else {
-            phase = .input(step)
-            inputStep = step
-            inputContentAppeared = true
+            currentStep = step
         }
     }
 
-    private func persistNameIfNeeded() {
+    private func persistProfileSelections() {
         let trimmed = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
             userName = trimmed
         }
-        Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.onboarding.input.step_completed",
-            parameters: ["step": InputStep.name.analyticsName]
-        )
-    }
-
-    private func persistPriority() {
-        let priorities = resolvedPriorities
-        let primaryPriority = priorities.first ?? .improveHealth
-        onboardingPrimaryGoalRaw = priorities.map(\.rawValue).joined(separator: ",")
-        applyMetricPackIfNeeded(priorities: priorities)
+        let priority = resolvedPriority
+        selectedPriority = priority
+        onboardingPrimaryGoalRaw = priority.rawValue
+        applyMetricPackIfNeeded()
         Analytics.shared.track(
             signalName: "com.jacekzieba.measureme.onboarding.input.step_completed",
             parameters: [
-                "step": InputStep.priority.analyticsName,
-                "priority": primaryPriority.analyticsValue,
-                "priorities": priorities.map(\.analyticsValue).joined(separator: ",")
+                "step": InputStep.profile.analyticsName,
+                "priority": priority.analyticsValue
             ]
         )
     }
 
-    private func applyMetricPackIfNeeded(priorities: [OnboardingPriority]) {
+    private func applyMetricPackIfNeeded() {
         guard !effects.hasCustomizedMetrics() else { return }
         effects.applyMetricPack(recommendedKinds)
     }
@@ -1317,11 +1671,10 @@ struct OnboardingView: View {
 
     private func finishOnboarding() {
         let priority = resolvedPriority
-        persistPriority()
+        onboardingPrimaryGoalRaw = priority.rawValue
+        applyMetricPackIfNeeded()
         onboardingFlowVersion = 2
-        activationCurrentTaskID = onboardingSkippedHealthKit
-            ? ActivationTask.firstMeasurement.rawValue
-            : ActivationTask.initial.rawValue
+        activationCurrentTaskID = ActivationTask.firstMeasurement.rawValue
         activationCompletedTaskIDsRaw = ""
         activationSkippedTaskIDsRaw = ""
         activationIsDismissed = false
@@ -1339,10 +1692,16 @@ struct OnboardingView: View {
             signalName: "com.jacekzieba.measureme.onboarding.completed_v2",
             parameters: [
                 "priority": priority.analyticsValue,
-                "priorities": resolvedPriorities.map(\.analyticsValue).joined(separator: ","),
                 "health_connected": isSyncEnabled ? "true" : "false"
             ]
         )
+    }
+
+    private func onboardingLayout(for availableHeight: CGFloat) -> OnboardingCardLayout {
+        if availableHeight < 620 {
+            return .compact
+        }
+        return .regular
     }
     fileprivate static func blobSpecs(for slideIndex: Int) -> [AmbientBlobSpec] {
         switch slideIndex {
@@ -1483,14 +1842,58 @@ private struct DummyChartLegendItem {
     let color: Color
 }
 
+private struct OnboardingCardLayout {
+    let isCompact: Bool
+    let headerTitleSize: CGFloat
+    let sectionSpacing: CGFloat
+    let groupSpacing: CGFloat
+    let nameFieldFontSize: CGFloat
+    let nameFieldVerticalPadding: CGFloat
+    let photoWidth: CGFloat
+    let photoHeight: CGFloat
+    let compareChipWidth: CGFloat
+    let compareChipHeight: CGFloat
+    let chartRowSpacing: CGFloat
+
+    static let regular = OnboardingCardLayout(
+        isCompact: false,
+        headerTitleSize: 34,
+        sectionSpacing: 14,
+        groupSpacing: 8,
+        nameFieldFontSize: 24,
+        nameFieldVerticalPadding: 8,
+        photoWidth: 220,
+        photoHeight: 296,
+        compareChipWidth: 152,
+        compareChipHeight: 38,
+        chartRowSpacing: 14
+    )
+
+    static let compact = OnboardingCardLayout(
+        isCompact: true,
+        headerTitleSize: 30,
+        sectionSpacing: 12,
+        groupSpacing: 6,
+        nameFieldFontSize: 22,
+        nameFieldVerticalPadding: 7,
+        photoWidth: 190,
+        photoHeight: 264,
+        compareChipWidth: 142,
+        compareChipHeight: 36,
+        chartRowSpacing: 12
+    )
+}
+
 private enum IntroMetricsLayout {
     static let columnSpacing: CGFloat = 12
-    static let rowSpacing: CGFloat = 20
-    static let cardPadding: CGFloat = 14
-    static let chartCardHeight: CGFloat = 210
-    static let chartHeight: CGFloat = 90
+    static let cardPadding: CGFloat = 12
+    static let chartCardHeight: CGFloat = 186
+    static let compactChartCardHeight: CGFloat = 164
+    static let chartHeight: CGFloat = 78
+    static let compactChartHeight: CGFloat = 62
     static let legendHeight: CGFloat = 16
-    static let valueBlockHeight: CGFloat = 48
+    static let valueBlockHeight: CGFloat = 42
+    static let compactValueBlockHeight: CGFloat = 36
 }
 
 private struct DummyMiniMetricChartCard: View {
@@ -1503,12 +1906,13 @@ private struct DummyMiniMetricChartCard: View {
     var targetY: CGFloat? = nil
     var targetX: CGFloat? = nil
     var legends: [DummyChartLegendItem] = []
+    var compact = false
 
     var body: some View {
         ZStack {
             AppGlassBackground(depth: .elevated, cornerRadius: 24, tint: backgroundTint)
 
-            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            VStack(alignment: .leading, spacing: compact ? 4 : AppSpacing.xs) {
                 Text(title)
                     .font(AppTypography.captionEmphasis)
                     .foregroundStyle(AppColorRoles.textSecondary)
@@ -1557,7 +1961,7 @@ private struct DummyMiniMetricChartCard: View {
                         }
                     }
                 }
-                .frame(height: IntroMetricsLayout.chartHeight)
+                .frame(height: compact ? IntroMetricsLayout.compactChartHeight : IntroMetricsLayout.chartHeight)
 
                 HStack(spacing: AppSpacing.xs) {
                     if !legends.isEmpty {
@@ -1579,60 +1983,70 @@ private struct DummyMiniMetricChartCard: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(value)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .font(.system(size: compact ? 20 : 24, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.appWhite)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                     Text(delta)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .font(.system(size: compact ? 12 : 13, weight: .semibold, design: .rounded))
                         .foregroundStyle(tint)
                 }
-                .frame(maxWidth: .infinity, minHeight: IntroMetricsLayout.valueBlockHeight, alignment: .bottomLeading)
+                .frame(
+                    maxWidth: .infinity,
+                    minHeight: compact ? IntroMetricsLayout.compactValueBlockHeight : IntroMetricsLayout.valueBlockHeight,
+                    alignment: .bottomLeading
+                )
             }
             .padding(IntroMetricsLayout.cardPadding)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: IntroMetricsLayout.chartCardHeight)
+        .frame(height: compact ? IntroMetricsLayout.compactChartCardHeight : IntroMetricsLayout.chartCardHeight)
     }
 }
 
 private struct DummyAIInsightCard: View {
+    let title: String
+    let lineOne: String
+    let lineTwo: String
+    let tip: String
+    var compact = false
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 10) {
+        VStack(alignment: .leading, spacing: compact ? 8 : 10) {
+            HStack(alignment: .center, spacing: compact ? 8 : 10) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: compact ? 12 : 13, weight: .semibold))
                     .foregroundStyle(AppColorRoles.accentPrimary)
-                    .frame(width: 30, height: 30)
+                    .frame(width: compact ? 26 : 30, height: compact ? 26 : 30)
                     .background(AppColorRoles.accentPrimary.opacity(0.14))
                     .clipShape(Circle())
 
-                Text(healthSummaryTitle)
+                Text(title)
                     .font(AppTypography.bodyEmphasis)
                     .foregroundStyle(AppColorRoles.textPrimary)
             }
 
-            VStack(alignment: .leading, spacing: 6) {
-                summaryLineOne
+            VStack(alignment: .leading, spacing: compact ? 4 : 6) {
+                Text(lineOne)
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColorRoles.textPrimary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
 
-                summaryLineTwo
+                Text(lineTwo)
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColorRoles.textPrimary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            HStack(alignment: .top, spacing: 8) {
+            HStack(alignment: .top, spacing: compact ? 6 : 8) {
                 Image(systemName: "lightbulb.fill")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: compact ? 11 : 12, weight: .semibold))
                     .foregroundStyle(AppColorRoles.accentPrimary)
                     .padding(.top, 1)
 
-                Text(tipText)
+                Text(tip)
                     .font(AppTypography.captionEmphasis)
                     .foregroundStyle(AppColorRoles.accentPrimary)
                     .lineLimit(3)
@@ -1650,91 +2064,13 @@ private struct DummyAIInsightCard: View {
                     )
             )
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.horizontal, compact ? 12 : 14)
+        .padding(.vertical, compact ? 10 : 12)
         .background {
             AppGlassBackground(depth: .base, cornerRadius: 20, tint: AppColorRoles.accentPrimary.opacity(0.05))
         }
         .frame(maxWidth: .infinity)
         .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private var healthSummaryTitle: String {
-        FlowLocalization.system(
-            "Health Summary",
-            "Podsumowanie zdrowia",
-            "Resumen de salud",
-            "Gesundheitsübersicht",
-            "Résumé santé",
-            "Resumo de saúde"
-        )
-    }
-
-    private var summaryLineOne: Text {
-        Text(FlowLocalization.system(
-            "Weight is down ",
-            "Waga spadła o ",
-            "El peso bajó ",
-            "Gewicht ist um ",
-            "Le poids baisse de ",
-            "O peso caiu "
-        ))
-        + Text(FlowLocalization.system(
-            "-2.1 kg",
-            "-2,1 kg",
-            "-2,1 kg",
-            "-2,1 kg",
-            "-2,1 kg",
-            "-2,1 kg"
-        ))
-        .foregroundColor(AppColorRoles.stateSuccess)
-        + Text(FlowLocalization.system(
-            " and waist is ",
-            ", a talia ",
-            " y la cintura ",
-            " und Taille um ",
-            " et le tour de taille ",
-            " e a cintura "
-        ))
-        + Text(FlowLocalization.system(
-            "-4.0 cm",
-            "-4,0 cm",
-            "-4,0 cm",
-            "-4,0 cm",
-            "-4,0 cm",
-            "-4,0 cm"
-        ))
-        .foregroundColor(AppColorRoles.accentPrimary)
-        + Text(FlowLocalization.system(
-            " over recent check-ins.",
-            " w ostatnich zapisach.",
-            " en los últimos registros.",
-            " in den letzten Check-ins.",
-            " sur les derniers relevés.",
-            " nos check-ins recentes."
-        ))
-    }
-
-    private var summaryLineTwo: Text {
-        Text(FlowLocalization.system(
-            "Core indicators are moving in the right direction, not just scale weight.",
-            "Kluczowe wskaźniki idą w dobrym kierunku, nie tylko waga.",
-            "Los indicadores clave van en la dirección correcta, no solo el peso.",
-            "Die Kernwerte bewegen sich in die richtige Richtung, nicht nur das Gewicht.",
-            "Les indicateurs clés vont dans la bonne direction, pas seulement le poids.",
-            "Os indicadores principais estão indo na direção certa, não só o peso."
-        ))
-    }
-
-    private var tipText: String {
-        FlowLocalization.system(
-            "Keep the same routine this week and add one protein-focused meal.",
-            "Utrzymaj rutynę w tym tygodniu i dodaj jeden posiłek z większą ilością białka.",
-            "Mantén la rutina esta semana y añade una comida con más proteína.",
-            "Bleib diese Woche bei der Routine und ergänze eine proteinreiche Mahlzeit.",
-            "Gardez la même routine cette semaine et ajoutez un repas riche en protéines.",
-            "Mantenha a rotina esta semana e adicione uma refeição com mais proteína."
-        )
     }
 }
 
@@ -1743,6 +2079,7 @@ private struct OnboardingBeforeAfterSlider: View {
     let afterImageName: String
     let beforeLabel: String
     let afterLabel: String
+    let imageAlignment: Alignment
 
     @State private var sliderPosition: CGFloat = 0.5
     @State private var isDragging = false
@@ -1756,15 +2093,9 @@ private struct OnboardingBeforeAfterSlider: View {
             ZStack {
                 AppColorRoles.surfaceChrome.opacity(0.86)
 
-                Image(beforeImageName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: width, height: height)
+                onboardingPhoto(beforeImageName, width: width, height: height)
 
-                Image(afterImageName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: width, height: height)
+                onboardingPhoto(afterImageName, width: width, height: height)
                     .mask(alignment: .leading) {
                         Rectangle()
                             .frame(width: width * clampedSlider)
@@ -1819,6 +2150,14 @@ private struct OnboardingBeforeAfterSlider: View {
                     }
             )
         }
+    }
+
+    private func onboardingPhoto(_ imageName: String, width: CGFloat, height: CGFloat) -> some View {
+        Image(imageName)
+            .resizable()
+            .scaledToFill()
+            .frame(width: width, height: height, alignment: imageAlignment)
+            .clipped()
     }
 
     private func sliderLabel(_ text: String) -> some View {

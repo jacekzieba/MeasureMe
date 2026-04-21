@@ -1319,6 +1319,8 @@ in %@";
 "streak.detail.vacation.endDate.label" = "Streifen einfrieren, bis";
 "streak.detail.vacation.duration.value" = "%d Wochen";
 "streak.detail.vacation.duration.value.one" = "1 Woche";
+"streak.detail.vacation.duration.value.few" = "%d Wochen";
+"streak.detail.vacation.duration.value.many" = "%d Wochen";
 "streak.detail.vacation.ends" = "Endet am %@";
 "streak.detail.vacation.enable" = "Urlaubsmodus aktivieren";
 "streak.detail.vacation.update" = "Aktualisierungsdauer";

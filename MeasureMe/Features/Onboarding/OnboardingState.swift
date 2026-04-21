@@ -19,21 +19,21 @@ extension OnboardingView {
     }
 
     enum InputStep: Int, CaseIterable {
-        case name
-        case priority
+        case profile
+        case metrics
+        case photos
         case health
-        case completion
 
         var analyticsName: String {
             switch self {
-            case .name:
-                return "name"
-            case .priority:
-                return "priority"
+            case .profile:
+                return "profile"
+            case .metrics:
+                return "metrics"
+            case .photos:
+                return "photos"
             case .health:
                 return "health"
-            case .completion:
-                return "completion"
             }
         }
     }

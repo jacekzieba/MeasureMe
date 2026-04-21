@@ -1263,7 +1263,7 @@ struct HomeView: View {
         case .quickActions:
             return false
         case .keyMetrics:
-            if isWelcomeHomeState { return hasAnyMeasurements && showMeasurementsOnHome }
+            if isWelcomeHomeState { return showMeasurementsOnHome }
             return showMeasurementsOnHome
         case .recentPhotos:
             if isWelcomeHomeState { return hasAnyPhotoContent && showLastPhotosOnHome }
@@ -1702,11 +1702,6 @@ struct HomeView: View {
         guard onboardingFlowVersion >= 2 else { return nil }
         guard !activationCurrentTaskID.isEmpty else { return nil }
         if let task = ActivationTask(rawValue: activationCurrentTaskID) {
-            if shouldStartActivationWithFirstMeasurement,
-               !activationCompletedTaskIDs.contains(ActivationTask.firstMeasurement.rawValue),
-               !activationSkippedTaskIDs.contains(ActivationTask.firstMeasurement.rawValue) {
-                return .firstMeasurement
-            }
             return task
         }
         if ["addMetric", "premium", "celebrate"].contains(activationCurrentTaskID) {
@@ -1715,14 +1710,8 @@ struct HomeView: View {
         return nil
     }
 
-    private var shouldStartActivationWithFirstMeasurement: Bool {
-        onboardingSkippedHealthKit && !isSyncEnabled
-    }
-
     private var activationTaskSequence: [ActivationTask] {
-        shouldStartActivationWithFirstMeasurement
-            ? [.firstMeasurement, .addPhoto, .chooseMetrics, .setGoal]
-            : [.addPhoto, .chooseMetrics, .setGoal]
+        [.firstMeasurement, .addPhoto, .chooseMetrics, .setGoal]
     }
 
     private var activationCompletedTaskIDs: Set<String> {
@@ -1813,24 +1802,10 @@ struct HomeView: View {
         let kind = selectedPair.kind
         let sample = selectedPair.sample
         let value = kind.formattedMetricValue(fromMetric: sample.value, unitsSystem: unitsSystem)
-        let label = FlowLocalization.app(
-            "Key metric",
-            "Kluczowa metryka",
-            "Métrica clave",
-            "Schlüsselmetrik",
-            "Mesure clé",
-            "Métrica-chave"
-        )
+        let label = kind.title
         let detail = metricDeltaTextFromCache(kind: kind, days: 7)
             ?? secondaryMetricGoalSummary(for: kind)
-            ?? FlowLocalization.app(
-                "Selected for Home.",
-                "Wybrana na ekran Home.",
-                "Seleccionada para Inicio.",
-                "Für Home ausgewählt.",
-                "Sélectionnée pour l'accueil.",
-                "Selecionada para a Home."
-            )
+            ?? AppLocalization.string("home.keymetrics.delta.empty")
 
         return HomeHeroMeasurementSnapshot(
             label: label,
@@ -2634,45 +2609,12 @@ struct HomeView: View {
         return .onTrack
     }
 
-    private var onboardingPrimaryGoalsResolvedRaw: String {
-        let trimmed = onboardingPrimaryGoalsRaw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty {
-            return trimmed
-        }
-        return UserDefaults.standard
-            .string(forKey: AppSettingsKeys.Onboarding.onboardingPrimaryGoal)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-    }
-
-    private var selectedOnboardingGoalTitle: String? {
-        let firstToken = onboardingPrimaryGoalsResolvedRaw
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first
-
-        guard let firstToken else { return nil }
-        switch firstToken {
-        case "loseWeight", "lose_weight":
-            return AppLocalization.systemString("Lose weight")
-        case "buildMuscle", "build_muscle":
-            return AppLocalization.systemString("Build muscles")
-        case "trackHealth", "track_health", "improveHealth", "improve_health":
-            return AppLocalization.systemString("Improve my health")
-        default:
-            return nil
-        }
-    }
-
     private var goalStatusText: String {
         switch goalStatus {
         case .onTrack: return AppLocalization.string("home.goalstatus.ontrack")
         case .slightlyOff: return AppLocalization.string("home.goalstatus.slightlyoff")
         case .needsAttention: return AppLocalization.string("home.goalstatus.needsattention")
-        case .noGoals:
-            if let selectedOnboardingGoalTitle {
-                return AppLocalization.string("home.goalstatus.selectedgoal", selectedOnboardingGoalTitle)
-            }
-            return AppLocalization.string("home.goalstatus.nogoals")
+        case .noGoals: return AppLocalization.string("home.goalstatus.nogoals")
         }
     }
 

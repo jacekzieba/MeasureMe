@@ -536,39 +536,21 @@ struct PremiumPaywallView: View {
         let presentLabel = AppClock.now.formatted(date: .abbreviated, time: .omitted)
 
         return VStack(spacing: 10) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.black.opacity(0.24))
-
-                VStack(spacing: 10) {
-                    comparisonPoseGridRow(label: pastLabel, silhouetteOpacity: 0.72)
-                    comparisonPoseGridRow(label: presentLabel, silhouetteOpacity: 0.94)
-                }
-                .padding(12)
-
-                Rectangle()
-                    .fill(Color.white.opacity(0.24))
-                    .frame(width: 1.5)
-                    .padding(.vertical, 14)
-
-                Circle()
-                    .fill(Color(hex: "#F5A623"))
-                    .frame(width: 24, height: 24)
-                    .overlay(
-                        Image(systemName: "arrow.left.and.right")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.black.opacity(0.7))
-                    )
-            }
+            PremiumBeforeAfterSlider(
+                beforeImageName: "onboarding-before-recomp",
+                afterImageName: "onboarding-after-recomp",
+                beforeLabel: AppLocalization.string("premium.carousel.compare.before"),
+                afterLabel: AppLocalization.string("premium.carousel.compare.after")
+            )
             .frame(height: 210)
 
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.left.and.right.circle.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text(pastLabel)
-                    Text("↔")
-                    Text(presentLabel)
-                }
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.left.and.right.circle.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                Text(pastLabel)
+                Text("↔")
+                Text(presentLabel)
+            }
             .font(AppTypography.microEmphasis)
             .foregroundStyle(Color(hex: "#F5A623"))
             .frame(maxWidth: .infinity, alignment: .center)
@@ -583,53 +565,6 @@ struct PremiumPaywallView: View {
                 )
         )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
-    private func comparisonPoseGridRow(label: String, silhouetteOpacity: Double) -> some View {
-        HStack(spacing: 10) {
-            Text(label)
-                .font(AppTypography.microEmphasis)
-                .foregroundStyle(.white.opacity(0.84))
-                .frame(width: 74, alignment: .leading)
-
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-                comparisonPoseCard(title: AppLocalization.string("premium.compare.pose.front"), silhouetteOpacity: silhouetteOpacity)
-                comparisonPoseCard(title: AppLocalization.string("premium.compare.pose.side"), silhouetteOpacity: silhouetteOpacity)
-                comparisonPoseCard(title: AppLocalization.string("premium.compare.pose.back"), silhouetteOpacity: silhouetteOpacity)
-            }
-            .frame(maxWidth: .infinity)
-        }
-    }
-
-    private func comparisonPoseCard(title: String, silhouetteOpacity: Double) -> some View {
-        VStack(spacing: 6) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.white.opacity(0.04))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Color.white.opacity(0.10), lineWidth: 1)
-                    )
-
-                VStack(spacing: 4) {
-                    Circle()
-                        .fill(Color.white.opacity(silhouetteOpacity))
-                        .frame(width: 10, height: 10)
-                    Capsule(style: .continuous)
-                        .fill(Color.white.opacity(silhouetteOpacity))
-                        .frame(width: 14, height: 24)
-                    Capsule(style: .continuous)
-                        .fill(Color.white.opacity(silhouetteOpacity * 0.88))
-                        .frame(width: 18, height: 5)
-                }
-            }
-            .frame(height: 56)
-
-            Text(title)
-                .font(AppTypography.micro)
-                .foregroundStyle(.white.opacity(0.72))
-        }
-        .frame(maxWidth: .infinity)
     }
 
     private var indicatorsPreview: some View {
@@ -779,12 +714,16 @@ struct PremiumPaywallView: View {
                 unlockBenefitRow(icon: "heart.text.square.fill", tint: Color(hex: "#34D399"), textKey: "premium.carousel.unlock.item.health")
                 unlockBenefitRow(icon: "chart.line.uptrend.xyaxis", tint: Color(hex: "#F472B6"), textKey: "premium.carousel.unlock.item.prediction")
                 unlockBenefitRow(icon: "doc.text.fill", tint: Color(hex: "#FBBF24"), textKey: "premium.carousel.unlock.item.export")
+                unlockBenefitRow(icon: "person.2.crop.square.stack", tint: Color(hex: "#F59E0B"), textKey: "premium.carousel.unlock.item.overlay")
+                unlockBenefitRow(icon: "sparkles.rectangle.stack", tint: Color(hex: "#22D3EE"), textKey: "premium.carousel.unlock.item.social")
                 unlockBenefitRow(
                     icon: "icloud.and.arrow.up",
                     tint: Color(hex: "#A78BFA"),
                     textKey: "premium.carousel.unlock.item.icloud",
                     accessibilityID: "premium.carousel.unlock.item.icloud"
                 )
+                unlockBenefitRow(icon: "square.grid.2x2", tint: Color(hex: "#94A3B8"), textKey: "premium.carousel.unlock.item.widgets")
+                unlockBenefitRow(icon: "flag.fill", tint: Color(hex: "#F43F5E"), textKey: "premium.carousel.unlock.item.support")
             }
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -806,15 +745,6 @@ struct PremiumPaywallView: View {
             )
 
             trialTimelinePreview
-
-            HStack(spacing: 8) {
-                Text(AppLocalization.string("premium.carousel.unlock.item.support"))
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(colorScheme == .dark ? .white.opacity(0.9) : AppColorRoles.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 4)
         }
     }
 
@@ -1192,5 +1122,119 @@ struct PremiumPaywallView: View {
 
     private var shouldPresentUITestPostPurchaseSetup: Bool {
         premium.canSimulateTrialActivationForUITests
+    }
+}
+
+private struct PremiumBeforeAfterSlider: View {
+    let beforeImageName: String
+    let afterImageName: String
+    let beforeLabel: String
+    let afterLabel: String
+
+    @State private var sliderPosition: CGFloat = 0.5
+    @State private var isDragging = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = max(proxy.size.width, 1)
+            let height = max(proxy.size.height, 1)
+            let clampedSlider = min(max(sliderPosition, 0), 1)
+
+            ZStack {
+                Color.black.opacity(0.18)
+
+                premiumPhoto(beforeImageName, width: width, height: height)
+
+                premiumPhoto(afterImageName, width: width, height: height)
+                    .mask(alignment: .leading) {
+                        Rectangle().frame(width: width * clampedSlider)
+                    }
+
+                LinearGradient(
+                    colors: [.black.opacity(0.20), .clear, .black.opacity(0.36)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+
+                HStack {
+                    sliderLabel(beforeLabel)
+                        .opacity(clampedSlider > 0.18 ? 1 : 0.35)
+
+                    Spacer()
+
+                    sliderLabel(afterLabel)
+                        .opacity(clampedSlider < 0.82 ? 1 : 0.35)
+                }
+                .padding(14)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+
+                sliderHandle(height: height)
+                    .position(x: width * clampedSlider, y: height / 2)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        isDragging = true
+                        let newPosition = value.location.x / width
+                        guard newPosition.isFinite else { return }
+                        sliderPosition = min(max(newPosition, 0), 1)
+                    }
+                    .onEnded { _ in
+                        isDragging = false
+                        if abs(sliderPosition - 0.5) < 0.05 {
+                            withAnimation(AppMotion.standard) {
+                                sliderPosition = 0.5
+                            }
+                        }
+                    }
+            )
+        }
+    }
+
+    private func premiumPhoto(_ imageName: String, width: CGFloat, height: CGFloat) -> some View {
+        Image(imageName)
+            .resizable()
+            .scaledToFill()
+            .frame(width: width, height: height, alignment: .center)
+            .clipped()
+    }
+
+    private func sliderLabel(_ text: String) -> some View {
+        Text(text)
+            .font(AppTypography.captionEmphasis)
+            .foregroundStyle(Color.appWhite)
+            .lineLimit(1)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.black.opacity(0.34), in: Capsule(style: .continuous))
+            .shadow(color: .black.opacity(0.45), radius: 4, y: 2)
+    }
+
+    private func sliderHandle(height: CGFloat) -> some View {
+        ZStack {
+            Rectangle()
+                .fill(Color.appWhite.opacity(0.94))
+                .frame(width: isDragging ? 4 : 3, height: height)
+                .shadow(color: .black.opacity(0.24), radius: 8)
+
+            Circle()
+                .fill(Color.appWhite)
+                .frame(width: isDragging ? 50 : 44, height: isDragging ? 50 : 44)
+                .shadow(color: .black.opacity(0.32), radius: 10, y: 4)
+                .overlay {
+                    HStack(spacing: 5) {
+                        Image(systemName: "chevron.left")
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(AppColorRoles.textTertiary)
+                }
+        }
     }
 }

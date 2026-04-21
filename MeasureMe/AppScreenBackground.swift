@@ -7,11 +7,18 @@ struct AppScreenBackground: View {
     var tint: Color = .appAccent.opacity(0.2)
     var showsSpotlight: Bool = true
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    private var prefersPerformanceMode: Bool {
+        ProcessInfo.processInfo.isLowPowerModeEnabled || reduceMotion || reduceTransparency
+    }
 
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
-            let parallax = scrollOffset * 0.06
+            let parallaxMultiplier: CGFloat = prefersPerformanceMode ? 0.025 : 0.06
+            let parallax = scrollOffset * parallaxMultiplier
 
             ZStack(alignment: .top) {
                 AppColorRoles.surfaceCanvas
@@ -31,7 +38,8 @@ struct AppScreenBackground: View {
                     blob(
                         color: tint,
                         width: width * 0.95,
-                        height: topHeight * 0.78
+                        height: topHeight * 0.78,
+                        blurRadius: prefersPerformanceMode ? 18 : 32
                     )
                     .offset(
                         x: width * 0.16,
@@ -41,7 +49,8 @@ struct AppScreenBackground: View {
                     blob(
                         color: Color.cyan.opacity(0.18),
                         width: width * 0.86,
-                        height: topHeight * 0.68
+                        height: topHeight * 0.68,
+                        blurRadius: prefersPerformanceMode ? 18 : 32
                     )
                     .offset(
                         x: -width * 0.18,
@@ -51,14 +60,15 @@ struct AppScreenBackground: View {
                     blob(
                         color: Color.white.opacity(0.10),
                         width: width * 0.65,
-                        height: topHeight * 0.48
+                        height: topHeight * 0.48,
+                        blurRadius: prefersPerformanceMode ? 14 : 28
                     )
                     .offset(
                         x: width * 0.22,
                         y: 54 + parallax * 0.5
                     )
 
-                    if showsSpotlight {
+                    if showsSpotlight && !prefersPerformanceMode {
                         Ellipse()
                             .fill(
                                 LinearGradient(
@@ -79,18 +89,19 @@ struct AppScreenBackground: View {
                             )
                     }
 
-                    FilmGrainOverlay()
-                        .blendMode(.softLight)
-                        .opacity(0.11)
-                        .ignoresSafeArea()
+                    if !prefersPerformanceMode {
+                        FilmGrainOverlay(grainPoints: 420)
+                            .blendMode(.softLight)
+                            .opacity(0.09)
+                            .ignoresSafeArea()
+                    }
                 }
             }
-            .drawingGroup()
         }
         .ignoresSafeArea()
     }
 
-    private func blob(color: Color, width: CGFloat, height: CGFloat) -> some View {
+    private func blob(color: Color, width: CGFloat, height: CGFloat, blurRadius: CGFloat) -> some View {
         Ellipse()
             .fill(
                 RadialGradient(
@@ -107,16 +118,17 @@ struct AppScreenBackground: View {
                 )
             )
             .frame(width: width, height: height)
-            .blur(radius: 32)
+            .blur(radius: blurRadius)
     }
 }
 
 struct FilmGrainOverlay: View {
+    var grainPoints: Int = 1000
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Canvas { context, size in
-            for index in 0..<1000 {
+            for index in 0..<grainPoints {
                 let x = seeded(Float(index) * 12.93) * size.width
                 let y = seeded(Float(index) * 67.31) * size.height
                 let alpha = 0.04 + seeded(Float(index) * 3.17) * 0.08

@@ -106,21 +106,23 @@ final class LocalizationConsistencyTests: XCTestCase {
 
     private func parseTextualStrings(_ contents: String) throws -> ParsedStrings {
         let regex = try XCTUnwrap(
-            NSRegularExpression(pattern: "^\"((?:\\\\.|[^\"\\\\])*)\"\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\";", options: [])
+            NSRegularExpression(
+                pattern: "^\"((?:\\\\.|[^\"\\\\])*)\"\\s*=\\s*\"((?:\\\\.|[^\"\\\\])*)\";",
+                options: [.anchorsMatchLines, .dotMatchesLineSeparators]
+            )
         )
 
         var values: [String: String] = [:]
         var occurrences: [String: Int] = [:]
 
-        for rawLine in contents.split(whereSeparator: \.isNewline) {
-            let line = String(rawLine)
-            let range = NSRange(line.startIndex..<line.endIndex, in: line)
-            guard let match = regex.firstMatch(in: line, options: [], range: range),
-                  let keyRange = Range(match.range(at: 1), in: line) else { continue }
-            let rawKey = String(line[keyRange])
+        let range = NSRange(contents.startIndex..<contents.endIndex, in: contents)
+        regex.enumerateMatches(in: contents, options: [], range: range) { match, _, _ in
+            guard let match,
+                  let keyRange = Range(match.range(at: 1), in: contents) else { return }
+            let rawKey = String(contents[keyRange])
             let key = normalizedLocalizationKey(rawKey)
-            let rawValue = if let valueRange = Range(match.range(at: 2), in: line) {
-                String(line[valueRange])
+            let rawValue = if let valueRange = Range(match.range(at: 2), in: contents) {
+                String(contents[valueRange])
             } else {
                 rawKey
             }
@@ -205,6 +207,7 @@ final class LocalizationConsistencyTests: XCTestCase {
         }
 
         return best
+            .replacingOccurrences(of: "\\n", with: "\n")
             .replacingOccurrences(of: "’", with: "'")
             .replacingOccurrences(of: "‘", with: "'")
             .replacingOccurrences(of: "–", with: "—")

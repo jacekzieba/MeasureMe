@@ -157,13 +157,14 @@ final class AuditCaptureUITests: XCTestCase {
         XCTAssertTrue(onboardingNextButton(in: app).waitForExistence(timeout: 15))
         saveScreenshot(screen: "onboarding_welcome")
 
-        advanceOnboardingIntro(in: app)
         XCTAssertTrue(app.textFields["onboarding.name.field"].waitForExistence(timeout: 8))
         saveScreenshot(screen: "onboarding_profile")
 
-        onboardingSkipButton(in: app).tap()
         XCTAssertTrue(app.buttons["onboarding.priority.improveHealth"].waitForExistence(timeout: 8))
         app.buttons["onboarding.priority.improveHealth"].tap()
+        onboardingNextButton(in: app).tap()
+        saveScreenshot(screen: "onboarding_metrics")
+        onboardingNextButton(in: app).tap()
         onboardingNextButton(in: app).tap()
         XCTAssertTrue(app.buttons["onboarding.health.allow"].waitForExistence(timeout: 8))
         saveScreenshot(screen: "onboarding_healthkit")
@@ -382,25 +383,13 @@ final class AuditCaptureUITests: XCTestCase {
         return app.buttons["UITest Skip"].firstMatch
     }
 
-    private func advanceOnboardingIntro(in app: XCUIApplication) {
-        for _ in 0..<3 {
-            let next = onboardingNextButton(in: app)
-            XCTAssertTrue(next.waitForExistence(timeout: 10))
-            next.tap()
-        }
-    }
-
     private func advanceOnboardingToHealthStep(in app: XCUIApplication) {
-        advanceOnboardingIntro(in: app)
-
-        let skip = onboardingSkipButton(in: app)
-        XCTAssertTrue(skip.waitForExistence(timeout: 8))
-        skip.tap()
-
         let priority = app.buttons["onboarding.priority.improveHealth"].firstMatch
         XCTAssertTrue(priority.waitForExistence(timeout: 8))
         priority.tap()
 
+        onboardingNextButton(in: app).tap()
+        onboardingNextButton(in: app).tap()
         onboardingNextButton(in: app).tap()
         XCTAssertTrue(app.buttons["onboarding.health.allow"].firstMatch.waitForExistence(timeout: 8))
     }

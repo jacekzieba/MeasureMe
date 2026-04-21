@@ -7,6 +7,9 @@ final class PerformanceUITests: XCTestCase {
 
     private static let appBundleID = "com.jacek.measureme"
     private static let launchTrendSampleCount = 6
+    private static let launchBudgetMs: Double = 1_500
+    private static let tabSwitchTrendSampleCount = 3
+    private static let tabSwitchBudgetMs: Double = 17_000
     private var app: XCUIApplication!
 
     override func setUp() {
@@ -20,6 +23,11 @@ final class PerformanceUITests: XCTestCase {
     func testAppLaunchDurationPerformance() throws {
         let manualMedianMs = robustColdLaunchDurationMs(sampleCount: Self.launchTrendSampleCount)
         logTrend(metric: "app_launch_ms", currentMs: manualMedianMs)
+        XCTAssertLessThan(
+            manualMedianMs,
+            Self.launchBudgetMs,
+            "Launch median \(String(format: "%.1f", manualMedianMs))ms exceeds budget \(String(format: "%.1f", Self.launchBudgetMs))ms."
+        )
         #if targetEnvironment(simulator)
         measure(metrics: [
             XCTApplicationLaunchMetric()
@@ -53,6 +61,13 @@ final class PerformanceUITests: XCTestCase {
     func testTabSwitchingPerformance() {
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 8))
+        let manualMedianMs = robustTabSwitchDurationMs(sampleCount: Self.tabSwitchTrendSampleCount)
+        logTrend(metric: "tab_switch_ms", currentMs: manualMedianMs)
+        XCTAssertLessThan(
+            manualMedianMs,
+            Self.tabSwitchBudgetMs,
+            "Tab switching median \(String(format: "%.1f", manualMedianMs))ms exceeds budget \(String(format: "%.1f", Self.tabSwitchBudgetMs))ms."
+        )
 
         measure(metrics: [
             XCTClockMetric(),
@@ -269,6 +284,42 @@ final class PerformanceUITests: XCTestCase {
 
         print(
             "📊 PERF baseline rawSamplesMs=\(rawSamples.map { String(format: "%.0f", $0) }.joined(separator: ",")) " +
+            "stableSamplesMs=\(samplesForMedian.map { String(format: "%.0f", $0) }.joined(separator: ",")) " +
+            "medianMs=\(String(format: "%.1f", medianMs))"
+        )
+        return medianMs
+    }
+
+    private func robustTabSwitchDurationMs(sampleCount: Int) -> Double {
+        guard sampleCount > 0 else { return 0 }
+
+        var rawSamples: [Double] = []
+        rawSamples.reserveCapacity(sampleCount)
+        for _ in 0..<sampleCount {
+            app.terminate()
+            app.launch()
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 8))
+            let start = Date()
+            tapTab(named: "tab.measurements")
+            tapTab(named: "tab.photos")
+            tapTab(named: "tab.settings")
+            tapTab(named: "tab.home")
+            rawSamples.append(Date().timeIntervalSince(start) * 1_000)
+        }
+
+        let stabilizedSamples = Array(rawSamples.dropFirst())
+        let samplesForMedian = stabilizedSamples.isEmpty ? rawSamples : stabilizedSamples
+        let sorted = samplesForMedian.sorted()
+        let middle = sorted.count / 2
+        let medianMs: Double
+        if sorted.count.isMultiple(of: 2), sorted.count > 1 {
+            medianMs = (sorted[middle - 1] + sorted[middle]) / 2
+        } else {
+            medianMs = sorted[middle]
+        }
+
+        print(
+            "📊 PERF tab_switch rawSamplesMs=\(rawSamples.map { String(format: "%.0f", $0) }.joined(separator: ",")) " +
             "stableSamplesMs=\(samplesForMedian.map { String(format: "%.0f", $0) }.joined(separator: ",")) " +
             "medianMs=\(String(format: "%.1f", medianMs))"
         )

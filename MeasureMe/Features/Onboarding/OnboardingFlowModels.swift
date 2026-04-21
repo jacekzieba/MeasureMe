@@ -8,20 +8,6 @@ enum OnboardingPriority: String, CaseIterable, Sendable {
     var analyticsValue: String { rawValue }
 }
 
-enum OnboardingPrioritySelectionPolicy {
-    static let maxSelections = 2
-
-    static func toggled(_ priority: OnboardingPriority, in selected: Set<OnboardingPriority>) -> Set<OnboardingPriority> {
-        var next = selected
-        if next.contains(priority) {
-            next.remove(priority)
-        } else if next.count < maxSelections {
-            next.insert(priority)
-        }
-        return next
-    }
-}
-
 enum ActivationTask: String, CaseIterable, Sendable {
     case firstMeasurement
     case addPhoto
@@ -93,7 +79,7 @@ enum OnboardingCopy {
         case .buildMuscle:
             return FlowLocalization.app("Build muscle", "Budować mięśnie", "Ganar músculo", "Muskeln aufbauen", "Prendre du muscle", "Ganhar massa muscular")
         case .improveHealth:
-            return FlowLocalization.app("Maintain / recomp", "Utrzymać / rekompozycja", "Mantener / recomposición", "Halten / Recomp", "Maintenir / recomposition", "Manter / recomposição")
+            return FlowLocalization.app("Recomposition", "Rekompozycja", "Recomposición", "Rekomposition", "Recomposition", "Recomposição")
         }
     }
 
@@ -101,30 +87,30 @@ enum OnboardingCopy {
         switch priority {
         case .loseWeight:
             return FlowLocalization.app(
-                "Focus on the measurements that reveal fat loss early.",
-                "Skup się na metrykach, które szybko pokażą utratę tkanki tłuszczowej.",
-                "Concéntrate en las métricas que muestran pronto la pérdida de grasa.",
-                "Konzentriere dich auf Messwerte, die Fettverlust früh sichtbar machen.",
-                "Concentrez-vous sur les mesures qui révèlent tôt la perte de graisse.",
-                "Foque nas métricas que mostram cedo a perda de gordura."
+                "Start with weight and waist so fat loss becomes easier to read.",
+                "Zacznij od wagi i pasa, aby łatwiej odczytywać utratę tkanki tłuszczowej.",
+                "Empieza con peso y cintura para leer mejor la pérdida de grasa.",
+                "Starte mit Gewicht und Taille, damit Fettverlust leichter lesbar wird.",
+                "Commencez par le poids et la taille pour mieux lire la perte de graisse.",
+                "Comece com peso e cintura para enxergar melhor a perda de gordura."
             )
         case .buildMuscle:
             return FlowLocalization.app(
-                "Track strength-oriented body changes, not just body weight.",
-                "Śledź zmiany sylwetki związane z budową mięśni, a nie tylko wagę.",
-                "Sigue cambios corporales ligados al músculo, no solo el peso.",
-                "Verfolge muskelbezogene Körperveränderungen, nicht nur das Gewicht.",
-                "Suivez les changements corporels liés au muscle, pas seulement le poids.",
-                "Acompanhe mudanças corporais ligadas a músculos, não só o peso."
+                "Focus on chest and arm growth instead of obsessing over scale weight.",
+                "Skup się na wzroście klatki i ramion zamiast obsesyjnie patrzeć na wagę.",
+                "Enfócate en el crecimiento de pecho y brazo en lugar de obsesionarte con la báscula.",
+                "Konzentriere dich auf Brust- und Armzuwachs statt auf die Waage.",
+                "Concentrez-vous sur la progression du torse et des bras plutôt que sur la balance.",
+                "Foque no crescimento do peito e do braço em vez de se prender à balança."
             )
         case .improveHealth:
             return FlowLocalization.app(
-                "Keep weight, waist, body fat, and height in view while your body composition changes.",
-                "Trzymaj wagę, pas, tkankę tłuszczową i wzrost w zasięgu, gdy zmienia się kompozycja ciała.",
-                "Mantén peso, cintura, grasa corporal y altura visibles mientras cambia tu composición corporal.",
-                "Behalte Gewicht, Taille, Körperfett und Größe im Blick, während sich deine Körperzusammensetzung verändert.",
-                "Gardez le poids, la taille, la masse grasse et la stature en vue pendant que votre composition corporelle évolue.",
-                "Mantenha peso, cintura, gordura corporal e altura em vista enquanto sua composição corporal muda."
+                "Use waist and chest together to spot recomposition without overreacting to daily noise.",
+                "Używaj razem pasa i klatki, aby wychwycić rekompozycję bez reagowania na codzienny szum.",
+                "Usa cintura y pecho juntos para detectar recomposición sin reaccionar al ruido diario.",
+                "Nutze Taille und Brust zusammen, um Recomposition ohne täglichen Lärm zu erkennen.",
+                "Utilisez la taille et le torse ensemble pour repérer la recomposition sans réagir au bruit quotidien.",
+                "Use cintura e peito juntos para notar recomposição sem reagir ao ruído diário."
             )
         }
     }
@@ -236,12 +222,12 @@ enum OnboardingCopy {
 
     static var priorityHelper: String {
         FlowLocalization.app(
-            "Pick one or two to continue.",
-            "Wybierz jedną lub dwie opcje, aby kontynuować.",
-            "Elige una o dos para continuar.",
-            "Wähle eine oder zwei aus, um fortzufahren.",
-            "Choisissez-en une ou deux pour continuer.",
-            "Escolha uma ou duas para continuar."
+            "Choose one to continue.",
+            "Wybierz jeden cel, aby kontynuować.",
+            "Elige uno para continuar.",
+            "Wähle ein Ziel, um fortzufahren.",
+            "Choisissez-en un pour continuer.",
+            "Escolha um para continuar."
         )
     }
 

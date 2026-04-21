@@ -1319,6 +1319,8 @@ in %@";
 "streak.detail.vacation.endDate.label" = "Freeze streak until";
 "streak.detail.vacation.duration.value" = "%d weeks";
 "streak.detail.vacation.duration.value.one" = "1 week";
+"streak.detail.vacation.duration.value.few" = "%d weeks";
+"streak.detail.vacation.duration.value.many" = "%d weeks";
 "streak.detail.vacation.ends" = "Ends on %@";
 "streak.detail.vacation.enable" = "Enable vacation mode";
 "streak.detail.vacation.update" = "Update duration";
