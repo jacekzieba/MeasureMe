@@ -146,8 +146,8 @@ final class AppSettingsStore: ObservableObject {
         set(\.home.showMeasurementsOnHome, normalized.item(for: .keyMetrics)?.isVisible ?? true)
         set(\.home.showLastPhotosOnHome, normalized.item(for: .recentPhotos)?.isVisible ?? true)
         set(\.home.showHealthMetricsOnHome, normalized.item(for: .healthSummary)?.isVisible ?? true)
-        let activationVisibility = normalized.item(for: .setupChecklist)?.isVisible
-            ?? normalized.item(for: .activationHub)?.isVisible
+        let activationVisibility = normalized.item(for: .activationHub)?.isVisible
+            ?? normalized.item(for: .setupChecklist)?.isVisible
             ?? true
         set(\.onboarding.onboardingChecklistShow, activationVisibility)
     }
