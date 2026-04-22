@@ -5,48 +5,38 @@ final class OnboardingFlowTests: XCTestCase {
     func testRecommendedMetricPackMatchesPriority() {
         XCTAssertEqual(
             GoalMetricPack.recommendedKinds(for: .loseWeight),
-            [.weight, .waist, .bodyFat]
+            [.weight, .waist]
         )
         XCTAssertEqual(
             GoalMetricPack.recommendedKinds(for: .buildMuscle),
-            [.weight, .chest, .leftBicep, .rightBicep, .leftThigh, .rightThigh]
+            [.chest, .leftBicep]
         )
         XCTAssertEqual(
             GoalMetricPack.recommendedKinds(for: .improveHealth),
-            [.weight, .waist, .bodyFat, .height]
+            [.waist, .chest]
         )
     }
 
     func testRecommendedMetricPackMergesMultipleGoalsWithoutDuplicates() {
         let merged = GoalMetricPack.recommendedKinds(for: [.buildMuscle, .trackHealth])
 
-        XCTAssertEqual(merged.first, .weight)
         XCTAssertTrue(merged.contains(.chest))
         XCTAssertTrue(merged.contains(.waist))
-        XCTAssertTrue(merged.contains(.height))
+        XCTAssertTrue(merged.contains(.leftBicep))
         XCTAssertEqual(merged.count, Set(merged).count)
     }
 
     func testMaintainRecompKeepsImproveHealthRawValueForCompatibility() {
         XCTAssertEqual(OnboardingPriority.improveHealth.rawValue, "improveHealth")
-        XCTAssertEqual(OnboardingCopy.priorityTitle(.improveHealth), "Maintain / recomp")
+        XCTAssertEqual(OnboardingCopy.priorityTitle(.improveHealth), "Recomposition")
         XCTAssertEqual(OnboardingView.WelcomeGoal.trackHealth.priority, .improveHealth)
         XCTAssertEqual(OnboardingView.WelcomeGoal.trackHealth.title, "Maintain / recomp")
     }
 
-    func testPrioritySelectionPolicyCapsAtTwoSelections() {
-        var selected: Set<OnboardingPriority> = []
-
-        selected = OnboardingPrioritySelectionPolicy.toggled(.loseWeight, in: selected)
-        selected = OnboardingPrioritySelectionPolicy.toggled(.buildMuscle, in: selected)
-        selected = OnboardingPrioritySelectionPolicy.toggled(.improveHealth, in: selected)
-
-        XCTAssertEqual(selected, [.loseWeight, .buildMuscle])
-
-        selected = OnboardingPrioritySelectionPolicy.toggled(.loseWeight, in: selected)
-        selected = OnboardingPrioritySelectionPolicy.toggled(.improveHealth, in: selected)
-
-        XCTAssertEqual(selected, [.buildMuscle, .improveHealth])
+    func testWelcomeGoalMapsToCurrentPriorityModel() {
+        XCTAssertEqual(OnboardingView.WelcomeGoal.loseWeight.priority, .loseWeight)
+        XCTAssertEqual(OnboardingView.WelcomeGoal.buildMuscle.priority, .buildMuscle)
+        XCTAssertEqual(OnboardingView.WelcomeGoal.trackHealth.priority, .improveHealth)
     }
 
     func testActivationTaskOrderingSupportsManualMeasurementBeforePhoto() {

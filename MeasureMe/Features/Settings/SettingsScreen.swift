@@ -403,10 +403,6 @@ struct SettingsView: View {
 
                 SettingsSearchSection(query: $settingsSearchQuery)
 
-                if !premiumStore.isPremium && !isSearchingSettings {
-                    topPremiumCTASection
-                }
-
                 if isSearchingSettings {
                     SettingsSearchResultsSection(
                         items: filteredSettingsSearchItems,
@@ -541,32 +537,6 @@ struct SettingsView: View {
                 )
             }
         }
-    }
-
-    private var topPremiumCTASection: some View {
-        Section {
-            Button {
-                premiumStore.presentPaywall(reason: .settings)
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "crown.fill")
-                        .font(AppTypography.iconMedium)
-                    Text(AppLocalization.string("settings.action.explorePremium"))
-                        .font(AppTypography.bodyEmphasis)
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            }
-            .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-            .simultaneousGesture(TapGesture().onEnded {
-                premiumStore.presentPaywall(reason: .settings)
-            })
-            .accessibilityIdentifier("settings.action.explorePremium")
-        }
-        .listRowSeparator(.hidden)
-        .listSectionSeparator(.hidden)
-        .listRowBackground(Color.clear)
-        .listRowInsets(SettingsView.settingsRowInsets)
     }
 
     // MARK: - Exports

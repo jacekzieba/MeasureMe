@@ -160,6 +160,29 @@ final class SettingsViewUITests: XCTestCase {
     }
 
     @MainActor
+    func testNonPremiumSettingsShowSingleExplorePremiumCTA() {
+        app.launchArguments = ["-uiTestMode", "-uiTestForceNonPremium", "-uiTestOpenSettingsTab"]
+        app.launch()
+        waitForAppShell()
+        tapSettingsTab()
+
+        let exploreButton = app.buttons["Explore Premium"].firstMatch.exists
+            ? app.buttons["Explore Premium"].firstMatch
+            : app.descendants(matching: .any)["settings.action.explorePremium"].firstMatch
+        scrollToReveal(exploreButton)
+        XCTAssertTrue(exploreButton.waitForExistence(timeout: 5), "Non-premium Settings overview should expose Explore Premium CTA in the account section")
+
+        let searchField = app.textFields["settings.search.field"].firstMatch.exists
+            ? app.textFields["settings.search.field"].firstMatch
+            : app.textFields.firstMatch
+        XCTAssertTrue(searchField.waitForExistence(timeout: 5), "Settings search field should exist")
+        searchField.tap()
+        searchField.typeText("premium")
+
+        XCTAssertFalse(exploreButton.exists, "Search results should not render a duplicate Explore Premium CTA")
+    }
+
+    @MainActor
     func testSettingsPrimaryRoutesOpenRepresentativeDetails() {
         app.launch()
         waitForAppShell()

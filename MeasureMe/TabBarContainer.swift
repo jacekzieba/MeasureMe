@@ -319,10 +319,21 @@ struct TabBarContainer: View {
         case .home:
             router.selectTab(.home)
             mountTabIfNeeded(.home)
+        case .measurements:
+            router.selectTab(.measurements)
+            mountTabIfNeeded(.measurements)
+        case .settings:
+            router.selectTab(.settings)
+            mountTabIfNeeded(.settings)
         case .metricDetail(let kindRaw):
             guard let kind = MetricKind(rawValue: kindRaw) else { return }
-            router.openMetricDetail(kind)
+            router.selectTab(.measurements)
             mountTabIfNeeded(.measurements)
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(300))
+                guard router.selectedTab == .measurements else { return }
+                router.openMetricDetail(kind)
+            }
         case .quickAdd(let kindRaw):
             if let kindRaw, let kind = MetricKind(rawValue: kindRaw) {
                 router.selectTab(.measurements)

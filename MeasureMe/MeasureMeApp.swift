@@ -582,6 +582,7 @@ struct MeasureMeApp: App {
         defaults.set(\.home.showHealthMetricsOnHome, true)
         defaults.set(\.home.homePinnedActionRaw, "")
         defaults.removeObject(forKey: AppSettingsKeys.Entry.pendingAppEntryAction)
+        defaults.removeObject(forKey: AppSettingsKeys.Entry.pendingNavigationRoute)
         defaults.removeObject(forKey: AppSettingsKeys.Entry.pendingHealthKitSyncFromIntent)
         defaults.set(\.profile.manualHeight, 180.0)
 
@@ -623,6 +624,10 @@ struct MeasureMeApp: App {
         }
         if let pendingAction = requestedPendingAppEntryAction(from: args) {
             defaults.set(pendingAction.rawValue, forKey: AppSettingsKeys.Entry.pendingAppEntryAction)
+        }
+        if let pendingRoute = requestedPendingNavigationRoute(from: args),
+           let data = try? JSONEncoder().encode(pendingRoute) {
+            defaults.set(data, forKey: AppSettingsKeys.Entry.pendingNavigationRoute)
         }
         if args.contains(UITestArgument.physiqueSWROff.rawValue) {
             defaults.set(\.indicators.showPhysiqueSWR, false)
@@ -732,6 +737,33 @@ struct MeasureMeApp: App {
     private func requestedPendingAppEntryAction(from args: [String]) -> AppEntryAction? {
         guard let value = UITestArgument.value(for: .pendingAppEntryAction, in: args) else { return nil }
         return AppEntryAction(rawValue: value)
+    }
+
+    private func requestedPendingNavigationRoute(from args: [String]) -> AppNavigationRoute? {
+        guard let value = UITestArgument.value(for: .pendingNavigationRoute, in: args) else { return nil }
+
+        switch value {
+        case "home":
+            return .home
+        case "measurements":
+            return .measurements
+        case "settings":
+            return .settings
+        case "quickAdd", "quickAdd:nil":
+            return .quickAdd(kindRaw: nil)
+        default:
+            break
+        }
+
+        if value.hasPrefix("metricDetail:") {
+            return .metricDetail(kindRaw: String(value.dropFirst("metricDetail:".count)))
+        }
+
+        if value.hasPrefix("quickAdd:") {
+            return .quickAdd(kindRaw: String(value.dropFirst("quickAdd:".count)))
+        }
+
+        return nil
     }
 
     private func requestedActivationTask(from args: [String]) -> ActivationTask? {

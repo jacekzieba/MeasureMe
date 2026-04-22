@@ -246,6 +246,32 @@ final class MeasureMeUITests: XCTestCase {
         XCTAssertLessThanOrEqual(historyHeader.frame.minY, initialMinY, "Swiping on the chart should not block vertical scrolling")
     }
 
+    @MainActor
+    func testPendingNotificationRouteOpensMetricDetailOnLaunch() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestMode",
+            "-uiTestSeedMeasurements",
+            "-uiTestPendingNavigationRoute", "metricDetail:weight"
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.otherElements["metric.detail.chart"].firstMatch.waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    func testPendingNotificationRouteOpensMetricAddSheetOnLaunch() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestMode",
+            "-uiTestSeedMeasurements",
+            "-uiTestPendingNavigationRoute", "quickAdd:weight"
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.descendants(matching: .any)["goal.input.value"].firstMatch.waitForExistence(timeout: 10))
+    }
+
     private func isSwitchOff(_ element: XCUIElement) -> Bool {
         guard let value = element.value as? String else { return false }
         return value == "0" || value.lowercased() == "off"

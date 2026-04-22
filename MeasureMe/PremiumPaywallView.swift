@@ -537,8 +537,8 @@ struct PremiumPaywallView: View {
 
         return VStack(spacing: 10) {
             PremiumBeforeAfterSlider(
-                beforeImageName: "onboarding-before-recomp",
-                afterImageName: "onboarding-after-recomp",
+                beforeImageName: "onboarding-after-recomp",
+                afterImageName: "onboarding-before-recomp",
                 beforeLabel: AppLocalization.string("premium.carousel.compare.before"),
                 afterLabel: AppLocalization.string("premium.carousel.compare.after")
             )

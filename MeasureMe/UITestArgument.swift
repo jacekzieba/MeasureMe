@@ -62,6 +62,7 @@ enum UITestArgument: String {
     // Home
     case homePinnedAction = "-uiTestHomePinnedAction"
     case pendingAppEntryAction = "-uiTestPendingAppEntryAction"
+    case pendingNavigationRoute = "-uiTestPendingNavigationRoute"
     case activationHub = "-uiTestActivationHub"
     case activationTask = "-uiTestActivationTask"
 }

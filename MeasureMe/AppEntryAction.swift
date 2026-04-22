@@ -22,6 +22,7 @@ enum AppEntryAction: String, Codable, Sendable {
 enum AppEntrySource: String, Sendable {
     case quickAction
     case appIntent
+    case notification
 }
 
 enum AppEntryActionDispatcher {
@@ -41,6 +42,11 @@ enum AppEntryActionDispatcher {
         case .appIntent:
             Analytics.shared.track(
                 signalName: "com.jacekzieba.measureme.app_intent_executed",
+                parameters: ["action": action.rawValue]
+            )
+        case .notification:
+            Analytics.shared.track(
+                signalName: "com.jacekzieba.measureme.notification_opened",
                 parameters: ["action": action.rawValue]
             )
         }

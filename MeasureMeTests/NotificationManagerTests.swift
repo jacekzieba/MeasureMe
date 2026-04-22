@@ -54,6 +54,12 @@ final class NotificationManagerTests: XCTestCase {
     private var defaults: UserDefaults!
     private var settings: AppSettingsStore!
 
+    private func clearSharedEntryState() {
+        let shared = AppSettingsStore.shared
+        shared.removeObject(forKey: AppSettingsKeys.Entry.pendingAppEntryAction)
+        shared.removeObject(forKey: AppSettingsKeys.Entry.pendingNavigationRoute)
+    }
+
     private func resetNotificationDefaults() {
         [
             "measurement_reminders",
@@ -76,11 +82,13 @@ final class NotificationManagerTests: XCTestCase {
         defaults.removePersistentDomain(forName: suiteName)
         settings = AppSettingsStore(defaults: defaults)
         resetNotificationDefaults()
+        clearSharedEntryState()
     }
 
     override func tearDown() {
         resetNotificationDefaults()
         defaults.removePersistentDomain(forName: "NotificationManagerTests.\(name)")
+        clearSharedEntryState()
         settings = nil
         super.tearDown()
     }
@@ -333,5 +341,86 @@ final class NotificationManagerTests: XCTestCase {
         let data = try XCTUnwrap(settings.snapshot.notifications.aiMutedTypes)
         let muted = try JSONDecoder().decode([String].self, from: data)
         XCTAssertEqual(muted, [AINotificationKind.trendShift.rawValue])
+    }
+
+    func testHandleNotificationResponseReminderEnqueuesGenericQuickAddRoute() {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        manager.handleNotificationResponse(
+            actionIdentifier: UNNotificationDefaultActionIdentifier,
+            requestIdentifier: "measurement_reminder_daily",
+            userInfo: [:]
+        )
+
+        XCTAssertEqual(AppNavigationRouteDispatcher.consumePendingRoute(), .quickAdd(kindRaw: nil))
+    }
+
+    func testHandleNotificationResponseSmartMetricEnqueuesMetricQuickAddRoute() {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        manager.handleNotificationResponse(
+            actionIdentifier: UNNotificationDefaultActionIdentifier,
+            requestIdentifier: "smart_metric_stale_weight",
+            userInfo: [:]
+        )
+
+        XCTAssertEqual(AppNavigationRouteDispatcher.consumePendingRoute(), .quickAdd(kindRaw: MetricKind.weight.rawValue))
+    }
+
+    func testHandleNotificationResponsePhotoReminderEnqueuesAddPhotoAction() {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        manager.handleNotificationResponse(
+            actionIdentifier: UNNotificationDefaultActionIdentifier,
+            requestIdentifier: "photo_smart_reminder",
+            userInfo: [:]
+        )
+
+        XCTAssertEqual(AppEntryActionDispatcher.consumePendingAction(), .openAddPhoto)
+    }
+
+    func testHandleNotificationResponseImportSummaryEnqueuesMeasurementsRoute() {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        manager.handleNotificationResponse(
+            actionIdentifier: UNNotificationDefaultActionIdentifier,
+            requestIdentifier: "measurement_import_summary",
+            userInfo: [:]
+        )
+
+        XCTAssertEqual(AppNavigationRouteDispatcher.consumePendingRoute(), .measurements)
+    }
+
+    func testHandleNotificationResponseTrialReminderEnqueuesSettingsRoute() {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        manager.handleNotificationResponse(
+            actionIdentifier: UNNotificationDefaultActionIdentifier,
+            requestIdentifier: "premium_trial_ending_reminder",
+            userInfo: [:]
+        )
+
+        XCTAssertEqual(AppNavigationRouteDispatcher.consumePendingRoute(), .settings)
+    }
+
+    func testHandleNotificationResponseGoalAchievedEnqueuesMetricDetailRoute() {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+
+        manager.handleNotificationResponse(
+            actionIdentifier: UNNotificationDefaultActionIdentifier,
+            requestIdentifier: "goal_achieved_weight_123_notification",
+            userInfo: [:]
+        )
+
+        XCTAssertEqual(
+            AppNavigationRouteDispatcher.consumePendingRoute(),
+            .metricDetail(kindRaw: MetricKind.weight.rawValue)
+        )
     }
 }

@@ -420,20 +420,42 @@ struct MeasurementsTabView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .background {
+                NavigationLink(
+                    isActive: metricDetailPresentationBinding
+                ) {
+                    requestedMetricDetailDestination
+                } label: {
+                    EmptyView()
+                }
+                .hidden()
+            }
         }
         .onAppear {
             rebuildSamplesCache()
+            if let requestID = router.metricDetailRequestID,
+               let kind = router.requestedMetricDetailKind {
+                presentMetricDetail(kind, requestID: requestID)
+            }
+            if let requestID = router.measurementsSectionRequestID,
+               let section = router.requestedMeasurementsSection {
+                switch section {
+                case "health":
+                    selectedTab = .health
+                case "physique":
+                    selectedTab = .physique
+                default:
+                    selectedTab = .metrics
+                }
+                router.consumeMeasurementsSectionRequest(requestID)
+            }
         }
         .onChange(of: samplesSignature) { _, _ in
             rebuildSamplesCache()
         }
-        .navigationDestination(item: $requestedMetricDetailKind) { kind in
-            MetricDetailView(kind: kind)
-        }
         .onChange(of: router.metricDetailRequestID) { _, requestID in
             guard let requestID, let kind = router.requestedMetricDetailKind else { return }
-            requestedMetricDetailKind = kind
-            router.consumeMetricDetailRequest(requestID)
+            presentMetricDetail(kind, requestID: requestID)
         }
         .onChange(of: router.measurementsSectionRequestID) { _, requestID in
             guard let requestID, let section = router.requestedMeasurementsSection else { return }
@@ -521,6 +543,35 @@ struct MeasurementsTabView: View {
         cachedLatestByKind = latest
         cachedCustomSamples = customGrouped
         cachedCustomLatest = customLatest
+    }
+
+    private func presentMetricDetail(_ kind: MetricKind, requestID: UUID) {
+        Task { @MainActor in
+            requestedMetricDetailKind = nil
+            await Task.yield()
+            requestedMetricDetailKind = kind
+            router.consumeMetricDetailRequest(requestID)
+        }
+    }
+
+    private var metricDetailPresentationBinding: Binding<Bool> {
+        Binding(
+            get: { requestedMetricDetailKind != nil },
+            set: { isPresented in
+                if !isPresented {
+                    requestedMetricDetailKind = nil
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var requestedMetricDetailDestination: some View {
+        if let kind = requestedMetricDetailKind {
+            MetricDetailView(kind: kind)
+        } else {
+            EmptyView()
+        }
     }
 }
 

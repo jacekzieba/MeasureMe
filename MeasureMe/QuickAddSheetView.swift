@@ -167,6 +167,12 @@ struct QuickAddSheetView: View {
                     }
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+                clearFocus()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+                clearFocus()
+            }
         }
     }
 
@@ -828,6 +834,11 @@ struct QuickAddSheetView: View {
         router.selectedTab = .settings
         onSaved()
         dismiss()
+    }
+
+    private func clearFocus() {
+        focusedKind = nil
+        focusedCustomId = nil
     }
 }
 

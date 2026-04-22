@@ -648,8 +648,21 @@ final class NotificationManager: ObservableObject {
         actionIdentifier: String,
         userInfo: [AnyHashable: Any]
     ) {
+        handleNotificationResponse(
+            actionIdentifier: actionIdentifier,
+            requestIdentifier: "",
+            userInfo: userInfo
+        )
+    }
+
+    func handleNotificationResponse(
+        actionIdentifier: String,
+        requestIdentifier: String,
+        userInfo: [AnyHashable: Any]
+    ) {
         guard let kindRaw = userInfo["aiNotificationKind"] as? String,
               let kind = AINotificationKind(rawValue: kindRaw) else {
+            handleStandardNotificationResponse(requestIdentifier: requestIdentifier)
             return
         }
 
@@ -659,7 +672,9 @@ final class NotificationManager: ObservableObject {
             return
         }
 
-        if let route = route(from: userInfo) {
+        if let action = appEntryAction(from: userInfo, requestIdentifier: requestIdentifier) {
+            AppEntryActionDispatcher.enqueue(action, source: .notification)
+        } else if let route = route(from: userInfo, requestIdentifier: requestIdentifier) {
             AppNavigationRouteDispatcher.enqueue(route)
         }
     }
@@ -795,22 +810,115 @@ final class NotificationManager: ObservableObject {
         return Set(values)
     }
 
-    private func route(from userInfo: [AnyHashable: Any]) -> AppNavigationRoute? {
-        guard let routeRaw = userInfo["aiRoute"] as? String else { return nil }
+    private func handleStandardNotificationResponse(requestIdentifier: String) {
+        if let action = appEntryAction(from: [:], requestIdentifier: requestIdentifier) {
+            AppEntryActionDispatcher.enqueue(action, source: .notification)
+        } else if let route = route(from: [:], requestIdentifier: requestIdentifier) {
+            AppNavigationRouteDispatcher.enqueue(route)
+        }
+    }
+
+    private func appEntryAction(
+        from userInfo: [AnyHashable: Any],
+        requestIdentifier: String
+    ) -> AppEntryAction? {
+        if let actionRaw = userInfo["appEntryAction"] as? String,
+           let action = AppEntryAction(rawValue: actionRaw) {
+            return action
+        }
+
+        if requestIdentifier == photoReminderId {
+            return .openAddPhoto
+        }
+
+        return nil
+    }
+
+    private func route(
+        from userInfo: [AnyHashable: Any],
+        requestIdentifier: String
+    ) -> AppNavigationRoute? {
+        if let routeRaw = userInfo["appRoute"] as? String {
+            switch routeRaw {
+            case "home":
+                return .home
+            case "measurements":
+                return .measurements
+            case "settings":
+                return .settings
+            case "metricDetail":
+                guard let kindRaw = userInfo["appRouteMetricKindRaw"] as? String else { return nil }
+                return .metricDetail(kindRaw: kindRaw)
+            case "quickAdd":
+                return .quickAdd(kindRaw: userInfo["appRouteMetricKindRaw"] as? String)
+            default:
+                break
+            }
+        }
+
+        guard let routeRaw = userInfo["aiRoute"] as? String else {
+            return route(for: requestIdentifier)
+        }
         switch routeRaw {
         case "home":
             return .home
+        case "measurements":
+            return .measurements
+        case "settings":
+            return .settings
         case "metricDetail":
             guard let kindRaw = userInfo["aiRouteMetricKindRaw"] as? String else { return nil }
             return .metricDetail(kindRaw: kindRaw)
         case "quickAdd":
             return .quickAdd(kindRaw: userInfo["aiRouteMetricKindRaw"] as? String)
         default:
+            return route(for: requestIdentifier)
+        }
+    }
+
+    private func route(for requestIdentifier: String) -> AppNavigationRoute? {
+        if requestIdentifier == smartNotificationId || requestIdentifier.hasPrefix(reminderPrefix) {
+            return .quickAdd(kindRaw: nil)
+        }
+
+        if requestIdentifier == "measurement_import_summary" {
+            return .measurements
+        }
+
+        if requestIdentifier == trialEndingReminderId {
+            return .settings
+        }
+
+        if let kindRaw = requestIdentifier.removingPrefix(smartMetricStalePrefix) {
+            return MetricKind(rawValue: kindRaw).map { _ in .quickAdd(kindRaw: kindRaw) }
+        }
+
+        if let kindRaw = requestIdentifier.removingPrefix(smartMetricPatternPrefix) {
+            return MetricKind(rawValue: kindRaw).map { _ in .quickAdd(kindRaw: kindRaw) }
+        }
+
+        guard let prefixed = requestIdentifier.removingPrefix(goalSender.ownedPrefix) else { return nil }
+        let trimmed = prefixed.removingSuffix("_notification")
+        guard let kindRaw = trimmed.split(separator: "_").first.map(String.init),
+              MetricKind(rawValue: kindRaw) != nil else {
             return nil
         }
+        return .metricDetail(kindRaw: kindRaw)
     }
 
     private func aiCategoryIdentifier(for kind: AINotificationKind) -> String {
         aiCategoryPrefix + kind.rawValue
+    }
+}
+
+private extension String {
+    func removingPrefix(_ prefix: String) -> String? {
+        guard hasPrefix(prefix) else { return nil }
+        return String(dropFirst(prefix.count))
+    }
+
+    func removingSuffix(_ suffix: String) -> String {
+        guard hasSuffix(suffix) else { return self }
+        return String(dropLast(suffix.count))
     }
 }

@@ -71,6 +71,12 @@ struct InsightConversationView: View {
         .onAppear {
             messages = [InsightMessage(role: .assistant, text: originalInsight)]
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+            isInputFocused = false
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            isInputFocused = false
+        }
         .onDisappear {
             Task {
                 await MetricInsightService.shared.clearConversation()

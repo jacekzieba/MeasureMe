@@ -1476,7 +1476,6 @@ private struct PhotoGridView: View {
                         ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
                             let globalIndex = archiveItems.firstIndex(where: { $0.id == item.id }) ?? index
                             renderGridItem(item, index: globalIndex)
-                                .gridCellColumns(isHeroItem(item, globalIndex: globalIndex) ? gridLayoutMode.columnCount : 1)
                         }
                     }
                 }
@@ -1490,8 +1489,6 @@ private struct PhotoGridView: View {
         let availableWidth = max(UIScreen.main.bounds.width - 24, 1)
         let spacing = CGFloat(gridLayoutMode.columnCount - 1) * 8
         let cellSize = floor((availableWidth - spacing) / CGFloat(gridLayoutMode.columnCount))
-        let isHero = isHeroItem(item, globalIndex: index)
-        let displaySize = isHero ? (cellSize * 2 + 8) : cellSize
 
         switch item {
         case .persisted(let photo):
@@ -1502,7 +1499,7 @@ private struct PhotoGridView: View {
                     photo: photo,
                     isSelected: selectedPhotos.contains(photo),
                     isSelecting: isSelecting,
-                    size: displaySize,
+                    size: cellSize,
                     revealIndex: index
                 )
             }
@@ -1530,16 +1527,6 @@ private struct PhotoGridView: View {
             )
             .frame(width: cellSize, height: cellSize)
         }
-    }
-
-    private func isHeroItem(_ item: PhotoGridRenderItem, globalIndex: Int) -> Bool {
-        guard gridLayoutMode == .review else { return false }
-        guard archiveItems.count >= 3 else { return false }
-        guard globalIndex == 0 else { return false }
-        if case .persisted = item {
-            return true
-        }
-        return false
     }
 
     private func chooseOlderHeroPhoto() {

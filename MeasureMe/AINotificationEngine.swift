@@ -133,6 +133,10 @@ struct AINotificationCandidate: Sendable, Equatable {
         switch deepLink {
         case .home:
             userInfo["aiRoute"] = "home"
+        case .measurements:
+            userInfo["aiRoute"] = "measurements"
+        case .settings:
+            userInfo["aiRoute"] = "settings"
         case .metricDetail(let kindRaw):
             userInfo["aiRoute"] = "metricDetail"
             userInfo["aiRouteMetricKindRaw"] = kindRaw

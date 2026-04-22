@@ -1104,8 +1104,8 @@ private struct BeforeAfterSlider: View {
 
         ZStack {
             if bothImagesReady {
-                // Obraz "przed" (tlo)
-                Image(uiImage: cachedBeforeImage!)
+                // Obraz "po" (tlo po prawej stronie slidera)
+                Image(uiImage: cachedAfterImage!)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFill()
@@ -1113,8 +1113,8 @@ private struct BeforeAfterSlider: View {
                     .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                // Obraz "po" (maska)
-                Image(uiImage: cachedAfterImage!)
+                // Obraz "przed" (maska po lewej stronie slidera)
+                Image(uiImage: cachedBeforeImage!)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFill()

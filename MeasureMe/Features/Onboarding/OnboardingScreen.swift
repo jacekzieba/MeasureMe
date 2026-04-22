@@ -237,6 +237,12 @@ struct OnboardingView: View {
             guard isUITestOnboardingMode else { return }
             skipCurrentStep()
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+            dismissKeyboardFocus()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            dismissKeyboardFocus()
+        }
     }
 
     private var topBar: some View {
@@ -278,6 +284,11 @@ struct OnboardingView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("onboarding.skip")
+    }
+
+    private func dismissKeyboardFocus() {
+        isNameFieldFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
     private var stepDots: some View {

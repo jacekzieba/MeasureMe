@@ -2,6 +2,8 @@ import Foundation
 
 enum AppNavigationRoute: Codable, Equatable, Sendable {
     case home
+    case measurements
+    case settings
     case metricDetail(kindRaw: String)
     case quickAdd(kindRaw: String?)
 }

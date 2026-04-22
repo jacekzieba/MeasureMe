@@ -29,8 +29,9 @@ final class MeasureMeAppDelegate: NSObject, UIApplicationDelegate, UNUserNotific
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         Task { @MainActor in
-            NotificationManager.shared.handleAINotificationResponse(
+            NotificationManager.shared.handleNotificationResponse(
                 actionIdentifier: response.actionIdentifier,
+                requestIdentifier: response.notification.request.identifier,
                 userInfo: response.notification.request.content.userInfo
             )
             completionHandler()
