@@ -10,16 +10,18 @@ import SnapshotTesting
 import SwiftData
 
 final class RootViewSnapshotTests: XCTestCase {
+  private func requireSimulatorSnapshotEnvironment() throws {
+    guard ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] != nil else {
+      throw XCTSkip("Snapshot baseline is simulator-only")
+    }
+  }
 
   @MainActor
   /// Co sprawdza: Sprawdza scenariusz: RootView_snapshot.
   /// Dlaczego: Zapobiega regresjom UI/UX, ktore latwo przeoczyc recznie.
   /// Kryteria: Test konczy sie bez bledu i bez efektow ubocznych niezgodnych z oczekiwaniem.
   func testRootView_snapshot() async throws {
-    #if !targetEnvironment(simulator)
-    XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
-    return
-    #endif
+    try requireSimulatorSnapshotEnvironment()
 
     if #available(iOS 26, *) {
       throw XCTSkip("RootView snapshot is unstable on iOS 26 simulator and crashes the SnapshotTesting host after mismatches.")

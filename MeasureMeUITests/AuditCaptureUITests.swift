@@ -386,7 +386,8 @@ final class AuditCaptureUITests: XCTestCase {
     private func advanceOnboardingToHealthStep(in app: XCUIApplication) {
         let priority = app.buttons["onboarding.priority.improveHealth"].firstMatch
         XCTAssertTrue(priority.waitForExistence(timeout: 8))
-        priority.tap()
+        scrollToReveal(priority, in: app, maxSwipes: 6)
+        tapWithoutAXScroll(priority)
 
         onboardingNextButton(in: app).tap()
         onboardingNextButton(in: app).tap()
@@ -495,6 +496,13 @@ final class AuditCaptureUITests: XCTestCase {
         }
 
         return false
+    }
+
+    private func tapWithoutAXScroll(_ element: XCUIElement) {
+        XCTAssertTrue(element.exists, "Expected element to exist before tapping.")
+        let frame = element.frame
+        XCTAssertFalse(frame.isEmpty, "Expected element to have a non-empty frame before tapping.")
+        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
 
     private func scrollToReveal(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 4) {

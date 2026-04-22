@@ -10,12 +10,15 @@ import SnapshotTesting
 import SwiftData
 
 final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
+    private func requireSimulatorSnapshotEnvironment() throws {
+        guard ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] != nil else {
+            throw XCTSkip("Snapshot baseline is simulator-only")
+        }
+    }
+
     @MainActor
     func testHealthAndPhysiqueSections_snapshot_darkDefault() async throws {
-        #if !targetEnvironment(simulator)
-        XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
-        return
-        #endif
+        try requireSimulatorSnapshotEnvironment()
 
         let defaults = UserDefaults.standard
         let settingsStore = AppSettingsStore.shared

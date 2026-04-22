@@ -9,6 +9,11 @@ import SwiftUI
 import SnapshotTesting
 
 final class ExperienceSettingsDetailViewSnapshotTests: XCTestCase {
+    private func requireSimulatorSnapshotEnvironment() throws {
+        guard ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] != nil else {
+            throw XCTSkip("Snapshot baseline is simulator-only")
+        }
+    }
 
     private func makeView(colorScheme: ColorScheme) -> some View {
         NavigationStack {
@@ -34,10 +39,7 @@ final class ExperienceSettingsDetailViewSnapshotTests: XCTestCase {
 
     @MainActor
     func testExperienceSettings_darkMode_snapshot() throws {
-        #if !targetEnvironment(simulator)
-        XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
-        return
-        #endif
+        try requireSimulatorSnapshotEnvironment()
 
         let baselineLanguage = UserDefaults.standard.object(forKey: "appLanguage")
         let wereAnimationsEnabled = UIView.areAnimationsEnabled
@@ -63,10 +65,7 @@ final class ExperienceSettingsDetailViewSnapshotTests: XCTestCase {
 
     @MainActor
     func testExperienceSettings_lightMode_snapshot() throws {
-        #if !targetEnvironment(simulator)
-        XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
-        return
-        #endif
+        try requireSimulatorSnapshotEnvironment()
 
         let baselineLanguage = UserDefaults.standard.object(forKey: "appLanguage")
         let wereAnimationsEnabled = UIView.areAnimationsEnabled

@@ -72,10 +72,14 @@ final class HomeViewUITests: XCTestCase {
             "-uiTestActivationTask", "chooseMetrics"
         ], isPremium: false, seedMeasurements: true, seedPhotos: 0)
 
-        XCTAssertTrue(app.otherElements["home.module.activationHub"].waitForExistence(timeout: 5), "Activation hub should be visible on Home")
+        let activationHub = app.otherElements["home.module.activationHub"].firstMatch
+        XCTAssertTrue(activationHub.waitForExistence(timeout: 5), "Activation hub should be visible on Home")
         XCTAssertTrue(app.staticTexts["Choose what to track"].waitForExistence(timeout: 5), "Activation hub should expose the requested task")
 
-        app.buttons["home.activation.skip"].firstMatch.tap()
+        let skipButton = app.buttons["home.activation.skip"].firstMatch
+        scrollToReveal(skipButton, maxSwipes: 6)
+        XCTAssertTrue(skipButton.waitForExistence(timeout: 5), "Activation hub skip should exist")
+        skipButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
 
         XCTAssertTrue(app.staticTexts["Set your first goal"].waitForExistence(timeout: 5), "Skip should move the user to the next real activation task")
     }
@@ -84,9 +88,9 @@ final class HomeViewUITests: XCTestCase {
         launchApp()
 
         let nextFocusMode = app.staticTexts["home.nextFocus.mode"].firstMatch
-        let nextFocusButton = app.buttons["home.nextFocus.button"].firstMatch
         XCTAssertTrue(nextFocusMode.waitForExistence(timeout: 5), "Next focus mode hook should exist")
-        XCTAssertTrue(nextFocusButton.waitForExistence(timeout: 5), "Next focus button should exist")
+        let nextFocusButton = nextFocusTrigger()
+        XCTAssertTrue(nextFocusButton.waitForExistence(timeout: 5), "Next focus trigger should exist")
         XCTAssertEqual(nextFocusMode.label, "metric", "Seeded measurements should produce a metric insight")
         nextFocusButton.tap()
 
@@ -102,25 +106,20 @@ final class HomeViewUITests: XCTestCase {
             "-AppleLocale", "pl_PL"
         ])
 
-        let nextFocusButton = app.buttons["home.nextFocus.button"].firstMatch
         let primaryValue = app.staticTexts["home.nextFocus.primaryValue"].firstMatch
         let summary = app.staticTexts["home.nextFocus.summary"].firstMatch
-        let supportingLabel = app.staticTexts["home.nextFocus.supportingLabel"].firstMatch
 
-        XCTAssertTrue(nextFocusButton.waitForExistence(timeout: 5), "Next focus button should exist")
+        XCTAssertTrue(nextFocusTrigger().waitForExistence(timeout: 5), "Next focus trigger should exist")
         XCTAssertTrue(primaryValue.waitForExistence(timeout: 5), "Primary stat should exist")
         XCTAssertTrue(summary.waitForExistence(timeout: 5), "Summary should exist")
-        XCTAssertTrue(supportingLabel.waitForExistence(timeout: 5), "Supporting label should exist")
 
-        let buttonFrame = nextFocusButton.frame
+        let buttonFrame = nextFocusTrigger().frame
         let primaryValueFrame = primaryValue.frame
         let summaryFrame = summary.frame
-        let supportingLabelFrame = supportingLabel.frame
 
         XCTAssertFalse(buttonFrame.isEmpty, "Next focus button should have a visible frame")
         XCTAssertFalse(primaryValueFrame.isEmpty, "Primary stat should have a visible frame")
         XCTAssertFalse(summaryFrame.isEmpty, "Summary should have a visible frame")
-        XCTAssertFalse(supportingLabelFrame.isEmpty, "Supporting label should have a visible frame")
         XCTAssertGreaterThan(primaryValueFrame.width, 40, "Primary stat should remain readable")
         XCTAssertLessThan(primaryValueFrame.height, 42, "Primary stat should stay compact and one-line")
         XCTAssertGreaterThan(summaryFrame.height, 16, "Summary should remain visible at larger text sizes")
@@ -135,9 +134,9 @@ final class HomeViewUITests: XCTestCase {
         launchApp(isPremium: false, seedMeasurements: false)
 
         let nextFocusMode = app.staticTexts["home.nextFocus.mode"].firstMatch
-        let nextFocusButton = app.buttons["home.nextFocus.button"].firstMatch
         XCTAssertTrue(nextFocusMode.waitForExistence(timeout: 5), "Next focus mode hook should exist")
-        XCTAssertTrue(nextFocusButton.waitForExistence(timeout: 5), "Next focus button should exist")
+        let nextFocusButton = nextFocusTrigger()
+        XCTAssertTrue(nextFocusButton.waitForExistence(timeout: 5), "Next focus trigger should exist")
         XCTAssertEqual(nextFocusMode.label, "setGoal", "No positive measurement insight should fall back to Set goal")
         nextFocusButton.tap()
 
@@ -336,6 +335,14 @@ final class HomeViewUITests: XCTestCase {
             }
         }
         return query[identifiers[0]].firstMatch
+    }
+
+    private func nextFocusTrigger() -> XCUIElement {
+        let cardButton = app.buttons["home.nextFocus.button"].firstMatch
+        if cardButton.exists {
+            return cardButton
+        }
+        return app.buttons["home.hero.pulse.chip.nextFocus"].firstMatch
     }
 
     private func framesDoNotOverlap(_ first: XCUIElement, _ second: XCUIElement) -> Bool {

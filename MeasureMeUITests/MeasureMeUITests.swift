@@ -182,7 +182,11 @@ final class MeasureMeUITests: XCTestCase {
                 : app.textFields.firstMatch
             )
         XCTAssertTrue(goalInput.waitForExistence(timeout: 5), "Goal input should be visible after tapping hero goal segment")
-        goalInput.tap()
+        if goalInput.isHittable {
+            goalInput.tap()
+        } else {
+            goalInput.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        }
         goalInput.typeText("75")
 
         let saveButton = app.buttons["goal.save"].firstMatch

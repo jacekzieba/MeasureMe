@@ -73,15 +73,18 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         return vc
     }
 
+    private func requireSimulatorSnapshotEnvironment() throws {
+        guard ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] != nil else {
+            throw XCTSkip("Snapshot baseline is simulator-only")
+        }
+    }
+
     // MARK: - Tests
 
     /// Default state: backup disabled, no error, no timestamp, analytics on.
     @MainActor
     func testDataSettings_defaultState_dark() throws {
-        #if !targetEnvironment(simulator)
-        XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
-        return
-        #endif
+        try requireSimulatorSnapshotEnvironment()
 
         let baseline = backupDefaults()
         let wereAnimationsEnabled = UIView.areAnimationsEnabled
@@ -115,10 +118,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
     /// Backup enabled with a recent backup timestamp shown.
     @MainActor
     func testDataSettings_backupEnabled_withTimestamp_dark() throws {
-        #if !targetEnvironment(simulator)
-        XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
-        return
-        #endif
+        try requireSimulatorSnapshotEnvironment()
 
         let baseline = backupDefaults()
         let wereAnimationsEnabled = UIView.areAnimationsEnabled
@@ -152,10 +152,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
     /// Error message displayed via InlineErrorBanner.
     @MainActor
     func testDataSettings_withErrorMessage_dark() throws {
-        #if !targetEnvironment(simulator)
-        XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
-        return
-        #endif
+        try requireSimulatorSnapshotEnvironment()
 
         let baseline = backupDefaults()
         let wereAnimationsEnabled = UIView.areAnimationsEnabled
@@ -189,10 +186,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
 
     @MainActor
     func testDataSettings_defaultState_light() throws {
-        #if !targetEnvironment(simulator)
-        XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
-        return
-        #endif
+        try requireSimulatorSnapshotEnvironment()
 
         let baseline = backupDefaults()
         let wereAnimationsEnabled = UIView.areAnimationsEnabled
@@ -224,10 +218,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
 
     @MainActor
     func testDataSettings_backupEnabled_withTimestamp_light() throws {
-        #if !targetEnvironment(simulator)
-        XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
-        return
-        #endif
+        try requireSimulatorSnapshotEnvironment()
 
         let baseline = backupDefaults()
         let wereAnimationsEnabled = UIView.areAnimationsEnabled
@@ -259,10 +250,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
 
     @MainActor
     func testDataSettings_withErrorMessage_light() throws {
-        #if !targetEnvironment(simulator)
-        XCTAssertTrue(true, "Physical-device fallback: snapshot baseline is simulator-only")
-        return
-        #endif
+        try requireSimulatorSnapshotEnvironment()
 
         let baseline = backupDefaults()
         let wereAnimationsEnabled = UIView.areAnimationsEnabled

@@ -99,6 +99,11 @@ final class PhotoFlowUITests: XCTestCase {
     }
 
     private func closeCompareSheet() {
+        let exportAlertOK = app.buttons["OK"].firstMatch
+        if exportAlertOK.waitForExistence(timeout: 2) {
+            exportAlertOK.tap()
+        }
+
         let doneButton = app.descendants(matching: .any)["photos.compare.done"].firstMatch
         XCTAssertTrue(doneButton.waitForExistence(timeout: 5), "Expected Done button.")
         doneButton.tap()
