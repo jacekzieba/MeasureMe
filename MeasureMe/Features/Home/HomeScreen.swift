@@ -970,7 +970,7 @@ struct HomeView: View {
 
                     AISectionSummaryCard(
                         input: homeBottomSummaryInput,
-                        missingDataMessage: AppLocalization.string("AI summary needs data from Metrics, Health Indicators, or Physique Indicators."),
+                        missingDataMessage: AppLocalization.aiString("AI summary needs data from Metrics, Health Indicators, or Physique Indicators."),
                         tint: homeTheme.softTint,
                         accessibilityIdentifier: "home.bottom.ai.summary"
                     )

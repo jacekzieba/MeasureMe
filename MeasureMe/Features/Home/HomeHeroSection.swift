@@ -619,20 +619,20 @@ struct HomeHeroSection: View {
 
     private var pulseChipNextFocus: some View {
         Button(action: onNextFocusTap) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: pulseChipVerticalSpacing) {
+                HStack(spacing: pulseChipHorizontalSpacing) {
                     Image(systemName: "chart.line.uptrend.xyaxis")
                         .font(AppTypography.iconSmall)
                         .foregroundStyle(accent)
                     Text(snapshot.nextFocus.contextLabel)
-                        .font(AppTypography.eyebrow)
+                        .font(pulseChipContextFont)
                         .foregroundStyle(AppColorRoles.textSecondary)
                         .lineLimit(1)
                 }
 
                 if let primaryValue = snapshot.nextFocus.primaryValue {
                     Text(primaryValue)
-                        .font(.system(size: 20, weight: .bold, design: .rounded).monospacedDigit())
+                        .font(pulseChipPrimaryFont)
                         .foregroundStyle(AppColorRoles.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
@@ -646,13 +646,13 @@ struct HomeHeroSection: View {
                 }
 
                 Text(snapshot.nextFocus.summary)
-                    .font(AppTypography.micro)
+                    .font(pulseChipSummaryFont)
                     .foregroundStyle(AppColorRoles.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 1 : 2)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("home.nextFocus.summary")
             }
-            .padding(12)
+            .padding(pulseChipPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -769,5 +769,30 @@ struct HomeHeroSection: View {
             return 112
         }
         return snapshot.prefersStackedPanels ? 134 : 138
+    }
+
+    private var pulseChipPadding: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 10 : 12
+    }
+
+    private var pulseChipVerticalSpacing: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 4 : 6
+    }
+
+    private var pulseChipHorizontalSpacing: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 4 : 6
+    }
+
+    private var pulseChipContextFont: Font {
+        dynamicTypeSize.isAccessibilitySize ? AppTypography.microEmphasis : AppTypography.eyebrow
+    }
+
+    private var pulseChipPrimaryFont: Font {
+        let size = dynamicTypeSize.isAccessibilitySize ? 18.0 : 20.0
+        return .system(size: size, weight: .bold, design: .rounded).monospacedDigit()
+    }
+
+    private var pulseChipSummaryFont: Font {
+        dynamicTypeSize.isAccessibilitySize ? AppTypography.microEmphasis : AppTypography.micro
     }
 }

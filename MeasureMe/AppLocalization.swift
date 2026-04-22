@@ -76,6 +76,7 @@ enum AppLanguage: String {
 
 enum AppLocalization {
     static var settings: AppSettingsStore = .shared
+    private static let englishBundle: Bundle = AppLanguage.en.bundle
 
     /// Buforuje jezyk i bundle, aby ograniczyc koszt odczytu UserDefaults i tworzenia Bundle(path:) przy kazdym wywolaniu.
     /// Bundle(path:) on every call to `string()`.  Invalidated via
@@ -124,6 +125,18 @@ enum AppLocalization {
         let format = bundle.localizedString(forKey: key, value: key, table: nil)
         guard !args.isEmpty else { return format }
         return String(format: format, locale: locale, arguments: args)
+    }
+
+    static func englishString(_ key: String, _ args: CVarArg...) -> String {
+        let format = englishBundle.localizedString(forKey: key, value: key, table: nil)
+        guard !args.isEmpty else { return format }
+        return String(format: format, locale: AppLanguage.en.locale, arguments: args)
+    }
+
+    static func aiString(_ key: String, _ args: CVarArg...) -> String {
+        let format = englishBundle.localizedString(forKey: key, value: key, table: nil)
+        guard !args.isEmpty else { return format }
+        return String(format: format, locale: AppLanguage.en.locale, arguments: args)
     }
 
     static func systemPlural(_ key: String, _ count: Int) -> String {

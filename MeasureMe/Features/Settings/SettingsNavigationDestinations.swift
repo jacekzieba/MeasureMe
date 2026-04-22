@@ -20,8 +20,6 @@ struct PremiumBenefitsInfoView: View {
                     SettingsRowDivider()
                     benefitRow(icon: "photo.on.rectangle.angled", textKey: "premium.carousel.unlock.item.compare")
                     SettingsRowDivider()
-                    benefitRow(icon: "person.2.crop.square.stack", textKey: "premium.carousel.unlock.item.overlay")
-                    SettingsRowDivider()
                     benefitRow(icon: "heart.text.square.fill", textKey: "premium.carousel.unlock.item.health")
                     SettingsRowDivider()
                     benefitRow(icon: "doc.text.fill", textKey: "premium.carousel.unlock.item.export")

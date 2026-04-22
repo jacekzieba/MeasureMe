@@ -222,7 +222,7 @@ struct MeasurementsTabView: View {
                         if selectedTab == .metrics {
                             AISectionSummaryCard(
                                 input: metricsSummaryInput,
-                                missingDataMessage: AppLocalization.string("AI summary needs metric data. Add measurements to generate insights."),
+                                    missingDataMessage: AppLocalization.aiString("AI summary needs metric data. Add measurements to generate insights."),
                                 tint: measurementsTheme.softTint,
                                 accessibilityIdentifier: "measurements.metrics.ai.summary"
                             )
@@ -347,7 +347,7 @@ struct MeasurementsTabView: View {
                             if premiumStore.isPremium {
                                 AISectionSummaryCard(
                                     input: healthSummaryInput,
-                                    missingDataMessage: AppLocalization.string("AI summary needs health indicator data. Add required measurements first."),
+                                    missingDataMessage: AppLocalization.aiString("AI summary needs health indicator data. Add required measurements first."),
                                     tint: healthTheme.softTint,
                                     accessibilityIdentifier: "measurements.health.ai.summary"
                                 )
@@ -378,7 +378,7 @@ struct MeasurementsTabView: View {
                             if premiumStore.isPremium {
                                 AISectionSummaryCard(
                                     input: physiqueSummaryInput,
-                                    missingDataMessage: AppLocalization.string("AI summary needs physique indicator data. Add required measurements first."),
+                                    missingDataMessage: AppLocalization.aiString("AI summary needs physique indicator data. Add required measurements first."),
                                     tint: AppColorRoles.accentPhysique.opacity(0.18),
                                     accessibilityIdentifier: "measurements.physique.ai.summary"
                                 )
@@ -948,19 +948,19 @@ struct MetricChartTile: View {
                         )
                     } else if canUseAppleIntelligence, isLoadingInsight {
                         MetricInsightCard(
-                            text: AppLocalization.string("Generating insight..."),
+                            text: AppLocalization.aiString("Generating insight..."),
                             compact: true,
                             isLoading: true
                         )
                     } else if premiumStore.isPremium && !appleIntelligenceAvailable {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(AppLocalization.string("AI Insights aren't available right now."))
+                            Text(AppLocalization.aiString("AI Insights aren't available right now."))
                                 .font(AppTypography.micro)
                                 .foregroundStyle(AppColorRoles.textSecondary)
                             NavigationLink {
                                 FAQView()
                             } label: {
-                                Text(AppLocalization.string("Learn more in FAQ"))
+                                Text(AppLocalization.aiString("Learn more in FAQ"))
                                     .font(AppTypography.microEmphasis)
                                     .foregroundStyle(measurementsTheme.accent)
                             }

@@ -274,7 +274,7 @@ struct HealthMetricsSection: View {
         if !effectivePremium {
             EmptyView()
         } else if !AppleIntelligenceSupport.isAvailable() && !bypassGuards {
-            Text(AppLocalization.string("AI Insights aren't available right now."))
+            Text(AppLocalization.aiString("AI Insights aren't available right now."))
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textSecondary)
         } else if !hasAnyMetricEnabled && !bypassGuards {
@@ -282,7 +282,7 @@ struct HealthMetricsSection: View {
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textSecondary)
         } else if !hasSummaryMeasurementData && !bypassGuards {
-            Text(AppLocalization.string("AI summary needs measurement data. Add your first measurement to get personalized insights."))
+            Text(AppLocalization.aiString("AI summary needs measurement data. Add your first measurement to get personalized insights."))
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textSecondary)
         } else {
@@ -295,7 +295,7 @@ struct HealthMetricsSection: View {
                         .background(AppColorRoles.surfaceAccentSoft)
                         .clipShape(Circle())
 
-                    Text(healthInsightText ?? AppLocalization.string("Generating your health summary..."))
+                    Text(healthInsightText ?? AppLocalization.aiString("Generating your health summary..."))
                         .font(AppTypography.body)
                         .foregroundStyle(.primary)
                         .multilineTextAlignment(.leading)
@@ -308,7 +308,7 @@ struct HealthMetricsSection: View {
                 }
 
                 HStack {
-                    Text(AppLocalization.string("AI generated"))
+                    Text(AppLocalization.aiString("AI generated"))
                         .font(AppTypography.micro)
                         .foregroundStyle(.secondary)
                     Spacer()

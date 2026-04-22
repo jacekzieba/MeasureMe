@@ -661,7 +661,7 @@ struct MetricDetailView: View {
                     .onTapGesture { showInsightConversation = true }
                 case .loading:
                     MetricInsightCard(
-                        text: AppLocalization.string("Generating insight..."),
+                        text: AppLocalization.aiString("Generating insight..."),
                         compact: false,
                         isLoading: true
                     )
@@ -679,13 +679,13 @@ struct MetricDetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 sectionHeader(AppLocalization.string("Insight"))
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(AppLocalization.string("AI Insights aren’t available right now."))
+                    Text(AppLocalization.aiString("AI Insights aren’t available right now."))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColorRoles.textSecondary)
                     NavigationLink {
                         FAQView()
                     } label: {
-                        Text(AppLocalization.string("Learn more in FAQ"))
+                        Text(AppLocalization.aiString("Learn more in FAQ"))
                             .font(AppTypography.captionEmphasis)
                             .foregroundStyle(measurementsTheme.accent)
                         }

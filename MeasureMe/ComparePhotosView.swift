@@ -160,6 +160,13 @@ struct ComparePhotosView: View {
                     unitsSystem: unitsSystem
                 )
             }
+            .onAppear {
+                guard premiumStore.isPremium else {
+                    premiumStore.presentPaywall(reason: .feature("Photo Comparison"))
+                    dismiss()
+                    return
+                }
+            }
         }
     }
 

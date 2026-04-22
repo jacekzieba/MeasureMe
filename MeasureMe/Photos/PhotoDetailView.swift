@@ -7,6 +7,7 @@ struct PhotoDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
+    @EnvironmentObject private var premiumStore: PremiumStore
     @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)]) private var allPhotos: [PhotoEntry]
     
     @Bindable var photo: PhotoEntry
@@ -126,6 +127,10 @@ private extension PhotoDetailView {
     var primaryActionsSection: some View {
         if let previousPhoto, let onCompareRequested {
             Button {
+                guard premiumStore.isPremium else {
+                    premiumStore.presentPaywall(reason: .feature("Photo Comparison"))
+                    return
+                }
                 onCompareRequested(previousPhoto, photo)
             } label: {
                 Label(AppLocalization.string("Compare"), systemImage: "arrow.left.and.right")

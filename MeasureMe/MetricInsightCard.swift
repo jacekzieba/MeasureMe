@@ -11,6 +11,9 @@ struct MetricInsightCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private let collapsedLineLimit = 4
+    private var minimumCompactHeight: CGFloat? {
+        compact ? 74 : nil
+    }
 
     private var canExpand: Bool {
         !compact && !isLoading && text.count > 220
@@ -50,7 +53,7 @@ struct MetricInsightCard: View {
                                 isExpanded.toggle()
                             }
                         } label: {
-                            Text(AppLocalization.string(isExpanded ? "Show less" : "Show more"))
+                            Text(AppLocalization.aiString(isExpanded ? "Show less" : "Show more"))
                                 .font(AppTypography.microEmphasis)
                                 .foregroundStyle(AppColorRoles.accentPrimary)
                         }
@@ -61,8 +64,8 @@ struct MetricInsightCard: View {
 
                 HStack {
                     Text(isLoading
-                         ? AppLocalization.string("Generating insight...")
-                         : AppLocalization.string("AI generated"))
+                         ? AppLocalization.aiString("Generating insight...")
+                         : AppLocalization.aiString("AI generated"))
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColorRoles.textSecondary)
 
@@ -75,7 +78,7 @@ struct MetricInsightCard: View {
                                 .font(AppTypography.micro)
                                 .foregroundStyle(AppColorRoles.textSecondary)
                         }
-                        .accessibilityLabel(AppLocalization.string("Refresh insight"))
+                        .accessibilityLabel(AppLocalization.aiString("Refresh insight"))
                         .accessibilityIdentifier("insight.card.refresh")
                     }
                 }
@@ -83,6 +86,7 @@ struct MetricInsightCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(minHeight: minimumCompactHeight, alignment: .topLeading)
         .fixedSize(horizontal: false, vertical: true)
         .padding(compact ? 10 : 14)
         .background(

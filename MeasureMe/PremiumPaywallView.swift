@@ -714,7 +714,6 @@ struct PremiumPaywallView: View {
                 unlockBenefitRow(icon: "heart.text.square.fill", tint: Color(hex: "#34D399"), textKey: "premium.carousel.unlock.item.health")
                 unlockBenefitRow(icon: "chart.line.uptrend.xyaxis", tint: Color(hex: "#F472B6"), textKey: "premium.carousel.unlock.item.prediction")
                 unlockBenefitRow(icon: "doc.text.fill", tint: Color(hex: "#FBBF24"), textKey: "premium.carousel.unlock.item.export")
-                unlockBenefitRow(icon: "person.2.crop.square.stack", tint: Color(hex: "#F59E0B"), textKey: "premium.carousel.unlock.item.overlay")
                 unlockBenefitRow(icon: "sparkles.rectangle.stack", tint: Color(hex: "#22D3EE"), textKey: "premium.carousel.unlock.item.social")
                 unlockBenefitRow(
                     icon: "icloud.and.arrow.up",

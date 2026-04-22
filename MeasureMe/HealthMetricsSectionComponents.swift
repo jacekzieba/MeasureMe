@@ -57,28 +57,31 @@ struct HealthMetricRow<Destination: View>: View {
     
     var body: some View {
         NavigationLink(destination: destination) {
-            HStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 // Lewa strona - tytuł
-                    VStack(alignment: .leading, spacing: 4) {
-                        ViewThatFits(in: .vertical) {
-                            Text(title)
-                                .font(AppTypography.body)
-                                .foregroundStyle(AppColorRoles.textPrimary)
-                                .lineLimit(1)
-                            Text(title)
-                                .font(AppTypography.body)
-                                .foregroundStyle(AppColorRoles.textPrimary)
-                                .lineLimit(2)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                VStack(alignment: .leading, spacing: 8) {
+                    ViewThatFits(in: .vertical) {
+                        Text(title)
+                            .font(AppTypography.body)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+                            .lineLimit(1)
+                        Text(title)
+                            .font(AppTypography.body)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
                     Text(category)
                         .font(AppTypography.micro)
                         .foregroundStyle(Color.bestAccessibleTextColor(onHex: categoryColor))
                         .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
+                        .padding(.vertical, 4)
                         .background(Color(hex: categoryColor), in: RoundedRectangle(cornerRadius: 4))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 
                 Spacer()
                 
@@ -93,9 +96,11 @@ struct HealthMetricRow<Destination: View>: View {
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColorRoles.textTertiary)
                 }
+                .padding(.top, 2)
             }
-            .frame(minHeight: 44)
-            .padding(12)
+            .frame(minHeight: 72, alignment: .topLeading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: 10)
                     .fill(AppColorRoles.surfaceInteractive)

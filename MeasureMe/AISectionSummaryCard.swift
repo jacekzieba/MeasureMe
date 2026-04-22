@@ -19,7 +19,7 @@ struct AISectionSummaryCard: View {
             contentPadding: AppSpacing.sm
         ) {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text(AppLocalization.string("AI summary"))
+                Text(AppLocalization.aiString("AI summary"))
                     .font(AppTypography.captionEmphasis)
                     .foregroundStyle(AppColorRoles.textSecondary)
 
@@ -38,21 +38,21 @@ struct AISectionSummaryCard: View {
     private var content: some View {
         if !premiumStore.isPremium {
             VStack(alignment: .leading, spacing: 8) {
-                Text(AppLocalization.string("Upgrade to Premium Edition to unlock AI Insights."))
+                Text(AppLocalization.aiString("Upgrade to Premium Edition to unlock AI Insights."))
                     .font(AppTypography.body)
                     .foregroundStyle(AppColorRoles.textSecondary)
 
                 Button {
                     premiumStore.presentPaywall(reason: .feature("AI Insights"))
                 } label: {
-                    Text(AppLocalization.string("Unlock AI Insights"))
+                    Text(AppLocalization.aiString("Unlock AI Insights"))
                         .font(AppTypography.captionEmphasis)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(AppColorRoles.accentPrimary)
             }
         } else if !AppleIntelligenceSupport.isAvailable() {
-            Text(AppLocalization.string("AI Insights aren't available right now."))
+            Text(AppLocalization.aiString("AI Insights aren't available right now."))
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textSecondary)
         } else if input == nil {
@@ -61,7 +61,7 @@ struct AISectionSummaryCard: View {
                 .foregroundStyle(AppColorRoles.textSecondary)
         } else {
             MetricInsightCard(
-                text: text ?? AppLocalization.string("Generating your health summary..."),
+                text: text ?? AppLocalization.aiString("Generating your health summary..."),
                 compact: false,
                 isLoading: isLoading,
                 onRefresh: {

@@ -6,26 +6,26 @@ struct AIInsightsSettingsDetailView: View {
     private let theme = FeatureTheme.settings
 
     var body: some View {
-        SettingsDetailScaffold(title: AppLocalization.string("AI Insights"), theme: .settings) {
+        SettingsDetailScaffold(title: AppLocalization.aiString("AI Insights"), theme: .settings) {
             Section {
                 SettingsCard(tint: FeatureTheme.premium.softTint) {
-                    SettingsCardHeader(title: AppLocalization.string("AI Insights"), systemImage: "sparkles")
+                    SettingsCardHeader(title: AppLocalization.aiString("AI Insights"), systemImage: "sparkles")
                     if premiumStore.isPremium {
                         if AppleIntelligenceSupport.isAvailable() {
                             SettingsToggleRow(isOn: $appleIntelligenceEnabled, accent: theme.accent) {
-                                Text(AppLocalization.string("Enable AI Insights"))
+                                Text(AppLocalization.aiString("Enable AI Insights"))
                                     .font(AppTypography.body)
                                     .foregroundStyle(AppColorRoles.textPrimary)
                             }
                         } else {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(AppLocalization.string("AI Insights aren't available right now."))
+                                Text(AppLocalization.aiString("AI Insights aren't available right now."))
                                     .font(AppTypography.caption)
                                     .foregroundStyle(AppColorRoles.textSecondary)
                                 NavigationLink {
                                     FAQView()
                                 } label: {
-                                    Text(AppLocalization.string("Learn more in FAQ"))
+                                    Text(AppLocalization.aiString("Learn more in FAQ"))
                                         .font(AppTypography.captionEmphasis)
                                         .foregroundStyle(theme.accent)
                                 }
@@ -37,7 +37,7 @@ struct AIInsightsSettingsDetailView: View {
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppColorRoles.textSecondary)
                             Spacer()
-                            Button(AppLocalization.string("Unlock")) {
+                            Button(AppLocalization.aiString("Unlock")) {
                                 premiumStore.presentPaywall(reason: .feature("AI Insights"))
                             }
                             .buttonStyle(.plain)

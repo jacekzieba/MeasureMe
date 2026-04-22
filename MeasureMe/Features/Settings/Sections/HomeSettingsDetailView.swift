@@ -92,11 +92,12 @@ struct HomeSettingsDetailView: View {
     }
 
     private var moduleVisibilitySection: some View {
-        Section {
+        let configurableModules = HomeModuleKind.activeCases.filter { $0 != .quickActions }
+        return Section {
             SettingsCard(tint: AppColorRoles.surfacePrimary) {
                 SettingsCardHeader(title: AppLocalization.string("Visible modules"), systemImage: "eye")
 
-                ForEach(HomeModuleKind.activeCases, id: \.self) { kind in
+                ForEach(configurableModules, id: \.self) { kind in
                     Toggle(isOn: binding(for: kind)) {
                         HStack(spacing: 12) {
                             GlassPillIcon(systemName: kind.settingsSystemImage)
@@ -112,7 +113,7 @@ struct HomeSettingsDetailView: View {
                     }
                     .tint(theme.accent)
 
-                    if kind != HomeModuleKind.activeCases.last {
+                    if kind != configurableModules.last {
                         SettingsRowDivider()
                     }
                 }
