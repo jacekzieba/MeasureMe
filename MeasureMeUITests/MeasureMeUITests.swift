@@ -80,14 +80,15 @@ final class MeasureMeUITests: XCTestCase {
         let insightText = app.staticTexts["insight.card.text.compact"].firstMatch
         XCTAssertTrue(insightText.waitForExistence(timeout: 8))
         XCTAssertTrue(insightText.label.contains("UI_TEST_LONG_INSIGHT_MARKER"))
-        XCTAssertGreaterThan(insightText.frame.height, 30)
+        XCTAssertGreaterThan(insightText.frame.height, 24, "Compact insight should wrap onto multiple lines")
+        let compactInsightHeight = insightText.frame.height
 
         let openWeightDetail = app.buttons["metric.tile.open.weight"]
         if openWeightDetail.waitForExistence(timeout: 5) {
             openWeightDetail.tap()
             let detailedInsight = app.staticTexts["insight.card.text.detail"].firstMatch
             XCTAssertTrue(detailedInsight.waitForExistence(timeout: 8))
-            XCTAssertGreaterThan(detailedInsight.frame.height, 30)
+            XCTAssertGreaterThan(detailedInsight.frame.height, compactInsightHeight, "Detail insight should be taller than the compact preview")
         } else {
             XCTFail("Expected weight detail navigation button.")
         }

@@ -107,15 +107,16 @@ struct HomeHeroSection: View {
                     headerRow
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 12) {
                     Text(snapshot.greetingTitle)
                         .font(AppTypography.titleCompact)
                         .foregroundStyle(AppColorRoles.textPrimary)
                         .lineLimit(snapshot.prefersStackedPanels ? 3 : 2)
                         .minimumScaleFactor(0.9)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                    if snapshot.shouldShowPostOnboardingSummary {
-                        statusRow
+                    if snapshot.showStreak {
+                        streakStatusChip
                     }
                 }
 
@@ -127,8 +128,10 @@ struct HomeHeroSection: View {
                         onDismiss: onActivationDismiss
                     )
                 } else {
-                    pulsePrimaryCard(snapshot.pulseSignal)
-                        .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
+                    if !isStreakOnlySignal(snapshot.pulseSignal) {
+                        pulsePrimaryCard(snapshot.pulseSignal)
+                            .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
+                    }
 
                     if snapshot.shouldShowPostOnboardingSummary && !snapshot.isFreshState {
                         pulseChipsRow
@@ -592,6 +595,15 @@ struct HomeHeroSection: View {
         case .success: return AppColorRoles.stateSuccess
         case .warning: return Color(hex: "#EF4444")
         case .neutral: return AppColorRoles.textTertiary
+        }
+    }
+
+    private func isStreakOnlySignal(_ signal: HeroPulseSignal) -> Bool {
+        switch signal.kind {
+        case .streakRisk, .streakMilestone, .streakActive:
+            return true
+        case .goalAchieved, .goalNearComplete, .returnNudge, .trendHighlight, .fresh:
+            return false
         }
     }
 

@@ -9,10 +9,16 @@ struct MetricInsightCard: View {
     @State private var shimmerPhase: CGFloat = 0
     @State private var isExpanded = false
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private let collapsedLineLimit = 4
     private var minimumCompactHeight: CGFloat? {
         compact ? 74 : nil
+    }
+
+    private var compactLineLimit: Int? {
+        guard compact, !dynamicTypeSize.isAccessibilitySize else { return nil }
+        return 2
     }
 
     private var canExpand: Bool {
@@ -41,7 +47,7 @@ struct MetricInsightCard: View {
                         .font(compact ? AppTypography.microEmphasis : AppTypography.body)
                         .foregroundStyle(AppColorRoles.textPrimary)
                         .multilineTextAlignment(.leading)
-                        .lineLimit(canExpand && !isExpanded ? collapsedLineLimit : nil)
+                        .lineLimit(compactLineLimit ?? (canExpand && !isExpanded ? collapsedLineLimit : nil))
                         .fixedSize(horizontal: false, vertical: true)
                         .layoutPriority(1)
                         .frame(maxWidth: .infinity, alignment: .leading)

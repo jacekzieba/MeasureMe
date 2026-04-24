@@ -6,13 +6,13 @@ import Accessibility
 
 struct MeasurementsTabView: View {
     private static let queryWindowDays = 1825
+    private static let bottomTabBarClearance: CGFloat = 96
     private let measurementsTheme = FeatureTheme.measurements
     private let healthTheme = FeatureTheme.health
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var router: AppRouter
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.colorScheme) private var colorScheme
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
     @AppSetting(\.profile.userGender) private var userGenderRaw: String = "notSpecified"
@@ -195,29 +195,7 @@ struct MeasurementsTabView: View {
 
                 ScrollView {
                     LazyVStack(spacing: 16) {
-                        ScreenTitleHeader(title: AppLocalization.string("Measurements"), topPadding: 6, bottomPadding: 4)
-
-                        MeasurementsCategoryTabs(
-                            selectedTab: $selectedTab,
-                            tabs: MeasurementsTab.allCases,
-                            activeTint: tabAccent(for: selectedTab),
-                            animateSelection: shouldAnimate
-                        )
-                        .frame(maxWidth: .infinity)
-                        .accessibilityLabel(AppLocalization.string("accessibility.measurements.section"))
-                        .accessibilityHint(AppLocalization.string("accessibility.measurements.switch"))
-                        .padding(.horizontal, AppSpacing.md)
-                        .onChange(of: selectedTab) { _, newValue in
-                            guard newValue == .health || newValue == .physique else { return }
-                            if !premiumStore.isPremium {
-                                let feature = newValue == .health ? "Health indicators" : "Physique indicators"
-                                premiumStore.presentPaywall(reason: .feature(feature))
-                                Task { @MainActor in
-                                    selectedTab = .metrics
-                                }
-                            }
-                        }
-                        .animation(shouldAnimate ? .easeInOut(duration: 0.24) : nil, value: selectedTab)
+                        headerSection
 
                         if selectedTab == .metrics {
                             AISectionSummaryCard(
@@ -408,7 +386,12 @@ struct MeasurementsTabView: View {
                         }
                     }
                     .padding(.top, AppSpacing.sm)
-                    .padding(.bottom, 100)
+                    .padding(.bottom, AppSpacing.lg)
+                }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    Color.clear
+                        .frame(height: Self.bottomTabBarClearance)
+                        .accessibilityHidden(true)
                 }
                 .id(refreshToken)
                 .accessibilityIdentifier("measurements.scroll")
@@ -468,6 +451,40 @@ struct MeasurementsTabView: View {
                 selectedTab = .metrics
             }
             router.consumeMeasurementsSectionRequest(requestID)
+        }
+    }
+
+    private var headerSection: some View {
+        VStack(spacing: 0) {
+            ScreenTitleHeader(
+                title: AppLocalization.string("Measurements"),
+                topPadding: 6,
+                bottomPadding: 0,
+                horizontalPadding: 8
+            )
+
+            MeasurementsCategoryTabs(
+                selectedTab: $selectedTab,
+                tabs: MeasurementsTab.allCases,
+                activeTint: tabAccent(for: selectedTab),
+                animateSelection: shouldAnimate
+            )
+            .frame(maxWidth: .infinity)
+            .accessibilityLabel(AppLocalization.string("accessibility.measurements.section"))
+            .accessibilityHint(AppLocalization.string("accessibility.measurements.switch"))
+            .padding(.horizontal, AppSpacing.md)
+            .onChange(of: selectedTab) { _, newValue in
+                guard newValue == .health || newValue == .physique else { return }
+                if !premiumStore.isPremium {
+                    let feature = newValue == .health ? "Health indicators" : "Physique indicators"
+                    premiumStore.presentPaywall(reason: .feature(feature))
+                    Task { @MainActor in
+                        selectedTab = .metrics
+                    }
+                }
+            }
+            .animation(shouldAnimate ? .easeInOut(duration: 0.24) : nil, value: selectedTab)
+            .padding(.bottom, AppSpacing.sm)
         }
     }
 
@@ -683,6 +700,7 @@ private struct MeasurementsCategoryTabs: View {
                 )
         )
         .frame(minHeight: 64)
+        .fixedSize(horizontal: false, vertical: true)
         .animation(animateSelection ? AppMotion.standard : nil, value: selectedTab)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("measurements.tab.segmented")

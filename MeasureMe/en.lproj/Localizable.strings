@@ -1488,6 +1488,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "Done" = "Done";
 "Double tap to open photo details" = "Double tap to open photo details";
 "Double tap to show or hide this metrics group" = "Double tap to show or hide this metrics group";
+"beforeAfterSlider.hint" = "Drag to compare";
 "Drag to compare" = "Drag to compare";
 "Edit" = "Edit";
 "Edit measurement" = "Edit measurement";

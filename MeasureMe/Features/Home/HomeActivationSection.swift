@@ -146,6 +146,9 @@ struct ActivationMetricSelectionSheet: View {
                 }
             }
             .navigationTitle(OnboardingCopy.activationTaskTitle(.chooseMetrics))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(AppColorRoles.surfaceChrome, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppLocalization.string("Cancel")) { dismiss() }

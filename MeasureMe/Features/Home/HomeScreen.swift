@@ -912,11 +912,16 @@ struct HomeView: View {
             }
 
             ForEach(Array(expandedSecondaryMetrics), id: \.self) { kind in
-                Color.clear
-                    .accessibilityElement()
-                    .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).expanded")
-                    .frame(width: 1, height: 1)
-                    .allowsHitTesting(false)
+                VStack {
+                    Color.clear
+                        .frame(width: 44, height: 44)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("expanded")
+                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).expanded")
+                .frame(width: 44, height: 44)
+                .opacity(0.01)
+                .allowsHitTesting(false)
             }
 
             ForEach(Array(expandedSecondaryMetrics), id: \.self) { kind in
@@ -944,7 +949,14 @@ struct HomeView: View {
     }
 
     private var homeSecondaryMetricUITestKinds: [MetricKind] {
-        dashboardKeyIdentifiers.dropFirst().compactMap(MetricKind.init(rawValue:))
+        let visibleBuiltInSecondary = dashboardKeyIdentifiers.dropFirst().compactMap(MetricKind.init(rawValue:))
+        if !visibleBuiltInSecondary.isEmpty {
+            return visibleBuiltInSecondary
+        }
+
+        let fallbackKinds: [MetricKind] = [.bodyFat, .leanBodyMass, .waist]
+        let activeFallbackKinds = fallbackKinds.filter { metricsStore.activeKinds.contains($0) }
+        return activeFallbackKinds.isEmpty ? fallbackKinds : activeFallbackKinds
     }
 
     private var baseHomeRoot: some View {
@@ -1116,6 +1128,8 @@ struct HomeView: View {
             }
             .onChange(of: goals.count) { _, _ in
                 rebuildGoalsCache()
+                refreshActivationProgress()
+                rebuildDashboardItemsCache()
             }
 
         let contentWithChecklistObservers = contentWithMeasurementObservers
@@ -1184,6 +1198,9 @@ struct HomeView: View {
                 rebuildDashboardItemsCache()
             }
             .onChange(of: router.selectedTab) { _, newTab in
+                if newTab == .home {
+                    refreshChecklistState()
+                }
                 if newTab == .measurements && !onboardingChecklistMetricsExplored && isWelcomeHomeState {
                     onboardingChecklistMetricsExplored = true
                     withAnimation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate)) {
@@ -1340,7 +1357,8 @@ struct HomeView: View {
 
     private var summaryHeroModule: some View {
         let pulseSignal = computeHeroPulseSignal()
-        let hasNextFocusData = nextFocusInsight.primaryValue != nil || nextFocusInsight.headline != nil
+        let hasNextFocusData = (nextFocusInsight.primaryValue != nil || nextFocusInsight.headline != nil)
+            && !(nextFocusInsight.accessibilityValue == "setGoal" && !goals.isEmpty)
         return HomeHeroSection(
             snapshot: HomeHeroSnapshot(
                 tint: homeHeroTint,
@@ -1718,7 +1736,11 @@ struct HomeView: View {
     }
 
     private var activationTaskSequence: [ActivationTask] {
-        [.firstMeasurement, .addPhoto, .chooseMetrics, .setGoal]
+        var sequence: [ActivationTask] = [.firstMeasurement, .addPhoto, .chooseMetrics, .setGoal, .setReminders, .explorePremium]
+        if premiumStore.isPremium {
+            sequence.removeAll { $0 == .explorePremium }
+        }
+        return sequence
     }
 
     private var activationCompletedTaskIDs: Set<String> {
@@ -3300,6 +3322,17 @@ struct HomeView: View {
             } else {
                 router.selectedTab = .measurements
             }
+        case .setReminders:
+            if effects.reminderChecklistCompleted() {
+                completeActivationTask(.setReminders)
+            } else {
+                settingsOpenReminders = true
+                router.selectedTab = .settings
+            }
+        case .explorePremium:
+            onboardingChecklistPremiumExplored = true
+            premiumStore.presentPaywall(reason: .onboarding)
+            completeActivationTask(.explorePremium)
         }
     }
 
@@ -3359,9 +3392,9 @@ struct HomeView: View {
 
     private func advanceActivation(from task: ActivationTask) {
         guard let currentIndex = activationTaskSequence.firstIndex(of: task) else { return }
-        let nextIndex = currentIndex + 1
-        if nextIndex < activationTaskSequence.count {
-            activationCurrentTaskID = activationTaskSequence[nextIndex].rawValue
+        let remainingTasks = activationTaskSequence.dropFirst(currentIndex + 1)
+        if let nextTask = remainingTasks.first(where: { !isActivationTaskSatisfied($0) }) {
+            activationCurrentTaskID = nextTask.rawValue
         } else {
             activationCurrentTaskID = ""
             activationIsDismissed = true
@@ -3372,6 +3405,23 @@ struct HomeView: View {
             )
         }
         rebuildDashboardItemsCache()
+    }
+
+    private func isActivationTaskSatisfied(_ task: ActivationTask) -> Bool {
+        switch task {
+        case .firstMeasurement:
+            return hasAnyMeasurements
+        case .addPhoto:
+            return hasAnyPhotoContent
+        case .chooseMetrics:
+            return onboardingChecklistMetricsCompleted
+        case .setGoal:
+            return !goals.isEmpty
+        case .setReminders:
+            return effects.reminderChecklistCompleted()
+        case .explorePremium:
+            return premiumStore.isPremium || onboardingChecklistPremiumExplored
+        }
     }
 
     private func dismissActivationHub() {
@@ -3398,17 +3448,13 @@ struct HomeView: View {
     private func refreshActivationProgress() {
         guard onboardingFlowVersion >= 2 else { return }
 
-        if totalMetricSampleCount == 1,
+        if !isUITestMode,
+           totalMetricSampleCount == 1,
            !didShowActivationReminderPrompt,
            !onboardingSkippedReminders,
            !effects.reminderChecklistCompleted() {
             didShowActivationReminderPrompt = true
             showActivationReminderPrompt = true
-        }
-
-        if totalMetricSampleCount >= 2 {
-            dismissActivationHub()
-            return
         }
 
         guard let task = activationCurrentTask else { return }
@@ -3422,6 +3468,10 @@ struct HomeView: View {
             completeActivationTask(.chooseMetrics)
         case .setGoal where !goals.isEmpty:
             completeActivationTask(.setGoal)
+        case .setReminders where effects.reminderChecklistCompleted():
+            completeActivationTask(.setReminders)
+        case .explorePremium where premiumStore.isPremium || onboardingChecklistPremiumExplored:
+            completeActivationTask(.explorePremium)
         default:
             break
         }

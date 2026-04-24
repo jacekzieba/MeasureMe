@@ -786,7 +786,8 @@ struct OnboardingView: View {
                 afterImageName: onboardingBeforeAssetName,
                 beforeLabel: beforeLabel,
                 afterLabel: afterLabel,
-                imageAlignment: isRecomp ? .center : .top
+                imageAlignment: isRecomp ? .center : .top,
+                shouldAnimateHint: shouldAnimate
             )
             .frame(width: photoWidth, height: photoHeight)
             .frame(maxWidth: .infinity)
@@ -1413,6 +1414,7 @@ struct OnboardingView: View {
             .foregroundStyle(Color.appAccent)
         }
         .padding(compact ? 12 : 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
@@ -1558,7 +1560,9 @@ struct OnboardingView: View {
 
     private func animateToInputStep(_ step: InputStep) {
         isNameFieldFocused = false
-        if shouldAnimate {
+        if isUITestOnboardingMode {
+            currentStep = step
+        } else if shouldAnimate {
             withAnimation(AppMotion.emphasized) {
                 currentStep = step
             }
@@ -2091,9 +2095,12 @@ private struct OnboardingBeforeAfterSlider: View {
     let beforeLabel: String
     let afterLabel: String
     let imageAlignment: Alignment
+    let shouldAnimateHint: Bool
 
     @State private var sliderPosition: CGFloat = 0.5
     @State private var isDragging = false
+    @State private var hasInteracted = false
+    @State private var hasPlayedHintAnimation = false
 
     var body: some View {
         GeometryReader { proxy in
@@ -2136,6 +2143,17 @@ private struct OnboardingBeforeAfterSlider: View {
 
                 sliderHandle(height: height)
                     .position(x: width * clampedSlider, y: height / 2)
+
+                if !hasInteracted {
+                    VStack {
+                        BeforeAfterSliderInteractionHint()
+                            .padding(.top, 12)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
+                }
             }
             .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
             .overlay(
@@ -2147,6 +2165,7 @@ private struct OnboardingBeforeAfterSlider: View {
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
                         isDragging = true
+                        hasInteracted = true
                         let newPosition = value.location.x / width
                         guard newPosition.isFinite else { return }
                         sliderPosition = min(max(newPosition, 0), 1)
@@ -2160,6 +2179,33 @@ private struct OnboardingBeforeAfterSlider: View {
                         }
                     }
             )
+            .task(id: width) {
+                await playHintAnimation()
+            }
+        }
+    }
+
+    @MainActor
+    private func playHintAnimation() async {
+        guard shouldAnimateHint, !hasPlayedHintAnimation, !hasInteracted else { return }
+        hasPlayedHintAnimation = true
+
+        try? await Task.sleep(nanoseconds: 450_000_000)
+        guard !Task.isCancelled, !hasInteracted else { return }
+        withAnimation(.easeInOut(duration: 0.34)) {
+            sliderPosition = 0.42
+        }
+
+        try? await Task.sleep(nanoseconds: 380_000_000)
+        guard !Task.isCancelled, !hasInteracted else { return }
+        withAnimation(.easeInOut(duration: 0.42)) {
+            sliderPosition = 0.58
+        }
+
+        try? await Task.sleep(nanoseconds: 440_000_000)
+        guard !Task.isCancelled, !hasInteracted else { return }
+        withAnimation(.easeInOut(duration: 0.34)) {
+            sliderPosition = 0.5
         }
     }
 

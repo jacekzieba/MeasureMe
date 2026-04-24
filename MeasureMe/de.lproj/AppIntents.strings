@@ -1,7 +1,7 @@
 "intent.metric.type" = "Messgröße";
 "intent.metric.weight" = "Gewicht";
 "intent.metric.bodyFat" = "Körperfett";
-"intent.metric.leanBodyMass" = "Magere Körpermasse";
+"intent.metric.leanBodyMass" = "Magermasse";
 "intent.metric.waist" = "Taille";
 "intent.metric.neck" = "Nacken";
 "intent.metric.shoulders" = "Schultern";

@@ -1130,8 +1130,16 @@ private struct PremiumBeforeAfterSlider: View {
     let beforeLabel: String
     let afterLabel: String
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @State private var sliderPosition: CGFloat = 0.5
     @State private var isDragging = false
+    @State private var hasInteracted = false
+    @State private var hasPlayedHintAnimation = false
+
+    private var shouldAnimateHint: Bool {
+        AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -1169,6 +1177,17 @@ private struct PremiumBeforeAfterSlider: View {
 
                 sliderHandle(height: height)
                     .position(x: width * clampedSlider, y: height / 2)
+
+                if !hasInteracted {
+                    VStack {
+                        BeforeAfterSliderInteractionHint(compact: true)
+                            .padding(.top, 10)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
+                }
             }
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
@@ -1180,6 +1199,7 @@ private struct PremiumBeforeAfterSlider: View {
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
                         isDragging = true
+                        hasInteracted = true
                         let newPosition = value.location.x / width
                         guard newPosition.isFinite else { return }
                         sliderPosition = min(max(newPosition, 0), 1)
@@ -1193,6 +1213,33 @@ private struct PremiumBeforeAfterSlider: View {
                         }
                     }
             )
+            .task(id: width) {
+                await playHintAnimation()
+            }
+        }
+    }
+
+    @MainActor
+    private func playHintAnimation() async {
+        guard shouldAnimateHint, !hasPlayedHintAnimation, !hasInteracted else { return }
+        hasPlayedHintAnimation = true
+
+        try? await Task.sleep(nanoseconds: 450_000_000)
+        guard !Task.isCancelled, !hasInteracted else { return }
+        withAnimation(.easeInOut(duration: 0.34)) {
+            sliderPosition = 0.42
+        }
+
+        try? await Task.sleep(nanoseconds: 380_000_000)
+        guard !Task.isCancelled, !hasInteracted else { return }
+        withAnimation(.easeInOut(duration: 0.42)) {
+            sliderPosition = 0.58
+        }
+
+        try? await Task.sleep(nanoseconds: 440_000_000)
+        guard !Task.isCancelled, !hasInteracted else { return }
+        withAnimation(.easeInOut(duration: 0.34)) {
+            sliderPosition = 0.5
         }
     }
 

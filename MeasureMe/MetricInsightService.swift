@@ -349,8 +349,8 @@ actor MetricInsightService {
         #if DEBUG
         if UITestArgument.isPresent(.longInsight) {
             return MetricInsightPair(
-                shortText: "UI_TEST_LONG_INSIGHT_MARKER You are moving in a positive direction with stable momentum across recent entries and better consistency.",
-                detailedText: "UI_TEST_LONG_INSIGHT_MARKER Keep this pace for the next 7 days by logging at the same time every day and adding one more structured check-in before the week ends."
+                shortText: "UI_TEST_LONG_INSIGHT_MARKER You are moving in a positive direction with stable momentum across recent entries, better consistency, and clearer weekly patterns that suggest the routine is holding steady.",
+                detailedText: "UI_TEST_LONG_INSIGHT_MARKER Keep this pace for the next 7 days by logging at the same time every day, adding one more structured check-in before the week ends, and reviewing the weekly trend after each new entry. If you stay consistent, the pattern should remain easier to interpret, small setbacks should be less noisy, and the overall direction should stay clearer from one measurement window to the next."
             )
         }
         #endif

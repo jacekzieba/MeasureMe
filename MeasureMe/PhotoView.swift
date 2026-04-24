@@ -335,6 +335,9 @@ struct PhotoView: View {
                     olderPhoto: pair.olderPhoto,
                     newerPhoto: pair.newerPhoto
                 )
+                .onDisappear {
+                    selectedComparePair = nil
+                }
             }
             .sheet(item: $selectedPhotoForDetail, onDismiss: {
                 refreshPhotoContent()
@@ -408,7 +411,11 @@ struct PhotoView: View {
         }
         let sorted = [olderPhoto, newerPhoto].sorted { $0.date < $1.date }
         guard sorted.count == 2 else { return }
-        selectedComparePair = PhotoComparePair(olderPhoto: sorted[0], newerPhoto: sorted[1])
+        selectedComparePair = nil
+        Task { @MainActor in
+            await Task.yield()
+            selectedComparePair = PhotoComparePair(olderPhoto: sorted[0], newerPhoto: sorted[1])
+        }
     }
 
     private func refreshPhotoContent() {
@@ -487,11 +494,12 @@ struct PhotoView: View {
 }
 
 private struct PhotoComparePair: Identifiable {
+    let presentationID = UUID()
     let olderPhoto: PhotoEntry
     let newerPhoto: PhotoEntry
 
     var id: String {
-        "\(olderPhoto.persistentModelID)_\(newerPhoto.persistentModelID)"
+        "\(olderPhoto.persistentModelID)_\(newerPhoto.persistentModelID)_\(presentationID.uuidString)"
     }
 }
 

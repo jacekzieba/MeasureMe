@@ -41,6 +41,6 @@ final class OnboardingFlowTests: XCTestCase {
 
     func testActivationTaskOrderingSupportsManualMeasurementBeforePhoto() {
         XCTAssertEqual(ActivationTask.initial, .addPhoto)
-        XCTAssertEqual(ActivationTask.allCases, [.firstMeasurement, .addPhoto, .chooseMetrics, .setGoal])
+        XCTAssertEqual(ActivationTask.allCases, [.firstMeasurement, .addPhoto, .chooseMetrics, .setGoal, .setReminders, .explorePremium])
     }
 }

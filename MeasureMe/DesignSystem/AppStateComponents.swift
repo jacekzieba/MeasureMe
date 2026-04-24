@@ -97,3 +97,31 @@ struct LoadingBlock: View {
         .accessibilityIdentifier(accessibilityIdentifier ?? "")
     }
 }
+
+struct BeforeAfterSliderInteractionHint: View {
+    var compact: Bool = false
+
+    var body: some View {
+        HStack(spacing: compact ? 5 : 7) {
+            Image(systemName: "arrow.left.and.right")
+                .font(.system(size: compact ? 10 : 12, weight: .bold))
+                .accessibilityHidden(true)
+
+            Text(AppLocalization.string("beforeAfterSlider.hint"))
+                .font(compact ? AppTypography.microEmphasis : AppTypography.captionEmphasis)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+        }
+        .foregroundStyle(Color.appWhite)
+        .padding(.horizontal, compact ? 9 : 11)
+        .padding(.vertical, compact ? 5 : 7)
+        .background(Color.black.opacity(0.42), in: Capsule(style: .continuous))
+        .overlay(
+            Capsule(style: .continuous)
+                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.28), radius: 8, y: 3)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(AppLocalization.string("beforeAfterSlider.hint"))
+    }
+}

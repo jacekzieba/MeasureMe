@@ -13,6 +13,8 @@ enum ActivationTask: String, CaseIterable, Sendable {
     case addPhoto
     case chooseMetrics
     case setGoal
+    case setReminders
+    case explorePremium
 
     static let initial: ActivationTask = .addPhoto
 }
@@ -321,6 +323,10 @@ enum OnboardingCopy {
             return FlowLocalization.app("Choose what to track", "Wybierz, co śledzić", "Elige qué seguir", "Wähle, was du verfolgen willst", "Choisissez quoi suivre", "Escolha o que acompanhar")
         case .setGoal:
             return FlowLocalization.app("Set your first goal", "Ustaw pierwszy cel", "Define tu primer objetivo", "Setze dein erstes Ziel", "Définissez votre premier objectif", "Defina sua primeira meta")
+        case .setReminders:
+            return FlowLocalization.app("Set reminders", "Ustaw przypomnienia", "Configura recordatorios", "Erinnerungen einrichten", "Définissez des rappels", "Defina lembretes")
+        case .explorePremium:
+            return FlowLocalization.app("Explore Premium", "Sprawdź Premium", "Explora Premium", "Premium ansehen", "Découvrez Premium", "Explore o Premium")
         }
     }
 
@@ -362,6 +368,24 @@ enum OnboardingCopy {
                 "Donnez un objectif à une mesure suivie.",
                 "Dê uma meta para uma métrica acompanhada."
             )
+        case .setReminders:
+            return FlowLocalization.app(
+                "Add a gentle reminder so check-ins stay easy to remember.",
+                "Dodaj łagodne przypomnienie, żeby łatwiej pamiętać o pomiarach.",
+                "Añade un recordatorio suave para no olvidar los registros.",
+                "Füge eine sanfte Erinnerung hinzu, damit Einträge leichter dranbleiben.",
+                "Ajoutez un rappel discret pour penser aux suivis.",
+                "Adicione um lembrete leve para não esquecer os registros."
+            )
+        case .explorePremium:
+            return FlowLocalization.app(
+                "See the advanced tools you can unlock when you need more depth.",
+                "Zobacz zaawansowane narzędzia, które możesz odblokować, gdy potrzebujesz więcej.",
+                "Mira las herramientas avanzadas que puedes desbloquear cuando necesites más detalle.",
+                "Sieh dir die erweiterten Tools an, die du bei Bedarf freischalten kannst.",
+                "Découvrez les outils avancés à débloquer si vous voulez aller plus loin.",
+                "Veja as ferramentas avançadas que você pode desbloquear quando precisar de mais profundidade."
+            )
         }
     }
 
@@ -375,6 +399,10 @@ enum OnboardingCopy {
             return FlowLocalization.app("Review metrics", "Przejrzyj metryki", "Revisar métricas", "Messwerte prüfen", "Voir les mesures", "Revisar métricas")
         case .setGoal:
             return FlowLocalization.app("Set goal", "Ustaw cel", "Definir objetivo", "Ziel setzen", "Définir un objectif", "Definir meta")
+        case .setReminders:
+            return FlowLocalization.app("Set reminders", "Ustaw przypomnienia", "Configurar recordatorios", "Erinnerungen einrichten", "Définir des rappels", "Definir lembretes")
+        case .explorePremium:
+            return FlowLocalization.app("Explore Premium", "Sprawdź Premium", "Explorar Premium", "Premium ansehen", "Découvrir Premium", "Explorar Premium")
         }
     }
 
