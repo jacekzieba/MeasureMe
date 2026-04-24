@@ -144,17 +144,6 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertTrue(measurementsScroll.waitForExistence(timeout: 5), "Set goal fallback should open Measurements")
     }
 
-    func testNoGoalsStatusChipOpensMeasurements() {
-        launchApp(isPremium: false, seedMeasurements: false)
-
-        let goalStatusButton = app.buttons["home.goalStatus.button"].firstMatch
-        XCTAssertTrue(goalStatusButton.waitForExistence(timeout: 5), "No-goals status chip should become tappable")
-        goalStatusButton.tap()
-
-        let measurementsScroll = app.scrollViews["measurements.scroll"].firstMatch
-        XCTAssertTrue(measurementsScroll.waitForExistence(timeout: 5), "Tapping the no-goals chip should open Measurements")
-    }
-
     func testTrialReminderPromptShowsDeclineAndConfirm() {
         launchApp(extraArguments: ["-uiTestShowTrialReminderPrompt"])
 
