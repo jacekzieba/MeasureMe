@@ -3,6 +3,36 @@ import SwiftData
 
 @MainActor
 enum SettingsTransferCoordinator {
+    struct Dependencies {
+        var exportMetrics: (ModelContext, String) async -> SettingsExporter.ExportOutput = { context, unitsSystem in
+            await SettingsExporter.exportMetrics(context: context, unitsSystem: unitsSystem)
+        }
+        var exportMetricsJSON: (ModelContext, String) async -> SettingsExporter.ExportOutput = { context, unitsSystem in
+            await SettingsExporter.exportMetricsJSON(context: context, unitsSystem: unitsSystem)
+        }
+        var exportMetricsPDF: (ModelContext, String, Date?) async -> SettingsExporter.ExportOutput = { context, unitsSystem, startDate in
+            await SettingsExporter.exportMetricsPDF(context: context, unitsSystem: unitsSystem, startDate: startDate)
+        }
+        var exportDiagnostics: (ModelContext, Bool, Double) async -> SettingsExporter.ExportOutput = { context, isSyncEnabled, lastHealthImportTimestamp in
+            await SettingsExporter.exportDiagnostics(
+                context: context,
+                isSyncEnabled: isSyncEnabled,
+                lastHealthImportTimestamp: lastHealthImportTimestamp
+            )
+        }
+        var importData: ([URL], SettingsImporter.Strategy, ModelContext) async throws -> String = { urls, strategy, context in
+            try await SettingsImporter.importData(urls: urls, strategy: strategy, context: context)
+        }
+        var hapticSuccess: () -> Void = { Haptics.success() }
+        var hapticError: () -> Void = { Haptics.error() }
+    }
+
+    static var dependencies = Dependencies()
+
+    static func resetDependencies() {
+        dependencies = Dependencies()
+    }
+
     static func exportData(
         format: SettingsExporter.ExportFormat,
         context: ModelContext,
@@ -28,15 +58,11 @@ enum SettingsTransferCoordinator {
             let output: SettingsExporter.ExportOutput
             switch format {
             case .csv:
-                output = await SettingsExporter.exportMetrics(context: context, unitsSystem: unitsSystem)
+                output = await dependencies.exportMetrics(context, unitsSystem)
             case .json:
-                output = await SettingsExporter.exportMetricsJSON(context: context, unitsSystem: unitsSystem)
+                output = await dependencies.exportMetricsJSON(context, unitsSystem)
             case .pdf:
-                output = await SettingsExporter.exportMetricsPDF(
-                    context: context,
-                    unitsSystem: unitsSystem,
-                    startDate: pdfStartDate
-                )
+                output = await dependencies.exportMetricsPDF(context, unitsSystem, pdfStartDate)
             }
 
             setShareItems(output.items)
@@ -59,11 +85,7 @@ enum SettingsTransferCoordinator {
         setExportMessage(AppLocalization.string("Generating diagnostics..."))
         setIsExporting(true)
         Task {
-            let output = await SettingsExporter.exportDiagnostics(
-                context: context,
-                isSyncEnabled: isSyncEnabled,
-                lastHealthImportTimestamp: lastHealthImportTimestamp
-            )
+            let output = await dependencies.exportDiagnostics(context, isSyncEnabled, lastHealthImportTimestamp)
             setShareItems(output.items)
             setShareSubject(output.subject)
             setIsExporting(false)
@@ -100,15 +122,11 @@ enum SettingsTransferCoordinator {
         Task {
             let message: String
             do {
-                message = try await SettingsImporter.importData(
-                    urls: urls,
-                    strategy: strategy,
-                    context: context
-                )
-                Haptics.success()
+                message = try await dependencies.importData(urls, strategy, context)
+                dependencies.hapticSuccess()
             } catch {
                 message = error.localizedDescription
-                Haptics.error()
+                dependencies.hapticError()
             }
 
             setIsImporting(false)

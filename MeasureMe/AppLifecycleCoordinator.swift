@@ -6,6 +6,29 @@ enum AppLifecycleCoordinator {
     private static let backgroundBackupTaskID = "com.jacek.measureme.icloud-backup"
     private static let backgroundAINotificationsTaskID = "com.jacek.measureme.ai-notifications"
 
+    struct Dependencies {
+        var flushPendingWidgetWrites: () -> Void = {
+            WidgetDataWriter.flushPendingWrites()
+        }
+        var persistCrashLogBuffer: () -> Void = {
+            CrashReporter.shared.persistLogBuffer()
+        }
+        var runScheduledBackup: @MainActor (ModelContainer) async -> Void = { container in
+            let context = ModelContext(container)
+            let isPremium = AppSettingsStore.shared.snapshot.premium.premiumEntitlement
+            await ICloudBackupService.runScheduledBackupIfNeeded(context: context, isPremium: isPremium)
+        }
+        var submitBackgroundTaskRequest: (BGTaskRequest) throws -> Void = { request in
+            try BGTaskScheduler.shared.submit(request)
+        }
+    }
+
+    static var dependencies = Dependencies()
+
+    static func resetDependencies() {
+        dependencies = Dependencies()
+    }
+
     private enum LifecycleStorageError: LocalizedError {
         case applicationSupportDirectoryUnavailable
 
@@ -18,14 +41,12 @@ enum AppLifecycleCoordinator {
     }
 
     static func handleWillResignActive(container: ModelContainer?, isRunningXCTest: Bool) {
-        WidgetDataWriter.flushPendingWrites()
-        CrashReporter.shared.persistLogBuffer()
+        dependencies.flushPendingWidgetWrites()
+        dependencies.persistCrashLogBuffer()
 
         guard !isRunningXCTest, let container else { return }
         Task(priority: .utility) {
-            let context = ModelContext(container)
-            let isPremium = AppSettingsStore.shared.snapshot.premium.premiumEntitlement
-            await ICloudBackupService.runScheduledBackupIfNeeded(context: context, isPremium: isPremium)
+            await dependencies.runScheduledBackup(container)
         }
     }
 
@@ -50,14 +71,14 @@ enum AppLifecycleCoordinator {
         let request = BGProcessingTaskRequest(identifier: backgroundBackupTaskID)
         request.requiresNetworkConnectivity = true
         request.earliestBeginDate = Date(timeIntervalSinceNow: 86_400)
-        try? BGTaskScheduler.shared.submit(request)
+        try? dependencies.submitBackgroundTaskRequest(request)
     }
 
     static func scheduleBackgroundAINotifications() {
         let request = BGProcessingTaskRequest(identifier: backgroundAINotificationsTaskID)
         request.requiresNetworkConnectivity = false
         request.earliestBeginDate = Date(timeIntervalSinceNow: 21_600)
-        try? BGTaskScheduler.shared.submit(request)
+        try? dependencies.submitBackgroundTaskRequest(request)
     }
 
     private static func handleBackgroundBackup(task: BGProcessingTask) {
