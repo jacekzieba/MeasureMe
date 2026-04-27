@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import PhotosUI
 
 struct ProfileSettingsSection: View {
     private let theme = FeatureTheme.settings
@@ -8,9 +9,12 @@ struct ProfileSettingsSection: View {
     @Binding var userAge: Int
     @Binding var manualHeight: Double
     @Binding var unitsSystem: String
+    @Binding var profilePhotoData: Data?
 
     @State private var ageInput: String = ""
     @State private var heightInput: String = ""
+    @State private var selectedProfilePhoto: PhotosPickerItem?
+    @State private var isProcessingProfilePhoto = false
 
     private var genderLabel: String {
         switch userGender {
@@ -31,6 +35,10 @@ struct ProfileSettingsSection: View {
         Section {
             SettingsCard(tint: AppColorRoles.surfacePrimary) {
                 SettingsCardHeader(title: AppLocalization.string("Profile"), systemImage: "person.crop.circle")
+
+                profilePhotoRow
+
+                SettingsRowDivider()
 
                 HStack(spacing: 12) {
                     GlassPillIcon(systemName: "person.fill")
@@ -140,6 +148,87 @@ struct ProfileSettingsSection: View {
             syncAgeInput()
             syncHeightInput()
         }
+        .onChange(of: selectedProfilePhoto) { _, item in
+            guard let item else { return }
+            Task { await importProfilePhoto(from: item) }
+        }
+    }
+
+    private var profilePhotoRow: some View {
+        HStack(alignment: .center, spacing: 14) {
+            ProfileAvatarPreview(profilePhotoData: profilePhotoData, fallbackText: avatarFallbackText)
+                .frame(width: 72, height: 72)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(AppLocalization.string("Profile photo"))
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+
+                Text(AppLocalization.string("Shown on your Home dashboard."))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 8)
+
+            VStack(alignment: .trailing, spacing: 8) {
+                PhotosPicker(
+                    selection: $selectedProfilePhoto,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
+                    Label(
+                        profilePhotoData == nil
+                            ? AppLocalization.string("Add photo")
+                            : AppLocalization.string("Change photo"),
+                        systemImage: "photo"
+                    )
+                    .font(AppTypography.captionEmphasis)
+                    .foregroundStyle(theme.accent)
+                }
+                .buttonStyle(.plain)
+                .disabled(isProcessingProfilePhoto)
+                .accessibilityIdentifier("settings.profile.photo.picker")
+
+                if profilePhotoData != nil {
+                    Button(role: .destructive) {
+                        profilePhotoData = nil
+                    } label: {
+                        Text(AppLocalization.string("Remove"))
+                            .font(AppTypography.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("settings.profile.photo.remove")
+                }
+            }
+        }
+        .frame(minHeight: 82)
+    }
+
+    private var avatarFallbackText: String {
+        let trimmed = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let first = trimmed.first else { return "M" }
+        return String(first).uppercased(with: AppLocalization.currentLanguage.locale)
+    }
+
+    @MainActor
+    private func importProfilePhoto(from item: PhotosPickerItem) async {
+        isProcessingProfilePhoto = true
+        defer {
+            isProcessingProfilePhoto = false
+            selectedProfilePhoto = nil
+        }
+
+        guard let data = try? await item.loadTransferable(type: Data.self),
+              let image = UIImage(data: data) else { return }
+        let prepared = PhotoUtilities.prepareImportedImage(image, maxDimension: 512)
+        profilePhotoData = PhotoUtilities.makeGridThumbnailData(
+            from: prepared,
+            size: CGSize(width: 220, height: 220),
+            targetBytes: 55_000,
+            maxBytes: 80_000
+        )
     }
 
     private func syncAgeInput() {
@@ -155,6 +244,37 @@ struct ProfileSettingsSection: View {
         heightInput = unitsSystem == "imperial"
             ? String(format: "%.1f", displayValue)
             : String(format: "%.0f", displayValue)
+    }
+}
+
+private struct ProfileAvatarPreview: View {
+    let profilePhotoData: Data?
+    let fallbackText: String
+
+    var body: some View {
+        ZStack {
+            if let profilePhotoData, let image = UIImage(data: profilePhotoData) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                LinearGradient(
+                    colors: [Color(hex: "#FCA311"), Color(hex: "#5DD39E")],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                Text(fallbackText)
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+        }
+        .clipShape(Circle())
+        .overlay(
+            Circle()
+                .stroke(Color.white.opacity(0.20), lineWidth: 1)
+        )
+        .contentShape(Circle())
+        .accessibilityLabel(AppLocalization.string("Profile photo"))
     }
 }
 

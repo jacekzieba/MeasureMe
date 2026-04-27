@@ -538,6 +538,7 @@ struct MeasureMeApp: App {
             defaults.set(\.home.settingsOpenTrackedMeasurements, false)
             defaults.set(\.home.settingsOpenReminders, false)
             defaults.set(\.home.settingsOpenHomeSettings, false)
+            defaults.set(\.home.settingsOpenProfile, false)
             defaults.removeObject(forKey: AppSettingsKeys.Entry.pendingAppEntryAction)
             defaults.removeObject(forKey: AppSettingsKeys.Entry.pendingHealthKitSyncFromIntent)
         }

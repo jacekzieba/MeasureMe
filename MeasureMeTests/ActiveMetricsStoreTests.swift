@@ -149,18 +149,20 @@ final class ActiveMetricsStoreTests: XCTestCase {
 
     // MARK: - keyMetrics
 
-    /// Co sprawdza: Pierwsze odczytanie keyMetrics auto-przypisuje pierwsze 3 aktywne metryki.
+    /// Co sprawdza: Pierwsze odczytanie keyMetrics auto-przypisuje pierwsze 5 aktywnych metryk.
     /// Dlaczego: UX wymaga, żeby Home miał metryki od razu po pierwszym włączeniu.
-    /// Kryteria: keyMetrics.count == 3, zawiera weight i bodyFat.
-    func testKeyMetricsAutoAssignsFirstThreeOnFirstSession() {
+    /// Kryteria: keyMetrics.count == 5, zawiera weight i bodyFat.
+    func testKeyMetricsAutoAssignsFirstFiveOnFirstSession() {
         let (store, _) = makeStore()
         store.setEnabled(true, for: .weight)
         store.setEnabled(true, for: .bodyFat)
         store.setEnabled(true, for: .waist)
         store.setEnabled(true, for: .hips)
-        // home_key_metrics nie istnieje → auto-przypisz pierwsze 3
+        store.setEnabled(true, for: .neck)
+        store.setEnabled(true, for: .shoulders)
+        // home_key_metrics nie istnieje -> auto-przypisz pierwsze 5
         let keys = store.keyMetrics
-        XCTAssertEqual(keys.count, 3)
+        XCTAssertEqual(keys.count, 5)
         XCTAssertTrue(keys.contains(.weight))
         XCTAssertTrue(keys.contains(.bodyFat))
     }
@@ -218,19 +220,21 @@ final class ActiveMetricsStoreTests: XCTestCase {
         XCTAssertFalse(store.isKeyMetric(.weight))
     }
 
-    /// Co sprawdza: setKeyMetric zwraca false przy próbie dodania 4. metryki (limit = 3).
-    /// Dlaczego: Home wyświetla maks 3 key metrics; limit musi być egzekwowany.
-    /// Kryteria: Czwarte wywołanie zwraca false, isKeyMetric(.hips) == false, count == 3.
+    /// Co sprawdza: setKeyMetric zwraca false przy próbie dodania 6. metryki (limit = 5).
+    /// Dlaczego: Home wyświetla maks 5 key metrics; limit musi być egzekwowany.
+    /// Kryteria: Szóste wywołanie zwraca false, isKeyMetric(.shoulders) == false, count == 5.
     func testSetKeyMetricReturnsFalseWhenLimitReached() {
         let (store, settings) = makeStore()
-        [MetricKind.weight, .bodyFat, .waist, .hips].forEach { store.setEnabled(true, for: $0) }
+        [MetricKind.weight, .bodyFat, .waist, .hips, .neck, .shoulders].forEach { store.setEnabled(true, for: $0) }
         settings.set([String](), forKey: "home_key_metrics")
         store.setKeyMetric(true, for: .weight)
         store.setKeyMetric(true, for: .bodyFat)
         store.setKeyMetric(true, for: .waist)
-        let result = store.setKeyMetric(true, for: .hips)   // 4. → powinno zwrócić false
+        store.setKeyMetric(true, for: .hips)
+        store.setKeyMetric(true, for: .neck)
+        let result = store.setKeyMetric(true, for: .shoulders)   // 6. -> powinno zwrocic false
         XCTAssertFalse(result)
-        XCTAssertFalse(store.isKeyMetric(.hips))
-        XCTAssertEqual(store.keyMetrics.count, 3)
+        XCTAssertFalse(store.isKeyMetric(.shoulders))
+        XCTAssertEqual(store.keyMetrics.count, 5)
     }
 }

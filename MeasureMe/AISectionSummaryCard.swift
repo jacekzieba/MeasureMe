@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AISectionSummaryCard: View {
     @EnvironmentObject private var premiumStore: PremiumStore
+    @Environment(\.colorScheme) private var colorScheme
 
     let input: SectionInsightInput?
     let missingDataMessage: String
@@ -14,14 +15,36 @@ struct AISectionSummaryCard: View {
     var body: some View {
         AppGlassCard(
             depth: .base,
-            cornerRadius: AppRadius.lg,
+            cornerRadius: 22,
             tint: tint,
-            contentPadding: AppSpacing.sm
+            contentPadding: 16
         ) {
-            VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text(AppLocalization.aiString("AI summary"))
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(AppColorRoles.textSecondary)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(AppTypography.iconSmall)
+                        .foregroundStyle(AppColorRoles.accentPrimary)
+
+                    Text(AppLocalization.aiString("AI summary").uppercased())
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(AppColorRoles.accentPrimary)
+                        .tracking(1.2)
+
+                    Spacer(minLength: 8)
+
+                    if input != nil, premiumStore.isPremium, AppleIntelligenceSupport.isAvailable(), !isLoading {
+                        Button {
+                            Task { await refreshInsight() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColorRoles.textSecondary)
+                                .frame(width: 28, height: 28)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(AppLocalization.aiString("Refresh insight"))
+                    }
+                }
 
                 content
             }
@@ -60,15 +83,27 @@ struct AISectionSummaryCard: View {
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textSecondary)
         } else {
-            MetricInsightCard(
-                text: text ?? AppLocalization.aiString("Generating your health summary..."),
-                compact: false,
-                isLoading: isLoading,
-                onRefresh: {
-                    Task { await refreshInsight() }
+            if isLoading && text == nil {
+                VStack(alignment: .leading, spacing: 8) {
+                    shimmerBlock(width: .infinity)
+                    shimmerBlock(width: 220)
                 }
-            )
+            } else {
+                Text(text ?? AppLocalization.aiString("Generating your health summary..."))
+                    .font(AppTypography.body)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
+    }
+
+    @ViewBuilder
+    private func shimmerBlock(width: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: 4, style: .continuous)
+            .fill(AppColorRoles.textSecondary.opacity(colorScheme == .dark ? 0.16 : 0.10))
+            .frame(maxWidth: width == .infinity ? .infinity : width, alignment: .leading)
+            .frame(height: 13)
     }
 
     @MainActor

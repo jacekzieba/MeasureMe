@@ -6,6 +6,7 @@ struct ProfileSettingsDetailView: View {
     @Binding var userAge: Int
     @Binding var manualHeight: Double
     @Binding var unitsSystem: String
+    @Binding var profilePhotoData: Data?
 
     var body: some View {
         SettingsDetailScaffold(title: AppLocalization.string("Profile"), theme: .settings) {
@@ -14,7 +15,8 @@ struct ProfileSettingsDetailView: View {
                 userGender: $userGender,
                 userAge: $userAge,
                 manualHeight: $manualHeight,
-                unitsSystem: $unitsSystem
+                unitsSystem: $unitsSystem,
+                profilePhotoData: $profilePhotoData
             )
             ProfileStatsCard()
         }

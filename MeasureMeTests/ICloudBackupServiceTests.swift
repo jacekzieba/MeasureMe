@@ -21,10 +21,12 @@ final class ICloudBackupServiceTests: XCTestCase {
         AppSettingsStore.shared.set(\.iCloudBackup.autoRestoreCompleted, false)
         AppSettingsStore.shared.set(\.onboarding.onboardingViewedICloudBackupOffer, true)
         AppSettingsStore.shared.set(\.onboarding.onboardingSkippedICloudBackup, false)
+        AppSettingsStore.shared.set(\.profile.profilePhotoData, nil)
     }
 
     override func tearDownWithError() throws {
         ICloudBackupService.resetTestOverrides()
+        AppSettingsStore.shared.set(\.profile.profilePhotoData, nil)
         if let backupRootURL {
             try? FileManager.default.removeItem(at: backupRootURL)
         }
@@ -116,8 +118,10 @@ final class ICloudBackupServiceTests: XCTestCase {
 
     func testRestoreLatestBackupManuallyRestoresDataAndSettings() async throws {
         let sourceContext = ModelContext(try makeContainer())
+        let profilePhotoData = Data([0xFA, 0xCE, 0x01])
         AppSettingsStore.shared.set("Backup User", forKey: AppSettingsKeys.Profile.userName)
         AppSettingsStore.shared.set("imperial", forKey: AppSettingsKeys.Profile.unitsSystem)
+        AppSettingsStore.shared.set(profilePhotoData, forKey: AppSettingsKeys.Profile.profilePhotoData)
         seedSampleData(in: sourceContext)
         try sourceContext.save()
 
@@ -129,6 +133,7 @@ final class ICloudBackupServiceTests: XCTestCase {
         try targetContext.save()
         AppSettingsStore.shared.set("Other User", forKey: AppSettingsKeys.Profile.userName)
         AppSettingsStore.shared.set("metric", forKey: AppSettingsKeys.Profile.unitsSystem)
+        AppSettingsStore.shared.removeObject(forKey: AppSettingsKeys.Profile.profilePhotoData)
 
         let restoreResult = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: true)
         guard case .success = restoreResult else {
@@ -147,6 +152,7 @@ final class ICloudBackupServiceTests: XCTestCase {
         }
         XCTAssertEqual(AppSettingsStore.shared.snapshot.profile.userName, "Backup User")
         XCTAssertEqual(AppSettingsStore.shared.snapshot.profile.unitsSystem, "imperial")
+        XCTAssertEqual(AppSettingsStore.shared.snapshot.profile.profilePhotoData, profilePhotoData)
     }
 
     func testRestoreLatestBackupManuallyFailsForNonPremiumUser() async throws {

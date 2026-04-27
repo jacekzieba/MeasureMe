@@ -486,6 +486,10 @@
 "Add measurement" = "Dodaj pomiar";
 "Add one-time or repeatable reminders. You can edit or remove them any time." = "Dodaj jednorazowe lub cykliczne przypomnienia. Możesz je edytować lub usuwać w dowolnym momencie.";
 "Add photo" = "Dodaj zdjęcie";
+"Change photo" = "Zmień zdjęcie";
+"Profile photo" = "Zdjęcie profilowe";
+"Remove" = "Usuń";
+"Shown on your Home dashboard." = "Widoczne na ekranie głównym.";
 "Add reminder" = "Dodaj przypomnienie";
 "Add the missing measurements to calculate these health indicators:" = "Dodaj brakujące pomiary, aby obliczyć te wskaźniki zdrowia:";
 "Add your first entry to see history and charts." = "Dodaj pierwszy wpis, aby zobaczyć historię i wykresy.";
@@ -512,7 +516,7 @@
 "Choose one-time, daily or weekly schedule." = "Wybierz jednorazowy, dzienny lub tygodniowy harmonogram.";
 "Choose indicators to show" = "Wybierz wskaźniki do wyświetlenia";
 "Choose metrics" = "Wybierz metryki";
-"Choose up to 3 to show on Home and Measurements." = "Wybierz do 3, aby wyświetlać na Stronie głównej i w Pomiarach.";
+"Choose up to 5 to show on Home and Measurements." = "Wybierz do 5, aby wyświetlać na Stronie głównej i w Pomiarach.";
 "Choose whether you want to increase or decrease this metric." = "Wybierz, czy chcesz zwiększać czy zmniejszać tę metrykę.";
 "Choose your units" = "Wybierz jednostki";
 "Choose..." = "Wybierz...";
@@ -743,7 +747,7 @@
 "Why: gentle nudges keep you consistent." = "Dlaczego: delikatne przypomnienia pomagają w regularności.";
 "Why is age important?" = "Dlaczego wiek jest istotny?";
 "Why is height important?" = "Dlaczego wzrost jest istotny?";
-"You can choose up to 3 key metrics for Home." = "Możesz wybrać do 3 kluczowych metryk na Stronę główną.";
+"You can choose up to 5 key metrics for Home." = "Możesz wybrać do 5 kluczowych metryk na Stronę główną.";
 "You can only compare two photos at a time. Please deselect one photo before selecting another." = "Możesz porównywać tylko dwa zdjęcia naraz. Odznacz jedno zdjęcie przed wybraniem kolejnego.";
 "You've set your height manually. Health metrics will use this value." = "Ustawiłeś wzrost ręcznie. Metryki zdrowotne będą wykorzystywać te wartości.";
 "Your data stays on this device. Nothing is shared with us." = "Twoje dane pozostają na tym urządzeniu. Nic nie jest udostępniane.";
@@ -1524,11 +1528,11 @@
 "No active measurements" = "Brak aktywnych pomiarów";
 "Photo Date" = "Data zdjęcia";
 "tracked.keymetrics.header" = "Przypnij do Strony głównej";
-"tracked.keymetrics.description" = "Stuknij ★, aby przypiąć 1–3 metryki na ekranie głównym i w zakładce Pomiary. Sam decydujesz ile.";
-"tracked.keymetrics.counter" = "%d z 3 przypiętych";
+"tracked.keymetrics.description" = "Stuknij ★, aby przypiąć 1–5 metryki na ekranie głównym i w zakładce Pomiary. Sam decydujesz ile.";
+"tracked.keymetrics.counter" = "%d z 5 przypiętych";
 "tracked.keymetrics.empty" = "Najpierw włącz metrykę poniżej, a potem wróć tutaj, aby przypiąć ją do ekranu głównego.";
 "tracked.active.header" = "Aktualnie śledzone";
-"tracked.active.description" = "Stuknij ★, aby przypiąć do 3 metryki na Stronie głównej. Przesuń, aby przestać śledzić. Przeciągnij, aby zmienić kolejność.";
+"tracked.active.description" = "Stuknij ★, aby przypiąć do 5 metryki na Stronie głównej. Przesuń, aby przestać śledzić. Przeciągnij, aby zmienić kolejność.";
 "tracked.section.health.subtitle" = "Włącz, aby rozpocząć śledzenie. Synchronizowane automatycznie z aplikacją Zdrowie.";
 "tracked.section.custom.subtitle" = "Włącz, aby rozpocząć śledzenie. Wartości wpisujesz ręcznie.";
 "tracked.section.allempty" = "Wszystkie metryki z tej grupy są już aktywne powyżej.";

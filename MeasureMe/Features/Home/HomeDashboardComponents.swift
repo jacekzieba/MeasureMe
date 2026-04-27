@@ -145,13 +145,13 @@ private struct HomeDashboardBoardLayout: Layout {
 
         switch item.kind {
         case .summaryHero:
-            return max(nominalHeight, columns > 2 ? 196 : 212)
+            return max(nominalHeight, columns > 2 ? 176 : 188)
         case .quickActions:
             return nominalHeight
         case .keyMetrics:
-            return max(nominalHeight, columns > 2 ? 252 : 284)
+            return max(nominalHeight, columns > 2 ? 252 : 274)
         case .recentPhotos:
-            return max(nominalHeight, columns > 2 ? 196 : 208)
+            return max(nominalHeight, columns > 2 ? 240 : 268)
         case .healthSummary:
             return max(nominalHeight, columns > 2 ? 168 : 180)
         case .activationHub:

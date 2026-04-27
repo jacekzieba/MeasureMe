@@ -31,6 +31,15 @@ struct CustomMetricChartTile: View {
     private var currentGoal: MetricGoal? { goals.first }
     private var latest: MetricSample? { samples.last }
 
+    private var goalProgress: MetricGoalProgressSnapshot? {
+        guard let goal = currentGoal, let latest else { return nil }
+        return MetricGoalProgressSnapshot(
+            goal: goal,
+            currentValue: latest.value,
+            baselineValue: baselineValue(for: goal)
+        )
+    }
+
     private var trendInfo: (delta: Double, outcome: MetricKind.TrendOutcome)? {
         guard samples.count >= 2,
               let last = samples.last,
@@ -102,119 +111,102 @@ struct CustomMetricChartTile: View {
     // MARK: - Full Tile
 
     private var fullTile: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Header
-            HStack {
-                HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .center, spacing: 10) {
                     Image(systemName: definition.sfSymbolName)
-                        .font(.body)
+                        .font(AppTypography.iconLarge)
                         .foregroundStyle(theme.accent)
 
                     Text(definition.name)
                         .font(AppTypography.bodyEmphasis)
-                }
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.82)
+                        .layoutPriority(1)
 
-                Spacer()
+                    Spacer(minLength: 8)
 
-                NavigationLink {
-                    CustomMetricDetailView(definition: definition)
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.title3)
-                        .foregroundStyle(AppColorRoles.textTertiary)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-            }
-
-            // Value + trend
-            if let latest {
-                Text(String(format: "%.1f %@", latest.value, definition.unitLabel))
-                    .font(AppTypography.dataCompact)
-                    .monospacedDigit()
-                    .foregroundStyle(AppColorRoles.textPrimary)
-
-                if let trendInfo {
-                    HStack(spacing: 6) {
-                        Image(systemName: trendInfo.delta >= 0 ? "arrow.up.right" : "arrow.down.right")
-                        Text(String(format: "%.1f %@", abs(trendInfo.delta), definition.unitLabel))
-                            .monospacedDigit()
-                        Text(AppLocalization.string("trend.relative.30d"))
-                    }
-                    .font(AppTypography.caption)
-                    .foregroundStyle(
-                        trendInfo.outcome == .positive
-                        ? AppColorRoles.chartPositive
-                        : (trendInfo.outcome == .negative ? AppColorRoles.chartNegative : AppColorRoles.textTertiary)
-                    )
-                }
-
-                // Goal info
-                if let goal = currentGoal {
-                    let isAchieved = goal.isAchieved(currentValue: latest.value)
-                    let remaining = abs(goal.remainingToGoal(currentValue: latest.value))
-
-                    HStack(spacing: 4) {
-                        Image(systemName: "target")
-                            .font(AppTypography.micro)
-                        Text(isAchieved
-                             ? AppLocalization.string("Goal reached")
-                             : AppLocalization.string("goal.remaining", remaining, definition.unitLabel))
-                            .monospacedDigit()
-                    }
-                    .font(AppTypography.caption)
-                    .foregroundStyle(isAchieved ? AppColorRoles.stateSuccess : theme.accent)
-                }
-            }
-
-            // Chart
-            Chart {
-                ForEach(samples) { s in
-                    AreaMark(
-                        x: .value("Date", s.date),
-                        yStart: .value("Baseline", yDomain.lowerBound),
-                        yEnd: .value("Value", s.value)
-                    )
-                    .interpolationMethod(.monotone)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [
-                                theme.accent.opacity(0.28),
-                                theme.accent.opacity(0.02)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
+                    if let goalProgress {
+                        CompactGoalProgressPill(
+                            progress: goalProgress.progress,
+                            percentage: goalProgress.percentage,
+                            isAchieved: goalProgress.isAchieved,
+                            accent: theme.accent
                         )
-                    )
+                    }
+
+                    NavigationLink {
+                        CustomMetricDetailView(definition: definition)
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(AppTypography.iconMedium)
+                            .foregroundStyle(AppColorRoles.textTertiary)
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(.plain)
                 }
 
-                ForEach(samples) { s in
-                    LineMark(
-                        x: .value("Date", s.date),
-                        y: .value("Value", s.value)
-                    )
-                    .interpolationMethod(.monotone)
-                    .foregroundStyle(theme.accent)
-                    .lineStyle(StrokeStyle(lineWidth: 2))
-                }
+                HStack(alignment: .center, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if let latest {
+                            MetricValueText(String(format: "%.1f %@", latest.value, definition.unitLabel))
 
-                if let goal = currentGoal {
-                    RuleMark(y: .value("Goal", goal.targetValue))
-                        .foregroundStyle(theme.accent.opacity(0.5))
-                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            if let trendInfo {
+                                HStack(spacing: 5) {
+                                    Image(systemName: trendInfo.delta >= 0 ? "arrow.up.right" : "arrow.down.right")
+                                        .font(AppTypography.microEmphasis)
+                                    Text(String(format: "%.1f %@", abs(trendInfo.delta), definition.unitLabel))
+                                        .monospacedDigit()
+                                    Text(AppLocalization.string("trend.relative.30d"))
+                                        .foregroundStyle(AppColorRoles.textTertiary)
+                                }
+                                .font(AppTypography.captionEmphasis)
+                                .foregroundStyle(trendColor(for: trendInfo.outcome))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.78)
+                            }
+                        }
+                    }
+                    .frame(width: 126, alignment: .leading)
+
+                    MetricTileSparklineChart(
+                        samples: samples,
+                        goal: currentGoal,
+                        accent: theme.accent,
+                        yDomain: yDomain,
+                        xDomain: xDomain,
+                        displayValue: { $0 },
+                        yAxisLabel: { String(format: "%.1f", $0) }
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 96)
                 }
             }
-            .chartYScale(domain: yDomain)
-            .chartXAxis(.hidden)
-            .chartYAxis(.hidden)
-            .frame(height: 80)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(16)
+
+            Divider()
+                .overlay(AppColorRoles.borderSubtle.opacity(0.7))
+
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(AppTypography.microEmphasis)
+                    .foregroundStyle(theme.accent)
+                    .padding(.top, 2)
+
+                Text(footerInsightText)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .lineSpacing(2)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
-        .padding(14)
         .background(
             AppGlassBackground(
                 depth: .elevated,
-                cornerRadius: 16,
+                cornerRadius: 22,
                 tint: theme.softTint
             )
         )
@@ -229,5 +221,62 @@ struct CustomMetricChartTile: View {
         }
         let padding = max((maxVal - minVal) * 0.15, 0.5)
         return (minVal - padding)...(maxVal + padding)
+    }
+
+    private var xDomain: ClosedRange<Date> {
+        guard let first = samples.first?.date,
+              let last = samples.last?.date else {
+            let start = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? AppClock.now
+            return start...AppClock.now
+        }
+        if first == last {
+            let start = Calendar.current.date(byAdding: .hour, value: -12, to: first) ?? first
+            let end = Calendar.current.date(byAdding: .hour, value: 12, to: first) ?? first
+            return start...end
+        }
+        return first...last
+    }
+
+    private var footerInsightText: String {
+        guard let trendInfo else {
+            return AppLocalization.aiString("Add more check-ins to build a reliable 30-day trend for this metric.")
+        }
+        let deltaText = String(format: "%.1f %@", abs(trendInfo.delta), definition.unitLabel)
+        let direction = trendInfo.delta >= 0 ? AppLocalization.aiString("up") : AppLocalization.aiString("down")
+        if let goalProgress {
+            if goalProgress.isAchieved {
+                return AppLocalization.aiString("Goal reached. Last 30 days are %@ %@, so keep checking consistency before changing the target.", direction, deltaText)
+            }
+            return AppLocalization.aiString("%d%% toward goal. Last 30 days are %@ %@, which helps judge whether the current pace is realistic.", goalProgress.percentage, direction, deltaText)
+        }
+        switch trendInfo.outcome {
+        case .positive:
+            return AppLocalization.aiString("Last 30 days moved %@ %@ in a favorable direction. Keep the same measurement rhythm to confirm the trend.", direction, deltaText)
+        case .negative:
+            return AppLocalization.aiString("Last 30 days moved %@ %@ against the preferred direction. Check whether training, recovery, or intake changed recently.", direction, deltaText)
+        case .neutral:
+            return AppLocalization.aiString("This metric is broadly steady over 30 days. More consistent check-ins will make subtle changes easier to trust.")
+        }
+    }
+
+    private func baselineValue(for goal: MetricGoal) -> Double {
+        if let startValue = goal.startValue { return startValue }
+        let sorted = samples.sorted { $0.date < $1.date }
+        let anchorDate = goal.startDate ?? goal.createdDate
+        if let baseline = sorted.last(where: { $0.date <= anchorDate }) {
+            return baseline.value
+        }
+        return sorted.first?.value ?? latest?.value ?? goal.targetValue
+    }
+
+    private func trendColor(for outcome: MetricKind.TrendOutcome) -> Color {
+        switch outcome {
+        case .positive:
+            return AppColorRoles.chartPositive
+        case .negative:
+            return AppColorRoles.chartNegative
+        case .neutral:
+            return AppColorRoles.textTertiary
+        }
     }
 }

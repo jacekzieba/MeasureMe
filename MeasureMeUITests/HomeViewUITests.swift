@@ -14,46 +14,57 @@ final class HomeViewUITests: XCTestCase {
         app = XCUIApplication()
     }
 
-    func testHealthModuleIsReachableOnHome() {
-        launchApp(isPremium: false)
+    func testAIInsightsCTAOpensAnalysisForPremiumUser() {
+        launchApp()
 
-        let healthTitle = app.staticTexts["Health"].firstMatch
-        scrollToReveal(healthTitle, maxSwipes: 6)
+        let cta = firstExistingElement(
+            identifiers: ["home.aiInsights.openAnalysis", "View analysis", "Zobacz analizę"],
+            query: app.descendants(matching: .any)
+        )
+        XCTAssertTrue(cta.waitForExistence(timeout: 5), "AI Insights card should expose analysis CTA")
+        cta.tap()
 
-        XCTAssertTrue(healthTitle.waitForExistence(timeout: 5), "Health section should be reachable on Home")
-        XCTAssertGreaterThan(healthTitle.frame.height, 10, "Health title should have a visible frame")
-        XCTAssertTrue(app.buttons["home.health.premium.button"].waitForExistence(timeout: 5), "Health preview should upsell the full module without premium")
-        XCTAssertEqual(app.staticTexts["home.health.preview.label"].firstMatch.label, "BMI (Body Mass Index)", "Non-premium Health preview should prefer expanded BMI copy on Home")
-        XCTAssertEqual(app.staticTexts["home.health.preview.badge"].firstMatch.label, "Normal weight", "Non-premium BMI preview should expose the BMI range classification on Home")
+        XCTAssertTrue(app.descendants(matching: .any)["home.aiAnalysis.screen"].waitForExistence(timeout: 5), "AI Analysis screen should open from Home")
+        XCTAssertTrue(app.navigationBars.staticTexts["AI Analysis"].firstMatch.waitForExistence(timeout: 5), "AI Analysis should have a navigation title")
+    }
+
+    func testHomeAvatarOpensProfileSettings() {
+        launchApp()
+
+        let avatar = app.buttons["home.profile.avatar"].firstMatch
+        XCTAssertTrue(avatar.waitForExistence(timeout: 5), "Home avatar should be tappable")
+        avatar.tap()
+
+        XCTAssertTrue(app.navigationBars.staticTexts["Profile"].firstMatch.waitForExistence(timeout: 5), "Avatar should deep-link to Settings > Profile")
+        XCTAssertTrue(app.buttons["settings.profile.photo.picker"].firstMatch.waitForExistence(timeout: 5), "Profile should expose photo picker")
     }
 
     func testHomeDashboardModulesDoNotOverlap() {
         launchApp()
 
+        let summaryHero = app.otherElements["home.module.summaryHero"].firstMatch
         let keyMetrics = app.otherElements["home.module.keyMetrics"].firstMatch
         let recentPhotos = app.otherElements["home.module.recentPhotos"].firstMatch
-        let healthSummary = app.otherElements["home.module.healthSummary"].firstMatch
 
+        XCTAssertTrue(summaryHero.waitForExistence(timeout: 5), "Summary hero frame hook should exist")
         XCTAssertTrue(keyMetrics.waitForExistence(timeout: 5), "Key metrics card frame hook should exist")
         XCTAssertTrue(recentPhotos.waitForExistence(timeout: 5), "Recent photos card frame hook should exist")
-        scrollToReveal(healthSummary, maxSwipes: 6)
-        XCTAssertTrue(healthSummary.waitForExistence(timeout: 5), "Health card frame hook should exist")
 
+        XCTAssertTrue(framesDoNotOverlap(summaryHero, keyMetrics), "Summary hero and Key metrics must not overlap")
         XCTAssertTrue(framesDoNotOverlap(keyMetrics, recentPhotos), "Key metrics and Recent photos must not overlap")
-        XCTAssertTrue(framesDoNotOverlap(recentPhotos, healthSummary), "Recent photos and Health must not overlap")
+        XCTAssertLessThanOrEqual(summaryHero.frame.maxY, keyMetrics.frame.minY, "Key metrics should start after AI Insights")
         XCTAssertLessThanOrEqual(keyMetrics.frame.maxY, recentPhotos.frame.minY, "Recent photos should start after Key metrics ends")
-        XCTAssertLessThanOrEqual(recentPhotos.frame.maxY, healthSummary.frame.minY, "Health should start after Recent photos ends")
     }
 
-    func testRecentPhotosShowsThreeTiles() {
+    func testRecentPhotosShowsComparisonPair() {
         launchApp()
 
-        let recentPhotos = app.staticTexts["Recent photos"].firstMatch
+        let recentPhotos = app.staticTexts["Progress photos"].firstMatch
         XCTAssertTrue(recentPhotos.waitForExistence(timeout: 5), "Recent photos module should exist")
 
         let tileCount = app.staticTexts["home.recentPhotos.tileCount"].firstMatch
         XCTAssertTrue(tileCount.waitForExistence(timeout: 5), "Recent photos tile count hook should exist")
-        XCTAssertEqual(tileCount.label, "3", "Recent photos should expose three visible tiles on Home")
+        XCTAssertEqual(tileCount.label, "2", "Recent photos should expose the comparison pair on Home")
     }
 
     func testActivationHubStartsAfterFirstMeasurementOnPhotoTask() {

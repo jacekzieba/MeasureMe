@@ -34,6 +34,7 @@ struct HomeView: View {
     @AppSetting(\.profile.userGender) private var userGenderRaw: String = "notSpecified"
     @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
+    @AppSetting(\.profile.profilePhotoData) private var profilePhotoData: Data? = nil
     @AppSetting(\.health.isSyncEnabled) var isSyncEnabled: Bool = false
     @AppSetting(\.home.showLastPhotosOnHome) private var showLastPhotosOnHome: Bool = true
     @AppSetting(\.home.showMeasurementsOnHome) private var showMeasurementsOnHome: Bool = true
@@ -57,6 +58,7 @@ struct HomeView: View {
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
     @AppSetting(\.home.settingsOpenHomeSettings) private var settingsOpenHomeSettings: Bool = false
+    @AppSetting(\.home.settingsOpenProfile) private var settingsOpenProfile: Bool = false
     @AppSetting(\.home.homePhotoMetricSyncLastDate) private var photoMetricSyncLastDate: Double = 0
     @AppSetting(\.home.homePhotoMetricSyncLastID) private var photoMetricSyncLastID: String = ""
     @AppStorage("home.comparePhotosCardDismissed") private var comparePhotosCardDismissed: Bool = false
@@ -124,7 +126,7 @@ struct HomeView: View {
     @State private var cachedVisiblePhotoTiles: [HomePhotoTile] = []
     @State private var cachedNextFocusInsight: HomeNextFocusInsight?
 
-    private let maxVisibleMetrics = 3
+    private let maxVisibleMetrics = 5
     private let maxVisiblePhotos = 6
     private let autoCheckPaywallPrompt: Bool
     private let isUITestMode = UITestArgument.isPresent(.mode)
@@ -278,15 +280,15 @@ struct HomeView: View {
         }
     }
     
-    /// Widoczne metryki (maksymalnie 3)
+    /// Widoczne metryki (maksymalnie 5)
     private var visibleMetrics: [MetricKind] {
         Array(metricsStore.keyMetrics.prefix(maxVisibleMetrics))
     }
 
     /// Metryki renderowane w widget boardzie.
-    /// Duzy kafel na iPhone nie miesci stabilnie 3 pelnych wierszy.
+    /// Kafelki glowne renderuja poziomy pasek na Home.
     private var dashboardVisibleMetrics: [MetricKind] {
-        Array(visibleMetrics.prefix(3))
+        Array(visibleMetrics.prefix(maxVisibleMetrics))
     }
 
     /// Unified key metric identifiers (built-in + custom) for Home dashboard.
@@ -305,7 +307,11 @@ struct HomeView: View {
     }
 
     private var dashboardRecentPhotoTiles: [HomePhotoTile] {
-        Array(visiblePhotoTiles.prefix(3))
+        guard let newest = visiblePhotoTiles.first else { return [] }
+        let olderCandidates = Array(visiblePhotoTiles.dropFirst())
+        guard !olderCandidates.isEmpty else { return [newest] }
+        let day = Calendar.current.ordinality(of: .day, in: .era, for: AppClock.now) ?? 0
+        return [newest, olderCandidates[day % olderCandidates.count]]
     }
 
     private var dashboardRecentPhotoTileViewModels: [HomeRecentPhotoTileViewModel] {
@@ -812,6 +818,9 @@ struct HomeView: View {
         let runtimeVisibleItems = layout.items.map { item in
             var next = item
             next.isVisible = item.isVisible && shouldRenderModule(item.kind)
+            if item.kind == .summaryHero {
+                next.size = .wide
+            }
             return next
         }
         cachedDashboardItems = HomeLayoutCompactor.compact(runtimeVisibleItems, columns: dashboardColumns)
@@ -979,14 +988,6 @@ struct HomeView: View {
                     .frame(height: 0)
 
                     dashboardBoard
-
-                    AISectionSummaryCard(
-                        input: homeBottomSummaryInput,
-                        missingDataMessage: AppLocalization.aiString("AI summary needs data from Metrics, Health Indicators, or Physique Indicators."),
-                        tint: homeTheme.softTint,
-                        accessibilityIdentifier: "home.bottom.ai.summary"
-                    )
-                    .padding(.top, 14)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
@@ -1286,8 +1287,7 @@ struct HomeView: View {
             if isWelcomeHomeState { return hasAnyPhotoContent && showLastPhotosOnHome }
             return showLastPhotosOnHome
         case .healthSummary:
-            if isWelcomeHomeState { return isSyncEnabled && showHealthMetricsOnHome }
-            return showHealthMetricsOnHome
+            return false
         case .activationHub:
             return false
         case .setupChecklist:
@@ -1356,66 +1356,36 @@ struct HomeView: View {
     }
 
     private var summaryHeroModule: some View {
-        let pulseSignal = computeHeroPulseSignal()
-        let hasNextFocusData = (nextFocusInsight.primaryValue != nil || nextFocusInsight.headline != nil)
-            && !(nextFocusInsight.accessibilityValue == "setGoal" && !goals.isEmpty)
-        return HomeHeroSection(
-            snapshot: HomeHeroSnapshot(
-                tint: homeHeroTint,
-                greetingTitle: greetingTitle,
-                goalStatusText: goalStatusText,
-                goalStatusColor: goalStatusColor,
-                goalStatusAccessibilityHint: AppLocalization.string(
-                    goalStatus == .noGoals
-                        ? "home.goalstatus.accessibility.hint.nogoals"
-                        : "home.goalstatus.accessibility.hint.legend"
-                ),
-                isFreshState: isFreshHomeState,
-                showStreak: showStreakOnHome && streakManager.currentStreak > 0,
-                streakCount: streakManager.currentStreak,
-                shouldAnimateStreak: streakManager.shouldPlayAnimation,
-                prefersStackedPanels: prefersStackedHeroPanels,
-                primaryMeasurement: nil,
-                nextFocus: HomeHeroNextFocusSnapshot(
-                    headline: nextFocusInsight.headline,
-                    primaryValue: nextFocusInsight.primaryValue,
-                    supportingLabel: nextFocusInsight.supportingLabel,
-                    contextLabel: nextFocusInsight.contextLabel,
-                    summary: nextFocusInsight.summary
-                ),
-                weekTitle: summaryThisWeekTitle,
-                weekDetail: summaryThisWeekDetail,
-                shouldShowPostOnboardingSummary: !showActivationHub && !isFreshHomeState,
-                pulseSignal: pulseSignal,
-                showNextFocusChip: hasNextFocusData,
-                showThisWeekChip: !summaryThisWeekTitle.isEmpty
-            ),
-            accent: homeTheme.accent,
-            pillFill: homeTheme.pillFill,
-            pillStroke: homeTheme.pillStroke,
-            border: homeTheme.border,
-            activationSnapshot: showActivationHub ? HomeActivationSnapshot(
-                stepIndex: activationStepIndex,
-                totalSteps: activationTaskSequence.count,
-                title: OnboardingCopy.activationTaskTitle(activationCurrentTask ?? .initial),
-                body: OnboardingCopy.activationTaskBody(
-                    activationCurrentTask ?? .initial,
-                    metricName: activationPrimaryMetric?.title
-                ),
-                primaryCTA: OnboardingCopy.activationPrimaryCTA(activationCurrentTask ?? .initial),
-                skipCTA: OnboardingCopy.activationSkipCTA,
-                dismissCTA: OnboardingCopy.activationDismissCTA
-            ) : nil,
-            onGoalStatusTap: handleGoalStatusTap,
-            onNextFocusTap: handleNextFocusAction,
-            onStreakTap: { showStreakDetail = true },
-            onStreakAnimationComplete: { streakManager.markAnimationPlayed() },
-            onActivationPrimary: performActivationPrimaryAction,
-            onActivationSkip: skipActivationTask,
-            onActivationDismiss: dismissActivationHub,
-            onPulseAction: handlePulseAction,
-            onThisWeekTap: { router.selectTab(.measurements) }
+        HomeTopSummarySection(
+            dateText: homeHeaderDateText,
+            greetingTitle: greetingTitle,
+            avatarText: homeAvatarText,
+            profilePhotoData: profilePhotoData,
+            isPremium: homeSummaryIsPremium,
+            insights: homeAIInsights,
+            analysisItems: homeAIAnalysisItems,
+            onUnlockPremium: {
+                Haptics.selection()
+                premiumStore.presentPaywall(reason: .feature("AI Insights"))
+            },
+            onOpenProfile: {
+                Haptics.selection()
+                settingsOpenProfile = true
+                router.selectedTab = .settings
+            }
         )
+    }
+
+    private var homeSummaryIsPremium: Bool {
+        #if DEBUG
+        if UITestArgument.isPresent(.forceNonPremium) {
+            return false
+        }
+        if UITestArgument.isPresent(.forcePremium) {
+            return true
+        }
+        #endif
+        return premiumStore.isPremium
     }
 
     private var quickActionsModule: some View {
@@ -1549,51 +1519,487 @@ struct HomeView: View {
                 state: keyMetricsState
             ),
             onAddMeasurement: { showQuickAddSheet = true },
-            onOpenMeasurements: { router.selectTab(.measurements) }
+            onOpenMeasurements: { router.selectTab(.measurements) },
+            onEdit: openTrackedMetricsSettings
         ) {
             let ids = dashboardKeyIdentifiers
             let defMap = customDefinitionsMap
-            VStack(alignment: .leading, spacing: 10) {
-                if let leadId = ids.first {
-                    if let kind = MetricKind(rawValue: leadId) {
-                        NavigationLink {
-                            MetricDetailView(kind: kind)
-                        } label: {
-                            HomeKeyMetricRow(
-                                kind: kind,
-                                latest: cachedLatestByKind[kind],
-                                goal: cachedGoalsByKind[kind],
-                                samples: samplesForKind(kind),
-                                unitsSystem: unitsSystem
-                            )
-                        }
-                        .buttonStyle(PressableTileStyle())
-                        .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
-                        .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
-                    } else if let def = defMap[leadId] {
-                        NavigationLink {
-                            CustomMetricDetailView(definition: def)
-                        } label: {
-                            HomeCustomKeyMetricRow(
-                                definition: def,
-                                latest: cachedCustomLatestByIdentifier[leadId],
-                                goal: cachedCustomGoalsByIdentifier[leadId],
-                                samples: cachedCustomSamplesByIdentifier[leadId] ?? []
-                            )
-                        }
-                        .buttonStyle(PressableTileStyle())
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 12) {
+                    ForEach(ids, id: \.self) { id in
+                        keyMetricTile(for: id, definitions: defMap)
+                            .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
+                            .frame(minWidth: 156, maxWidth: 188)
                     }
                 }
-
-                ForEach(Array(ids.dropFirst()), id: \.self) { id in
-                    if let kind = MetricKind(rawValue: id) {
-                        secondaryMetricCard(for: kind)
-                    } else if let def = defMap[id] {
-                        customSecondaryMetricCard(for: def)
-                    }
-                }
+                .scrollTargetLayout()
+                .padding(.horizontal, 1)
+                .padding(.vertical, 2)
             }
+            .scrollTargetBehavior(.viewAligned)
         }
+    }
+
+    @ViewBuilder
+    private func keyMetricTile(
+        for id: String,
+        definitions: [String: CustomMetricDefinition]
+    ) -> some View {
+        if let kind = MetricKind(rawValue: id) {
+            NavigationLink {
+                MetricDetailView(kind: kind)
+            } label: {
+                HomeKeyMetricTile(
+                    title: kind.title,
+                    valueText: cachedLatestByKind[kind].map { formattedMetricValue(for: kind, metricValue: $0.value) },
+                    deltaChip: metricDeltaChip(for: kind, days: 30),
+                    goalProgress: keyMetricGoalProgress(for: kind),
+                    samples: samplesForKind(kind),
+                    trendKind: kind,
+                    goal: cachedGoalsByKind[kind]
+                )
+            }
+            .buttonStyle(PressableTileStyle())
+            .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
+            .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
+        } else if let definition = definitions[id] {
+            NavigationLink {
+                CustomMetricDetailView(definition: definition)
+            } label: {
+                HomeCustomKeyMetricTile(
+                    definition: definition,
+                    latest: cachedCustomLatestByIdentifier[id],
+                    deltaChip: customMetricDeltaChip(for: definition, days: 30),
+                    goalProgress: customKeyMetricGoalProgress(for: definition),
+                    samples: cachedCustomSamplesByIdentifier[id] ?? [],
+                    goal: cachedCustomGoalsByIdentifier[id]
+                )
+            }
+            .buttonStyle(PressableTileStyle())
+        }
+    }
+
+    private func openTrackedMetricsSettings() {
+        Haptics.selection()
+        settingsOpenTrackedMeasurements = true
+        router.selectedTab = .settings
+    }
+
+    private var homeHeaderDateText: String {
+        AppClock.now
+            .formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
+            .uppercased(with: AppLocalization.currentLanguage.locale)
+    }
+
+    private var homeAvatarText: String {
+        guard let first = trimmedUserName.first else { return "M" }
+        return String(first).uppercased(with: AppLocalization.currentLanguage.locale)
+    }
+
+    private var homeAIInsights: [HomeAIInsightItem] {
+        var items: [HomeAIInsightItem] = []
+
+        for kind in dashboardVisibleMetrics {
+            guard let delta = metricDeltaChip(for: kind, days: 30) else { continue }
+            let tone = homeInsightTone(for: kind)
+            items.append(
+                HomeAIInsightItem(
+                    symbol: tone == .positive ? "arrow.down.right" : "arrow.up.right",
+                    text: FlowLocalization.app(
+                        "\(kind.title): \(delta.text) in 30 days.",
+                        "\(kind.title): \(delta.text) w 30 dni.",
+                        "\(kind.title): \(delta.text) en 30 dias.",
+                        "\(kind.title): \(delta.text) in 30 Tagen.",
+                        "\(kind.title) : \(delta.text) en 30 jours.",
+                        "\(kind.title): \(delta.text) em 30 dias."
+                    ),
+                    tone: tone
+                )
+            )
+            if items.count == 2 { break }
+        }
+
+        if hasEnoughSavedPhotosForCompare, let latestSavedPhoto, let secondLatestSavedPhoto {
+            let days = max(Calendar.current.dateComponents([.day], from: secondLatestSavedPhoto.date, to: latestSavedPhoto.date).day ?? 0, 0)
+            items.append(
+                HomeAIInsightItem(
+                    symbol: "camera.viewfinder",
+                    text: FlowLocalization.app(
+                        "Progress photos are ready for a \(days)-day comparison.",
+                        "Zdjecia postepu sa gotowe do porownania z \(days) dni.",
+                        "Las fotos de progreso estan listas para comparar \(days) dias.",
+                        "Fortschrittsfotos sind bereit fur einen \(days)-Tage-Vergleich.",
+                        "Les photos de progression sont pretes pour \(days) jours de comparaison.",
+                        "Fotos de progresso prontas para comparar \(days) dias."
+                    ),
+                    tone: .neutral
+                )
+            )
+        }
+
+        if items.isEmpty {
+            items.append(
+                HomeAIInsightItem(
+                    symbol: "plus.circle",
+                    text: FlowLocalization.app(
+                        "Add a few measurements to unlock sharper trend summaries.",
+                        "Dodaj kilka pomiarow, aby zobaczyc trafniejsze podsumowania trendow.",
+                        "Agrega algunas mediciones para ver resumenes mas claros.",
+                        "Fuge ein paar Messungen hinzu, um klarere Trends zu sehen.",
+                        "Ajoutez quelques mesures pour des tendances plus nettes.",
+                        "Adicione algumas medidas para ver tendencias mais claras."
+                    ),
+                    tone: .neutral
+                )
+            )
+        }
+
+        return Array(items.prefix(3))
+    }
+
+    private var homeAIAnalysisItems: [HomeAIAnalysisItem] {
+        var items: [HomeAIAnalysisItem] = []
+
+        if let strongest = strongestPositiveAnalysisItem {
+            items.append(strongest)
+        }
+
+        if let composition = compositionAnalysisItem {
+            items.append(composition)
+        }
+
+        items.append(consistencyAnalysisItem)
+
+        if let risk = riskAnalysisItem {
+            items.append(risk)
+        }
+
+        if let pace = paceOrGoalAnalysisItem {
+            items.append(pace)
+        }
+
+        return HomeAIAnalysisItemsPolicy.visibleItems(primary: items, fallback: fallbackAnalysisItems)
+    }
+
+    private var strongestPositiveAnalysisItem: HomeAIAnalysisItem? {
+        let candidates = dashboardVisibleMetrics.compactMap { kind -> (HomeAIAnalysisItem, Double)? in
+            guard let window = trendWindowSamples(for: kind, days: 30) ?? trendWindowSamples(for: kind, days: 7) else { return nil }
+            guard kind.trendOutcome(from: window.oldest.value, to: window.newest.value, goal: cachedGoalsByKind[kind]) == .positive else { return nil }
+            let newest = kind.valueForDisplay(fromMetric: window.newest.value, unitsSystem: unitsSystem)
+            let oldest = kind.valueForDisplay(fromMetric: window.oldest.value, unitsSystem: unitsSystem)
+            let delta = newest - oldest
+            let absoluteDelta = abs(delta)
+            guard absoluteDelta >= minimumInsightDelta(for: kind) else { return nil }
+            let deltaText = kind.formattedDisplayValue(absoluteDelta, unitsSystem: unitsSystem)
+            let signedDelta = delta >= 0 ? "+\(deltaText)" : "-\(deltaText)"
+            return (
+                HomeAIAnalysisItem(
+                    symbol: delta >= 0 ? "arrow.up.right" : "arrow.down.right",
+                    title: "\(kind.title) \(signedDelta)",
+                    detail: FlowLocalization.app(
+                        "Your strongest 30-day signal. Keep the same logging rhythm to confirm the trend.",
+                        "Najmocniejszy sygnał z 30 dni. Utrzymaj rytm zapisów, żeby potwierdzić trend.",
+                        "Tu señal más fuerte de 30 días. Mantén el ritmo de registro para confirmar la tendencia.",
+                        "Dein stärkstes 30-Tage-Signal. Behalte den Rhythmus bei, um den Trend zu bestätigen.",
+                        "Votre signal le plus net sur 30 jours. Gardez le même rythme pour confirmer la tendance.",
+                        "Seu sinal mais forte em 30 dias. Mantenha o ritmo de registros para confirmar a tendência."
+                    ),
+                    tone: .positive
+                ),
+                absoluteDelta / minimumInsightDelta(for: kind)
+            )
+        }
+        return candidates.max(by: { $0.1 < $1.1 })?.0
+    }
+
+    private var compositionAnalysisItem: HomeAIAnalysisItem? {
+        if let leanDelta = metricDeltaChip(for: .leanBodyMass, days: 30),
+           let weightDelta = metricDeltaChip(for: .weight, days: 30) {
+            return HomeAIAnalysisItem(
+                symbol: "figure.strengthtraining.traditional",
+                title: FlowLocalization.app(
+                    "Composition: lean mass \(leanDelta.text)",
+                    "Kompozycja: masa beztłuszczowa \(leanDelta.text)",
+                    "Composición: masa magra \(leanDelta.text)",
+                    "Komposition: fettfreie Masse \(leanDelta.text)",
+                    "Composition : masse maigre \(leanDelta.text)",
+                    "Composição: massa magra \(leanDelta.text)"
+                ),
+                detail: FlowLocalization.app(
+                    "Weight moved \(weightDelta.text) in the same window, so composition matters more than scale alone.",
+                    "Waga zmieniła się o \(weightDelta.text) w tym samym okresie, więc skład ciała mówi więcej niż sama waga.",
+                    "El peso cambió \(weightDelta.text) en el mismo período; la composición importa más que la báscula.",
+                    "Das Gewicht änderte sich im selben Zeitraum um \(weightDelta.text); die Zusammensetzung zählt mehr.",
+                    "Le poids a changé de \(weightDelta.text) sur la même période ; la composition compte plus que la balance.",
+                    "O peso mudou \(weightDelta.text) no mesmo período; composição vale mais que a balança."
+                ),
+                tone: .positive
+            )
+        }
+
+        if let bodyFatDelta = metricDeltaChip(for: .bodyFat, days: 30) {
+            return HomeAIAnalysisItem(
+                symbol: "percent",
+                title: "\(MetricKind.bodyFat.title) \(bodyFatDelta.text)",
+                detail: FlowLocalization.app(
+                    "Body fat trend is the clearest composition signal available right now.",
+                    "Trend tkanki tłuszczowej to teraz najczytelniejszy sygnał kompozycji.",
+                    "La tendencia de grasa corporal es la señal de composición más clara ahora.",
+                    "Der Körperfetttrend ist derzeit das klarste Kompositionssignal.",
+                    "La tendance de masse grasse est le signal de composition le plus lisible.",
+                    "A tendência de gordura corporal é o sinal de composição mais claro agora."
+                ),
+                tone: homeInsightTone(for: .bodyFat)
+            )
+        }
+
+        return nil
+    }
+
+    private var consistencyAnalysisItem: HomeAIAnalysisItem {
+        let streak = streakManager.currentStreak
+        if streak > 0 {
+            return HomeAIAnalysisItem(
+                symbol: "bolt.fill",
+                title: FlowLocalization.app(
+                    "\(streak)-day streak",
+                    "\(streak)-dniowa seria",
+                    "Racha de \(streak) días",
+                    "\(streak)-Tage-Serie",
+                    "Série de \(streak) jours",
+                    "Sequência de \(streak) dias"
+                ),
+                detail: FlowLocalization.app(
+                    "Daily logging improves goal accuracy and makes trend shifts easier to spot.",
+                    "Codzienne zapisy poprawiają trafność celów i ułatwiają wychwycenie zmian trendu.",
+                    "Registrar a diario mejora la precisión de objetivos y revela cambios de tendencia.",
+                    "Tägliche Einträge verbessern Zielgenauigkeit und machen Trendwechsel sichtbarer.",
+                    "Les entrées quotidiennes améliorent la précision des objectifs et révèlent les changements.",
+                    "Registros diários melhoram a precisão das metas e revelam mudanças de tendência."
+                ),
+                tone: .neutral
+            )
+        }
+
+        return HomeAIAnalysisItem(
+            symbol: "calendar.badge.clock",
+            title: FlowLocalization.app(
+                "\(currentWeekCheckInDays) check-ins this week",
+                "\(currentWeekCheckInDays) zapisy w tym tygodniu",
+                "\(currentWeekCheckInDays) registros esta semana",
+                "\(currentWeekCheckInDays) Einträge diese Woche",
+                "\(currentWeekCheckInDays) suivis cette semaine",
+                "\(currentWeekCheckInDays) registros nesta semana"
+            ),
+            detail: FlowLocalization.app(
+                "Three or more check-ins per week gives AI a cleaner trend baseline.",
+                "Trzy lub więcej zapisów tygodniowo daje AI czystszą bazę trendu.",
+                "Tres o más registros por semana dan una base de tendencia más clara.",
+                "Drei oder mehr Einträge pro Woche geben eine bessere Trendbasis.",
+                "Trois suivis ou plus par semaine donnent une base de tendance plus nette.",
+                "Três ou mais registros por semana dão uma base de tendência melhor."
+            ),
+            tone: currentWeekCheckInDays >= 3 ? .positive : .neutral
+        )
+    }
+
+    private var riskAnalysisItem: HomeAIAnalysisItem? {
+        let height = manualHeight > 0 ? manualHeight : latestHeight
+        if let bmi = HealthMetricsCalculator.calculateBMI(weightKg: latestWeight, heightCm: height, age: userAge) {
+            let isWarning = bmi.bmi >= 25 || bmi.bmi < 18.5
+            return HomeAIAnalysisItem(
+                symbol: isWarning ? "exclamationmark.triangle" : "heart.fill",
+                title: String(format: "BMI %.1f", bmi.bmi),
+                detail: isWarning
+                    ? FlowLocalization.app(
+                        "Slightly outside the typical range. Waist and composition trends are more useful than BMI alone.",
+                        "Lekko poza typowym zakresem. Trend talii i kompozycji jest ważniejszy niż samo BMI.",
+                        "Algo fuera del rango típico. Cintura y composición importan más que el BMI solo.",
+                        "Etwas außerhalb des typischen Bereichs. Taille und Komposition zählen mehr als BMI allein.",
+                        "Légèrement hors de la plage typique. Taille et composition comptent plus que l'IMC seul.",
+                        "Um pouco fora da faixa típica. Cintura e composição importam mais que o BMI isolado."
+                    )
+                    : FlowLocalization.app(
+                        "Within the typical range. Keep watching waist and body composition trends.",
+                        "W typowym zakresie. Nadal obserwuj talię i kompozycję ciała.",
+                        "Dentro del rango típico. Sigue observando cintura y composición.",
+                        "Im typischen Bereich. Beobachte weiter Taille und Komposition.",
+                        "Dans la plage typique. Continuez à suivre taille et composition.",
+                        "Dentro da faixa típica. Continue observando cintura e composição."
+                    ),
+                tone: isWarning ? .warning : .positive
+            )
+        }
+
+        if let whtr = HealthMetricsCalculator.calculateWHtR(waistCm: latestWaist, heightCm: height) {
+            let isWarning = whtr.ratio >= 0.5
+            return HomeAIAnalysisItem(
+                symbol: isWarning ? "exclamationmark.triangle" : "heart.fill",
+                title: String(format: "WHtR %.2f", whtr.ratio),
+                detail: isWarning
+                    ? FlowLocalization.app(
+                        "Waist-to-height ratio is above the main threshold; waist trend deserves priority.",
+                        "Stosunek talii do wzrostu jest powyżej progu; trend talii ma priorytet.",
+                        "La relación cintura-altura supera el umbral; prioriza la cintura.",
+                        "Taille-Größe-Verhältnis liegt über dem Schwellenwert; priorisiere Taille.",
+                        "Le ratio taille/taille dépasse le seuil ; priorisez le tour de taille.",
+                        "A relação cintura-altura está acima do limite; priorize a cintura."
+                    )
+                    : FlowLocalization.app(
+                        "Waist-to-height ratio is in a healthier zone.",
+                        "Stosunek talii do wzrostu jest w zdrowszej strefie.",
+                        "La relación cintura-altura está en una zona más saludable.",
+                        "Taille-Größe-Verhältnis liegt in einem gesünderen Bereich.",
+                        "Le ratio taille/taille est dans une zone plus saine.",
+                        "A relação cintura-altura está em uma zona mais saudável."
+                    ),
+                tone: isWarning ? .warning : .positive
+            )
+        }
+
+        return nil
+    }
+
+    private var paceOrGoalAnalysisItem: HomeAIAnalysisItem? {
+        if goalStatus != .noGoals {
+            return HomeAIAnalysisItem(
+                symbol: "target",
+                title: goalStatusText,
+                detail: FlowLocalization.app(
+                    "Goal status is based on your selected key metrics and latest logged values.",
+                    "Status celu bazuje na kluczowych metrykach i najnowszych zapisanych wartościach.",
+                    "El estado del objetivo usa tus métricas clave y los valores más recientes.",
+                    "Der Zielstatus basiert auf Schlüsselmetriken und neuesten Werten.",
+                    "Le statut d'objectif s'appuie sur vos métriques clés et dernières valeurs.",
+                    "O status da meta usa suas métricas principais e valores mais recentes."
+                ),
+                tone: goalStatus == .needsAttention ? .warning : .positive
+            )
+        }
+
+        if hasEnoughSavedPhotosForCompare, let latestSavedPhoto, let secondLatestSavedPhoto {
+            let days = max(Calendar.current.dateComponents([.day], from: secondLatestSavedPhoto.date, to: latestSavedPhoto.date).day ?? 0, 0)
+            return HomeAIAnalysisItem(
+                symbol: "camera.viewfinder",
+                title: FlowLocalization.app(
+                    "\(days)-day photo comparison",
+                    "Porównanie zdjęć: \(days) dni",
+                    "Comparación de \(days) días",
+                    "\(days)-Tage-Fotovergleich",
+                    "Comparaison photo de \(days) jours",
+                    "Comparação de fotos: \(days) dias"
+                ),
+                detail: FlowLocalization.app(
+                    "Your photos are ready for a visual check against the metric trend.",
+                    "Zdjęcia są gotowe do wizualnego porównania z trendem metryk.",
+                    "Tus fotos están listas para revisar contra la tendencia.",
+                    "Deine Fotos sind bereit für den Abgleich mit dem Trend.",
+                    "Vos photos sont prêtes pour une comparaison avec les tendances.",
+                    "Suas fotos estão prontas para comparação com a tendência."
+                ),
+                tone: .neutral
+            )
+        }
+
+        return nil
+    }
+
+    private var fallbackAnalysisItems: [HomeAIAnalysisItem] {
+        [
+            HomeAIAnalysisItem(
+                symbol: "plus.circle",
+                title: FlowLocalization.app("Add 3 measurements", "Dodaj 3 pomiary", "Añade 3 medidas", "Füge 3 Messungen hinzu", "Ajoutez 3 mesures", "Adicione 3 medições"),
+                detail: FlowLocalization.app(
+                    "AI needs a short history before it can rank your strongest trends.",
+                    "AI potrzebuje krótkiej historii, żeby ocenić najmocniejsze trendy.",
+                    "La IA necesita historial para clasificar tus tendencias.",
+                    "KI braucht eine kurze Historie, um Trends zu bewerten.",
+                    "L'IA a besoin d'un historique court pour classer les tendances.",
+                    "A IA precisa de histórico para classificar tendências."
+                ),
+                tone: .neutral
+            ),
+            HomeAIAnalysisItem(
+                symbol: "camera.fill",
+                title: FlowLocalization.app("Add progress photos", "Dodaj zdjęcia postępu", "Añade fotos de progreso", "Füge Fortschrittsfotos hinzu", "Ajoutez des photos", "Adicione fotos de progresso"),
+                detail: FlowLocalization.app(
+                    "Two photos at least a few weeks apart make visual progress easier to validate.",
+                    "Dwa zdjęcia w odstępie kilku tygodni ułatwią ocenę wizualnego postępu.",
+                    "Dos fotos separadas por semanas facilitan validar el progreso visual.",
+                    "Zwei Fotos mit ein paar Wochen Abstand helfen beim visuellen Vergleich.",
+                    "Deux photos espacées de quelques semaines facilitent la validation.",
+                    "Duas fotos com semanas de diferença ajudam a validar progresso visual."
+                ),
+                tone: .neutral
+            )
+        ]
+    }
+
+    private func homeInsightTone(for kind: MetricKind) -> HomeAIInsightItem.Tone {
+        guard let window = trendWindowSamples(for: kind, days: 30) ?? trendWindowSamples(for: kind, days: 7) else {
+            return .neutral
+        }
+        switch kind.trendOutcome(from: window.oldest.value, to: window.newest.value, goal: cachedGoalsByKind[kind]) {
+        case .positive:
+            return .positive
+        case .negative:
+            return .warning
+        case .neutral:
+            return .neutral
+        }
+    }
+
+    private func keyMetricGoalProgress(for kind: MetricKind) -> HomeKeyMetricGoalProgress? {
+        guard let goal = cachedGoalsByKind[kind],
+              let latest = cachedLatestByKind[kind] else { return nil }
+        let baseline = baselineValue(for: kind, goal: goal)
+        return HomeKeyMetricGoalProgress(
+            progress: goalProgressValue(goal: goal, latestValue: latest.value, baselineValue: baseline),
+            label: secondaryMetricGoalSummary(for: kind) ?? AppLocalization.string("Progress")
+        )
+    }
+
+    private func customKeyMetricGoalProgress(for definition: CustomMetricDefinition) -> HomeKeyMetricGoalProgress? {
+        guard let goal = cachedCustomGoalsByIdentifier[definition.identifier],
+              let latest = cachedCustomLatestByIdentifier[definition.identifier] else { return nil }
+        let samples = cachedCustomSamplesByIdentifier[definition.identifier] ?? []
+        let baseline: Double
+        if let startValue = goal.startValue {
+            baseline = startValue
+        } else {
+            let sorted = samples.sorted { $0.date < $1.date }
+            let anchorDate = goal.startDate ?? goal.createdDate
+            baseline = sorted.last(where: { $0.date <= anchorDate })?.value
+                ?? sorted.first?.value
+                ?? latest.value
+        }
+        return HomeKeyMetricGoalProgress(
+            progress: goalProgressValue(goal: goal, latestValue: latest.value, baselineValue: baseline),
+            label: AppLocalization.string("Progress")
+        )
+    }
+
+    private func goalProgressValue(goal: MetricGoal, latestValue: Double, baselineValue: Double) -> Double {
+        switch goal.direction {
+        case .increase:
+            let denominator = goal.targetValue - baselineValue
+            guard denominator > 0 else { return 0 }
+            return min(max((latestValue - baselineValue) / denominator, 0), 1)
+        case .decrease:
+            let denominator = baselineValue - goal.targetValue
+            guard denominator > 0 else { return 0 }
+            return min(max((baselineValue - latestValue) / denominator, 0), 1)
+        }
+    }
+
+    private func baselineValue(for kind: MetricKind, goal: MetricGoal) -> Double {
+        if let startValue = goal.startValue { return startValue }
+        let sorted = samplesForKind(kind).sorted { $0.date < $1.date }
+        let anchorDate = goal.startDate ?? goal.createdDate
+        return sorted.last(where: { $0.date <= anchorDate })?.value
+            ?? sorted.first?.value
+            ?? cachedLatestByKind[kind]?.value
+            ?? goal.targetValue
     }
 
     private var recentPhotosModule: some View {
@@ -2969,10 +3375,10 @@ struct HomeView: View {
         .accessibilityHint(detailText)
     }
 
-    private func metricDeltaChip(for kind: MetricKind) -> HomeMetricDeltaChip? {
-        guard let text = metricDeltaTextFromCache(kind: kind, days: 7) else { return nil }
+    private func metricDeltaChip(for kind: MetricKind, days: Int = 7) -> HomeMetricDeltaChip? {
+        guard let text = metricDeltaTextFromCache(kind: kind, days: days) else { return nil }
         let tint: Color
-        if let window = trendWindowSamples(for: kind, days: 7) ?? trendWindowSamples(for: kind, days: 30) {
+        if let window = trendWindowSamples(for: kind, days: days) ?? trendWindowSamples(for: kind, days: 30) {
             switch kind.trendOutcome(from: window.oldest.value, to: window.newest.value, goal: cachedGoalsByKind[kind]) {
             case .positive:
                 tint = AppColorRoles.stateSuccess
@@ -3006,8 +3412,8 @@ struct HomeView: View {
         .buttonStyle(.plain)
     }
 
-    private func customMetricDeltaChip(for definition: CustomMetricDefinition) -> HomeMetricDeltaChip? {
-        guard let startDate = Calendar.current.date(byAdding: .day, value: -7, to: AppClock.now) else {
+    private func customMetricDeltaChip(for definition: CustomMetricDefinition, days: Int = 7) -> HomeMetricDeltaChip? {
+        guard let startDate = Calendar.current.date(byAdding: .day, value: -days, to: AppClock.now) else {
             return nil
         }
         let window = (cachedCustomSamplesByIdentifier[definition.identifier] ?? [])

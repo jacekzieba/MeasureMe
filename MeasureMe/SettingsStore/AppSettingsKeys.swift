@@ -15,6 +15,7 @@ enum AppSettingsKeys {
         static let userGender = "userGender"
         static let manualHeight = "manualHeight"
         static let unitsSystem = "unitsSystem"
+        static let profilePhotoData = "profile_photo_data"
         static let legacyUnitsSystem = "units_system"
     }
 
@@ -32,6 +33,7 @@ enum AppSettingsKeys {
         static let settingsOpenTrackedMeasurements = "settings_open_tracked_measurements"
         static let settingsOpenReminders = "settings_open_reminders"
         static let settingsOpenHomeSettings = "settings_open_home_settings"
+        static let settingsOpenProfile = "settings_open_profile"
     }
 
     enum Onboarding {

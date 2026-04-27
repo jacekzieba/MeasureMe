@@ -15,95 +15,71 @@ struct HomeKeyMetricsCard<Content: View>: View {
     let snapshot: HomeKeyMetricsSnapshot
     let onAddMeasurement: () -> Void
     let onOpenMeasurements: () -> Void
+    let onEdit: () -> Void
     @ViewBuilder let content: () -> Content
 
     private let theme = FeatureTheme.measurements
 
     var body: some View {
-        HomeWidgetCard(
-            tint: theme.softTint,
-            depth: .elevated,
-            contentPadding: 16,
-            accessibilityIdentifier: "home.module.keyMetrics"
-        ) {
-            VStack(alignment: .leading, spacing: 14) {
-                header
+        VStack(alignment: .leading, spacing: 12) {
+            header
 
-                switch snapshot.state {
-                case .noMeasurements:
-                    emptyStateCard(
-                        title: AppLocalization.string("home.keymetrics.empty.title"),
-                        detail: AppLocalization.string("home.keymetrics.empty.detail"),
-                        ctaTitle: AppLocalization.string("Add measurement"),
-                        action: onAddMeasurement
-                    )
-                case .noSelection:
-                    emptyStateCard(
-                        title: AppLocalization.string("home.keymetrics.empty.selection.title"),
-                        detail: AppLocalization.string("home.keymetrics.empty.selection.detail"),
-                        ctaTitle: AppLocalization.string("Open Measurements"),
-                        action: onOpenMeasurements
-                    )
-                case .content:
-                    content()
-                }
+            switch snapshot.state {
+            case .noMeasurements:
+                emptyStateCard(
+                    title: AppLocalization.string("home.keymetrics.empty.title"),
+                    detail: AppLocalization.string("home.keymetrics.empty.detail"),
+                    ctaTitle: AppLocalization.string("Add measurement"),
+                    action: onAddMeasurement
+                )
+            case .noSelection:
+                emptyStateCard(
+                    title: AppLocalization.string("home.keymetrics.empty.selection.title"),
+                    detail: AppLocalization.string("home.keymetrics.empty.selection.detail"),
+                    ctaTitle: AppLocalization.string("Open Measurements"),
+                    action: onOpenMeasurements
+                )
+            case .content:
+                content()
             }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .overlay(alignment: .topLeading) {
+            Color.clear
+                .contentShape(Rectangle())
+                .accessibilityElement()
+                .accessibilityIdentifier("home.module.keyMetrics")
+                .allowsHitTesting(false)
         }
     }
 
     private var header: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(AppLocalization.string("home.module.metrics.eyebrow"))
+                Text(AppLocalization.string("Key metrics"))
                     .font(AppTypography.eyebrow)
-                    .foregroundStyle(Color.appAccent)
+                    .foregroundStyle(AppColorRoles.textSecondary)
                     .textCase(.uppercase)
 
-                Text(AppLocalization.string("Key metrics"))
-                    .font(AppTypography.sectionTitle)
-                    .foregroundStyle(AppColorRoles.textPrimary)
-
-                Text(snapshot.subtitle)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColorRoles.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if snapshot.state != .content {
+                    Text(snapshot.subtitle)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .accessibilityIdentifier("home.module.keyMetrics.title")
 
             Spacer(minLength: 8)
 
-            HStack(spacing: 8) {
-                headerAction(
-                    systemImage: "plus",
-                    accessibilityLabel: AppLocalization.string("Add measurement"),
-                    action: onAddMeasurement
-                )
-                headerAction(
-                    systemImage: "arrow.up.right",
-                    accessibilityLabel: AppLocalization.string("accessibility.open.measurements"),
-                    action: onOpenMeasurements
-                )
+            Button(action: onEdit) {
+                Text(AppLocalization.string("Edit"))
+                    .font(AppTypography.sectionAction)
+                    .foregroundStyle(theme.accent)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel(AppLocalization.string("Open tracked metrics settings"))
         }
-    }
-
-    private func headerAction(
-        systemImage: String,
-        accessibilityLabel: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(theme.accent)
-                .frame(width: 32, height: 32)
-                .background(
-                    Circle()
-                        .fill(theme.pillFill)
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel)
     }
 
     private func emptyStateCard(

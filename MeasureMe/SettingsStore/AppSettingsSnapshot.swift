@@ -7,6 +7,7 @@ struct AppSettingsSnapshot: Sendable {
         var userGender: String
         var manualHeight: Double
         var unitsSystem: String
+        var profilePhotoData: Data?
     }
 
     struct Home: Sendable {
@@ -21,6 +22,7 @@ struct AppSettingsSnapshot: Sendable {
         var settingsOpenTrackedMeasurements: Bool
         var settingsOpenReminders: Bool
         var settingsOpenHomeSettings: Bool
+        var settingsOpenProfile: Bool
     }
 
     struct HomeLayout: Sendable {
@@ -247,7 +249,8 @@ struct AppSettingsSnapshot: Sendable {
                 userAge: defaults.integer(forKey: AppSettingsKeys.Profile.userAge),
                 userGender: defaults.string(forKey: AppSettingsKeys.Profile.userGender) ?? "notSpecified",
                 manualHeight: defaults.double(forKey: AppSettingsKeys.Profile.manualHeight),
-                unitsSystem: defaults.string(forKey: AppSettingsKeys.Profile.unitsSystem) ?? "metric"
+                unitsSystem: defaults.string(forKey: AppSettingsKeys.Profile.unitsSystem) ?? "metric",
+                profilePhotoData: defaults.data(forKey: AppSettingsKeys.Profile.profilePhotoData)
             ),
             home: .init(
                 showLastPhotosOnHome: defaults.object(forKey: AppSettingsKeys.Home.showLastPhotosOnHome) as? Bool ?? true,
@@ -260,7 +263,8 @@ struct AppSettingsSnapshot: Sendable {
                 homePhotoMetricSyncLastID: defaults.string(forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastID) ?? "",
                 settingsOpenTrackedMeasurements: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements),
                 settingsOpenReminders: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenReminders),
-                settingsOpenHomeSettings: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenHomeSettings)
+                settingsOpenHomeSettings: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenHomeSettings),
+                settingsOpenProfile: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenProfile)
             ),
             homeLayout: .init(
                 layoutSchemaVersion: max(defaults.integer(forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion), HomeLayoutSnapshot.currentSchemaVersion),
