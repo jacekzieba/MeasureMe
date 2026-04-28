@@ -55,6 +55,7 @@ struct OnboardingView: View {
     private var activationTasksCount: Int { ActivationTask.allCases.count }
 
     private var overallStepIndex: Int { currentStep.rawValue }
+    private var onboardingStepCount: Int { InputStep.allCases.count }
 
     private var canGoBack: Bool { currentStep != .profile }
 
@@ -117,6 +118,14 @@ struct OnboardingView: View {
             return storedPriority
         }
         return .improveHealth
+    }
+
+    private var hasRestoredInputState: Bool {
+        !onboardingPrimaryGoalRaw.isEmpty
+            || !userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || userAge > 0
+            || manualHeight > 0
+            || isSyncEnabled
     }
 
     private var resolvedPriorityTitle: String { OnboardingCopy.priorityTitle(resolvedPriority) }
@@ -1461,7 +1470,12 @@ struct OnboardingView: View {
         hasTrackedStart = true
         nameInput = userName
         selectedPriority = OnboardingPriority(rawValue: onboardingPrimaryGoalRaw)
-        effects.track(.onboardingStarted)
+        Analytics.shared.track(
+            AnalyticsEvents.onboardingSessionStarted(
+                entrypoint: "root",
+                restoredState: hasRestoredInputState
+            )
+        )
         trackCurrentStep()
         syncUITestBridge(stepIndex: overallStepIndex)
         triggerSlideAppearance()
@@ -1483,8 +1497,11 @@ struct OnboardingView: View {
 
     private func trackCurrentStep() {
         Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.onboarding.input.step_viewed",
-            parameters: ["step": currentStep.analyticsName]
+            AnalyticsEvents.onboardingStepViewed(
+                step: currentStep.analyticsName,
+                stepIndex: currentStep.rawValue + 1,
+                stepCount: onboardingStepCount
+            )
         )
     }
 
@@ -1509,21 +1526,27 @@ struct OnboardingView: View {
             animateToInputStep(.metrics)
         case .metrics:
             Analytics.shared.track(
-                signalName: "com.jacekzieba.measureme.onboarding.input.step_completed",
-                parameters: ["step": InputStep.metrics.analyticsName]
+                AnalyticsEvents.onboardingStepCompleted(
+                    step: InputStep.metrics.analyticsName,
+                    stepIndex: InputStep.metrics.rawValue + 1
+                )
             )
             animateToInputStep(.photos)
         case .photos:
             Analytics.shared.track(
-                signalName: "com.jacekzieba.measureme.onboarding.input.step_completed",
-                parameters: ["step": InputStep.photos.analyticsName]
+                AnalyticsEvents.onboardingStepCompleted(
+                    step: InputStep.photos.analyticsName,
+                    stepIndex: InputStep.photos.rawValue + 1
+                )
             )
             animateToInputStep(.health)
         case .health:
             onboardingSkippedHealthKit = !isSyncEnabled
             Analytics.shared.track(
-                signalName: "com.jacekzieba.measureme.onboarding.input.step_completed",
-                parameters: ["step": InputStep.health.analyticsName]
+                AnalyticsEvents.onboardingStepCompleted(
+                    step: InputStep.health.analyticsName,
+                    stepIndex: InputStep.health.rawValue + 1
+                )
             )
             finishOnboarding()
         }
@@ -1531,8 +1554,11 @@ struct OnboardingView: View {
 
     private func skipCurrentStep() {
         Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.onboarding.input.step_skipped",
-            parameters: ["step": currentStep.analyticsName]
+            AnalyticsEvents.onboardingStepSkipped(
+                step: currentStep.analyticsName,
+                stepIndex: currentStep.rawValue + 1,
+                skipReason: "user_skipped"
+            )
         )
 
         switch currentStep {
@@ -1580,28 +1606,34 @@ struct OnboardingView: View {
         selectedPriority = priority
         onboardingPrimaryGoalRaw = priority.rawValue
         applyMetricPackIfNeeded()
+        Analytics.shared.track(AnalyticsEvents.onboardingPrioritySelected(priority: priority.analyticsValue))
         Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.onboarding.input.step_completed",
-            parameters: [
-                "step": InputStep.profile.analyticsName,
-                "priority": priority.analyticsValue
-            ]
+            AnalyticsEvents.onboardingStepCompleted(
+                step: InputStep.profile.analyticsName,
+                stepIndex: InputStep.profile.rawValue + 1
+            )
         )
     }
 
     private func applyMetricPackIfNeeded() {
-        guard !effects.hasCustomizedMetrics() else { return }
+        let customizedMetricsBefore = effects.hasCustomizedMetrics()
+        guard !customizedMetricsBefore else { return }
         effects.applyMetricPack(recommendedKinds)
+        Analytics.shared.track(
+            AnalyticsEvents.onboardingMetricPackApplied(
+                priority: resolvedPriority.analyticsValue,
+                packID: resolvedPriority.rawValue,
+                metricsCount: recommendedKinds.count,
+                customizedMetricsBefore: customizedMetricsBefore
+            )
+        )
     }
 
     private func requestHealthAccess() {
         guard !isRequestingHealthKit else { return }
         isRequestingHealthKit = true
         updateHealthAuthorizationPhase(.preparing)
-        Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.onboarding.health.prompt_shown",
-            parameters: ["source": "onboarding"]
-        )
+        Analytics.shared.track(AnalyticsEvents.onboardingHealthPermissionPrompted(source: "onboarding"))
 
         Task { @MainActor in
             defer { isRequestingHealthKit = false }
@@ -1633,8 +1665,12 @@ struct OnboardingView: View {
                 updateHealthAuthorizationPhase(.completed)
 
                 Analytics.shared.track(
-                    signalName: "com.jacekzieba.measureme.onboarding.health.accepted",
-                    parameters: ["source": "onboarding"]
+                    AnalyticsEvents.onboardingHealthPermissionResolved(
+                        source: "onboarding",
+                        result: "granted",
+                        importedAge: profile.age != nil,
+                        importedHeight: profile.height != nil
+                    )
                 )
             } catch {
                 isSyncEnabled = false
@@ -1651,8 +1687,12 @@ struct OnboardingView: View {
                     )
                 ]
                 Analytics.shared.track(
-                    signalName: "com.jacekzieba.measureme.onboarding.health.declined",
-                    parameters: ["source": "onboarding"]
+                    AnalyticsEvents.onboardingHealthPermissionResolved(
+                        source: "onboarding",
+                        result: "denied",
+                        importedAge: false,
+                        importedHeight: false
+                    )
                 )
             }
         }
@@ -1688,12 +1728,11 @@ struct OnboardingView: View {
         let priority = resolvedPriority
         onboardingPrimaryGoalRaw = priority.rawValue
         applyMetricPackIfNeeded()
-        onboardingFlowVersion = 2
         activationCurrentTaskID = ActivationTask.firstMeasurement.rawValue
         activationCompletedTaskIDsRaw = ""
         activationSkippedTaskIDsRaw = ""
         activationIsDismissed = false
-        effects.track(.onboardingCompleted)
+        onboardingFlowVersion = Int(AnalyticsEvents.onboardingFlowVersion) ?? 3
 
         if shouldAnimate {
             withAnimation(AppMotion.quick) {
@@ -1704,11 +1743,11 @@ struct OnboardingView: View {
         }
 
         Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.onboarding.completed_v2",
-            parameters: [
-                "priority": priority.analyticsValue,
-                "health_connected": isSyncEnabled ? "true" : "false"
-            ]
+            AnalyticsEvents.onboardingCompleted(
+                priority: priority.analyticsValue,
+                healthConnected: isSyncEnabled,
+                completedAllSteps: true
+            )
         )
     }
 

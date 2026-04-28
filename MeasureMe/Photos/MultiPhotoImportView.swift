@@ -78,7 +78,8 @@ struct MultiPhotoImportView: View {
             NavigationStack {
                 AddPhotoView(
                     previewImage: item.image ?? loadedImages[item.id],
-                    previewSource: item.librarySource
+                    previewSource: item.librarySource,
+                    telemetrySource: .multiImport
                 )
             }
         }
@@ -313,6 +314,7 @@ private extension MultiPhotoImportView {
                     tags: tagsToQueue,
                     metricValues: [:],
                     unitsSystem: unitsToQueue,
+                    telemetrySource: .multiImport,
                     batchID: batchID
                 )
                 let enqueueMs = milliseconds(from: enqueueStart.duration(to: .now))

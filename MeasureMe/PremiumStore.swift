@@ -91,6 +91,8 @@ final class PremiumStore: ObservableObject {
         case feature(String)
         case sevenDayPrompt
         case onboarding
+        case activation
+        case checklist
     }
 
     @Published var products: [PremiumProduct] = []
@@ -208,6 +210,12 @@ final class PremiumStore: ObservableObject {
 
     func presentPaywall(reason: PaywallReason) {
         paywallReason = reason
+        analytics.track(
+            AnalyticsEvents.paywallPresented(
+                source: reason.telemetrySource,
+                reason: reason.analyticsReason
+            )
+        )
         analytics.trackPaywallShown(
             reason: reason.analyticsReason,
             parameters: reason.analyticsParameters
@@ -677,6 +685,10 @@ private extension PremiumStore.PaywallReason {
             return "seven_day_prompt"
         case .onboarding:
             return "onboarding"
+        case .activation:
+            return "activation"
+        case .checklist:
+            return "checklist"
         }
     }
 
@@ -684,8 +696,23 @@ private extension PremiumStore.PaywallReason {
         switch self {
         case .feature(let featureName):
             return ["measureme.feature_name": featureName]
-        case .settings, .sevenDayPrompt, .onboarding:
+        case .settings, .sevenDayPrompt, .onboarding, .activation, .checklist:
             return [:]
+        }
+    }
+
+    var telemetrySource: PaywallTelemetrySource {
+        switch self {
+        case .settings, .sevenDayPrompt:
+            return .settings
+        case .feature:
+            return .feature
+        case .onboarding:
+            return .onboarding
+        case .activation:
+            return .activation
+        case .checklist:
+            return .checklist
         }
     }
 }

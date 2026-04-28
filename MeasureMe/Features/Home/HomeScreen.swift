@@ -76,6 +76,7 @@ struct HomeView: View {
     
     @State private var showQuickAddSheet = false
     @State private var quickAddKinds: [MetricKind] = []
+    @State private var quickAddTelemetrySource: MeasurementTelemetrySource = .quickAdd
     @State private var showActivationMetricsSheet = false
     @State private var showActivationAddPhotoSheet = false
     @State private var showHomeSettingsSheet = false
@@ -855,9 +856,11 @@ struct HomeView: View {
             latest: Dictionary(
                 uniqueKeysWithValues: cachedLatestByKind.map { ($0.key, ($0.value.value, $0.value.date)) }
             ),
-            unitsSystem: unitsSystem
+            unitsSystem: unitsSystem,
+            telemetrySource: quickAddTelemetrySource
         ) {
             quickAddKinds = []
+            quickAddTelemetrySource = .quickAdd
             showQuickAddSheet = false
             refreshMeasurementCaches()
             refreshChecklistState()
@@ -1017,7 +1020,7 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showActivationAddPhotoSheet) {
                 NavigationStack {
-                    AddPhotoView {
+                    AddPhotoView(telemetrySource: .activation) {
                         completeActivationTask(.addPhoto)
                     }
                     .environmentObject(metricsStore)
@@ -1168,6 +1171,7 @@ struct HomeView: View {
             }
             .onChange(of: activationCurrentTaskID) { _, _ in
                 rebuildDashboardItemsCache()
+                trackCurrentActivationTaskViewed()
             }
             .onChange(of: activationIsDismissed) { _, _ in
                 rebuildDashboardItemsCache()
@@ -1221,6 +1225,7 @@ struct HomeView: View {
             refreshPhotoStoreState()
             rebuildVisiblePhotoTilesCache()
             rebuildDashboardItemsCache()
+            trackCurrentActivationTaskViewed()
             if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
                 didCheckSevenDayPaywallPrompt = true
                 premiumStore.checkSevenDayPromptIfNeeded()
@@ -1518,7 +1523,7 @@ struct HomeView: View {
                 subtitle: keyMetricsSubtitle,
                 state: keyMetricsState
             ),
-            onAddMeasurement: { showQuickAddSheet = true },
+            onAddMeasurement: { presentQuickAdd(source: .quickAdd) },
             onOpenMeasurements: { router.selectTab(.measurements) },
             onEdit: openTrackedMetricsSettings
         ) {
@@ -2546,7 +2551,7 @@ struct HomeView: View {
         case .streakDetail:
             showStreakDetail = true
         case .quickAdd:
-            showQuickAddSheet = true
+            presentQuickAdd(source: .quickAdd)
         case .metricDetail:
             // Navigate to measurements tab; in-app navigation to specific metric
             // uses the existing measurements tab which lists all metrics.
@@ -3667,7 +3672,7 @@ struct HomeView: View {
         Haptics.selection()
         if isFreshHomeState {
             quickAddKinds = [.weight]
-            showQuickAddSheet = true
+            presentQuickAdd(source: .quickAdd)
             return
         }
         switch nextFocusInsight.action {
@@ -3707,17 +3712,33 @@ struct HomeView: View {
         )
     }
 
+    private func presentQuickAdd(source: MeasurementTelemetrySource) {
+        quickAddTelemetrySource = source
+        showQuickAddSheet = true
+    }
+
+    private func trackCurrentActivationTaskViewed() {
+        guard let task = activationCurrentTask,
+              let index = activationTaskSequence.firstIndex(of: task) else {
+            return
+        }
+        Analytics.shared.track(
+            AnalyticsEvents.activationTaskViewed(
+                task: task.rawValue,
+                position: index + 1,
+                source: "activation_hub"
+            )
+        )
+    }
+
     private func performActivationPrimaryAction() {
         guard let task = activationCurrentTask else { return }
-        Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.activation.task_started",
-            parameters: ["task": task.rawValue]
-        )
+        Analytics.shared.track(AnalyticsEvents.activationTaskStarted(task: task.rawValue))
         Haptics.selection()
 
         switch task {
         case .firstMeasurement:
-            showQuickAddSheet = true
+            presentQuickAdd(source: .activation)
         case .addPhoto:
             showActivationAddPhotoSheet = true
         case .chooseMetrics:
@@ -3737,7 +3758,7 @@ struct HomeView: View {
             }
         case .explorePremium:
             onboardingChecklistPremiumExplored = true
-            premiumStore.presentPaywall(reason: .onboarding)
+            premiumStore.presentPaywall(reason: .activation)
             completeActivationTask(.explorePremium)
         }
     }
@@ -3745,17 +3766,24 @@ struct HomeView: View {
     private func acceptActivationReminderPrompt() {
         guard !isRequestingActivationReminder else { return }
         isRequestingActivationReminder = true
-        Analytics.shared.track(.notificationsPromptShown)
+        Analytics.shared.track(AnalyticsEvents.notificationsPermissionPrompted(source: .activation))
 
         Task { @MainActor in
             let granted = await effects.requestNotificationAuthorization()
             effects.setNotificationsEnabled(granted)
             onboardingSkippedReminders = !granted
+            Analytics.shared.track(
+                AnalyticsEvents.notificationsPermissionResolved(
+                    source: .activation,
+                    result: granted ? "granted" : "denied"
+                )
+            )
 
             if granted {
                 effects.seedTomorrowReminder()
-                Analytics.shared.track(.notificationsAccepted)
-                Analytics.shared.track(.remindersSetupCompleted)
+                Analytics.shared.track(
+                    AnalyticsEvents.remindersSeeded(source: .activation, repeatRule: .once)
+                )
             }
 
             isRequestingActivationReminder = false
@@ -3765,6 +3793,12 @@ struct HomeView: View {
 
     private func declineActivationReminderPrompt() {
         onboardingSkippedReminders = true
+        Analytics.shared.track(
+            AnalyticsEvents.notificationsPermissionResolved(
+                source: .activation,
+                result: "dismissed"
+            )
+        )
         finishPendingActivationMetricCompletion()
     }
 
@@ -3779,8 +3813,7 @@ struct HomeView: View {
         skipped.insert(task.rawValue)
         activationSkippedTaskIDsRaw = skipped.sorted().joined(separator: ",")
         Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.activation.task_skipped",
-            parameters: ["task": task.rawValue]
+            AnalyticsEvents.activationTaskSkipped(task: task.rawValue, skipReason: "user_skipped")
         )
         advanceActivation(from: task)
     }
@@ -3789,10 +3822,7 @@ struct HomeView: View {
         var completed = activationCompletedTaskIDs
         completed.insert(task.rawValue)
         activationCompletedTaskIDsRaw = completed.sorted().joined(separator: ",")
-        Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.activation.task_completed",
-            parameters: ["task": task.rawValue]
-        )
+        Analytics.shared.track(AnalyticsEvents.activationTaskCompleted(task: task.rawValue))
         advanceActivation(from: task)
     }
 
@@ -3806,8 +3836,10 @@ struct HomeView: View {
             activationIsDismissed = true
             settingsStore.setHomeModuleVisibility(false, for: .activationHub)
             Analytics.shared.track(
-                signalName: "com.jacekzieba.measureme.activation.completed_all",
-                parameters: [:]
+                AnalyticsEvents.activationCompleted(
+                    completedTasksCount: activationCompletedTaskIDs.count,
+                    skippedTasksCount: activationSkippedTaskIDs.count
+                )
             )
         }
         rebuildDashboardItemsCache()
@@ -3884,9 +3916,15 @@ struct HomeView: View {
     }
 
     private func trackPrimaryChecklistShownIfNeeded() {
-        guard !didTrackPrimaryChecklistShown, primaryChecklistItem != nil else { return }
+        guard !didTrackPrimaryChecklistShown, let primaryChecklistItem else { return }
         didTrackPrimaryChecklistShown = true
-        Analytics.shared.track(.checklistTaskShown)
+        Analytics.shared.track(
+            AnalyticsEvents.checklistItemViewed(
+                item: primaryChecklistItem.id,
+                source: "home_checklist",
+                task: activationCurrentTask?.rawValue
+            )
+        )
     }
 
     private func autoHideChecklistIfCompleted() {
@@ -3903,32 +3941,80 @@ struct HomeView: View {
     }
 
     private func performChecklistAction(_ id: String) {
-        Analytics.shared.track(.checklistTaskCompleted)
+        Analytics.shared.track(
+            AnalyticsEvents.checklistItemStarted(
+                item: id,
+                source: "home_checklist",
+                task: activationCurrentTask?.rawValue
+            )
+        )
         switch id {
         case "explore_metrics":
             Haptics.selection()
             router.selectedTab = .measurements
+            Analytics.shared.track(
+                AnalyticsEvents.checklistItemCompleted(
+                    item: id,
+                    source: "home_checklist",
+                    task: activationCurrentTask?.rawValue
+                )
+            )
         case "first_measurement":
             Haptics.selection()
-            showQuickAddSheet = true
+            presentQuickAdd(source: .quickAdd)
+            Analytics.shared.track(
+                AnalyticsEvents.checklistItemCompleted(
+                    item: id,
+                    source: "home_checklist",
+                    task: activationCurrentTask?.rawValue
+                )
+            )
         case "first_photo":
             Haptics.selection()
             router.selectedTab = .photos
+            Analytics.shared.track(
+                AnalyticsEvents.checklistItemCompleted(
+                    item: id,
+                    source: "home_checklist",
+                    task: activationCurrentTask?.rawValue
+                )
+            )
         case "choose_metrics":
             Haptics.selection()
             onboardingChecklistMetricsCompleted = true
             settingsOpenTrackedMeasurements = true
             router.selectedTab = .settings
+            Analytics.shared.track(
+                AnalyticsEvents.checklistItemCompleted(
+                    item: id,
+                    source: "home_checklist",
+                    task: activationCurrentTask?.rawValue
+                )
+            )
         case "reminders":
             Haptics.selection()
             settingsOpenReminders = true
             router.selectedTab = .settings
+            Analytics.shared.track(
+                AnalyticsEvents.checklistItemCompleted(
+                    item: id,
+                    source: "home_checklist",
+                    task: activationCurrentTask?.rawValue
+                )
+            )
         case "healthkit":
             connectHealthKitFromChecklist()
         case "premium":
             Haptics.light()
             onboardingChecklistPremiumExplored = true
-            premiumStore.presentPaywall(reason: .onboarding)
+            premiumStore.presentPaywall(reason: .checklist)
+            Analytics.shared.track(
+                AnalyticsEvents.checklistItemCompleted(
+                    item: id,
+                    source: "home_checklist",
+                    task: activationCurrentTask?.rawValue
+                )
+            )
         default:
             break
         }
@@ -3949,6 +4035,13 @@ struct HomeView: View {
                 onboardingSkippedHealthKit = true
                 checklistStatusText = AppLocalization.string("Connected to Apple Health.")
                 shouldShowHealthSettingsShortcut = false
+                Analytics.shared.track(
+                    AnalyticsEvents.checklistItemCompleted(
+                        item: "healthkit",
+                        source: "home_checklist",
+                        task: activationCurrentTask?.rawValue
+                    )
+                )
                 Haptics.success()
                 refreshChecklistState()
             } catch {
@@ -4001,7 +4094,7 @@ struct HomeView: View {
                             .foregroundStyle(AppColorRoles.textSecondary)
 
                         Button {
-                            showQuickAddSheet = true
+                            presentQuickAdd(source: .quickAdd)
                         } label: {
                             Text(AppLocalization.string("Add measurement"))
                                 .foregroundStyle(AppColorRoles.textOnAccent)

@@ -254,7 +254,7 @@ struct PhotoView: View {
             // Deep link / empty state — opens AddPhotoView without a photo
             .sheet(isPresented: $showAddPhoto) {
                 NavigationStack {
-                    AddPhotoView()
+                    AddPhotoView(telemetrySource: .photos)
                         .environmentObject(metricsStore)
                 }
             }
@@ -279,7 +279,7 @@ struct PhotoView: View {
                 capturedImportImage = nil
             }) {
                 NavigationStack {
-                    AddPhotoView(previewImage: capturedImportImage)
+                    AddPhotoView(previewImage: capturedImportImage, telemetrySource: .photos)
                         .environmentObject(metricsStore)
                 }
             }
@@ -296,7 +296,11 @@ struct PhotoView: View {
             // which eliminates "sheet-on-sheet" and provides a smoother transition after PHPicker dismiss.
             .navigationDestination(isPresented: $showSingleImportFlow) {
                 if singlePickerImage != nil || singlePickerSource != nil {
-                    AddPhotoView(previewImage: singlePickerImage, previewSource: singlePickerSource)
+                    AddPhotoView(
+                        previewImage: singlePickerImage,
+                        previewSource: singlePickerSource,
+                        telemetrySource: .photos
+                    )
                         .environmentObject(metricsStore)
                 } else {
                     EmptyView()

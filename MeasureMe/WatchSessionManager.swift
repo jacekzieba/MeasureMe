@@ -137,7 +137,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
             guard !saveEntries.isEmpty else { return }
 
             do {
-                try saveService.save(entries: saveEntries, date: date, unitsSystem: units)
+                try saveService.save(entries: saveEntries, date: date, unitsSystem: units, source: .watch)
                 await saveService.syncHealthKit(entries: saveEntries, date: date)
             } catch {
                 AppLog.debug("⚠️ Watch measurement save failed: \(error.localizedDescription)")

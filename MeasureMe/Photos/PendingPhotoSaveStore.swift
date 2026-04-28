@@ -58,6 +58,7 @@ private nonisolated struct PendingPhotoSpoolRecord: Codable {
     let tags: [String]
     let metricValues: [PendingPhotoSaveMetricRecord]
     let unitsSystem: String
+    let telemetrySource: String?
 }
 
 private struct PendingEnqueuePreparedArtifacts {
@@ -260,6 +261,7 @@ final class PendingPhotoSaveStore: ObservableObject {
         tags: Set<PhotoTag>,
         metricValues: [MetricKind: Double],
         unitsSystem: String,
+        telemetrySource: PhotoTelemetrySource = .photos,
         batchID: UUID? = nil
     ) async throws -> UUID {
         guard modelContainer != nil else {
@@ -281,7 +283,8 @@ final class PendingPhotoSaveStore: ObservableObject {
             date: date,
             tags: tags.map(\.rawValue),
             metricValues: metricRecords,
-            unitsSystem: unitsSystem
+            unitsSystem: unitsSystem,
+            telemetrySource: telemetrySource.rawValue
         )
 
         do {
@@ -307,6 +310,7 @@ final class PendingPhotoSaveStore: ObservableObject {
 
         insertPendingItemSorted(pendingItem)
         insertIntoProcessingOrder(id: pendingItem.id, createdAt: pendingItem.createdAt)
+        Analytics.shared.track(AnalyticsEvents.photoAddStarted(source: telemetrySource))
         processQueueIfNeeded()
         return id
     }
@@ -317,6 +321,7 @@ final class PendingPhotoSaveStore: ObservableObject {
         tags: Set<PhotoTag>,
         metricValues: [MetricKind: Double],
         unitsSystem: String,
+        telemetrySource: PhotoTelemetrySource = .multiImport,
         batchID: UUID = UUID(),
         progress: ((Int, Int) -> Void)? = nil
     ) async throws -> [UUID] {
@@ -336,6 +341,7 @@ final class PendingPhotoSaveStore: ObservableObject {
                     tags: tags,
                     metricValues: metricValues,
                     unitsSystem: unitsSystem,
+                    telemetrySource: telemetrySource,
                     batchID: batchID
                 )
                 queuedIDs.append(id)
@@ -554,8 +560,19 @@ final class PendingPhotoSaveStore: ObservableObject {
         )
         context.insert(entry)
         try context.save()
+        let isFirstPhoto = previousPhotoCount == 0
         AnalyticsFirstEventTracker.trackFirstPhotoIfNeeded(previousPhotoCount: previousPhotoCount)
         AnalyticsFirstEventTracker.trackSecondPhotoIfNeeded(previousPhotoCount: previousPhotoCount)
+        if let sourceRaw = record.telemetrySource,
+           let source = PhotoTelemetrySource(rawValue: sourceRaw) {
+            Analytics.shared.track(
+                AnalyticsEvents.photoAddCompleted(source: source, isFirstPhoto: isFirstPhoto)
+            )
+        } else {
+            Analytics.shared.track(
+                AnalyticsEvents.photoAddCompleted(source: .photos, isFirstPhoto: isFirstPhoto)
+            )
+        }
 
         return (
             entryPersistentModelID: entry.persistentModelID,

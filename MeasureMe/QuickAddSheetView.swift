@@ -5,6 +5,7 @@ struct QuickAddSheetView: View {
     let kinds: [MetricKind]
     let latest: [MetricKind: (value: Double, date: Date)]
     let unitsSystem: String
+    let telemetrySource: MeasurementTelemetrySource
     var customDefinitions: [CustomMetricDefinition] = []
     var customLatest: [String: (value: Double, date: Date)] = [:]
     var onSaved: () -> Void
@@ -44,6 +45,7 @@ struct QuickAddSheetView: View {
         kinds: [MetricKind],
         latest: [MetricKind: (value: Double, date: Date)],
         unitsSystem: String,
+        telemetrySource: MeasurementTelemetrySource = .quickAdd,
         customDefinitions: [CustomMetricDefinition] = [],
         customLatest: [String: (value: Double, date: Date)] = [:],
         onSaved: @escaping () -> Void
@@ -51,6 +53,7 @@ struct QuickAddSheetView: View {
         self.kinds = kinds
         self.latest = latest
         self.unitsSystem = unitsSystem
+        self.telemetrySource = telemetrySource
         self.customDefinitions = customDefinitions
         self.customLatest = customLatest
         self.onSaved = onSaved
@@ -772,7 +775,7 @@ struct QuickAddSheetView: View {
         )
 
         do {
-            try service.save(entries: entries, date: date, unitsSystem: unitsSystem)
+            try service.save(entries: entries, date: date, unitsSystem: unitsSystem, source: telemetrySource)
             await MainActor.run {
                 NotificationManager.shared.scheduleAINotificationsIfNeeded(
                     context: context,

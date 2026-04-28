@@ -32,7 +32,12 @@ final class QuickAddSaveService {
     }
 
     /// Dodaje probki do kontekstu i zapisuje.
-    func save(entries: [Entry], date: Date, unitsSystem: String) throws {
+    func save(
+        entries: [Entry],
+        date: Date,
+        unitsSystem: String,
+        source: MeasurementTelemetrySource = .quickAdd
+    ) throws {
         guard !entries.isEmpty else { return }
 
         let previousMetricCount = AnalyticsFirstEventTracker.metricCount(in: context)
@@ -41,6 +46,13 @@ final class QuickAddSaveService {
             context.insert(MetricSample(kind: entry.kind, value: entry.metricValue, date: date))
         }
         try context.save()
+        Analytics.shared.track(
+            AnalyticsEvents.measurementSaved(
+                source: source,
+                metricsCount: entries.count,
+                isFirstMeasurement: previousMetricCount == 0
+            )
+        )
         AnalyticsFirstEventTracker.trackFirstMetricIfNeeded(previousMetricCount: previousMetricCount)
         AnalyticsFirstEventTracker.trackSecondMetricIfNeeded(previousMetricCount: previousMetricCount)
         streak.recordMetricSaved(date: date)

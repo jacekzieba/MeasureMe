@@ -256,7 +256,8 @@ struct AddMeasurementIntent: AppIntent {
             try saveService.save(
                 entries: [.init(kind: validated.kind, metricValue: validated.metricValue)],
                 date: timestamp,
-                unitsSystem: unitsSystem
+                unitsSystem: unitsSystem,
+                source: .intent
             )
 
             if validated.kind.isHealthSynced {

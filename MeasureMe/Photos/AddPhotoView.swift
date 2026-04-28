@@ -9,6 +9,7 @@ struct AddPhotoView: View {
 
     private let initialPreviewSource: PhotoLibraryImageSource?
     private let onSaved: (() -> Void)?
+    private let telemetrySource: PhotoTelemetrySource
     @State private var selectedImage: UIImage?
     @State private var didLoadInitialSource = false
     @State private var isLoadingPreview = false
@@ -34,10 +35,12 @@ struct AddPhotoView: View {
     init(
         previewImage: UIImage? = nil,
         previewSource: PhotoLibraryImageSource? = nil,
+        telemetrySource: PhotoTelemetrySource = .photos,
         onSaved: (() -> Void)? = nil
     ) {
         self.initialPreviewSource = previewSource
         self.onSaved = onSaved
+        self.telemetrySource = telemetrySource
         self._selectedImage = State(initialValue: previewImage)
         self._isLoadingPreview = State(initialValue: previewImage == nil && previewSource != nil)
     }
@@ -373,7 +376,8 @@ private extension AddPhotoView {
                 date: date,
                 tags: selectedTags,
                 metricValues: sanitizedMetricValues,
-                unitsSystem: unitsSystem
+                unitsSystem: unitsSystem,
+                telemetrySource: telemetrySource
             )
             let enqueueMs = milliseconds(from: enqueueStart.duration(to: .now))
             let dismissStart = ContinuousClock.now
