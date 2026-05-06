@@ -410,7 +410,7 @@ struct PhotoView: View {
 
     func openCompare(using olderPhoto: PhotoEntry, _ newerPhoto: PhotoEntry) {
         guard premiumStore.isPremium else {
-            premiumStore.presentPaywall(reason: .feature("Photo Comparison"))
+            premiumStore.presentPaywall(reason: .photoComparison)
             return
         }
         let sorted = [olderPhoto, newerPhoto].sorted { $0.date < $1.date }

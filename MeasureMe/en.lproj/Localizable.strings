@@ -606,6 +606,23 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "premium.carousel.photos.body" = "Compare photos over time. See changes the scale can't show.";
 "premium.carousel.indicators.title" = "Beyond the Scale";
 "premium.carousel.indicators.body" = "Health and physique indicators show what your numbers mean for health and visual progress.";
+"premium.carousel.photos.unlimited.title" = "Unlimited progress photos";
+"premium.carousel.photos.unlimited.body" = "Log every checkpoint. Tag, filter, and compare side-by-side without storage limits.";
+"premium.carousel.photos.unlimited.feature.unlimited" = "Unlimited photo logging";
+"premium.carousel.photos.unlimited.feature.tags" = "Custom tags & filters";
+"premium.carousel.photos.unlimited.feature.compare" = "Side-by-side comparison";
+"premium.carousel.icloud.title" = "iCloud backup";
+"premium.carousel.icloud.body" = "Your measurements and photos stay safe — encrypted, synced across all your devices.";
+"premium.carousel.icloud.feature.auto" = "Daily auto-backup";
+"premium.carousel.icloud.feature.encrypted" = "End-to-end encryption";
+"premium.carousel.icloud.feature.restore" = "Restore on any device";
+"premium.carousel.icloud.chip.today" = "Today";
+"premium.carousel.icloud.chip.yesterday" = "Yesterday";
+"premium.carousel.export.title" = "Export your data";
+"premium.carousel.export.body" = "Download CSV reports of every metric. Take your data anywhere — to your trainer, doctor, or spreadsheet.";
+"premium.carousel.export.feature.csv" = "CSV export of all measurements";
+"premium.carousel.export.feature.timeline" = "Export photo timeline";
+"premium.carousel.export.feature.reports" = "Share progress reports";
 "premium.carousel.unlock.title" = "Train smarter. See real progress.";
 "premium.carousel.unlock.body" = "Get everything in one place, including iCloud sync and backups, to stay consistent and move faster with confidence.";
 "premium.carousel.unlock.item.ai" = "Unlimited AI Body Insights";
@@ -2020,3 +2037,44 @@ The thresholds differ between males and females due to different body compositio
 "Unlock photos" = "Unlock photos";
 "Unlock to view progress photos." = "Unlock to view progress photos.";
 "Upgrade to Premium Edition to unlock AI Insights." = "Upgrade to Premium Edition to unlock AI Insights.";
+
+"premium.plan.lifetime" = "Lifetime";
+"premium.plan.billing.lifetime" = "One-time payment";
+"premium.cta.lifetime" = "Unlock lifetime access";
+"premium.cta.billed.lifetime" = "One-time purchase. No subscription.";
+"premium.lifetime.more.options" = "More options";
+"premium.lifetime.tagline" = "Pay once, yours forever";
+
+"premium.plan.flexible" = "Flexible";
+"premium.plan.one.time" = "One-time purchase";
+
+// Carousel — bullets per slide (3 each)
+"premium.carousel.analyst.bullet.1" = "Unlimited AI Body Insights";
+"premium.carousel.analyst.bullet.2" = "Health Summary";
+"premium.carousel.analyst.bullet.3" = "Smart progress explanations";
+"premium.carousel.photos.bullet.1" = "Side-by-side photo comparison";
+"premium.carousel.photos.bullet.2" = "Unlimited progress photos";
+"premium.carousel.photos.bullet.3" = "Tags, filters, and checkpoints";
+"premium.carousel.indicators.bullet.1" = "Waist-to-height ratio";
+"premium.carousel.indicators.bullet.2" = "Body shape indicators";
+"premium.carousel.indicators.bullet.3" = "Trend-based interpretation";
+"premium.carousel.icloud.bullet.1" = "iCloud sync";
+"premium.carousel.icloud.bullet.2" = "Backup restore";
+"premium.carousel.icloud.bullet.3" = "Private by design";
+"premium.carousel.export.bullet.1" = "CSV export";
+"premium.carousel.export.bullet.2" = "JSON export";
+"premium.carousel.export.bullet.3" = "PDF progress reports";
+"premium.carousel.everything.bullet.1" = "Goal prediction";
+"premium.carousel.everything.bullet.2" = "Home Screen & Lock Screen widgets";
+"premium.carousel.everything.bullet.3" = "All current and future Premium features";
+
+// Soft prompts
+"premium.soft.prompt.post_measurement.title" = "You've started building a trend";
+"premium.soft.prompt.post_measurement.body" = "Premium can explain what's changing and what to adjust next.";
+"premium.discover.card.title" = "See what your progress means";
+"premium.discover.card.body" = "Unlock AI insights, photo comparison, exports, and backup.";
+"premium.discover.card.cta" = "Explore Premium";
+
+// Accessibility
+"accessibility.premium.slide.position" = "Slide %@ of %@: %@";
+"accessibility.premium.slide.dot" = "Slide %@ of %@";

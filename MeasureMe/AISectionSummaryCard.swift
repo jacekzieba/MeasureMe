@@ -66,7 +66,7 @@ struct AISectionSummaryCard: View {
                     .foregroundStyle(AppColorRoles.textSecondary)
 
                 Button {
-                    premiumStore.presentPaywall(reason: .feature("AI Insights"))
+                    premiumStore.presentPaywall(reason: .aiInsights)
                 } label: {
                     Text(AppLocalization.aiString("Unlock AI Insights"))
                         .font(AppTypography.captionEmphasis)

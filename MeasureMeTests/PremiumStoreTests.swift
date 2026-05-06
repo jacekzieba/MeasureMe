@@ -447,6 +447,103 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertTrue(store.markPurchaseTrackedIfNeeded(purchaseKey: "yearly"))
     }
 
+    func test_premiumConstants_includeLifetimeProductIdentifiers() {
+        XCTAssertEqual(PremiumConstants.lifetimeProductID, "com.measureme.premium.lifetime")
+        XCTAssertTrue(PremiumConstants.allowedPackageIDs.contains(PremiumConstants.lifetimePackageID))
+        XCTAssertTrue(PremiumConstants.allowedPackageIDs.contains(PremiumConstants.revenueCatLifetimePackageID))
+    }
+
+    // MARK: - PaywallReason context shape (Premium refresh)
+
+    @MainActor
+    func test_paywallReason_initialSlideKind_routesToCorrectSlide() {
+        XCTAssertEqual(PremiumStore.PaywallReason.aiInsights.initialSlideKind, .analyst)
+        XCTAssertEqual(PremiumStore.PaywallReason.photoComparison.initialSlideKind, .photos)
+        XCTAssertEqual(PremiumStore.PaywallReason.premiumMetric.initialSlideKind, .beyondScale)
+        XCTAssertEqual(PremiumStore.PaywallReason.iCloudSync.initialSlideKind, .iCloud)
+        XCTAssertEqual(PremiumStore.PaywallReason.export.initialSlideKind, .export)
+        XCTAssertEqual(PremiumStore.PaywallReason.widgets.initialSlideKind, .everything)
+        XCTAssertEqual(PremiumStore.PaywallReason.settings.initialSlideKind, .analyst)
+    }
+
+    @MainActor
+    func test_paywallReason_allowsLifetime_onlyForSettings() {
+        XCTAssertTrue(PremiumStore.PaywallReason.settings.allowsLifetime)
+        XCTAssertFalse(PremiumStore.PaywallReason.aiInsights.allowsLifetime)
+        XCTAssertFalse(PremiumStore.PaywallReason.photoComparison.allowsLifetime)
+        XCTAssertFalse(PremiumStore.PaywallReason.export.allowsLifetime)
+        XCTAssertFalse(PremiumStore.PaywallReason.iCloudSync.allowsLifetime)
+        XCTAssertFalse(PremiumStore.PaywallReason.widgets.allowsLifetime)
+        XCTAssertFalse(PremiumStore.PaywallReason.premiumMetric.allowsLifetime)
+        XCTAssertFalse(PremiumStore.PaywallReason.timedPrompt.allowsLifetime)
+        XCTAssertFalse(PremiumStore.PaywallReason.postMeasurementPrompt.allowsLifetime)
+    }
+
+    // MARK: - PremiumPromptCoordinator (frequency caps)
+
+    @MainActor
+    func test_promptCoordinator_suppressesPromptWhenPremium() {
+        let store = AppSettingsStore(defaults: makeIsolatedDefaults())
+        let coordinator = PremiumPromptCoordinator(settings: store, isPremium: { true })
+        XCTAssertFalse(coordinator.shouldShow(.sevenDay))
+        XCTAssertFalse(coordinator.shouldShow(.postMeasurement))
+        XCTAssertFalse(coordinator.shouldShow(.homeDiscoveryCard))
+    }
+
+    @MainActor
+    func test_promptCoordinator_suppressesAfterTwoDismissals() {
+        let store = AppSettingsStore(defaults: makeIsolatedDefaults())
+        let coordinator = PremiumPromptCoordinator(settings: store, isPremium: { false })
+        XCTAssertTrue(coordinator.shouldShow(.postMeasurement))
+        coordinator.markDismissed(.postMeasurement)
+        // Still allowed after one dismissal (caps at 2). Need a fresh coordinator
+        // because in-session flag has not been set (markShown wasn't called).
+        let coordinator2 = PremiumPromptCoordinator(settings: store, isPremium: { false })
+        XCTAssertTrue(coordinator2.shouldShow(.postMeasurement))
+        coordinator2.markDismissed(.postMeasurement)
+        let coordinator3 = PremiumPromptCoordinator(settings: store, isPremium: { false })
+        XCTAssertFalse(coordinator3.shouldShow(.postMeasurement))
+    }
+
+    @MainActor
+    func test_promptCoordinator_oneAutomaticPromptPerSession() {
+        let store = AppSettingsStore(defaults: makeIsolatedDefaults())
+        let coordinator = PremiumPromptCoordinator(settings: store, isPremium: { false })
+        XCTAssertTrue(coordinator.shouldShow(.sevenDay))
+        coordinator.markShown(.sevenDay)
+        XCTAssertFalse(coordinator.shouldShow(.postMeasurement))
+        XCTAssertFalse(coordinator.shouldShow(.homeDiscoveryCard))
+    }
+
+    @MainActor
+    func test_promptCoordinator_enforcesSevenDayGap() {
+        let store = AppSettingsStore(defaults: makeIsolatedDefaults())
+        var clock = Date(timeIntervalSince1970: 1_000_000)
+        let coordinator = PremiumPromptCoordinator(
+            settings: store,
+            isPremium: { false },
+            now: { clock }
+        )
+        XCTAssertTrue(coordinator.shouldShow(.sevenDay))
+        coordinator.markShown(.sevenDay)
+
+        // 6 days later — still suppressed (uses fresh coordinator to clear session flag).
+        clock = clock.addingTimeInterval(6 * 24 * 3_600)
+        let later = PremiumPromptCoordinator(settings: store, isPremium: { false }, now: { clock })
+        XCTAssertFalse(later.shouldShow(.postMeasurement))
+
+        // 8 days later — allowed.
+        clock = clock.addingTimeInterval(2 * 24 * 3_600)
+        let muchLater = PremiumPromptCoordinator(settings: store, isPremium: { false }, now: { clock })
+        XCTAssertTrue(muchLater.shouldShow(.postMeasurement))
+    }
+
+    private func makeIsolatedDefaults() -> UserDefaults {
+        let suiteName = "PremiumStoreTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return defaults
+    }
 }
 
 private extension PremiumStoreTests {

@@ -162,7 +162,7 @@ struct ComparePhotosView: View {
             }
             .onAppear {
                 guard premiumStore.isPremium else {
-                    premiumStore.presentPaywall(reason: .feature("Photo Comparison"))
+                    premiumStore.presentPaywall(reason: .photoComparison)
                     dismiss()
                     return
                 }
@@ -220,7 +220,7 @@ struct ComparePhotosView: View {
 
         return Button {
             guard !mode.requiresPremium || premiumStore.isPremium else {
-                premiumStore.presentPaywall(reason: .feature("Ghost Photo Comparison"))
+                premiumStore.presentPaywall(reason: .photoComparison)
                 return
             }
             withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
@@ -647,7 +647,7 @@ struct ComparePhotosView: View {
     
     private func exportMergedComparison() {
         guard premiumStore.isPremium else {
-            premiumStore.presentPaywall(reason: .feature("Comparison Export"))
+            premiumStore.presentPaywall(reason: .export)
             return
         }
 
@@ -683,7 +683,7 @@ struct ComparePhotosView: View {
 
     private func openTransformationCard() {
         guard premiumStore.isPremium else {
-            premiumStore.presentPaywall(reason: .feature("Transformation Card"))
+            premiumStore.presentPaywall(reason: .photoComparison)
             return
         }
         showTransformationSheet = true

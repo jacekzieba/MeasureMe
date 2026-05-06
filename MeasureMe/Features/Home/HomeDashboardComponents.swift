@@ -156,8 +156,6 @@ private struct HomeDashboardBoardLayout: Layout {
             return max(nominalHeight, columns > 2 ? 168 : 180)
         case .activationHub:
             return max(nominalHeight, columns > 2 ? 190 : 210)
-        case .setupChecklist:
-            return max(nominalHeight, columns > 2 ? 176 : 188)
         }
     }
 

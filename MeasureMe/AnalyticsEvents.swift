@@ -49,6 +49,18 @@ enum AnalyticsEventName {
 
     enum Paywall {
         static let presented = "com.jacekzieba.measureme.paywall.presented"
+        static let slideSeen = "com.jacekzieba.measureme.paywall.slide_seen"
+        static let planSelected = "com.jacekzieba.measureme.paywall.plan_selected"
+        static let ctaTapped = "com.jacekzieba.measureme.paywall.cta_tapped"
+        static let closed = "com.jacekzieba.measureme.paywall.closed"
+        static let restoreTapped = "com.jacekzieba.measureme.paywall.restore_tapped"
+        static let purchaseStarted = "com.jacekzieba.measureme.paywall.purchase_started"
+        static let purchaseCancelled = "com.jacekzieba.measureme.paywall.purchase_cancelled"
+    }
+
+    enum PremiumPrompt {
+        static let softPromptSeen = "com.jacekzieba.measureme.premium.soft_prompt_seen"
+        static let softPromptDismissed = "com.jacekzieba.measureme.premium.soft_prompt_dismissed"
     }
 
     enum Notifications {
@@ -292,6 +304,69 @@ enum AnalyticsEvents {
                 "source": source.rawValue,
                 "reason": reason
             ]
+        )
+    }
+
+    static func paywallSlideSeen(slideID: String, context: String) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.Paywall.slideSeen,
+            parameters: ["slide_id": slideID, "context": context]
+        )
+    }
+
+    static func paywallPlanSelected(planID: String, context: String) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.Paywall.planSelected,
+            parameters: ["plan_id": planID, "context": context]
+        )
+    }
+
+    static func paywallCTATapped(planID: String, context: String) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.Paywall.ctaTapped,
+            parameters: ["plan_id": planID, "context": context]
+        )
+    }
+
+    static func paywallClosed(context: String) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.Paywall.closed,
+            parameters: ["context": context]
+        )
+    }
+
+    static func paywallRestoreTapped(context: String) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.Paywall.restoreTapped,
+            parameters: ["context": context]
+        )
+    }
+
+    static func paywallPurchaseStarted(planID: String, context: String) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.Paywall.purchaseStarted,
+            parameters: ["plan_id": planID, "context": context]
+        )
+    }
+
+    static func paywallPurchaseCancelled(planID: String, context: String) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.Paywall.purchaseCancelled,
+            parameters: ["plan_id": planID, "context": context]
+        )
+    }
+
+    static func premiumSoftPromptSeen(promptType: String) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.PremiumPrompt.softPromptSeen,
+            parameters: ["prompt_type": promptType]
+        )
+    }
+
+    static func premiumSoftPromptDismissed(promptType: String) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.PremiumPrompt.softPromptDismissed,
+            parameters: ["prompt_type": promptType]
         )
     }
 

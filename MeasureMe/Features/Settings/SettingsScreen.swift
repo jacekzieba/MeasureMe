@@ -62,6 +62,7 @@ struct SettingsView: View {
     @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
     @AppSetting(\.home.settingsOpenHomeSettings) private var settingsOpenHomeSettings: Bool = false
     @AppSetting(\.home.settingsOpenProfile) private var settingsOpenProfile: Bool = false
+    @AppSetting(\.home.settingsOpenHealth) private var settingsOpenHealth: Bool = false
     @AppSetting(\.experience.appAppearance) private var appAppearance: String = AppAppearance.dark.rawValue
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.experience.hapticsEnabled) private var hapticsEnabled: Bool = true
@@ -450,6 +451,9 @@ struct SettingsView: View {
             .onChange(of: settingsOpenProfile) { _, _ in
                 schedulePendingDeepLinksHandling()
             }
+            .onChange(of: settingsOpenHealth) { _, _ in
+                schedulePendingDeepLinksHandling()
+            }
             .onReceive(NotificationCenter.default.publisher(for: .settingsOpenHomeSettingsRequested)) { _ in
                 openSettingsRoute(.home)
             }
@@ -613,6 +617,11 @@ struct SettingsView: View {
             settingsOpenProfile = false
             openSettingsRoute(.profile)
         }
+
+        if settingsOpenHealth {
+            settingsOpenHealth = false
+            openSettingsRoute(.health)
+        }
     }
 
     private func schedulePendingDeepLinksHandling() {
@@ -637,7 +646,7 @@ struct SettingsView: View {
         Task { @MainActor in
             guard premiumStore.isPremium else {
                 Haptics.light()
-                premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
+                premiumStore.presentPaywall(reason: .iCloudSync)
                 return
             }
             isBackingUp = true
@@ -660,7 +669,7 @@ struct SettingsView: View {
         Task { @MainActor in
             guard premiumStore.isPremium else {
                 Haptics.light()
-                premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
+                premiumStore.presentPaywall(reason: .iCloudSync)
                 return
             }
             switch await SettingsBackupCoordinator.preflightRestore(
@@ -682,7 +691,7 @@ struct SettingsView: View {
         Task { @MainActor in
             guard premiumStore.isPremium else {
                 Haptics.light()
-                premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
+                premiumStore.presentPaywall(reason: .iCloudSync)
                 return
             }
             let result = await SettingsBackupCoordinator.performRestore(

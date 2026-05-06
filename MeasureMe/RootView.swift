@@ -83,6 +83,7 @@ struct RootView: View {
     private func handleAppear() {
         configurePendingStoreIfNeeded()
         scheduleDeferredStartupWorkIfNeeded()
+        PremiumPromptDispatcher.shared.configure(with: premiumStore)
 
         if UITestArgument.isPresent(.showTrialReminderPrompt) {
             premiumStore.showTrialReminderOptInPrompt = true

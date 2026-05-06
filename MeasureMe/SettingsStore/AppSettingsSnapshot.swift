@@ -23,6 +23,7 @@ struct AppSettingsSnapshot: Sendable {
         var settingsOpenReminders: Bool
         var settingsOpenHomeSettings: Bool
         var settingsOpenProfile: Bool
+        var settingsOpenHealth: Bool
     }
 
     struct HomeLayout: Sendable {
@@ -104,6 +105,8 @@ struct AppSettingsSnapshot: Sendable {
         var premiumEntitlement: Bool
         var premiumFirstLaunchDate: Double
         var premiumLastNagDate: Double
+        var lastAutomaticPromptDate: Double
+        var lastAutomaticPromptKind: String
     }
 
     struct Privacy: Sendable {
@@ -264,7 +267,8 @@ struct AppSettingsSnapshot: Sendable {
                 settingsOpenTrackedMeasurements: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements),
                 settingsOpenReminders: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenReminders),
                 settingsOpenHomeSettings: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenHomeSettings),
-                settingsOpenProfile: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenProfile)
+                settingsOpenProfile: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenProfile),
+                settingsOpenHealth: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenHealth)
             ),
             homeLayout: .init(
                 layoutSchemaVersion: max(defaults.integer(forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion), HomeLayoutSnapshot.currentSchemaVersion),
@@ -336,7 +340,9 @@ struct AppSettingsSnapshot: Sendable {
             premium: .init(
                 premiumEntitlement: defaults.bool(forKey: AppSettingsKeys.Premium.entitlement),
                 premiumFirstLaunchDate: defaults.double(forKey: AppSettingsKeys.Premium.firstLaunchDate),
-                premiumLastNagDate: defaults.double(forKey: AppSettingsKeys.Premium.lastNagDate)
+                premiumLastNagDate: defaults.double(forKey: AppSettingsKeys.Premium.lastNagDate),
+                lastAutomaticPromptDate: defaults.double(forKey: AppSettingsKeys.Premium.lastAutomaticPromptDate),
+                lastAutomaticPromptKind: defaults.string(forKey: AppSettingsKeys.Premium.lastAutomaticPromptKind) ?? ""
             ),
             privacy: .init(
                 requireBiometricForPhotos: defaults.object(forKey: AppSettingsKeys.Privacy.requireBiometricForPhotos) as? Bool ?? false

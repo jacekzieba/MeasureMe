@@ -11,8 +11,9 @@ enum OnboardingPriority: String, CaseIterable, Sendable {
 enum ActivationTask: String, CaseIterable, Sendable {
     case firstMeasurement
     case addPhoto
+    case personalizeProfile
+    case connectHealth
     case chooseMetrics
-    case setGoal
     case setReminders
     case explorePremium
 
@@ -319,10 +320,12 @@ enum OnboardingCopy {
             return FlowLocalization.app("Add your first measurement", "Dodaj pierwszy pomiar", "Añade tu primera medida", "Füge deine erste Messung hinzu", "Ajoutez votre première mesure", "Adicione sua primeira medição")
         case .addPhoto:
             return FlowLocalization.app("Add your first photo", "Dodaj pierwsze zdjęcie", "Añade tu primera foto", "Füge dein erstes Foto hinzu", "Ajoutez votre première photo", "Adicione sua primeira foto")
+        case .personalizeProfile:
+            return FlowLocalization.app("Personalize your profile", "Uzupełnij profil", "Personaliza tu perfil", "Profil ausfüllen", "Personnalisez votre profil", "Personalize seu perfil")
+        case .connectHealth:
+            return FlowLocalization.app("Connect Apple Health", "Połącz z Apple Health", "Conecta Apple Health", "Mit Apple Health verbinden", "Connecter Apple Health", "Conectar Apple Health")
         case .chooseMetrics:
             return FlowLocalization.app("Choose what to track", "Wybierz, co śledzić", "Elige qué seguir", "Wähle, was du verfolgen willst", "Choisissez quoi suivre", "Escolha o que acompanhar")
-        case .setGoal:
-            return FlowLocalization.app("Set your first goal", "Ustaw pierwszy cel", "Define tu primer objetivo", "Setze dein erstes Ziel", "Définissez votre premier objectif", "Defina sua primeira meta")
         case .setReminders:
             return FlowLocalization.app("Set reminders", "Ustaw przypomnienia", "Configura recordatorios", "Erinnerungen einrichten", "Définissez des rappels", "Defina lembretes")
         case .explorePremium:
@@ -350,6 +353,24 @@ enum OnboardingCopy {
                 "Ajoutez une photo pour rendre ce point de départ visuel.",
                 "Adicione uma foto para deixar esse ponto inicial visual."
             )
+        case .personalizeProfile:
+            return FlowLocalization.app(
+                "Add your height, age and gender so health indicators stay accurate.",
+                "Dodaj wzrost, wiek i płeć, aby wskaźniki zdrowia były trafne.",
+                "Añade tu altura, edad y género para que los indicadores sean precisos.",
+                "Trage Größe, Alter und Geschlecht ein, damit die Indikatoren stimmen.",
+                "Ajoutez votre taille, âge et genre pour des indicateurs précis.",
+                "Adicione altura, idade e gênero para indicadores precisos."
+            )
+        case .connectHealth:
+            return FlowLocalization.app(
+                "Sync weight, body fat and other metrics automatically with Apple Health.",
+                "Synchronizuj wagę, tkankę tłuszczową i inne pomiary z Apple Health.",
+                "Sincroniza peso, grasa corporal y otras métricas con Apple Health.",
+                "Gewicht, Körperfett und mehr automatisch mit Apple Health synchronisieren.",
+                "Synchronisez poids, masse grasse et autres avec Apple Health.",
+                "Sincronize peso, gordura corporal e mais com a Apple Health."
+            )
         case .chooseMetrics:
             return FlowLocalization.app(
                 "Pin the metrics you want on Home and Quick Add.",
@@ -358,15 +379,6 @@ enum OnboardingCopy {
                 "Pinne die Messwerte, die du auf Home und in Quick Add sehen willst.",
                 "Épinglez les mesures à afficher sur l'accueil et l'ajout rapide.",
                 "Fixe as métricas que você quer na Home e no atalho de adição."
-            )
-        case .setGoal:
-            return FlowLocalization.app(
-                "Give one tracked measurement a target to work toward.",
-                "Nadaj jednej śledzonej metryce cel do osiągnięcia.",
-                "Dale a una métrica un objetivo hacia el que avanzar.",
-                "Gib einem Messwert ein Ziel, auf das du hinarbeitest.",
-                "Donnez un objectif à une mesure suivie.",
-                "Dê uma meta para uma métrica acompanhada."
             )
         case .setReminders:
             return FlowLocalization.app(
@@ -395,10 +407,12 @@ enum OnboardingCopy {
             return FlowLocalization.app("Add measurement", "Dodaj pomiar", "Añadir medida", "Messung hinzufügen", "Ajouter une mesure", "Adicionar medição")
         case .addPhoto:
             return FlowLocalization.app("Add photo", "Dodaj zdjęcie", "Añadir foto", "Foto hinzufügen", "Ajouter une photo", "Adicionar foto")
+        case .personalizeProfile:
+            return FlowLocalization.app("Open profile", "Otwórz profil", "Abrir perfil", "Profil öffnen", "Ouvrir le profil", "Abrir perfil")
+        case .connectHealth:
+            return FlowLocalization.app("Connect", "Połącz", "Conectar", "Verbinden", "Connecter", "Conectar")
         case .chooseMetrics:
             return FlowLocalization.app("Review metrics", "Przejrzyj metryki", "Revisar métricas", "Messwerte prüfen", "Voir les mesures", "Revisar métricas")
-        case .setGoal:
-            return FlowLocalization.app("Set goal", "Ustaw cel", "Definir objetivo", "Ziel setzen", "Définir un objectif", "Definir meta")
         case .setReminders:
             return FlowLocalization.app("Set reminders", "Ustaw przypomnienia", "Configurar recordatorios", "Erinnerungen einrichten", "Définir des rappels", "Definir lembretes")
         case .explorePremium:

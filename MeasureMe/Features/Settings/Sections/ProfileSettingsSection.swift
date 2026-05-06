@@ -15,6 +15,13 @@ struct ProfileSettingsSection: View {
     @State private var heightInput: String = ""
     @State private var selectedProfilePhoto: PhotosPickerItem?
     @State private var isProcessingProfilePhoto = false
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case name
+        case age
+        case height
+    }
 
     private var genderLabel: String {
         switch userGender {
@@ -52,6 +59,9 @@ struct ProfileSettingsSection: View {
                         .font(AppTypography.body)
                         .foregroundStyle(userName.isEmpty ? AppColorRoles.textTertiary : theme.accent)
                         .frame(minWidth: 120)
+                        .focused($focusedField, equals: .name)
+                        .submitLabel(.done)
+                        .onSubmit { focusedField = nil }
                 }
 
                 SettingsRowDivider()
@@ -91,6 +101,7 @@ struct ProfileSettingsSection: View {
                         .font(AppTypography.body)
                         .foregroundStyle(ageInput.isEmpty ? AppColorRoles.textTertiary : theme.accent)
                         .frame(minWidth: 48)
+                        .focused($focusedField, equals: .age)
                     Text(AppLocalization.string("profile.unit.age"))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColorRoles.textSecondary)
@@ -118,6 +129,7 @@ struct ProfileSettingsSection: View {
                         .font(AppTypography.body)
                         .foregroundStyle(heightInput.isEmpty ? AppColorRoles.textTertiary : theme.accent)
                         .frame(minWidth: 64)
+                        .focused($focusedField, equals: .height)
                     Text(heightUnitSymbol)
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColorRoles.textSecondary)
@@ -151,6 +163,14 @@ struct ProfileSettingsSection: View {
         .onChange(of: selectedProfilePhoto) { _, item in
             guard let item else { return }
             Task { await importProfilePhoto(from: item) }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button(AppLocalization.string("Done")) {
+                    focusedField = nil
+                }
+            }
         }
     }
 

@@ -45,11 +45,9 @@ struct HomeView: View {
     @AppSetting(\.onboarding.onboardingSkippedHealthKit) private var onboardingSkippedHealthKit: Bool = false
     @AppSetting(\.onboarding.onboardingSkippedReminders) private var onboardingSkippedReminders: Bool = false
     // activationTriggerQuickAdd removed — first measurement now happens during onboarding
-    @AppSetting(\.onboarding.onboardingChecklistShow) private var showOnboardingChecklistOnHome: Bool = true
     @AppSetting(\.onboarding.onboardingChecklistMetricsCompleted) private var onboardingChecklistMetricsCompleted: Bool = false
     @AppSetting(\.onboarding.onboardingChecklistMetricsExplored) private var onboardingChecklistMetricsExplored: Bool = false
     @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
-    @AppSetting(\.onboarding.onboardingChecklistCollapsed) private var onboardingChecklistCollapsed: Bool = false
     @AppSetting(\.onboarding.onboardingPrimaryGoal) private var onboardingPrimaryGoalsRaw: String = ""
     @AppSetting(\.onboarding.activationCurrentTaskID) private var activationCurrentTaskID: String = ""
     @AppSetting(\.onboarding.activationCompletedTaskIDs) private var activationCompletedTaskIDsRaw: String = ""
@@ -59,6 +57,7 @@ struct HomeView: View {
     @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
     @AppSetting(\.home.settingsOpenHomeSettings) private var settingsOpenHomeSettings: Bool = false
     @AppSetting(\.home.settingsOpenProfile) private var settingsOpenProfile: Bool = false
+    @AppSetting(\.home.settingsOpenHealth) private var settingsOpenHealth: Bool = false
     @AppSetting(\.home.homePhotoMetricSyncLastDate) private var photoMetricSyncLastDate: Double = 0
     @AppSetting(\.home.homePhotoMetricSyncLastID) private var photoMetricSyncLastID: String = ""
     @AppStorage("home.comparePhotosCardDismissed") private var comparePhotosCardDismissed: Bool = false
@@ -95,8 +94,6 @@ struct HomeView: View {
     @State private var shouldShowHealthSettingsShortcut: Bool = false
     @State private var shouldPromptToOpenHealthSettings: Bool = false
     @State private var reminderChecklistCompleted: Bool = false
-    @State private var showMoreChecklistItems: Bool = false
-    @State private var didTrackPrimaryChecklistShown: Bool = false
     @State private var expandedSecondaryMetrics: Set<MetricKind> = []
     @State private var didCheckSevenDayPaywallPrompt: Bool = false
     @State private var didRunStartupPhases = false
@@ -489,7 +486,6 @@ struct HomeView: View {
 
         rebuildNextFocusInsightCache()
         refreshActivationProgress()
-        autoHideChecklistIfCompleted()
     }
 
     private func metricDeltaTextFromCache(kind: MetricKind, days: Int) -> String? {
@@ -1009,8 +1005,6 @@ struct HomeView: View {
         .toolbarBackground(scrollOffset < -16 ? .visible : .hidden, for: .navigationBar)
         .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: isLastPhotosSectionMounted)
         .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: isHealthSectionMounted)
-        .animation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate), value: showMoreChecklistItems)
-        .animation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate), value: onboardingChecklistCollapsed)
     }
 
     private func sheetPresentedHomeRoot<Content: View>(_ content: Content) -> some View {
@@ -1181,14 +1175,6 @@ struct HomeView: View {
             }
 
         let observedContent = contentWithChecklistObservers
-            .onChange(of: activeChecklistItems.count) { _, newCount in
-                withAnimation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate)) {
-                    rebuildDashboardItemsCache()
-                }
-                if newCount <= collapsedChecklistItems.count {
-                    showMoreChecklistItems = false
-                }
-            }
             .onChange(of: showMeasurementsOnHome) { _, _ in
                 rebuildDashboardItemsCache()
                 rebuildNextFocusInsightCache()
@@ -1197,9 +1183,6 @@ struct HomeView: View {
                 rebuildDashboardItemsCache()
             }
             .onChange(of: showHealthMetricsOnHome) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-            .onChange(of: showOnboardingChecklistOnHome) { _, _ in
                 rebuildDashboardItemsCache()
             }
             .onChange(of: router.selectedTab) { _, newTab in
@@ -1229,9 +1212,17 @@ struct HomeView: View {
             if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
                 didCheckSevenDayPaywallPrompt = true
                 premiumStore.checkSevenDayPromptIfNeeded()
-            }
-            if UITestArgument.isPresent(.expandChecklist) {
-                showMoreChecklistItems = true
+                // Home discovery prompt — only if user has built up enough data
+                // to feel value (≥2 measurements OR ≥1 photo). Coordinator
+                // handles all frequency capping.
+                if !premiumStore.isPremium {
+                    let hasEnoughData = AnalyticsFirstEventTracker.metricCount(in: modelContext) >= 2
+                        || hasEnoughSavedPhotosForCompare
+                        || latestSavedPhoto != nil
+                    if hasEnoughData {
+                        PremiumPromptDispatcher.shared.maybePresentHomeDiscoveryPrompt()
+                    }
+                }
             }
             emitHomeInitialRenderIfNeeded()
             runStartupPhasesIfNeeded()
@@ -1243,8 +1234,9 @@ struct HomeView: View {
     }
 
     private func scrollToChecklist(using scrollProxy: ScrollViewProxy) {
+        let targetID = HomeModuleKind.activationHub.rawValue
         withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-            scrollProxy.scrollTo(HomeModuleKind.activationHub.rawValue, anchor: .top)
+            scrollProxy.scrollTo(targetID, anchor: .top)
         }
     }
 
@@ -1257,10 +1249,6 @@ struct HomeView: View {
                 homeTabScrollOffset = normalizedOffset
             }
         }
-    }
-
-    private func handleUITestShowMoreChecklistTap() {
-        showMoreChecklistItems = true
     }
 
     private func refreshHomeContent() async {
@@ -1294,9 +1282,7 @@ struct HomeView: View {
         case .healthSummary:
             return false
         case .activationHub:
-            return false
-        case .setupChecklist:
-            return false
+            return showActivationHub
         }
     }
 
@@ -1314,9 +1300,7 @@ struct HomeView: View {
         case .healthSummary:
             healthSummaryModule
         case .activationHub:
-            EmptyView()
-        case .setupChecklist:
-            EmptyView()
+            activationHubModule
         }
     }
 
@@ -1326,18 +1310,6 @@ struct HomeView: View {
 
     private var homeHeroTint: Color {
         colorScheme == .dark ? homeTheme.strongTint : .clear
-    }
-
-    private var neutralRowFill: Color {
-        AppColorRoles.surfaceInteractive
-    }
-
-    private var neutralRowStroke: Color {
-        AppColorRoles.borderSubtle
-    }
-
-    private var checklistIconSurface: Color {
-        colorScheme == .dark ? Color.white.opacity(0.08) : AppColorRoles.surfaceAccentSoft
     }
 
     private var homeTheme: FeatureTheme {
@@ -1371,7 +1343,7 @@ struct HomeView: View {
             analysisItems: homeAIAnalysisItems,
             onUnlockPremium: {
                 Haptics.selection()
-                premiumStore.presentPaywall(reason: .feature("AI Insights"))
+                premiumStore.presentPaywall(reason: .aiInsights)
             },
             onOpenProfile: {
                 Haptics.selection()
@@ -2068,7 +2040,7 @@ struct HomeView: View {
                     onOpenHealth: { router.openMeasurementsSection("health") },
                     onOpenPremium: {
                         Haptics.selection()
-                        premiumStore.presentPaywall(reason: .feature("Health Summary & Physique"))
+                        premiumStore.presentPaywall(reason: .premiumMetric)
                     }
                 )
             } else {
@@ -2097,43 +2069,6 @@ struct HomeView: View {
         )
     }
 
-    private var checklistModule: some View {
-        HomeChecklistCard(
-            snapshot: HomeChecklistSnapshot(
-                activeCount: activeChecklistItems.count,
-                isCollapsed: onboardingChecklistCollapsed,
-                showMoreVisible: !showMoreChecklistItems && activeChecklistItems.count > collapsedChecklistItems.count,
-                remainingCount: max(activeChecklistItems.count - collapsedChecklistItems.count, 0),
-                statusText: checklistStatusText
-            ),
-            items: shownChecklistItems.map {
-                HomeChecklistItemViewModel(
-                    id: $0.id,
-                    title: $0.title,
-                    detail: $0.detail,
-                    icon: $0.icon
-                )
-            },
-            iconSurface: checklistIconSurface,
-            rowFill: neutralRowFill,
-            rowStroke: neutralRowStroke,
-            onHide: {
-                Haptics.selection()
-                showOnboardingChecklistOnHome = false
-                settingsStore.setHomeModuleVisibility(false, for: .setupChecklist)
-            },
-            onToggleCollapse: {
-                Haptics.selection()
-                onboardingChecklistCollapsed.toggle()
-            },
-            onItemTap: performChecklistAction,
-            onShowMore: {
-                Haptics.selection()
-                showMoreChecklistItems = true
-            }
-        )
-    }
-
     private var activationCurrentTask: ActivationTask? {
         guard onboardingFlowVersion >= 2 else { return nil }
         guard !activationCurrentTaskID.isEmpty else { return nil }
@@ -2147,7 +2082,15 @@ struct HomeView: View {
     }
 
     private var activationTaskSequence: [ActivationTask] {
-        var sequence: [ActivationTask] = [.firstMeasurement, .addPhoto, .chooseMetrics, .setGoal, .setReminders, .explorePremium]
+        var sequence: [ActivationTask] = [
+            .firstMeasurement,
+            .addPhoto,
+            .personalizeProfile,
+            .connectHealth,
+            .chooseMetrics,
+            .setReminders,
+            .explorePremium
+        ]
         if premiumStore.isPremium {
             sequence.removeAll { $0 == .explorePremium }
         }
@@ -2927,288 +2870,6 @@ struct HomeView: View {
         }
     }
 
-    private var checklistItems: [SetupChecklistItem] {
-        var items: [SetupChecklistItem] = [
-            SetupChecklistItem(
-                id: "first_measurement",
-                title: AppLocalization.string("First measurement"),
-                detail: AppLocalization.string("Start your trend with one quick check-in."),
-                icon: "ruler.fill",
-                isCompleted: hasAnyMeasurements,
-                isLoading: false
-            ),
-            SetupChecklistItem(
-                id: "first_photo",
-                title: AppLocalization.string("First Photo"),
-                detail: AppLocalization.string("Photos make progress easier to notice."),
-                icon: "camera.fill",
-                isCompleted: hasAnyPhotoContent,
-                isLoading: false
-            )
-        ]
-
-        items.append(
-            SetupChecklistItem(
-                id: "healthkit",
-                title: AppLocalization.string("Apple Health"),
-                detail: AppLocalization.string("Import history and keep data in sync."),
-                icon: "heart.text.square",
-                isCompleted: isSyncEnabled,
-                isLoading: isChecklistConnectingHealth
-            )
-        )
-
-        let activeMetricCount = metricsStore.activeKinds.count
-        let totalMetricCount = metricsStore.allKindsInOrder.count
-        let inactiveMetricCount = totalMetricCount - activeMetricCount
-        items.append(
-            SetupChecklistItem(
-                id: "choose_metrics",
-                title: AppLocalization.string("Choose metrics"),
-                detail: inactiveMetricCount > 0
-                    ? AppLocalization.string("checklist.choosemetrics.detail.dynamic", activeMetricCount, inactiveMetricCount)
-                    : AppLocalization.string("Track only what matters to you."),
-                icon: "slider.horizontal.3",
-                isCompleted: onboardingChecklistMetricsCompleted,
-                isLoading: false
-            )
-        )
-
-        if onboardingSkippedReminders {
-            items.append(
-                SetupChecklistItem(
-                    id: "reminders",
-                    title: AppLocalization.string("Set reminders"),
-                    detail: AppLocalization.string("One weekly nudge helps keep the habit."),
-                    icon: "bell.badge",
-                    isCompleted: reminderChecklistCompleted,
-                    isLoading: false
-                )
-            )
-        }
-
-        return items
-    }
-
-    private var activeChecklistItems: [SetupChecklistItem] {
-        checklistItems.filter { !$0.isCompleted }
-    }
-
-    private var allChecklistItemsCompleted: Bool {
-        !checklistItems.isEmpty && checklistItems.allSatisfy(\.isCompleted)
-    }
-
-    private var collapsedChecklistItems: [SetupChecklistItem] {
-        Array(activeChecklistItems.prefix(3))
-    }
-
-    private var shownChecklistItems: [SetupChecklistItem] {
-        if showMoreChecklistItems {
-            return activeChecklistItems
-        }
-        return collapsedChecklistItems
-    }
-
-    private var primaryChecklistItem: SetupChecklistItem? {
-        activeChecklistItems.first
-    }
-
-    private var secondaryChecklistItems: [SetupChecklistItem] {
-        guard activeChecklistItems.count > 1 else { return [] }
-        return Array(activeChecklistItems.dropFirst())
-    }
-
-    private var shownSecondaryChecklistItems: [SetupChecklistItem] {
-        showMoreChecklistItems ? secondaryChecklistItems : Array(secondaryChecklistItems.prefix(2))
-    }
-
-    private var setupChecklistSection: some View {
-        AppGlassCard(
-            depth: .base,
-            cornerRadius: 24,
-            tint: Color.appAccent.opacity(0.16),
-            contentPadding: 16
-        ) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Text(AppLocalization.string("Finish setup"))
-                        .font(AppTypography.sectionTitle)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                    Spacer()
-                    Menu {
-                        Button(AppLocalization.string("Hide checklist")) {
-                            Haptics.selection()
-                            showOnboardingChecklistOnHome = false
-                        }
-                        Button(onboardingChecklistCollapsed ? AppLocalization.string("Expand checklist") : AppLocalization.string("Collapse checklist")) {
-                            Haptics.selection()
-                            onboardingChecklistCollapsed.toggle()
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(AppColorRoles.textSecondary)
-                            .frame(width: 44, height: 44)
-                    }
-                    .accessibilityLabel(AppLocalization.string("accessibility.setup.checklist.options"))
-                    .accessibilityHint(AppLocalization.string("accessibility.setup.checklist.options.hint"))
-                }
-
-                if onboardingChecklistCollapsed {
-                    Text(AppLocalization.string("Checklist collapsed. Open menu to expand."))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColorRoles.textSecondary)
-                } else {
-                    // Primary task — large, prominent
-                    if let primary = primaryChecklistItem {
-                        Button {
-                            performChecklistAction(primary.id)
-                        } label: {
-                            HStack(spacing: 14) {
-                                Image(systemName: primary.icon)
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundStyle(Color.appAccent)
-                                    .frame(width: 40, height: 40)
-                                    .background(Color.appAccent.opacity(0.16))
-                                    .clipShape(Circle())
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(primary.title)
-                                        .font(AppTypography.bodyEmphasis)
-                                        .foregroundStyle(AppColorRoles.textPrimary)
-                                    Text(primary.detail)
-                                        .font(AppTypography.caption)
-                                        .foregroundStyle(AppColorRoles.textSecondary)
-                                        .lineLimit(2)
-                                }
-
-                                Spacer(minLength: 8)
-
-                                if primary.isLoading {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                        .tint(Color.appAccent)
-                                } else {
-                                    Image(systemName: "arrow.right.circle.fill")
-                                        .font(.system(size: 22, weight: .semibold))
-                                        .foregroundStyle(Color.appAccent)
-                                }
-                            }
-                            .padding(14)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.appAccent.opacity(0.10))
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .stroke(Color.appAccent.opacity(0.35), lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(primary.isLoading)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("\(primary.title). \(primary.detail)")
-                        .accessibilityIdentifier("home.checklist.primary.\(primary.id)")
-                        .accessibilityIdentifier("home.checklist.item.\(primary.id)")
-                    }
-
-                    // Secondary tasks — subdued
-                    if !shownSecondaryChecklistItems.isEmpty {
-                        Text(AppLocalization.string("More to set up"))
-                            .font(AppTypography.microEmphasis)
-                            .foregroundStyle(AppColorRoles.textTertiary)
-                            .padding(.top, 2)
-
-                        ForEach(shownSecondaryChecklistItems) { item in
-                            Button {
-                                performChecklistAction(item.id)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: item.icon)
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundStyle(item.isCompleted ? AppColorRoles.stateSuccess : Color.appAccent)
-                                        .frame(width: 26, height: 26)
-                                        .background(AppColorRoles.surfaceAccentSoft)
-                                        .clipShape(Circle())
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(item.title)
-                                            .font(AppTypography.captionEmphasis)
-                                            .foregroundStyle(AppColorRoles.textPrimary)
-                                        Text(item.detail)
-                                            .font(AppTypography.micro)
-                                            .foregroundStyle(AppColorRoles.textSecondary)
-                                            .lineLimit(2)
-                                    }
-
-                                    Spacer(minLength: 8)
-
-                                    if item.isLoading {
-                                        ProgressView()
-                                            .controlSize(.small)
-                                            .tint(Color.appAccent)
-                                    } else if item.isCompleted {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 15, weight: .semibold))
-                                            .foregroundStyle(AppColorRoles.stateSuccess)
-                                    } else {
-                                        Image(systemName: "chevron.right")
-                                            .font(.system(size: 11, weight: .bold))
-                                            .foregroundStyle(AppColorRoles.textTertiary)
-                                    }
-                                }
-                                .padding(10)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(AppColorRoles.surfacePrimary)
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
-                                )
-                                .opacity(0.72)
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(item.isLoading)
-                            .accessibilityElement(children: .ignore)
-                            .accessibilityLabel("\(item.title). \(item.detail)")
-                            .accessibilityIdentifier("home.checklist.item.\(item.id)")
-                        }
-
-                        if !showMoreChecklistItems, secondaryChecklistItems.count > 2 {
-                            Button {
-                                Haptics.selection()
-                                showMoreChecklistItems = true
-                            } label: {
-                                Text(AppLocalization.plural("Show %d more", secondaryChecklistItems.count - 2))
-                                    .font(AppTypography.captionEmphasis)
-                                    .foregroundStyle(Color.appAccent)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal, 2)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-
-                if let checklistStatusText {
-                    Text(checklistStatusText)
-                        .font(AppTypography.micro)
-                        .foregroundStyle(Color.appAccent)
-                }
-
-                if shouldShowHealthSettingsShortcut {
-                    Button {
-                        openAppSettings()
-                    } label: {
-                        Text(AppLocalization.string("Open iOS Settings"))
-                            .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(Color.appAccent)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
     private var trimmedUserName: String {
         userName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -3696,7 +3357,7 @@ struct HomeView: View {
         guard hasEnoughSavedPhotosForCompare else { return }
         Haptics.selection()
         guard premiumStore.isPremium else {
-            premiumStore.presentPaywall(reason: .feature("photo_compare"))
+            premiumStore.presentPaywall(reason: .photoComparison)
             return
         }
         comparePhotosCardDismissed = true
@@ -3741,14 +3402,14 @@ struct HomeView: View {
             presentQuickAdd(source: .activation)
         case .addPhoto:
             showActivationAddPhotoSheet = true
+        case .personalizeProfile:
+            settingsOpenProfile = true
+            router.selectedTab = .settings
+        case .connectHealth:
+            settingsOpenHealth = true
+            router.selectedTab = .settings
         case .chooseMetrics:
             showActivationMetricsSheet = true
-        case .setGoal:
-            if !goals.isEmpty {
-                completeActivationTask(.setGoal)
-            } else {
-                router.selectedTab = .measurements
-            }
         case .setReminders:
             if effects.reminderChecklistCompleted() {
                 completeActivationTask(.setReminders)
@@ -3851,10 +3512,17 @@ struct HomeView: View {
             return hasAnyMeasurements
         case .addPhoto:
             return hasAnyPhotoContent
+        case .personalizeProfile:
+            // Spełniony gdy user wypełni cokolwiek w Profile (płeć, wiek, wzrost, imię lub zdjęcie).
+            return userGenderRaw != "notSpecified"
+                || userAgeValue > 0
+                || manualHeight > 0
+                || !userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || profilePhotoData != nil
+        case .connectHealth:
+            return isSyncEnabled
         case .chooseMetrics:
             return onboardingChecklistMetricsCompleted
-        case .setGoal:
-            return !goals.isEmpty
         case .setReminders:
             return effects.reminderChecklistCompleted()
         case .explorePremium:
@@ -3879,8 +3547,6 @@ struct HomeView: View {
     private func refreshChecklistState() {
         reminderChecklistCompleted = effects.reminderChecklistCompleted()
         refreshActivationProgress()
-        autoHideChecklistIfCompleted()
-        trackPrimaryChecklistShownIfNeeded()
     }
 
     private func refreshActivationProgress() {
@@ -3902,41 +3568,18 @@ struct HomeView: View {
             completeActivationTask(.firstMeasurement)
         case .addPhoto where hasAnyPhotoContent:
             completeActivationTask(.addPhoto)
+        case .personalizeProfile where userGenderRaw != "notSpecified" && userAgeValue > 0 && manualHeight > 0:
+            completeActivationTask(.personalizeProfile)
+        case .connectHealth where isSyncEnabled:
+            completeActivationTask(.connectHealth)
         case .chooseMetrics where onboardingChecklistMetricsCompleted:
             completeActivationTask(.chooseMetrics)
-        case .setGoal where !goals.isEmpty:
-            completeActivationTask(.setGoal)
         case .setReminders where effects.reminderChecklistCompleted():
             completeActivationTask(.setReminders)
         case .explorePremium where premiumStore.isPremium || onboardingChecklistPremiumExplored:
             completeActivationTask(.explorePremium)
         default:
             break
-        }
-    }
-
-    private func trackPrimaryChecklistShownIfNeeded() {
-        guard !didTrackPrimaryChecklistShown, let primaryChecklistItem else { return }
-        didTrackPrimaryChecklistShown = true
-        Analytics.shared.track(
-            AnalyticsEvents.checklistItemViewed(
-                item: primaryChecklistItem.id,
-                source: "home_checklist",
-                task: activationCurrentTask?.rawValue
-            )
-        )
-    }
-
-    private func autoHideChecklistIfCompleted() {
-        guard HomeChecklistLogic.shouldAutoHideChecklist(
-            allChecklistItemsCompleted: allChecklistItemsCompleted,
-            showOnboardingChecklistOnHome: showOnboardingChecklistOnHome
-        ) else { return }
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(600))
-            withAnimation(AppMotion.animation(AppMotion.sectionExit, enabled: shouldAnimate)) {
-                showOnboardingChecklistOnHome = false
-            }
         }
     }
 

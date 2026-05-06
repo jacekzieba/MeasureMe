@@ -348,7 +348,7 @@ struct MeasurementsTabView: View {
                                     title: AppLocalization.string("Health indicators"),
                                     message: AppLocalization.string("Upgrade to Premium Edition to unlock Health Indicators.")
                                 ) {
-                                    premiumStore.presentPaywall(reason: .feature("Health indicators"))
+                                    premiumStore.presentPaywall(reason: .premiumMetric)
                                 }
                                 .padding(.horizontal, AppSpacing.md)
                             }
@@ -379,7 +379,7 @@ struct MeasurementsTabView: View {
                                     title: AppLocalization.string("Physique indicators"),
                                     message: AppLocalization.string("Upgrade to Premium Edition to unlock Physique indicators.")
                                 ) {
-                                    premiumStore.presentPaywall(reason: .feature("Physique indicators"))
+                                    premiumStore.presentPaywall(reason: .premiumMetric)
                                 }
                                 .padding(.horizontal, AppSpacing.md)
                             }

@@ -34,6 +34,7 @@ enum AppSettingsKeys {
         static let settingsOpenReminders = "settings_open_reminders"
         static let settingsOpenHomeSettings = "settings_open_home_settings"
         static let settingsOpenProfile = "settings_open_profile"
+        static let settingsOpenHealth = "settings_open_health"
     }
 
     enum Onboarding {
@@ -109,6 +110,9 @@ enum AppSettingsKeys {
         static let entitlement = "premium_entitlement"
         static let firstLaunchDate = "premium_first_launch_date"
         static let lastNagDate = "premium_last_nag_date"
+        static let lastAutomaticPromptDate = "premium_last_automatic_prompt_date"
+        static let lastAutomaticPromptKind = "premium_last_automatic_prompt_kind"
+        static let automaticPromptDismissalPrefix = "premium_automatic_prompt_dismissals_"
     }
 
     enum Privacy {
