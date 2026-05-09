@@ -43,6 +43,7 @@ struct HomeTopSummarySection: View {
     let avatarText: String
     let profilePhotoData: Data?
     let isPremium: Bool
+    let showsAIInsights: Bool
     let insights: [HomeAIInsightItem]
     let analysisItems: [HomeAIAnalysisItem]
     let onUnlockPremium: () -> Void
@@ -52,12 +53,14 @@ struct HomeTopSummarySection: View {
         VStack(alignment: .leading, spacing: 16) {
             header
 
-            HomeAIInsightsPanel(
-                isPremium: isPremium,
-                insights: insights,
-                analysisItems: analysisItems,
-                onUnlockPremium: onUnlockPremium
-            )
+            if showsAIInsights {
+                HomeAIInsightsPanel(
+                    isPremium: isPremium,
+                    insights: insights,
+                    analysisItems: analysisItems,
+                    onUnlockPremium: onUnlockPremium
+                )
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .overlay(alignment: .topLeading) {
@@ -521,7 +524,13 @@ private func metricTileScaffold<Icon: View, Chart: View>(
                 .lineLimit(1)
         }
 
-        progressBar(goalProgress, accent: style.accent)
+        progressBar(
+            goalProgress,
+            accent: style.accent,
+            emptyLabel: valueText == nil
+                ? AppLocalization.string("home.keymetrics.action.addValue")
+                : AppLocalization.string("home.keymetrics.action.setTarget")
+        )
     }
     .padding(16)
     .frame(maxWidth: .infinity, minHeight: 228, alignment: .topLeading)
@@ -535,7 +544,11 @@ private func metricTileScaffold<Icon: View, Chart: View>(
     )
 }
 
-private func progressBar(_ progress: HomeKeyMetricGoalProgress?, accent: Color) -> some View {
+private func progressBar(
+    _ progress: HomeKeyMetricGoalProgress?,
+    accent: Color,
+    emptyLabel: String
+) -> some View {
     VStack(alignment: .leading, spacing: 6) {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
@@ -548,9 +561,9 @@ private func progressBar(_ progress: HomeKeyMetricGoalProgress?, accent: Color) 
         }
         .frame(height: 5)
 
-        Text(progress?.label ?? AppLocalization.string("Set a goal to see progress."))
+        Text(progress?.label ?? emptyLabel)
             .font(AppTypography.micro)
-            .foregroundStyle(AppColorRoles.textTertiary)
+            .foregroundStyle(progress == nil ? accent : AppColorRoles.textTertiary)
             .lineLimit(1)
             .minimumScaleFactor(0.78)
     }

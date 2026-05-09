@@ -67,6 +67,21 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertEqual(tileCount.label, "2", "Recent photos should expose the comparison pair on Home")
     }
 
+    func testEmptyNonPremiumHomePrioritizesStartPlanOverAILock() {
+        launchApp(isPremium: false, seedMeasurements: false, seedPhotos: 0)
+
+        let startPlan = app.otherElements["home.module.quickActions"].firstMatch
+        XCTAssertTrue(startPlan.waitForExistence(timeout: 5), "Empty non-premium Home should show the Start Plan module")
+        XCTAssertTrue(app.staticTexts["Your progress board is almost ready"].waitForExistence(timeout: 5), "Start Plan should lead the empty Home experience")
+        XCTAssertFalse(app.staticTexts["Unlock AI Insights"].firstMatch.exists, "The large AI lock should not be the first empty Home message")
+
+        let primary = app.buttons["home.startPlan.primary"].firstMatch
+        XCTAssertTrue(primary.waitForExistence(timeout: 5), "Start Plan should expose a primary action")
+        primary.tap()
+
+        XCTAssertTrue(app.buttons["quickadd.save"].waitForExistence(timeout: 5), "First Start Plan action should open Quick Add")
+    }
+
     func testActivationHubStartsAfterFirstMeasurementOnPhotoTask() {
         launchApp(extraArguments: [
             "-uiTestActivationHub",

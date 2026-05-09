@@ -23,6 +23,7 @@ extension OnboardingView {
         case metrics
         case photos
         case health
+        case premium
 
         var analyticsName: String {
             switch self {
@@ -34,6 +35,8 @@ extension OnboardingView {
                 return "photos"
             case .health:
                 return "health"
+            case .premium:
+                return "premium"
             }
         }
     }

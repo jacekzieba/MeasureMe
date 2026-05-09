@@ -28,7 +28,17 @@ final class OnboardingFlowTests: XCTestCase {
 
     func testMaintainRecompKeepsImproveHealthRawValueForCompatibility() {
         XCTAssertEqual(OnboardingPriority.improveHealth.rawValue, "improveHealth")
-        XCTAssertEqual(OnboardingCopy.priorityTitle(.improveHealth), "Recomposition")
+        XCTAssertEqual(
+            OnboardingCopy.priorityTitle(.improveHealth),
+            FlowLocalization.app(
+                "Recomposition",
+                "Rekompozycja",
+                "Recomposición",
+                "Rekomposition",
+                "Recomposition",
+                "Recomposição"
+            )
+        )
         XCTAssertEqual(OnboardingView.WelcomeGoal.trackHealth.priority, .improveHealth)
         XCTAssertEqual(OnboardingView.WelcomeGoal.trackHealth.title, "Maintain / recomp")
     }
@@ -37,6 +47,14 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertEqual(OnboardingView.WelcomeGoal.loseWeight.priority, .loseWeight)
         XCTAssertEqual(OnboardingView.WelcomeGoal.buildMuscle.priority, .buildMuscle)
         XCTAssertEqual(OnboardingView.WelcomeGoal.trackHealth.priority, .improveHealth)
+    }
+
+    func testInputStepsEndWithPremium() {
+        XCTAssertEqual(
+            OnboardingView.InputStep.allCases.map(\.analyticsName),
+            ["profile", "metrics", "photos", "health", "premium"]
+        )
+        XCTAssertEqual(OnboardingView.InputStep.premium.rawValue, 4)
     }
 
     func testActivationTaskOrderingSupportsManualMeasurementBeforePhoto() {

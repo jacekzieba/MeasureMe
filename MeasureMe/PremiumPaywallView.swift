@@ -73,6 +73,12 @@ struct PremiumPaywallView: View {
         return 3
     }
 
+    /// Unified deep-navy gradient + cyan accent tint shared by every slide.
+    /// Keeps the visual language consistent across the carousel — only the
+    /// artwork and copy change between slides.
+    private static let unifiedSlideGradient: [Color] = [Color(hex: "#11223F"), Color(hex: "#0A122A")]
+    private static let unifiedSlideTint: Color = Color.cyan
+
     /// Six-slide narrative used by the redesigned Premium paywall. `id` is the
     /// `PremiumSlideKind.ordinal` so a `PaywallReason` can target a slide
     /// directly. `imageAssetName` references custom artwork in `Assets.xcassets`;
@@ -91,8 +97,8 @@ struct PremiumPaywallView: View {
                     "premium.carousel.analyst.bullet.2",
                     "premium.carousel.analyst.bullet.3"
                 ],
-                tint: Color.cyan,
-                gradient: [Color(hex: "#11223F"), Color(hex: "#0A122A")]
+                tint: Self.unifiedSlideTint,
+                gradient: Self.unifiedSlideGradient
             ),
             PremiumSlide(
                 id: SlideKind.photos.ordinal,
@@ -106,8 +112,8 @@ struct PremiumPaywallView: View {
                     "premium.carousel.photos.bullet.2",
                     "premium.carousel.photos.bullet.3"
                 ],
-                tint: Color(hex: "#7C8CFF"),
-                gradient: [Color(hex: "#1A2146"), Color(hex: "#0E1530")]
+                tint: Self.unifiedSlideTint,
+                gradient: Self.unifiedSlideGradient
             ),
             PremiumSlide(
                 id: SlideKind.beyondScale.ordinal,
@@ -121,8 +127,8 @@ struct PremiumPaywallView: View {
                     "premium.carousel.indicators.bullet.2",
                     "premium.carousel.indicators.bullet.3"
                 ],
-                tint: Color.green,
-                gradient: [Color(hex: "#132C2B"), Color(hex: "#0A1719")]
+                tint: Self.unifiedSlideTint,
+                gradient: Self.unifiedSlideGradient
             ),
             PremiumSlide(
                 id: SlideKind.iCloud.ordinal,
@@ -136,8 +142,8 @@ struct PremiumPaywallView: View {
                     "premium.carousel.icloud.bullet.2",
                     "premium.carousel.icloud.bullet.3"
                 ],
-                tint: Color(hex: "#A78BFA"),
-                gradient: [Color(hex: "#1F1A3D"), Color(hex: "#0E0B22")]
+                tint: Self.unifiedSlideTint,
+                gradient: Self.unifiedSlideGradient
             ),
             PremiumSlide(
                 id: SlideKind.export.ordinal,
@@ -151,8 +157,8 @@ struct PremiumPaywallView: View {
                     "premium.carousel.export.bullet.2",
                     "premium.carousel.export.bullet.3"
                 ],
-                tint: Color(hex: "#34D399"),
-                gradient: [Color(hex: "#0F2C24"), Color(hex: "#081813")]
+                tint: Self.unifiedSlideTint,
+                gradient: Self.unifiedSlideGradient
             ),
             PremiumSlide(
                 id: SlideKind.everything.ordinal,
@@ -166,8 +172,8 @@ struct PremiumPaywallView: View {
                     "premium.carousel.everything.bullet.2",
                     "premium.carousel.everything.bullet.3"
                 ],
-                tint: Color.appAccent,
-                gradient: [Color(hex: "#3A2712"), Color(hex: "#1A1410")]
+                tint: Self.unifiedSlideTint,
+                gradient: Self.unifiedSlideGradient
             )
         ]
     }
@@ -544,15 +550,15 @@ struct PremiumPaywallView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity)
-                .frame(maxHeight: 130)
+                .frame(maxHeight: 175)
                 .accessibilityHidden(true)
         } else {
             ZStack {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(slide.tint.opacity(0.18))
-                    .frame(height: 110)
+                    .frame(height: 140)
                 Image(systemName: slide.icon)
-                    .font(.system(size: 48, weight: .regular))
+                    .font(.system(size: 52, weight: .regular))
                     .foregroundStyle(slide.tint)
             }
             .accessibilityHidden(true)
@@ -622,29 +628,33 @@ struct PremiumPaywallView: View {
     }
 
     private func featureDescriptionCard(for slide: PremiumSlide) -> some View {
+        // Promoted to a prominent value-prop card — bigger, brighter, stronger
+        // tint backdrop so the user immediately understands what the feature
+        // gives them.
         Text(AppLocalization.string(slide.bodyKey))
-            .font(AppTypography.caption)
-            .foregroundStyle(AppColorRoles.textPrimary.opacity(0.95))
+            .font(.system(size: 16, weight: .semibold, design: .rounded))
+            .foregroundStyle(.white)
             .multilineTextAlignment(.leading)
-            .lineSpacing(1)
+            .lineSpacing(2)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(
-                        ClaudeLightStyle.directionalGradient(
-                            colors: [slide.tint.opacity(0.22), AppColorRoles.surfaceSecondary],
-                            colorScheme: colorScheme,
-                            lightColor: slide.tint.opacity(0.08)
+                        LinearGradient(
+                            colors: [slide.tint.opacity(0.34), slide.tint.opacity(0.14)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
                         )
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                            .stroke(slide.tint.opacity(0.55), lineWidth: 1)
                     )
             )
+            .shadow(color: slide.tint.opacity(0.18), radius: 10, y: 4)
     }
 
     private var slideContentSeparator: some View {
@@ -657,19 +667,34 @@ struct PremiumPaywallView: View {
     }
 
     private func headerRow(for slide: PremiumSlide) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .center, spacing: 12) {
             Circle()
                 .fill(slide.tint.opacity(0.34))
-                .frame(width: 30, height: 30)
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Circle()
+                        .stroke(slide.tint.opacity(0.55), lineWidth: 1)
+                )
                 .overlay(
                     Image(systemName: slide.icon)
-                        .font(AppTypography.iconSmall)
+                        .font(AppTypography.iconMedium)
                         .foregroundStyle(AppColorRoles.textPrimary)
                 )
+                .shadow(color: slide.tint.opacity(0.4), radius: 8, y: 2)
 
             Text(AppLocalization.string(slide.titleKey))
-                .font(AppTypography.headlineEmphasis)
-                .foregroundStyle(AppColorRoles.textPrimary)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .tracking(-0.3)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.white, Color.white.opacity(0.78)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .shadow(color: slide.tint.opacity(0.55), radius: 12, y: 0)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }

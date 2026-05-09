@@ -1,7 +1,7 @@
 # TelemetryDeck Onboarding Runbook
 
 ## Source of truth
-- Onboarding flow version: `3`
+- Onboarding flow version: `4`
 - Event names live in `MeasureMe/AnalyticsEvents.swift`
 - New onboarding, activation, checklist, measurement, photo, paywall, notification, and reminder telemetry should go through `Analytics.shared.track(AnalyticsEvent)`
 
@@ -9,7 +9,7 @@
 
 ### Onboarding
 - `com.jacekzieba.measureme.onboarding.session_started`
-  - `flow_version`: `3`
+  - `flow_version`: `4`
   - `entrypoint`: `root`
   - `restored_state`: `true|false`
 - `com.jacekzieba.measureme.onboarding.step_viewed`
@@ -30,7 +30,7 @@
   - `flow_version`, `priority`, `health_connected`, `completed_all_steps`
 
 Allowed values:
-- `step`: `profile|metrics|photos|health`
+- `step`: `profile|metrics|photos|health|premium`
 - `priority`: `loseWeight|buildMuscle|improveHealth`
 - `result`: `granted|denied`
 - `skip_reason`: currently `user_skipped`
@@ -116,7 +116,9 @@ Create these groups:
 2. `com.jacekzieba.measureme.onboarding.step_completed` filtered by `step=profile`
 3. `com.jacekzieba.measureme.onboarding.step_completed` filtered by `step=metrics`
 4. `com.jacekzieba.measureme.onboarding.step_completed` filtered by `step=photos`
-5. `com.jacekzieba.measureme.onboarding.completed`
+5. `com.jacekzieba.measureme.onboarding.step_completed` filtered by `step=health`
+6. `com.jacekzieba.measureme.onboarding.step_completed` filtered by `step=premium`
+7. `com.jacekzieba.measureme.onboarding.completed`
 
 #### Funnel 2: post-onboarding activation
 1. `com.jacekzieba.measureme.onboarding.completed`

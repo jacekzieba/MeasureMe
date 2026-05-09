@@ -60,6 +60,7 @@ struct OnboardingView: View {
     private var canGoBack: Bool { currentStep != .profile }
 
     private var isSkipVisible: Bool { true }
+    private var isFooterHidden: Bool { currentStep == .premium }
 
     private var primaryButtonTitle: String {
         switch currentStep {
@@ -99,6 +100,8 @@ struct OnboardingView: View {
                 "Commencer mon parcours",
                 "Começar minha jornada"
             )
+        case .premium:
+            return AppLocalization.string("Continue")
         }
     }
 
@@ -205,25 +208,27 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.top, AppSpacing.md)
-                    .padding(.bottom, footerReservedHeight)
+                    .padding(.bottom, isFooterHidden ? 0 : footerReservedHeight)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            footer
-                .padding(.horizontal, AppSpacing.lg)
-                .padding(.bottom, 12)
-                .padding(.top, 8)
-                .background(
-                    LinearGradient(
-                        colors: [
-                            Color.clear,
-                            AppColorRoles.surfaceChrome.opacity(0.82),
-                            AppColorRoles.surfacePrimary.opacity(0.96)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
+            if !isFooterHidden {
+                footer
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.bottom, 12)
+                    .padding(.top, 8)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color.clear,
+                                AppColorRoles.surfaceChrome.opacity(0.82),
+                                AppColorRoles.surfacePrimary.opacity(0.96)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
                     )
-                )
+            }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .onAppear(perform: handleAppear)
@@ -577,6 +582,12 @@ struct OnboardingView: View {
                 guard !didPrewarmHealthKitAuthorization else { return }
                 didPrewarmHealthKitAuthorization = true
                 await effects.prewarmHealthKitAuthorization()
+            }
+        case .premium:
+            ScrollView(showsIndicators: false) {
+                OnboardingPremiumStep(onPremiumActivated: completePremiumAndFinish)
+                    .padding(.top, 12)
+                    .padding(.bottom, 24)
             }
         }
     }
@@ -1371,12 +1382,12 @@ struct OnboardingView: View {
     }
 
     private func privacyCard(compact: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: compact ? 8 : 12) {
+            HStack(alignment: .top, spacing: compact ? 8 : 10) {
                 Image(systemName: "lock.shield.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: compact ? 16 : 18, weight: .semibold))
                     .foregroundStyle(Color.appAccent)
-                    .frame(width: 34, height: 34)
+                    .frame(width: compact ? 30 : 34, height: compact ? 30 : 34)
                     .background(Color.appAccent.opacity(0.16))
                     .clipShape(Circle())
 
@@ -1393,6 +1404,9 @@ struct OnboardingView: View {
                     )
                     .font(AppTypography.bodyEmphasis)
                     .foregroundStyle(AppColorRoles.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+                    .allowsTightening(true)
 
                     Text(
                         FlowLocalization.system(
@@ -1406,7 +1420,12 @@ struct OnboardingView: View {
                     )
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColorRoles.textSecondary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(compact ? 0.82 : 0.9)
+                    .allowsTightening(true)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
+                .layoutPriority(1)
             }
 
             Text(
@@ -1421,6 +1440,11 @@ struct OnboardingView: View {
             )
             .font(AppTypography.microEmphasis)
             .foregroundStyle(Color.appAccent)
+            .lineLimit(2)
+            .minimumScaleFactor(compact ? 0.72 : 0.78)
+            .allowsTightening(true)
+            .fixedSize(horizontal: false, vertical: true)
+            .layoutPriority(1)
         }
         .padding(compact ? 12 : 14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1548,7 +1572,9 @@ struct OnboardingView: View {
                     stepIndex: InputStep.health.rawValue + 1
                 )
             )
-            finishOnboarding()
+            animateToInputStep(.premium)
+        case .premium:
+            completePremiumAndFinish()
         }
     }
 
@@ -1580,8 +1606,20 @@ struct OnboardingView: View {
                     "Você pode conectar o Health depois nos Ajustes."
                 )
             ]
+            animateToInputStep(.premium)
+        case .premium:
             finishOnboarding()
         }
+    }
+
+    private func completePremiumAndFinish() {
+        Analytics.shared.track(
+            AnalyticsEvents.onboardingStepCompleted(
+                step: InputStep.premium.analyticsName,
+                stepIndex: InputStep.premium.rawValue + 1
+            )
+        )
+        finishOnboarding()
     }
 
     private func animateToInputStep(_ step: InputStep) {
@@ -1732,7 +1770,7 @@ struct OnboardingView: View {
         activationCompletedTaskIDsRaw = ""
         activationSkippedTaskIDsRaw = ""
         activationIsDismissed = false
-        onboardingFlowVersion = Int(AnalyticsEvents.onboardingFlowVersion) ?? 3
+        onboardingFlowVersion = Int(AnalyticsEvents.onboardingFlowVersion) ?? 4
 
         if shouldAnimate {
             withAnimation(AppMotion.quick) {

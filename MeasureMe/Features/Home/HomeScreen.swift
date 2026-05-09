@@ -201,6 +201,22 @@ struct HomeView: View {
         let isLoading: Bool
     }
 
+    private var hasAnyGoal: Bool {
+        !cachedGoalsByKind.isEmpty || !cachedCustomGoalsByIdentifier.isEmpty || !goals.isEmpty
+    }
+
+    private var hasCompletedHealthChoice: Bool {
+        isSyncEnabled || onboardingSkippedHealthKit
+    }
+
+    private var shouldShowStartPlan: Bool {
+        currentDiscoveryStep != nil
+    }
+
+    private var shouldDeemphasizeLockedAI: Bool {
+        !homeSummaryIsPremium && shouldShowStartPlan
+    }
+
     private struct HomeComparePair: Identifiable {
         let olderPhoto: PhotoEntry
         let newerPhoto: PhotoEntry
@@ -814,7 +830,11 @@ struct HomeView: View {
         let layout = settingsStore.homeLayoutSnapshot()
         let runtimeVisibleItems = layout.items.map { item in
             var next = item
-            next.isVisible = item.isVisible && shouldRenderModule(item.kind)
+            if item.kind == .quickActions, shouldShowStartPlan {
+                next.isVisible = true
+            } else {
+                next.isVisible = item.isVisible && shouldRenderModule(item.kind)
+            }
             if item.kind == .summaryHero {
                 next.size = .wide
             }
@@ -1272,7 +1292,7 @@ struct HomeView: View {
         case .summaryHero:
             return true
         case .quickActions:
-            return false
+            return shouldShowStartPlan
         case .keyMetrics:
             if isWelcomeHomeState { return showMeasurementsOnHome }
             return showMeasurementsOnHome
@@ -1339,6 +1359,7 @@ struct HomeView: View {
             avatarText: homeAvatarText,
             profilePhotoData: profilePhotoData,
             isPremium: homeSummaryIsPremium,
+            showsAIInsights: !shouldDeemphasizeLockedAI,
             insights: homeAIInsights,
             analysisItems: homeAIAnalysisItems,
             onUnlockPremium: {
@@ -1374,15 +1395,35 @@ struct HomeView: View {
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 // Header with step counter
-                HStack {
-                    Text(AppLocalization.string("home.quickactions.title"))
-                        .font(AppTypography.headline)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                    Spacer()
-                    Text(AppLocalization.string("home.discovery.counter", completedDiscoverySteps.count, discoverySteps.count))
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(AppLocalization.string("home.startplan.title"))
+                            .font(AppTypography.headline)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+
+                        Spacer()
+
+                        Text(AppLocalization.string("home.discovery.counter", completedDiscoverySteps.count, discoverySteps.count))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColorRoles.textTertiary)
+                    }
+
+                    Text(AppLocalization.string("home.startplan.subtitle"))
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColorRoles.textTertiary)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule(style: .continuous)
+                            .fill(AppColorRoles.surfaceInteractive)
+                        Capsule(style: .continuous)
+                            .fill(Color.appAccent)
+                            .frame(width: geo.size.width * startPlanProgress)
+                    }
+                }
+                .frame(height: 5)
 
                 // Completed steps — compact checkmarks
                 if !completedDiscoverySteps.isEmpty {
@@ -1439,27 +1480,90 @@ struct HomeView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("home.startPlan.primary")
+
+                    if current.id == "healthkit" && !isSyncEnabled {
+                        Button {
+                            performChecklistAction("health_manual")
+                        } label: {
+                            Text(AppLocalization.string("home.startplan.health.manual"))
+                                .font(AppTypography.captionEmphasis)
+                                .foregroundStyle(AppColorRoles.textSecondary)
+                                .frame(maxWidth: .infinity)
+                                .frame(minHeight: 38)
+                                .background(AppColorRoles.surfaceInteractive)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("home.startPlan.healthManual")
+                    }
+                }
+
+                FlowLayout(spacing: 8) {
+                    startPlanChip(title: AppLocalization.string("home.startplan.chip.trend"), icon: "chart.line.uptrend.xyaxis")
+                    startPlanChip(title: AppLocalization.string("home.startplan.chip.goal"), icon: "target")
+                    startPlanChip(title: AppLocalization.string("home.startplan.chip.photo"), icon: "camera.viewfinder")
+                }
+
+                if !homeSummaryIsPremium {
+                    Button {
+                        Haptics.selection()
+                        premiumStore.presentPaywall(reason: .aiInsights)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "sparkles")
+                                .font(AppTypography.iconSmall)
+                                .foregroundStyle(FeatureTheme.premium.accent)
+                            Text(AppLocalization.string("home.startplan.premium.preview"))
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColorRoles.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 0)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("home.startPlan.premiumPreview")
                 }
             }
         }
     }
 
+    private var startPlanProgress: Double {
+        guard !discoverySteps.isEmpty else { return 1 }
+        return Double(completedDiscoverySteps.count) / Double(discoverySteps.count)
+    }
+
+    private func startPlanChip(title: String, icon: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .semibold))
+            Text(title)
+                .font(AppTypography.microEmphasis)
+                .lineLimit(1)
+        }
+        .foregroundStyle(Color.appAccent)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .background(Color.appAccent.opacity(0.12))
+        .clipShape(Capsule(style: .continuous))
+    }
+
     private var discoverySteps: [SetupChecklistItem] {
         [
-            SetupChecklistItem(
-                id: "explore_metrics",
-                title: AppLocalization.string("home.discovery.explore_metrics.title"),
-                detail: AppLocalization.string("home.discovery.explore_metrics.detail"),
-                icon: "chart.line.uptrend.xyaxis",
-                isCompleted: onboardingChecklistMetricsExplored,
-                isLoading: false
-            ),
             SetupChecklistItem(
                 id: "first_measurement",
                 title: AppLocalization.string("home.discovery.first_measurement.title"),
                 detail: AppLocalization.string("home.discovery.first_measurement.detail"),
                 icon: "ruler.fill",
                 isCompleted: hasAnyMeasurements,
+                isLoading: false
+            ),
+            SetupChecklistItem(
+                id: "set_goal",
+                title: AppLocalization.string("home.discovery.set_goal.title"),
+                detail: AppLocalization.string("home.discovery.set_goal.detail"),
+                icon: "target",
+                isCompleted: hasAnyGoal,
                 isLoading: false
             ),
             SetupChecklistItem(
@@ -1471,12 +1575,16 @@ struct HomeView: View {
                 isLoading: false
             ),
             SetupChecklistItem(
-                id: "choose_metrics",
-                title: AppLocalization.string("home.discovery.choose_metrics.title"),
-                detail: AppLocalization.string("home.discovery.choose_metrics.detail"),
-                icon: "slider.horizontal.3",
-                isCompleted: onboardingChecklistMetricsCompleted,
-                isLoading: false
+                id: "healthkit",
+                title: isSyncEnabled
+                    ? AppLocalization.string("home.discovery.health.connected.title")
+                    : AppLocalization.string("home.discovery.healthkit.title"),
+                detail: isSyncEnabled
+                    ? AppLocalization.string("home.discovery.health.connected.detail")
+                    : AppLocalization.string("home.discovery.healthkit.detail"),
+                icon: "heart.text.square.fill",
+                isCompleted: hasCompletedHealthChoice,
+                isLoading: isChecklistConnectingHealth
             ),
         ]
     }
@@ -2052,8 +2160,8 @@ struct HomeView: View {
     private var activationHubModule: some View {
         HomeActivationCard(
             snapshot: HomeActivationSnapshot(
-                stepIndex: activationStepIndex,
-                totalSteps: activationTaskSequence.count,
+                stepIndex: activationVisibleStepIndex,
+                totalSteps: activationVisibleTaskSequence.count,
                 title: OnboardingCopy.activationTaskTitle(activationCurrentTask ?? .initial),
                 body: OnboardingCopy.activationTaskBody(
                     activationCurrentTask ?? .initial,
@@ -2097,6 +2205,15 @@ struct HomeView: View {
         return sequence
     }
 
+    private var activationVisibleTaskSequence: [ActivationTask] {
+        activationTaskSequence.filter { task in
+            task == activationCurrentTask
+                || activationCompletedTaskIDs.contains(task.rawValue)
+                || activationSkippedTaskIDs.contains(task.rawValue)
+                || !isActivationTaskSatisfied(task)
+        }
+    }
+
     private var activationCompletedTaskIDs: Set<String> {
         activationIDSet(from: activationCompletedTaskIDsRaw)
     }
@@ -2123,10 +2240,10 @@ struct HomeView: View {
             && activationCurrentTask != nil
     }
 
-    private var activationStepIndex: Int {
+    private var activationVisibleStepIndex: Int {
         guard let activationCurrentTask,
-              let index = activationTaskSequence.firstIndex(of: activationCurrentTask) else {
-            return activationTaskSequence.count
+              let index = activationVisibleTaskSequence.firstIndex(of: activationCurrentTask) else {
+            return activationVisibleTaskSequence.count
         }
         return index + 1
     }
@@ -3520,7 +3637,7 @@ struct HomeView: View {
                 || !userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 || profilePhotoData != nil
         case .connectHealth:
-            return isSyncEnabled
+            return isSyncEnabled || onboardingSkippedHealthKit
         case .chooseMetrics:
             return onboardingChecklistMetricsCompleted
         case .setReminders:
@@ -3622,6 +3739,16 @@ struct HomeView: View {
                     task: activationCurrentTask?.rawValue
                 )
             )
+        case "set_goal":
+            Haptics.selection()
+            router.selectedTab = .measurements
+            Analytics.shared.track(
+                AnalyticsEvents.checklistItemCompleted(
+                    item: id,
+                    source: "home_checklist",
+                    task: activationCurrentTask?.rawValue
+                )
+            )
         case "choose_metrics":
             Haptics.selection()
             onboardingChecklistMetricsCompleted = true
@@ -3647,6 +3774,18 @@ struct HomeView: View {
             )
         case "healthkit":
             connectHealthKitFromChecklist()
+        case "health_manual":
+            Haptics.selection()
+            onboardingSkippedHealthKit = true
+            refreshChecklistState()
+            rebuildDashboardItemsCache()
+            Analytics.shared.track(
+                AnalyticsEvents.checklistItemCompleted(
+                    item: "health_manual",
+                    source: "home_checklist",
+                    task: activationCurrentTask?.rawValue
+                )
+            )
         case "premium":
             Haptics.light()
             onboardingChecklistPremiumExplored = true

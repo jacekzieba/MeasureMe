@@ -6,9 +6,16 @@ struct OnboardingPremiumStep: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
+    private let onPremiumActivated: (() -> Void)?
+
     @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
 
     @State private var selectedProductID: String? = nil
+    @State private var didTrackPresentation = false
+
+    init(onPremiumActivated: (() -> Void)? = nil) {
+        self.onPremiumActivated = onPremiumActivated
+    }
 
     // MARK: - Computed: products
 
@@ -43,18 +50,28 @@ struct OnboardingPremiumStep: View {
             )
 
             premiumUnlockBundleTile
-            onboardingPlanPicker
+            if !premiumStore.isPremium {
+                onboardingPlanPicker
+            }
 
             Button {
                 onboardingChecklistPremiumExplored = true
                 Haptics.light()
+                if premiumStore.isPremium {
+                    onPremiumActivated?()
+                    return
+                }
                 Task(priority: .userInitiated) {
                     premiumStore.setPurchaseContext(reason: .onboarding)
                     if await premiumStore.activateTrialForUITestsIfNeeded() {
+                        onPremiumActivated?()
                         return
                     }
                     guard let product = selectedProduct else { return }
                     await premiumStore.purchase(product)
+                    if premiumStore.isPremium {
+                        onPremiumActivated?()
+                    }
                 }
             } label: {
                 HStack(spacing: 10) {
@@ -63,27 +80,30 @@ struct OnboardingPremiumStep: View {
                             .tint(colorScheme == .dark ? .white : AppColorRoles.textOnAccent)
                     }
 
-                    Text(AppLocalization.systemString("Start my 14-day free trial"))
+                    Text(premiumStore.isPremium ? AppLocalization.string("Continue") : AppLocalization.systemString("Start my 14-day free trial"))
                         .font(.system(.subheadline, design: .rounded).weight(.medium))
                 }
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 44)
             }
             .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-            .disabled((selectedProduct == nil && !premiumStore.canSimulateTrialActivationForUITests) || premiumStore.isPurchasing)
+            .disabled((!premiumStore.isPremium && selectedProduct == nil && !premiumStore.canSimulateTrialActivationForUITests) || premiumStore.isPurchasing)
             .appHitTarget()
             .accessibilityIdentifier("onboarding.premium.trial")
             .accessibilitySortPriority(3)
 
-            billedAfterTrialText
-                .font(AppTypography.micro)
-                .foregroundStyle(AppColorRoles.textSecondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, alignment: .center)
+            if !premiumStore.isPremium {
+                billedAfterTrialText
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
 
             legalBlock
         }
         .task {
+            trackOnboardingPaywallPresentationIfNeeded()
             premiumStore.startIfNeeded()
             if premiumStore.products.isEmpty && !premiumStore.isLoading {
                 await premiumStore.loadProducts()
@@ -93,6 +113,22 @@ struct OnboardingPremiumStep: View {
         .onChange(of: premiumStore.products.map(\.id)) { _, _ in
             preselectProductIfNeeded()
         }
+    }
+
+    private func trackOnboardingPaywallPresentationIfNeeded() {
+        guard !didTrackPresentation else { return }
+        didTrackPresentation = true
+        premiumStore.setPurchaseContext(reason: .onboarding)
+        Analytics.shared.track(
+            AnalyticsEvents.paywallPresented(
+                source: .onboarding,
+                reason: PremiumStore.PaywallReason.onboarding.analyticsReason
+            )
+        )
+        Analytics.shared.trackPaywallShown(
+            reason: PremiumStore.PaywallReason.onboarding.analyticsReason,
+            parameters: PremiumStore.PaywallReason.onboarding.analyticsParameters
+        )
     }
 
     // MARK: - Bundle tile

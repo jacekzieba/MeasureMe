@@ -106,7 +106,7 @@ enum ReminderTelemetrySource: String {
 }
 
 enum AnalyticsEvents {
-    static let onboardingFlowVersion = "3"
+    static let onboardingFlowVersion = "4"
 
     static func onboardingSessionStarted(entrypoint: String, restoredState: Bool) -> AnalyticsEvent {
         AnalyticsEvent(

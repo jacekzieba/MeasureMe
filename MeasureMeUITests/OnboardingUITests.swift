@@ -97,9 +97,18 @@ final class OnboardingUITests: XCTestCase {
         advanceToHealthStep()
 
         let healthButton = app.buttons["onboarding.health.allow"].firstMatch
-        XCTAssertTrue(healthButton.exists, "Health soft ask should appear on the final step")
-        XCTAssertTrue(skipButton.exists, "Final step should still allow skipping")
+        XCTAssertTrue(healthButton.exists, "Health soft ask should appear before the final Premium step")
+        XCTAssertTrue(skipButton.exists, "Health step should still allow skipping")
         XCTAssertTrue(app.descendants(matching: .any)["onboarding.privacy.note"].firstMatch.exists)
+    }
+
+    func testPremiumStepAppearsAfterHealth() {
+        advanceToHealthStep()
+
+        nextButton.tap()
+
+        XCTAssertTrue(waitForOnboardingStep("step:4"))
+        XCTAssertTrue(app.buttons["onboarding.premium.trial"].firstMatch.waitForExistence(timeout: 8))
     }
 
     func testOnboardingCanReachDashboardWithSkips() {
@@ -111,6 +120,9 @@ final class OnboardingUITests: XCTestCase {
 
         nextButton.tap()
         XCTAssertTrue(waitForOnboardingStep("step:3"))
+
+        skipButton.tap()
+        XCTAssertTrue(waitForOnboardingStep("step:4"))
 
         skipButton.tap()
 

@@ -16,9 +16,7 @@ enum HomeModuleKind: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var defaultSize: HomeModuleSize {
         switch self {
-        case .summaryHero, .keyMetrics, .recentPhotos, .healthSummary:
-            return .large
-        case .quickActions:
+        case .summaryHero, .keyMetrics, .recentPhotos, .healthSummary, .quickActions:
             return .large
         case .activationHub:
             return .wide
@@ -99,7 +97,7 @@ struct HomeLayoutSnapshot: Codable, Equatable, Sendable {
             schemaVersion: currentSchemaVersion,
             items: [
                 HomeModuleLayoutItem(kind: .summaryHero, isVisible: true, size: .large, row: 0, column: 0),
-                HomeModuleLayoutItem(kind: .quickActions, isVisible: false, size: .large, row: 0, column: 2),
+                HomeModuleLayoutItem(kind: .quickActions, isVisible: true, size: .large, row: 0, column: 2),
                 HomeModuleLayoutItem(kind: .activationHub, isVisible: !settings.onboarding.activationIsDismissed, size: .wide, row: 0, column: 2),
                 HomeModuleLayoutItem(kind: .keyMetrics, isVisible: settings.home.showMeasurementsOnHome, size: .large, row: 4, column: 0),
                 HomeModuleLayoutItem(kind: .recentPhotos, isVisible: settings.home.showLastPhotosOnHome, size: .large, row: 4, column: 2),
