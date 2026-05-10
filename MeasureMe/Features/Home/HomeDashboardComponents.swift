@@ -147,7 +147,7 @@ private struct HomeDashboardBoardLayout: Layout {
         case .summaryHero:
             return max(nominalHeight, columns > 2 ? 176 : 188)
         case .quickActions:
-            return max(nominalHeight, columns > 2 ? 300 : 384)
+            return nominalHeight
         case .keyMetrics:
             return max(nominalHeight, columns > 2 ? 252 : 274)
         case .recentPhotos:

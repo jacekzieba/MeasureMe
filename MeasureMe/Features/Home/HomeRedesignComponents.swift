@@ -43,7 +43,6 @@ struct HomeTopSummarySection: View {
     let avatarText: String
     let profilePhotoData: Data?
     let isPremium: Bool
-    let showsAIInsights: Bool
     let insights: [HomeAIInsightItem]
     let analysisItems: [HomeAIAnalysisItem]
     let onUnlockPremium: () -> Void
@@ -53,14 +52,12 @@ struct HomeTopSummarySection: View {
         VStack(alignment: .leading, spacing: 16) {
             header
 
-            if showsAIInsights {
-                HomeAIInsightsPanel(
-                    isPremium: isPremium,
-                    insights: insights,
-                    analysisItems: analysisItems,
-                    onUnlockPremium: onUnlockPremium
-                )
-            }
+            HomeAIInsightsPanel(
+                isPremium: isPremium,
+                insights: insights,
+                analysisItems: analysisItems,
+                onUnlockPremium: onUnlockPremium
+            )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .overlay(alignment: .topLeading) {

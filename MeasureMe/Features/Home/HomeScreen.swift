@@ -192,31 +192,6 @@ struct HomeView: View {
         )
     }
 
-    private struct SetupChecklistItem: Identifiable {
-        let id: String
-        let title: String
-        let detail: String
-        let icon: String
-        let isCompleted: Bool
-        let isLoading: Bool
-    }
-
-    private var hasAnyGoal: Bool {
-        !cachedGoalsByKind.isEmpty || !cachedCustomGoalsByIdentifier.isEmpty || !goals.isEmpty
-    }
-
-    private var hasCompletedHealthChoice: Bool {
-        isSyncEnabled || onboardingSkippedHealthKit
-    }
-
-    private var shouldShowStartPlan: Bool {
-        currentDiscoveryStep != nil
-    }
-
-    private var shouldDeemphasizeLockedAI: Bool {
-        !homeSummaryIsPremium && shouldShowStartPlan
-    }
-
     private struct HomeComparePair: Identifiable {
         let olderPhoto: PhotoEntry
         let newerPhoto: PhotoEntry
@@ -830,11 +805,7 @@ struct HomeView: View {
         let layout = settingsStore.homeLayoutSnapshot()
         let runtimeVisibleItems = layout.items.map { item in
             var next = item
-            if item.kind == .quickActions, shouldShowStartPlan {
-                next.isVisible = true
-            } else {
-                next.isVisible = item.isVisible && shouldRenderModule(item.kind)
-            }
+            next.isVisible = item.isVisible && shouldRenderModule(item.kind)
             if item.kind == .summaryHero {
                 next.size = .wide
             }
@@ -1292,7 +1263,7 @@ struct HomeView: View {
         case .summaryHero:
             return true
         case .quickActions:
-            return shouldShowStartPlan
+            return false
         case .keyMetrics:
             if isWelcomeHomeState { return showMeasurementsOnHome }
             return showMeasurementsOnHome
@@ -1359,7 +1330,6 @@ struct HomeView: View {
             avatarText: homeAvatarText,
             profilePhotoData: profilePhotoData,
             isPremium: homeSummaryIsPremium,
-            showsAIInsights: !shouldDeemphasizeLockedAI,
             insights: homeAIInsights,
             analysisItems: homeAIAnalysisItems,
             onUnlockPremium: {
@@ -1387,214 +1357,7 @@ struct HomeView: View {
     }
 
     private var quickActionsModule: some View {
-        HomeWidgetCard(
-            tint: FeatureTheme.home.softTint,
-            depth: .floating,
-            contentPadding: 14,
-            accessibilityIdentifier: "home.module.quickActions"
-        ) {
-            VStack(alignment: .leading, spacing: 14) {
-                // Header with step counter
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text(AppLocalization.string("home.startplan.title"))
-                            .font(AppTypography.headline)
-                            .foregroundStyle(AppColorRoles.textPrimary)
-
-                        Spacer()
-
-                        Text(AppLocalization.string("home.discovery.counter", completedDiscoverySteps.count, discoverySteps.count))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColorRoles.textTertiary)
-                    }
-
-                    Text(AppLocalization.string("home.startplan.subtitle"))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColorRoles.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule(style: .continuous)
-                            .fill(AppColorRoles.surfaceInteractive)
-                        Capsule(style: .continuous)
-                            .fill(Color.appAccent)
-                            .frame(width: geo.size.width * startPlanProgress)
-                    }
-                }
-                .frame(height: 5)
-
-                // Completed steps — compact checkmarks
-                if !completedDiscoverySteps.isEmpty {
-                    FlowLayout(spacing: 6) {
-                        ForEach(completedDiscoverySteps, id: \.id) { step in
-                            HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(AppColorRoles.stateSuccess)
-                                Text(step.title)
-                                    .font(AppTypography.microEmphasis)
-                                    .foregroundStyle(AppColorRoles.textTertiary)
-                                    .lineLimit(1)
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(AppColorRoles.stateSuccess.opacity(0.1))
-                            .clipShape(Capsule())
-                        }
-                    }
-                }
-
-                // Current step — prominent single action
-                if let current = currentDiscoveryStep {
-                    Button {
-                        performChecklistAction(current.id)
-                    } label: {
-                        HStack(spacing: 14) {
-                            Image(systemName: current.icon)
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundStyle(Color.appAccent)
-                                .frame(width: 44, height: 44)
-                                .background(Color.appAccent.opacity(0.16))
-                                .clipShape(Circle())
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(current.title)
-                                    .font(AppTypography.bodyEmphasis)
-                                    .foregroundStyle(AppColorRoles.textPrimary)
-                                Text(current.detail)
-                                    .font(AppTypography.caption)
-                                    .foregroundStyle(AppColorRoles.textSecondary)
-                            }
-
-                            Spacer(minLength: 0)
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(AppColorRoles.textTertiary)
-                        }
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 14)
-                        .background(AppColorRoles.surfaceSecondary.opacity(0.6))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("home.startPlan.primary")
-
-                    if current.id == "healthkit" && !isSyncEnabled {
-                        Button {
-                            performChecklistAction("health_manual")
-                        } label: {
-                            Text(AppLocalization.string("home.startplan.health.manual"))
-                                .font(AppTypography.captionEmphasis)
-                                .foregroundStyle(AppColorRoles.textSecondary)
-                                .frame(maxWidth: .infinity)
-                                .frame(minHeight: 38)
-                                .background(AppColorRoles.surfaceInteractive)
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("home.startPlan.healthManual")
-                    }
-                }
-
-                FlowLayout(spacing: 8) {
-                    startPlanChip(title: AppLocalization.string("home.startplan.chip.trend"), icon: "chart.line.uptrend.xyaxis")
-                    startPlanChip(title: AppLocalization.string("home.startplan.chip.goal"), icon: "target")
-                    startPlanChip(title: AppLocalization.string("home.startplan.chip.photo"), icon: "camera.viewfinder")
-                }
-
-                if !homeSummaryIsPremium {
-                    Button {
-                        Haptics.selection()
-                        premiumStore.presentPaywall(reason: .aiInsights)
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "sparkles")
-                                .font(AppTypography.iconSmall)
-                                .foregroundStyle(FeatureTheme.premium.accent)
-                            Text(AppLocalization.string("home.startplan.premium.preview"))
-                                .font(AppTypography.micro)
-                                .foregroundStyle(AppColorRoles.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Spacer(minLength: 0)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("home.startPlan.premiumPreview")
-                }
-            }
-        }
-    }
-
-    private var startPlanProgress: Double {
-        guard !discoverySteps.isEmpty else { return 1 }
-        return Double(completedDiscoverySteps.count) / Double(discoverySteps.count)
-    }
-
-    private func startPlanChip(title: String, icon: String) -> some View {
-        HStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
-            Text(title)
-                .font(AppTypography.microEmphasis)
-                .lineLimit(1)
-        }
-        .foregroundStyle(Color.appAccent)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 6)
-        .background(Color.appAccent.opacity(0.12))
-        .clipShape(Capsule(style: .continuous))
-    }
-
-    private var discoverySteps: [SetupChecklistItem] {
-        [
-            SetupChecklistItem(
-                id: "first_measurement",
-                title: AppLocalization.string("home.discovery.first_measurement.title"),
-                detail: AppLocalization.string("home.discovery.first_measurement.detail"),
-                icon: "ruler.fill",
-                isCompleted: hasAnyMeasurements,
-                isLoading: false
-            ),
-            SetupChecklistItem(
-                id: "set_goal",
-                title: AppLocalization.string("home.discovery.set_goal.title"),
-                detail: AppLocalization.string("home.discovery.set_goal.detail"),
-                icon: "target",
-                isCompleted: hasAnyGoal,
-                isLoading: false
-            ),
-            SetupChecklistItem(
-                id: "first_photo",
-                title: AppLocalization.string("home.discovery.first_photo.title"),
-                detail: AppLocalization.string("home.discovery.first_photo.detail"),
-                icon: "camera.fill",
-                isCompleted: hasAnyPhotoContent,
-                isLoading: false
-            ),
-            SetupChecklistItem(
-                id: "healthkit",
-                title: isSyncEnabled
-                    ? AppLocalization.string("home.discovery.health.connected.title")
-                    : AppLocalization.string("home.discovery.healthkit.title"),
-                detail: isSyncEnabled
-                    ? AppLocalization.string("home.discovery.health.connected.detail")
-                    : AppLocalization.string("home.discovery.healthkit.detail"),
-                icon: "heart.text.square.fill",
-                isCompleted: hasCompletedHealthChoice,
-                isLoading: isChecklistConnectingHealth
-            ),
-        ]
-    }
-
-    private var currentDiscoveryStep: SetupChecklistItem? {
-        discoverySteps.first(where: { !$0.isCompleted })
-    }
-
-    private var completedDiscoverySteps: [SetupChecklistItem] {
-        discoverySteps.filter(\.isCompleted)
+        EmptyView()
     }
 
     private var keyMetricsModule: some View {
@@ -3695,108 +3458,6 @@ struct HomeView: View {
             completeActivationTask(.setReminders)
         case .explorePremium where premiumStore.isPremium || onboardingChecklistPremiumExplored:
             completeActivationTask(.explorePremium)
-        default:
-            break
-        }
-    }
-
-    private func performChecklistAction(_ id: String) {
-        Analytics.shared.track(
-            AnalyticsEvents.checklistItemStarted(
-                item: id,
-                source: "home_checklist",
-                task: activationCurrentTask?.rawValue
-            )
-        )
-        switch id {
-        case "explore_metrics":
-            Haptics.selection()
-            router.selectedTab = .measurements
-            Analytics.shared.track(
-                AnalyticsEvents.checklistItemCompleted(
-                    item: id,
-                    source: "home_checklist",
-                    task: activationCurrentTask?.rawValue
-                )
-            )
-        case "first_measurement":
-            Haptics.selection()
-            presentQuickAdd(source: .quickAdd)
-            Analytics.shared.track(
-                AnalyticsEvents.checklistItemCompleted(
-                    item: id,
-                    source: "home_checklist",
-                    task: activationCurrentTask?.rawValue
-                )
-            )
-        case "first_photo":
-            Haptics.selection()
-            router.selectedTab = .photos
-            Analytics.shared.track(
-                AnalyticsEvents.checklistItemCompleted(
-                    item: id,
-                    source: "home_checklist",
-                    task: activationCurrentTask?.rawValue
-                )
-            )
-        case "set_goal":
-            Haptics.selection()
-            router.selectedTab = .measurements
-            Analytics.shared.track(
-                AnalyticsEvents.checklistItemCompleted(
-                    item: id,
-                    source: "home_checklist",
-                    task: activationCurrentTask?.rawValue
-                )
-            )
-        case "choose_metrics":
-            Haptics.selection()
-            onboardingChecklistMetricsCompleted = true
-            settingsOpenTrackedMeasurements = true
-            router.selectedTab = .settings
-            Analytics.shared.track(
-                AnalyticsEvents.checklistItemCompleted(
-                    item: id,
-                    source: "home_checklist",
-                    task: activationCurrentTask?.rawValue
-                )
-            )
-        case "reminders":
-            Haptics.selection()
-            settingsOpenReminders = true
-            router.selectedTab = .settings
-            Analytics.shared.track(
-                AnalyticsEvents.checklistItemCompleted(
-                    item: id,
-                    source: "home_checklist",
-                    task: activationCurrentTask?.rawValue
-                )
-            )
-        case "healthkit":
-            connectHealthKitFromChecklist()
-        case "health_manual":
-            Haptics.selection()
-            onboardingSkippedHealthKit = true
-            refreshChecklistState()
-            rebuildDashboardItemsCache()
-            Analytics.shared.track(
-                AnalyticsEvents.checklistItemCompleted(
-                    item: "health_manual",
-                    source: "home_checklist",
-                    task: activationCurrentTask?.rawValue
-                )
-            )
-        case "premium":
-            Haptics.light()
-            onboardingChecklistPremiumExplored = true
-            premiumStore.presentPaywall(reason: .checklist)
-            Analytics.shared.track(
-                AnalyticsEvents.checklistItemCompleted(
-                    item: id,
-                    source: "home_checklist",
-                    task: activationCurrentTask?.rawValue
-                )
-            )
         default:
             break
         }
