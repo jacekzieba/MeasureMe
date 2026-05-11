@@ -27,13 +27,9 @@ struct MetricInsightCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "sparkles")
-                .font(compact ? AppTypography.iconSmall : AppTypography.iconSmall)
-                .foregroundStyle(AppColorRoles.accentPrimary)
-                .padding(8)
-                .background(AppColorRoles.accentPrimary.opacity(0.12))
-                .clipShape(Circle())
-                .symbolEffect(.pulse, isActive: isLoading)
+            MeasureBuddyView(pose: .ai, size: compact ? 32 : 40, idleAnimation: false)
+                .scaleEffect(isLoading ? 1.06 : 1.0)
+                .animation(isLoading ? .easeInOut(duration: 0.9).repeatForever(autoreverses: true) : .default, value: isLoading)
 
             VStack(alignment: .leading, spacing: 4) {
                 if isLoading {

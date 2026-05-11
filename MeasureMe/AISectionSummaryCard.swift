@@ -21,9 +21,9 @@ struct AISectionSummaryCard: View {
         ) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
-                    Image(systemName: "sparkles")
-                        .font(AppTypography.iconSmall)
-                        .foregroundStyle(AppColorRoles.accentPrimary)
+                    MeasureBuddyView(pose: .ai, size: 28, idleAnimation: false)
+                        .scaleEffect(isLoading ? 1.06 : 1.0)
+                        .animation(isLoading ? .easeInOut(duration: 0.9).repeatForever(autoreverses: true) : .default, value: isLoading)
 
                     Text(AppLocalization.aiString("AI summary").uppercased())
                         .font(AppTypography.captionEmphasis)

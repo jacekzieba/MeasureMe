@@ -107,7 +107,9 @@ struct HomeHeroSection: View {
                     headerRow
                 }
 
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .center, spacing: 12) {
+                    MeasureBuddyView(pose: .summary, size: 56, idleAnimation: false)
+
                     Text(snapshot.greetingTitle)
                         .font(AppTypography.titleCompact)
                         .foregroundStyle(AppColorRoles.textPrimary)
@@ -527,7 +529,9 @@ struct HomeHeroSection: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                if signal.action != .none {
+                if let buddy = MeasureBuddy.forHeroSignal(signal.kind) {
+                    MeasureBuddyView(pose: buddy, size: 56)
+                } else if signal.action != .none {
                     Image(systemName: "arrow.up.right")
                         .font(AppTypography.iconSmall)
                         .foregroundStyle(AppColorRoles.textTertiary)

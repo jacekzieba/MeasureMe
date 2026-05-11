@@ -44,10 +44,24 @@ struct OnboardingPremiumStep: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            onboardingSlideHeader(
-                title: AppLocalization.systemString("Premium Edition"),
-                subtitle: ""
-            )
+            HStack(alignment: .center, spacing: 12) {
+                MeasureBuddyView(pose: .celebration, size: 96)
+                    .shadow(color: AppColorRoles.chartPositive.opacity(0.35), radius: 12, x: 0, y: 8)
+                MiaraSpeechBubble(
+                    text: FlowLocalization.system(
+                        "Team Miara is with you. Let's go 💪",
+                        "Ekipa Miary jest z Tobą. Lecimy 💪",
+                        "El equipo Miara está contigo. ¡Vamos 💪",
+                        "Team Miara ist bei dir. Los geht's 💪",
+                        "L'équipe Miara est avec toi. C'est parti 💪",
+                        "A equipe Miara está com você. Vamos lá 💪"
+                    ),
+                    tint: AppColorRoles.chartPositive,
+                    maxWidth: 240
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 4)
 
             premiumUnlockBundleTile
             if !premiumStore.isPremium {

@@ -19,6 +19,7 @@ extension OnboardingView {
     }
 
     enum InputStep: Int, CaseIterable {
+        case welcome
         case profile
         case metrics
         case photos
@@ -27,6 +28,8 @@ extension OnboardingView {
 
         var analyticsName: String {
             switch self {
+            case .welcome:
+                return "welcome"
             case .profile:
                 return "profile"
             case .metrics:

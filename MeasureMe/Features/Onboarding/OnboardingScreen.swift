@@ -30,7 +30,7 @@ struct OnboardingView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var currentStep: InputStep = .profile
+    @State private var currentStep: InputStep = .welcome
     @State private var nameInput: String = ""
     @State private var selectedPriority: OnboardingPriority?
     @State private var isRequestingHealthKit = false
@@ -57,13 +57,22 @@ struct OnboardingView: View {
     private var overallStepIndex: Int { currentStep.rawValue }
     private var onboardingStepCount: Int { InputStep.allCases.count }
 
-    private var canGoBack: Bool { currentStep != .profile }
+    private var canGoBack: Bool { currentStep != .welcome }
 
-    private var isSkipVisible: Bool { true }
+    private var isSkipVisible: Bool { currentStep != .welcome }
     private var isFooterHidden: Bool { currentStep == .premium }
 
     private var primaryButtonTitle: String {
         switch currentStep {
+        case .welcome:
+            return FlowLocalization.system(
+                "Continue",
+                "Dalej",
+                "Continuar",
+                "Weiter",
+                "Continuer",
+                "Continuar"
+            )
         case .profile:
             return FlowLocalization.system(
                 "Show my metrics",
@@ -348,28 +357,29 @@ struct OnboardingView: View {
     private func stepView(_ step: InputStep, availableHeight: CGFloat) -> some View {
         let layout = onboardingLayout(for: availableHeight)
         switch step {
+        case .welcome:
+            onboardingWelcomeSlide(layout: layout)
         case .profile:
             onboardingInputCard {
                 VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                    onboardingSlideHeader(
-                        title: FlowLocalization.system(
-                            "What's your name?",
-                            "Jak masz na imię?",
-                            "¿Cómo te llamas?",
-                            "Wie heißt du?",
-                            "Comment vous appelez-vous ?",
-                            "Como você se chama?"
-                        ),
-                        subtitle: FlowLocalization.system(
-                            "Pick your main goal so MeasureMe starts with the right signals from day one.",
-                            "Wybierz główny cel, aby MeasureMe od pierwszego dnia pokazywało właściwe sygnały.",
-                            "Elige tu meta principal para que MeasureMe empiece con las señales correctas desde el primer día.",
-                            "Wähle dein Hauptziel, damit MeasureMe vom ersten Tag an die richtigen Signale zeigt.",
-                            "Choisissez votre objectif principal pour que MeasureMe démarre avec les bons signaux dès le premier jour.",
-                            "Escolha seu objetivo principal para que o MeasureMe comece com os sinais certos desde o primeiro dia."
-                        ),
-                        titleSize: layout.headerTitleSize
-                    )
+                    HStack(alignment: .top, spacing: 12) {
+                        onboardingSlideHeader(
+                            title: FlowLocalization.system(
+                                "What's your name?",
+                                "Jak masz na imię?",
+                                "¿Cómo te llamas?",
+                                "Wie heißt du?",
+                                "Comment vous appelez-vous ?",
+                                "Como você se chama?"
+                            ),
+                            subtitle: "",
+                            titleSize: layout.headerTitleSize - 4
+                        )
+
+                        MeasureBuddyView(pose: .welcome, size: 72, idleAnimation: false)
+                            .shadow(color: Color.appAccent.opacity(0.35), radius: 10, x: 0, y: 6)
+                            .padding(.top, -4)
+                    }
 
                     TextField("e.g. Alex", text: $nameInput)
                         .textInputAutocapitalization(.words)
@@ -670,51 +680,24 @@ struct OnboardingView: View {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [Color.appAccent.opacity(0.18), Color.appAccent.opacity(0.04), .clear],
-                        center: .center, startRadius: 30, endRadius: 120
+                        colors: [Color.appAccent.opacity(0.22), Color.appAccent.opacity(0.05), .clear],
+                        center: .center, startRadius: 40, endRadius: 160
                     )
                 )
-                .frame(width: 240, height: 240)
+                .frame(width: 280, height: 280)
 
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [Color.appAccent.opacity(0.30), .clear],
-                        center: .center, startRadius: 20, endRadius: 80
+                        colors: [Color.appAccent.opacity(0.32), .clear],
+                        center: .center, startRadius: 30, endRadius: 110
                     )
                 )
-                .frame(width: 160, height: 160)
-                .blur(radius: 8)
+                .frame(width: 200, height: 200)
+                .blur(radius: 10)
 
-            ZStack {
-                RoundedRectangle(cornerRadius: 32, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.12),
-                                Color.appAccent.opacity(0.12)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 32, style: .continuous)
-                            .stroke(Color.appAccent.opacity(0.28), lineWidth: 1)
-                    }
-                    .shadow(color: Color.appAccent.opacity(0.30), radius: 24, y: 12)
-
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Color.appMidnight.opacity(0.92))
-                    .padding(8)
-
-                Image("BrandMark")
-                    .renderingMode(.original)
-                    .resizable()
-                    .scaledToFit()
-                    .padding(18)
-            }
-            .frame(width: 120, height: 120)
+            MeasureBuddyView(pose: .welcome, size: 200)
+                .shadow(color: Color.appAccent.opacity(0.30), radius: 24, y: 12)
         }
         .accessibilityHidden(true)
     }
@@ -959,6 +942,79 @@ struct OnboardingView: View {
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .padding(.top, 12)
+    }
+
+    @ViewBuilder
+    private func onboardingWelcomeSlide(layout: OnboardingCardLayout) -> some View {
+        VStack(spacing: 18) {
+            Spacer(minLength: 0)
+
+            ZStack {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [Color.appAccent.opacity(0.32), Color.clear],
+                            center: .center,
+                            startRadius: 10,
+                            endRadius: 150
+                        )
+                    )
+                    .frame(width: 280, height: 280)
+                    .blur(radius: 6)
+                    .allowsHitTesting(false)
+
+                MeasureBuddyView(pose: .welcome, size: 170)
+                    .shadow(color: Color.appAccent.opacity(0.40), radius: 22, x: 0, y: 16)
+            }
+
+            MiaraSpeechBubble(
+                text: FlowLocalization.system(
+                    "Hey, I'm Miara. I'll be here every week to show you how your body is actually changing. No scale drama, no shame, just a clear picture.",
+                    "Hej, jestem Miara. Co tydzień pokażę Ci, jak naprawdę zmienia się Twoje ciało. Bez dramy z wagą i bez oceniania. Po prostu jasny obraz.",
+                    "Hola, soy Miara. Cada semana te mostraré cómo está cambiando tu cuerpo de verdad. Sin drama de báscula y sin juicios. Solo una imagen clara.",
+                    "Hey, ich bin Miara. Jede Woche zeige ich dir, wie sich dein Körper wirklich verändert. Kein Waagen-Drama, kein Urteil. Nur ein klares Bild.",
+                    "Salut, c'est Miara. Chaque semaine, je te montre comment ton corps évolue vraiment. Sans drame de balance, sans jugement. Juste une image claire.",
+                    "Oi, sou a Miara. Toda semana vou te mostrar como seu corpo está mudando de verdade. Sem drama da balança, sem julgamento. Só uma imagem clara."
+                )
+            )
+            .padding(.horizontal, 16)
+
+            VStack(spacing: 10) {
+                Text(FlowLocalization.system(
+                    "Welcome to\nMeasureMe",
+                    "Witaj w\nMeasureMe",
+                    "Bienvenido a\nMeasureMe",
+                    "Willkommen bei\nMeasureMe",
+                    "Bienvenue dans\nMeasureMe",
+                    "Bem-vindo ao\nMeasureMe"
+                ))
+                .font(.system(size: 34, weight: .heavy))
+                .tracking(-0.7)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(AppColorRoles.textPrimary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+
+                Text(FlowLocalization.system(
+                    "Track your body with photos and measurements. Spot real progress week after week. Keep showing up and you'll see the difference.",
+                    "Śledź swoje ciało zdjęciami i pomiarami. Zobacz prawdziwy postęp tydzień po tygodniu. Bądź konsekwentny, a różnica sama się pokaże.",
+                    "Sigue tu cuerpo con fotos y medidas. Detecta el progreso real semana tras semana. Mantén la constancia y verás la diferencia.",
+                    "Verfolge deinen Körper mit Fotos und Maßen. Erkenne echten Fortschritt Woche für Woche. Bleib dran und du wirst den Unterschied sehen.",
+                    "Suis ton corps avec des photos et des mesures. Repère les vrais progrès semaine après semaine. Sois régulier et tu verras la différence.",
+                    "Acompanhe seu corpo com fotos e medidas. Veja o progresso real semana após semana. Mantenha a constância e verá a diferença."
+                ))
+                .font(.system(size: 14))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(AppColorRoles.textSecondary)
+                .frame(maxWidth: 280)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 24)
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func flowSummaryRow(title: String, value: String, multilineValue: Bool = false) -> some View {
@@ -1545,6 +1601,14 @@ struct OnboardingView: View {
     private func goToNextStep() {
         guard isPrimaryEnabled else { return }
         switch currentStep {
+        case .welcome:
+            Analytics.shared.track(
+                AnalyticsEvents.onboardingStepCompleted(
+                    step: InputStep.welcome.analyticsName,
+                    stepIndex: InputStep.welcome.rawValue + 1
+                )
+            )
+            animateToInputStep(.profile)
         case .profile:
             persistProfileSelections()
             animateToInputStep(.metrics)
@@ -1588,6 +1652,8 @@ struct OnboardingView: View {
         )
 
         switch currentStep {
+        case .welcome:
+            animateToInputStep(.profile)
         case .profile:
             animateToInputStep(.metrics)
         case .metrics:

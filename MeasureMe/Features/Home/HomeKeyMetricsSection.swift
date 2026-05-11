@@ -89,24 +89,29 @@ struct HomeKeyMetricsCard<Content: View>: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(AppLocalization.string("home.empty.eyebrow"))
-                    .font(AppTypography.eyebrow)
-                    .foregroundStyle(theme.accent)
-                    .textCase(.uppercase)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(AppLocalization.string("home.empty.eyebrow"))
+                        .font(AppTypography.eyebrow)
+                        .foregroundStyle(theme.accent)
+                        .textCase(.uppercase)
 
-                Text(title)
-                    .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(AppColorRoles.textPrimary)
+                    Text(title)
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(AppColorRoles.textPrimary)
 
-                Text(detail)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColorRoles.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text(detail)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                Text(ctaTitle)
-                    .font(AppTypography.microEmphasis)
-                    .foregroundStyle(theme.accent)
+                    Text(ctaTitle)
+                        .font(AppTypography.microEmphasis)
+                        .foregroundStyle(theme.accent)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                MeasureBuddyView(pose: .thumbs, size: 88)
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)

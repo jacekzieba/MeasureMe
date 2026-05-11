@@ -9,7 +9,7 @@ final class AnalyticsEventsTests: XCTestCase {
         XCTAssertEqual(
             event.parameters,
             [
-                "flow_version": "3",
+                "flow_version": AnalyticsEvents.onboardingFlowVersion,
                 "entrypoint": "root",
                 "restored_state": "true"
             ]

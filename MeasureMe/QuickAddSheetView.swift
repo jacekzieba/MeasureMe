@@ -809,6 +809,7 @@ struct QuickAddSheetView: View {
             ReviewRequestManager.recordMetricEntryAdded(count: totalCount)
             isSaving = false
             Haptics.success()
+            NotificationCenter.default.post(name: .measureBuddyDidSaveMeasurement, object: nil)
             onSaved()
         }
     }

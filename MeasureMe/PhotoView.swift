@@ -1397,40 +1397,26 @@ private struct PhotoGridView: View {
             VStack(spacing: 18) {
                 headerSection
 
-                AppGlassCard(
-                    depth: .elevated,
-                    cornerRadius: 20,
-                    tint: photosTheme.softTint,
-                    contentPadding: 16
-                ) {
-                    VStack(spacing: 14) {
-                        Image(systemName: "photo.on.rectangle")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.secondary)
-                        
-                        Text(filtersActive && hasAnySavedPhotos ? AppLocalization.string("No Photos Found") : AppLocalization.string("Photo Progress"))
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        Text(filtersActive && hasAnySavedPhotos
-                             ? AppLocalization.string("Try adjusting your filters or add a new photo")
-                             : AppLocalization.string("Take one full-body photo. In 4 weeks, the comparison will show changes your eye missed."))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 8)
-                        
-                        Button {
-                            onAddPhoto()
-                        } label: {
-                            Label(filtersActive && hasAnySavedPhotos ? AppLocalization.string("Add Photo") : AppLocalization.string("Take your first photo"), systemImage: "plus")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(AppAccentButtonStyle())
-                        .padding(.horizontal, 20)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
+                MiaraEmptyCard(
+                    pose: .thumbs,
+                    title: filtersActive && hasAnySavedPhotos
+                        ? AppLocalization.string("No Photos Found")
+                        : "„\(FlowLocalization.app("Your first photo is the start of your story.", "Pierwsze zdjęcie to start Twojej historii.", "Tu primera foto es el inicio de tu historia.", "Dein erstes Foto ist der Anfang deiner Geschichte.", "Ta première photo, c'est le début de ton histoire.", "Sua primeira foto é o começo da sua história."))”",
+                    subtitle: filtersActive && hasAnySavedPhotos
+                        ? AppLocalization.string("Try adjusting your filters or add a new photo")
+                        : FlowLocalization.app(
+                            "Take it today, and in a month you'll have something to compare. No need to change clothes — just the same angle.",
+                            "Zrób je dziś, a za miesiąc będzie czego porównywać. Przebierać się nie trzeba — wystarczy ten sam kąt.",
+                            "Hazla hoy y en un mes tendrás algo que comparar. No hace falta cambiarse — basta el mismo ángulo.",
+                            "Mach es heute, in einem Monat hast du etwas zum Vergleichen. Kein Umziehen nötig — gleicher Winkel reicht.",
+                            "Prends-la aujourd'hui et dans un mois tu auras de quoi comparer. Pas besoin de te changer — juste le même angle.",
+                            "Tire hoje e em um mês terá o que comparar. Sem precisar trocar de roupa — basta o mesmo ângulo."
+                        ),
+                    ctaTitle: filtersActive && hasAnySavedPhotos
+                        ? AppLocalization.string("Add Photo")
+                        : AppLocalization.string("Take your first photo"),
+                    onTap: { onAddPhoto() }
+                )
             }
             .padding(.horizontal, 12)
             .padding(.top, 8)

@@ -117,42 +117,52 @@ private struct HomeAIInsightsPanel: View {
             contentPadding: 16
         ) {
             VStack(alignment: .leading, spacing: 13) {
-                HStack(spacing: 10) {
-                    Image(systemName: "sparkles")
-                        .font(AppTypography.iconMedium)
-                        .foregroundStyle(.white)
-                        .frame(width: 34, height: 34)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(accent)
-                        )
+                HStack(alignment: .top, spacing: 12) {
+                    MeasureBuddyView(pose: .summary, size: 56)
+                        .shadow(color: accent.opacity(0.30), radius: 10, x: 0, y: 4)
 
-                    Text(AppLocalization.string("AI Insights"))
-                        .font(AppTypography.headlineEmphasis)
-                        .foregroundStyle(isPremium ? accent : AppColorRoles.textPrimary)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("📏 \(MeasureBuddyName.display.uppercased()) · \(AppLocalization.string("AI Insights").uppercased())")
+                            .font(.system(size: 9, weight: .heavy))
+                            .tracking(1.2)
+                            .foregroundStyle(accent)
 
-                    Spacer(minLength: 0)
+                        if isPremium, let firstInsight = insights.first {
+                            Text(firstInsight.text)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(AppColorRoles.textPrimary)
+                                .lineLimit(3)
+                                .fixedSize(horizontal: false, vertical: true)
 
-                    if isPremium {
-                        Button {
-                            isAnalysisPresented = true
-                        } label: {
-                            Text(FlowLocalization.app("View analysis", "Zobacz analizę", "Ver análisis", "Analyse ansehen", "Voir l'analyse", "Ver análise"))
-                                .font(AppTypography.captionEmphasis)
+                            Button {
+                                isAnalysisPresented = true
+                            } label: {
+                                HStack(spacing: 3) {
+                                    Text(FlowLocalization.app("See full analysis", "Zobacz pełną analizę", "Ver análisis completo", "Vollständige Analyse ansehen", "Voir l'analyse complète", "Ver análise completa"))
+                                    Text("→")
+                                }
+                                .font(.system(size: 10, weight: .heavy))
                                 .foregroundStyle(accent)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("home.aiInsights.openAnalysis")
+                            .padding(.top, 2)
+                        } else {
+                            Text(AppLocalization.string("AI Insights"))
+                                .font(AppTypography.headlineEmphasis)
+                                .foregroundStyle(AppColorRoles.textPrimary)
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("home.aiInsights.openAnalysis")
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                if isPremium {
+                if isPremium, insights.count > 1 {
                     VStack(alignment: .leading, spacing: 10) {
-                        ForEach(insights) { item in
+                        ForEach(Array(insights.dropFirst())) { item in
                             insightRow(item)
                         }
                     }
-                } else {
+                } else if !isPremium {
                     Button(action: onUnlockPremium) {
                         HStack(alignment: .center, spacing: 12) {
                             Image(systemName: "lock.fill")
@@ -267,26 +277,26 @@ struct HomeAIAnalysisView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Image(systemName: "sparkles")
-                .font(AppTypography.iconLarge)
-                .foregroundStyle(.white)
-                .frame(width: 60, height: 60)
-                .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [accent, AppColorRoles.stateSuccess],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                )
+        HStack(alignment: .top, spacing: 14) {
+            MeasureBuddyView(pose: .ai, size: 90)
+                .shadow(color: accent.opacity(0.30), radius: 14, x: 0, y: 8)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(FlowLocalization.app("AI Analysis", "Analiza AI", "Análisis IA", "KI-Analyse", "Analyse IA", "Análise IA"))
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppColorRoles.textPrimary)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("📏 \(FlowLocalization.app("Miara says", "Miara mówi", "Miara dice", "Miara sagt", "Miara dit", "Miara diz").uppercased())")
+                    .font(.system(size: 9, weight: .heavy))
+                    .tracking(1.4)
+                    .foregroundStyle(accent)
+
+                Text(FlowLocalization.app(
+                    "I analyzed your last 30 days",
+                    "Przeanalizowałam Twoje 30 dni",
+                    "He analizado tus últimos 30 días",
+                    "Ich habe deine letzten 30 Tage analysiert",
+                    "J'ai analysé tes 30 derniers jours",
+                    "Analisei seus últimos 30 dias"
+                ))
+                .font(.system(size: 16, weight: .heavy))
+                .foregroundStyle(AppColorRoles.textPrimary)
 
                 Text(FlowLocalization.app(
                     "Generated from your recent body metrics and photos.",

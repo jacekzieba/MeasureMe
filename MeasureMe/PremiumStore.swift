@@ -731,8 +731,16 @@ final class PremiumStore: ObservableObject {
         arguments: [String],
         environment: [String: String]
     ) -> Bool {
-        let _ = arguments
+        if arguments.contains(UITestArgument.forcePremium.rawValue) {
+            return true
+        }
+        if arguments.contains(UITestArgument.forceNonPremium.rawValue) {
+            return false
+        }
         #if targetEnvironment(simulator)
+        guard environment["MEASUREME_FORCE_PREMIUM_ON_SIMULATOR"] == "1" else {
+            return false
+        }
         let isRunningTests = environment["XCTestConfigurationFilePath"] != nil
         return !isRunningTests
         #else

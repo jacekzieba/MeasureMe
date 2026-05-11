@@ -112,7 +112,7 @@ final class PremiumStoreTests: XCTestCase {
     func testShouldForcePremiumOnSimulatorMatchesRuntimePlatform() {
         let shouldForce = PremiumStore.shouldForcePremiumOnSimulator(
             arguments: [],
-            environment: [:]
+            environment: ["MEASUREME_FORCE_PREMIUM_ON_SIMULATOR": "1"]
         )
 
         #if targetEnvironment(simulator)

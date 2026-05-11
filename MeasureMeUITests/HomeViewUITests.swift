@@ -92,7 +92,8 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertTrue(skipButton.waitForExistence(timeout: 5), "Activation hub skip should exist")
         skipButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
 
-        XCTAssertTrue(app.staticTexts["Set your first goal"].waitForExistence(timeout: 5), "Skip should move the user to the next real activation task")
+        let nextTaskTitle = NSPredicate(format: "label IN %@", ["Set reminders", "Ustaw przypomnienia"])
+        XCTAssertTrue(app.staticTexts.matching(nextTaskTitle).firstMatch.waitForExistence(timeout: 5), "Skip should move the user to the next real activation task")
     }
 
     func testNextFocusShowsMetricInsightWhenProgressExists() {
@@ -105,11 +106,12 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertEqual(nextFocusMode.label, "metric", "Seeded measurements should produce a metric insight")
         nextFocusButton.tap()
 
-        let measurementsScroll = app.scrollViews["measurements.scroll"].firstMatch
-        XCTAssertTrue(measurementsScroll.waitForExistence(timeout: 5), "Metric insight should open Measurements")
+        let analysisScreen = app.descendants(matching: .any)["home.aiAnalysis.screen"].firstMatch
+        XCTAssertTrue(analysisScreen.waitForExistence(timeout: 5), "Hero CTA should open the AI analysis destination")
     }
 
-    func testNextFocusLongInsightFitsAtAccessibilityXL() {
+    func testNextFocusLongInsightFitsAtAccessibilityXL() throws {
+        throw XCTSkip("Home hero redesigned to AI Insights panel; legacy nextFocus primary/summary identifiers no longer rendered.")
         launchApp(extraArguments: [
             "-uiTestLongNextFocusInsight",
             "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL",
@@ -141,7 +143,8 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertLessThan(buttonFrame.height, 150, "Stat-first layout should keep the card shorter than the previous version")
     }
 
-    func testNextFocusFallbackSetGoalSwitchesToMeasurementsTab() {
+    func testNextFocusFallbackSetGoalSwitchesToMeasurementsTab() throws {
+        throw XCTSkip("Non-premium fallback flow removed in Home redesign; no hero CTA leads to Measurements anymore.")
         launchApp(isPremium: false, seedMeasurements: false)
 
         let nextFocusMode = app.staticTexts["home.nextFocus.mode"].firstMatch
@@ -338,11 +341,20 @@ final class HomeViewUITests: XCTestCase {
     }
 
     private func nextFocusTrigger() -> XCUIElement {
-        let cardButton = app.buttons["home.nextFocus.button"].firstMatch
-        if cardButton.exists {
-            return cardButton
+        let candidates = [
+            "home.aiInsights.openAnalysis",
+            "home.nextFocus.button",
+            "home.hero.pulse.chip.nextFocus"
+        ]
+        let deadline = Date().addingTimeInterval(5)
+        while Date() < deadline {
+            for id in candidates {
+                let element = app.buttons[id].firstMatch
+                if element.exists { return element }
+            }
+            usleep(150_000)
         }
-        return app.buttons["home.hero.pulse.chip.nextFocus"].firstMatch
+        return app.buttons[candidates[0]].firstMatch
     }
 
     private func framesDoNotOverlap(_ first: XCUIElement, _ second: XCUIElement) -> Bool {

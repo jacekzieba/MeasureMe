@@ -52,9 +52,9 @@ final class OnboardingFlowTests: XCTestCase {
     func testInputStepsEndWithPremium() {
         XCTAssertEqual(
             OnboardingView.InputStep.allCases.map(\.analyticsName),
-            ["profile", "metrics", "photos", "health", "premium"]
+            ["welcome", "profile", "metrics", "photos", "health", "premium"]
         )
-        XCTAssertEqual(OnboardingView.InputStep.premium.rawValue, 4)
+        XCTAssertEqual(OnboardingView.InputStep.premium.rawValue, 5)
     }
 
     func testActivationTaskOrderingSupportsManualMeasurementBeforePhoto() {

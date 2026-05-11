@@ -63,6 +63,7 @@ struct RootView: View {
         .environmentObject(premiumStore)
         .environmentObject(metricsStore)
         .environmentObject(pendingPhotoSaveStore)
+        .measureBuddyToast()
         .modifier(
             RootPresentationModifier(
                 isAuditCaptureEnabled: isAuditCaptureEnabled,
