@@ -112,50 +112,10 @@ final class HomeViewUITests: XCTestCase {
 
     func testNextFocusLongInsightFitsAtAccessibilityXL() throws {
         throw XCTSkip("Home hero redesigned to AI Insights panel; legacy nextFocus primary/summary identifiers no longer rendered.")
-        launchApp(extraArguments: [
-            "-uiTestLongNextFocusInsight",
-            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL",
-            "-AppleLanguages", "(pl)",
-            "-AppleLocale", "pl_PL"
-        ])
-
-        let primaryValue = app.staticTexts["home.nextFocus.primaryValue"].firstMatch
-        let summary = app.staticTexts["home.nextFocus.summary"].firstMatch
-
-        XCTAssertTrue(nextFocusTrigger().waitForExistence(timeout: 5), "Next focus trigger should exist")
-        XCTAssertTrue(primaryValue.waitForExistence(timeout: 5), "Primary stat should exist")
-        XCTAssertTrue(summary.waitForExistence(timeout: 5), "Summary should exist")
-
-        let buttonFrame = nextFocusTrigger().frame
-        let primaryValueFrame = primaryValue.frame
-        let summaryFrame = summary.frame
-
-        XCTAssertFalse(buttonFrame.isEmpty, "Next focus button should have a visible frame")
-        XCTAssertFalse(primaryValueFrame.isEmpty, "Primary stat should have a visible frame")
-        XCTAssertFalse(summaryFrame.isEmpty, "Summary should have a visible frame")
-        XCTAssertGreaterThan(primaryValueFrame.width, 40, "Primary stat should remain readable")
-        XCTAssertLessThan(primaryValueFrame.height, 42, "Primary stat should stay compact and one-line")
-        XCTAssertGreaterThan(summaryFrame.height, 16, "Summary should remain visible at larger text sizes")
-        XCTAssertLessThan(summaryFrame.height, 90, "Summary should stay within a compact two-line block")
-        XCTAssertGreaterThanOrEqual(primaryValueFrame.minY, buttonFrame.minY, "Primary stat should stay inside the card")
-        XCTAssertLessThanOrEqual(summaryFrame.maxY, buttonFrame.maxY, "Summary should stay inside the card")
-        XCTAssertLessThan(primaryValueFrame.maxY, summaryFrame.minY, "Primary stat and summary should not overlap")
-        XCTAssertLessThan(buttonFrame.height, 150, "Stat-first layout should keep the card shorter than the previous version")
     }
 
     func testNextFocusFallbackSetGoalSwitchesToMeasurementsTab() throws {
         throw XCTSkip("Non-premium fallback flow removed in Home redesign; no hero CTA leads to Measurements anymore.")
-        launchApp(isPremium: false, seedMeasurements: false)
-
-        let nextFocusMode = app.staticTexts["home.nextFocus.mode"].firstMatch
-        XCTAssertTrue(nextFocusMode.waitForExistence(timeout: 5), "Next focus mode hook should exist")
-        let nextFocusButton = nextFocusTrigger()
-        XCTAssertTrue(nextFocusButton.waitForExistence(timeout: 5), "Next focus trigger should exist")
-        XCTAssertEqual(nextFocusMode.label, "setGoal", "No positive measurement insight should fall back to Set goal")
-        nextFocusButton.tap()
-
-        let measurementsScroll = app.scrollViews["measurements.scroll"].firstMatch
-        XCTAssertTrue(measurementsScroll.waitForExistence(timeout: 5), "Set goal fallback should open Measurements")
     }
 
     func testTrialReminderPromptShowsDeclineAndConfirm() {

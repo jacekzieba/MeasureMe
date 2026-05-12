@@ -2049,6 +2049,8 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 
 "premium.plan.flexible" = "Flexibel";
 "premium.plan.one.time" = "Einmaliger Kauf";
+"premium.other.options.show" = "Weitere Optionen";
+"premium.other.options.hide" = "Optionen ausblenden";
 "premium.carousel.analyst.bullet.1" = "Unbegrenzte KI-Körperanalysen";
 "premium.carousel.analyst.bullet.2" = "Gesundheitsübersicht";
 "premium.carousel.analyst.bullet.3" = "Smarte Erklärungen deines Fortschritts";
@@ -2074,3 +2076,12 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "premium.discover.card.cta" = "Premium entdecken";
 "accessibility.premium.slide.position" = "Folie %@ von %@: %@";
 "accessibility.premium.slide.dot" = "Folie %@ von %@";
+
+// App icon picker
+"App icon" = "App-Symbol";
+
+// App icon picker
+"Default" = "Standard";
+
+// App icon picker
+"Old" = "Alt";

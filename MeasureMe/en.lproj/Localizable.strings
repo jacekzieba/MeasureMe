@@ -2049,6 +2049,8 @@ The thresholds differ between males and females due to different body compositio
 
 "premium.plan.flexible" = "Flexible";
 "premium.plan.one.time" = "One-time purchase";
+"premium.other.options.show" = "See other options";
+"premium.other.options.hide" = "Hide options";
 
 // Carousel — bullets per slide (3 each)
 "premium.carousel.analyst.bullet.1" = "Unlimited AI Body Insights";
@@ -2080,3 +2082,12 @@ The thresholds differ between males and females due to different body compositio
 // Accessibility
 "accessibility.premium.slide.position" = "Slide %@ of %@: %@";
 "accessibility.premium.slide.dot" = "Slide %@ of %@";
+
+// App icon picker
+"App icon" = "App icon";
+
+// App icon picker
+"Default" = "Default";
+
+// App icon picker
+"Old" = "Old";

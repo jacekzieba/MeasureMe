@@ -32,6 +32,7 @@ struct MeasurementsTabView: View {
 
     @State private var selectedTab: MeasurementsTab = .metrics
     @State private var requestedMetricDetailKind: MetricKind?
+    @State private var isMetricDetailPresented = false
 
     private let healthAccent = HealthIndicatorPalette.accent
 
@@ -403,22 +404,17 @@ struct MeasurementsTabView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
-            .background {
-                NavigationLink(
-                    isActive: metricDetailPresentationBinding
-                ) {
-                    requestedMetricDetailDestination
-                } label: {
-                    EmptyView()
-                }
-                .hidden()
+            .navigationDestination(isPresented: $isMetricDetailPresented) {
+                requestedMetricDetailDestination
             }
         }
         .onAppear {
             rebuildSamplesCache()
             if let requestID = router.metricDetailRequestID,
                let kind = router.requestedMetricDetailKind {
-                presentMetricDetail(kind, requestID: requestID)
+                Task { @MainActor in
+                    presentMetricDetail(kind, requestID: requestID)
+                }
             }
             if let requestID = router.measurementsSectionRequestID,
                let section = router.requestedMeasurementsSection {
@@ -439,6 +435,11 @@ struct MeasurementsTabView: View {
         .onChange(of: router.metricDetailRequestID) { _, requestID in
             guard let requestID, let kind = router.requestedMetricDetailKind else { return }
             presentMetricDetail(kind, requestID: requestID)
+        }
+        .onChange(of: isMetricDetailPresented) { _, isPresented in
+            if !isPresented {
+                requestedMetricDetailKind = nil
+            }
         }
         .onChange(of: router.measurementsSectionRequestID) { _, requestID in
             guard let requestID, let section = router.requestedMeasurementsSection else { return }
@@ -563,23 +564,9 @@ struct MeasurementsTabView: View {
     }
 
     private func presentMetricDetail(_ kind: MetricKind, requestID: UUID) {
-        Task { @MainActor in
-            requestedMetricDetailKind = nil
-            await Task.yield()
-            requestedMetricDetailKind = kind
-            router.consumeMetricDetailRequest(requestID)
-        }
-    }
-
-    private var metricDetailPresentationBinding: Binding<Bool> {
-        Binding(
-            get: { requestedMetricDetailKind != nil },
-            set: { isPresented in
-                if !isPresented {
-                    requestedMetricDetailKind = nil
-                }
-            }
-        )
+        requestedMetricDetailKind = kind
+        isMetricDetailPresented = true
+        router.consumeMetricDetailRequest(requestID)
     }
 
     @ViewBuilder
@@ -1091,7 +1078,7 @@ struct MetricChartTile: View {
                             Image(systemName: "chevron.right")
                                 .font(AppTypography.iconMedium)
                                 .foregroundStyle(AppColorRoles.textTertiary)
-                                .frame(width: 32, height: 32)
+                                .frame(width: 44, height: 44)
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("metric.tile.open.\(kind.rawValue)")
@@ -1156,6 +1143,7 @@ struct MetricChartTile: View {
                             .lineSpacing(2)
                             .lineLimit(3)
                             .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("insight.card.text.compact")
 
                         if premiumStore.isPremium && !appleIntelligenceAvailable {
                             Spacer(minLength: 4)

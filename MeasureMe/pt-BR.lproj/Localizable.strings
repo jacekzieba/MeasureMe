@@ -2051,6 +2051,8 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 
 "premium.plan.flexible" = "Flexível";
 "premium.plan.one.time" = "Compra única";
+"premium.other.options.show" = "Ver outras opções";
+"premium.other.options.hide" = "Ocultar opções";
 "premium.carousel.analyst.bullet.1" = "Insights corporais de IA ilimitados";
 "premium.carousel.analyst.bullet.2" = "Resumo de saúde";
 "premium.carousel.analyst.bullet.3" = "Explicações inteligentes do progresso";
@@ -2076,3 +2078,12 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 "premium.discover.card.cta" = "Explorar Premium";
 "accessibility.premium.slide.position" = "Slide %@ de %@: %@";
 "accessibility.premium.slide.dot" = "Slide %@ de %@";
+
+// App icon picker
+"App icon" = "Ícone do app";
+
+// App icon picker
+"Default" = "Padrão";
+
+// App icon picker
+"Old" = "Antigo";

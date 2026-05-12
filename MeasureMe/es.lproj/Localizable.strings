@@ -2051,6 +2051,8 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 
 "premium.plan.flexible" = "Flexible";
 "premium.plan.one.time" = "Compra única";
+"premium.other.options.show" = "Ver otras opciones";
+"premium.other.options.hide" = "Ocultar opciones";
 "premium.carousel.analyst.bullet.1" = "Análisis corporales con IA ilimitados";
 "premium.carousel.analyst.bullet.2" = "Resumen de salud";
 "premium.carousel.analyst.bullet.3" = "Explicaciones inteligentes del progreso";
@@ -2076,3 +2078,12 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 "premium.discover.card.cta" = "Explorar Premium";
 "accessibility.premium.slide.position" = "Diapositiva %@ de %@: %@";
 "accessibility.premium.slide.dot" = "Diapositiva %@ de %@";
+
+// App icon picker
+"App icon" = "Icono de la app";
+
+// App icon picker
+"Default" = "Predeterminado";
+
+// App icon picker
+"Old" = "Antiguo";

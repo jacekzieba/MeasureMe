@@ -2049,6 +2049,8 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 
 "premium.plan.flexible" = "Flexible";
 "premium.plan.one.time" = "Achat unique";
+"premium.other.options.show" = "Voir d'autres options";
+"premium.other.options.hide" = "Masquer les options";
 "premium.carousel.analyst.bullet.1" = "Analyses corporelles IA illimitées";
 "premium.carousel.analyst.bullet.2" = "Résumé de santé";
 "premium.carousel.analyst.bullet.3" = "Explications intelligentes de la progression";
@@ -2074,3 +2076,12 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 "premium.discover.card.cta" = "Découvrir Premium";
 "accessibility.premium.slide.position" = "Diapositive %@ sur %@ : %@";
 "accessibility.premium.slide.dot" = "Diapositive %@ sur %@";
+
+// App icon picker
+"App icon" = "Icône de l’app";
+
+// App icon picker
+"Default" = "Par défaut";
+
+// App icon picker
+"Old" = "Ancienne";

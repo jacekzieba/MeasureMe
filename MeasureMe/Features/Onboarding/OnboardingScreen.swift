@@ -946,71 +946,55 @@ struct OnboardingView: View {
 
     @ViewBuilder
     private func onboardingWelcomeSlide(layout: OnboardingCardLayout) -> some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 24) {
             Spacer(minLength: 0)
 
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color.appAccent.opacity(0.32), Color.clear],
-                            center: .center,
-                            startRadius: 10,
-                            endRadius: 150
-                        )
-                    )
-                    .frame(width: 280, height: 280)
-                    .blur(radius: 6)
-                    .allowsHitTesting(false)
-
-                MeasureBuddyView(pose: .welcome, size: 170)
-                    .shadow(color: Color.appAccent.opacity(0.40), radius: 22, x: 0, y: 16)
-            }
-
-            MiaraSpeechBubble(
-                text: FlowLocalization.system(
-                    "Hey, I'm Miara. I'll be here every week to show you how your body is actually changing. No scale drama, no shame, just a clear picture.",
-                    "Hej, jestem Miara. Co tydzień pokażę Ci, jak naprawdę zmienia się Twoje ciało. Bez dramy z wagą i bez oceniania. Po prostu jasny obraz.",
-                    "Hola, soy Miara. Cada semana te mostraré cómo está cambiando tu cuerpo de verdad. Sin drama de báscula y sin juicios. Solo una imagen clara.",
-                    "Hey, ich bin Miara. Jede Woche zeige ich dir, wie sich dein Körper wirklich verändert. Kein Waagen-Drama, kein Urteil. Nur ein klares Bild.",
-                    "Salut, c'est Miara. Chaque semaine, je te montre comment ton corps évolue vraiment. Sans drame de balance, sans jugement. Juste une image claire.",
-                    "Oi, sou a Miara. Toda semana vou te mostrar como seu corpo está mudando de verdade. Sem drama da balança, sem julgamento. Só uma imagem clara."
-                )
-            )
-            .padding(.horizontal, 16)
-
-            VStack(spacing: 10) {
-                Text(FlowLocalization.system(
-                    "Welcome to\nMeasureMe",
-                    "Witaj w\nMeasureMe",
-                    "Bienvenido a\nMeasureMe",
-                    "Willkommen bei\nMeasureMe",
-                    "Bienvenue dans\nMeasureMe",
-                    "Bem-vindo ao\nMeasureMe"
-                ))
-                .font(.system(size: 34, weight: .heavy))
-                .tracking(-0.7)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(AppColorRoles.textPrimary)
-                .lineLimit(2)
-                .minimumScaleFactor(0.7)
-
-                Text(FlowLocalization.system(
-                    "Track your body with photos and measurements. Spot real progress week after week. Keep showing up and you'll see the difference.",
-                    "Śledź swoje ciało zdjęciami i pomiarami. Zobacz prawdziwy postęp tydzień po tygodniu. Bądź konsekwentny, a różnica sama się pokaże.",
-                    "Sigue tu cuerpo con fotos y medidas. Detecta el progreso real semana tras semana. Mantén la constancia y verás la diferencia.",
-                    "Verfolge deinen Körper mit Fotos und Maßen. Erkenne echten Fortschritt Woche für Woche. Bleib dran und du wirst den Unterschied sehen.",
-                    "Suis ton corps avec des photos et des mesures. Repère les vrais progrès semaine après semaine. Sois régulier et tu verras la différence.",
-                    "Acompanhe seu corpo com fotos e medidas. Veja o progresso real semana após semana. Mantenha a constância e verá a diferença."
-                ))
-                .font(.system(size: 14))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(AppColorRoles.textSecondary)
-                .frame(maxWidth: 280)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
-            }
+            Text(FlowLocalization.system(
+                "Welcome to\nMeasureMe",
+                "Witaj w\nMeasureMe",
+                "Bienvenido a\nMeasureMe",
+                "Willkommen bei\nMeasureMe",
+                "Bienvenue dans\nMeasureMe",
+                "Bem-vindo ao\nMeasureMe"
+            ))
+            .font(.system(size: 40, weight: .heavy))
+            .tracking(-1.0)
+            .multilineTextAlignment(.center)
+            .foregroundStyle(AppColorRoles.textPrimary)
             .padding(.horizontal, 24)
+
+            VStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [Color.appAccent.opacity(0.28), Color.clear],
+                                center: .center,
+                                startRadius: 10,
+                                endRadius: 110
+                            )
+                        )
+                        .frame(width: 200, height: 200)
+                        .blur(radius: 6)
+                        .allowsHitTesting(false)
+
+                    MeasureBuddyView(pose: .welcome, size: 150)
+                        .shadow(color: Color.appAccent.opacity(0.40), radius: 20, x: 0, y: 14)
+                }
+                .frame(height: 160)
+
+                MiaraSpeechBubble(
+                    text: FlowLocalization.system(
+                        "Hey, I'm Miara. I'll be here every week to show you how your body is actually changing. No scale drama, no shame, just a clear picture.",
+                        "Hej, jestem Miara. Co tydzień pokażę Ci, jak naprawdę zmienia się Twoje ciało. Bez dramy z wagą i bez oceniania. Po prostu jasny obraz.",
+                        "Hola, soy Miara. Cada semana te mostraré cómo está cambiando tu cuerpo de verdad. Sin drama de báscula y sin juicios. Solo una imagen clara.",
+                        "Hey, ich bin Miara. Jede Woche zeige ich dir, wie sich dein Körper wirklich verändert. Kein Waagen-Drama, kein Urteil. Nur ein klares Bild.",
+                        "Salut, c'est Miara. Chaque semaine, je te montre comment ton corps évolue vraiment. Sans drame de balance, sans jugement. Juste une image claire.",
+                        "Oi, sou a Miara. Toda semana vou te mostrar como seu corpo está mudando de verdade. Sem drama da balança, sem julgamento. Só uma imagem clara."
+                    )
+                )
+                .padding(.horizontal, 16)
+            }
 
             Spacer(minLength: 0)
         }

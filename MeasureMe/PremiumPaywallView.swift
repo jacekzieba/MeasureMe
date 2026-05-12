@@ -13,7 +13,7 @@ struct PremiumPaywallView: View {
     @State private var isCTAPulsing: Bool = false
     @State private var isCustomerCenterPresented: Bool = false
     @State private var isRevenueCatPaywallPresented: Bool = false
-    @State private var showLifetimeOption: Bool = false
+    @State private var showOtherOptions: Bool = false
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
     private let premiumTheme = FeatureTheme.premium
@@ -729,6 +729,19 @@ struct PremiumPaywallView: View {
         .accessibilityIdentifier(accessibilityID ?? textKey)
     }
 
+    private var otherProducts: [PremiumProduct] {
+        var seen = Set<String>()
+        return availableProducts
+            .filter { !isYearlyPlan($0) }
+            .filter { product in
+                let key: String
+                if isLifetimePlan(product) { key = "lifetime" }
+                else if isMonthlyPlan(product) { key = "monthly" }
+                else { key = product.id }
+                return seen.insert(key).inserted
+            }
+    }
+
     private var planPicker: some View {
         VStack(spacing: 12) {
             if availableProducts.isEmpty {
@@ -788,12 +801,116 @@ struct PremiumPaywallView: View {
                 }
                 #endif
             } else {
-                ForEach(availableProducts, id: \.id) { product in
-                    planRow(product: product)
+                // Yearly as the hero/default option
+                if let yearlyProduct = yearly {
+                    planRow(product: yearlyProduct)
                 }
+
+                // "See other options" disclosure for Monthly + Lifetime
+                otherOptionsSection
             }
         }
     }
+
+    @ViewBuilder
+    private var otherOptionsSection: some View {
+        let others = otherProducts
+        let hasLifetime = others.contains(where: { isLifetimePlan($0) })
+        let showButton = !others.isEmpty || !hasLifetime
+
+        if showButton {
+            Button {
+                withAnimation(AppMotion.standard) {
+                    showOtherOptions.toggle()
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Text(AppLocalization.string(showOtherOptions ? "premium.other.options.hide" : "premium.other.options.show"))
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(Color.appAccent)
+                    Image(systemName: showOtherOptions ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.appAccent)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+            }
+            .buttonStyle(.plain)
+
+            if showOtherOptions {
+                ForEach(others, id: \.id) { product in
+                    planRow(product: product)
+                }
+                #if DEBUG
+                if !hasLifetime {
+                    debugLifetimePlanRow
+                }
+                #endif
+            }
+        }
+    }
+
+    #if DEBUG
+    private var debugLifetimePlanRow: some View {
+        let isSelected = selectedProductID == "debug.lifetime.mock"
+        return Button {
+            selectedProductID = "debug.lifetime.mock"
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(isSelected ? Color.appAccent : Color.white.opacity(0.45))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(AppLocalization.string("premium.plan.lifetime"))
+                            .font(AppTypography.body)
+                            .foregroundStyle(.white.opacity(0.88))
+                        Text(AppLocalization.string("premium.plan.one.time"))
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Color.appAccent)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.appAccent.opacity(0.16), in: Capsule())
+                    }
+                    Text(AppLocalization.string("premium.plan.billing.lifetime"))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(.white.opacity(0.68))
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text("$79.99")
+                        .font(.system(.title3, design: .rounded).weight(.bold))
+                        .foregroundStyle(.white)
+                    Text(AppLocalization.string("premium.lifetime.tagline"))
+                        .font(AppTypography.micro)
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected ? Color.appAccent.opacity(0.16) : Color.white.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(isSelected ? Color.appAccent : Color.white.opacity(0.14), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .overlay(
+            Text("DEBUG MOCK")
+                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .foregroundStyle(.yellow.opacity(0.7))
+                .padding(3),
+            alignment: .topTrailing
+        )
+    }
+    #endif
 
     private func planRow(product: PremiumProduct) -> some View {
         let isSelected = product.id == selectedProductID
@@ -863,14 +980,14 @@ struct PremiumPaywallView: View {
     }
 
     private func planBadgeLabel(for product: PremiumProduct) -> String? {
+        if isLifetimePlan(product) {
+            return AppLocalization.string("premium.plan.one.time")
+        }
         if isYearlyPlan(product) {
             return AppLocalization.string("premium.plan.best.value")
         }
         if isMonthlyPlan(product) {
             return AppLocalization.string("premium.plan.flexible")
-        }
-        if isLifetimePlan(product) {
-            return AppLocalization.string("premium.plan.one.time")
         }
         return nil
     }
@@ -878,9 +995,6 @@ struct PremiumPaywallView: View {
     /// Lifetime is included directly in `availableProducts` when the paywall
     /// reason allows it (Settings only). The previous "More options" disclosure
     /// is no longer needed; this view returns nothing.
-    @ViewBuilder
-    private var lifetimeDisclosure: some View { EmptyView() }
-
     private var subscribeButtonTitle: String {
         if let product = selectedProduct, isLifetimePlan(product) {
             // No price interpolation — keeps the CTA short and readable.
@@ -932,8 +1046,6 @@ struct PremiumPaywallView: View {
     private var purchaseDock: some View {
         VStack(spacing: 16) {
             planPicker
-
-            lifetimeDisclosure
 
             subscribeButton
                 .padding(.top, 2)
@@ -990,27 +1102,27 @@ struct PremiumPaywallView: View {
     }
 
     private func planTitle(for product: PremiumProduct) -> String {
-        if isMonthlyPlan(product) {
-            return AppLocalization.string("premium.plan.monthly")
+        if isLifetimePlan(product) {
+            return AppLocalization.string("premium.plan.lifetime")
         }
         if isYearlyPlan(product) {
             return AppLocalization.string("premium.plan.yearly")
         }
-        if isLifetimePlan(product) {
-            return AppLocalization.string("premium.plan.lifetime")
+        if isMonthlyPlan(product) {
+            return AppLocalization.string("premium.plan.monthly")
         }
         return product.displayName
     }
 
     private func planSubtitle(for product: PremiumProduct) -> String {
-        if isMonthlyPlan(product) {
-            return AppLocalization.string("premium.plan.billing.monthly")
+        if isLifetimePlan(product) {
+            return AppLocalization.string("premium.plan.billing.lifetime")
         }
         if isYearlyPlan(product) {
             return AppLocalization.string("premium.plan.billing.yearly")
         }
-        if isLifetimePlan(product) {
-            return AppLocalization.string("premium.plan.billing.lifetime")
+        if isMonthlyPlan(product) {
+            return AppLocalization.string("premium.plan.billing.monthly")
         }
         return AppLocalization.string("premium.plan.billing.default")
     }

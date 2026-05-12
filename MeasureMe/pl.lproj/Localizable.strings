@@ -1988,6 +1988,8 @@
 
 "premium.plan.flexible" = "Elastycznie";
 "premium.plan.one.time" = "Jednorazowy zakup";
+"premium.other.options.show" = "Zobacz inne opcje";
+"premium.other.options.hide" = "Ukryj opcje";
 "premium.carousel.analyst.bullet.1" = "Nielimitowane analizy sylwetki AI";
 "premium.carousel.analyst.bullet.2" = "Podsumowanie zdrowia";
 "premium.carousel.analyst.bullet.3" = "Inteligentne wyjaśnienia postępów";
@@ -2013,3 +2015,12 @@
 "premium.discover.card.cta" = "Poznaj Premium";
 "accessibility.premium.slide.position" = "Slajd %@ z %@: %@";
 "accessibility.premium.slide.dot" = "Slajd %@ z %@";
+
+// App icon picker
+"App icon" = "Ikona aplikacji";
+
+// App icon picker
+"Default" = "Domyślna";
+
+// App icon picker
+"Old" = "Stara";

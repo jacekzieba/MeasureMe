@@ -113,12 +113,7 @@ final class MeasureMeUITests: XCTestCase {
 
         let openWeightDetail = app.buttons["metric.tile.open.weight"].firstMatch
         if !openWeightDetail.waitForExistence(timeout: 3) {
-            let nextFocus = app.buttons["home.aiInsights.openAnalysis"].firstMatch
-            if nextFocus.waitForExistence(timeout: 3) {
-                nextFocus.tap()
-            } else {
-                tapTab(in: app, identifier: "tab.measurements", fallbackLabels: ["Measurements", "Pomiary"])
-            }
+            tapTab(in: app, identifier: "tab.measurements", fallbackLabels: ["Measurements", "Pomiary"])
         }
         XCTAssertTrue(openWeightDetail.waitForExistence(timeout: 5))
         openWeightDetail.tap()
@@ -157,12 +152,7 @@ final class MeasureMeUITests: XCTestCase {
 
         let openWeightDetail = app.buttons["metric.tile.open.weight"].firstMatch
         if !openWeightDetail.waitForExistence(timeout: 3) {
-            let nextFocus = app.buttons["home.aiInsights.openAnalysis"].firstMatch
-            if nextFocus.waitForExistence(timeout: 3) {
-                nextFocus.tap()
-            } else {
-                tapTab(in: app, identifier: "tab.measurements", fallbackLabels: ["Measurements", "Pomiary"])
-            }
+            tapTab(in: app, identifier: "tab.measurements", fallbackLabels: ["Measurements", "Pomiary"])
         }
 
         XCTAssertTrue(openWeightDetail.waitForExistence(timeout: 5), "Weight detail navigation button should exist")
@@ -219,12 +209,7 @@ final class MeasureMeUITests: XCTestCase {
 
         let openWeightDetail = app.buttons["metric.tile.open.weight"].firstMatch
         if !openWeightDetail.waitForExistence(timeout: 3) {
-            let nextFocus = app.buttons["home.aiInsights.openAnalysis"].firstMatch
-            if nextFocus.waitForExistence(timeout: 3) {
-                nextFocus.tap()
-            } else {
-                tapTab(in: app, identifier: "tab.measurements", fallbackLabels: ["Measurements", "Pomiary"])
-            }
+            tapTab(in: app, identifier: "tab.measurements", fallbackLabels: ["Measurements", "Pomiary"])
         }
 
         XCTAssertTrue(openWeightDetail.waitForExistence(timeout: 5), "Weight detail navigation button should exist")

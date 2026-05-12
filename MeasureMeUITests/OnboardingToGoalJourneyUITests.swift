@@ -38,18 +38,20 @@ final class OnboardingToGoalJourneyUITests: XCTestCase {
     private func completeOnboardingFlow() {
         let next = onboardingNextButton()
         XCTAssertTrue(next.waitForExistence(timeout: 12), "Przycisk Dalej powinien istniec podczas onboardingu")
+        next.tap()  // welcome → profile
 
         let buildMuscle = app.buttons["onboarding.priority.buildMuscle"].firstMatch
         XCTAssertTrue(buildMuscle.waitForExistence(timeout: 8), "Polaczony krok profilu i celu powinien byc widoczny")
         buildMuscle.tap()
-        next.tap()
+        next.tap()  // profile → metrics
 
-        next.tap()
-        next.tap()
+        next.tap()  // metrics → photos
+        next.tap()  // photos → health
 
         let skip = app.buttons["UITest Skip"].firstMatch
         XCTAssertTrue(app.buttons["onboarding.health.allow"].firstMatch.waitForExistence(timeout: 8), "Krok Health powinien byc widoczny")
-        skip.tap()
+        skip.tap()  // health → premium
+        skip.tap()  // premium → finish
     }
 
     private func onboardingNextButton() -> XCUIElement {
