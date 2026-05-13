@@ -1,10 +1,10 @@
 /* Localizable.strings */
 
-"notification.log.title" = "%@ Registre suas medidas";
+"notification.log.title" = "%@Registre suas medidas";
 "notification.log.body" = "Um registro rápido agora mantém seu progresso nos trilhos.";
-"notification.smart.title" = "%@ Hora de um registro rápido";
+"notification.smart.title" = "%@Hora de um registro rápido";
 "notification.smart.body" = "Já faz %d dias desde seu último registro. Adicione uma medida para continuar no caminho certo.";
-"notification.photo.title" = "%@ Hora de uma foto de progresso";
+"notification.photo.title" = "%@Hora de uma foto de progresso";
 "notification.photo.body" = "Já faz %d dias desde sua última foto. As imagens mostram mudanças que a balança não mostra.";
 "notification.import.title" = "Novo %@ do app Saúde";
 "notification.import.body" = "Adicionado automaticamente a MeasureMe.";
@@ -514,7 +514,7 @@ O IMC não distingue entre massa muscular e massa gorda, portanto atletas ou pes
 "Allow notifications" = "Permitir notificações";
 "You’re all set." = "Está tudo pronto.";
 "Add a quick measurement" = "Adicione uma medição rápida";
-"Log in seconds" = "Faça login em segundos";
+"Log in seconds" = "Registre em segundos";
 "Quick Add lets you update multiple metrics without extra taps." = "O Registro rápido permite atualizar várias métricas sem toques extras.";
 "Add your first measurement" = "Adicione sua primeira medição";
 "Charts show momentum" = "Gráficos mostram impulso";
@@ -1575,7 +1575,7 @@ O IMC não distingue entre massa muscular e massa gorda, portanto atletas ou pes
 "Import from Health" = "Importar do app Saúde";
 "Import latest from Health" = "Importar os dados mais recentes do app Saúde";
 "Improve posture, upper body training, and reduce waist gradually." = "Melhore a postura, o treinamento da parte superior do corpo e reduza a cintura gradualmente.";
-"In physique view, BF% mostly controls sharpness and visible muscle separation." = "Na visão física, BF% m controla claramente a nitidez e a separação muscular visível.";
+"In physique view, BF% mostly controls sharpness and visible muscle separation." = "Na visualização da silhueta, o percentual de gordura corporal controla principalmente a definição e a separação muscular visível.";
 "In physique view, WHtR is a visibility filter for proportions and definition." = "Na visualização física, o WHtR é um filtro de visibilidade para proporções e definição.";
 "Increase" = "Aumentar";
 "Information" = "Informação";
@@ -1786,7 +1786,7 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 "What time of day should I measure?" = "Que horas do dia devo medir?";
 "What tools should I use for measurements?" = "Quais ferramentas devo usar para medições?";
 "What units does the app support?" = "Quais unidades o aplicativo suporta?";
-"What’s the difference between weight, body fat %, and lean body mass?" = "Qual é a diferença entre peso,% de gordura corporal e massa corporal magra?";
+"What’s the difference between weight, body fat %, and lean body mass?" = "Qual é a diferença entre peso, percentual de gordura corporal e massa corporal magra?";
 "When enabled, current values are saved even if unchanged." = "Quando ativado, os valores atuais são salvos mesmo que inalterados.";
 "Why It Matters" = "Por que é importante";
 "Why are circumference measurements important?" = "Por que as medições de circunferência são importantes?";

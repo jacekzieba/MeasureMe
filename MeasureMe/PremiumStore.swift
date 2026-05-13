@@ -149,14 +149,14 @@ final class PremiumStore: ObservableObject {
             }
         }
 
-        /// Lifetime is intentionally surfaced *only* in the main Settings paywall.
-        /// Contextual paywalls (feature taps, timed prompts) show only Monthly + Yearly.
+        /// Lifetime is hidden only during onboarding. All other premium entry
+        /// points can show the non-consumable option alongside subscriptions.
         var allowsLifetime: Bool {
             switch self {
-            case .settings:
-                return true
-            default:
+            case .onboarding:
                 return false
+            default:
+                return true
             }
         }
     }
@@ -234,20 +234,17 @@ final class PremiumStore: ObservableObject {
         if forcePremiumForUITests {
             Task { @MainActor in
                 self.isPremium = true
-                settings.set(\.premium.premiumEntitlement, true)
-                WidgetDataWriter.syncPremiumAndReload(isPremium: true)
+                applyPremiumEntitlement(true)
             }
         } else if forceNonPremiumForUITests {
             Task { @MainActor in
                 self.isPremium = false
-                settings.set(\.premium.premiumEntitlement, false)
-                WidgetDataWriter.syncPremiumAndReload(isPremium: false)
+                applyPremiumEntitlement(false)
             }
         } else if forcePremiumOnSimulator {
             Task { @MainActor in
                 self.isPremium = true
-                settings.set(\.premium.premiumEntitlement, true)
-                WidgetDataWriter.syncPremiumAndReload(isPremium: true)
+                applyPremiumEntitlement(true)
             }
         }
         #endif
@@ -477,8 +474,7 @@ final class PremiumStore: ObservableObject {
         defer { isPurchasing = false }
 
         isPremium = true
-        settings.set(\.premium.premiumEntitlement, true)
-        WidgetDataWriter.syncPremiumAndReload(isPremium: true)
+        applyPremiumEntitlement(true)
         currentOffering = nil
         productsLoadError = nil
         actionMessage = nil
@@ -608,20 +604,17 @@ final class PremiumStore: ObservableObject {
         #if DEBUG
         if forcePremiumForUITests {
             isPremium = true
-            settings.set(\.premium.premiumEntitlement, true)
-            WidgetDataWriter.syncPremiumAndReload(isPremium: true)
+            applyPremiumEntitlement(true)
             return
         }
         if forceNonPremiumForUITests {
             isPremium = false
-            settings.set(\.premium.premiumEntitlement, false)
-            WidgetDataWriter.syncPremiumAndReload(isPremium: false)
+            applyPremiumEntitlement(false)
             return
         }
         if forcePremiumOnSimulator {
             isPremium = true
-            settings.set(\.premium.premiumEntitlement, true)
-            WidgetDataWriter.syncPremiumAndReload(isPremium: true)
+            applyPremiumEntitlement(true)
             return
         }
         #endif
@@ -636,6 +629,13 @@ final class PremiumStore: ObservableObject {
 
     private func handlePurchaseResult(_ result: PurchaseResultData, purchasedProduct: PremiumProduct) async {
         if result.userCancelled {
+            await refreshEntitlements()
+            if isPremium {
+                actionMessage = AppLocalization.string("premium.purchase.success")
+                actionMessageIsError = false
+                await presentPostPurchaseSetupAfterCurrentModalDismisses()
+                return
+            }
             analytics.track(
                 signalName: PremiumTelemetrySignal.purchaseCancelled,
                 parameters: purchaseContextParameters(source: "direct_purchase")
@@ -700,8 +700,13 @@ final class PremiumStore: ObservableObject {
             .keys
             .contains(PremiumConstants.entitlementID)
         isPremium = isEntitled
+        applyPremiumEntitlement(isEntitled)
+    }
+
+    private func applyPremiumEntitlement(_ isEntitled: Bool) {
         settings.set(\.premium.premiumEntitlement, isEntitled)
         WidgetDataWriter.syncPremiumAndReload(isPremium: isEntitled)
+        WatchSessionManager.shared.sendApplicationContext()
     }
 
     func markPurchaseTrackedIfNeeded(purchaseKey: String) -> Bool {
@@ -738,11 +743,16 @@ final class PremiumStore: ObservableObject {
             return false
         }
         #if targetEnvironment(simulator)
-        guard environment["MEASUREME_FORCE_PREMIUM_ON_SIMULATOR"] == "1" else {
+        let isRunningTests = environment["XCTestConfigurationFilePath"] != nil
+        guard !isRunningTests else {
             return false
         }
-        let isRunningTests = environment["XCTestConfigurationFilePath"] != nil
-        return !isRunningTests
+        if environment["MEASUREME_FORCE_PREMIUM_ON_SIMULATOR"] == "0" ||
+            environment["MEASUREME_DISABLE_FORCE_PREMIUM_ON_SIMULATOR"] == "1" ||
+            environment["MEASUREME_RC_TEST_STORE"] == "1" {
+            return false
+        }
+        return true
         #else
         return false
         #endif

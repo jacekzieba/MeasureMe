@@ -21,14 +21,14 @@ struct QuickAddView: View {
     var body: some View {
         if activeMetrics.isEmpty {
             ContentUnavailableView {
-                Label(String(localized: "No Metrics", table: "Watch"),
+                Label(WatchLocalization.string("No Metrics"),
                       systemImage: "ruler")
             } description: {
-                Text(String(localized: "Enable metrics on your iPhone to see them here.", table: "Watch"))
+                Text(WatchLocalization.string("Enable metrics on your iPhone to see them here."))
                     .font(.caption2)
             }
-            .accessibilityLabel(String(localized: "No Metrics", table: "Watch"))
-            .accessibilityValue(String(localized: "Enable metrics on your iPhone to see them here.", table: "Watch"))
+            .accessibilityLabel(WatchLocalization.string("No Metrics"))
+            .accessibilityValue(WatchLocalization.string("Enable metrics on your iPhone to see them here."))
         } else {
             List {
                 ForEach(activeMetrics) { kind in
@@ -60,10 +60,10 @@ struct QuickAddView: View {
                         if isSaving {
                             ProgressView()
                         } else if showSaved {
-                            Label(String(localized: "Saved", table: "Watch"),
+                            Label(WatchLocalization.string("Saved"),
                                   systemImage: "checkmark.circle.fill")
                         } else {
-                            Label(String(localized: "Save", table: "Watch"),
+                            Label(WatchLocalization.string("Save"),
                                   systemImage: "square.and.arrow.down")
                         }
                         Spacer()
@@ -77,13 +77,15 @@ struct QuickAddView: View {
                 .foregroundStyle(.black)
                 .fontWeight(.semibold)
                 .disabled(isSaving || showSaved)
+                .accessibilityIdentifier("watch.quickAdd.save")
                 .accessibilityLabel(showSaved
-                                    ? String(localized: "Saved", table: "Watch")
-                                    : String(localized: "Save", table: "Watch"))
+                                    ? WatchLocalization.string("Saved")
+                                    : WatchLocalization.string("Save"))
                 .accessibilityHint(saveButtonHint)
             }
+            .accessibilityIdentifier("watch.quickAdd.view")
             .listStyle(.plain)
-            .navigationTitle(String(localized: "Add", table: "Watch"))
+            .navigationTitle(WatchLocalization.string("Add"))
             .focusable()
             .digitalCrownRotation(
                 $crownValue,
@@ -118,7 +120,7 @@ struct QuickAddView: View {
 
     private func defaultDisplayValue(for kind: WatchMetricKind) -> Double {
         guard let data = WatchMetricData.load(for: kind),
-              let val = data.latestDisplayValue(for: kind) else {
+              let val = data.latestDisplayValue(for: kind, unitsSystemOverride: connectivity.unitsSystem) else {
             return kind.unitCategory == .weight ? 70.0 : (kind.unitCategory == .percent ? 20.0 : 80.0)
         }
         return (val * 10).rounded() / 10
@@ -185,7 +187,7 @@ struct QuickAddView: View {
     private var saveButtonHint: String {
         let count = metricsToSave().count
         if count > 1 {
-            return String(format: watchLocalized("Saves %d edited metrics", "Zapisuje %d edytowane metryki"), count)
+            return WatchLocalization.string("Saves %d edited metrics", count)
         }
         return watchLocalized("Saves the selected metric", "Zapisuje wybraną metrykę")
     }

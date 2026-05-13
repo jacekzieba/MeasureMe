@@ -2,9 +2,9 @@
 
 "notification.log.title" = "Zeit, deine %@ einzutragen";
 "notification.log.body" = "Ein kurzer Eintrag hält deinen Fortschritt auf Kurs.";
-"notification.smart.title" = "%@ Zeit für einen kurzen Eintrag";
+"notification.smart.title" = "%@Zeit für einen kurzen Eintrag";
 "notification.smart.body" = "Seit deinem letzten Eintrag sind %d Tage vergangen. Füge eine Messung hinzu, um am Ball zu bleiben.";
-"notification.photo.title" = "%@ Zeit für ein Fortschrittsfoto";
+"notification.photo.title" = "%@Zeit für ein Fortschrittsfoto";
 "notification.photo.body" = "Seit deinem letzten Foto sind %d Tage vergangen – Bilder zeigen oft Veränderungen, die die Waage übersieht.";
 "notification.import.title" = "Neue %@ aus Health";
 "notification.import.body" = "Automatisch zu MeasureMe hinzugefügt.";
@@ -1217,7 +1217,7 @@ in %@";
 "photos.selected.count.few" = "%d ausgewählt";
 "photos.selected.count.many" = "%d ausgewählt";
 "photos.delete.confirmation" = "Möchtest du wirklich %d Fotos löschen? Das kann nicht rückgängig gemacht werden.";
-"photos.delete.confirmation.one" = "Möchtest du dieses Foto wirklich löschen? Das kann nicht rückgängig gemacht werden.";
+"photos.delete.confirmation.one" = "Möchtest du wirklich %d Foto löschen? Das kann nicht rückgängig gemacht werden.";
 "photos.delete.confirmation.few" = "Möchtest du wirklich %d Fotos löschen? Das kann nicht rückgängig gemacht werden.";
 "photos.delete.confirmation.many" = "Möchtest du wirklich %d Fotos löschen? Das kann nicht rückgängig gemacht werden.";
 "photos.delete.single.confirmation" = "Möchtest du dieses Foto wirklich löschen? Das kann nicht rückgängig gemacht werden.";
@@ -1979,7 +1979,7 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "German" = "Deutsch";
 "French" = "Französisch";
 "Your trend is being analyzed." = "Dein Trend wird analysiert.";
-"Keep logging consistently to get a clearer trend signal." = "Führe die Eintragierung konsequent fort, um ein klareres Trendsignal zu erhalten.";
+"Keep logging consistently to get a clearer trend signal." = "Trage deine Werte konsequent weiter ein, um ein klareres Trendsignal zu erhalten.";
 "Want less manual typing?" = "Weniger manuell eingeben?";
 "We can automatically fill in some values from Apple Health and keep them updated later." = "Wir können einige Werte automatisch aus Apple Health übernehmen und später aktuell halten.";
 "If you already track weight, body fat, or lean body mass in Apple Health, we can import that automatically." = "Wenn du Gewicht, Körperfett oder fettfreie Masse bereits in Apple Health erfasst, können wir das automatisch importieren.";

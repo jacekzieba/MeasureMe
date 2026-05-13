@@ -116,7 +116,7 @@ enum WidgetDataWriter {
 
     static func syncSharedPayloadsAndReload() {
         guard let defaults = resolveDefaults() else { return }
-        writeSharedWidgetPayloads(defaults: defaults)
+        writeSharedWidgetPayloads(defaults: defaults, unitsSystem: UserDefaults.standard.string(forKey: AppSettingsKeys.Profile.unitsSystem) ?? "metric")
         triggerReload()
     }
 
@@ -154,7 +154,7 @@ enum WidgetDataWriter {
         let kindsSet = Set(kinds)
         guard !kindsSet.isEmpty else { return }
         guard let defaults = resolveDefaults() else { return }
-        writeSharedWidgetPayloads(defaults: defaults)
+        writeSharedWidgetPayloads(defaults: defaults, unitsSystem: unitsSystem)
 
         let cutoff = AppClock.now.addingTimeInterval(-90 * 24 * 3600)
         let encoder = JSONEncoder()
@@ -230,9 +230,11 @@ enum WidgetDataWriter {
         return override?(appGroupID) ?? UserDefaults(suiteName: appGroupID)
     }
 
-    private static func writeSharedWidgetPayloads(defaults: UserDefaults) {
+    private static func writeSharedWidgetPayloads(defaults: UserDefaults, unitsSystem: String) {
         let localDefaults = UserDefaults.standard
         defaults.set(localDefaults.bool(forKey: AppSettingsKeys.Premium.entitlement), forKey: "widget_premium_enabled")
+        defaults.set(unitsSystem, forKey: "watch_units_system")
+        defaults.set(localDefaults.string(forKey: AppSettingsKeys.Experience.appLanguage) ?? "system", forKey: "watch_app_language")
 
         let streakCurrent = localDefaults.integer(forKey: "streak_current_count")
         let streakMax = localDefaults.integer(forKey: "streak_max_count")

@@ -10,22 +10,22 @@ struct MetricListView: View {
     var body: some View {
         if activeMetrics.isEmpty {
             ContentUnavailableView {
-                Label(String(localized: "No Metrics", table: "Watch"),
+                Label(WatchLocalization.string("No Metrics"),
                       systemImage: "ruler")
             } description: {
-                Text(String(localized: "Enable metrics on your iPhone to see them here.", table: "Watch"))
+                Text(WatchLocalization.string("Enable metrics on your iPhone to see them here."))
                     .font(.caption2)
             }
-            .accessibilityLabel(String(localized: "No Metrics", table: "Watch"))
-            .accessibilityValue(String(localized: "Enable metrics on your iPhone to see them here.", table: "Watch"))
+            .accessibilityLabel(WatchLocalization.string("No Metrics"))
+            .accessibilityValue(WatchLocalization.string("Enable metrics on your iPhone to see them here."))
         } else {
             List {
                 ForEach(activeMetrics) { kind in
                     let data = WatchMetricData.load(for: kind)
                     NavigationLink {
-                        MetricDetailView(kind: kind, data: data)
+                        MetricDetailView(kind: kind, data: data, unitsSystem: connectivity.unitsSystem)
                     } label: {
-                        MetricRowView(kind: kind, data: data)
+                        MetricRowView(kind: kind, data: data, unitsSystem: connectivity.unitsSystem)
                     }
                     .listRowBackground(Color.white.opacity(0.06))
                     .accessibilityHint(watchLocalized("Shows metric details", "Pokazuje szczegóły metryki"))

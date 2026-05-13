@@ -1,10 +1,10 @@
 /* Localizable.strings */
 
-"notification.log.title" = "%@ Enregistrez vos mesures";
+"notification.log.title" = "%@Enregistrez vos mesures";
 "notification.log.body" = "Une saisie rapide suffit pour suivre vos progrès.";
-"notification.smart.title" = "%@ Faites un point rapide";
+"notification.smart.title" = "%@Faites un point rapide";
 "notification.smart.body" = "Cela fait %d jours depuis votre dernière saisie : ajoutez une mesure pour garder le cap.";
-"notification.photo.title" = "%@ Ajoutez une photo de progression";
+"notification.photo.title" = "%@Ajoutez une photo de progression";
 "notification.photo.body" = "Cela fait %d jours depuis votre dernière photo : les images montrent des changements que la balance ne révèle pas.";
 "notification.import.title" = "Nouvelle donnée %@ dans Santé";
 "notification.import.body" = "Ajout automatique dans MeasureMe.";
@@ -208,7 +208,7 @@
 "home.focus.goal.detail" = "Dernière lecture : %@.";
 "home.focus.protect.title" = "Protéger la progression de %@";
 "home.focus.protect.detail" = "Vous êtes sur la bonne voie. Gardez le rythme cette semaine.";
-"home.focus.logtoday.title" = "Connectez-vous %@ aujourd'hui";
+"home.focus.logtoday.title" = "Enregistrez %@ aujourd’hui";
 "home.focus.logtoday.detail" = "Une saisie supplémentaire rendra la tendance plus lisible.";
 "home.focus.latest.detail" = "Dernière lecture : %@.";
 "home.photos.compare.title" = "Comparez vos clichés";
@@ -514,7 +514,7 @@ L'IMC ne distingue pas la masse musculaire de la masse grasse. Les sportifs ou l
 "Allow notifications" = "Autoriser les notifications";
 "You’re all set." = "Vous êtes prêt.";
 "Add a quick measurement" = "Ajouter une mesure rapide";
-"Log in seconds" = "Connectez-vous en quelques secondes";
+"Log in seconds" = "Enregistrez en quelques secondes";
 "Quick Add lets you update multiple metrics without extra taps." = "L'ajout rapide vous permet de mettre à jour plusieurs mesures sans appuis supplémentaires.";
 "Add your first measurement" = "Ajoutez votre première mesure";
 "Charts show momentum" = "Les graphiques montrent l’élan";
@@ -907,7 +907,7 @@ L'IMC ne distingue pas la masse musculaire de la masse grasse. Les sportifs ou l
 "Weight is useful. We will focus on trends, not daily noise." = "Le poids est utile. Nous nous concentrerons sur les tendances, pas sur le bruit quotidien.";
 "Current value" = "Valeur actuelle";
 "Latest entry: %@" = "Dernière entrée : %@";
-"Tip: log at roughly the same time for cleaner trends." = "Astuce : connectez-vous à peu près au même moment pour connaître les tendances les plus nettes.";
+"Tip: log at roughly the same time for cleaner trends." = "Astuce : enregistrez vos mesures à peu près au même moment pour obtenir des tendances plus nettes.";
 "Great start - your trend begins today." = "Bon début : votre tendance commence aujourd'hui.";
 "A few details" = "Quelques détails";
 "e.g., Jacek" = "par exemple, Jacek";
@@ -1319,7 +1319,7 @@ en %@";
 "streak.detail.heatmap.less" = "Moins";
 "streak.detail.heatmap.more" = "Plus";
 "streak.detail.totalLogs" = "Total des saisies";
-"streak.detail.nextMilestone.label" = "%llj semaines supplémentaires";
+"streak.detail.nextMilestone.label" = "%lld semaines supplémentaires";
 "streak.detail.nextMilestone.sub" = "jusqu’à votre prochain palier.";
 "streak.detail.milestone.reached" = "Tous les jalons débloqués ! 🎉";
 "streak.detail.motivational.0.title" = "Commencer";
@@ -1956,11 +1956,11 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 
 // MARK: - Smart per-metric notifications
 "notification.smart.stale.title" = "Il est temps de faire une mise à jour";
-"notification.smart.stale.body" = "Vous n'avez pas connecté votre %@ depuis %d jours. Prêt à vous enregistrer ?";
+"notification.smart.stale.body" = "Vous n’avez pas enregistré %@ depuis %d jours. Prêt à faire le point ?";
 "notification.smart.pattern.title" = "Vous avez raté votre routine ?";
-"notification.smart.pattern.body" = "Vous vous connectez habituellement %1$@ à cette heure-là le %2$@. Vous voulez l'ajouter ?";
+"notification.smart.pattern.body" = "Vous enregistrez habituellement %1$@ vers cette heure-ci le %2$@. Voulez-vous l’ajouter ?";
 "notification.smart.permetric.toggle" = "Rappels par mesure";
-"notification.smart.permetric.footer" = "Recevez des rappels pour des mesures spécifiques auxquelles vous n'avez pas connecté depuis un certain temps ou lorsque vous manquez votre routine habituelle.";
+"notification.smart.permetric.footer" = "Recevez des rappels pour les mesures que vous n’avez pas enregistrées depuis un moment ou lorsque vous manquez votre routine habituelle.";
 "notification.ai.header" = "Notifications IA";
 "notification.ai.title" = "Notifications IA";
 "notification.ai.subtitle" = "Apple Intelligence sur l’appareil détecte les progrès importants, les changements de tendance et la dynamique hebdomadaire.";

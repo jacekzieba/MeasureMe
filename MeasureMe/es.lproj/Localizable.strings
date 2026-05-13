@@ -907,7 +907,7 @@ El IMC no distingue entre masa muscular y grasa, por lo que atletas o personas c
 "Weight is useful. We will focus on trends, not daily noise." = "El peso es útil. Nos centraremos en las tendencias, no en el ruido cotidiano.";
 "Current value" = "Valor actual";
 "Latest entry: %@" = "Última entrada: %@";
-"Tip: log at roughly the same time for cleaner trends." = "Consejo: regístrese aproximadamente al mismo tiempo para ver tendencias más claras.";
+"Tip: log at roughly the same time for cleaner trends." = "Consejo: registra aproximadamente a la misma hora para ver tendencias más claras.";
 "Great start - your trend begins today." = "Gran comienzo: tu tendencia comienza hoy.";
 "A few details" = "Algunos detalles";
 "e.g., Jacek" = "por ejemplo, Jacek";
@@ -1974,7 +1974,7 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 "notification.smart.stale.title" = "Es hora de una actualización";
 "notification.smart.stale.body" = "No has registrado tu %@ en %d días. ¿Listo para registrarlo?";
 "notification.smart.pattern.title" = "¿Extrañaste tu rutina?";
-"notification.smart.pattern.body" = "Por lo general, inicia sesión en %1$@ a esta hora en %2$@. ¿Quieres agregarlo?";
+"notification.smart.pattern.body" = "Normalmente registras %1$@ a esta hora el %2$@. ¿Quieres añadirlo?";
 "notification.smart.permetric.toggle" = "Recordatorios por métrica";
 "notification.smart.permetric.footer" = "Recibe recordatorios de medidas concretas cuando lleves tiempo sin registrarlas o cuando pierdas tu rutina habitual.";
 

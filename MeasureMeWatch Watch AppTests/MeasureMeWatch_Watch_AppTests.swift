@@ -240,7 +240,7 @@ struct WatchMetricDataTests {
     @Test func formattedValueMetric() {
         let data = makeSampleData(kind: "weight", values: [(80.5, 1)], units: "metric")
         let formatted = data.formattedValue(for: .weight)
-        #expect(formatted.contains("80.5"))
+        #expect(formatted.contains("80.5") || formatted.contains("80,5"))
         #expect(formatted.contains("kg"))
     }
 
@@ -260,14 +260,14 @@ struct WatchMetricDataTests {
         let data = makeSampleData(values: [(80.0, 20), (82.0, 1)])
         let delta = data.deltaText(for: .weight)
         #expect(delta != nil)
-        #expect(delta!.contains("+2.0"))
+        #expect(delta!.contains("+2.0") || delta!.contains("+2,0"))
     }
 
     @Test func deltaTextNegative() {
         let data = makeSampleData(values: [(82.0, 20), (80.0, 1)])
         let delta = data.deltaText(for: .weight)
         #expect(delta != nil)
-        #expect(delta!.contains("-2.0"))
+        #expect(delta!.contains("-2.0") || delta!.contains("-2,0"))
     }
 
     @Test func deltaTextNilWithSingleSample() {

@@ -458,7 +458,7 @@ struct MeasurementsTabView: View {
             ScreenTitleHeader(
                 title: AppLocalization.string("Measurements"),
                 topPadding: 6,
-                bottomPadding: 0,
+                bottomPadding: AppSpacing.xs,
                 horizontalPadding: 8
             )
 

@@ -272,8 +272,8 @@
 "home.health.pill.preview" = "Podgląd";
 "home.health.pill.ready" = "Gotowe";
 "home.health.empty.disconnected.title" = "Połącz aplikację Zdrowie, jeśli chcesz mniej ręcznej pracy";
-"home.health.empty.disconnected.detail" = "Połącz MeasureME z aplikacją Zdrowie, aby widzieć metryki.";
-"home.health.empty.disconnected.detail.preview" = "Pobierz dane z aplikacji Zdrowie, aby podejrzeć metryki na Stronie głównej. Pełne podsumowanie jest dostępne Premium.";
+"home.health.empty.disconnected.detail" = "Połącz MeasureMe z aplikacją Zdrowie, aby widzieć metryki.";
+"home.health.empty.disconnected.detail.preview" = "Pobierz dane z aplikacji Zdrowie, aby podejrzeć metryki na Stronie głównej. Pełne podsumowanie jest dostępne w Premium.";
 "home.health.empty.synced.title" = "Dane z aplikacji Zdrowie są pobierane, ale brakuje nam kilku danych.";
 "home.health.empty.synced.detail" = "Dodaj kilka pomiarów, aby ta karta stała się użyteczna.";
 "home.health.empty.synced.detail.preview" = "Tutaj zobaczysz podgląd jednej zsynchronizowanej metryki. Więcej metryk zdrowia, sylwetka i pełne podsumowanie są w Premium.";
@@ -1915,10 +1915,10 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 
 // MARK: - Smart per-metric notifications
 "notification.smart.stale.title" = "Czas na aktualizację";
-"notification.smart.stale.body" = "Nie podawałeś %@ od %d dni. Czas na update?";
+"notification.smart.stale.body" = "Nie podawałeś %@ od %d dni. Czas dodać wpis?";
 "notification.smart.pattern.title" = "Pominąłeś swoją rutynę?";
 "notification.smart.pattern.body" = "Zwykle w %2$@ o tej porze podajesz %1$@. Chcesz dodać?";
-"notification.smart.permetric.toggle" = "Powiadomienia per-metryka";
+"notification.smart.permetric.toggle" = "Przypomnienia dla metryk";
 "notification.smart.permetric.footer" = "Otrzymuj przypomnienia o konkretnych pomiarach, których dawno nie podawałeś, lub gdy pominiesz swoją rutynę.";
 "notification.ai.header" = "Powiadomienia AI";
 "notification.ai.title" = "Powiadomienia AI";

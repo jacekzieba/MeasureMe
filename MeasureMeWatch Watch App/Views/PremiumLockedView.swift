@@ -8,11 +8,11 @@ struct PremiumLockedView: View {
                 .foregroundStyle(Color.watchAccent)
                 .accessibilityHidden(true)
 
-            Text(String(localized: "Premium Feature", table: "Watch"))
+            Text(WatchLocalization.string("Premium Feature"))
                 .font(.headline)
                 .foregroundStyle(.white)
 
-            Text(String(localized: "Upgrade to Premium on your iPhone to use MeasureMe on Apple Watch.", table: "Watch"))
+            Text(WatchLocalization.string("Upgrade to Premium on your iPhone to use MeasureMe on Apple Watch."))
                 .font(.caption2)
                 .foregroundStyle(Color.watchSubtleText)
                 .multilineTextAlignment(.center)

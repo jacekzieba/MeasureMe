@@ -867,6 +867,9 @@ struct PremiumPaywallView: View {
                         if let badge {
                             Text(badge)
                                 .font(.system(size: 10, weight: .bold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
+                                .fixedSize(horizontal: true, vertical: false)
                                 .foregroundStyle(Color.appAccent)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
@@ -912,9 +915,6 @@ struct PremiumPaywallView: View {
     }
 
     private func planBadgeLabel(for product: PremiumProduct) -> String? {
-        if isLifetimePlan(product) {
-            return AppLocalization.string("premium.plan.one.time")
-        }
         if isYearlyPlan(product) {
             return AppLocalization.string("premium.plan.best.value")
         }

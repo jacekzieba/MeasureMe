@@ -3,6 +3,7 @@ import SwiftUI
 struct MetricDetailView: View {
     let kind: WatchMetricKind
     let data: WatchMetricData?
+    let unitsSystem: String
 
     private var recentSamples: [WatchMetricData.SampleDTO] {
         data?.last30DaySamples ?? []
@@ -27,13 +28,13 @@ struct MetricDetailView: View {
             VStack(alignment: .leading, spacing: 10) {
                 // Header: value + delta
                 HStack(alignment: .firstTextBaseline) {
-                    Text(data?.formattedValue(for: kind) ?? "—")
+                    Text(data?.formattedValue(for: kind, unitsSystemOverride: unitsSystem) ?? "—")
                         .font(.system(.title2, design: .rounded).weight(.bold).monospacedDigit())
                         .foregroundStyle(.white)
 
                     Spacer()
 
-                    if let delta = data?.deltaText(for: kind, recentSamples: recentSamples) {
+                    if let delta = data?.deltaText(for: kind, recentSamples: recentSamples, unitsSystemOverride: unitsSystem) {
                         Text(delta)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(trendColor)
@@ -48,7 +49,7 @@ struct MetricDetailView: View {
 
                 // Goal info
                 if let goal = data?.goal {
-                    let isMetric = data?.isMetric ?? true
+                    let isMetric = unitsSystem != "imperial"
                     let targetDisplay = kind.valueForDisplay(fromMetric: goal.targetValue, isMetric: isMetric)
                     HStack(spacing: 4) {
                         Image(systemName: "target")
@@ -60,7 +61,7 @@ struct MetricDetailView: View {
                             .foregroundStyle(Color.watchSubtleText)
                     }
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(data?.accessibilityGoalDescription(for: kind) ?? watchLocalized("Goal", "Cel"))
+                    .accessibilityLabel(data?.accessibilityGoalDescription(for: kind, unitsSystemOverride: unitsSystem) ?? watchLocalized("Goal", "Cel"))
                 }
 
                 // Sparkline
@@ -69,19 +70,19 @@ struct MetricDetailView: View {
                     .padding(.vertical, 4)
                     .accessibilityHidden(true)
 
-                Text(data?.accessibilityTrendDescription(for: kind, recentSamples: recentSamples)
+                Text(data?.accessibilityTrendDescription(for: kind, recentSamples: recentSamples, unitsSystemOverride: unitsSystem)
                      ?? watchLocalized("Not enough data for trend", "Za mało danych, aby ocenić trend"))
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(Color.watchSubtleText)
                     .fixedSize(horizontal: false, vertical: true)
 
                 // Recent measurements
-                Text(String(localized: "Recent", table: "Watch"))
+                Text(WatchLocalization.string("Recent"))
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color.watchSubtleText)
 
                 ForEach(last10Samples.reversed(), id: \.date) { sample in
-                    let isMetric = data?.isMetric ?? true
+                    let isMetric = unitsSystem != "imperial"
                     let displayVal = kind.valueForDisplay(fromMetric: sample.value, isMetric: isMetric)
                     HStack {
                         Text(formattedDate(sample.date))
@@ -104,15 +105,16 @@ struct MetricDetailView: View {
 
     private func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
+        formatter.locale = WatchLocalization.currentLocale
         formatter.dateFormat = "d MMM"
         return formatter.string(from: date)
     }
 
     private var detailAccessibilityValue: String {
-        let value = data?.formattedValue(for: kind) ?? "—"
-        let trend = data?.accessibilityTrendDescription(for: kind, recentSamples: recentSamples)
+        let value = data?.formattedValue(for: kind, unitsSystemOverride: unitsSystem) ?? "—"
+        let trend = data?.accessibilityTrendDescription(for: kind, recentSamples: recentSamples, unitsSystemOverride: unitsSystem)
             ?? watchLocalized("Not enough data for trend", "Za mało danych, aby ocenić trend")
-        if let goal = data?.accessibilityGoalDescription(for: kind) {
+        if let goal = data?.accessibilityGoalDescription(for: kind, unitsSystemOverride: unitsSystem) {
             return "\(value). \(trend). \(goal)"
         }
         return "\(value). \(trend)"

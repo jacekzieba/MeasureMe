@@ -14,47 +14,47 @@ enum WatchMetricKind: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .weight:       return String(localized: "Weight", table: "Watch")
-        case .bodyFat:      return String(localized: "Body Fat", table: "Watch")
-        case .height:       return String(localized: "Height", table: "Watch")
-        case .leanBodyMass: return String(localized: "Lean Body Mass", table: "Watch")
-        case .waist:        return String(localized: "Waist", table: "Watch")
-        case .neck:         return String(localized: "Neck", table: "Watch")
-        case .shoulders:    return String(localized: "Shoulders", table: "Watch")
-        case .bust:         return String(localized: "Bust", table: "Watch")
-        case .chest:        return String(localized: "Chest", table: "Watch")
-        case .leftBicep:    return String(localized: "Left Bicep", table: "Watch")
-        case .rightBicep:   return String(localized: "Right Bicep", table: "Watch")
-        case .leftForearm:  return String(localized: "Left Forearm", table: "Watch")
-        case .rightForearm: return String(localized: "Right Forearm", table: "Watch")
-        case .hips:         return String(localized: "Hips", table: "Watch")
-        case .leftThigh:    return String(localized: "Left Thigh", table: "Watch")
-        case .rightThigh:   return String(localized: "Right Thigh", table: "Watch")
-        case .leftCalf:     return String(localized: "Left Calf", table: "Watch")
-        case .rightCalf:    return String(localized: "Right Calf", table: "Watch")
+        case .weight:       return WatchLocalization.string("Weight")
+        case .bodyFat:      return WatchLocalization.string("Body Fat")
+        case .height:       return WatchLocalization.string("Height")
+        case .leanBodyMass: return WatchLocalization.string("Lean Body Mass")
+        case .waist:        return WatchLocalization.string("Waist")
+        case .neck:         return WatchLocalization.string("Neck")
+        case .shoulders:    return WatchLocalization.string("Shoulders")
+        case .bust:         return WatchLocalization.string("Bust")
+        case .chest:        return WatchLocalization.string("Chest")
+        case .leftBicep:    return WatchLocalization.string("Left Bicep")
+        case .rightBicep:   return WatchLocalization.string("Right Bicep")
+        case .leftForearm:  return WatchLocalization.string("Left Forearm")
+        case .rightForearm: return WatchLocalization.string("Right Forearm")
+        case .hips:         return WatchLocalization.string("Hips")
+        case .leftThigh:    return WatchLocalization.string("Left Thigh")
+        case .rightThigh:   return WatchLocalization.string("Right Thigh")
+        case .leftCalf:     return WatchLocalization.string("Left Calf")
+        case .rightCalf:    return WatchLocalization.string("Right Calf")
         }
     }
 
     var shortName: String {
         switch self {
-        case .weight:       return String(localized: "Weight", table: "Watch")
-        case .bodyFat:      return String(localized: "Fat", table: "Watch")
-        case .height:       return String(localized: "Height", table: "Watch")
-        case .leanBodyMass: return String(localized: "Lean", table: "Watch")
-        case .waist:        return String(localized: "Waist", table: "Watch")
-        case .neck:         return String(localized: "Neck", table: "Watch")
-        case .shoulders:    return String(localized: "Shoulders", table: "Watch")
-        case .bust:         return String(localized: "Bust", table: "Watch")
-        case .chest:        return String(localized: "Chest", table: "Watch")
-        case .leftBicep:    return String(localized: "L Bicep", table: "Watch")
-        case .rightBicep:   return String(localized: "R Bicep", table: "Watch")
-        case .leftForearm:  return String(localized: "L Forearm", table: "Watch")
-        case .rightForearm: return String(localized: "R Forearm", table: "Watch")
-        case .hips:         return String(localized: "Hips", table: "Watch")
-        case .leftThigh:    return String(localized: "L Thigh", table: "Watch")
-        case .rightThigh:   return String(localized: "R Thigh", table: "Watch")
-        case .leftCalf:     return String(localized: "L Calf", table: "Watch")
-        case .rightCalf:    return String(localized: "R Calf", table: "Watch")
+        case .weight:       return WatchLocalization.string("Weight")
+        case .bodyFat:      return WatchLocalization.string("Fat")
+        case .height:       return WatchLocalization.string("Height")
+        case .leanBodyMass: return WatchLocalization.string("Lean")
+        case .waist:        return WatchLocalization.string("Waist")
+        case .neck:         return WatchLocalization.string("Neck")
+        case .shoulders:    return WatchLocalization.string("Shoulders")
+        case .bust:         return WatchLocalization.string("Bust")
+        case .chest:        return WatchLocalization.string("Chest")
+        case .leftBicep:    return WatchLocalization.string("L Bicep")
+        case .rightBicep:   return WatchLocalization.string("R Bicep")
+        case .leftForearm:  return WatchLocalization.string("L Forearm")
+        case .rightForearm: return WatchLocalization.string("R Forearm")
+        case .hips:         return WatchLocalization.string("Hips")
+        case .leftThigh:    return WatchLocalization.string("L Thigh")
+        case .rightThigh:   return WatchLocalization.string("R Thigh")
+        case .leftCalf:     return WatchLocalization.string("L Calf")
+        case .rightCalf:    return WatchLocalization.string("R Calf")
         }
     }
 
@@ -116,13 +116,13 @@ enum WatchMetricKind: String, CaseIterable, Identifiable {
         switch unitCategory {
         case .percent:
             return includeUnit
-                ? String(format: "\(valueFormat)%%", displayValue)
-                : String(format: valueFormat, displayValue)
+                ? String(format: "\(valueFormat)%%", locale: WatchLocalization.currentLocale, displayValue)
+                : String(format: valueFormat, locale: WatchLocalization.currentLocale, displayValue)
         case .weight, .length:
             if includeUnit {
-                return String(format: "\(valueFormat)\u{202F}%@", displayValue, unitSymbol(isMetric: isMetric))
+                return String(format: "\(valueFormat)\u{202F}%@", locale: WatchLocalization.currentLocale, displayValue, unitSymbol(isMetric: isMetric))
             }
-            return String(format: valueFormat, displayValue)
+            return String(format: valueFormat, locale: WatchLocalization.currentLocale, displayValue)
         }
     }
 

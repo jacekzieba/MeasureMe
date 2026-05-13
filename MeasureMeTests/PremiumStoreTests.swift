@@ -109,10 +109,10 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertFalse(shouldForce)
     }
 
-    func testShouldForcePremiumOnSimulatorMatchesRuntimePlatform() {
+    func testShouldForcePremiumOnSimulatorDefaultsToRuntimePlatform() {
         let shouldForce = PremiumStore.shouldForcePremiumOnSimulator(
             arguments: [],
-            environment: ["MEASUREME_FORCE_PREMIUM_ON_SIMULATOR": "1"]
+            environment: [:]
         )
 
         #if targetEnvironment(simulator)
@@ -120,6 +120,15 @@ final class PremiumStoreTests: XCTestCase {
         #else
         XCTAssertFalse(shouldForce)
         #endif
+    }
+
+    func testShouldForcePremiumOnSimulatorCanBeDisabledForPurchaseTesting() {
+        let shouldForce = PremiumStore.shouldForcePremiumOnSimulator(
+            arguments: [],
+            environment: ["MEASUREME_DISABLE_FORCE_PREMIUM_ON_SIMULATOR": "1"]
+        )
+
+        XCTAssertFalse(shouldForce)
     }
 
     /// Co sprawdza: Sprawdza, ze IsEntitlementActive zwraca false w oczekiwanym scenariuszu.
@@ -485,16 +494,21 @@ final class PremiumStoreTests: XCTestCase {
     }
 
     @MainActor
-    func test_paywallReason_allowsLifetime_onlyForSettings() {
+    func test_paywallReason_allowsLifetime_everywhereExceptOnboarding() {
         XCTAssertTrue(PremiumStore.PaywallReason.settings.allowsLifetime)
-        XCTAssertFalse(PremiumStore.PaywallReason.aiInsights.allowsLifetime)
-        XCTAssertFalse(PremiumStore.PaywallReason.photoComparison.allowsLifetime)
-        XCTAssertFalse(PremiumStore.PaywallReason.export.allowsLifetime)
-        XCTAssertFalse(PremiumStore.PaywallReason.iCloudSync.allowsLifetime)
-        XCTAssertFalse(PremiumStore.PaywallReason.widgets.allowsLifetime)
-        XCTAssertFalse(PremiumStore.PaywallReason.premiumMetric.allowsLifetime)
-        XCTAssertFalse(PremiumStore.PaywallReason.timedPrompt.allowsLifetime)
-        XCTAssertFalse(PremiumStore.PaywallReason.postMeasurementPrompt.allowsLifetime)
+        XCTAssertTrue(PremiumStore.PaywallReason.aiInsights.allowsLifetime)
+        XCTAssertTrue(PremiumStore.PaywallReason.photoComparison.allowsLifetime)
+        XCTAssertTrue(PremiumStore.PaywallReason.export.allowsLifetime)
+        XCTAssertTrue(PremiumStore.PaywallReason.iCloudSync.allowsLifetime)
+        XCTAssertTrue(PremiumStore.PaywallReason.widgets.allowsLifetime)
+        XCTAssertTrue(PremiumStore.PaywallReason.premiumMetric.allowsLifetime)
+        XCTAssertTrue(PremiumStore.PaywallReason.timedPrompt.allowsLifetime)
+        XCTAssertTrue(PremiumStore.PaywallReason.postMeasurementPrompt.allowsLifetime)
+        XCTAssertTrue(PremiumStore.PaywallReason.activation.allowsLifetime)
+        XCTAssertTrue(PremiumStore.PaywallReason.checklist.allowsLifetime)
+        XCTAssertTrue(PremiumStore.PaywallReason.feature("test").allowsLifetime)
+        XCTAssertTrue(PremiumStore.PaywallReason.sevenDayPrompt.allowsLifetime)
+        XCTAssertFalse(PremiumStore.PaywallReason.onboarding.allowsLifetime)
     }
 
     // MARK: - PremiumPromptCoordinator (frequency caps)

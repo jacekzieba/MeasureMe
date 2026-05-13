@@ -11,6 +11,14 @@ struct AISectionSummaryCard: View {
 
     @State private var text: String?
     @State private var isLoading = false
+    @State private var isExpanded = false
+
+    private let collapsedLineLimit = 4
+
+    private var canExpand: Bool {
+        guard let text else { return false }
+        return !isLoading && text.count > 220
+    }
 
     var body: some View {
         AppGlassCard(
@@ -93,7 +101,22 @@ struct AISectionSummaryCard: View {
                     .font(AppTypography.body)
                     .foregroundStyle(AppColorRoles.textSecondary)
                     .lineSpacing(3)
+                    .lineLimit(canExpand && !isExpanded ? collapsedLineLimit : nil)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if canExpand {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isExpanded.toggle()
+                        }
+                    } label: {
+                        Text(AppLocalization.aiString(isExpanded ? "Show less" : "Show more"))
+                            .font(AppTypography.microEmphasis)
+                            .foregroundStyle(AppColorRoles.accentPrimary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("\(accessibilityIdentifier).expand")
+                }
             }
         }
     }
@@ -127,6 +150,7 @@ struct AISectionSummaryCard: View {
 
         isLoading = true
         text = await MetricInsightService.shared.generateSectionInsight(for: input)
+        isExpanded = false
         isLoading = false
     }
 
@@ -136,6 +160,7 @@ struct AISectionSummaryCard: View {
         await MetricInsightService.shared.invalidateSections()
         isLoading = true
         text = await MetricInsightService.shared.generateSectionInsight(for: input)
+        isExpanded = false
         isLoading = false
     }
 }

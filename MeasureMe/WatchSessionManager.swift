@@ -57,12 +57,14 @@ final class WatchSessionManager: NSObject, ObservableObject {
         let activeRaw = activeStore.activeKinds.map(\.rawValue)
         let keyRaw = activeStore.keyMetrics.map(\.rawValue)
         let units = settings.snapshot.profile.unitsSystem
+        let appLanguage = settings.snapshot.experience.appLanguage
         let isPremium = settings.snapshot.premium.premiumEntitlement
 
         var context: [String: Any] = [
             "activeMetrics": activeRaw,
             "keyMetrics": keyRaw,
             "unitsSystem": units,
+            "appLanguage": appLanguage,
             "isPremium": isPremium
         ]
 

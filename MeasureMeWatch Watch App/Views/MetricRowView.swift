@@ -3,6 +3,7 @@ import SwiftUI
 struct MetricRowView: View {
     let kind: WatchMetricKind
     let data: WatchMetricData?
+    let unitsSystem: String
 
     private var recentSamples: [WatchMetricData.SampleDTO] {
         data?.last30DaySamples ?? []
@@ -34,7 +35,7 @@ struct MetricRowView: View {
 
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 // Value
-                Text(data?.formattedValue(for: kind) ?? "—")
+                Text(data?.formattedValue(for: kind, unitsSystemOverride: unitsSystem) ?? "—")
                     .font(.system(.body, design: .rounded).weight(.bold).monospacedDigit())
                     .foregroundStyle(.white)
                     .lineLimit(1)
@@ -43,7 +44,7 @@ struct MetricRowView: View {
                 Spacer()
 
                 // Delta pill
-                if let delta = data?.deltaText(for: kind, recentSamples: recentSamples) {
+                if let delta = data?.deltaText(for: kind, recentSamples: recentSamples, unitsSystemOverride: unitsSystem) {
                     Text(delta)
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(trendColor)
@@ -65,8 +66,8 @@ struct MetricRowView: View {
     }
 
     private var accessibilityValue: String {
-        let value = data?.formattedValue(for: kind) ?? "—"
-        let trend = data?.accessibilityTrendDescription(for: kind, recentSamples: recentSamples)
+        let value = data?.formattedValue(for: kind, unitsSystemOverride: unitsSystem) ?? "—"
+        let trend = data?.accessibilityTrendDescription(for: kind, recentSamples: recentSamples, unitsSystemOverride: unitsSystem)
             ?? watchLocalized("Not enough data for trend", "Za mało danych, aby ocenić trend")
         return "\(value). \(trend)"
     }
