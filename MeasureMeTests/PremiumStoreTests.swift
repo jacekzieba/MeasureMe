@@ -190,6 +190,24 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertTrue(isActive)
     }
 
+    func testIsEntitlementActiveReturnsTrueForLifetimeWithoutExpiration() {
+        let now = Date()
+        let isActive = PremiumStore.isEntitlementActive(
+            productID: PremiumConstants.lifetimeProductID,
+            revocationDate: nil,
+            expirationDate: nil,
+            isInBillingGracePeriod: false,
+            allowedProductIDs: [
+                PremiumConstants.monthlyProductID,
+                PremiumConstants.yearlyProductID,
+                PremiumConstants.lifetimeProductID
+            ],
+            now: now
+        )
+
+        XCTAssertTrue(isActive)
+    }
+
     /// Co sprawdza: Sprawdza scenariusz: LoadProductsErrorSetsFailureState.
     /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
     /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.

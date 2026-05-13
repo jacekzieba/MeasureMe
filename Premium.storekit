@@ -31,6 +31,13 @@
           "duration": "P14D"
         }
       }
+    },
+    {
+      "productID": "com.measureme.premium.lifetime",
+      "referenceName": "Premium Lifetime",
+      "type": "non-consumable",
+      "price": 299.99,
+      "currencyCode": "PLN"
     }
   ]
 }

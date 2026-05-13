@@ -815,8 +815,7 @@ struct PremiumPaywallView: View {
     @ViewBuilder
     private var otherOptionsSection: some View {
         let others = otherProducts
-        let hasLifetime = others.contains(where: { isLifetimePlan($0) })
-        let showButton = !others.isEmpty || !hasLifetime
+        let showButton = !others.isEmpty
 
         if showButton {
             Button {
@@ -841,76 +840,9 @@ struct PremiumPaywallView: View {
                 ForEach(others, id: \.id) { product in
                     planRow(product: product)
                 }
-                #if DEBUG
-                if !hasLifetime {
-                    debugLifetimePlanRow
-                }
-                #endif
             }
         }
     }
-
-    #if DEBUG
-    private var debugLifetimePlanRow: some View {
-        let isSelected = selectedProductID == "debug.lifetime.mock"
-        return Button {
-            selectedProductID = "debug.lifetime.mock"
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(isSelected ? Color.appAccent : Color.white.opacity(0.45))
-
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(AppLocalization.string("premium.plan.lifetime"))
-                            .font(AppTypography.body)
-                            .foregroundStyle(.white.opacity(0.88))
-                        Text(AppLocalization.string("premium.plan.one.time"))
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(Color.appAccent)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.appAccent.opacity(0.16), in: Capsule())
-                    }
-                    Text(AppLocalization.string("premium.plan.billing.lifetime"))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.white.opacity(0.68))
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 3) {
-                    Text("$79.99")
-                        .font(.system(.title3, design: .rounded).weight(.bold))
-                        .foregroundStyle(.white)
-                    Text(AppLocalization.string("premium.lifetime.tagline"))
-                        .font(AppTypography.micro)
-                        .foregroundStyle(.white.opacity(0.6))
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected ? Color.appAccent.opacity(0.16) : Color.white.opacity(0.05))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(isSelected ? Color.appAccent : Color.white.opacity(0.14), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-        .overlay(
-            Text("DEBUG MOCK")
-                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                .foregroundStyle(.yellow.opacity(0.7))
-                .padding(3),
-            alignment: .topTrailing
-        )
-    }
-    #endif
 
     private func planRow(product: PremiumProduct) -> some View {
         let isSelected = product.id == selectedProductID
