@@ -45,6 +45,13 @@ struct PendingPhotoSaveCompletedEvent {
     let eventID: UUID
 }
 
+struct PendingPhotoSaveRequest {
+    let sourceImage: UIImage
+    let date: Date
+    let tags: Set<PhotoTag>
+    let metricValues: [MetricKind: Double]
+}
+
 private nonisolated struct PendingPhotoSaveMetricRecord: Codable {
     let kindRaw: String
     let displayValue: Double
@@ -325,21 +332,45 @@ final class PendingPhotoSaveStore: ObservableObject {
         batchID: UUID = UUID(),
         progress: ((Int, Int) -> Void)? = nil
     ) async throws -> [UUID] {
+        let requests = sourceImages.map {
+            PendingPhotoSaveRequest(
+                sourceImage: $0,
+                date: date,
+                tags: tags,
+                metricValues: metricValues
+            )
+        }
+        return try await enqueueMany(
+            requests: requests,
+            unitsSystem: unitsSystem,
+            telemetrySource: telemetrySource,
+            batchID: batchID,
+            progress: progress
+        )
+    }
+
+    func enqueueMany(
+        requests: [PendingPhotoSaveRequest],
+        unitsSystem: String,
+        telemetrySource: PhotoTelemetrySource = .multiImport,
+        batchID: UUID = UUID(),
+        progress: ((Int, Int) -> Void)? = nil
+    ) async throws -> [UUID] {
         guard modelContainer != nil else {
             throw PendingSaveError.modelContainerNotConfigured
         }
-        guard !sourceImages.isEmpty else { return [] }
+        guard !requests.isEmpty else { return [] }
 
-        let total = sourceImages.count
+        let total = requests.count
         var queuedIDs: [UUID] = []
 
-        for (index, image) in sourceImages.enumerated() {
+        for (index, request) in requests.enumerated() {
             do {
                 let id = try await enqueueSingle(
-                    sourceImage: image,
-                    date: date,
-                    tags: tags,
-                    metricValues: metricValues,
+                    sourceImage: request.sourceImage,
+                    date: request.date,
+                    tags: request.tags,
+                    metricValues: request.metricValues,
                     unitsSystem: unitsSystem,
                     telemetrySource: telemetrySource,
                     batchID: batchID

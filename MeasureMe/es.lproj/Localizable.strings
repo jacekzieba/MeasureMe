@@ -582,6 +582,7 @@ El IMC no distingue entre masa muscular y grasa, por lo que atletas o personas c
 "premium.subscription.error" = "No se pudieron cargar las suscripciones (%@)";
 "premium.subscription.retry" = "Reintentar cargar";
 "premium.subscription.disabled" = "La carga de suscripciones está deshabilitada por los indicadores actuales de depuración/auditoría.";
+"premium.subscription.open_revenuecat_paywall" = "Abrir paywall de RevenueCat";
 "premium.purchase.success" = "Compra completada. Premium ahora está activo.";
 "premium.purchase.cancelled" = "Compra cancelada.";
 "premium.purchase.pending" = "Compra pendiente de aprobación.";

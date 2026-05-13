@@ -582,6 +582,7 @@ Der BMI unterscheidet nicht zwischen Muskel- und Fettmasse. Deshalb können Spor
 "premium.subscription.error" = "Abonnements konnten nicht geladen werden (%@)";
 "premium.subscription.retry" = "Ladevorgang erneut versuchen";
 "premium.subscription.disabled" = "Das Laden von Abonnements wird durch aktuelle Debug-/Audit-Flags deaktiviert.";
+"premium.subscription.open_revenuecat_paywall" = "RevenueCat-Paywall öffnen";
 "premium.purchase.success" = "Kauf abgeschlossen. Premium ist jetzt aktiv.";
 "premium.purchase.cancelled" = "Kauf storniert.";
 "premium.purchase.pending" = "Der Kauf muss noch genehmigt werden.";

@@ -582,6 +582,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "premium.subscription.error" = "Could not load subscriptions (%@)";
 "premium.subscription.retry" = "Retry loading";
 "premium.subscription.disabled" = "Subscription loading is disabled by current debug/audit flags.";
+"premium.subscription.open_revenuecat_paywall" = "Open RevenueCat paywall";
 "premium.purchase.success" = "Purchase completed. Premium is now active.";
 "premium.purchase.cancelled" = "Purchase cancelled.";
 "premium.purchase.pending" = "Purchase pending approval.";

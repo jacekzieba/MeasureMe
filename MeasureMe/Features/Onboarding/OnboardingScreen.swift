@@ -890,7 +890,14 @@ struct OnboardingView: View {
                 .fill(Color.appAccent.opacity(0.18))
                 .frame(width: 118, height: 34)
                 .overlay {
-                    Text("On-device")
+                    Text(FlowLocalization.system(
+                        "On-device",
+                        "Na urządzeniu",
+                        "En el dispositivo",
+                        "Auf dem Gerät",
+                        "Sur l’appareil",
+                        "No dispositivo"
+                    ))
                         .font(AppTypography.captionEmphasis)
                         .foregroundStyle(Color.appAccent)
                 }

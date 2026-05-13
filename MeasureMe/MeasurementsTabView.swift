@@ -32,7 +32,7 @@ struct MeasurementsTabView: View {
 
     @State private var selectedTab: MeasurementsTab = .metrics
     @State private var requestedMetricDetailKind: MetricKind?
-    @State private var isMetricDetailPresented = false
+    @State private var metricDetailPath: [MetricKind] = []
 
     private let healthAccent = HealthIndicatorPalette.accent
 
@@ -187,7 +187,7 @@ struct MeasurementsTabView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $metricDetailPath) {
             ZStack(alignment: .top) {
                 AppScreenBackground(
                     topHeight: 380,
@@ -404,17 +404,15 @@ struct MeasurementsTabView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
-            .navigationDestination(isPresented: $isMetricDetailPresented) {
-                requestedMetricDetailDestination
+            .navigationDestination(for: MetricKind.self) { kind in
+                MetricDetailView(kind: kind)
             }
         }
         .onAppear {
             rebuildSamplesCache()
             if let requestID = router.metricDetailRequestID,
                let kind = router.requestedMetricDetailKind {
-                Task { @MainActor in
-                    presentMetricDetail(kind, requestID: requestID)
-                }
+                scheduleMetricDetailPresentation(kind, requestID: requestID)
             }
             if let requestID = router.measurementsSectionRequestID,
                let section = router.requestedMeasurementsSection {
@@ -434,10 +432,10 @@ struct MeasurementsTabView: View {
         }
         .onChange(of: router.metricDetailRequestID) { _, requestID in
             guard let requestID, let kind = router.requestedMetricDetailKind else { return }
-            presentMetricDetail(kind, requestID: requestID)
+            scheduleMetricDetailPresentation(kind, requestID: requestID)
         }
-        .onChange(of: isMetricDetailPresented) { _, isPresented in
-            if !isPresented {
+        .onChange(of: metricDetailPath) { _, path in
+            if path.isEmpty {
                 requestedMetricDetailKind = nil
             }
         }
@@ -565,16 +563,15 @@ struct MeasurementsTabView: View {
 
     private func presentMetricDetail(_ kind: MetricKind, requestID: UUID) {
         requestedMetricDetailKind = kind
-        isMetricDetailPresented = true
+        metricDetailPath = [kind]
         router.consumeMetricDetailRequest(requestID)
     }
 
-    @ViewBuilder
-    private var requestedMetricDetailDestination: some View {
-        if let kind = requestedMetricDetailKind {
-            MetricDetailView(kind: kind)
-        } else {
-            EmptyView()
+    private func scheduleMetricDetailPresentation(_ kind: MetricKind, requestID: UUID) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard router.metricDetailRequestID == requestID else { return }
+            presentMetricDetail(kind, requestID: requestID)
         }
     }
 }

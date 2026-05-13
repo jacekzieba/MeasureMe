@@ -582,6 +582,7 @@ L'IMC ne distingue pas la masse musculaire de la masse grasse. Les sportifs ou l
 "premium.subscription.error" = "Impossible de charger les abonnements (%@)";
 "premium.subscription.retry" = "Réessayez le chargement";
 "premium.subscription.disabled" = "Le chargement des abonnements est désactivé par les indicateurs de débogage/audit actuels.";
+"premium.subscription.open_revenuecat_paywall" = "Ouvrir le paywall RevenueCat";
 "premium.purchase.success" = "Achat terminé. Premium est maintenant actif.";
 "premium.purchase.cancelled" = "Achat annulé.";
 "premium.purchase.pending" = "Achat en attente d'approbation.";

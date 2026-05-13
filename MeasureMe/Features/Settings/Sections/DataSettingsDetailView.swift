@@ -218,12 +218,14 @@ struct DataSettingsDetailView: View {
 
                     SettingsRowDivider()
 
+                    #if DEBUG
                     Button(action: onSeedDummyData) {
                         rowLabel(systemName: "wand.and.stars", title: AppLocalization.string("Seed dummy data"))
                     }
                     .buttonStyle(.plain)
 
                     SettingsRowDivider()
+                    #endif
 
                     SettingsDestructiveRow(
                         title: AppLocalization.string("Delete all data"),

@@ -174,12 +174,9 @@ struct OnboardingUITestOverlay: View {
                 action: onSkip
             )
 
-            Text("Privacy note")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.white.opacity(0.8))
+            Color.clear
                 .frame(minWidth: 88, minHeight: 44, alignment: .leading)
-                .accessibilityElement()
-                .accessibilityLabel("Privacy note")
+                .accessibilityHidden(true)
                 .accessibilityIdentifier("onboarding.privacy.note")
 
             Text(verbatim: "step:\(bridge.currentStepIndex)")
@@ -239,10 +236,9 @@ struct TrialReminderPromptOverlay: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Text("Trial prompt")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.white.opacity(0.8))
+            Color.clear
                 .frame(minWidth: 44, minHeight: 44)
+                .accessibilityHidden(true)
                 .accessibilityIdentifier("premium.trial.reminder.prompt.visible")
 
             Button(declineTitle, role: .cancel, action: onDecline)
@@ -266,11 +262,10 @@ struct TrialReminderPromptOverlay: View {
 
 struct RootReadyMarker: View {
     var body: some View {
-        Text("ready")
-            .font(.system(size: 1))
-            .foregroundStyle(.clear)
+        Color.clear
             .frame(width: 1, height: 1)
             .clipped()
+            .accessibilityHidden(true)
             .accessibilityIdentifier("app.root.ready")
     }
 }

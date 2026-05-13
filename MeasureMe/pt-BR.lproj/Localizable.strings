@@ -582,6 +582,7 @@ O IMC não distingue entre massa muscular e massa gorda, portanto atletas ou pes
 "premium.subscription.error" = "Não foi possível carregar assinaturas (%@)";
 "premium.subscription.retry" = "Tentar carregar novamente";
 "premium.subscription.disabled" = "O carregamento da assinatura é desabilitado pelos sinalizadores de depuração/auditoria atuais.";
+"premium.subscription.open_revenuecat_paywall" = "Abrir paywall da RevenueCat";
 "premium.purchase.success" = "Compra concluída. Premium agora está ativo.";
 "premium.purchase.cancelled" = "Compra cancelada.";
 "premium.purchase.pending" = "Compra pendente de aprovação.";

@@ -1005,9 +1005,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showActivationAddPhotoSheet) {
                 NavigationStack {
-                    AddPhotoView(telemetrySource: .activation) {
+                    AddPhotoView(telemetrySource: .activation, onSaved: {
                         completeActivationTask(.addPhoto)
-                    }
+                    })
                     .environmentObject(metricsStore)
                 }
             }

@@ -765,7 +765,7 @@ struct PremiumPaywallView: View {
                         .buttonStyle(.plain)
                         .font(AppTypography.captionEmphasis)
                         .foregroundStyle(Color.appAccent)
-                        Button("Open RevenueCat Paywall") {
+                        Button(AppLocalization.string("premium.subscription.open_revenuecat_paywall")) {
                             isRevenueCatPaywallPresented = true
                         }
                         .buttonStyle(.plain)
