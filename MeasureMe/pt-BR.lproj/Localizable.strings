@@ -1,10 +1,10 @@
 /* Localizable.strings */
 
-"notification.log.title" = "%@ Registre suas medidas";
+"notification.log.title" = "%@Registre suas medidas";
 "notification.log.body" = "Um registro rápido agora mantém seu progresso nos trilhos.";
-"notification.smart.title" = "%@ Hora de um registro rápido";
+"notification.smart.title" = "%@Hora de um registro rápido";
 "notification.smart.body" = "Já faz %d dias desde seu último registro. Adicione uma medida para continuar no caminho certo.";
-"notification.photo.title" = "%@ Hora de uma foto de progresso";
+"notification.photo.title" = "%@Hora de uma foto de progresso";
 "notification.photo.body" = "Já faz %d dias desde sua última foto. As imagens mostram mudanças que a balança não mostra.";
 "notification.import.title" = "Novo %@ do app Saúde";
 "notification.import.body" = "Adicionado automaticamente a MeasureMe.";
@@ -195,6 +195,8 @@
 "home.keymetrics.empty.selection.subtitle" = "Escolha as medidas que merecem espaço na primeira fila.";
 "home.keymetrics.empty.selection.title" = "Escolha as métricas que você realmente observa";
 "home.keymetrics.empty.selection.detail" = "Deixe o Início focado nas medidas que melhor refletem sua meta.";
+"home.keymetrics.action.addValue" = "Adicionar primeiro registro";
+"home.keymetrics.action.setTarget" = "Definir alvo";
 "home.keymetrics.ready.subtitle" = "As métricas %d estão orientando este quadro.";
 "home.focus.firstcheckin.title" = "Adicionar primeiro registro";
 "home.focus.firstcheckin.detail" = "Comece com peso ou cintura para desbloquear tendências.";
@@ -512,7 +514,7 @@ O IMC não distingue entre massa muscular e massa gorda, portanto atletas ou pes
 "Allow notifications" = "Permitir notificações";
 "You’re all set." = "Está tudo pronto.";
 "Add a quick measurement" = "Adicione uma medição rápida";
-"Log in seconds" = "Faça login em segundos";
+"Log in seconds" = "Registre em segundos";
 "Quick Add lets you update multiple metrics without extra taps." = "O Registro rápido permite atualizar várias métricas sem toques extras.";
 "Add your first measurement" = "Adicione sua primeira medição";
 "Charts show momentum" = "Gráficos mostram impulso";
@@ -580,6 +582,7 @@ O IMC não distingue entre massa muscular e massa gorda, portanto atletas ou pes
 "premium.subscription.error" = "Não foi possível carregar assinaturas (%@)";
 "premium.subscription.retry" = "Tentar carregar novamente";
 "premium.subscription.disabled" = "O carregamento da assinatura é desabilitado pelos sinalizadores de depuração/auditoria atuais.";
+"premium.subscription.open_revenuecat_paywall" = "Abrir paywall da RevenueCat";
 "premium.purchase.success" = "Compra concluída. Premium agora está ativo.";
 "premium.purchase.cancelled" = "Compra cancelada.";
 "premium.purchase.pending" = "Compra pendente de aprovação.";
@@ -606,6 +609,23 @@ O IMC não distingue entre massa muscular e massa gorda, portanto atletas ou pes
 "premium.carousel.photos.body" = "Compare fotos ao longo do tempo. Veja mudanças que a balança não mostra.";
 "premium.carousel.indicators.title" = "Além da balança";
 "premium.carousel.indicators.body" = "Os indicadores de saúde e físico mostram o que seus números significam para a saúde e o progresso visual.";
+"premium.carousel.photos.unlimited.title" = "Fotos de progresso ilimitadas";
+"premium.carousel.photos.unlimited.body" = "Registre cada checkpoint. Marque, filtre e compare lado a lado sem limites de armazenamento.";
+"premium.carousel.photos.unlimited.feature.unlimited" = "Fotos ilimitadas";
+"premium.carousel.photos.unlimited.feature.tags" = "Marcadores e filtros";
+"premium.carousel.photos.unlimited.feature.compare" = "Comparação lado a lado";
+"premium.carousel.icloud.title" = "Backup no iCloud";
+"premium.carousel.icloud.body" = "Suas medidas e fotos ficam seguras — criptografadas e sincronizadas em todos os seus dispositivos.";
+"premium.carousel.icloud.feature.auto" = "Backup automático diário";
+"premium.carousel.icloud.feature.encrypted" = "Criptografia de ponta a ponta";
+"premium.carousel.icloud.feature.restore" = "Restaure em qualquer dispositivo";
+"premium.carousel.icloud.chip.today" = "Hoje";
+"premium.carousel.icloud.chip.yesterday" = "Ontem";
+"premium.carousel.export.title" = "Exporte seus dados";
+"premium.carousel.export.body" = "Baixe relatórios CSV de cada métrica. Leve seus dados a qualquer lugar — para seu treinador, médico ou planilha.";
+"premium.carousel.export.feature.csv" = "Exportação CSV de todas as medidas";
+"premium.carousel.export.feature.timeline" = "Exportar linha do tempo de fotos";
+"premium.carousel.export.feature.reports" = "Compartilhe relatórios de progresso";
 "premium.carousel.unlock.title" = "Treine de maneira mais inteligente. Veja o progresso real.";
 "premium.carousel.unlock.body" = "Tenha tudo em um só lugar, incluindo sincronização e backups do iCloud, para manter a consistência e avançar com mais rapidez e confiança.";
 "premium.carousel.unlock.item.ai" = "Insights ilimitados sobre o corpo da IA";
@@ -1168,11 +1188,11 @@ em %@";
 "From" = "De";
 "To" = "Para";
 "tracked.keymetrics.header" = "Fixar na página inicial";
-"tracked.keymetrics.description" = "Toque no ícone de alfinete para fixar de 1 a 3 métricas na tela inicial e na aba Medições. Você decide quantas.";
-"tracked.keymetrics.counter" = "%d de 3 fixados";
+"tracked.keymetrics.description" = "Toque no ícone de alfinete para fixar de 1 a 5 métricas na tela inicial e na aba Medições. Você decide quantas.";
+"tracked.keymetrics.counter" = "%d de 5 fixados";
 "tracked.keymetrics.empty" = "Ative primeiro uma métrica abaixo e depois volte aqui para fixá-la na página inicial.";
 "tracked.active.header" = "Atualmente rastreando";
-"tracked.active.description" = "Toque no ícone de alfinete para fixar até 3 métricas na tela inicial. Deslize para interromper o acompanhamento. Arraste para reordenar.";
+"tracked.active.description" = "Toque no ícone de alfinete para fixar até 5 métricas na tela inicial. Deslize para interromper o acompanhamento. Arraste para reordenar.";
 "tracked.section.health.subtitle" = "Ative para começar a acompanhar. Sincroniza automaticamente com o app Saúde.";
 "tracked.section.custom.subtitle" = "Ative para iniciar o rastreamento. Você insere esses valores manualmente.";
 "tracked.section.allempty" = "Todas as métricas deste grupo já estão ativas acima.";
@@ -1395,6 +1415,10 @@ em %@";
 "Add measurement" = "Adicionar medição";
 "Add one-time or repeatable reminders. You can edit or remove them any time." = "Adicione lembretes únicos ou repetíveis. Você pode editá-los ou removê-los a qualquer momento.";
 "Add photo" = "Adicionar foto";
+"Change photo" = "Alterar foto";
+"Profile photo" = "Foto do perfil";
+"Remove" = "Remover";
+"Shown on your Home dashboard." = "Exibida no painel inicial.";
 "Add reminder" = "Adicionar lembrete";
 "Add the missing measurements to calculate these health indicators:" = "Adicione as medidas que faltam para calcular estes indicadores de saúde:";
 "Add your first entry to see history and charts." = "Adicione sua primeira entrada para ver o histórico e os gráficos.";
@@ -1453,7 +1477,7 @@ O IMC não distingue entre massa muscular e massa gorda, portanto atletas ou pes
 "Choose from Library" = "Escolha na biblioteca";
 "Choose indicators to show" = "Escolha indicadores para mostrar";
 "Choose one-time, daily or weekly schedule." = "Escolha uma programação única, diária ou semanal.";
-"Choose up to 3 to show on Home and Measurements." = "Escolha até 3 para mostrar no Início e em Medidas.";
+"Choose up to 5 to show on Home and Measurements." = "Escolha até 5 para mostrar no Início e em Medidas.";
 "Choose whether you want to increase or decrease this metric." = "Escolha se deseja aumentar ou diminuir esta métrica.";
 "Choose..." = "Escolher...";
 "Clear" = "Limpar";
@@ -1551,7 +1575,7 @@ O IMC não distingue entre massa muscular e massa gorda, portanto atletas ou pes
 "Import from Health" = "Importar do app Saúde";
 "Import latest from Health" = "Importar os dados mais recentes do app Saúde";
 "Improve posture, upper body training, and reduce waist gradually." = "Melhore a postura, o treinamento da parte superior do corpo e reduza a cintura gradualmente.";
-"In physique view, BF% mostly controls sharpness and visible muscle separation." = "Na visão física, BF% m controla claramente a nitidez e a separação muscular visível.";
+"In physique view, BF% mostly controls sharpness and visible muscle separation." = "Na visualização da silhueta, o percentual de gordura corporal controla principalmente a definição e a separação muscular visível.";
 "In physique view, WHtR is a visibility filter for proportions and definition." = "Na visualização física, o WHtR é um filtro de visibilidade para proporções e definição.";
 "Increase" = "Aumentar";
 "Information" = "Informação";
@@ -1762,7 +1786,7 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 "What time of day should I measure?" = "Que horas do dia devo medir?";
 "What tools should I use for measurements?" = "Quais ferramentas devo usar para medições?";
 "What units does the app support?" = "Quais unidades o aplicativo suporta?";
-"What’s the difference between weight, body fat %, and lean body mass?" = "Qual é a diferença entre peso,% de gordura corporal e massa corporal magra?";
+"What’s the difference between weight, body fat %, and lean body mass?" = "Qual é a diferença entre peso, percentual de gordura corporal e massa corporal magra?";
 "When enabled, current values are saved even if unchanged." = "Quando ativado, os valores atuais são salvos mesmo que inalterados.";
 "Why It Matters" = "Por que é importante";
 "Why are circumference measurements important?" = "Por que as medições de circunferência são importantes?";
@@ -1779,7 +1803,7 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 "Yes. Use Compare in the Photos tab and select two photos to view them side by side." = "Sim. Use Comparar na guia Fotos e selecione duas fotos para visualizá-las lado a lado.";
 "Yes. Use Export data in Settings. Photos can be saved from the photo detail view." = "Sim. Use Exportar dados em Configurações. As fotos podem ser salvas na visualização de detalhes da foto.";
 "You can build muscle and lose fat at the same time, so the scale might not change much. Waist circumference often reflects fat loss more clearly than weight alone." = "Você pode construir músculos e perder gordura ao mesmo tempo, então a balança pode não mudar muito. A circunferência da cintura geralmente reflete a perda de gordura de forma mais clara do que apenas o peso.";
-"You can choose up to 3 key metrics for Home." = "Você pode escolher até 3 métricas principais para o Início.";
+"You can choose up to 5 key metrics for Home." = "Você pode escolher até 5 métricas principais para o Início.";
 "You can only compare two photos at a time. Please deselect one photo before selecting another." = "Você só pode comparar duas fotos por vez. Desmarque uma foto antes de selecionar outra.";
 "You've set your height manually. Health metrics will use this value." = "Você definiu sua altura manualmente. As métricas de saúde usarão esse valor.";
 "Your data is stored on device and encrypted. MeasureMe works offline by default." = "Seus dados são armazenados no dispositivo e criptografados. MeasureMe funciona offline por padrão.";
@@ -2018,3 +2042,49 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 "Unlock photos" = "Desbloquear fotos";
 "Unlock to view progress photos." = "Desbloqueie para ver fotos de progresso.";
 "Upgrade to Premium Edition to unlock AI Insights." = "Assine o Premium para desbloquear os insights de IA.";
+
+"premium.plan.lifetime" = "Vitalício";
+"premium.plan.billing.lifetime" = "Pagamento único";
+"premium.cta.lifetime" = "Desbloquear acesso vitalício";
+"premium.cta.billed.lifetime" = "Compra única. Sem assinatura.";
+"premium.lifetime.more.options" = "Mais opções";
+"premium.lifetime.tagline" = "Pague uma vez, seu para sempre";
+
+"premium.plan.flexible" = "Flexível";
+"premium.plan.one.time" = "Compra única";
+"premium.other.options.show" = "Ver outras opções";
+"premium.other.options.hide" = "Ocultar opções";
+"premium.carousel.analyst.bullet.1" = "Insights corporais de IA ilimitados";
+"premium.carousel.analyst.bullet.2" = "Resumo de saúde";
+"premium.carousel.analyst.bullet.3" = "Explicações inteligentes do progresso";
+"premium.carousel.photos.bullet.1" = "Comparação de fotos lado a lado";
+"premium.carousel.photos.bullet.2" = "Fotos de progresso ilimitadas";
+"premium.carousel.photos.bullet.3" = "Marcadores, filtros e checkpoints";
+"premium.carousel.indicators.bullet.1" = "Relação cintura-altura";
+"premium.carousel.indicators.bullet.2" = "Indicadores de forma corporal";
+"premium.carousel.indicators.bullet.3" = "Interpretação baseada em tendências";
+"premium.carousel.icloud.bullet.1" = "Sincronização com iCloud";
+"premium.carousel.icloud.bullet.2" = "Restauração de backup";
+"premium.carousel.icloud.bullet.3" = "Privado desde o design";
+"premium.carousel.export.bullet.1" = "Exportação CSV";
+"premium.carousel.export.bullet.2" = "Exportação JSON";
+"premium.carousel.export.bullet.3" = "Relatórios de progresso em PDF";
+"premium.carousel.everything.bullet.1" = "Previsão de metas";
+"premium.carousel.everything.bullet.2" = "Widgets da tela inicial e de bloqueio";
+"premium.carousel.everything.bullet.3" = "Todos os recursos Premium atuais e futuros";
+"premium.soft.prompt.post_measurement.title" = "Você começou a construir uma tendência";
+"premium.soft.prompt.post_measurement.body" = "O Premium pode explicar o que está mudando e o que ajustar em seguida.";
+"premium.discover.card.title" = "Veja o que seu progresso significa";
+"premium.discover.card.body" = "Desbloqueie insights de IA, comparação de fotos, exportações e backup.";
+"premium.discover.card.cta" = "Explorar Premium";
+"accessibility.premium.slide.position" = "Slide %@ de %@: %@";
+"accessibility.premium.slide.dot" = "Slide %@ de %@";
+
+// App icon picker
+"App icon" = "Ícone do app";
+
+// App icon picker
+"Default" = "Padrão";
+
+// App icon picker
+"Old" = "Antigo";

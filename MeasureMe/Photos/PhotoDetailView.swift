@@ -128,7 +128,7 @@ private extension PhotoDetailView {
         if let previousPhoto, let onCompareRequested {
             Button {
                 guard premiumStore.isPremium else {
-                    premiumStore.presentPaywall(reason: .feature("Photo Comparison"))
+                    premiumStore.presentPaywall(reason: .photoComparison)
                     return
                 }
                 onCompareRequested(previousPhoto, photo)

@@ -242,7 +242,7 @@ final class HealthKitManagerImportMappingTests: XCTestCase {
         ])
         XCTAssertEqual(
             HealthKitManager.userFacingSyncErrorMessage(for: storeError),
-            "Could not enable Health sync. Please try again."
+            AppLocalization.string("Could not enable Health sync. Please try again.")
         )
     }
 }

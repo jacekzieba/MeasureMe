@@ -8,6 +8,7 @@ struct SettingsRouteDestinationView: View {
     @Binding var userAge: Int
     @Binding var manualHeight: Double
     @Binding var unitsSystem: String
+    @Binding var profilePhotoData: Data?
 
     @Binding var showWHtROnHome: Bool
     @Binding var showRFMOnHome: Bool
@@ -70,7 +71,8 @@ struct SettingsRouteDestinationView: View {
                 userGender: $userGender,
                 userAge: $userAge,
                 manualHeight: $manualHeight,
-                unitsSystem: $unitsSystem
+                unitsSystem: $unitsSystem,
+                profilePhotoData: $profilePhotoData
             )
         case .metrics:
             TrackedMeasurementsView()

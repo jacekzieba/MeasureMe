@@ -34,6 +34,7 @@ struct HomeView: View {
     @AppSetting(\.profile.userGender) private var userGenderRaw: String = "notSpecified"
     @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0.0
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
+    @AppSetting(\.profile.profilePhotoData) private var profilePhotoData: Data? = nil
     @AppSetting(\.health.isSyncEnabled) var isSyncEnabled: Bool = false
     @AppSetting(\.home.showLastPhotosOnHome) private var showLastPhotosOnHome: Bool = true
     @AppSetting(\.home.showMeasurementsOnHome) private var showMeasurementsOnHome: Bool = true
@@ -44,11 +45,9 @@ struct HomeView: View {
     @AppSetting(\.onboarding.onboardingSkippedHealthKit) private var onboardingSkippedHealthKit: Bool = false
     @AppSetting(\.onboarding.onboardingSkippedReminders) private var onboardingSkippedReminders: Bool = false
     // activationTriggerQuickAdd removed — first measurement now happens during onboarding
-    @AppSetting(\.onboarding.onboardingChecklistShow) private var showOnboardingChecklistOnHome: Bool = true
     @AppSetting(\.onboarding.onboardingChecklistMetricsCompleted) private var onboardingChecklistMetricsCompleted: Bool = false
     @AppSetting(\.onboarding.onboardingChecklistMetricsExplored) private var onboardingChecklistMetricsExplored: Bool = false
     @AppSetting(\.onboarding.onboardingChecklistPremiumExplored) private var onboardingChecklistPremiumExplored: Bool = false
-    @AppSetting(\.onboarding.onboardingChecklistCollapsed) private var onboardingChecklistCollapsed: Bool = false
     @AppSetting(\.onboarding.onboardingPrimaryGoal) private var onboardingPrimaryGoalsRaw: String = ""
     @AppSetting(\.onboarding.activationCurrentTaskID) private var activationCurrentTaskID: String = ""
     @AppSetting(\.onboarding.activationCompletedTaskIDs) private var activationCompletedTaskIDsRaw: String = ""
@@ -57,6 +56,8 @@ struct HomeView: View {
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
     @AppSetting(\.home.settingsOpenHomeSettings) private var settingsOpenHomeSettings: Bool = false
+    @AppSetting(\.home.settingsOpenProfile) private var settingsOpenProfile: Bool = false
+    @AppSetting(\.home.settingsOpenHealth) private var settingsOpenHealth: Bool = false
     @AppSetting(\.home.homePhotoMetricSyncLastDate) private var photoMetricSyncLastDate: Double = 0
     @AppSetting(\.home.homePhotoMetricSyncLastID) private var photoMetricSyncLastID: String = ""
     @AppStorage("home.comparePhotosCardDismissed") private var comparePhotosCardDismissed: Bool = false
@@ -74,6 +75,7 @@ struct HomeView: View {
     
     @State private var showQuickAddSheet = false
     @State private var quickAddKinds: [MetricKind] = []
+    @State private var quickAddTelemetrySource: MeasurementTelemetrySource = .quickAdd
     @State private var showActivationMetricsSheet = false
     @State private var showActivationAddPhotoSheet = false
     @State private var showHomeSettingsSheet = false
@@ -92,8 +94,6 @@ struct HomeView: View {
     @State private var shouldShowHealthSettingsShortcut: Bool = false
     @State private var shouldPromptToOpenHealthSettings: Bool = false
     @State private var reminderChecklistCompleted: Bool = false
-    @State private var showMoreChecklistItems: Bool = false
-    @State private var didTrackPrimaryChecklistShown: Bool = false
     @State private var expandedSecondaryMetrics: Set<MetricKind> = []
     @State private var didCheckSevenDayPaywallPrompt: Bool = false
     @State private var didRunStartupPhases = false
@@ -124,7 +124,7 @@ struct HomeView: View {
     @State private var cachedVisiblePhotoTiles: [HomePhotoTile] = []
     @State private var cachedNextFocusInsight: HomeNextFocusInsight?
 
-    private let maxVisibleMetrics = 3
+    private let maxVisibleMetrics = 5
     private let maxVisiblePhotos = 6
     private let autoCheckPaywallPrompt: Bool
     private let isUITestMode = UITestArgument.isPresent(.mode)
@@ -190,15 +190,6 @@ struct HomeView: View {
             streakManager: manager,
             effects: effects
         )
-    }
-
-    private struct SetupChecklistItem: Identifiable {
-        let id: String
-        let title: String
-        let detail: String
-        let icon: String
-        let isCompleted: Bool
-        let isLoading: Bool
     }
 
     private struct HomeComparePair: Identifiable {
@@ -278,15 +269,15 @@ struct HomeView: View {
         }
     }
     
-    /// Widoczne metryki (maksymalnie 3)
+    /// Widoczne metryki (maksymalnie 5)
     private var visibleMetrics: [MetricKind] {
         Array(metricsStore.keyMetrics.prefix(maxVisibleMetrics))
     }
 
     /// Metryki renderowane w widget boardzie.
-    /// Duzy kafel na iPhone nie miesci stabilnie 3 pelnych wierszy.
+    /// Kafelki glowne renderuja poziomy pasek na Home.
     private var dashboardVisibleMetrics: [MetricKind] {
-        Array(visibleMetrics.prefix(3))
+        Array(visibleMetrics.prefix(maxVisibleMetrics))
     }
 
     /// Unified key metric identifiers (built-in + custom) for Home dashboard.
@@ -305,7 +296,11 @@ struct HomeView: View {
     }
 
     private var dashboardRecentPhotoTiles: [HomePhotoTile] {
-        Array(visiblePhotoTiles.prefix(3))
+        guard let newest = visiblePhotoTiles.first else { return [] }
+        let olderCandidates = Array(visiblePhotoTiles.dropFirst())
+        guard !olderCandidates.isEmpty else { return [newest] }
+        let day = Calendar.current.ordinality(of: .day, in: .era, for: AppClock.now) ?? 0
+        return [newest, olderCandidates[day % olderCandidates.count]]
     }
 
     private var dashboardRecentPhotoTileViewModels: [HomeRecentPhotoTileViewModel] {
@@ -482,7 +477,6 @@ struct HomeView: View {
 
         rebuildNextFocusInsightCache()
         refreshActivationProgress()
-        autoHideChecklistIfCompleted()
     }
 
     private func metricDeltaTextFromCache(kind: MetricKind, days: Int) -> String? {
@@ -812,6 +806,9 @@ struct HomeView: View {
         let runtimeVisibleItems = layout.items.map { item in
             var next = item
             next.isVisible = item.isVisible && shouldRenderModule(item.kind)
+            if item.kind == .summaryHero {
+                next.size = .wide
+            }
             return next
         }
         cachedDashboardItems = HomeLayoutCompactor.compact(runtimeVisibleItems, columns: dashboardColumns)
@@ -846,9 +843,11 @@ struct HomeView: View {
             latest: Dictionary(
                 uniqueKeysWithValues: cachedLatestByKind.map { ($0.key, ($0.value.value, $0.value.date)) }
             ),
-            unitsSystem: unitsSystem
+            unitsSystem: unitsSystem,
+            telemetrySource: quickAddTelemetrySource
         ) {
             quickAddKinds = []
+            quickAddTelemetrySource = .quickAdd
             showQuickAddSheet = false
             refreshMeasurementCaches()
             refreshChecklistState()
@@ -979,14 +978,6 @@ struct HomeView: View {
                     .frame(height: 0)
 
                     dashboardBoard
-
-                    AISectionSummaryCard(
-                        input: homeBottomSummaryInput,
-                        missingDataMessage: AppLocalization.aiString("AI summary needs data from Metrics, Health Indicators, or Physique Indicators."),
-                        tint: homeTheme.softTint,
-                        accessibilityIdentifier: "home.bottom.ai.summary"
-                    )
-                    .padding(.top, 14)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
@@ -1005,8 +996,6 @@ struct HomeView: View {
         .toolbarBackground(scrollOffset < -16 ? .visible : .hidden, for: .navigationBar)
         .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: isLastPhotosSectionMounted)
         .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: isHealthSectionMounted)
-        .animation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate), value: showMoreChecklistItems)
-        .animation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate), value: onboardingChecklistCollapsed)
     }
 
     private func sheetPresentedHomeRoot<Content: View>(_ content: Content) -> some View {
@@ -1016,9 +1005,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showActivationAddPhotoSheet) {
                 NavigationStack {
-                    AddPhotoView {
+                    AddPhotoView(telemetrySource: .activation, onSaved: {
                         completeActivationTask(.addPhoto)
-                    }
+                    })
                     .environmentObject(metricsStore)
                 }
             }
@@ -1167,6 +1156,7 @@ struct HomeView: View {
             }
             .onChange(of: activationCurrentTaskID) { _, _ in
                 rebuildDashboardItemsCache()
+                trackCurrentActivationTaskViewed()
             }
             .onChange(of: activationIsDismissed) { _, _ in
                 rebuildDashboardItemsCache()
@@ -1176,14 +1166,6 @@ struct HomeView: View {
             }
 
         let observedContent = contentWithChecklistObservers
-            .onChange(of: activeChecklistItems.count) { _, newCount in
-                withAnimation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate)) {
-                    rebuildDashboardItemsCache()
-                }
-                if newCount <= collapsedChecklistItems.count {
-                    showMoreChecklistItems = false
-                }
-            }
             .onChange(of: showMeasurementsOnHome) { _, _ in
                 rebuildDashboardItemsCache()
                 rebuildNextFocusInsightCache()
@@ -1192,9 +1174,6 @@ struct HomeView: View {
                 rebuildDashboardItemsCache()
             }
             .onChange(of: showHealthMetricsOnHome) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-            .onChange(of: showOnboardingChecklistOnHome) { _, _ in
                 rebuildDashboardItemsCache()
             }
             .onChange(of: router.selectedTab) { _, newTab in
@@ -1220,12 +1199,21 @@ struct HomeView: View {
             refreshPhotoStoreState()
             rebuildVisiblePhotoTilesCache()
             rebuildDashboardItemsCache()
+            trackCurrentActivationTaskViewed()
             if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
                 didCheckSevenDayPaywallPrompt = true
                 premiumStore.checkSevenDayPromptIfNeeded()
-            }
-            if UITestArgument.isPresent(.expandChecklist) {
-                showMoreChecklistItems = true
+                // Home discovery prompt — only if user has built up enough data
+                // to feel value (≥2 measurements OR ≥1 photo). Coordinator
+                // handles all frequency capping.
+                if !premiumStore.isPremium {
+                    let hasEnoughData = AnalyticsFirstEventTracker.metricCount(in: modelContext) >= 2
+                        || hasEnoughSavedPhotosForCompare
+                        || latestSavedPhoto != nil
+                    if hasEnoughData {
+                        PremiumPromptDispatcher.shared.maybePresentHomeDiscoveryPrompt()
+                    }
+                }
             }
             emitHomeInitialRenderIfNeeded()
             runStartupPhasesIfNeeded()
@@ -1237,8 +1225,9 @@ struct HomeView: View {
     }
 
     private func scrollToChecklist(using scrollProxy: ScrollViewProxy) {
+        let targetID = HomeModuleKind.activationHub.rawValue
         withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-            scrollProxy.scrollTo(HomeModuleKind.activationHub.rawValue, anchor: .top)
+            scrollProxy.scrollTo(targetID, anchor: .top)
         }
     }
 
@@ -1251,10 +1240,6 @@ struct HomeView: View {
                 homeTabScrollOffset = normalizedOffset
             }
         }
-    }
-
-    private func handleUITestShowMoreChecklistTap() {
-        showMoreChecklistItems = true
     }
 
     private func refreshHomeContent() async {
@@ -1286,12 +1271,9 @@ struct HomeView: View {
             if isWelcomeHomeState { return hasAnyPhotoContent && showLastPhotosOnHome }
             return showLastPhotosOnHome
         case .healthSummary:
-            if isWelcomeHomeState { return isSyncEnabled && showHealthMetricsOnHome }
-            return showHealthMetricsOnHome
+            return false
         case .activationHub:
-            return false
-        case .setupChecklist:
-            return false
+            return showActivationHub
         }
     }
 
@@ -1309,9 +1291,7 @@ struct HomeView: View {
         case .healthSummary:
             healthSummaryModule
         case .activationHub:
-            EmptyView()
-        case .setupChecklist:
-            EmptyView()
+            activationHubModule
         }
     }
 
@@ -1321,18 +1301,6 @@ struct HomeView: View {
 
     private var homeHeroTint: Color {
         colorScheme == .dark ? homeTheme.strongTint : .clear
-    }
-
-    private var neutralRowFill: Color {
-        AppColorRoles.surfaceInteractive
-    }
-
-    private var neutralRowStroke: Color {
-        AppColorRoles.borderSubtle
-    }
-
-    private var checklistIconSurface: Color {
-        colorScheme == .dark ? Color.white.opacity(0.08) : AppColorRoles.surfaceAccentSoft
     }
 
     private var homeTheme: FeatureTheme {
@@ -1356,190 +1324,40 @@ struct HomeView: View {
     }
 
     private var summaryHeroModule: some View {
-        let pulseSignal = computeHeroPulseSignal()
-        let hasNextFocusData = (nextFocusInsight.primaryValue != nil || nextFocusInsight.headline != nil)
-            && !(nextFocusInsight.accessibilityValue == "setGoal" && !goals.isEmpty)
-        return HomeHeroSection(
-            snapshot: HomeHeroSnapshot(
-                tint: homeHeroTint,
-                greetingTitle: greetingTitle,
-                goalStatusText: goalStatusText,
-                goalStatusColor: goalStatusColor,
-                goalStatusAccessibilityHint: AppLocalization.string(
-                    goalStatus == .noGoals
-                        ? "home.goalstatus.accessibility.hint.nogoals"
-                        : "home.goalstatus.accessibility.hint.legend"
-                ),
-                isFreshState: isFreshHomeState,
-                showStreak: showStreakOnHome && streakManager.currentStreak > 0,
-                streakCount: streakManager.currentStreak,
-                shouldAnimateStreak: streakManager.shouldPlayAnimation,
-                prefersStackedPanels: prefersStackedHeroPanels,
-                primaryMeasurement: nil,
-                nextFocus: HomeHeroNextFocusSnapshot(
-                    headline: nextFocusInsight.headline,
-                    primaryValue: nextFocusInsight.primaryValue,
-                    supportingLabel: nextFocusInsight.supportingLabel,
-                    contextLabel: nextFocusInsight.contextLabel,
-                    summary: nextFocusInsight.summary
-                ),
-                weekTitle: summaryThisWeekTitle,
-                weekDetail: summaryThisWeekDetail,
-                shouldShowPostOnboardingSummary: !showActivationHub && !isFreshHomeState,
-                pulseSignal: pulseSignal,
-                showNextFocusChip: hasNextFocusData,
-                showThisWeekChip: !summaryThisWeekTitle.isEmpty
-            ),
-            accent: homeTheme.accent,
-            pillFill: homeTheme.pillFill,
-            pillStroke: homeTheme.pillStroke,
-            border: homeTheme.border,
-            activationSnapshot: showActivationHub ? HomeActivationSnapshot(
-                stepIndex: activationStepIndex,
-                totalSteps: activationTaskSequence.count,
-                title: OnboardingCopy.activationTaskTitle(activationCurrentTask ?? .initial),
-                body: OnboardingCopy.activationTaskBody(
-                    activationCurrentTask ?? .initial,
-                    metricName: activationPrimaryMetric?.title
-                ),
-                primaryCTA: OnboardingCopy.activationPrimaryCTA(activationCurrentTask ?? .initial),
-                skipCTA: OnboardingCopy.activationSkipCTA,
-                dismissCTA: OnboardingCopy.activationDismissCTA
-            ) : nil,
-            onGoalStatusTap: handleGoalStatusTap,
-            onNextFocusTap: handleNextFocusAction,
-            onStreakTap: { showStreakDetail = true },
-            onStreakAnimationComplete: { streakManager.markAnimationPlayed() },
-            onActivationPrimary: performActivationPrimaryAction,
-            onActivationSkip: skipActivationTask,
-            onActivationDismiss: dismissActivationHub,
-            onPulseAction: handlePulseAction,
-            onThisWeekTap: { router.selectTab(.measurements) }
+        HomeTopSummarySection(
+            dateText: homeHeaderDateText,
+            greetingTitle: greetingTitle,
+            avatarText: homeAvatarText,
+            profilePhotoData: profilePhotoData,
+            isPremium: homeSummaryIsPremium,
+            insights: homeAIInsights,
+            analysisItems: homeAIAnalysisItems,
+            onUnlockPremium: {
+                Haptics.selection()
+                premiumStore.presentPaywall(reason: .aiInsights)
+            },
+            onOpenProfile: {
+                Haptics.selection()
+                settingsOpenProfile = true
+                router.selectedTab = .settings
+            }
         )
     }
 
-    private var quickActionsModule: some View {
-        HomeWidgetCard(
-            tint: FeatureTheme.home.softTint,
-            depth: .floating,
-            contentPadding: 14,
-            accessibilityIdentifier: "home.module.quickActions"
-        ) {
-            VStack(alignment: .leading, spacing: 14) {
-                // Header with step counter
-                HStack {
-                    Text(AppLocalization.string("home.quickactions.title"))
-                        .font(AppTypography.headline)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                    Spacer()
-                    Text(AppLocalization.string("home.discovery.counter", completedDiscoverySteps.count, discoverySteps.count))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColorRoles.textTertiary)
-                }
-
-                // Completed steps — compact checkmarks
-                if !completedDiscoverySteps.isEmpty {
-                    FlowLayout(spacing: 6) {
-                        ForEach(completedDiscoverySteps, id: \.id) { step in
-                            HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(AppColorRoles.stateSuccess)
-                                Text(step.title)
-                                    .font(AppTypography.microEmphasis)
-                                    .foregroundStyle(AppColorRoles.textTertiary)
-                                    .lineLimit(1)
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(AppColorRoles.stateSuccess.opacity(0.1))
-                            .clipShape(Capsule())
-                        }
-                    }
-                }
-
-                // Current step — prominent single action
-                if let current = currentDiscoveryStep {
-                    Button {
-                        performChecklistAction(current.id)
-                    } label: {
-                        HStack(spacing: 14) {
-                            Image(systemName: current.icon)
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundStyle(Color.appAccent)
-                                .frame(width: 44, height: 44)
-                                .background(Color.appAccent.opacity(0.16))
-                                .clipShape(Circle())
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(current.title)
-                                    .font(AppTypography.bodyEmphasis)
-                                    .foregroundStyle(AppColorRoles.textPrimary)
-                                Text(current.detail)
-                                    .font(AppTypography.caption)
-                                    .foregroundStyle(AppColorRoles.textSecondary)
-                            }
-
-                            Spacer(minLength: 0)
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(AppColorRoles.textTertiary)
-                        }
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 14)
-                        .background(AppColorRoles.surfaceSecondary.opacity(0.6))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+    private var homeSummaryIsPremium: Bool {
+        #if DEBUG
+        if UITestArgument.isPresent(.forceNonPremium) {
+            return false
         }
+        if UITestArgument.isPresent(.forcePremium) {
+            return true
+        }
+        #endif
+        return premiumStore.isPremium
     }
 
-    private var discoverySteps: [SetupChecklistItem] {
-        [
-            SetupChecklistItem(
-                id: "explore_metrics",
-                title: AppLocalization.string("home.discovery.explore_metrics.title"),
-                detail: AppLocalization.string("home.discovery.explore_metrics.detail"),
-                icon: "chart.line.uptrend.xyaxis",
-                isCompleted: onboardingChecklistMetricsExplored,
-                isLoading: false
-            ),
-            SetupChecklistItem(
-                id: "first_measurement",
-                title: AppLocalization.string("home.discovery.first_measurement.title"),
-                detail: AppLocalization.string("home.discovery.first_measurement.detail"),
-                icon: "ruler.fill",
-                isCompleted: hasAnyMeasurements,
-                isLoading: false
-            ),
-            SetupChecklistItem(
-                id: "first_photo",
-                title: AppLocalization.string("home.discovery.first_photo.title"),
-                detail: AppLocalization.string("home.discovery.first_photo.detail"),
-                icon: "camera.fill",
-                isCompleted: hasAnyPhotoContent,
-                isLoading: false
-            ),
-            SetupChecklistItem(
-                id: "choose_metrics",
-                title: AppLocalization.string("home.discovery.choose_metrics.title"),
-                detail: AppLocalization.string("home.discovery.choose_metrics.detail"),
-                icon: "slider.horizontal.3",
-                isCompleted: onboardingChecklistMetricsCompleted,
-                isLoading: false
-            ),
-        ]
-    }
-
-    private var currentDiscoveryStep: SetupChecklistItem? {
-        discoverySteps.first(where: { !$0.isCompleted })
-    }
-
-    private var completedDiscoverySteps: [SetupChecklistItem] {
-        discoverySteps.filter(\.isCompleted)
+    private var quickActionsModule: some View {
+        EmptyView()
     }
 
     private var keyMetricsModule: some View {
@@ -1548,52 +1366,488 @@ struct HomeView: View {
                 subtitle: keyMetricsSubtitle,
                 state: keyMetricsState
             ),
-            onAddMeasurement: { showQuickAddSheet = true },
-            onOpenMeasurements: { router.selectTab(.measurements) }
+            onAddMeasurement: { presentQuickAdd(source: .quickAdd) },
+            onOpenMeasurements: { router.selectTab(.measurements) },
+            onEdit: openTrackedMetricsSettings
         ) {
             let ids = dashboardKeyIdentifiers
             let defMap = customDefinitionsMap
-            VStack(alignment: .leading, spacing: 10) {
-                if let leadId = ids.first {
-                    if let kind = MetricKind(rawValue: leadId) {
-                        NavigationLink {
-                            MetricDetailView(kind: kind)
-                        } label: {
-                            HomeKeyMetricRow(
-                                kind: kind,
-                                latest: cachedLatestByKind[kind],
-                                goal: cachedGoalsByKind[kind],
-                                samples: samplesForKind(kind),
-                                unitsSystem: unitsSystem
-                            )
-                        }
-                        .buttonStyle(PressableTileStyle())
-                        .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
-                        .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
-                    } else if let def = defMap[leadId] {
-                        NavigationLink {
-                            CustomMetricDetailView(definition: def)
-                        } label: {
-                            HomeCustomKeyMetricRow(
-                                definition: def,
-                                latest: cachedCustomLatestByIdentifier[leadId],
-                                goal: cachedCustomGoalsByIdentifier[leadId],
-                                samples: cachedCustomSamplesByIdentifier[leadId] ?? []
-                            )
-                        }
-                        .buttonStyle(PressableTileStyle())
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 12) {
+                    ForEach(ids, id: \.self) { id in
+                        keyMetricTile(for: id, definitions: defMap)
+                            .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
+                            .frame(minWidth: 156, maxWidth: 188)
                     }
                 }
-
-                ForEach(Array(ids.dropFirst()), id: \.self) { id in
-                    if let kind = MetricKind(rawValue: id) {
-                        secondaryMetricCard(for: kind)
-                    } else if let def = defMap[id] {
-                        customSecondaryMetricCard(for: def)
-                    }
-                }
+                .scrollTargetLayout()
+                .padding(.horizontal, 1)
+                .padding(.vertical, 2)
             }
+            .scrollTargetBehavior(.viewAligned)
         }
+    }
+
+    @ViewBuilder
+    private func keyMetricTile(
+        for id: String,
+        definitions: [String: CustomMetricDefinition]
+    ) -> some View {
+        if let kind = MetricKind(rawValue: id) {
+            NavigationLink {
+                MetricDetailView(kind: kind)
+            } label: {
+                HomeKeyMetricTile(
+                    title: kind.title,
+                    valueText: cachedLatestByKind[kind].map { formattedMetricValue(for: kind, metricValue: $0.value) },
+                    deltaChip: metricDeltaChip(for: kind, days: 30),
+                    goalProgress: keyMetricGoalProgress(for: kind),
+                    samples: samplesForKind(kind),
+                    trendKind: kind,
+                    goal: cachedGoalsByKind[kind]
+                )
+            }
+            .buttonStyle(PressableTileStyle())
+            .accessibilityLabel(homeMetricAccessibilityLabel(kind: kind))
+            .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
+        } else if let definition = definitions[id] {
+            NavigationLink {
+                CustomMetricDetailView(definition: definition)
+            } label: {
+                HomeCustomKeyMetricTile(
+                    definition: definition,
+                    latest: cachedCustomLatestByIdentifier[id],
+                    deltaChip: customMetricDeltaChip(for: definition, days: 30),
+                    goalProgress: customKeyMetricGoalProgress(for: definition),
+                    samples: cachedCustomSamplesByIdentifier[id] ?? [],
+                    goal: cachedCustomGoalsByIdentifier[id]
+                )
+            }
+            .buttonStyle(PressableTileStyle())
+        }
+    }
+
+    private func openTrackedMetricsSettings() {
+        Haptics.selection()
+        settingsOpenTrackedMeasurements = true
+        router.selectedTab = .settings
+    }
+
+    private var homeHeaderDateText: String {
+        AppClock.now
+            .formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
+            .uppercased(with: AppLocalization.currentLanguage.locale)
+    }
+
+    private var homeAvatarText: String {
+        guard let first = trimmedUserName.first else { return "M" }
+        return String(first).uppercased(with: AppLocalization.currentLanguage.locale)
+    }
+
+    private var homeAIInsights: [HomeAIInsightItem] {
+        var items: [HomeAIInsightItem] = []
+
+        for kind in dashboardVisibleMetrics {
+            guard let delta = metricDeltaChip(for: kind, days: 30) else { continue }
+            let tone = homeInsightTone(for: kind)
+            items.append(
+                HomeAIInsightItem(
+                    symbol: tone == .positive ? "arrow.down.right" : "arrow.up.right",
+                    text: FlowLocalization.app(
+                        "\(kind.title): \(delta.text) in 30 days.",
+                        "\(kind.title): \(delta.text) w 30 dni.",
+                        "\(kind.title): \(delta.text) en 30 dias.",
+                        "\(kind.title): \(delta.text) in 30 Tagen.",
+                        "\(kind.title) : \(delta.text) en 30 jours.",
+                        "\(kind.title): \(delta.text) em 30 dias."
+                    ),
+                    tone: tone
+                )
+            )
+            if items.count == 2 { break }
+        }
+
+        if hasEnoughSavedPhotosForCompare, let latestSavedPhoto, let secondLatestSavedPhoto {
+            let days = max(Calendar.current.dateComponents([.day], from: secondLatestSavedPhoto.date, to: latestSavedPhoto.date).day ?? 0, 0)
+            items.append(
+                HomeAIInsightItem(
+                    symbol: "camera.viewfinder",
+                    text: FlowLocalization.app(
+                        "Progress photos are ready for a \(days)-day comparison.",
+                        "Zdjecia postepu sa gotowe do porownania z \(days) dni.",
+                        "Las fotos de progreso estan listas para comparar \(days) dias.",
+                        "Fortschrittsfotos sind bereit fur einen \(days)-Tage-Vergleich.",
+                        "Les photos de progression sont pretes pour \(days) jours de comparaison.",
+                        "Fotos de progresso prontas para comparar \(days) dias."
+                    ),
+                    tone: .neutral
+                )
+            )
+        }
+
+        if items.isEmpty {
+            items.append(
+                HomeAIInsightItem(
+                    symbol: "plus.circle",
+                    text: FlowLocalization.app(
+                        "Add a few measurements to unlock sharper trend summaries.",
+                        "Dodaj kilka pomiarow, aby zobaczyc trafniejsze podsumowania trendow.",
+                        "Agrega algunas mediciones para ver resumenes mas claros.",
+                        "Fuge ein paar Messungen hinzu, um klarere Trends zu sehen.",
+                        "Ajoutez quelques mesures pour des tendances plus nettes.",
+                        "Adicione algumas medidas para ver tendencias mais claras."
+                    ),
+                    tone: .neutral
+                )
+            )
+        }
+
+        return Array(items.prefix(3))
+    }
+
+    private var homeAIAnalysisItems: [HomeAIAnalysisItem] {
+        var items: [HomeAIAnalysisItem] = []
+
+        if let strongest = strongestPositiveAnalysisItem {
+            items.append(strongest)
+        }
+
+        if let composition = compositionAnalysisItem {
+            items.append(composition)
+        }
+
+        items.append(consistencyAnalysisItem)
+
+        if let risk = riskAnalysisItem {
+            items.append(risk)
+        }
+
+        if let pace = paceOrGoalAnalysisItem {
+            items.append(pace)
+        }
+
+        return HomeAIAnalysisItemsPolicy.visibleItems(primary: items, fallback: fallbackAnalysisItems)
+    }
+
+    private var strongestPositiveAnalysisItem: HomeAIAnalysisItem? {
+        let candidates = dashboardVisibleMetrics.compactMap { kind -> (HomeAIAnalysisItem, Double)? in
+            guard let window = trendWindowSamples(for: kind, days: 30) ?? trendWindowSamples(for: kind, days: 7) else { return nil }
+            guard kind.trendOutcome(from: window.oldest.value, to: window.newest.value, goal: cachedGoalsByKind[kind]) == .positive else { return nil }
+            let newest = kind.valueForDisplay(fromMetric: window.newest.value, unitsSystem: unitsSystem)
+            let oldest = kind.valueForDisplay(fromMetric: window.oldest.value, unitsSystem: unitsSystem)
+            let delta = newest - oldest
+            let absoluteDelta = abs(delta)
+            guard absoluteDelta >= minimumInsightDelta(for: kind) else { return nil }
+            let deltaText = kind.formattedDisplayValue(absoluteDelta, unitsSystem: unitsSystem)
+            let signedDelta = delta >= 0 ? "+\(deltaText)" : "-\(deltaText)"
+            return (
+                HomeAIAnalysisItem(
+                    symbol: delta >= 0 ? "arrow.up.right" : "arrow.down.right",
+                    title: "\(kind.title) \(signedDelta)",
+                    detail: FlowLocalization.app(
+                        "Your strongest 30-day signal. Keep the same logging rhythm to confirm the trend.",
+                        "Najmocniejszy sygnał z 30 dni. Utrzymaj rytm zapisów, żeby potwierdzić trend.",
+                        "Tu señal más fuerte de 30 días. Mantén el ritmo de registro para confirmar la tendencia.",
+                        "Dein stärkstes 30-Tage-Signal. Behalte den Rhythmus bei, um den Trend zu bestätigen.",
+                        "Votre signal le plus net sur 30 jours. Gardez le même rythme pour confirmer la tendance.",
+                        "Seu sinal mais forte em 30 dias. Mantenha o ritmo de registros para confirmar a tendência."
+                    ),
+                    tone: .positive
+                ),
+                absoluteDelta / minimumInsightDelta(for: kind)
+            )
+        }
+        return candidates.max(by: { $0.1 < $1.1 })?.0
+    }
+
+    private var compositionAnalysisItem: HomeAIAnalysisItem? {
+        if let leanDelta = metricDeltaChip(for: .leanBodyMass, days: 30),
+           let weightDelta = metricDeltaChip(for: .weight, days: 30) {
+            return HomeAIAnalysisItem(
+                symbol: "figure.strengthtraining.traditional",
+                title: FlowLocalization.app(
+                    "Composition: lean mass \(leanDelta.text)",
+                    "Kompozycja: masa beztłuszczowa \(leanDelta.text)",
+                    "Composición: masa magra \(leanDelta.text)",
+                    "Komposition: fettfreie Masse \(leanDelta.text)",
+                    "Composition : masse maigre \(leanDelta.text)",
+                    "Composição: massa magra \(leanDelta.text)"
+                ),
+                detail: FlowLocalization.app(
+                    "Weight moved \(weightDelta.text) in the same window, so composition matters more than scale alone.",
+                    "Waga zmieniła się o \(weightDelta.text) w tym samym okresie, więc skład ciała mówi więcej niż sama waga.",
+                    "El peso cambió \(weightDelta.text) en el mismo período; la composición importa más que la báscula.",
+                    "Das Gewicht änderte sich im selben Zeitraum um \(weightDelta.text); die Zusammensetzung zählt mehr.",
+                    "Le poids a changé de \(weightDelta.text) sur la même période ; la composition compte plus que la balance.",
+                    "O peso mudou \(weightDelta.text) no mesmo período; composição vale mais que a balança."
+                ),
+                tone: .positive
+            )
+        }
+
+        if let bodyFatDelta = metricDeltaChip(for: .bodyFat, days: 30) {
+            return HomeAIAnalysisItem(
+                symbol: "percent",
+                title: "\(MetricKind.bodyFat.title) \(bodyFatDelta.text)",
+                detail: FlowLocalization.app(
+                    "Body fat trend is the clearest composition signal available right now.",
+                    "Trend tkanki tłuszczowej to teraz najczytelniejszy sygnał kompozycji.",
+                    "La tendencia de grasa corporal es la señal de composición más clara ahora.",
+                    "Der Körperfetttrend ist derzeit das klarste Kompositionssignal.",
+                    "La tendance de masse grasse est le signal de composition le plus lisible.",
+                    "A tendência de gordura corporal é o sinal de composição mais claro agora."
+                ),
+                tone: homeInsightTone(for: .bodyFat)
+            )
+        }
+
+        return nil
+    }
+
+    private var consistencyAnalysisItem: HomeAIAnalysisItem {
+        let streak = streakManager.currentStreak
+        if streak > 0 {
+            return HomeAIAnalysisItem(
+                symbol: "bolt.fill",
+                title: FlowLocalization.app(
+                    "\(streak)-day streak",
+                    "\(streak)-dniowa seria",
+                    "Racha de \(streak) días",
+                    "\(streak)-Tage-Serie",
+                    "Série de \(streak) jours",
+                    "Sequência de \(streak) dias"
+                ),
+                detail: FlowLocalization.app(
+                    "Daily logging improves goal accuracy and makes trend shifts easier to spot.",
+                    "Codzienne zapisy poprawiają trafność celów i ułatwiają wychwycenie zmian trendu.",
+                    "Registrar a diario mejora la precisión de objetivos y revela cambios de tendencia.",
+                    "Tägliche Einträge verbessern Zielgenauigkeit und machen Trendwechsel sichtbarer.",
+                    "Les entrées quotidiennes améliorent la précision des objectifs et révèlent les changements.",
+                    "Registros diários melhoram a precisão das metas e revelam mudanças de tendência."
+                ),
+                tone: .neutral
+            )
+        }
+
+        return HomeAIAnalysisItem(
+            symbol: "calendar.badge.clock",
+            title: FlowLocalization.app(
+                "\(currentWeekCheckInDays) check-ins this week",
+                "\(currentWeekCheckInDays) zapisy w tym tygodniu",
+                "\(currentWeekCheckInDays) registros esta semana",
+                "\(currentWeekCheckInDays) Einträge diese Woche",
+                "\(currentWeekCheckInDays) suivis cette semaine",
+                "\(currentWeekCheckInDays) registros nesta semana"
+            ),
+            detail: FlowLocalization.app(
+                "Three or more check-ins per week gives AI a cleaner trend baseline.",
+                "Trzy lub więcej zapisów tygodniowo daje AI czystszą bazę trendu.",
+                "Tres o más registros por semana dan una base de tendencia más clara.",
+                "Drei oder mehr Einträge pro Woche geben eine bessere Trendbasis.",
+                "Trois suivis ou plus par semaine donnent une base de tendance plus nette.",
+                "Três ou mais registros por semana dão uma base de tendência melhor."
+            ),
+            tone: currentWeekCheckInDays >= 3 ? .positive : .neutral
+        )
+    }
+
+    private var riskAnalysisItem: HomeAIAnalysisItem? {
+        let height = manualHeight > 0 ? manualHeight : latestHeight
+        if let bmi = HealthMetricsCalculator.calculateBMI(weightKg: latestWeight, heightCm: height, age: userAge) {
+            let isWarning = bmi.bmi >= 25 || bmi.bmi < 18.5
+            return HomeAIAnalysisItem(
+                symbol: isWarning ? "exclamationmark.triangle" : "heart.fill",
+                title: String(format: "BMI %.1f", bmi.bmi),
+                detail: isWarning
+                    ? FlowLocalization.app(
+                        "Slightly outside the typical range. Waist and composition trends are more useful than BMI alone.",
+                        "Lekko poza typowym zakresem. Trend talii i kompozycji jest ważniejszy niż samo BMI.",
+                        "Algo fuera del rango típico. Cintura y composición importan más que el BMI solo.",
+                        "Etwas außerhalb des typischen Bereichs. Taille und Komposition zählen mehr als BMI allein.",
+                        "Légèrement hors de la plage typique. Taille et composition comptent plus que l'IMC seul.",
+                        "Um pouco fora da faixa típica. Cintura e composição importam mais que o BMI isolado."
+                    )
+                    : FlowLocalization.app(
+                        "Within the typical range. Keep watching waist and body composition trends.",
+                        "W typowym zakresie. Nadal obserwuj talię i kompozycję ciała.",
+                        "Dentro del rango típico. Sigue observando cintura y composición.",
+                        "Im typischen Bereich. Beobachte weiter Taille und Komposition.",
+                        "Dans la plage typique. Continuez à suivre taille et composition.",
+                        "Dentro da faixa típica. Continue observando cintura e composição."
+                    ),
+                tone: isWarning ? .warning : .positive
+            )
+        }
+
+        if let whtr = HealthMetricsCalculator.calculateWHtR(waistCm: latestWaist, heightCm: height) {
+            let isWarning = whtr.ratio >= 0.5
+            return HomeAIAnalysisItem(
+                symbol: isWarning ? "exclamationmark.triangle" : "heart.fill",
+                title: String(format: "WHtR %.2f", whtr.ratio),
+                detail: isWarning
+                    ? FlowLocalization.app(
+                        "Waist-to-height ratio is above the main threshold; waist trend deserves priority.",
+                        "Stosunek talii do wzrostu jest powyżej progu; trend talii ma priorytet.",
+                        "La relación cintura-altura supera el umbral; prioriza la cintura.",
+                        "Taille-Größe-Verhältnis liegt über dem Schwellenwert; priorisiere Taille.",
+                        "Le ratio taille/taille dépasse le seuil ; priorisez le tour de taille.",
+                        "A relação cintura-altura está acima do limite; priorize a cintura."
+                    )
+                    : FlowLocalization.app(
+                        "Waist-to-height ratio is in a healthier zone.",
+                        "Stosunek talii do wzrostu jest w zdrowszej strefie.",
+                        "La relación cintura-altura está en una zona más saludable.",
+                        "Taille-Größe-Verhältnis liegt in einem gesünderen Bereich.",
+                        "Le ratio taille/taille est dans une zone plus saine.",
+                        "A relação cintura-altura está em uma zona mais saudável."
+                    ),
+                tone: isWarning ? .warning : .positive
+            )
+        }
+
+        return nil
+    }
+
+    private var paceOrGoalAnalysisItem: HomeAIAnalysisItem? {
+        if goalStatus != .noGoals {
+            return HomeAIAnalysisItem(
+                symbol: "target",
+                title: goalStatusText,
+                detail: FlowLocalization.app(
+                    "Goal status is based on your selected key metrics and latest logged values.",
+                    "Status celu bazuje na kluczowych metrykach i najnowszych zapisanych wartościach.",
+                    "El estado del objetivo usa tus métricas clave y los valores más recientes.",
+                    "Der Zielstatus basiert auf Schlüsselmetriken und neuesten Werten.",
+                    "Le statut d'objectif s'appuie sur vos métriques clés et dernières valeurs.",
+                    "O status da meta usa suas métricas principais e valores mais recentes."
+                ),
+                tone: goalStatus == .needsAttention ? .warning : .positive
+            )
+        }
+
+        if hasEnoughSavedPhotosForCompare, let latestSavedPhoto, let secondLatestSavedPhoto {
+            let days = max(Calendar.current.dateComponents([.day], from: secondLatestSavedPhoto.date, to: latestSavedPhoto.date).day ?? 0, 0)
+            return HomeAIAnalysisItem(
+                symbol: "camera.viewfinder",
+                title: FlowLocalization.app(
+                    "\(days)-day photo comparison",
+                    "Porównanie zdjęć: \(days) dni",
+                    "Comparación de \(days) días",
+                    "\(days)-Tage-Fotovergleich",
+                    "Comparaison photo de \(days) jours",
+                    "Comparação de fotos: \(days) dias"
+                ),
+                detail: FlowLocalization.app(
+                    "Your photos are ready for a visual check against the metric trend.",
+                    "Zdjęcia są gotowe do wizualnego porównania z trendem metryk.",
+                    "Tus fotos están listas para revisar contra la tendencia.",
+                    "Deine Fotos sind bereit für den Abgleich mit dem Trend.",
+                    "Vos photos sont prêtes pour une comparaison avec les tendances.",
+                    "Suas fotos estão prontas para comparação com a tendência."
+                ),
+                tone: .neutral
+            )
+        }
+
+        return nil
+    }
+
+    private var fallbackAnalysisItems: [HomeAIAnalysisItem] {
+        [
+            HomeAIAnalysisItem(
+                symbol: "plus.circle",
+                title: FlowLocalization.app("Add 3 measurements", "Dodaj 3 pomiary", "Añade 3 medidas", "Füge 3 Messungen hinzu", "Ajoutez 3 mesures", "Adicione 3 medições"),
+                detail: FlowLocalization.app(
+                    "AI needs a short history before it can rank your strongest trends.",
+                    "AI potrzebuje krótkiej historii, żeby ocenić najmocniejsze trendy.",
+                    "La IA necesita historial para clasificar tus tendencias.",
+                    "KI braucht eine kurze Historie, um Trends zu bewerten.",
+                    "L'IA a besoin d'un historique court pour classer les tendances.",
+                    "A IA precisa de histórico para classificar tendências."
+                ),
+                tone: .neutral
+            ),
+            HomeAIAnalysisItem(
+                symbol: "camera.fill",
+                title: FlowLocalization.app("Add progress photos", "Dodaj zdjęcia postępu", "Añade fotos de progreso", "Füge Fortschrittsfotos hinzu", "Ajoutez des photos", "Adicione fotos de progresso"),
+                detail: FlowLocalization.app(
+                    "Two photos at least a few weeks apart make visual progress easier to validate.",
+                    "Dwa zdjęcia w odstępie kilku tygodni ułatwią ocenę wizualnego postępu.",
+                    "Dos fotos separadas por semanas facilitan validar el progreso visual.",
+                    "Zwei Fotos mit ein paar Wochen Abstand helfen beim visuellen Vergleich.",
+                    "Deux photos espacées de quelques semaines facilitent la validation.",
+                    "Duas fotos com semanas de diferença ajudam a validar progresso visual."
+                ),
+                tone: .neutral
+            )
+        ]
+    }
+
+    private func homeInsightTone(for kind: MetricKind) -> HomeAIInsightItem.Tone {
+        guard let window = trendWindowSamples(for: kind, days: 30) ?? trendWindowSamples(for: kind, days: 7) else {
+            return .neutral
+        }
+        switch kind.trendOutcome(from: window.oldest.value, to: window.newest.value, goal: cachedGoalsByKind[kind]) {
+        case .positive:
+            return .positive
+        case .negative:
+            return .warning
+        case .neutral:
+            return .neutral
+        }
+    }
+
+    private func keyMetricGoalProgress(for kind: MetricKind) -> HomeKeyMetricGoalProgress? {
+        guard let goal = cachedGoalsByKind[kind],
+              let latest = cachedLatestByKind[kind] else { return nil }
+        let baseline = baselineValue(for: kind, goal: goal)
+        return HomeKeyMetricGoalProgress(
+            progress: goalProgressValue(goal: goal, latestValue: latest.value, baselineValue: baseline),
+            label: secondaryMetricGoalSummary(for: kind) ?? AppLocalization.string("Progress")
+        )
+    }
+
+    private func customKeyMetricGoalProgress(for definition: CustomMetricDefinition) -> HomeKeyMetricGoalProgress? {
+        guard let goal = cachedCustomGoalsByIdentifier[definition.identifier],
+              let latest = cachedCustomLatestByIdentifier[definition.identifier] else { return nil }
+        let samples = cachedCustomSamplesByIdentifier[definition.identifier] ?? []
+        let baseline: Double
+        if let startValue = goal.startValue {
+            baseline = startValue
+        } else {
+            let sorted = samples.sorted { $0.date < $1.date }
+            let anchorDate = goal.startDate ?? goal.createdDate
+            baseline = sorted.last(where: { $0.date <= anchorDate })?.value
+                ?? sorted.first?.value
+                ?? latest.value
+        }
+        return HomeKeyMetricGoalProgress(
+            progress: goalProgressValue(goal: goal, latestValue: latest.value, baselineValue: baseline),
+            label: AppLocalization.string("Progress")
+        )
+    }
+
+    private func goalProgressValue(goal: MetricGoal, latestValue: Double, baselineValue: Double) -> Double {
+        switch goal.direction {
+        case .increase:
+            let denominator = goal.targetValue - baselineValue
+            guard denominator > 0 else { return 0 }
+            return min(max((latestValue - baselineValue) / denominator, 0), 1)
+        case .decrease:
+            let denominator = baselineValue - goal.targetValue
+            guard denominator > 0 else { return 0 }
+            return min(max((baselineValue - latestValue) / denominator, 0), 1)
+        }
+    }
+
+    private func baselineValue(for kind: MetricKind, goal: MetricGoal) -> Double {
+        if let startValue = goal.startValue { return startValue }
+        let sorted = samplesForKind(kind).sorted { $0.date < $1.date }
+        let anchorDate = goal.startDate ?? goal.createdDate
+        return sorted.last(where: { $0.date <= anchorDate })?.value
+            ?? sorted.first?.value
+            ?? cachedLatestByKind[kind]?.value
+            ?? goal.targetValue
     }
 
     private var recentPhotosModule: some View {
@@ -1657,7 +1911,7 @@ struct HomeView: View {
                     onOpenHealth: { router.openMeasurementsSection("health") },
                     onOpenPremium: {
                         Haptics.selection()
-                        premiumStore.presentPaywall(reason: .feature("Health Summary & Physique"))
+                        premiumStore.presentPaywall(reason: .premiumMetric)
                     }
                 )
             } else {
@@ -1669,8 +1923,8 @@ struct HomeView: View {
     private var activationHubModule: some View {
         HomeActivationCard(
             snapshot: HomeActivationSnapshot(
-                stepIndex: activationStepIndex,
-                totalSteps: activationTaskSequence.count,
+                stepIndex: activationVisibleStepIndex,
+                totalSteps: activationVisibleTaskSequence.count,
                 title: OnboardingCopy.activationTaskTitle(activationCurrentTask ?? .initial),
                 body: OnboardingCopy.activationTaskBody(
                     activationCurrentTask ?? .initial,
@@ -1683,43 +1937,6 @@ struct HomeView: View {
             onPrimary: performActivationPrimaryAction,
             onSkip: skipActivationTask,
             onDismiss: dismissActivationHub
-        )
-    }
-
-    private var checklistModule: some View {
-        HomeChecklistCard(
-            snapshot: HomeChecklistSnapshot(
-                activeCount: activeChecklistItems.count,
-                isCollapsed: onboardingChecklistCollapsed,
-                showMoreVisible: !showMoreChecklistItems && activeChecklistItems.count > collapsedChecklistItems.count,
-                remainingCount: max(activeChecklistItems.count - collapsedChecklistItems.count, 0),
-                statusText: checklistStatusText
-            ),
-            items: shownChecklistItems.map {
-                HomeChecklistItemViewModel(
-                    id: $0.id,
-                    title: $0.title,
-                    detail: $0.detail,
-                    icon: $0.icon
-                )
-            },
-            iconSurface: checklistIconSurface,
-            rowFill: neutralRowFill,
-            rowStroke: neutralRowStroke,
-            onHide: {
-                Haptics.selection()
-                showOnboardingChecklistOnHome = false
-                settingsStore.setHomeModuleVisibility(false, for: .setupChecklist)
-            },
-            onToggleCollapse: {
-                Haptics.selection()
-                onboardingChecklistCollapsed.toggle()
-            },
-            onItemTap: performChecklistAction,
-            onShowMore: {
-                Haptics.selection()
-                showMoreChecklistItems = true
-            }
         )
     }
 
@@ -1736,11 +1953,28 @@ struct HomeView: View {
     }
 
     private var activationTaskSequence: [ActivationTask] {
-        var sequence: [ActivationTask] = [.firstMeasurement, .addPhoto, .chooseMetrics, .setGoal, .setReminders, .explorePremium]
+        var sequence: [ActivationTask] = [
+            .firstMeasurement,
+            .addPhoto,
+            .personalizeProfile,
+            .connectHealth,
+            .chooseMetrics,
+            .setReminders,
+            .explorePremium
+        ]
         if premiumStore.isPremium {
             sequence.removeAll { $0 == .explorePremium }
         }
         return sequence
+    }
+
+    private var activationVisibleTaskSequence: [ActivationTask] {
+        activationTaskSequence.filter { task in
+            task == activationCurrentTask
+                || activationCompletedTaskIDs.contains(task.rawValue)
+                || activationSkippedTaskIDs.contains(task.rawValue)
+                || !isActivationTaskSatisfied(task)
+        }
     }
 
     private var activationCompletedTaskIDs: Set<String> {
@@ -1769,10 +2003,10 @@ struct HomeView: View {
             && activationCurrentTask != nil
     }
 
-    private var activationStepIndex: Int {
+    private var activationVisibleStepIndex: Int {
         guard let activationCurrentTask,
-              let index = activationTaskSequence.firstIndex(of: activationCurrentTask) else {
-            return activationTaskSequence.count
+              let index = activationVisibleTaskSequence.firstIndex(of: activationCurrentTask) else {
+            return activationVisibleTaskSequence.count
         }
         return index + 1
     }
@@ -2140,7 +2374,7 @@ struct HomeView: View {
         case .streakDetail:
             showStreakDetail = true
         case .quickAdd:
-            showQuickAddSheet = true
+            presentQuickAdd(source: .quickAdd)
         case .metricDetail:
             // Navigate to measurements tab; in-app navigation to specific metric
             // uses the existing measurements tab which lists all metrics.
@@ -2516,288 +2750,6 @@ struct HomeView: View {
         }
     }
 
-    private var checklistItems: [SetupChecklistItem] {
-        var items: [SetupChecklistItem] = [
-            SetupChecklistItem(
-                id: "first_measurement",
-                title: AppLocalization.string("First measurement"),
-                detail: AppLocalization.string("Start your trend with one quick check-in."),
-                icon: "ruler.fill",
-                isCompleted: hasAnyMeasurements,
-                isLoading: false
-            ),
-            SetupChecklistItem(
-                id: "first_photo",
-                title: AppLocalization.string("First Photo"),
-                detail: AppLocalization.string("Photos make progress easier to notice."),
-                icon: "camera.fill",
-                isCompleted: hasAnyPhotoContent,
-                isLoading: false
-            )
-        ]
-
-        items.append(
-            SetupChecklistItem(
-                id: "healthkit",
-                title: AppLocalization.string("Apple Health"),
-                detail: AppLocalization.string("Import history and keep data in sync."),
-                icon: "heart.text.square",
-                isCompleted: isSyncEnabled,
-                isLoading: isChecklistConnectingHealth
-            )
-        )
-
-        let activeMetricCount = metricsStore.activeKinds.count
-        let totalMetricCount = metricsStore.allKindsInOrder.count
-        let inactiveMetricCount = totalMetricCount - activeMetricCount
-        items.append(
-            SetupChecklistItem(
-                id: "choose_metrics",
-                title: AppLocalization.string("Choose metrics"),
-                detail: inactiveMetricCount > 0
-                    ? AppLocalization.string("checklist.choosemetrics.detail.dynamic", activeMetricCount, inactiveMetricCount)
-                    : AppLocalization.string("Track only what matters to you."),
-                icon: "slider.horizontal.3",
-                isCompleted: onboardingChecklistMetricsCompleted,
-                isLoading: false
-            )
-        )
-
-        if onboardingSkippedReminders {
-            items.append(
-                SetupChecklistItem(
-                    id: "reminders",
-                    title: AppLocalization.string("Set reminders"),
-                    detail: AppLocalization.string("One weekly nudge helps keep the habit."),
-                    icon: "bell.badge",
-                    isCompleted: reminderChecklistCompleted,
-                    isLoading: false
-                )
-            )
-        }
-
-        return items
-    }
-
-    private var activeChecklistItems: [SetupChecklistItem] {
-        checklistItems.filter { !$0.isCompleted }
-    }
-
-    private var allChecklistItemsCompleted: Bool {
-        !checklistItems.isEmpty && checklistItems.allSatisfy(\.isCompleted)
-    }
-
-    private var collapsedChecklistItems: [SetupChecklistItem] {
-        Array(activeChecklistItems.prefix(3))
-    }
-
-    private var shownChecklistItems: [SetupChecklistItem] {
-        if showMoreChecklistItems {
-            return activeChecklistItems
-        }
-        return collapsedChecklistItems
-    }
-
-    private var primaryChecklistItem: SetupChecklistItem? {
-        activeChecklistItems.first
-    }
-
-    private var secondaryChecklistItems: [SetupChecklistItem] {
-        guard activeChecklistItems.count > 1 else { return [] }
-        return Array(activeChecklistItems.dropFirst())
-    }
-
-    private var shownSecondaryChecklistItems: [SetupChecklistItem] {
-        showMoreChecklistItems ? secondaryChecklistItems : Array(secondaryChecklistItems.prefix(2))
-    }
-
-    private var setupChecklistSection: some View {
-        AppGlassCard(
-            depth: .base,
-            cornerRadius: 24,
-            tint: Color.appAccent.opacity(0.16),
-            contentPadding: 16
-        ) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Text(AppLocalization.string("Finish setup"))
-                        .font(AppTypography.sectionTitle)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                    Spacer()
-                    Menu {
-                        Button(AppLocalization.string("Hide checklist")) {
-                            Haptics.selection()
-                            showOnboardingChecklistOnHome = false
-                        }
-                        Button(onboardingChecklistCollapsed ? AppLocalization.string("Expand checklist") : AppLocalization.string("Collapse checklist")) {
-                            Haptics.selection()
-                            onboardingChecklistCollapsed.toggle()
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(AppColorRoles.textSecondary)
-                            .frame(width: 44, height: 44)
-                    }
-                    .accessibilityLabel(AppLocalization.string("accessibility.setup.checklist.options"))
-                    .accessibilityHint(AppLocalization.string("accessibility.setup.checklist.options.hint"))
-                }
-
-                if onboardingChecklistCollapsed {
-                    Text(AppLocalization.string("Checklist collapsed. Open menu to expand."))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColorRoles.textSecondary)
-                } else {
-                    // Primary task — large, prominent
-                    if let primary = primaryChecklistItem {
-                        Button {
-                            performChecklistAction(primary.id)
-                        } label: {
-                            HStack(spacing: 14) {
-                                Image(systemName: primary.icon)
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundStyle(Color.appAccent)
-                                    .frame(width: 40, height: 40)
-                                    .background(Color.appAccent.opacity(0.16))
-                                    .clipShape(Circle())
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(primary.title)
-                                        .font(AppTypography.bodyEmphasis)
-                                        .foregroundStyle(AppColorRoles.textPrimary)
-                                    Text(primary.detail)
-                                        .font(AppTypography.caption)
-                                        .foregroundStyle(AppColorRoles.textSecondary)
-                                        .lineLimit(2)
-                                }
-
-                                Spacer(minLength: 8)
-
-                                if primary.isLoading {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                        .tint(Color.appAccent)
-                                } else {
-                                    Image(systemName: "arrow.right.circle.fill")
-                                        .font(.system(size: 22, weight: .semibold))
-                                        .foregroundStyle(Color.appAccent)
-                                }
-                            }
-                            .padding(14)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.appAccent.opacity(0.10))
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .stroke(Color.appAccent.opacity(0.35), lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(primary.isLoading)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("\(primary.title). \(primary.detail)")
-                        .accessibilityIdentifier("home.checklist.primary.\(primary.id)")
-                        .accessibilityIdentifier("home.checklist.item.\(primary.id)")
-                    }
-
-                    // Secondary tasks — subdued
-                    if !shownSecondaryChecklistItems.isEmpty {
-                        Text(AppLocalization.string("More to set up"))
-                            .font(AppTypography.microEmphasis)
-                            .foregroundStyle(AppColorRoles.textTertiary)
-                            .padding(.top, 2)
-
-                        ForEach(shownSecondaryChecklistItems) { item in
-                            Button {
-                                performChecklistAction(item.id)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: item.icon)
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundStyle(item.isCompleted ? AppColorRoles.stateSuccess : Color.appAccent)
-                                        .frame(width: 26, height: 26)
-                                        .background(AppColorRoles.surfaceAccentSoft)
-                                        .clipShape(Circle())
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(item.title)
-                                            .font(AppTypography.captionEmphasis)
-                                            .foregroundStyle(AppColorRoles.textPrimary)
-                                        Text(item.detail)
-                                            .font(AppTypography.micro)
-                                            .foregroundStyle(AppColorRoles.textSecondary)
-                                            .lineLimit(2)
-                                    }
-
-                                    Spacer(minLength: 8)
-
-                                    if item.isLoading {
-                                        ProgressView()
-                                            .controlSize(.small)
-                                            .tint(Color.appAccent)
-                                    } else if item.isCompleted {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 15, weight: .semibold))
-                                            .foregroundStyle(AppColorRoles.stateSuccess)
-                                    } else {
-                                        Image(systemName: "chevron.right")
-                                            .font(.system(size: 11, weight: .bold))
-                                            .foregroundStyle(AppColorRoles.textTertiary)
-                                    }
-                                }
-                                .padding(10)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(AppColorRoles.surfacePrimary)
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
-                                )
-                                .opacity(0.72)
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(item.isLoading)
-                            .accessibilityElement(children: .ignore)
-                            .accessibilityLabel("\(item.title). \(item.detail)")
-                            .accessibilityIdentifier("home.checklist.item.\(item.id)")
-                        }
-
-                        if !showMoreChecklistItems, secondaryChecklistItems.count > 2 {
-                            Button {
-                                Haptics.selection()
-                                showMoreChecklistItems = true
-                            } label: {
-                                Text(AppLocalization.plural("Show %d more", secondaryChecklistItems.count - 2))
-                                    .font(AppTypography.captionEmphasis)
-                                    .foregroundStyle(Color.appAccent)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal, 2)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-
-                if let checklistStatusText {
-                    Text(checklistStatusText)
-                        .font(AppTypography.micro)
-                        .foregroundStyle(Color.appAccent)
-                }
-
-                if shouldShowHealthSettingsShortcut {
-                    Button {
-                        openAppSettings()
-                    } label: {
-                        Text(AppLocalization.string("Open iOS Settings"))
-                            .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(Color.appAccent)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
     private var trimmedUserName: String {
         userName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -2969,10 +2921,10 @@ struct HomeView: View {
         .accessibilityHint(detailText)
     }
 
-    private func metricDeltaChip(for kind: MetricKind) -> HomeMetricDeltaChip? {
-        guard let text = metricDeltaTextFromCache(kind: kind, days: 7) else { return nil }
+    private func metricDeltaChip(for kind: MetricKind, days: Int = 7) -> HomeMetricDeltaChip? {
+        guard let text = metricDeltaTextFromCache(kind: kind, days: days) else { return nil }
         let tint: Color
-        if let window = trendWindowSamples(for: kind, days: 7) ?? trendWindowSamples(for: kind, days: 30) {
+        if let window = trendWindowSamples(for: kind, days: days) ?? trendWindowSamples(for: kind, days: 30) {
             switch kind.trendOutcome(from: window.oldest.value, to: window.newest.value, goal: cachedGoalsByKind[kind]) {
             case .positive:
                 tint = AppColorRoles.stateSuccess
@@ -3006,8 +2958,8 @@ struct HomeView: View {
         .buttonStyle(.plain)
     }
 
-    private func customMetricDeltaChip(for definition: CustomMetricDefinition) -> HomeMetricDeltaChip? {
-        guard let startDate = Calendar.current.date(byAdding: .day, value: -7, to: AppClock.now) else {
+    private func customMetricDeltaChip(for definition: CustomMetricDefinition, days: Int = 7) -> HomeMetricDeltaChip? {
+        guard let startDate = Calendar.current.date(byAdding: .day, value: -days, to: AppClock.now) else {
             return nil
         }
         let window = (cachedCustomSamplesByIdentifier[definition.identifier] ?? [])
@@ -3261,7 +3213,7 @@ struct HomeView: View {
         Haptics.selection()
         if isFreshHomeState {
             quickAddKinds = [.weight]
-            showQuickAddSheet = true
+            presentQuickAdd(source: .quickAdd)
             return
         }
         switch nextFocusInsight.action {
@@ -3285,7 +3237,7 @@ struct HomeView: View {
         guard hasEnoughSavedPhotosForCompare else { return }
         Haptics.selection()
         guard premiumStore.isPremium else {
-            premiumStore.presentPaywall(reason: .feature("photo_compare"))
+            premiumStore.presentPaywall(reason: .photoComparison)
             return
         }
         comparePhotosCardDismissed = true
@@ -3301,27 +3253,43 @@ struct HomeView: View {
         )
     }
 
+    private func presentQuickAdd(source: MeasurementTelemetrySource) {
+        quickAddTelemetrySource = source
+        showQuickAddSheet = true
+    }
+
+    private func trackCurrentActivationTaskViewed() {
+        guard let task = activationCurrentTask,
+              let index = activationTaskSequence.firstIndex(of: task) else {
+            return
+        }
+        Analytics.shared.track(
+            AnalyticsEvents.activationTaskViewed(
+                task: task.rawValue,
+                position: index + 1,
+                source: "activation_hub"
+            )
+        )
+    }
+
     private func performActivationPrimaryAction() {
         guard let task = activationCurrentTask else { return }
-        Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.activation.task_started",
-            parameters: ["task": task.rawValue]
-        )
+        Analytics.shared.track(AnalyticsEvents.activationTaskStarted(task: task.rawValue))
         Haptics.selection()
 
         switch task {
         case .firstMeasurement:
-            showQuickAddSheet = true
+            presentQuickAdd(source: .activation)
         case .addPhoto:
             showActivationAddPhotoSheet = true
+        case .personalizeProfile:
+            settingsOpenProfile = true
+            router.selectedTab = .settings
+        case .connectHealth:
+            settingsOpenHealth = true
+            router.selectedTab = .settings
         case .chooseMetrics:
             showActivationMetricsSheet = true
-        case .setGoal:
-            if !goals.isEmpty {
-                completeActivationTask(.setGoal)
-            } else {
-                router.selectedTab = .measurements
-            }
         case .setReminders:
             if effects.reminderChecklistCompleted() {
                 completeActivationTask(.setReminders)
@@ -3331,7 +3299,7 @@ struct HomeView: View {
             }
         case .explorePremium:
             onboardingChecklistPremiumExplored = true
-            premiumStore.presentPaywall(reason: .onboarding)
+            premiumStore.presentPaywall(reason: .activation)
             completeActivationTask(.explorePremium)
         }
     }
@@ -3339,17 +3307,24 @@ struct HomeView: View {
     private func acceptActivationReminderPrompt() {
         guard !isRequestingActivationReminder else { return }
         isRequestingActivationReminder = true
-        Analytics.shared.track(.notificationsPromptShown)
+        Analytics.shared.track(AnalyticsEvents.notificationsPermissionPrompted(source: .activation))
 
         Task { @MainActor in
             let granted = await effects.requestNotificationAuthorization()
             effects.setNotificationsEnabled(granted)
             onboardingSkippedReminders = !granted
+            Analytics.shared.track(
+                AnalyticsEvents.notificationsPermissionResolved(
+                    source: .activation,
+                    result: granted ? "granted" : "denied"
+                )
+            )
 
             if granted {
                 effects.seedTomorrowReminder()
-                Analytics.shared.track(.notificationsAccepted)
-                Analytics.shared.track(.remindersSetupCompleted)
+                Analytics.shared.track(
+                    AnalyticsEvents.remindersSeeded(source: .activation, repeatRule: .once)
+                )
             }
 
             isRequestingActivationReminder = false
@@ -3359,6 +3334,12 @@ struct HomeView: View {
 
     private func declineActivationReminderPrompt() {
         onboardingSkippedReminders = true
+        Analytics.shared.track(
+            AnalyticsEvents.notificationsPermissionResolved(
+                source: .activation,
+                result: "dismissed"
+            )
+        )
         finishPendingActivationMetricCompletion()
     }
 
@@ -3373,8 +3354,7 @@ struct HomeView: View {
         skipped.insert(task.rawValue)
         activationSkippedTaskIDsRaw = skipped.sorted().joined(separator: ",")
         Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.activation.task_skipped",
-            parameters: ["task": task.rawValue]
+            AnalyticsEvents.activationTaskSkipped(task: task.rawValue, skipReason: "user_skipped")
         )
         advanceActivation(from: task)
     }
@@ -3383,10 +3363,7 @@ struct HomeView: View {
         var completed = activationCompletedTaskIDs
         completed.insert(task.rawValue)
         activationCompletedTaskIDsRaw = completed.sorted().joined(separator: ",")
-        Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.activation.task_completed",
-            parameters: ["task": task.rawValue]
-        )
+        Analytics.shared.track(AnalyticsEvents.activationTaskCompleted(task: task.rawValue))
         advanceActivation(from: task)
     }
 
@@ -3400,8 +3377,10 @@ struct HomeView: View {
             activationIsDismissed = true
             settingsStore.setHomeModuleVisibility(false, for: .activationHub)
             Analytics.shared.track(
-                signalName: "com.jacekzieba.measureme.activation.completed_all",
-                parameters: [:]
+                AnalyticsEvents.activationCompleted(
+                    completedTasksCount: activationCompletedTaskIDs.count,
+                    skippedTasksCount: activationSkippedTaskIDs.count
+                )
             )
         }
         rebuildDashboardItemsCache()
@@ -3413,10 +3392,17 @@ struct HomeView: View {
             return hasAnyMeasurements
         case .addPhoto:
             return hasAnyPhotoContent
+        case .personalizeProfile:
+            // Spełniony gdy user wypełni cokolwiek w Profile (płeć, wiek, wzrost, imię lub zdjęcie).
+            return userGenderRaw != "notSpecified"
+                || userAgeValue > 0
+                || manualHeight > 0
+                || !userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || profilePhotoData != nil
+        case .connectHealth:
+            return isSyncEnabled || onboardingSkippedHealthKit
         case .chooseMetrics:
             return onboardingChecklistMetricsCompleted
-        case .setGoal:
-            return !goals.isEmpty
         case .setReminders:
             return effects.reminderChecklistCompleted()
         case .explorePremium:
@@ -3441,8 +3427,6 @@ struct HomeView: View {
     private func refreshChecklistState() {
         reminderChecklistCompleted = effects.reminderChecklistCompleted()
         refreshActivationProgress()
-        autoHideChecklistIfCompleted()
-        trackPrimaryChecklistShownIfNeeded()
     }
 
     private func refreshActivationProgress() {
@@ -3464,65 +3448,16 @@ struct HomeView: View {
             completeActivationTask(.firstMeasurement)
         case .addPhoto where hasAnyPhotoContent:
             completeActivationTask(.addPhoto)
+        case .personalizeProfile where userGenderRaw != "notSpecified" && userAgeValue > 0 && manualHeight > 0:
+            completeActivationTask(.personalizeProfile)
+        case .connectHealth where isSyncEnabled:
+            completeActivationTask(.connectHealth)
         case .chooseMetrics where onboardingChecklistMetricsCompleted:
             completeActivationTask(.chooseMetrics)
-        case .setGoal where !goals.isEmpty:
-            completeActivationTask(.setGoal)
         case .setReminders where effects.reminderChecklistCompleted():
             completeActivationTask(.setReminders)
         case .explorePremium where premiumStore.isPremium || onboardingChecklistPremiumExplored:
             completeActivationTask(.explorePremium)
-        default:
-            break
-        }
-    }
-
-    private func trackPrimaryChecklistShownIfNeeded() {
-        guard !didTrackPrimaryChecklistShown, primaryChecklistItem != nil else { return }
-        didTrackPrimaryChecklistShown = true
-        Analytics.shared.track(.checklistTaskShown)
-    }
-
-    private func autoHideChecklistIfCompleted() {
-        guard HomeChecklistLogic.shouldAutoHideChecklist(
-            allChecklistItemsCompleted: allChecklistItemsCompleted,
-            showOnboardingChecklistOnHome: showOnboardingChecklistOnHome
-        ) else { return }
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(600))
-            withAnimation(AppMotion.animation(AppMotion.sectionExit, enabled: shouldAnimate)) {
-                showOnboardingChecklistOnHome = false
-            }
-        }
-    }
-
-    private func performChecklistAction(_ id: String) {
-        Analytics.shared.track(.checklistTaskCompleted)
-        switch id {
-        case "explore_metrics":
-            Haptics.selection()
-            router.selectedTab = .measurements
-        case "first_measurement":
-            Haptics.selection()
-            showQuickAddSheet = true
-        case "first_photo":
-            Haptics.selection()
-            router.selectedTab = .photos
-        case "choose_metrics":
-            Haptics.selection()
-            onboardingChecklistMetricsCompleted = true
-            settingsOpenTrackedMeasurements = true
-            router.selectedTab = .settings
-        case "reminders":
-            Haptics.selection()
-            settingsOpenReminders = true
-            router.selectedTab = .settings
-        case "healthkit":
-            connectHealthKitFromChecklist()
-        case "premium":
-            Haptics.light()
-            onboardingChecklistPremiumExplored = true
-            premiumStore.presentPaywall(reason: .onboarding)
         default:
             break
         }
@@ -3543,6 +3478,13 @@ struct HomeView: View {
                 onboardingSkippedHealthKit = true
                 checklistStatusText = AppLocalization.string("Connected to Apple Health.")
                 shouldShowHealthSettingsShortcut = false
+                Analytics.shared.track(
+                    AnalyticsEvents.checklistItemCompleted(
+                        item: "healthkit",
+                        source: "home_checklist",
+                        task: activationCurrentTask?.rawValue
+                    )
+                )
                 Haptics.success()
                 refreshChecklistState()
             } catch {
@@ -3595,7 +3537,7 @@ struct HomeView: View {
                             .foregroundStyle(AppColorRoles.textSecondary)
 
                         Button {
-                            showQuickAddSheet = true
+                            presentQuickAdd(source: .quickAdd)
                         } label: {
                             Text(AppLocalization.string("Add measurement"))
                                 .foregroundStyle(AppColorRoles.textOnAccent)

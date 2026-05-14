@@ -61,10 +61,13 @@ struct SettingsView: View {
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.home.settingsOpenReminders) private var settingsOpenReminders: Bool = false
     @AppSetting(\.home.settingsOpenHomeSettings) private var settingsOpenHomeSettings: Bool = false
+    @AppSetting(\.home.settingsOpenProfile) private var settingsOpenProfile: Bool = false
+    @AppSetting(\.home.settingsOpenHealth) private var settingsOpenHealth: Bool = false
     @AppSetting(\.experience.appAppearance) private var appAppearance: String = AppAppearance.dark.rawValue
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.experience.hapticsEnabled) private var hapticsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
+    @AppSetting(\.profile.profilePhotoData) private var profilePhotoData: Data? = nil
     @AppSetting(\.experience.appLanguage) private var appLanguage: String = "system"
     
     // Core Metrics visibility
@@ -445,6 +448,12 @@ struct SettingsView: View {
             .onChange(of: settingsOpenHomeSettings) { _, _ in
                 schedulePendingDeepLinksHandling()
             }
+            .onChange(of: settingsOpenProfile) { _, _ in
+                schedulePendingDeepLinksHandling()
+            }
+            .onChange(of: settingsOpenHealth) { _, _ in
+                schedulePendingDeepLinksHandling()
+            }
             .onReceive(NotificationCenter.default.publisher(for: .settingsOpenHomeSettingsRequested)) { _ in
                 openSettingsRoute(.home)
             }
@@ -491,6 +500,7 @@ struct SettingsView: View {
                     userAge: $userAge,
                     manualHeight: $manualHeight,
                     unitsSystem: $unitsSystem,
+                    profilePhotoData: $profilePhotoData,
                     showWHtROnHome: $showWHtROnHome,
                     showRFMOnHome: $showRFMOnHome,
                     showBMIOnHome: $showBMIOnHome,
@@ -602,6 +612,16 @@ struct SettingsView: View {
             settingsOpenHomeSettings = false
             openSettingsRoute(.home)
         }
+
+        if settingsOpenProfile {
+            settingsOpenProfile = false
+            openSettingsRoute(.profile)
+        }
+
+        if settingsOpenHealth {
+            settingsOpenHealth = false
+            openSettingsRoute(.health)
+        }
     }
 
     private func schedulePendingDeepLinksHandling() {
@@ -626,7 +646,7 @@ struct SettingsView: View {
         Task { @MainActor in
             guard premiumStore.isPremium else {
                 Haptics.light()
-                premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
+                premiumStore.presentPaywall(reason: .iCloudSync)
                 return
             }
             isBackingUp = true
@@ -649,7 +669,7 @@ struct SettingsView: View {
         Task { @MainActor in
             guard premiumStore.isPremium else {
                 Haptics.light()
-                premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
+                premiumStore.presentPaywall(reason: .iCloudSync)
                 return
             }
             switch await SettingsBackupCoordinator.preflightRestore(
@@ -671,7 +691,7 @@ struct SettingsView: View {
         Task { @MainActor in
             guard premiumStore.isPremium else {
                 Haptics.light()
-                premiumStore.presentPaywall(reason: .feature("iCloud Backup"))
+                premiumStore.presentPaywall(reason: .iCloudSync)
                 return
             }
             let result = await SettingsBackupCoordinator.performRestore(

@@ -229,6 +229,7 @@ struct SettingsDetailScaffold<Content: View>: View {
             .listSectionSpacing(24)
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
+            .scrollDismissesKeyboard(.interactively)
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)

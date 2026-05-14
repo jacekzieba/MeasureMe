@@ -195,6 +195,8 @@
 "home.keymetrics.empty.selection.subtitle" = "Choose the measurements that deserve front-row space.";
 "home.keymetrics.empty.selection.title" = "Pick the metrics you actually watch";
 "home.keymetrics.empty.selection.detail" = "Keep Home focused on the measurements that best reflect your goal.";
+"home.keymetrics.action.addValue" = "Add first check-in";
+"home.keymetrics.action.setTarget" = "Set target";
 "home.keymetrics.ready.subtitle" = "%d metrics are steering this board.";
 "home.focus.firstcheckin.title" = "Add first check-in";
 "home.focus.firstcheckin.detail" = "Start with weight or waist to unlock trends.";
@@ -580,6 +582,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "premium.subscription.error" = "Could not load subscriptions (%@)";
 "premium.subscription.retry" = "Retry loading";
 "premium.subscription.disabled" = "Subscription loading is disabled by current debug/audit flags.";
+"premium.subscription.open_revenuecat_paywall" = "Open RevenueCat paywall";
 "premium.purchase.success" = "Purchase completed. Premium is now active.";
 "premium.purchase.cancelled" = "Purchase cancelled.";
 "premium.purchase.pending" = "Purchase pending approval.";
@@ -606,6 +609,23 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "premium.carousel.photos.body" = "Compare photos over time. See changes the scale can't show.";
 "premium.carousel.indicators.title" = "Beyond the Scale";
 "premium.carousel.indicators.body" = "Health and physique indicators show what your numbers mean for health and visual progress.";
+"premium.carousel.photos.unlimited.title" = "Unlimited progress photos";
+"premium.carousel.photos.unlimited.body" = "Log every checkpoint. Tag, filter, and compare side-by-side without storage limits.";
+"premium.carousel.photos.unlimited.feature.unlimited" = "Unlimited photo logging";
+"premium.carousel.photos.unlimited.feature.tags" = "Custom tags & filters";
+"premium.carousel.photos.unlimited.feature.compare" = "Side-by-side comparison";
+"premium.carousel.icloud.title" = "iCloud backup";
+"premium.carousel.icloud.body" = "Your measurements and photos stay safe — encrypted, synced across all your devices.";
+"premium.carousel.icloud.feature.auto" = "Daily auto-backup";
+"premium.carousel.icloud.feature.encrypted" = "End-to-end encryption";
+"premium.carousel.icloud.feature.restore" = "Restore on any device";
+"premium.carousel.icloud.chip.today" = "Today";
+"premium.carousel.icloud.chip.yesterday" = "Yesterday";
+"premium.carousel.export.title" = "Export your data";
+"premium.carousel.export.body" = "Download CSV reports of every metric. Take your data anywhere — to your trainer, doctor, or spreadsheet.";
+"premium.carousel.export.feature.csv" = "CSV export of all measurements";
+"premium.carousel.export.feature.timeline" = "Export photo timeline";
+"premium.carousel.export.feature.reports" = "Share progress reports";
 "premium.carousel.unlock.title" = "Train smarter. See real progress.";
 "premium.carousel.unlock.body" = "Get everything in one place, including iCloud sync and backups, to stay consistent and move faster with confidence.";
 "premium.carousel.unlock.item.ai" = "Unlimited AI Body Insights";
@@ -1168,11 +1188,11 @@ in %@";
 "From" = "From";
 "To" = "To";
 "tracked.keymetrics.header" = "Pin to Home";
-"tracked.keymetrics.description" = "Tap the pin icon to pin 1–3 metrics to your Home screen and Measurements tab. You decide how many.";
-"tracked.keymetrics.counter" = "%d of 3 pinned";
+"tracked.keymetrics.description" = "Tap the pin icon to pin 1–5 metrics to your Home screen and Measurements tab. You decide how many.";
+"tracked.keymetrics.counter" = "%d of 5 pinned";
 "tracked.keymetrics.empty" = "Turn on a metric below first, then come back here to pin it to Home.";
 "tracked.active.header" = "Currently Tracking";
-"tracked.active.description" = "Tap the pin icon to pin up to 3 metrics to Home. Swipe to stop tracking. Drag to reorder.";
+"tracked.active.description" = "Tap the pin icon to pin up to 5 metrics to Home. Swipe to stop tracking. Drag to reorder.";
 "tracked.section.health.subtitle" = "Toggle on to start tracking. Synced automatically from Apple Health.";
 "tracked.section.custom.subtitle" = "Toggle on to start tracking. You enter these values manually.";
 "tracked.section.allempty" = "All metrics from this group are already active above.";
@@ -1453,7 +1473,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "Choose from Library" = "Choose from Library";
 "Choose indicators to show" = "Choose indicators to show";
 "Choose one-time, daily or weekly schedule." = "Choose one-time, daily or weekly schedule.";
-"Choose up to 3 to show on Home and Measurements." = "Choose up to 3 to show on Home and Measurements.";
+"Choose up to 5 to show on Home and Measurements." = "Choose up to 5 to show on Home and Measurements.";
 "Choose whether you want to increase or decrease this metric." = "Choose whether you want to increase or decrease this metric.";
 "Choose..." = "Choose...";
 "Clear" = "Clear";
@@ -1779,7 +1799,7 @@ The thresholds differ between males and females due to different body compositio
 "Yes. Use Compare in the Photos tab and select two photos to view them side by side." = "Yes. Use Compare in the Photos tab and select two photos to view them side by side.";
 "Yes. Use Export data in Settings. Photos can be saved from the photo detail view." = "Yes. Use Export data in Settings. Photos can be saved from the photo detail view.";
 "You can build muscle and lose fat at the same time, so the scale might not change much. Waist circumference often reflects fat loss more clearly than weight alone." = "You can build muscle and lose fat at the same time, so the scale might not change much. Waist circumference often reflects fat loss more clearly than weight alone.";
-"You can choose up to 3 key metrics for Home." = "You can choose up to 3 key metrics for Home.";
+"You can choose up to 5 key metrics for Home." = "You can choose up to 5 key metrics for Home.";
 "You can only compare two photos at a time. Please deselect one photo before selecting another." = "You can only compare two photos at a time. Please deselect one photo before selecting another.";
 "You've set your height manually. Health metrics will use this value." = "You've set your height manually. Health metrics will use this value.";
 "Your data is stored on device and encrypted. MeasureMe works offline by default." = "Your data is stored on device and encrypted. MeasureMe works offline by default.";
@@ -1995,24 +2015,80 @@ The thresholds differ between males and females due to different body compositio
 "No products returned by RevenueCat." = "No products returned by RevenueCat.";
 "Overall Health" = "Overall Health";
 "Photo comparison" = "Photo comparison";
+"Profile photo" = "Profile photo";
 "Photos locked" = "Photos locked";
 "Pose" = "Pose";
 "Quick actions" = "Quick actions";
 "Refresh insight" = "Refresh insight";
+"Remove" = "Remove";
 "Remove filter" = "Remove filter";
 "Require Face ID to view photos" = "Require Face ID to view photos";
 "Review" = "Review";
 "Saved to MeasureMe album." = "Saved to MeasureMe album.";
 "Send" = "Send";
 "Shortcuts for the most common logging flows" = "Shortcuts for the most common logging flows";
+"Shown on your Home dashboard." = "Shown on your Home dashboard.";
 "Side" = "Side";
 "Snap to center" = "Snap to center";
 "Strength & Function" = "Strength & Function";
 "Take one full-body photo. In 4 weeks, the comparison will show changes your eye missed." = "Take one full-body photo. In 4 weeks, the comparison will show changes your eye missed.";
 "Take your first photo" = "Take your first photo";
+"Change photo" = "Change photo";
 "Take your first photo. In a few weeks, you’ll see what the mirror can’t show you." = "Take your first photo. In a few weeks, you’ll see what the mirror can’t show you.";
 "Today" = "Today";
 "Unlock AI Insights" = "Unlock AI Insights";
 "Unlock photos" = "Unlock photos";
 "Unlock to view progress photos." = "Unlock to view progress photos.";
 "Upgrade to Premium Edition to unlock AI Insights." = "Upgrade to Premium Edition to unlock AI Insights.";
+
+"premium.plan.lifetime" = "Lifetime";
+"premium.plan.billing.lifetime" = "One-time payment";
+"premium.cta.lifetime" = "Unlock lifetime access";
+"premium.cta.billed.lifetime" = "One-time purchase. No subscription.";
+"premium.lifetime.more.options" = "More options";
+"premium.lifetime.tagline" = "Pay once, yours forever";
+
+"premium.plan.flexible" = "Flexible";
+"premium.plan.one.time" = "One-time purchase";
+"premium.other.options.show" = "See other options";
+"premium.other.options.hide" = "Hide options";
+
+// Carousel — bullets per slide (3 each)
+"premium.carousel.analyst.bullet.1" = "Unlimited AI Body Insights";
+"premium.carousel.analyst.bullet.2" = "Health Summary";
+"premium.carousel.analyst.bullet.3" = "Smart progress explanations";
+"premium.carousel.photos.bullet.1" = "Side-by-side photo comparison";
+"premium.carousel.photos.bullet.2" = "Unlimited progress photos";
+"premium.carousel.photos.bullet.3" = "Tags, filters, and checkpoints";
+"premium.carousel.indicators.bullet.1" = "Waist-to-height ratio";
+"premium.carousel.indicators.bullet.2" = "Body shape indicators";
+"premium.carousel.indicators.bullet.3" = "Trend-based interpretation";
+"premium.carousel.icloud.bullet.1" = "iCloud sync";
+"premium.carousel.icloud.bullet.2" = "Backup restore";
+"premium.carousel.icloud.bullet.3" = "Private by design";
+"premium.carousel.export.bullet.1" = "CSV export";
+"premium.carousel.export.bullet.2" = "JSON export";
+"premium.carousel.export.bullet.3" = "PDF progress reports";
+"premium.carousel.everything.bullet.1" = "Goal prediction";
+"premium.carousel.everything.bullet.2" = "Home Screen & Lock Screen widgets";
+"premium.carousel.everything.bullet.3" = "All current and future Premium features";
+
+// Soft prompts
+"premium.soft.prompt.post_measurement.title" = "You've started building a trend";
+"premium.soft.prompt.post_measurement.body" = "Premium can explain what's changing and what to adjust next.";
+"premium.discover.card.title" = "See what your progress means";
+"premium.discover.card.body" = "Unlock AI insights, photo comparison, exports, and backup.";
+"premium.discover.card.cta" = "Explore Premium";
+
+// Accessibility
+"accessibility.premium.slide.position" = "Slide %@ of %@: %@";
+"accessibility.premium.slide.dot" = "Slide %@ of %@";
+
+// App icon picker
+"App icon" = "App icon";
+
+// App icon picker
+"Default" = "Default";
+
+// App icon picker
+"Old" = "Old";

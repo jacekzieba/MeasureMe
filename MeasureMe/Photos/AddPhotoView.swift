@@ -1,6 +1,13 @@
 import SwiftUI
 import SwiftData
 
+struct PreparedPhotoDraft {
+    let image: UIImage
+    let date: Date
+    let tags: Set<PhotoTag>
+    let metricValues: [MetricKind: Double]
+}
+
 /// View for adding a new photo with tags and optional measurements
 struct AddPhotoView: View {
     @Environment(\.dismiss) private var dismiss
@@ -8,7 +15,10 @@ struct AddPhotoView: View {
     @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
 
     private let initialPreviewSource: PhotoLibraryImageSource?
+    private let shouldApplyInitialSourceDate: Bool
+    private let onPreparedForBatch: ((PreparedPhotoDraft) -> Void)?
     private let onSaved: (() -> Void)?
+    private let telemetrySource: PhotoTelemetrySource
     @State private var selectedImage: UIImage?
     @State private var didLoadInitialSource = false
     @State private var isLoadingPreview = false
@@ -34,12 +44,23 @@ struct AddPhotoView: View {
     init(
         previewImage: UIImage? = nil,
         previewSource: PhotoLibraryImageSource? = nil,
+        initialDate: Date? = nil,
+        initialTags: Set<PhotoTag>? = nil,
+        initialMetricValues: [MetricKind: Double] = [:],
+        telemetrySource: PhotoTelemetrySource = .photos,
+        onPreparedForBatch: ((PreparedPhotoDraft) -> Void)? = nil,
         onSaved: (() -> Void)? = nil
     ) {
         self.initialPreviewSource = previewSource
+        self.shouldApplyInitialSourceDate = initialDate == nil
+        self.onPreparedForBatch = onPreparedForBatch
         self.onSaved = onSaved
+        self.telemetrySource = telemetrySource
         self._selectedImage = State(initialValue: previewImage)
         self._isLoadingPreview = State(initialValue: previewImage == nil && previewSource != nil)
+        self._date = State(initialValue: initialDate ?? AppClock.now)
+        self._selectedTags = State(initialValue: initialTags ?? [.front])
+        self._metricValues = State(initialValue: initialMetricValues)
     }
 
     var body: some View {
@@ -109,7 +130,8 @@ struct AddPhotoView: View {
             guard selectedImage == nil else { return }
             guard let initialPreviewSource else { return }
             didLoadInitialSource = true
-            if let exifDate = await PhotoLibraryImageLoader.fetchCreationDate(from: initialPreviewSource) {
+            if shouldApplyInitialSourceDate,
+               let exifDate = await PhotoLibraryImageLoader.fetchCreationDate(from: initialPreviewSource) {
                 date = exifDate
             }
             do {
@@ -367,13 +389,29 @@ private extension AddPhotoView {
 
         isSaving = true
         let enqueueStart = ContinuousClock.now
+
+        if let onPreparedForBatch {
+            onPreparedForBatch(
+                PreparedPhotoDraft(
+                    image: image,
+                    date: date,
+                    tags: selectedTags,
+                    metricValues: sanitizedMetricValues
+                )
+            )
+            isSaving = false
+            dismiss()
+            return
+        }
+
         do {
             let jobID = try await pendingPhotoSaveStore.enqueueSingle(
                 sourceImage: image,
                 date: date,
                 tags: selectedTags,
                 metricValues: sanitizedMetricValues,
-                unitsSystem: unitsSystem
+                unitsSystem: unitsSystem,
+                telemetrySource: telemetrySource
             )
             let enqueueMs = milliseconds(from: enqueueStart.duration(to: .now))
             let dismissStart = ContinuousClock.now

@@ -215,6 +215,8 @@
 "home.keymetrics.empty.selection.subtitle" = "Wybierz pomiary, które naprawdę zasługują na miejsce na Stronie głównej.";
 "home.keymetrics.empty.selection.title" = "Pokaż tylko metryki, które naprawdę obserwujesz";
 "home.keymetrics.empty.selection.detail" = "Utrzymaj Stronę główną skupioną na pomiarach, które najlepiej odzwierciedlają Twój cel.";
+"home.keymetrics.action.addValue" = "Dodaj pierwszy wpis";
+"home.keymetrics.action.setTarget" = "Ustaw cel";
 "home.keymetrics.ready.subtitle" = "%d metryki prowadzą ten ekran.";
 "home.focus.firstcheckin.title" = "Dodaj pierwszy wpis";
 "home.focus.firstcheckin.detail" = "Zacznij od wagi albo talii, aby uruchomić trendy.";
@@ -270,8 +272,8 @@
 "home.health.pill.preview" = "Podgląd";
 "home.health.pill.ready" = "Gotowe";
 "home.health.empty.disconnected.title" = "Połącz aplikację Zdrowie, jeśli chcesz mniej ręcznej pracy";
-"home.health.empty.disconnected.detail" = "Połącz MeasureME z aplikacją Zdrowie, aby widzieć metryki.";
-"home.health.empty.disconnected.detail.preview" = "Pobierz dane z aplikacji Zdrowie, aby podejrzeć metryki na Stronie głównej. Pełne podsumowanie jest dostępne Premium.";
+"home.health.empty.disconnected.detail" = "Połącz MeasureMe z aplikacją Zdrowie, aby widzieć metryki.";
+"home.health.empty.disconnected.detail.preview" = "Pobierz dane z aplikacji Zdrowie, aby podejrzeć metryki na Stronie głównej. Pełne podsumowanie jest dostępne w Premium.";
 "home.health.empty.synced.title" = "Dane z aplikacji Zdrowie są pobierane, ale brakuje nam kilku danych.";
 "home.health.empty.synced.detail" = "Dodaj kilka pomiarów, aby ta karta stała się użyteczna.";
 "home.health.empty.synced.detail.preview" = "Tutaj zobaczysz podgląd jednej zsynchronizowanej metryki. Więcej metryk zdrowia, sylwetka i pełne podsumowanie są w Premium.";
@@ -486,6 +488,10 @@
 "Add measurement" = "Dodaj pomiar";
 "Add one-time or repeatable reminders. You can edit or remove them any time." = "Dodaj jednorazowe lub cykliczne przypomnienia. Możesz je edytować lub usuwać w dowolnym momencie.";
 "Add photo" = "Dodaj zdjęcie";
+"Change photo" = "Zmień zdjęcie";
+"Profile photo" = "Zdjęcie profilowe";
+"Remove" = "Usuń";
+"Shown on your Home dashboard." = "Widoczne na ekranie głównym.";
 "Add reminder" = "Dodaj przypomnienie";
 "Add the missing measurements to calculate these health indicators:" = "Dodaj brakujące pomiary, aby obliczyć te wskaźniki zdrowia:";
 "Add your first entry to see history and charts." = "Dodaj pierwszy wpis, aby zobaczyć historię i wykresy.";
@@ -512,7 +518,7 @@
 "Choose one-time, daily or weekly schedule." = "Wybierz jednorazowy, dzienny lub tygodniowy harmonogram.";
 "Choose indicators to show" = "Wybierz wskaźniki do wyświetlenia";
 "Choose metrics" = "Wybierz metryki";
-"Choose up to 3 to show on Home and Measurements." = "Wybierz do 3, aby wyświetlać na Stronie głównej i w Pomiarach.";
+"Choose up to 5 to show on Home and Measurements." = "Wybierz do 5, aby wyświetlać na Stronie głównej i w Pomiarach.";
 "Choose whether you want to increase or decrease this metric." = "Wybierz, czy chcesz zwiększać czy zmniejszać tę metrykę.";
 "Choose your units" = "Wybierz jednostki";
 "Choose..." = "Wybierz...";
@@ -689,7 +695,8 @@
 "Show photos on Home" = "Pokaż zdjęcia na Stronie głównej";
 "Showing all photos" = "Wyświetlanie wszystkich zdjęć";
 "Skip" = "Pomiń";
-"\"What is measured is managed\"\n- Peter Drucker" = "„To, co mierzone, jest zarządzane”\n- Peter Drucker";
+"\"What is measured is managed\"
+- Peter Drucker" = "„To, co mierzone, jest zarządzane”\n- Peter Drucker";
 "Smart Notifications" = "Inteligentne powiadomienia";
 "Smart reminders" = "Inteligentne przypomnienia";
 "Smart reminders only trigger after a period of inactivity. When you log a measurement, the timer resets." = "Powiadomienia wyświetlą się dopiero po okresie braku aktywności. Gdy zapiszesz pomiar, licznik się resetuje.";
@@ -743,7 +750,7 @@
 "Why: gentle nudges keep you consistent." = "Dlaczego: delikatne przypomnienia pomagają w regularności.";
 "Why is age important?" = "Dlaczego wiek jest istotny?";
 "Why is height important?" = "Dlaczego wzrost jest istotny?";
-"You can choose up to 3 key metrics for Home." = "Możesz wybrać do 3 kluczowych metryk na Stronę główną.";
+"You can choose up to 5 key metrics for Home." = "Możesz wybrać do 5 kluczowych metryk na Stronę główną.";
 "You can only compare two photos at a time. Please deselect one photo before selecting another." = "Możesz porównywać tylko dwa zdjęcia naraz. Odznacz jedno zdjęcie przed wybraniem kolejnego.";
 "You've set your height manually. Health metrics will use this value." = "Ustawiłeś wzrost ręcznie. Metryki zdrowotne będą wykorzystywać te wartości.";
 "Your data stays on this device. Nothing is shared with us." = "Twoje dane pozostają na tym urządzeniu. Nic nie jest udostępniane.";
@@ -890,9 +897,26 @@
 "Significantly above range" = "Znacznie powyżej zakresu";
 "WHR Ranges (Male)" = "Zakresy WHR (mężczyźni)";
 "WHR Ranges (Female)" = "Zakresy WHR (kobiety)";
-"The waist-to-height ratio (WHtR) is a measure of body fat distribution. It is calculated by dividing waist circumference by height.\n\nResearch suggests that WHtR is a good predictor of cardiovascular disease risk and metabolic syndrome.\n\nA WHtR of 0.5 or less is considered healthy for most adults, meaning your waist circumference should be less than half your height." = "Stosunek talii do wzrostu (WHtR) to miara rozkładu tkanki tłuszczowej. Oblicza się go, dzieląc obwód talii przez wzrost.\n\nBadania sugerują, że WHtR jest dobrym wskaźnikiem ryzyka chorób sercowo‑naczyniowych i zespołu metabolicznego.\n\nWHtR równe 0,5 lub mniej uznaje się za zdrowe u większości dorosłych, co oznacza, że obwód talii powinien być mniejszy niż połowa wzrostu.";
-"The waist-to-hip ratio (WHR) is a measure of body fat distribution. It is calculated by dividing waist circumference by hip circumference.\n\nWHR is used as a measurement of obesity, which in turn is a possible indicator of health risk. A higher WHR suggests more abdominal fat, which is associated with increased health risks.\n\nThe thresholds differ between males and females due to different body compositions." = "Stosunek talii do bioder (WHR) to miara rozkładu tkanki tłuszczowej. Oblicza się go, dzieląc obwód talii przez obwód bioder.\n\nWHR jest używany jako miara otyłości, a tym samym możliwy wskaźnik ryzyka zdrowotnego. Wyższy WHR sugeruje więcej tłuszczu brzusznego, co wiąże się ze zwiększonym ryzykiem zdrowotnym.\n\nProgi różnią się dla kobiet i mężczyzn ze względu na różnice w budowie ciała.";
-"Body Mass Index (BMI) is a measure of body fat based on height and weight. It is calculated by dividing weight in kilograms by height in meters squared.\n\nBMI is a useful screening tool for identifying weight categories that may lead to health problems, but it's not diagnostic of body fatness or health.\n\nBMI interpretation varies by age:\n• Children & adolescents (< 18): Simplified ranges are used (ideally percentile charts)\n• Adults (18-65): Standard WHO ranges apply\n• Seniors (> 65): Slightly higher ranges may be healthier\n\nBMI does not distinguish between muscle and fat mass, so athletes or people with high muscle mass may have a high BMI despite having low body fat." = "Wskaźnik masy ciała (BMI) to miara tkanki tłuszczowej na podstawie wzrostu i wagi. Oblicza się go, dzieląc wagę w kilogramach przez wzrost w metrach do kwadratu.\n\nBMI jest przydatnym narzędziem przesiewowym do identyfikacji kategorii masy ciała mogących prowadzić do problemów zdrowotnych, ale nie jest diagnozą składu ciała ani zdrowia.\n\nInterpretacja BMI zależy od wieku:\n• Dzieci i młodzież (< 18): stosuje się uproszczone zakresy (najlepiej siatki centylowe)\n• Dorośli (18–65): obowiązują standardowe zakresy WHO\n• Seniorzy (> 65): nieco wyższe zakresy mogą być zdrowsze\n\nBMI nie rozróżnia masy mięśniowej i tłuszczowej, dlatego sportowcy lub osoby z dużą masą mięśni mogą mieć wysokie BMI mimo niskiego poziomu tłuszczu.";
+"The waist-to-height ratio (WHtR) is a measure of body fat distribution. It is calculated by dividing waist circumference by height.
+
+Research suggests that WHtR is a good predictor of cardiovascular disease risk and metabolic syndrome.
+
+A WHtR of 0.5 or less is considered healthy for most adults, meaning your waist circumference should be less than half your height." = "Stosunek talii do wzrostu (WHtR) to miara rozkładu tkanki tłuszczowej. Oblicza się go, dzieląc obwód talii przez wzrost.\n\nBadania sugerują, że WHtR jest dobrym wskaźnikiem ryzyka chorób sercowo‑naczyniowych i zespołu metabolicznego.\n\nWHtR równe 0,5 lub mniej uznaje się za zdrowe u większości dorosłych, co oznacza, że obwód talii powinien być mniejszy niż połowa wzrostu.";
+"The waist-to-hip ratio (WHR) is a measure of body fat distribution. It is calculated by dividing waist circumference by hip circumference.
+
+WHR is used as a measurement of obesity, which in turn is a possible indicator of health risk. A higher WHR suggests more abdominal fat, which is associated with increased health risks.
+
+The thresholds differ between males and females due to different body compositions." = "Stosunek talii do bioder (WHR) to miara rozkładu tkanki tłuszczowej. Oblicza się go, dzieląc obwód talii przez obwód bioder.\n\nWHR jest używany jako miara otyłości, a tym samym możliwy wskaźnik ryzyka zdrowotnego. Wyższy WHR sugeruje więcej tłuszczu brzusznego, co wiąże się ze zwiększonym ryzykiem zdrowotnym.\n\nProgi różnią się dla kobiet i mężczyzn ze względu na różnice w budowie ciała.";
+"Body Mass Index (BMI) is a measure of body fat based on height and weight. It is calculated by dividing weight in kilograms by height in meters squared.
+
+BMI is a useful screening tool for identifying weight categories that may lead to health problems, but it's not diagnostic of body fatness or health.
+
+BMI interpretation varies by age:
+• Children & adolescents (< 18): Simplified ranges are used (ideally percentile charts)
+• Adults (18-65): Standard WHO ranges apply
+• Seniors (> 65): Slightly higher ranges may be healthier
+
+BMI does not distinguish between muscle and fat mass, so athletes or people with high muscle mass may have a high BMI despite having low body fat." = "Wskaźnik masy ciała (BMI) to miara tkanki tłuszczowej na podstawie wzrostu i wagi. Oblicza się go, dzieląc wagę w kilogramach przez wzrost w metrach do kwadratu.\n\nBMI jest przydatnym narzędziem przesiewowym do identyfikacji kategorii masy ciała mogących prowadzić do problemów zdrowotnych, ale nie jest diagnozą składu ciała ani zdrowia.\n\nInterpretacja BMI zależy od wieku:\n• Dzieci i młodzież (< 18): stosuje się uproszczone zakresy (najlepiej siatki centylowe)\n• Dorośli (18–65): obowiązują standardowe zakresy WHO\n• Seniorzy (> 65): nieco wyższe zakresy mogą być zdrowsze\n\nBMI nie rozróżnia masy mięśniowej i tłuszczowej, dlatego sportowcy lub osoby z dużą masą mięśni mogą mieć wysokie BMI mimo niskiego poziomu tłuszczu.";
 "Your waist-to-height ratio is within the healthy range." = "Twój stosunek talii do wzrostu mieści się w zdrowym zakresie.";
 "Your waist-to-height ratio indicates increased health risks." = "Twój stosunek talii do wzrostu wskazuje na podwyższone ryzyko zdrowotne.";
 "Your waist-to-height ratio indicates high health risks." = "Twój stosunek talii do wzrostu wskazuje na wysokie ryzyko zdrowotne.";
@@ -1063,6 +1087,7 @@
 "premium.subscription.error" = "Nie udało się wczytać subskrypcji (%@)";
 "premium.subscription.retry" = "Ponów ładowanie";
 "premium.subscription.disabled" = "Ładowanie subskrypcji jest wyłączone przez bieżące flagi debugowania i audytu.";
+"premium.subscription.open_revenuecat_paywall" = "Otwórz paywall RevenueCat";
 "premium.purchase.success" = "Zakup zakończony. Premium jest aktywne.";
 "premium.purchase.cancelled" = "Zakup anulowany.";
 "premium.purchase.pending" = "Zakup oczekuje na zatwierdzenie.";
@@ -1089,6 +1114,23 @@
 "premium.carousel.photos.body" = "Porównuj zdjęcia w czasie. Zobacz zmiany, których nie pokazuje sama waga.";
 "premium.carousel.indicators.title" = "Więcej niż waga";
 "premium.carousel.indicators.body" = "Wskaźniki zdrowia i sylwetki pokazują, co Twoje liczby oznaczają dla zdrowia i wyglądu.";
+"premium.carousel.photos.unlimited.title" = "Nieograniczone zdjęcia postępu";
+"premium.carousel.photos.unlimited.body" = "Zapisuj każdy moment. Taguj, filtruj i porównuj obok siebie bez limitów miejsca.";
+"premium.carousel.photos.unlimited.feature.unlimited" = "Nielimitowane zdjęcia";
+"premium.carousel.photos.unlimited.feature.tags" = "Tagi i filtry";
+"premium.carousel.photos.unlimited.feature.compare" = "Porównanie obok siebie";
+"premium.carousel.icloud.title" = "Kopia zapasowa iCloud";
+"premium.carousel.icloud.body" = "Twoje pomiary i zdjęcia są bezpieczne — szyfrowane i zsynchronizowane na wszystkich urządzeniach.";
+"premium.carousel.icloud.feature.auto" = "Codzienna automatyczna kopia";
+"premium.carousel.icloud.feature.encrypted" = "Pełne szyfrowanie";
+"premium.carousel.icloud.feature.restore" = "Przywróć na każdym urządzeniu";
+"premium.carousel.icloud.chip.today" = "Dziś";
+"premium.carousel.icloud.chip.yesterday" = "Wczoraj";
+"premium.carousel.export.title" = "Eksport danych";
+"premium.carousel.export.body" = "Pobierz raporty CSV ze wszystkich metryk. Zabierz swoje dane wszędzie — do trenera, lekarza lub arkusza.";
+"premium.carousel.export.feature.csv" = "Eksport CSV wszystkich pomiarów";
+"premium.carousel.export.feature.timeline" = "Eksport osi czasu zdjęć";
+"premium.carousel.export.feature.reports" = "Udostępniaj raporty postępów";
 "premium.carousel.unlock.title" = "Trenuj mądrzej, zobacz progres";
 "premium.carousel.unlock.body" = "Miej wszystko w jednym miejscu, w tym synchronizację i kopię zapasową w iCloud, aby utrzymać regularność i przyspieszyć postępy.";
 "premium.carousel.unlock.item.ai" = "Nielimitowane analizy AI";
@@ -1244,7 +1286,8 @@
 "Body measurements often show changes before the scale does." = "Pomiary ciała często pokazują zmiany wcześniej niż waga.";
 "Stored on this device. You can edit this anytime." = "Dane są zapisane na tym urządzeniu. Możesz je zmienić w dowolnym momencie.";
 "You stay in control. Both options are optional." = "To Ty decydujesz. Obie opcje są dobrowolne.";
-"\"What gets measured, gets managed.\"\n- Peter Drucker" = "\"To, co mierzone, jest zarządzane.\"\n- Peter Drucker";
+"\"What gets measured, gets managed.\"
+- Peter Drucker" = "\"To, co mierzone, jest zarządzane.\"\n- Peter Drucker";
 "Weekly check-ins turn into clear momentum." = "Cotygodniowe wpisy przekładają się na wyraźny postęp.";
 "Loading photos" = "Ładowanie zdjęć";
 "Gentle reminders help habits stick." = "Delikatne przypomnienia pomagają utrzymać nawyk.";
@@ -1524,11 +1567,11 @@
 "No active measurements" = "Brak aktywnych pomiarów";
 "Photo Date" = "Data zdjęcia";
 "tracked.keymetrics.header" = "Przypnij do Strony głównej";
-"tracked.keymetrics.description" = "Stuknij ★, aby przypiąć 1–3 metryki na ekranie głównym i w zakładce Pomiary. Sam decydujesz ile.";
-"tracked.keymetrics.counter" = "%d z 3 przypiętych";
+"tracked.keymetrics.description" = "Stuknij ★, aby przypiąć 1–5 metryk na ekranie głównym i w zakładce Pomiary. Sam decydujesz ile.";
+"tracked.keymetrics.counter" = "%d z 5 przypiętych";
 "tracked.keymetrics.empty" = "Najpierw włącz metrykę poniżej, a potem wróć tutaj, aby przypiąć ją do ekranu głównego.";
 "tracked.active.header" = "Aktualnie śledzone";
-"tracked.active.description" = "Stuknij ★, aby przypiąć do 3 metryki na Stronie głównej. Przesuń, aby przestać śledzić. Przeciągnij, aby zmienić kolejność.";
+"tracked.active.description" = "Stuknij ★, aby przypiąć do 5 metryk na Stronie głównej. Przesuń, aby przestać śledzić. Przeciągnij, aby zmienić kolejność.";
 "tracked.section.health.subtitle" = "Włącz, aby rozpocząć śledzenie. Synchronizowane automatycznie z aplikacją Zdrowie.";
 "tracked.section.custom.subtitle" = "Włącz, aby rozpocząć śledzenie. Wartości wpisujesz ręcznie.";
 "tracked.section.allempty" = "Wszystkie metryki z tej grupy są już aktywne powyżej.";
@@ -1872,10 +1915,10 @@
 
 // MARK: - Smart per-metric notifications
 "notification.smart.stale.title" = "Czas na aktualizację";
-"notification.smart.stale.body" = "Nie podawałeś %@ od %d dni. Czas na update?";
+"notification.smart.stale.body" = "Nie podawałeś %@ od %d dni. Czas dodać wpis?";
 "notification.smart.pattern.title" = "Pominąłeś swoją rutynę?";
 "notification.smart.pattern.body" = "Zwykle w %2$@ o tej porze podajesz %1$@. Chcesz dodać?";
-"notification.smart.permetric.toggle" = "Powiadomienia per-metryka";
+"notification.smart.permetric.toggle" = "Przypomnienia dla metryk";
 "notification.smart.permetric.footer" = "Otrzymuj przypomnienia o konkretnych pomiarach, których dawno nie podawałeś, lub gdy pominiesz swoją rutynę.";
 "notification.ai.header" = "Powiadomienia AI";
 "notification.ai.title" = "Powiadomienia AI";
@@ -1955,3 +1998,49 @@
 "Unlock photos" = "Odblokuj zdjęcia";
 "Unlock to view progress photos." = "Odblokuj, aby zobaczyć zdjęcia postępów.";
 "Upgrade to Premium Edition to unlock AI Insights." = "Przejdź na Premium Edition, aby odblokować analizy AI.";
+
+"premium.plan.lifetime" = "Dożywotnio";
+"premium.plan.billing.lifetime" = "Jednorazowa płatność";
+"premium.cta.lifetime" = "Odblokuj dostęp dożywotni";
+"premium.cta.billed.lifetime" = "Jednorazowy zakup. Bez subskrypcji.";
+"premium.lifetime.more.options" = "Więcej opcji";
+"premium.lifetime.tagline" = "Zapłać raz, twoje na zawsze";
+
+"premium.plan.flexible" = "Elastycznie";
+"premium.plan.one.time" = "Jednorazowy zakup";
+"premium.other.options.show" = "Zobacz inne opcje";
+"premium.other.options.hide" = "Ukryj opcje";
+"premium.carousel.analyst.bullet.1" = "Nielimitowane analizy sylwetki AI";
+"premium.carousel.analyst.bullet.2" = "Podsumowanie zdrowia";
+"premium.carousel.analyst.bullet.3" = "Inteligentne wyjaśnienia postępów";
+"premium.carousel.photos.bullet.1" = "Porównanie zdjęć obok siebie";
+"premium.carousel.photos.bullet.2" = "Nieograniczone zdjęcia postępów";
+"premium.carousel.photos.bullet.3" = "Tagi, filtry i punkty kontrolne";
+"premium.carousel.indicators.bullet.1" = "Stosunek talii do wzrostu";
+"premium.carousel.indicators.bullet.2" = "Wskaźniki sylwetki";
+"premium.carousel.indicators.bullet.3" = "Interpretacja na podstawie trendów";
+"premium.carousel.icloud.bullet.1" = "Synchronizacja iCloud";
+"premium.carousel.icloud.bullet.2" = "Przywracanie kopii zapasowej";
+"premium.carousel.icloud.bullet.3" = "Prywatność od podstaw";
+"premium.carousel.export.bullet.1" = "Eksport CSV";
+"premium.carousel.export.bullet.2" = "Eksport JSON";
+"premium.carousel.export.bullet.3" = "Raporty postępów PDF";
+"premium.carousel.everything.bullet.1" = "Prognoza celu";
+"premium.carousel.everything.bullet.2" = "Widżety ekranu głównego i blokady";
+"premium.carousel.everything.bullet.3" = "Wszystkie obecne i przyszłe funkcje Premium";
+"premium.soft.prompt.post_measurement.title" = "Zaczynasz budować trend";
+"premium.soft.prompt.post_measurement.body" = "Premium może wyjaśnić, co się zmienia i co warto poprawić dalej.";
+"premium.discover.card.title" = "Zobacz, co oznaczają Twoje postępy";
+"premium.discover.card.body" = "Odblokuj analizy AI, porównywanie zdjęć, eksporty i kopie zapasowe.";
+"premium.discover.card.cta" = "Poznaj Premium";
+"accessibility.premium.slide.position" = "Slajd %@ z %@: %@";
+"accessibility.premium.slide.dot" = "Slajd %@ z %@";
+
+// App icon picker
+"App icon" = "Ikona aplikacji";
+
+// App icon picker
+"Default" = "Domyślna";
+
+// App icon picker
+"Old" = "Stara";

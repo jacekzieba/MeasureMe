@@ -1,6 +1,17 @@
 import SwiftUI
 import SwiftData
 
+private struct MultiPhotoItemDraft {
+    let date: Date
+    let tags: Set<PhotoTag>
+    let metricValues: [MetricKind: Double]
+}
+
+private struct ResolvedMultiPhotoImportItem {
+    let item: MultiPhotoImportPayload.Item
+    let image: UIImage
+}
+
 /// Widok Quick Import dla wielu zdjęć jednocześnie.
 /// Pozwala wybrać wspólną datę i tagi, a następnie zapisać wszystkie zdjęcia jednym tapem.
 struct MultiPhotoImportView: View {
@@ -17,6 +28,8 @@ struct MultiPhotoImportView: View {
     @State private var loadedImages: [UUID: UIImage] = [:]
     @State private var loadedThumbnails: [UUID: UIImage] = [:]
     @State private var loadingThumbnailIDs: Set<UUID> = []
+    @State private var sourcePhotoDates: [UUID: Date] = [:]
+    @State private var itemDrafts: [UUID: MultiPhotoItemDraft] = [:]
     @State private var singlePhotoPayload: MultiPhotoImportPayload.Item? = nil
     @AppStorage("multiImport.editHintDismissed") private var editHintDismissed: Bool = false
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
@@ -75,10 +88,24 @@ struct MultiPhotoImportView: View {
             }
         }
         .sheet(item: $singlePhotoPayload) { item in
+            let draft = draft(for: item)
             NavigationStack {
                 AddPhotoView(
                     previewImage: item.image ?? loadedImages[item.id],
-                    previewSource: item.librarySource
+                    previewSource: item.librarySource,
+                    initialDate: draft.date,
+                    initialTags: draft.tags,
+                    initialMetricValues: draft.metricValues,
+                    telemetrySource: .multiImport,
+                    onPreparedForBatch: { prepared in
+                        itemDrafts[item.id] = MultiPhotoItemDraft(
+                            date: prepared.date,
+                            tags: prepared.tags,
+                            metricValues: prepared.metricValues
+                        )
+                        loadedImages[item.id] = prepared.image
+                        loadedThumbnails[item.id] = PhotoUtilities.prepareImportedImage(prepared.image, maxDimension: 320)
+                    }
                 )
             }
         }
@@ -241,18 +268,35 @@ private extension MultiPhotoImportView {
         return loadedImages[item.id]
     }
 
+    func draft(for item: MultiPhotoImportPayload.Item) -> MultiPhotoItemDraft {
+        itemDrafts[item.id]
+            ?? MultiPhotoItemDraft(
+                date: sourcePhotoDates[item.id] ?? date,
+                tags: selectedTags,
+                metricValues: [:]
+            )
+    }
+
     @MainActor
     func preloadContent() async {
-        if let firstSource = payload.items.compactMap(\.librarySource).first,
-           let exifDate = await PhotoLibraryImageLoader.fetchCreationDate(from: firstSource) {
-            date = exifDate
-        }
+        var firstResolvedDate: Date?
 
         for item in payload.items {
             if let image = item.image {
                 loadedImages[item.id] = image
                 loadedThumbnails[item.id] = image
             }
+            if let source = item.librarySource,
+               let exifDate = await PhotoLibraryImageLoader.fetchCreationDate(from: source) {
+                sourcePhotoDates[item.id] = exifDate
+                if firstResolvedDate == nil {
+                    firstResolvedDate = exifDate
+                }
+            }
+        }
+
+        if let firstResolvedDate {
+            date = firstResolvedDate
         }
 
         let sourcesToLoad = payload.items.compactMap { item -> MultiPhotoImportPayload.Item? in
@@ -291,6 +335,8 @@ private extension MultiPhotoImportView {
         let tagsToQueue = selectedTags
         let unitsToQueue = unitsSystem
         let loadedSnapshot = loadedImages
+        let sourceDatesToQueue = sourcePhotoDates
+        let draftsToQueue = itemDrafts
         let batchID = UUID()
         let dismissStart = ContinuousClock.now
 
@@ -299,7 +345,7 @@ private extension MultiPhotoImportView {
 
         Task { @MainActor in
             let imageResolveStart = ContinuousClock.now
-            let imagesToQueue = await resolveImagesForQueue(
+            let resolvedItems = await resolveImagesForQueue(
                 items: itemsToQueue,
                 loadedImageCache: loadedSnapshot
             )
@@ -307,12 +353,25 @@ private extension MultiPhotoImportView {
             let enqueueStart = ContinuousClock.now
 
             do {
+                let requests = resolvedItems.map { resolved in
+                    let draft = draftForQueue(
+                        item: resolved.item,
+                        fallbackDate: dateToQueue,
+                        fallbackTags: tagsToQueue,
+                        sourceDates: sourceDatesToQueue,
+                        drafts: draftsToQueue
+                    )
+                    return PendingPhotoSaveRequest(
+                        sourceImage: resolved.image,
+                        date: draft.date,
+                        tags: draft.tags,
+                        metricValues: draft.metricValues
+                    )
+                }
                 let queuedIDs = try await pendingPhotoSaveStore.enqueueMany(
-                    sourceImages: imagesToQueue,
-                    date: dateToQueue,
-                    tags: tagsToQueue,
-                    metricValues: [:],
+                    requests: requests,
                     unitsSystem: unitsToQueue,
+                    telemetrySource: .multiImport,
                     batchID: batchID
                 )
                 let enqueueMs = milliseconds(from: enqueueStart.duration(to: .now))
@@ -331,24 +390,39 @@ private extension MultiPhotoImportView {
     func resolveImagesForQueue(
         items: [MultiPhotoImportPayload.Item],
         loadedImageCache: [UUID: UIImage]
-    ) async -> [UIImage] {
-        var resolved: [UIImage] = []
+    ) async -> [ResolvedMultiPhotoImportItem] {
+        var resolved: [ResolvedMultiPhotoImportItem] = []
         resolved.reserveCapacity(items.count)
 
         for item in items {
             if let preloaded = item.image ?? loadedImageCache[item.id] {
-                resolved.append(preloaded)
+                resolved.append(ResolvedMultiPhotoImportItem(item: item, image: preloaded))
                 continue
             }
             guard let source = item.librarySource else { continue }
             do {
                 let loaded = try await PhotoLibraryImageLoader.loadPreparedImage(from: source)
-                resolved.append(loaded)
+                resolved.append(ResolvedMultiPhotoImportItem(item: item, image: loaded))
             } catch {
                 AppLog.debug("⚠️ MultiPhotoImportView: source load failed for \(item.id): \(error)")
             }
         }
         return resolved
+    }
+
+    func draftForQueue(
+        item: MultiPhotoImportPayload.Item,
+        fallbackDate: Date,
+        fallbackTags: Set<PhotoTag>,
+        sourceDates: [UUID: Date],
+        drafts: [UUID: MultiPhotoItemDraft]
+    ) -> MultiPhotoItemDraft {
+        drafts[item.id]
+            ?? MultiPhotoItemDraft(
+                date: sourceDates[item.id] ?? fallbackDate,
+                tags: fallbackTags,
+                metricValues: [:]
+            )
     }
 
     func milliseconds(from duration: Duration) -> Int {

@@ -30,7 +30,7 @@ struct OnboardingView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var currentStep: InputStep = .profile
+    @State private var currentStep: InputStep = .welcome
     @State private var nameInput: String = ""
     @State private var selectedPriority: OnboardingPriority?
     @State private var isRequestingHealthKit = false
@@ -55,13 +55,24 @@ struct OnboardingView: View {
     private var activationTasksCount: Int { ActivationTask.allCases.count }
 
     private var overallStepIndex: Int { currentStep.rawValue }
+    private var onboardingStepCount: Int { InputStep.allCases.count }
 
-    private var canGoBack: Bool { currentStep != .profile }
+    private var canGoBack: Bool { currentStep != .welcome }
 
-    private var isSkipVisible: Bool { true }
+    private var isSkipVisible: Bool { currentStep != .welcome }
+    private var isFooterHidden: Bool { currentStep == .premium }
 
     private var primaryButtonTitle: String {
         switch currentStep {
+        case .welcome:
+            return FlowLocalization.system(
+                "Continue",
+                "Dalej",
+                "Continuar",
+                "Weiter",
+                "Continuer",
+                "Continuar"
+            )
         case .profile:
             return FlowLocalization.system(
                 "Show my metrics",
@@ -98,6 +109,8 @@ struct OnboardingView: View {
                 "Commencer mon parcours",
                 "Começar minha jornada"
             )
+        case .premium:
+            return AppLocalization.string("Continue")
         }
     }
 
@@ -117,6 +130,14 @@ struct OnboardingView: View {
             return storedPriority
         }
         return .improveHealth
+    }
+
+    private var hasRestoredInputState: Bool {
+        !onboardingPrimaryGoalRaw.isEmpty
+            || !userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || userAge > 0
+            || manualHeight > 0
+            || isSyncEnabled
     }
 
     private var resolvedPriorityTitle: String { OnboardingCopy.priorityTitle(resolvedPriority) }
@@ -196,25 +217,27 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.top, AppSpacing.md)
-                    .padding(.bottom, footerReservedHeight)
+                    .padding(.bottom, isFooterHidden ? 0 : footerReservedHeight)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            footer
-                .padding(.horizontal, AppSpacing.lg)
-                .padding(.bottom, 12)
-                .padding(.top, 8)
-                .background(
-                    LinearGradient(
-                        colors: [
-                            Color.clear,
-                            AppColorRoles.surfaceChrome.opacity(0.82),
-                            AppColorRoles.surfacePrimary.opacity(0.96)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
+            if !isFooterHidden {
+                footer
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.bottom, 12)
+                    .padding(.top, 8)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color.clear,
+                                AppColorRoles.surfaceChrome.opacity(0.82),
+                                AppColorRoles.surfacePrimary.opacity(0.96)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
                     )
-                )
+            }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .onAppear(perform: handleAppear)
@@ -334,28 +357,29 @@ struct OnboardingView: View {
     private func stepView(_ step: InputStep, availableHeight: CGFloat) -> some View {
         let layout = onboardingLayout(for: availableHeight)
         switch step {
+        case .welcome:
+            onboardingWelcomeSlide(layout: layout)
         case .profile:
             onboardingInputCard {
                 VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                    onboardingSlideHeader(
-                        title: FlowLocalization.system(
-                            "What's your name?",
-                            "Jak masz na imię?",
-                            "¿Cómo te llamas?",
-                            "Wie heißt du?",
-                            "Comment vous appelez-vous ?",
-                            "Como você se chama?"
-                        ),
-                        subtitle: FlowLocalization.system(
-                            "Pick your main goal so MeasureMe starts with the right signals from day one.",
-                            "Wybierz główny cel, aby MeasureMe od pierwszego dnia pokazywało właściwe sygnały.",
-                            "Elige tu meta principal para que MeasureMe empiece con las señales correctas desde el primer día.",
-                            "Wähle dein Hauptziel, damit MeasureMe vom ersten Tag an die richtigen Signale zeigt.",
-                            "Choisissez votre objectif principal pour que MeasureMe démarre avec les bons signaux dès le premier jour.",
-                            "Escolha seu objetivo principal para que o MeasureMe comece com os sinais certos desde o primeiro dia."
-                        ),
-                        titleSize: layout.headerTitleSize
-                    )
+                    HStack(alignment: .top, spacing: 12) {
+                        onboardingSlideHeader(
+                            title: FlowLocalization.system(
+                                "What's your name?",
+                                "Jak masz na imię?",
+                                "¿Cómo te llamas?",
+                                "Wie heißt du?",
+                                "Comment vous appelez-vous ?",
+                                "Como você se chama?"
+                            ),
+                            subtitle: "",
+                            titleSize: layout.headerTitleSize - 4
+                        )
+
+                        MeasureBuddyView(pose: .welcome, size: 72, idleAnimation: false)
+                            .shadow(color: Color.appAccent.opacity(0.35), radius: 10, x: 0, y: 6)
+                            .padding(.top, -4)
+                    }
 
                     TextField("e.g. Alex", text: $nameInput)
                         .textInputAutocapitalization(.words)
@@ -569,6 +593,12 @@ struct OnboardingView: View {
                 didPrewarmHealthKitAuthorization = true
                 await effects.prewarmHealthKitAuthorization()
             }
+        case .premium:
+            ScrollView(showsIndicators: false) {
+                OnboardingPremiumStep(onPremiumActivated: completePremiumAndFinish)
+                    .padding(.top, 12)
+                    .padding(.bottom, 24)
+            }
         }
     }
 
@@ -650,51 +680,24 @@ struct OnboardingView: View {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [Color.appAccent.opacity(0.18), Color.appAccent.opacity(0.04), .clear],
-                        center: .center, startRadius: 30, endRadius: 120
+                        colors: [Color.appAccent.opacity(0.22), Color.appAccent.opacity(0.05), .clear],
+                        center: .center, startRadius: 40, endRadius: 160
                     )
                 )
-                .frame(width: 240, height: 240)
+                .frame(width: 280, height: 280)
 
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [Color.appAccent.opacity(0.30), .clear],
-                        center: .center, startRadius: 20, endRadius: 80
+                        colors: [Color.appAccent.opacity(0.32), .clear],
+                        center: .center, startRadius: 30, endRadius: 110
                     )
                 )
-                .frame(width: 160, height: 160)
-                .blur(radius: 8)
+                .frame(width: 200, height: 200)
+                .blur(radius: 10)
 
-            ZStack {
-                RoundedRectangle(cornerRadius: 32, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.12),
-                                Color.appAccent.opacity(0.12)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 32, style: .continuous)
-                            .stroke(Color.appAccent.opacity(0.28), lineWidth: 1)
-                    }
-                    .shadow(color: Color.appAccent.opacity(0.30), radius: 24, y: 12)
-
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Color.appMidnight.opacity(0.92))
-                    .padding(8)
-
-                Image("BrandMark")
-                    .renderingMode(.original)
-                    .resizable()
-                    .scaledToFit()
-                    .padding(18)
-            }
-            .frame(width: 120, height: 120)
+            MeasureBuddyView(pose: .welcome, size: 200)
+                .shadow(color: Color.appAccent.opacity(0.30), radius: 24, y: 12)
         }
         .accessibilityHidden(true)
     }
@@ -887,7 +890,14 @@ struct OnboardingView: View {
                 .fill(Color.appAccent.opacity(0.18))
                 .frame(width: 118, height: 34)
                 .overlay {
-                    Text("On-device")
+                    Text(FlowLocalization.system(
+                        "On-device",
+                        "Na urządzeniu",
+                        "En el dispositivo",
+                        "Auf dem Gerät",
+                        "Sur l’appareil",
+                        "No dispositivo"
+                    ))
                         .font(AppTypography.captionEmphasis)
                         .foregroundStyle(Color.appAccent)
                 }
@@ -939,6 +949,63 @@ struct OnboardingView: View {
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .padding(.top, 12)
+    }
+
+    @ViewBuilder
+    private func onboardingWelcomeSlide(layout: OnboardingCardLayout) -> some View {
+        VStack(spacing: 24) {
+            Spacer(minLength: 0)
+
+            Text(FlowLocalization.system(
+                "Welcome to\nMeasureMe",
+                "Witaj w\nMeasureMe",
+                "Bienvenido a\nMeasureMe",
+                "Willkommen bei\nMeasureMe",
+                "Bienvenue dans\nMeasureMe",
+                "Bem-vindo ao\nMeasureMe"
+            ))
+            .font(.system(size: 40, weight: .heavy))
+            .tracking(-1.0)
+            .multilineTextAlignment(.center)
+            .foregroundStyle(AppColorRoles.textPrimary)
+            .padding(.horizontal, 24)
+
+            VStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [Color.appAccent.opacity(0.28), Color.clear],
+                                center: .center,
+                                startRadius: 10,
+                                endRadius: 110
+                            )
+                        )
+                        .frame(width: 200, height: 200)
+                        .blur(radius: 6)
+                        .allowsHitTesting(false)
+
+                    MeasureBuddyView(pose: .welcome, size: 150)
+                        .shadow(color: Color.appAccent.opacity(0.40), radius: 20, x: 0, y: 14)
+                }
+                .frame(height: 160)
+
+                MiaraSpeechBubble(
+                    text: FlowLocalization.system(
+                        "Hey, I'm Miara. I'll be here every week to show you how your body is actually changing. No scale drama, no shame, just a clear picture.",
+                        "Hej, jestem Miara. Co tydzień pokażę Ci, jak naprawdę zmienia się Twoje ciało. Bez dramy z wagą i bez oceniania. Po prostu jasny obraz.",
+                        "Hola, soy Miara. Cada semana te mostraré cómo está cambiando tu cuerpo de verdad. Sin drama de báscula y sin juicios. Solo una imagen clara.",
+                        "Hey, ich bin Miara. Jede Woche zeige ich dir, wie sich dein Körper wirklich verändert. Kein Waagen-Drama, kein Urteil. Nur ein klares Bild.",
+                        "Salut, c'est Miara. Chaque semaine, je te montre comment ton corps évolue vraiment. Sans drame de balance, sans jugement. Juste une image claire.",
+                        "Oi, sou a Miara. Toda semana vou te mostrar como seu corpo está mudando de verdade. Sem drama da balança, sem julgamento. Só uma imagem clara."
+                    )
+                )
+                .padding(.horizontal, 16)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func flowSummaryRow(title: String, value: String, multilineValue: Bool = false) -> some View {
@@ -1362,12 +1429,12 @@ struct OnboardingView: View {
     }
 
     private func privacyCard(compact: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: compact ? 8 : 12) {
+            HStack(alignment: .top, spacing: compact ? 8 : 10) {
                 Image(systemName: "lock.shield.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: compact ? 16 : 18, weight: .semibold))
                     .foregroundStyle(Color.appAccent)
-                    .frame(width: 34, height: 34)
+                    .frame(width: compact ? 30 : 34, height: compact ? 30 : 34)
                     .background(Color.appAccent.opacity(0.16))
                     .clipShape(Circle())
 
@@ -1384,6 +1451,9 @@ struct OnboardingView: View {
                     )
                     .font(AppTypography.bodyEmphasis)
                     .foregroundStyle(AppColorRoles.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+                    .allowsTightening(true)
 
                     Text(
                         FlowLocalization.system(
@@ -1397,7 +1467,12 @@ struct OnboardingView: View {
                     )
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColorRoles.textSecondary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(compact ? 0.82 : 0.9)
+                    .allowsTightening(true)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
+                .layoutPriority(1)
             }
 
             Text(
@@ -1412,6 +1487,11 @@ struct OnboardingView: View {
             )
             .font(AppTypography.microEmphasis)
             .foregroundStyle(Color.appAccent)
+            .lineLimit(2)
+            .minimumScaleFactor(compact ? 0.72 : 0.78)
+            .allowsTightening(true)
+            .fixedSize(horizontal: false, vertical: true)
+            .layoutPriority(1)
         }
         .padding(compact ? 12 : 14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1461,7 +1541,12 @@ struct OnboardingView: View {
         hasTrackedStart = true
         nameInput = userName
         selectedPriority = OnboardingPriority(rawValue: onboardingPrimaryGoalRaw)
-        effects.track(.onboardingStarted)
+        Analytics.shared.track(
+            AnalyticsEvents.onboardingSessionStarted(
+                entrypoint: "root",
+                restoredState: hasRestoredInputState
+            )
+        )
         trackCurrentStep()
         syncUITestBridge(stepIndex: overallStepIndex)
         triggerSlideAppearance()
@@ -1483,8 +1568,11 @@ struct OnboardingView: View {
 
     private func trackCurrentStep() {
         Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.onboarding.input.step_viewed",
-            parameters: ["step": currentStep.analyticsName]
+            AnalyticsEvents.onboardingStepViewed(
+                step: currentStep.analyticsName,
+                stepIndex: currentStep.rawValue + 1,
+                stepCount: onboardingStepCount
+            )
         )
     }
 
@@ -1504,38 +1592,59 @@ struct OnboardingView: View {
     private func goToNextStep() {
         guard isPrimaryEnabled else { return }
         switch currentStep {
+        case .welcome:
+            Analytics.shared.track(
+                AnalyticsEvents.onboardingStepCompleted(
+                    step: InputStep.welcome.analyticsName,
+                    stepIndex: InputStep.welcome.rawValue + 1
+                )
+            )
+            animateToInputStep(.profile)
         case .profile:
             persistProfileSelections()
             animateToInputStep(.metrics)
         case .metrics:
             Analytics.shared.track(
-                signalName: "com.jacekzieba.measureme.onboarding.input.step_completed",
-                parameters: ["step": InputStep.metrics.analyticsName]
+                AnalyticsEvents.onboardingStepCompleted(
+                    step: InputStep.metrics.analyticsName,
+                    stepIndex: InputStep.metrics.rawValue + 1
+                )
             )
             animateToInputStep(.photos)
         case .photos:
             Analytics.shared.track(
-                signalName: "com.jacekzieba.measureme.onboarding.input.step_completed",
-                parameters: ["step": InputStep.photos.analyticsName]
+                AnalyticsEvents.onboardingStepCompleted(
+                    step: InputStep.photos.analyticsName,
+                    stepIndex: InputStep.photos.rawValue + 1
+                )
             )
             animateToInputStep(.health)
         case .health:
             onboardingSkippedHealthKit = !isSyncEnabled
             Analytics.shared.track(
-                signalName: "com.jacekzieba.measureme.onboarding.input.step_completed",
-                parameters: ["step": InputStep.health.analyticsName]
+                AnalyticsEvents.onboardingStepCompleted(
+                    step: InputStep.health.analyticsName,
+                    stepIndex: InputStep.health.rawValue + 1
+                )
             )
-            finishOnboarding()
+            animateToInputStep(.premium)
+        case .premium:
+            completePremiumAndFinish()
         }
     }
 
     private func skipCurrentStep() {
         Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.onboarding.input.step_skipped",
-            parameters: ["step": currentStep.analyticsName]
+            AnalyticsEvents.onboardingStepSkipped(
+                step: currentStep.analyticsName,
+                stepIndex: currentStep.rawValue + 1,
+                skipReason: "user_skipped"
+            )
         )
 
         switch currentStep {
+        case .welcome:
+            animateToInputStep(.profile)
         case .profile:
             animateToInputStep(.metrics)
         case .metrics:
@@ -1554,8 +1663,20 @@ struct OnboardingView: View {
                     "Você pode conectar o Health depois nos Ajustes."
                 )
             ]
+            animateToInputStep(.premium)
+        case .premium:
             finishOnboarding()
         }
+    }
+
+    private func completePremiumAndFinish() {
+        Analytics.shared.track(
+            AnalyticsEvents.onboardingStepCompleted(
+                step: InputStep.premium.analyticsName,
+                stepIndex: InputStep.premium.rawValue + 1
+            )
+        )
+        finishOnboarding()
     }
 
     private func animateToInputStep(_ step: InputStep) {
@@ -1580,28 +1701,34 @@ struct OnboardingView: View {
         selectedPriority = priority
         onboardingPrimaryGoalRaw = priority.rawValue
         applyMetricPackIfNeeded()
+        Analytics.shared.track(AnalyticsEvents.onboardingPrioritySelected(priority: priority.analyticsValue))
         Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.onboarding.input.step_completed",
-            parameters: [
-                "step": InputStep.profile.analyticsName,
-                "priority": priority.analyticsValue
-            ]
+            AnalyticsEvents.onboardingStepCompleted(
+                step: InputStep.profile.analyticsName,
+                stepIndex: InputStep.profile.rawValue + 1
+            )
         )
     }
 
     private func applyMetricPackIfNeeded() {
-        guard !effects.hasCustomizedMetrics() else { return }
+        let customizedMetricsBefore = effects.hasCustomizedMetrics()
+        guard !customizedMetricsBefore else { return }
         effects.applyMetricPack(recommendedKinds)
+        Analytics.shared.track(
+            AnalyticsEvents.onboardingMetricPackApplied(
+                priority: resolvedPriority.analyticsValue,
+                packID: resolvedPriority.rawValue,
+                metricsCount: recommendedKinds.count,
+                customizedMetricsBefore: customizedMetricsBefore
+            )
+        )
     }
 
     private func requestHealthAccess() {
         guard !isRequestingHealthKit else { return }
         isRequestingHealthKit = true
         updateHealthAuthorizationPhase(.preparing)
-        Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.onboarding.health.prompt_shown",
-            parameters: ["source": "onboarding"]
-        )
+        Analytics.shared.track(AnalyticsEvents.onboardingHealthPermissionPrompted(source: "onboarding"))
 
         Task { @MainActor in
             defer { isRequestingHealthKit = false }
@@ -1633,8 +1760,12 @@ struct OnboardingView: View {
                 updateHealthAuthorizationPhase(.completed)
 
                 Analytics.shared.track(
-                    signalName: "com.jacekzieba.measureme.onboarding.health.accepted",
-                    parameters: ["source": "onboarding"]
+                    AnalyticsEvents.onboardingHealthPermissionResolved(
+                        source: "onboarding",
+                        result: "granted",
+                        importedAge: profile.age != nil,
+                        importedHeight: profile.height != nil
+                    )
                 )
             } catch {
                 isSyncEnabled = false
@@ -1651,8 +1782,12 @@ struct OnboardingView: View {
                     )
                 ]
                 Analytics.shared.track(
-                    signalName: "com.jacekzieba.measureme.onboarding.health.declined",
-                    parameters: ["source": "onboarding"]
+                    AnalyticsEvents.onboardingHealthPermissionResolved(
+                        source: "onboarding",
+                        result: "denied",
+                        importedAge: false,
+                        importedHeight: false
+                    )
                 )
             }
         }
@@ -1688,12 +1823,11 @@ struct OnboardingView: View {
         let priority = resolvedPriority
         onboardingPrimaryGoalRaw = priority.rawValue
         applyMetricPackIfNeeded()
-        onboardingFlowVersion = 2
         activationCurrentTaskID = ActivationTask.firstMeasurement.rawValue
         activationCompletedTaskIDsRaw = ""
         activationSkippedTaskIDsRaw = ""
         activationIsDismissed = false
-        effects.track(.onboardingCompleted)
+        onboardingFlowVersion = Int(AnalyticsEvents.onboardingFlowVersion) ?? 4
 
         if shouldAnimate {
             withAnimation(AppMotion.quick) {
@@ -1704,11 +1838,11 @@ struct OnboardingView: View {
         }
 
         Analytics.shared.track(
-            signalName: "com.jacekzieba.measureme.onboarding.completed_v2",
-            parameters: [
-                "priority": priority.analyticsValue,
-                "health_connected": isSyncEnabled ? "true" : "false"
-            ]
+            AnalyticsEvents.onboardingCompleted(
+                priority: priority.analyticsValue,
+                healthConnected: isSyncEnabled,
+                completedAllSteps: true
+            )
         )
     }
 

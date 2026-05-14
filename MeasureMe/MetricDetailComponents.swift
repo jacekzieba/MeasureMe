@@ -1136,12 +1136,75 @@ struct ProgressViewCard: View {
                         .foregroundStyle(AppColorRoles.textPrimary)
                 }
             }
+
+            HStack(spacing: 9) {
+                MeasureBuddyView(pose: .goals, size: 34, idleAnimation: false)
+                Text(coachMessage)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(AppColorRoles.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(Color.black.opacity(0.25))
+            )
+            .padding(.top, 4)
         }
         .padding(.vertical, 8)
+        .overlay(alignment: .topTrailing) {
+            MeasureBuddyView(pose: .goals, size: 56, idleAnimation: false)
+                .shadow(color: Color.appAccent.opacity(0.30), radius: 8, x: 0, y: 4)
+                .offset(x: 4, y: -10)
+                .allowsHitTesting(false)
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(AppLocalization.string("Progress"))
         .accessibilityValue("\(percentage)%")
         .accessibilityHint(AppLocalization.string("accessibility.progress.hint", currentValueString, goalValueString))
+    }
+
+    private var coachMessage: String {
+        if isAchieved {
+            return FlowLocalization.app(
+                "Goal hit. Time to set the next one — keep the momentum.",
+                "Cel osiągnięty. Pora wyznaczyć kolejny — utrzymaj rozpęd.",
+                "Meta cumplida. Hora de fijar la siguiente — mantén el impulso.",
+                "Ziel erreicht. Zeit für das nächste — bleib im Schwung.",
+                "Objectif atteint. Place au suivant — garde l'élan.",
+                "Meta atingida. Hora da próxima — mantenha o ritmo."
+            )
+        }
+        if percentage >= 75 {
+            return FlowLocalization.app(
+                "Almost there. Steady pace beats a sprint now.",
+                "Już blisko. Spokojne tempo lepsze niż sprint na finiszu.",
+                "Casi ahí. Ritmo constante mejor que un sprint final.",
+                "Fast geschafft. Konstantes Tempo schlägt jetzt einen Sprint.",
+                "Presque là. Un rythme stable vaut mieux qu'un sprint final.",
+                "Quase lá. Ritmo constante vence o sprint final."
+            )
+        }
+        if percentage >= 30 {
+            return FlowLocalization.app(
+                "Solid progress. Not too fast, not too slow — keep going.",
+                "Dobre tempo. Ani za szybko, ani za wolno — leć dalej.",
+                "Buen ritmo. Ni demasiado rápido ni demasiado lento — sigue así.",
+                "Solider Fortschritt. Nicht zu schnell, nicht zu langsam — weitermachen.",
+                "Bonne progression. Ni trop vite ni trop lent — continue.",
+                "Bom progresso. Nem rápido, nem devagar — continue."
+            )
+        }
+        return FlowLocalization.app(
+            "First steps count. Show up tomorrow too.",
+            "Pierwsze kroki też się liczą. Wpadnij jutro znowu.",
+            "Los primeros pasos cuentan. Vuelve también mañana.",
+            "Erste Schritte zählen. Schau morgen wieder vorbei.",
+            "Les premiers pas comptent. Reviens demain aussi.",
+            "Os primeiros passos contam. Volte amanhã também."
+        )
     }
 }
 

@@ -30,7 +30,7 @@ struct TabBarContainer: View {
 
                     // MEASUREMENTS
                     Tab(value: AppTab.measurements) {
-                        LazyMountedTab(isMounted: mountedTabs.contains(.measurements)) {
+                        LazyMountedTab(isMounted: shouldRenderTab(.measurements)) {
                             MeasurementsTabView()
                         }
                     } label: {
@@ -48,7 +48,7 @@ struct TabBarContainer: View {
 
                     // PHOTOS
                     Tab(value: AppTab.photos) {
-                        LazyMountedTab(isMounted: mountedTabs.contains(.photos)) {
+                        LazyMountedTab(isMounted: shouldRenderTab(.photos)) {
                             PhotoView()
                         }
                     } label: {
@@ -58,7 +58,7 @@ struct TabBarContainer: View {
 
                     // SETTINGS
                     Tab(value: AppTab.settings) {
-                        LazyMountedTab(isMounted: mountedTabs.contains(.settings)) {
+                        LazyMountedTab(isMounted: shouldRenderTab(.settings)) {
                             SettingsView()
                         }
                     } label: {
@@ -84,7 +84,7 @@ struct TabBarContainer: View {
                     .tag(AppTab.home)
                     .accessibilityIdentifier("tab.home")
 
-                    LazyMountedTab(isMounted: mountedTabs.contains(.measurements)) {
+                    LazyMountedTab(isMounted: shouldRenderTab(.measurements)) {
                         MeasurementsTabView()
                     }
                         .tabItem {
@@ -100,7 +100,7 @@ struct TabBarContainer: View {
                         .tag(AppTab.compose)
                         .accessibilityIdentifier("tab.add")
 
-                    LazyMountedTab(isMounted: mountedTabs.contains(.photos)) {
+                    LazyMountedTab(isMounted: shouldRenderTab(.photos)) {
                         PhotoView()
                     }
                         .tabItem {
@@ -109,7 +109,7 @@ struct TabBarContainer: View {
                         .tag(AppTab.photos)
                         .accessibilityIdentifier("tab.photos")
 
-                    LazyMountedTab(isMounted: mountedTabs.contains(.settings)) {
+                    LazyMountedTab(isMounted: shouldRenderTab(.settings)) {
                         SettingsView()
                     }
                         .tabItem {
@@ -271,6 +271,10 @@ struct TabBarContainer: View {
         mountedTabs.insert(tab)
     }
 
+    private func shouldRenderTab(_ tab: AppTab) -> Bool {
+        mountedTabs.contains(tab) || router.selectedTab == tab
+    }
+
     private func consumePendingAppEntryActionIfNeeded() {
         guard let result = TabBarRoutingCoordinator.pendingEntryAction(
             didConsumeUITestFallback: didConsumeUITestPendingEntryFallback
@@ -327,17 +331,12 @@ struct TabBarContainer: View {
             mountTabIfNeeded(.settings)
         case .metricDetail(let kindRaw):
             guard let kind = MetricKind(rawValue: kindRaw) else { return }
-            router.selectTab(.measurements)
             mountTabIfNeeded(.measurements)
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(300))
-                guard router.selectedTab == .measurements else { return }
-                router.openMetricDetail(kind)
-            }
+            router.openMetricDetail(kind)
         case .quickAdd(let kindRaw):
             if let kindRaw, let kind = MetricKind(rawValue: kindRaw) {
-                router.selectTab(.measurements)
                 mountTabIfNeeded(.measurements)
+                router.selectTab(.measurements)
                 router.presentAddSample(for: kind)
             } else {
                 router.presentComposer()
@@ -361,6 +360,14 @@ private extension TabBarContainer {
     static func initialMountedTabs() -> Set<AppTab> {
         if UITestArgument.isPresent(.openSettingsTab) {
             return [.settings]
+        }
+        if let route = UITestArgument.value(for: .pendingNavigationRoute) {
+            if route == "measurements" || route.hasPrefix("metricDetail:") || route.hasPrefix("quickAdd:") {
+                return [.measurements]
+            }
+            if route == "settings" {
+                return [.settings]
+            }
         }
         if UITestArgument.value(for: .pendingAppEntryAction) == AppEntryAction.openAddPhoto.rawValue {
             return [.photos]

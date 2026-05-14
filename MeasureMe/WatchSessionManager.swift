@@ -57,12 +57,14 @@ final class WatchSessionManager: NSObject, ObservableObject {
         let activeRaw = activeStore.activeKinds.map(\.rawValue)
         let keyRaw = activeStore.keyMetrics.map(\.rawValue)
         let units = settings.snapshot.profile.unitsSystem
+        let appLanguage = settings.snapshot.experience.appLanguage
         let isPremium = settings.snapshot.premium.premiumEntitlement
 
         var context: [String: Any] = [
             "activeMetrics": activeRaw,
             "keyMetrics": keyRaw,
             "unitsSystem": units,
+            "appLanguage": appLanguage,
             "isPremium": isPremium
         ]
 
@@ -137,7 +139,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
             guard !saveEntries.isEmpty else { return }
 
             do {
-                try saveService.save(entries: saveEntries, date: date, unitsSystem: units)
+                try saveService.save(entries: saveEntries, date: date, unitsSystem: units, source: .watch)
                 await saveService.syncHealthKit(entries: saveEntries, date: date)
             } catch {
                 AppLog.debug("⚠️ Watch measurement save failed: \(error.localizedDescription)")

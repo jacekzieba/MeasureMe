@@ -10,7 +10,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 
     @Published var activeMetrics: [WatchMetricKind] = []
     @Published var keyMetrics: [WatchMetricKind] = []
-    @Published var unitsSystem: String = "metric"
+    @Published var unitsSystem: String = WatchLocalization.storedUnitsSystem
+    @Published var appLanguage: String = WatchLocalization.currentLanguage.rawValue
     #if targetEnvironment(simulator)
     @Published var isPremium: Bool = true
     #else
@@ -43,6 +44,8 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     /// Provides sensible defaults when WCSession is unavailable (simulator).
     private func loadFallbackDefaults() {
         isPremium = true
+        unitsSystem = WatchLocalization.storedUnitsSystem
+        appLanguage = WatchLocalization.currentLanguage.rawValue
         activeMetrics = [.weight, .bodyFat, .waist]
         keyMetrics = [.weight, .bodyFat, .waist]
     }
@@ -84,10 +87,16 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 
             if let units = context["unitsSystem"] as? String {
                 self.unitsSystem = units
+                WatchLocalization.persist(unitsSystem: units)
+            }
+
+            if let language = context["appLanguage"] as? String {
+                self.appLanguage = language
+                WatchLocalization.persist(appLanguage: language)
             }
 
             if let premium = context["isPremium"] as? Bool {
-                self.isPremium = premium
+                self.isPremium = Self.effectivePremium(fromPhone: premium)
             }
 
             // Write widget data to watch App Group so complication extension can read it
@@ -99,6 +108,14 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
                 WidgetCenter.shared.reloadTimelines(ofKind: "MeasureMeComplication")
             }
         }
+    }
+
+    private static func effectivePremium(fromPhone premium: Bool) -> Bool {
+        #if targetEnvironment(simulator)
+        true
+        #else
+        premium
+        #endif
     }
 }
 

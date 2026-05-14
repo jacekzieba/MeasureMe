@@ -48,6 +48,24 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertTrue(defaults.bool(forKey: AppSettingsKeys.Privacy.requireBiometricForPhotos))
     }
 
+    func testProfilePhotoDataPersistsAndClears() {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+        let photoData = Data([0x01, 0x02, 0x03, 0x04])
+
+        store.set(\.profile.profilePhotoData, photoData)
+        store.forceReloadSnapshot()
+
+        XCTAssertEqual(store.snapshot.profile.profilePhotoData, photoData)
+        XCTAssertEqual(defaults.data(forKey: AppSettingsKeys.Profile.profilePhotoData), photoData)
+
+        store.set(\.profile.profilePhotoData, nil)
+        store.forceReloadSnapshot()
+
+        XCTAssertNil(store.snapshot.profile.profilePhotoData)
+        XCTAssertNil(defaults.data(forKey: AppSettingsKeys.Profile.profilePhotoData))
+    }
+
     func testSetAndReloadUpdatesSnapshot() async {
         let defaults = makeDefaults()
         let store = AppSettingsStore(defaults: defaults)

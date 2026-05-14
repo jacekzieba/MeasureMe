@@ -7,6 +7,7 @@ struct AppSettingsSnapshot: Sendable {
         var userGender: String
         var manualHeight: Double
         var unitsSystem: String
+        var profilePhotoData: Data?
     }
 
     struct Home: Sendable {
@@ -21,6 +22,8 @@ struct AppSettingsSnapshot: Sendable {
         var settingsOpenTrackedMeasurements: Bool
         var settingsOpenReminders: Bool
         var settingsOpenHomeSettings: Bool
+        var settingsOpenProfile: Bool
+        var settingsOpenHealth: Bool
     }
 
     struct HomeLayout: Sendable {
@@ -102,6 +105,8 @@ struct AppSettingsSnapshot: Sendable {
         var premiumEntitlement: Bool
         var premiumFirstLaunchDate: Double
         var premiumLastNagDate: Double
+        var lastAutomaticPromptDate: Double
+        var lastAutomaticPromptKind: String
     }
 
     struct Privacy: Sendable {
@@ -247,7 +252,8 @@ struct AppSettingsSnapshot: Sendable {
                 userAge: defaults.integer(forKey: AppSettingsKeys.Profile.userAge),
                 userGender: defaults.string(forKey: AppSettingsKeys.Profile.userGender) ?? "notSpecified",
                 manualHeight: defaults.double(forKey: AppSettingsKeys.Profile.manualHeight),
-                unitsSystem: defaults.string(forKey: AppSettingsKeys.Profile.unitsSystem) ?? "metric"
+                unitsSystem: defaults.string(forKey: AppSettingsKeys.Profile.unitsSystem) ?? "metric",
+                profilePhotoData: defaults.data(forKey: AppSettingsKeys.Profile.profilePhotoData)
             ),
             home: .init(
                 showLastPhotosOnHome: defaults.object(forKey: AppSettingsKeys.Home.showLastPhotosOnHome) as? Bool ?? true,
@@ -260,7 +266,9 @@ struct AppSettingsSnapshot: Sendable {
                 homePhotoMetricSyncLastID: defaults.string(forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastID) ?? "",
                 settingsOpenTrackedMeasurements: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements),
                 settingsOpenReminders: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenReminders),
-                settingsOpenHomeSettings: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenHomeSettings)
+                settingsOpenHomeSettings: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenHomeSettings),
+                settingsOpenProfile: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenProfile),
+                settingsOpenHealth: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenHealth)
             ),
             homeLayout: .init(
                 layoutSchemaVersion: max(defaults.integer(forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion), HomeLayoutSnapshot.currentSchemaVersion),
@@ -332,7 +340,9 @@ struct AppSettingsSnapshot: Sendable {
             premium: .init(
                 premiumEntitlement: defaults.bool(forKey: AppSettingsKeys.Premium.entitlement),
                 premiumFirstLaunchDate: defaults.double(forKey: AppSettingsKeys.Premium.firstLaunchDate),
-                premiumLastNagDate: defaults.double(forKey: AppSettingsKeys.Premium.lastNagDate)
+                premiumLastNagDate: defaults.double(forKey: AppSettingsKeys.Premium.lastNagDate),
+                lastAutomaticPromptDate: defaults.double(forKey: AppSettingsKeys.Premium.lastAutomaticPromptDate),
+                lastAutomaticPromptKind: defaults.string(forKey: AppSettingsKeys.Premium.lastAutomaticPromptKind) ?? ""
             ),
             privacy: .init(
                 requireBiometricForPhotos: defaults.object(forKey: AppSettingsKeys.Privacy.requireBiometricForPhotos) as? Bool ?? false

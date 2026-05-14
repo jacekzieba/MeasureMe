@@ -14,7 +14,26 @@
 
   ],
   "products" : [
-
+    {
+      "displayPrice" : "149.99",
+      "familyShareable" : false,
+      "internalID" : "6759999999",
+      "localizations" : [
+        {
+          "description" : "Permanent access to Premium features",
+          "displayName" : "Premium Lifetime",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "Stały dostęp do funkcji Premium",
+          "displayName" : "Premium dożywotnio",
+          "locale" : "pl"
+        }
+      ],
+      "productID" : "com.measureme.premium.lifetime",
+      "referenceName" : "Premium Lifetime",
+      "type" : "NonConsumable"
+    }
   ],
   "settings" : {
     "_applicationInternalID" : "6759111562",

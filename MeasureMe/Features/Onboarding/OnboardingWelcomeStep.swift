@@ -21,14 +21,11 @@ struct OnboardingWelcomeStep: View {
             HStack(alignment: .top, spacing: 12) {
                 onboardingSlideHeader(title: OnboardingView.Step.welcome.title, subtitle: OnboardingView.Step.welcome.subtitle)
                 Spacer(minLength: 0)
-                Image("BrandMark")
-                    .renderingMode(.original)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 44, height: 44)
-                    .padding(.top, 6)
-                    .accessibilityHidden(true)
+                MeasureBuddyView(pose: .welcome, size: 96)
+                    .padding(.top, -6)
             }
+
+            buddyIntroBubble
 
             goalSelector
 
@@ -38,6 +35,30 @@ struct OnboardingWelcomeStep: View {
 
             examplePreview
         }
+    }
+
+    // MARK: - Buddy intro
+
+    private var buddyIntroBubble: some View {
+        let greeting = String(
+            format: AppLocalization.systemString("Hi, I'm %@! I'll help you track your progress."),
+            MeasureBuddyName.display
+        )
+        return Text(greeting)
+            .font(AppTypography.captionEmphasis)
+            .foregroundStyle(AppColorRoles.textPrimary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.appAccent.opacity(0.10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.appAccent.opacity(0.22), lineWidth: 1)
+                    )
+            )
+            .accessibilityLabel(greeting)
     }
 
     // MARK: - Recommended metrics preview

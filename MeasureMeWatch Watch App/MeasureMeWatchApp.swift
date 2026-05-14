@@ -20,7 +20,8 @@ struct MeasureMeWatchApp: App {
                                         Image(systemName: "plus")
                                     }
                                     .tint(Color.watchAccent)
-                                    .accessibilityLabel(String(localized: "Add", table: "Watch"))
+                                    .accessibilityIdentifier("watch.openQuickAdd")
+                                    .accessibilityLabel(WatchLocalization.string("Add"))
                                     .accessibilityHint(watchLocalized("Opens Quick Add", "Otwiera szybkie dodawanie"))
                                 }
                             }
@@ -33,6 +34,7 @@ struct MeasureMeWatchApp: App {
                 }
             }
             .environmentObject(connectivity)
+            .environment(\.locale, WatchAppLanguage.fromStoredValue(connectivity.appLanguage).locale)
             .onAppear {
                 #if targetEnvironment(simulator)
                 DebugDataSeeder.seedIfNeeded()

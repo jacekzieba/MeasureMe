@@ -8,7 +8,7 @@ final class PhotoFlowUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-uiTestMode", "-uiTestSeedPhotos", "24"]
+        app.launchArguments = ["-uiTestMode", "-uiTestForcePremium", "-uiTestSeedPhotos", "24"]
     }
 
     @MainActor

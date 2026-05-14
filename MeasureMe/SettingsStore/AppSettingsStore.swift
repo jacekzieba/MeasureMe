@@ -147,7 +147,6 @@ final class AppSettingsStore: ObservableObject {
         set(\.home.showLastPhotosOnHome, normalized.item(for: .recentPhotos)?.isVisible ?? true)
         set(\.home.showHealthMetricsOnHome, normalized.item(for: .healthSummary)?.isVisible ?? true)
         let activationVisibility = normalized.item(for: .activationHub)?.isVisible
-            ?? normalized.item(for: .setupChecklist)?.isVisible
             ?? true
         set(\.onboarding.onboardingChecklistShow, activationVisibility)
     }
@@ -223,6 +222,7 @@ final class AppSettingsStore: ObservableObject {
             defaults.removeObject(forKey: AppSettingsKeys.Profile.userAge)
             defaults.removeObject(forKey: AppSettingsKeys.Profile.userGender)
             defaults.removeObject(forKey: AppSettingsKeys.Profile.manualHeight)
+            defaults.removeObject(forKey: AppSettingsKeys.Profile.profilePhotoData)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.reminders)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.lastLogDate)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.lastPhotoDate)
@@ -313,6 +313,11 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(profile.userGender, forKey: AppSettingsKeys.Profile.userGender)
             defaults.set(profile.manualHeight, forKey: AppSettingsKeys.Profile.manualHeight)
             defaults.set(profile.unitsSystem, forKey: AppSettingsKeys.Profile.unitsSystem)
+            if let profilePhotoData = profile.profilePhotoData {
+                defaults.set(profilePhotoData, forKey: AppSettingsKeys.Profile.profilePhotoData)
+            } else {
+                defaults.removeObject(forKey: AppSettingsKeys.Profile.profilePhotoData)
+            }
 
             let home = snapshot.home
             defaults.set(home.showLastPhotosOnHome, forKey: AppSettingsKeys.Home.showLastPhotosOnHome)
@@ -326,6 +331,8 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(home.settingsOpenTrackedMeasurements, forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements)
             defaults.set(home.settingsOpenReminders, forKey: AppSettingsKeys.Home.settingsOpenReminders)
             defaults.set(home.settingsOpenHomeSettings, forKey: AppSettingsKeys.Home.settingsOpenHomeSettings)
+            defaults.set(home.settingsOpenProfile, forKey: AppSettingsKeys.Home.settingsOpenProfile)
+            defaults.set(home.settingsOpenHealth, forKey: AppSettingsKeys.Home.settingsOpenHealth)
 
             let homeLayout = snapshot.homeLayout
             defaults.set(homeLayout.layoutSchemaVersion, forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion)
@@ -398,6 +405,8 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(premium.premiumEntitlement, forKey: AppSettingsKeys.Premium.entitlement)
             defaults.set(premium.premiumFirstLaunchDate, forKey: AppSettingsKeys.Premium.firstLaunchDate)
             defaults.set(premium.premiumLastNagDate, forKey: AppSettingsKeys.Premium.lastNagDate)
+            defaults.set(premium.lastAutomaticPromptDate, forKey: AppSettingsKeys.Premium.lastAutomaticPromptDate)
+            defaults.set(premium.lastAutomaticPromptKind, forKey: AppSettingsKeys.Premium.lastAutomaticPromptKind)
 
             let privacy = snapshot.privacy
             defaults.set(privacy.requireBiometricForPhotos, forKey: AppSettingsKeys.Privacy.requireBiometricForPhotos)

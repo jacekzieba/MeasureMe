@@ -234,7 +234,7 @@ final class PerformanceUITests: XCTestCase {
         let appRoot = app.otherElements["app.root.ready"].firstMatch
         let startupLoading = app.otherElements["startup.loading.root"].firstMatch
         let tabBar = app.tabBars.firstMatch
-        let homeNextFocus = app.buttons["home.nextFocus.button"].firstMatch
+        let homeNextFocus = app.buttons["home.aiInsights.openAnalysis"].firstMatch
         let weightTile = app.buttons["metric.tile.open.weight"].firstMatch
         let navBar = app.navigationBars.firstMatch
         let onboardingNext = onboardingNextButton()
@@ -271,7 +271,7 @@ final class PerformanceUITests: XCTestCase {
         let startup = app.otherElements["startup.loading.root"].firstMatch.exists
         let tabBar = app.tabBars.firstMatch.exists
         let onboarding = onboardingNextButton().exists
-        let homeCTA = app.buttons["home.nextFocus.button"].firstMatch.exists
+        let homeCTA = app.buttons["home.aiInsights.openAnalysis"].firstMatch.exists
         return "state=\(app.state.rawValue), appRoot=\(appRoot), startup=\(startup), tabBar=\(tabBar), onboardingNext=\(onboarding), homeNextFocus=\(homeCTA)"
     }
 

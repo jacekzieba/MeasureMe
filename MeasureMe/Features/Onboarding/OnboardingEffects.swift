@@ -156,8 +156,7 @@ struct OnboardingEffects {
     /// Saves first measurement entries during onboarding using QuickAddSaveService.
     func saveFirstMeasurement(entries: [QuickAddSaveService.Entry], date: Date, unitsSystem: String, context: ModelContext) throws {
         let service = QuickAddSaveService(context: context)
-        try service.save(entries: entries, date: date, unitsSystem: unitsSystem)
-        analytics.track(.onboardingFirstMeasurementSaved)
+        try service.save(entries: entries, date: date, unitsSystem: unitsSystem, source: .onboarding)
     }
 
     func incrementWelcomeGoalSelectionStat(goalRawValue: String) {

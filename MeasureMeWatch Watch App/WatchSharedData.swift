@@ -23,7 +23,11 @@ struct WatchMetricData: Codable {
 
     // MARK: - Convenience
 
-    var isMetric: Bool { unitsSystem != "imperial" }
+    var isMetric: Bool { isMetric(unitsSystemOverride: nil) }
+
+    func isMetric(unitsSystemOverride: String?) -> Bool {
+        (unitsSystemOverride ?? unitsSystem) != "imperial"
+    }
 
     var last30DaySamples: [SampleDTO] {
         let cutoff = Date().addingTimeInterval(-30 * 24 * 3600)
@@ -34,20 +38,21 @@ struct WatchMetricData: Codable {
         samples.max(by: { $0.date < $1.date })
     }
 
-    func latestDisplayValue(for kind: WatchMetricKind) -> Double? {
+    func latestDisplayValue(for kind: WatchMetricKind, unitsSystemOverride: String? = nil) -> Double? {
         guard let sample = latestSample else { return nil }
-        return kind.valueForDisplay(fromMetric: sample.value, isMetric: isMetric)
+        return kind.valueForDisplay(fromMetric: sample.value, isMetric: isMetric(unitsSystemOverride: unitsSystemOverride))
     }
 
-    func formattedValue(for kind: WatchMetricKind) -> String {
-        guard let val = latestDisplayValue(for: kind) else { return "—" }
-        return kind.formattedDisplayValue(val, isMetric: isMetric)
+    func formattedValue(for kind: WatchMetricKind, unitsSystemOverride: String? = nil) -> String {
+        guard let val = latestDisplayValue(for: kind, unitsSystemOverride: unitsSystemOverride) else { return "—" }
+        return kind.formattedDisplayValue(val, isMetric: isMetric(unitsSystemOverride: unitsSystemOverride))
     }
 
-    func deltaText(for kind: WatchMetricKind, recentSamples: [SampleDTO]? = nil) -> String? {
+    func deltaText(for kind: WatchMetricKind, recentSamples: [SampleDTO]? = nil, unitsSystemOverride: String? = nil) -> String? {
         let recent = recentSamples ?? last30DaySamples
         guard let oldest = recent.first, let newest = recent.last,
               oldest.date != newest.date else { return nil }
+        let isMetric = isMetric(unitsSystemOverride: unitsSystemOverride)
         let newVal = kind.valueForDisplay(fromMetric: newest.value, isMetric: isMetric)
         let oldVal = kind.valueForDisplay(fromMetric: oldest.value, isMetric: isMetric)
         let delta = newVal - oldVal
@@ -81,13 +86,14 @@ struct WatchMetricData: Codable {
         }
     }
 
-    func accessibilityTrendDescription(for kind: WatchMetricKind, recentSamples: [SampleDTO]? = nil) -> String {
+    func accessibilityTrendDescription(for kind: WatchMetricKind, recentSamples: [SampleDTO]? = nil, unitsSystemOverride: String? = nil) -> String {
         let recent = recentSamples ?? last30DaySamples
         guard let oldest = recent.first, let newest = recent.last,
               oldest.date != newest.date else {
             return watchLocalized("Not enough data for trend", "Za mało danych, aby ocenić trend")
         }
 
+        let isMetric = isMetric(unitsSystemOverride: unitsSystemOverride)
         let newVal = kind.valueForDisplay(fromMetric: newest.value, isMetric: isMetric)
         let oldVal = kind.valueForDisplay(fromMetric: oldest.value, isMetric: isMetric)
         let delta = newVal - oldVal
@@ -106,25 +112,26 @@ struct WatchMetricData: Codable {
             if delta == 0 {
                 return watchLocalized("Improving, stable over 30 days", "Poprawa, stabilnie w ostatnich 30 dniach")
             }
-            return String(format: watchLocalized("Improving, %@ %@ over 30 days", "Poprawa, %@ %@ w ostatnich 30 dniach"), direction, magnitude)
+            return WatchLocalization.string("Improving, %@ %@ over 30 days", direction, magnitude)
         case .negative:
             if delta == 0 {
                 return watchLocalized("Worsening, stable over 30 days", "Pogorszenie, stabilnie w ostatnich 30 dniach")
             }
-            return String(format: watchLocalized("Worsening, %@ %@ over 30 days", "Pogorszenie, %@ %@ w ostatnich 30 dniach"), direction, magnitude)
+            return WatchLocalization.string("Worsening, %@ %@ over 30 days", direction, magnitude)
         case .neutral:
             if delta == 0 {
                 return watchLocalized("Stable over 30 days", "Stabilnie w ostatnich 30 dniach")
             }
-            return String(format: watchLocalized("Stable, %@ %@ over 30 days", "Stabilnie, %@ %@ w ostatnich 30 dniach"), direction, magnitude)
+            return WatchLocalization.string("Stable, %@ %@ over 30 days", direction, magnitude)
         }
     }
 
-    func accessibilityGoalDescription(for kind: WatchMetricKind) -> String? {
+    func accessibilityGoalDescription(for kind: WatchMetricKind, unitsSystemOverride: String? = nil) -> String? {
         guard let goal else { return nil }
+        let isMetric = isMetric(unitsSystemOverride: unitsSystemOverride)
         let targetDisplay = kind.valueForDisplay(fromMetric: goal.targetValue, isMetric: isMetric)
         let targetText = kind.formattedDisplayValue(targetDisplay, isMetric: isMetric)
-        return String(format: watchLocalized("Goal %@", "Cel %@"), targetText)
+        return WatchLocalization.string("Goal %@", targetText)
     }
 
     // MARK: - App Group I/O
@@ -136,8 +143,4 @@ struct WatchMetricData: Codable {
         decoder.dateDecodingStrategy = .secondsSince1970
         return try? decoder.decode(WatchMetricData.self, from: data)
     }
-}
-
-func watchLocalized(_ english: String, _ polish: String) -> String {
-    NSLocalizedString(english, tableName: "Watch", bundle: .main, value: english, comment: "")
 }

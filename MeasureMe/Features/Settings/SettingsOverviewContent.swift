@@ -133,12 +133,7 @@ struct SettingsOverviewSections: View {
 
             SettingsCard(tint: settingsTheme.strongTint) {
                 HStack(spacing: AppSpacing.sm) {
-                    Image("BrandButton")
-                        .renderingMode(.original)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 44, height: 44)
-                        .accessibilityHidden(true)
+                    MeasureBuddyView(pose: .settings, size: 44, idleAnimation: false)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(snapshot.accountTitle)

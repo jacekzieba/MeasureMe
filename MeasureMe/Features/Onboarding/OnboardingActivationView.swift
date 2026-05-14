@@ -51,7 +51,13 @@ struct OnboardingActivationView: View {
         }
         .onAppear {
             animateBackdrop = true
-            Analytics.shared.track(.activationPrimaryTaskShown)
+            Analytics.shared.track(
+                AnalyticsEvents.activationTaskViewed(
+                    task: ActivationTask.firstMeasurement.rawValue,
+                    position: 1,
+                    source: "activation_screen"
+                )
+            )
             if path == .healthKitAccepted {
                 scheduleSuccessTransition()
             }
@@ -90,8 +96,9 @@ struct OnboardingActivationView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
 
                 Button {
-                    Analytics.shared.track(.activationPrimaryTaskCompleted)
-                    Analytics.shared.track(.activationFirstMeasurementSuccessViewed)
+                    Analytics.shared.track(
+                        AnalyticsEvents.activationTaskCompleted(task: ActivationTask.firstMeasurement.rawValue)
+                    )
                     onContinue()
                 } label: {
                     Text(AppLocalization.systemString("See my dashboard"))
@@ -149,8 +156,9 @@ struct OnboardingActivationView: View {
 
             VStack(spacing: 12) {
                 Button {
-                    Analytics.shared.track(.activationPrimaryTaskCompleted)
-                    Analytics.shared.track(.activationFirstMeasurementStarted)
+                    Analytics.shared.track(
+                        AnalyticsEvents.activationTaskStarted(task: ActivationTask.firstMeasurement.rawValue)
+                    )
                     activationTriggerQuickAdd = true
                     onContinue()
                 } label: {
@@ -162,6 +170,12 @@ struct OnboardingActivationView: View {
                 .buttonStyle(AppCTAButtonStyle(size: .large, cornerRadius: AppRadius.md))
 
                 Button {
+                    Analytics.shared.track(
+                        AnalyticsEvents.activationTaskSkipped(
+                            task: ActivationTask.firstMeasurement.rawValue,
+                            skipReason: "user_skipped"
+                        )
+                    )
                     onContinue()
                 } label: {
                     Text(AppLocalization.systemString("Skip for now"))

@@ -857,6 +857,7 @@ enum ICloudBackupService {
         AppSettingsKeys.Profile.userGender,
         AppSettingsKeys.Profile.manualHeight,
         AppSettingsKeys.Profile.unitsSystem,
+        AppSettingsKeys.Profile.profilePhotoData,
         AppSettingsKeys.Home.showLastPhotosOnHome,
         AppSettingsKeys.Home.showMeasurementsOnHome,
         AppSettingsKeys.Home.showHealthMetricsOnHome,

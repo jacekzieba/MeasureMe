@@ -84,6 +84,30 @@ struct RevenueCatBillingClient: PremiumBillingClient {
     }
 }
 
+/// Slide kinds shown in the Premium paywall carousel. Made internal so that
+/// `PaywallReason` can carry an `initialSlideKind` and the paywall view can
+/// jump directly to the slide most relevant to the trigger.
+enum PremiumSlideKind: Int, CaseIterable, Equatable {
+    case analyst         // 0 – Your Personal Body Analyst (AI insights)
+    case photos          // 1 – Visual Progress, Side by Side
+    case beyondScale     // 2 – Beyond the Scale (indicators)
+    case iCloud          // 3 – iCloud Sync & Restore
+    case export          // 4 – Export Your Data
+    case everything      // 5 – Everything in Premium
+
+    var ordinal: Int { rawValue }
+    static var slideCount: Int { Self.allCases.count }
+}
+
+/// Identifies an *automatic* (non-user-initiated) paywall prompt. Used by
+/// `PremiumPromptCoordinator` to apply frequency caps per prompt kind so the
+/// app does not nag the same user repeatedly with the same prompt.
+enum AutomaticPromptKind: String, CaseIterable {
+    case sevenDay = "seven_day"
+    case postMeasurement = "post_measurement"
+    case homeDiscoveryCard = "home_discovery_card"
+}
+
 @MainActor
 final class PremiumStore: ObservableObject {
     enum PaywallReason: Equatable {
@@ -91,6 +115,50 @@ final class PremiumStore: ObservableObject {
         case feature(String)
         case sevenDayPrompt
         case onboarding
+        case activation
+        case checklist
+        // Typed feature contexts — drive initial slide + plan availability.
+        case aiInsights
+        case photoComparison
+        case export
+        case iCloudSync
+        case widgets
+        case premiumMetric
+        case postMeasurementPrompt
+        case timedPrompt
+
+        /// Slide that the carousel should open on for this reason.
+        var initialSlideKind: PremiumSlideKind {
+            switch self {
+            case .settings, .sevenDayPrompt, .onboarding, .activation, .checklist, .timedPrompt:
+                return .analyst
+            case .feature:
+                return .everything
+            case .aiInsights, .postMeasurementPrompt:
+                return .analyst
+            case .photoComparison:
+                return .photos
+            case .premiumMetric:
+                return .beyondScale
+            case .iCloudSync:
+                return .iCloud
+            case .export:
+                return .export
+            case .widgets:
+                return .everything
+            }
+        }
+
+        /// Lifetime is hidden only during onboarding. All other premium entry
+        /// points can show the non-consumable option alongside subscriptions.
+        var allowsLifetime: Bool {
+            switch self {
+            case .onboarding:
+                return false
+            default:
+                return true
+            }
+        }
     }
 
     @Published var products: [PremiumProduct] = []
@@ -111,7 +179,8 @@ final class PremiumStore: ObservableObject {
         PremiumConstants.legacyMonthlyProductID,
         PremiumConstants.legacyYearlyProductID,
         PremiumConstants.monthlyProductID,
-        PremiumConstants.yearlyProductID
+        PremiumConstants.yearlyProductID,
+        PremiumConstants.lifetimeProductID
     ]
 
     private let billingClient: PremiumBillingClient
@@ -131,6 +200,10 @@ final class PremiumStore: ObservableObject {
     private var foregroundObserver: NSObjectProtocol?
     private var trackedPurchaseKeys: Set<String> = []
     private var shouldPresentPostPurchaseSetupAfterPaywallDismissal = false
+    private(set) lazy var promptCoordinator: PremiumPromptCoordinator = PremiumPromptCoordinator(
+        settings: settings,
+        isPremium: { [weak self] in self?.isPremium ?? false }
+    )
 
     init(
         billingClient: PremiumBillingClient? = nil,
@@ -161,20 +234,17 @@ final class PremiumStore: ObservableObject {
         if forcePremiumForUITests {
             Task { @MainActor in
                 self.isPremium = true
-                settings.set(\.premium.premiumEntitlement, true)
-                WidgetDataWriter.syncPremiumAndReload(isPremium: true)
+                applyPremiumEntitlement(true)
             }
         } else if forceNonPremiumForUITests {
             Task { @MainActor in
                 self.isPremium = false
-                settings.set(\.premium.premiumEntitlement, false)
-                WidgetDataWriter.syncPremiumAndReload(isPremium: false)
+                applyPremiumEntitlement(false)
             }
         } else if forcePremiumOnSimulator {
             Task { @MainActor in
                 self.isPremium = true
-                settings.set(\.premium.premiumEntitlement, true)
-                WidgetDataWriter.syncPremiumAndReload(isPremium: true)
+                applyPremiumEntitlement(true)
             }
         }
         #endif
@@ -208,6 +278,12 @@ final class PremiumStore: ObservableObject {
 
     func presentPaywall(reason: PaywallReason) {
         paywallReason = reason
+        analytics.track(
+            AnalyticsEvents.paywallPresented(
+                source: reason.telemetrySource,
+                reason: reason.analyticsReason
+            )
+        )
         analytics.trackPaywallShown(
             reason: reason.analyticsReason,
             parameters: reason.analyticsParameters
@@ -281,13 +357,34 @@ final class PremiumStore: ObservableObject {
         let daysSinceLaunch = now.timeIntervalSince1970 - firstLaunch
         guard daysSinceLaunch >= 7 * 24 * 3600 else { return }
 
-        let lastNag = settings.snapshot.premium.premiumLastNagDate
-        if lastNag > 0, now.timeIntervalSince1970 - lastNag < 24 * 3600 {
-            return
-        }
+        // Frequency cap: respect coordinator (session + 7-day gap + dismissal cap).
+        guard promptCoordinator.shouldShow(.sevenDay) else { return }
 
         settings.set(\.premium.premiumLastNagDate, now.timeIntervalSince1970)
-        presentPaywall(reason: .sevenDayPrompt)
+        presentAutomaticPaywall(reason: .timedPrompt, promptKind: .sevenDay)
+    }
+
+    /// Present a paywall triggered by an *automatic* surface (timed nag, post-
+    /// measurement nudge, home discovery card). Goes through the coordinator
+    /// for frequency capping. Returns whether the paywall was actually shown.
+    @discardableResult
+    func presentAutomaticPaywall(reason: PaywallReason, promptKind: AutomaticPromptKind) -> Bool {
+        guard promptCoordinator.shouldShow(promptKind) else { return false }
+        promptCoordinator.markShown(promptKind)
+        analytics.track(
+            AnalyticsEvents.premiumSoftPromptSeen(promptType: promptKind.rawValue)
+        )
+        presentPaywall(reason: reason)
+        return true
+    }
+
+    /// Notify the coordinator that the user dismissed the automatic prompt that
+    /// is currently presented (so we count toward the dismissal cap).
+    func recordAutomaticPromptDismissal(_ kind: AutomaticPromptKind) {
+        promptCoordinator.markDismissed(kind)
+        analytics.track(
+            AnalyticsEvents.premiumSoftPromptDismissed(promptType: kind.rawValue)
+        )
     }
 
     func loadProducts() async {
@@ -377,8 +474,7 @@ final class PremiumStore: ObservableObject {
         defer { isPurchasing = false }
 
         isPremium = true
-        settings.set(\.premium.premiumEntitlement, true)
-        WidgetDataWriter.syncPremiumAndReload(isPremium: true)
+        applyPremiumEntitlement(true)
         currentOffering = nil
         productsLoadError = nil
         actionMessage = nil
@@ -508,20 +604,17 @@ final class PremiumStore: ObservableObject {
         #if DEBUG
         if forcePremiumForUITests {
             isPremium = true
-            settings.set(\.premium.premiumEntitlement, true)
-            WidgetDataWriter.syncPremiumAndReload(isPremium: true)
+            applyPremiumEntitlement(true)
             return
         }
         if forceNonPremiumForUITests {
             isPremium = false
-            settings.set(\.premium.premiumEntitlement, false)
-            WidgetDataWriter.syncPremiumAndReload(isPremium: false)
+            applyPremiumEntitlement(false)
             return
         }
         if forcePremiumOnSimulator {
             isPremium = true
-            settings.set(\.premium.premiumEntitlement, true)
-            WidgetDataWriter.syncPremiumAndReload(isPremium: true)
+            applyPremiumEntitlement(true)
             return
         }
         #endif
@@ -536,6 +629,13 @@ final class PremiumStore: ObservableObject {
 
     private func handlePurchaseResult(_ result: PurchaseResultData, purchasedProduct: PremiumProduct) async {
         if result.userCancelled {
+            await refreshEntitlements()
+            if isPremium {
+                actionMessage = AppLocalization.string("premium.purchase.success")
+                actionMessageIsError = false
+                await presentPostPurchaseSetupAfterCurrentModalDismisses()
+                return
+            }
             analytics.track(
                 signalName: PremiumTelemetrySignal.purchaseCancelled,
                 parameters: purchaseContextParameters(source: "direct_purchase")
@@ -600,8 +700,13 @@ final class PremiumStore: ObservableObject {
             .keys
             .contains(PremiumConstants.entitlementID)
         isPremium = isEntitled
+        applyPremiumEntitlement(isEntitled)
+    }
+
+    private func applyPremiumEntitlement(_ isEntitled: Bool) {
         settings.set(\.premium.premiumEntitlement, isEntitled)
         WidgetDataWriter.syncPremiumAndReload(isPremium: isEntitled)
+        WatchSessionManager.shared.sendApplicationContext()
     }
 
     func markPurchaseTrackedIfNeeded(purchaseKey: String) -> Bool {
@@ -631,10 +736,23 @@ final class PremiumStore: ObservableObject {
         arguments: [String],
         environment: [String: String]
     ) -> Bool {
-        let _ = arguments
+        if arguments.contains(UITestArgument.forcePremium.rawValue) {
+            return true
+        }
+        if arguments.contains(UITestArgument.forceNonPremium.rawValue) {
+            return false
+        }
         #if targetEnvironment(simulator)
         let isRunningTests = environment["XCTestConfigurationFilePath"] != nil
-        return !isRunningTests
+        guard !isRunningTests else {
+            return false
+        }
+        if environment["MEASUREME_FORCE_PREMIUM_ON_SIMULATOR"] == "0" ||
+            environment["MEASUREME_DISABLE_FORCE_PREMIUM_ON_SIMULATOR"] == "1" ||
+            environment["MEASUREME_RC_TEST_STORE"] == "1" {
+            return false
+        }
+        return true
         #else
         return false
         #endif
@@ -646,18 +764,23 @@ enum PremiumConstants {
     static let entitlementID = "MeasureMe Pro"
     static let monthlyPackageID = "monthly"
     static let yearlyPackageID = "yearly"
+    static let lifetimePackageID = "lifetime"
     static let revenueCatMonthlyPackageID = "$rc_monthly"
     static let revenueCatYearlyPackageID = "$rc_annual"
+    static let revenueCatLifetimePackageID = "$rc_lifetime"
     static let allowedPackageIDs: Set<String> = [
         monthlyPackageID,
         yearlyPackageID,
+        lifetimePackageID,
         revenueCatMonthlyPackageID,
-        revenueCatYearlyPackageID
+        revenueCatYearlyPackageID,
+        revenueCatLifetimePackageID
     ]
     static let legacyMonthlyProductID = "monthly"
     static let legacyYearlyProductID = "yearly"
     static let monthlyProductID = "com.measureme.premium.monthly"
     static let yearlyProductID = "com.measureme.premium.yearly"
+    static let lifetimeProductID = "com.measureme.premium.lifetime"
 }
 
 private enum PremiumTelemetrySignal {
@@ -666,17 +789,23 @@ private enum PremiumTelemetrySignal {
     static let purchasePending = "com.jacekzieba.measureme.purchase.pending"
 }
 
-private extension PremiumStore.PaywallReason {
+extension PremiumStore.PaywallReason {
     var analyticsReason: String {
         switch self {
-        case .settings:
-            return "settings"
-        case .feature:
-            return "feature_locked"
-        case .sevenDayPrompt:
-            return "seven_day_prompt"
-        case .onboarding:
-            return "onboarding"
+        case .settings:                return "settings"
+        case .feature:                 return "feature_locked"
+        case .sevenDayPrompt:          return "seven_day_prompt"
+        case .onboarding:              return "onboarding"
+        case .activation:              return "activation"
+        case .checklist:               return "checklist"
+        case .aiInsights:              return "ai_insights"
+        case .photoComparison:         return "photo_comparison"
+        case .export:                  return "export"
+        case .iCloudSync:              return "icloud_sync"
+        case .widgets:                 return "widgets"
+        case .premiumMetric:           return "premium_metric"
+        case .postMeasurementPrompt:   return "post_measurement_prompt"
+        case .timedPrompt:             return "timed_prompt"
         }
     }
 
@@ -684,8 +813,86 @@ private extension PremiumStore.PaywallReason {
         switch self {
         case .feature(let featureName):
             return ["measureme.feature_name": featureName]
-        case .settings, .sevenDayPrompt, .onboarding:
+        default:
             return [:]
         }
+    }
+
+    var telemetrySource: PaywallTelemetrySource {
+        switch self {
+        case .settings, .sevenDayPrompt, .timedPrompt, .postMeasurementPrompt:
+            return .settings
+        case .feature, .aiInsights, .photoComparison, .export, .iCloudSync, .widgets, .premiumMetric:
+            return .feature
+        case .onboarding:
+            return .onboarding
+        case .activation:
+            return .activation
+        case .checklist:
+            return .checklist
+        }
+    }
+}
+
+// MARK: - Automatic Prompt Coordinator
+
+/// Frequency-capping coordinator for *automatic* paywall prompts. User-initiated
+/// taps (feature locks) bypass this — only timed/discovery surfaces consult it.
+///
+/// Rules:
+///  • Never prompt if already Premium.
+///  • Never show more than one automatic prompt per app session.
+///  • Never show *any* automatic prompt within 7 days of the last one.
+///  • Stop showing a specific prompt kind after it's been dismissed twice.
+@MainActor
+final class PremiumPromptCoordinator {
+    private let settings: AppSettingsStore
+    private let isPremium: () -> Bool
+    private let now: () -> Date
+    private var didShowAutomaticPromptThisSession: Bool = false
+
+    static let minimumGapBetweenAutomaticPromptsSeconds: TimeInterval = 7 * 24 * 3_600
+    static let maxDismissalsPerKind: Int = 2
+
+    init(
+        settings: AppSettingsStore,
+        isPremium: @escaping () -> Bool,
+        now: @escaping () -> Date = { AppClock.now }
+    ) {
+        self.settings = settings
+        self.isPremium = isPremium
+        self.now = now
+    }
+
+    func shouldShow(_ kind: AutomaticPromptKind) -> Bool {
+        if isPremium() { return false }
+        if didShowAutomaticPromptThisSession { return false }
+
+        let dismissals = settings.integer(forKey: dismissalKey(kind))
+        if dismissals >= Self.maxDismissalsPerKind { return false }
+
+        let last = settings.snapshot.premium.lastAutomaticPromptDate
+        if last > 0 {
+            let elapsed = now().timeIntervalSince1970 - last
+            if elapsed < Self.minimumGapBetweenAutomaticPromptsSeconds {
+                return false
+            }
+        }
+        return true
+    }
+
+    func markShown(_ kind: AutomaticPromptKind) {
+        didShowAutomaticPromptThisSession = true
+        settings.set(\.premium.lastAutomaticPromptDate, now().timeIntervalSince1970)
+        settings.set(\.premium.lastAutomaticPromptKind, kind.rawValue)
+    }
+
+    func markDismissed(_ kind: AutomaticPromptKind) {
+        let current = settings.integer(forKey: dismissalKey(kind))
+        settings.set(current + 1, forKey: dismissalKey(kind))
+    }
+
+    private func dismissalKey(_ kind: AutomaticPromptKind) -> String {
+        AppSettingsKeys.Premium.automaticPromptDismissalPrefix + kind.rawValue
     }
 }

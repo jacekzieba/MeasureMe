@@ -13,23 +13,21 @@ struct PremiumPaywallView: View {
     @State private var isCTAPulsing: Bool = false
     @State private var isCustomerCenterPresented: Bool = false
     @State private var isRevenueCatPaywallPresented: Bool = false
+    @State private var showOtherOptions: Bool = false
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
     private let premiumTheme = FeatureTheme.premium
 
-    private enum SlideKind {
-        case analyst
-        case photos
-        case indicators
-        case unlock
-    }
+    private typealias SlideKind = PremiumSlideKind
 
     private struct PremiumSlide: Identifiable {
         let id: Int
         let kind: SlideKind
         let icon: String
+        let imageAssetName: String?
         let titleKey: String
         let bodyKey: String
+        let bulletKeys: [String]
         let tint: Color
         let gradient: [Color]
     }
@@ -42,6 +40,10 @@ struct PremiumPaywallView: View {
         premium.products.first { isYearlyPlan($0) }
     }
 
+    private var lifetime: PremiumProduct? {
+        premium.products.first { isLifetimePlan($0) }
+    }
+
     private var selectedProduct: PremiumProduct? {
         if let selectedProductID {
             return premium.products.first { $0.id == selectedProductID }
@@ -49,47 +51,129 @@ struct PremiumPaywallView: View {
         return yearly ?? monthly
     }
 
+    /// Plans shown in the primary plan picker. When the paywall is opened from
+    /// `.settings` (`PaywallReason.allowsLifetime == true`) we surface Lifetime
+    /// alongside Monthly + Yearly. Contextual paywalls keep subscriptions-only.
     private var availableProducts: [PremiumProduct] {
-        premium.products.sorted { $0.price < $1.price }
+        premium.products
+            .filter { product in
+                if isLifetimePlan(product) {
+                    return premium.paywallReason.allowsLifetime
+                }
+                return true
+            }
+            .sorted { planSortRank($0) < planSortRank($1) }
     }
 
+    /// Order: Yearly first (default selected), then Monthly, then Lifetime.
+    private func planSortRank(_ product: PremiumProduct) -> Int {
+        if isYearlyPlan(product) { return 0 }
+        if isMonthlyPlan(product) { return 1 }
+        if isLifetimePlan(product) { return 2 }
+        return 3
+    }
+
+    /// Unified deep-navy gradient + cyan accent tint shared by every slide.
+    /// Keeps the visual language consistent across the carousel — only the
+    /// artwork and copy change between slides.
+    private static let unifiedSlideGradient: [Color] = [Color(hex: "#11223F"), Color(hex: "#0A122A")]
+    private static let unifiedSlideTint: Color = Color.cyan
+
+    /// Six-slide narrative used by the redesigned Premium paywall. `id` is the
+    /// `PremiumSlideKind.ordinal` so a `PaywallReason` can target a slide
+    /// directly. `imageAssetName` references custom artwork in `Assets.xcassets`;
+    /// the carousel falls back to the SF Symbol `icon` if the image is missing.
     private var slides: [PremiumSlide] {
         [
             PremiumSlide(
-                id: 0,
+                id: SlideKind.analyst.ordinal,
                 kind: .analyst,
                 icon: "sparkles",
+                imageAssetName: "premium_slide_analyst",
                 titleKey: "premium.carousel.analyst.title",
                 bodyKey: "premium.carousel.analyst.body",
-                tint: Color.cyan,
-                gradient: [Color(hex: "#11223F"), Color(hex: "#0A122A")]
+                bulletKeys: [
+                    "premium.carousel.analyst.bullet.1",
+                    "premium.carousel.analyst.bullet.2",
+                    "premium.carousel.analyst.bullet.3"
+                ],
+                tint: Self.unifiedSlideTint,
+                gradient: Self.unifiedSlideGradient
             ),
             PremiumSlide(
-                id: 1,
+                id: SlideKind.photos.ordinal,
                 kind: .photos,
                 icon: "photo.on.rectangle.angled",
+                imageAssetName: "premium_slide_photos",
                 titleKey: "premium.carousel.photos.title",
                 bodyKey: "premium.carousel.photos.body",
-                tint: Color(hex: "#7C8CFF"),
-                gradient: [Color(hex: "#1A2146"), Color(hex: "#0E1530")]
+                bulletKeys: [
+                    "premium.carousel.photos.bullet.1",
+                    "premium.carousel.photos.bullet.2",
+                    "premium.carousel.photos.bullet.3"
+                ],
+                tint: Self.unifiedSlideTint,
+                gradient: Self.unifiedSlideGradient
             ),
             PremiumSlide(
-                id: 2,
-                kind: .indicators,
+                id: SlideKind.beyondScale.ordinal,
+                kind: .beyondScale,
                 icon: "heart.text.square.fill",
+                imageAssetName: "premium_slide_beyond_scale",
                 titleKey: "premium.carousel.indicators.title",
                 bodyKey: "premium.carousel.indicators.body",
-                tint: Color.green,
-                gradient: [Color(hex: "#132C2B"), Color(hex: "#0A1719")]
+                bulletKeys: [
+                    "premium.carousel.indicators.bullet.1",
+                    "premium.carousel.indicators.bullet.2",
+                    "premium.carousel.indicators.bullet.3"
+                ],
+                tint: Self.unifiedSlideTint,
+                gradient: Self.unifiedSlideGradient
             ),
             PremiumSlide(
-                id: 3,
-                kind: .unlock,
+                id: SlideKind.iCloud.ordinal,
+                kind: .iCloud,
+                icon: "icloud.and.arrow.up.fill",
+                imageAssetName: "premium_slide_icloud",
+                titleKey: "premium.carousel.icloud.title",
+                bodyKey: "premium.carousel.icloud.body",
+                bulletKeys: [
+                    "premium.carousel.icloud.bullet.1",
+                    "premium.carousel.icloud.bullet.2",
+                    "premium.carousel.icloud.bullet.3"
+                ],
+                tint: Self.unifiedSlideTint,
+                gradient: Self.unifiedSlideGradient
+            ),
+            PremiumSlide(
+                id: SlideKind.export.ordinal,
+                kind: .export,
+                icon: "square.and.arrow.up.on.square.fill",
+                imageAssetName: "premium_slide_export",
+                titleKey: "premium.carousel.export.title",
+                bodyKey: "premium.carousel.export.body",
+                bulletKeys: [
+                    "premium.carousel.export.bullet.1",
+                    "premium.carousel.export.bullet.2",
+                    "premium.carousel.export.bullet.3"
+                ],
+                tint: Self.unifiedSlideTint,
+                gradient: Self.unifiedSlideGradient
+            ),
+            PremiumSlide(
+                id: SlideKind.everything.ordinal,
+                kind: .everything,
                 icon: "star.bubble.fill",
+                imageAssetName: "premium_slide_everything",
                 titleKey: "premium.carousel.unlock.title",
                 bodyKey: "premium.carousel.unlock.body",
-                tint: Color.appAccent,
-                gradient: [Color(hex: "#3A2712"), Color(hex: "#1A1410")]
+                bulletKeys: [
+                    "premium.carousel.everything.bullet.1",
+                    "premium.carousel.everything.bullet.2",
+                    "premium.carousel.everything.bullet.3"
+                ],
+                tint: Self.unifiedSlideTint,
+                gradient: Self.unifiedSlideGradient
             )
         ]
     }
@@ -151,14 +235,12 @@ struct PremiumPaywallView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .topTrailing) {
-                AppScreenBackground(topHeight: 430, tint: currentSlide.tint.opacity(0.24))
+                paywallBackground
 
                 ScrollView {
                     VStack(spacing: 14) {
-                        Text(AppLocalization.string("Premium Edition"))
-                            .font(AppTypography.sectionTitle)
-                            .foregroundStyle(AppColorRoles.textPrimary)
-                            .multilineTextAlignment(.center)
+                        premiumEditionBadge
+                            .padding(.top, 4)
 
                         carousel(height: carouselHeight(for: proxy.size.height))
                         pageIndicator
@@ -253,10 +335,40 @@ struct PremiumPaywallView: View {
                 if selectedProductID == nil {
                     selectedProductID = yearly?.id ?? monthly?.id
                 }
+                // Jump the carousel to the slide most relevant to the trigger.
+                selectedSlide = premium.paywallReason.initialSlideKind.ordinal
+                Analytics.shared.track(
+                    AnalyticsEvents.paywallSlideSeen(
+                        slideID: String(selectedSlide),
+                        context: premium.paywallReason.analyticsReason
+                    )
+                )
                 if shouldAnimateCTA {
                     isCTAPulsing = true
                 }
             }
+        }
+        .onChange(of: selectedSlide) { _, newSlide in
+            Analytics.shared.track(
+                AnalyticsEvents.paywallSlideSeen(
+                    slideID: String(newSlide),
+                    context: premium.paywallReason.analyticsReason
+                )
+            )
+        }
+        .onChange(of: selectedProductID) { _, newID in
+            guard let newID else { return }
+            Analytics.shared.track(
+                AnalyticsEvents.paywallPlanSelected(
+                    planID: newID,
+                    context: premium.paywallReason.analyticsReason
+                )
+            )
+        }
+        .onDisappear {
+            Analytics.shared.track(
+                AnalyticsEvents.paywallClosed(context: premium.paywallReason.analyticsReason)
+            )
         }
         .onChange(of: premium.products.map(\.id)) { _, ids in
             guard let selectedProductID else {
@@ -292,24 +404,109 @@ struct PremiumPaywallView: View {
         }
     }
 
+    /// Deeper, richer paywall-only background. Replaces the standard
+    /// `AppScreenBackground` with a darker navy stack + accent glow orb,
+    /// inspired by the Claude Design redesign while keeping per-slide tinting.
+    private var paywallBackground: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let tint = currentSlide.tint
+
+            ZStack(alignment: .top) {
+                // Deep base — sits below everything, ignores safe area
+                if colorScheme == .dark {
+                    Color(hex: "#05090F")
+                        .ignoresSafeArea()
+
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "#0A1628"),
+                            Color(hex: "#0E1E38").opacity(0.92),
+                            tint.opacity(0.22),
+                            Color(hex: "#05090F")
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .ignoresSafeArea()
+
+                    // Accent glow orb behind the title — directional, soft
+                    RadialGradient(
+                        colors: [
+                            tint.opacity(0.55),
+                            tint.opacity(0.18),
+                            .clear
+                        ],
+                        center: .top,
+                        startRadius: 0,
+                        endRadius: width * 0.85
+                    )
+                    .frame(height: 460)
+                    .blur(radius: 28)
+                    .offset(y: -90)
+                    .ignoresSafeArea()
+
+                    // Bottom vignette to sink the dock
+                    LinearGradient(
+                        colors: [.clear, Color.black.opacity(0.45)],
+                        startPoint: .center,
+                        endPoint: .bottom
+                    )
+                    .ignoresSafeArea()
+                } else {
+                    // Light mode keeps the standard treatment for accessibility
+                    AppScreenBackground(topHeight: 430, tint: tint.opacity(0.24))
+                }
+            }
+        }
+        .ignoresSafeArea()
+        .animation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimateCTA), value: selectedSlide)
+    }
+
+    /// Premium Edition title rendered as an accent pill chip plus a bold
+    /// display headline, replacing the plain section-title text.
+    private var premiumEditionBadge: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.appAccent)
+                Text(AppLocalization.string("Premium Edition").uppercased())
+                    .font(.system(size: 11, weight: .heavy))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.appAccent)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(Color.appAccent.opacity(colorScheme == .dark ? 0.16 : 0.12))
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .stroke(Color.appAccent.opacity(0.45), lineWidth: 1)
+                    )
+            )
+            .shadow(color: Color.appAccent.opacity(colorScheme == .dark ? 0.35 : 0.18), radius: 14, y: 4)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     private func carousel(height: CGFloat) -> some View {
         TabView(selection: $selectedSlide) {
-            ForEach(slides) { slide in
-                VStack(spacing: 10) {
+            ForEach(Array(slides.enumerated()), id: \.element.id) { index, slide in
+                VStack(spacing: 8) {
                     headerRow(for: slide)
                     ScrollView(.vertical, showsIndicators: false) {
-                        VStack(spacing: 10) {
-                            if slide.kind != .unlock {
-                                featureDescriptionCard(for: slide)
-                            }
-                            slideContentSeparator
-                            supplementaryContent(for: slide)
+                        VStack(spacing: 8) {
+                            slideHeroImage(for: slide)
+                            featureDescriptionCard(for: slide)
+                            slideBulletList(for: slide)
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 14)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .background(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -326,11 +523,78 @@ struct PremiumPaywallView: View {
                         )
                 )
                 .tag(slide.id)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(
+                    AppLocalization.string(
+                        "accessibility.premium.slide.position",
+                        "\(index + 1)",
+                        "\(slides.count)",
+                        AppLocalization.string(slide.titleKey)
+                    )
+                )
             }
         }
         .frame(height: height)
         .animation(AppMotion.animation(AppMotion.quick, enabled: shouldAnimateCTA), value: selectedSlide)
         .tabViewStyle(.page(indexDisplayMode: .never))
+    }
+
+    /// Hero artwork for a slide. Tries the named asset first; if it's missing
+    /// (older builds before the artwork landed) we drop in a tinted placeholder
+    /// so the layout stays stable. Sized so the full slide (header + body +
+    /// bullets) fits inside the carousel viewport without internal scrolling.
+    @ViewBuilder
+    private func slideHeroImage(for slide: PremiumSlide) -> some View {
+        if let assetName = slide.imageAssetName, UIImage(named: assetName) != nil {
+            Image(assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .frame(maxHeight: 175)
+                .accessibilityHidden(true)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(slide.tint.opacity(0.18))
+                    .frame(height: 140)
+                Image(systemName: slide.icon)
+                    .font(.system(size: 52, weight: .regular))
+                    .foregroundStyle(slide.tint)
+            }
+            .accessibilityHidden(true)
+        }
+    }
+
+    /// Three short bullets per slide, rendered compactly so the slide fits
+    /// the carousel viewport without internal scrolling.
+    private func slideBulletList(for slide: PremiumSlide) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(Array(slide.bulletKeys.enumerated()), id: \.offset) { _, key in
+                HStack(alignment: .center, spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(slide.tint)
+                        .frame(width: 14, alignment: .leading)
+                    Text(AppLocalization.string(key))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(.white.opacity(0.92))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 1)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                )
+        )
     }
 
     private var pageIndicator: some View {
@@ -347,36 +611,50 @@ struct PremiumPaywallView: View {
         let isSelected = slideID == selectedSlide
         let fillColor = isSelected ? AppColorRoles.textPrimary : AppColorRoles.textTertiary
         let dotWidth: CGFloat = isSelected ? 18 : 7
+        let position = (slides.firstIndex(where: { $0.id == slideID }) ?? 0) + 1
+        let total = slides.count
 
         Capsule(style: .continuous)
             .fill(fillColor)
             .frame(width: dotWidth, height: 7)
+            .accessibilityLabel(
+                AppLocalization.string(
+                    "accessibility.premium.slide.dot",
+                    "\(position)",
+                    "\(total)"
+                )
+            )
+            .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
     private func featureDescriptionCard(for slide: PremiumSlide) -> some View {
+        // Promoted to a prominent value-prop card — bigger, brighter, stronger
+        // tint backdrop so the user immediately understands what the feature
+        // gives them.
         Text(AppLocalization.string(slide.bodyKey))
-            .font(AppTypography.bodyEmphasis)
-            .foregroundStyle(AppColorRoles.textPrimary.opacity(0.95))
+            .font(.system(size: 16, weight: .semibold, design: .rounded))
+            .foregroundStyle(.white)
             .multilineTextAlignment(.leading)
-            .lineSpacing(3)
+            .lineSpacing(2)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(
-                        ClaudeLightStyle.directionalGradient(
-                            colors: [slide.tint.opacity(0.22), AppColorRoles.surfaceSecondary],
-                            colorScheme: colorScheme,
-                            lightColor: slide.tint.opacity(0.08)
+                        LinearGradient(
+                            colors: [slide.tint.opacity(0.34), slide.tint.opacity(0.14)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
                         )
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                            .stroke(slide.tint.opacity(0.55), lineWidth: 1)
                     )
             )
+            .shadow(color: slide.tint.opacity(0.18), radius: 10, y: 4)
     }
 
     private var slideContentSeparator: some View {
@@ -389,415 +667,39 @@ struct PremiumPaywallView: View {
     }
 
     private func headerRow(for slide: PremiumSlide) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .center, spacing: 12) {
             Circle()
                 .fill(slide.tint.opacity(0.34))
-                .frame(width: 30, height: 30)
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Circle()
+                        .stroke(slide.tint.opacity(0.55), lineWidth: 1)
+                )
                 .overlay(
                     Image(systemName: slide.icon)
-                        .font(AppTypography.iconSmall)
+                        .font(AppTypography.iconMedium)
                         .foregroundStyle(AppColorRoles.textPrimary)
                 )
+                .shadow(color: slide.tint.opacity(0.4), radius: 8, y: 2)
 
             Text(AppLocalization.string(slide.titleKey))
-                .font(AppTypography.headlineEmphasis)
-                .foregroundStyle(AppColorRoles.textPrimary)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .tracking(-0.3)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.white, Color.white.opacity(0.78)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .shadow(color: slide.tint.opacity(0.55), radius: 12, y: 0)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    @ViewBuilder
-    private func supplementaryContent(for slide: PremiumSlide) -> some View {
-        switch slide.kind {
-        case .analyst:
-            aiInsightPreview
-        case .photos:
-            photoComparisonPreview
-        case .indicators:
-            indicatorsPreview
-        case .unlock:
-            unlockListPreview
-        }
-    }
-
-    private var aiInsightPreview: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(AppColorRoles.surfacePrimary)
-                    .frame(width: 30, height: 30)
-                    .overlay(
-                        Image(systemName: "sparkles")
-                            .font(AppTypography.iconSmall)
-                            .foregroundStyle(Color.appAccent)
-                    )
-
-                Text(AppLocalization.string("premium.carousel.insight.header"))
-                    .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(AppColorRoles.textPrimary.opacity(0.92))
-            }
-
-            Text(aiInsightAttributedText)
-            .font(AppTypography.captionEmphasis)
-            .fixedSize(horizontal: false, vertical: true)
-
-            HStack(spacing: 8) {
-                Image(systemName: "lightbulb.fill")
-                    .font(AppTypography.iconSmall)
-                    .foregroundStyle(Color.appAccent.opacity(0.82))
-
-                Text(AppLocalization.string("premium.carousel.insight.tip"))
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(Color.appAccent)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(premiumTheme.pillFill)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(premiumTheme.border, lineWidth: 1)
-                    )
-            )
-
-            if isPolishInterface {
-                Text(AppLocalization.string("premium.carousel.insight.language.note"))
-                    .font(AppTypography.micro)
-                    .foregroundStyle(AppColorRoles.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(
-                    ClaudeLightStyle.directionalGradient(
-                        colors: [Color(hex: "#1E2850").opacity(0.85), Color.black.opacity(0.45)],
-                        colorScheme: colorScheme,
-                        lightColor: AppColorRoles.surfaceSecondary
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
-                )
-        )
-    }
-
-    private var aiInsightAttributedText: AttributedString {
-        var text = AttributedString()
-
-        if let name = personalizedFirstName {
-            var namePart = AttributedString("\(name), ")
-            namePart.foregroundColor = Color.appAccent
-            text += namePart
-        }
-
-        var part1 = AttributedString(AppLocalization.string("premium.carousel.insight.body.part1"))
-        part1.foregroundColor = Color.white.opacity(0.92)
-        text += part1
-
-        var valuePart = AttributedString(" -0.3 kg/week ")
-        valuePart.foregroundColor = AppColorRoles.stateSuccess
-        text += valuePart
-
-        var part2 = AttributedString(AppLocalization.string("premium.carousel.insight.body.part2"))
-        part2.foregroundColor = Color.white.opacity(0.92)
-        text += part2
-
-        text += AttributedString("\n\n")
-
-        var part3 = AttributedString(AppLocalization.string("premium.carousel.insight.body.part3"))
-        part3.foregroundColor = Color.white.opacity(0.92)
-        text += part3
-
-        var bicepsValue = AttributedString(" +0.8 cm ")
-        bicepsValue.foregroundColor = Color(hex: "#60A5FA")
-        text += bicepsValue
-
-        var part4 = AttributedString(AppLocalization.string("premium.carousel.insight.body.part4"))
-        part4.foregroundColor = Color.white.opacity(0.92)
-        text += part4
-
-        return text
-    }
-
-    @ViewBuilder
-    private var photoComparisonPreview: some View {
-        comparisonToolMockup
-    }
-
-    private var comparisonToolMockup: some View {
-        let pastDate = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? AppClock.now
-        let pastLabel = pastDate.formatted(date: .abbreviated, time: .omitted)
-        let presentLabel = AppClock.now.formatted(date: .abbreviated, time: .omitted)
-
-        return VStack(spacing: 10) {
-            PremiumBeforeAfterSlider(
-                beforeImageName: "onboarding-after-recomp",
-                afterImageName: "onboarding-before-recomp",
-                beforeLabel: AppLocalization.string("premium.carousel.compare.before"),
-                afterLabel: AppLocalization.string("premium.carousel.compare.after")
-            )
-            .frame(height: 210)
-
-            HStack(spacing: 6) {
-                Image(systemName: "arrow.left.and.right.circle.fill")
-                    .font(.system(size: 12, weight: .semibold))
-                Text(pastLabel)
-                Text("↔")
-                Text(presentLabel)
-            }
-            .font(AppTypography.microEmphasis)
-            .foregroundStyle(Color(hex: "#F5A623"))
-            .frame(maxWidth: .infinity, alignment: .center)
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.06))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.white.opacity(0.14), lineWidth: 1)
-                )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
-    private var indicatorsPreview: some View {
-        VStack(spacing: 8) {
-            indicatorRow(
-                icon: "waveform.path.ecg",
-                title: AppLocalization.string("premium.carousel.indicator.absi"),
-                value: "0.079",
-                status: AppLocalization.string("premium.carousel.indicator.status.attention"),
-                tint: Color(hex: "#F59E0B")
-            )
-
-            indicatorRow(
-                icon: "arrow.up.and.down.and.arrow.left.and.right",
-                title: AppLocalization.string("premium.carousel.indicator.whtr"),
-                value: "0.48",
-                status: AppLocalization.string("premium.carousel.indicator.status.good"),
-                tint: AppColorRoles.stateSuccess
-            )
-
-            Text(AppLocalization.string("premium.carousel.indicators.more"))
-                .font(AppTypography.microEmphasis)
-                .foregroundStyle(.white.opacity(0.72))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 38)
-                .padding(.top, 2)
-
-            indicatorDetailSpotlightCard
-        }
-    }
-
-    private var indicatorDetailSpotlightCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Text(AppLocalization.string("Waist-to-Height Ratio"))
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(0.92))
-                Spacer(minLength: 8)
-                Text(AppLocalization.string("WHtR"))
-                    .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color.appAccent)
-            }
-
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text("0.48")
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .monospacedDigit()
-                Spacer(minLength: 8)
-                Text(AppLocalization.string("premium.carousel.indicator.status.good"))
-                    .font(AppTypography.microEmphasis)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(AppColorRoles.stateSuccess, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            }
-
-            Text(AppLocalization.string("premium.carousel.indicator.preview.copy"))
-                .font(AppTypography.caption)
-                .foregroundStyle(.white.opacity(0.8))
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(alignment: .top, spacing: 8) {
-                Image(systemName: "info.circle.fill")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.appAccent)
-                Text(AppLocalization.string("premium.carousel.indicator.preview.about"))
-                    .font(AppTypography.micro)
-                    .foregroundStyle(.white.opacity(0.72))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(0.06))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.white.opacity(0.14), lineWidth: 1)
-                )
-        )
-    }
-
-    private func indicatorRow(icon: String, title: String, value: String, status: String, tint: Color) -> some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(tint.opacity(0.24))
-                .frame(width: 28, height: 28)
-                .overlay(
-                    Image(systemName: icon)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(tint)
-                )
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(status)
-                    .font(AppTypography.micro)
-                    .foregroundStyle(.white.opacity(0.75))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer()
-
-            Text(value)
-                .font(AppTypography.bodyEmphasis)
-                .foregroundStyle(.white)
-                .monospacedDigit()
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.white.opacity(0.07))
-        )
-    }
-
-    private var unlockListPreview: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(Color.appAccent.opacity(0.26))
-                        .frame(width: 24, height: 24)
-                        .overlay(
-                            Image(systemName: "crown.fill")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(Color.appAccent)
-                        )
-
-                    Text(AppLocalization.string("premium.unlock.bundle.title"))
-                        .font(AppTypography.captionEmphasis)
-                        .foregroundStyle(colorScheme == .dark ? .white.opacity(0.92) : AppColorRoles.textPrimary)
-                }
-
-                Text(AppLocalization.string("premium.carousel.unlock.body"))
-                    .font(AppTypography.caption)
-                    .foregroundStyle(colorScheme == .dark ? .white.opacity(0.82) : AppColorRoles.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                unlockBenefitRow(icon: "sparkles", tint: Color(hex: "#4ADE80"), textKey: "premium.carousel.unlock.item.ai")
-                unlockBenefitRow(icon: "photo.on.rectangle.angled", tint: Color(hex: "#60A5FA"), textKey: "premium.carousel.unlock.item.compare")
-                unlockBenefitRow(icon: "heart.text.square.fill", tint: Color(hex: "#34D399"), textKey: "premium.carousel.unlock.item.health")
-                unlockBenefitRow(icon: "chart.line.uptrend.xyaxis", tint: Color(hex: "#F472B6"), textKey: "premium.carousel.unlock.item.prediction")
-                unlockBenefitRow(icon: "doc.text.fill", tint: Color(hex: "#FBBF24"), textKey: "premium.carousel.unlock.item.export")
-                unlockBenefitRow(icon: "sparkles.rectangle.stack", tint: Color(hex: "#22D3EE"), textKey: "premium.carousel.unlock.item.social")
-                unlockBenefitRow(
-                    icon: "icloud.and.arrow.up",
-                    tint: Color(hex: "#A78BFA"),
-                    textKey: "premium.carousel.unlock.item.icloud",
-                    accessibilityID: "premium.carousel.unlock.item.icloud"
-                )
-                unlockBenefitRow(icon: "square.grid.2x2", tint: Color(hex: "#94A3B8"), textKey: "premium.carousel.unlock.item.widgets")
-                unlockBenefitRow(icon: "flag.fill", tint: Color(hex: "#F43F5E"), textKey: "premium.carousel.unlock.item.support")
-            }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(
-                        ClaudeLightStyle.directionalGradient(
-                            colors: [Color.white.opacity(0.09), Color.white.opacity(0.04)],
-                            colorScheme: colorScheme,
-                            lightColor: AppColorRoles.surfaceSecondary,
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(colorScheme == .dark ? Color.white.opacity(0.16) : AppColorRoles.borderSubtle, lineWidth: 1)
-                    )
-            )
-
-            trialTimelinePreview
-        }
-    }
-
-    private var trialTimelinePreview: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(AppLocalization.string("premium.trial.timeline.title"))
-                .font(AppTypography.captionEmphasis)
-                .foregroundStyle(.white.opacity(0.96))
-
-            timelineItem(
-                textKey: "premium.trial.timeline.today",
-                icon: "sparkles",
-                tint: Color(hex: "#FCA311")
-            )
-            timelineItem(
-                textKey: "premium.trial.timeline.day12",
-                icon: "bell.badge.fill",
-                tint: Color(hex: "#60A5FA")
-            )
-            timelineItem(
-                textKey: "premium.trial.timeline.day14",
-                icon: "checkmark.seal.fill",
-                tint: Color(hex: "#4ADE80")
-            )
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.06))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.14), lineWidth: 1)
-                )
-        )
-    }
-
-    private func timelineItem(textKey: String, icon: String, tint: Color) -> some View {
-        HStack(alignment: .center, spacing: 8) {
-            Circle()
-                .fill(tint.opacity(0.22))
-                .frame(width: 20, height: 20)
-                .overlay(
-                    Image(systemName: icon)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(tint)
-                )
-
-            Text(AppLocalization.string(textKey))
-                .font(AppTypography.micro)
-                .foregroundStyle(.white.opacity(0.86))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
 
     private func unlockBenefitRow(
         icon: String,
@@ -827,6 +729,19 @@ struct PremiumPaywallView: View {
         .accessibilityIdentifier(accessibilityID ?? textKey)
     }
 
+    private var otherProducts: [PremiumProduct] {
+        var seen = Set<String>()
+        return availableProducts
+            .filter { !isYearlyPlan($0) }
+            .filter { product in
+                let key: String
+                if isLifetimePlan(product) { key = "lifetime" }
+                else if isMonthlyPlan(product) { key = "monthly" }
+                else { key = product.id }
+                return seen.insert(key).inserted
+            }
+    }
+
     private var planPicker: some View {
         VStack(spacing: 12) {
             if availableProducts.isEmpty {
@@ -850,7 +765,7 @@ struct PremiumPaywallView: View {
                         .buttonStyle(.plain)
                         .font(AppTypography.captionEmphasis)
                         .foregroundStyle(Color.appAccent)
-                        Button("Open RevenueCat Paywall") {
+                        Button(AppLocalization.string("premium.subscription.open_revenuecat_paywall")) {
                             isRevenueCatPaywallPresented = true
                         }
                         .buttonStyle(.plain)
@@ -886,7 +801,43 @@ struct PremiumPaywallView: View {
                 }
                 #endif
             } else {
-                ForEach(availableProducts, id: \.id) { product in
+                // Yearly as the hero/default option
+                if let yearlyProduct = yearly {
+                    planRow(product: yearlyProduct)
+                }
+
+                // "See other options" disclosure for Monthly + Lifetime
+                otherOptionsSection
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var otherOptionsSection: some View {
+        let others = otherProducts
+        let showButton = !others.isEmpty
+
+        if showButton {
+            Button {
+                withAnimation(AppMotion.standard) {
+                    showOtherOptions.toggle()
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Text(AppLocalization.string(showOtherOptions ? "premium.other.options.hide" : "premium.other.options.show"))
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(Color.appAccent)
+                    Image(systemName: showOtherOptions ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.appAccent)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+            }
+            .buttonStyle(.plain)
+
+            if showOtherOptions {
+                ForEach(others, id: \.id) { product in
                     planRow(product: product)
                 }
             }
@@ -897,15 +848,34 @@ struct PremiumPaywallView: View {
         let isSelected = product.id == selectedProductID
         let subtitle = planSubtitle(for: product)
         let secondaryPrice = secondaryPriceLine(for: product)
+        let badge = planBadgeLabel(for: product)
 
         return Button {
             selectedProductID = product.id
         } label: {
             HStack(spacing: 10) {
+                // Selection indicator — not color-only.
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(isSelected ? Color.appAccent : Color.white.opacity(0.45))
+
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(planTitle(for: product))
-                        .font(AppTypography.body)
-                        .foregroundStyle(.white.opacity(0.88))
+                    HStack(spacing: 6) {
+                        Text(planTitle(for: product))
+                            .font(AppTypography.body)
+                            .foregroundStyle(.white.opacity(0.88))
+                        if let badge {
+                            Text(badge)
+                                .font(.system(size: 10, weight: .bold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
+                                .fixedSize(horizontal: true, vertical: false)
+                                .foregroundStyle(Color.appAccent)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.appAccent.opacity(0.16), in: Capsule())
+                        }
+                    }
                     Text(subtitle)
                         .font(AppTypography.caption)
                         .foregroundStyle(.white.opacity(0.68))
@@ -928,9 +898,8 @@ struct PremiumPaywallView: View {
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.bottom, 12)
-            .padding(.top, 12)
-            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: 44)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(isSelected ? Color.appAccent.opacity(0.16) : Color.white.opacity(0.05))
@@ -941,6 +910,29 @@ struct PremiumPaywallView: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private func planBadgeLabel(for product: PremiumProduct) -> String? {
+        if isYearlyPlan(product) {
+            return AppLocalization.string("premium.plan.best.value")
+        }
+        if isMonthlyPlan(product) {
+            return AppLocalization.string("premium.plan.flexible")
+        }
+        return nil
+    }
+
+    /// Lifetime is included directly in `availableProducts` when the paywall
+    /// reason allows it (Settings only). The previous "More options" disclosure
+    /// is no longer needed; this view returns nothing.
+    private var subscribeButtonTitle: String {
+        if let product = selectedProduct, isLifetimePlan(product) {
+            // No price interpolation — keeps the CTA short and readable.
+            return AppLocalization.string("premium.cta.lifetime")
+        }
+        return AppLocalization.string("premium.cta.trial")
     }
 
     private var subscribeButton: some View {
@@ -949,15 +941,23 @@ struct PremiumPaywallView: View {
                 premium.dismissPaywall()
                 return
             }
+            let context = premium.paywallReason.analyticsReason
+            let planID = selectedProduct?.id ?? "unknown"
+            Analytics.shared.track(
+                AnalyticsEvents.paywallCTATapped(planID: planID, context: context)
+            )
             Task {
                 if await premium.activateTrialForUITestsIfNeeded() {
                     return
                 }
                 guard let product = selectedProduct else { return }
+                Analytics.shared.track(
+                    AnalyticsEvents.paywallPurchaseStarted(planID: product.id, context: context)
+                )
                 await premium.purchase(product)
             }
         } label: {
-            Text(AppLocalization.string("premium.cta.trial"))
+            Text(subscribeButtonTitle)
         }
         .buttonStyle(AppAccentButtonStyle(cornerRadius: 30))
         .disabled(!premium.isPremium && selectedProduct == nil && !premium.canSimulateTrialActivationForUITests)
@@ -982,12 +982,8 @@ struct PremiumPaywallView: View {
             subscribeButton
                 .padding(.top, 2)
 
-            Text(AppLocalization.string("premium.cta.free.forever"))
-                .font(AppTypography.micro)
-                .foregroundStyle(.white.opacity(0.72))
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 8)
+            // Removed misleading "premium.cta.free.forever" copy — Apple
+            // compliance / Premium audit. Plan disclosure below is sufficient.
 
             billedAfterTrialText
                 .font(AppTypography.micro)
@@ -1038,26 +1034,35 @@ struct PremiumPaywallView: View {
     }
 
     private func planTitle(for product: PremiumProduct) -> String {
-        if isMonthlyPlan(product) {
-            return AppLocalization.string("premium.plan.monthly")
+        if isLifetimePlan(product) {
+            return AppLocalization.string("premium.plan.lifetime")
         }
         if isYearlyPlan(product) {
             return AppLocalization.string("premium.plan.yearly")
+        }
+        if isMonthlyPlan(product) {
+            return AppLocalization.string("premium.plan.monthly")
         }
         return product.displayName
     }
 
     private func planSubtitle(for product: PremiumProduct) -> String {
-        if isMonthlyPlan(product) {
-            return AppLocalization.string("premium.plan.billing.monthly")
+        if isLifetimePlan(product) {
+            return AppLocalization.string("premium.plan.billing.lifetime")
         }
         if isYearlyPlan(product) {
             return AppLocalization.string("premium.plan.billing.yearly")
+        }
+        if isMonthlyPlan(product) {
+            return AppLocalization.string("premium.plan.billing.monthly")
         }
         return AppLocalization.string("premium.plan.billing.default")
     }
 
     private func primaryPriceLine(for product: PremiumProduct) -> String {
+        if isLifetimePlan(product) {
+            return product.displayPrice
+        }
         let periodLabel: String
         if isYearlyPlan(product) {
             periodLabel = AppLocalization.string("premium.plan.period.year")
@@ -1073,6 +1078,9 @@ struct PremiumPaywallView: View {
             let monthlyEquivalentDisplay = formatPrice(monthlyEquivalent, formatter: product.priceFormatter) ?? product.displayPrice
             return AppLocalization.string("premium.plan.equivalent.monthly.dynamic", monthlyEquivalentDisplay)
         }
+        if isLifetimePlan(product) {
+            return AppLocalization.string("premium.lifetime.tagline")
+        }
         return nil
     }
 
@@ -1080,6 +1088,15 @@ struct PremiumPaywallView: View {
         let product = selectedProduct ?? yearly ?? monthly
         guard let product else {
             return Text(AppLocalization.string("premium.cta.billed.after.trial.fallback"))
+        }
+
+        if isLifetimePlan(product) {
+            let amount = product.displayPrice
+            var attributed = AttributedString(AppLocalization.string("premium.cta.billed.lifetime", amount))
+            if let emphasizedRange = attributed.range(of: amount) {
+                attributed[emphasizedRange].inlinePresentationIntent = .stronglyEmphasized
+            }
+            return Text(attributed)
         }
 
         let periodLabel: String
@@ -1112,6 +1129,12 @@ struct PremiumPaywallView: View {
             || product.id == PremiumConstants.revenueCatYearlyPackageID
             || product.productIdentifier == PremiumConstants.yearlyProductID
             || product.productIdentifier == PremiumConstants.legacyYearlyProductID
+    }
+
+    private func isLifetimePlan(_ product: PremiumProduct) -> Bool {
+        product.id == PremiumConstants.lifetimePackageID
+            || product.id == PremiumConstants.revenueCatLifetimePackageID
+            || product.productIdentifier == PremiumConstants.lifetimeProductID
     }
 
     private func formatPrice(_ amount: Decimal, formatter: NumberFormatter?) -> String? {

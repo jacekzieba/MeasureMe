@@ -67,6 +67,38 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
         }
     }
 
+    func testEnqueueManyRequests_PreservesPerPhotoMetadata() async throws {
+        let store = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, autoStartProcessing: false)
+        store.configure(container: try makeContainer())
+
+        let firstDate = Date(timeIntervalSince1970: 1_735_060_000)
+        let secondDate = Date(timeIntervalSince1970: 1_735_146_400)
+        let requests = [
+            PendingPhotoSaveRequest(
+                sourceImage: makeImage(),
+                date: firstDate,
+                tags: [.front],
+                metricValues: [.waist: 80]
+            ),
+            PendingPhotoSaveRequest(
+                sourceImage: makeImage(),
+                date: secondDate,
+                tags: [.back],
+                metricValues: [.hips: 92]
+            )
+        ]
+
+        let ids = try await store.enqueueMany(
+            requests: requests,
+            unitsSystem: "metric",
+            batchID: UUID()
+        )
+
+        XCTAssertEqual(ids.count, requests.count)
+        XCTAssertEqual(store.pendingItems.map(\.date), [firstDate, secondDate])
+        XCTAssertEqual(store.pendingItems.map { Set($0.tags) }, [Set([.front]), Set([.back])])
+    }
+
     func testRestoreAndResume_LoadsPendingItemsFromDisk() async throws {
         let container = try makeContainer()
 

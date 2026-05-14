@@ -16,7 +16,7 @@ final class MeasureMeWatchUITests: XCTestCase {
     func testAppLaunchesSuccessfully() throws {
         // On simulator with debug data seeder, app should show metric list
         // Verify the app is running and has content
-        #expect(app.state == .runningForeground)
+        XCTAssertEqual(app.state, .runningForeground)
     }
 
     // MARK: - Metric List
@@ -33,13 +33,17 @@ final class MeasureMeWatchUITests: XCTestCase {
     @MainActor
     func testNavigateToQuickAdd() throws {
         // Tap the + button in toolbar
-        let addButton = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Add' OR label CONTAINS[c] 'plus' OR label CONTAINS[c] 'Dodaj'")).firstMatch
+        let addButton = app.buttons["watch.openQuickAdd"].firstMatch
         if addButton.waitForExistence(timeout: 3) {
             addButton.tap()
 
             // Should show Save button on Quick Add screen
-            let saveButton = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Save' OR label CONTAINS[c] 'Zapisz'")).firstMatch
-            XCTAssertTrue(saveButton.waitForExistence(timeout: 3), "Quick Add should show Save button")
+            let quickAddView = app.collectionViews["watch.quickAdd.view"].firstMatch
+            XCTAssertTrue(quickAddView.waitForExistence(timeout: 10), "Quick Add should open")
+            quickAddView.swipeUp()
+
+            let saveButton = app.buttons["watch.quickAdd.save"].firstMatch
+            XCTAssertTrue(saveButton.waitForExistence(timeout: 10), "Quick Add should show Save button")
         }
     }
 

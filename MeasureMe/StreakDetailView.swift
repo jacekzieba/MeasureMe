@@ -580,6 +580,17 @@ struct StreakDetailView: View {
     private var milestoneSection: some View {
         AppGlassCard(depth: .base, cornerRadius: 18, tint: .clear, contentPadding: 16) {
             VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .center, spacing: 12) {
+                    Text(weeksToNextMilestone > 0
+                         ? AppLocalization.systemString("Next milestone")
+                         : AppLocalization.string("streak.detail.milestone.reached"))
+                        .font(AppTypography.eyebrow)
+                        .foregroundStyle(streakTextSecondary)
+                        .textCase(.uppercase)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    MeasureBuddyView(pose: weeksToNextMilestone > 0 ? .streak : .celebration, size: 56)
+                }
+
                 HStack(spacing: 14) {
                     milestoneFlameIcon(count: previousMilestone, isActive: true)
 

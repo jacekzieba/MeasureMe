@@ -14,46 +14,57 @@ final class HomeViewUITests: XCTestCase {
         app = XCUIApplication()
     }
 
-    func testHealthModuleIsReachableOnHome() {
-        launchApp(isPremium: false)
+    func testAIInsightsCTAOpensAnalysisForPremiumUser() {
+        launchApp()
 
-        let healthTitle = app.staticTexts["Health"].firstMatch
-        scrollToReveal(healthTitle, maxSwipes: 6)
+        let cta = firstExistingElement(
+            identifiers: ["home.aiInsights.openAnalysis", "View analysis", "Zobacz analizę"],
+            query: app.descendants(matching: .any)
+        )
+        XCTAssertTrue(cta.waitForExistence(timeout: 5), "AI Insights card should expose analysis CTA")
+        cta.tap()
 
-        XCTAssertTrue(healthTitle.waitForExistence(timeout: 5), "Health section should be reachable on Home")
-        XCTAssertGreaterThan(healthTitle.frame.height, 10, "Health title should have a visible frame")
-        XCTAssertTrue(app.buttons["home.health.premium.button"].waitForExistence(timeout: 5), "Health preview should upsell the full module without premium")
-        XCTAssertEqual(app.staticTexts["home.health.preview.label"].firstMatch.label, "BMI (Body Mass Index)", "Non-premium Health preview should prefer expanded BMI copy on Home")
-        XCTAssertEqual(app.staticTexts["home.health.preview.badge"].firstMatch.label, "Normal weight", "Non-premium BMI preview should expose the BMI range classification on Home")
+        XCTAssertTrue(app.descendants(matching: .any)["home.aiAnalysis.screen"].waitForExistence(timeout: 5), "AI Analysis screen should open from Home")
+        XCTAssertTrue(app.navigationBars.staticTexts["AI Analysis"].firstMatch.waitForExistence(timeout: 5), "AI Analysis should have a navigation title")
+    }
+
+    func testHomeAvatarOpensProfileSettings() {
+        launchApp()
+
+        let avatar = app.buttons["home.profile.avatar"].firstMatch
+        XCTAssertTrue(avatar.waitForExistence(timeout: 5), "Home avatar should be tappable")
+        avatar.tap()
+
+        XCTAssertTrue(app.navigationBars.staticTexts["Profile"].firstMatch.waitForExistence(timeout: 5), "Avatar should deep-link to Settings > Profile")
+        XCTAssertTrue(app.buttons["settings.profile.photo.picker"].firstMatch.waitForExistence(timeout: 5), "Profile should expose photo picker")
     }
 
     func testHomeDashboardModulesDoNotOverlap() {
         launchApp()
 
+        let summaryHero = app.otherElements["home.module.summaryHero"].firstMatch
         let keyMetrics = app.otherElements["home.module.keyMetrics"].firstMatch
         let recentPhotos = app.otherElements["home.module.recentPhotos"].firstMatch
-        let healthSummary = app.otherElements["home.module.healthSummary"].firstMatch
 
+        XCTAssertTrue(summaryHero.waitForExistence(timeout: 5), "Summary hero frame hook should exist")
         XCTAssertTrue(keyMetrics.waitForExistence(timeout: 5), "Key metrics card frame hook should exist")
         XCTAssertTrue(recentPhotos.waitForExistence(timeout: 5), "Recent photos card frame hook should exist")
-        scrollToReveal(healthSummary, maxSwipes: 6)
-        XCTAssertTrue(healthSummary.waitForExistence(timeout: 5), "Health card frame hook should exist")
 
+        XCTAssertTrue(framesDoNotOverlap(summaryHero, keyMetrics), "Summary hero and Key metrics must not overlap")
         XCTAssertTrue(framesDoNotOverlap(keyMetrics, recentPhotos), "Key metrics and Recent photos must not overlap")
-        XCTAssertTrue(framesDoNotOverlap(recentPhotos, healthSummary), "Recent photos and Health must not overlap")
+        XCTAssertLessThanOrEqual(summaryHero.frame.maxY, keyMetrics.frame.minY, "Key metrics should start after AI Insights")
         XCTAssertLessThanOrEqual(keyMetrics.frame.maxY, recentPhotos.frame.minY, "Recent photos should start after Key metrics ends")
-        XCTAssertLessThanOrEqual(recentPhotos.frame.maxY, healthSummary.frame.minY, "Health should start after Recent photos ends")
     }
 
-    func testRecentPhotosShowsThreeTiles() {
+    func testRecentPhotosShowsComparisonPair() {
         launchApp()
 
-        let recentPhotos = app.staticTexts["Recent photos"].firstMatch
+        let recentPhotos = app.staticTexts["Progress photos"].firstMatch
         XCTAssertTrue(recentPhotos.waitForExistence(timeout: 5), "Recent photos module should exist")
 
         let tileCount = app.staticTexts["home.recentPhotos.tileCount"].firstMatch
         XCTAssertTrue(tileCount.waitForExistence(timeout: 5), "Recent photos tile count hook should exist")
-        XCTAssertEqual(tileCount.label, "3", "Recent photos should expose three visible tiles on Home")
+        XCTAssertEqual(tileCount.label, "2", "Recent photos should expose the comparison pair on Home")
     }
 
     func testActivationHubStartsAfterFirstMeasurementOnPhotoTask() {
@@ -81,7 +92,8 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertTrue(skipButton.waitForExistence(timeout: 5), "Activation hub skip should exist")
         skipButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
 
-        XCTAssertTrue(app.staticTexts["Set your first goal"].waitForExistence(timeout: 5), "Skip should move the user to the next real activation task")
+        let nextTaskTitle = NSPredicate(format: "label IN %@", ["Set reminders", "Ustaw przypomnienia"])
+        XCTAssertTrue(app.staticTexts.matching(nextTaskTitle).firstMatch.waitForExistence(timeout: 5), "Skip should move the user to the next real activation task")
     }
 
     func testNextFocusShowsMetricInsightWhenProgressExists() {
@@ -94,54 +106,16 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertEqual(nextFocusMode.label, "metric", "Seeded measurements should produce a metric insight")
         nextFocusButton.tap()
 
-        let measurementsScroll = app.scrollViews["measurements.scroll"].firstMatch
-        XCTAssertTrue(measurementsScroll.waitForExistence(timeout: 5), "Metric insight should open Measurements")
+        let analysisScreen = app.descendants(matching: .any)["home.aiAnalysis.screen"].firstMatch
+        XCTAssertTrue(analysisScreen.waitForExistence(timeout: 5), "Hero CTA should open the AI analysis destination")
     }
 
-    func testNextFocusLongInsightFitsAtAccessibilityXL() {
-        launchApp(extraArguments: [
-            "-uiTestLongNextFocusInsight",
-            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL",
-            "-AppleLanguages", "(pl)",
-            "-AppleLocale", "pl_PL"
-        ])
-
-        let primaryValue = app.staticTexts["home.nextFocus.primaryValue"].firstMatch
-        let summary = app.staticTexts["home.nextFocus.summary"].firstMatch
-
-        XCTAssertTrue(nextFocusTrigger().waitForExistence(timeout: 5), "Next focus trigger should exist")
-        XCTAssertTrue(primaryValue.waitForExistence(timeout: 5), "Primary stat should exist")
-        XCTAssertTrue(summary.waitForExistence(timeout: 5), "Summary should exist")
-
-        let buttonFrame = nextFocusTrigger().frame
-        let primaryValueFrame = primaryValue.frame
-        let summaryFrame = summary.frame
-
-        XCTAssertFalse(buttonFrame.isEmpty, "Next focus button should have a visible frame")
-        XCTAssertFalse(primaryValueFrame.isEmpty, "Primary stat should have a visible frame")
-        XCTAssertFalse(summaryFrame.isEmpty, "Summary should have a visible frame")
-        XCTAssertGreaterThan(primaryValueFrame.width, 40, "Primary stat should remain readable")
-        XCTAssertLessThan(primaryValueFrame.height, 42, "Primary stat should stay compact and one-line")
-        XCTAssertGreaterThan(summaryFrame.height, 16, "Summary should remain visible at larger text sizes")
-        XCTAssertLessThan(summaryFrame.height, 90, "Summary should stay within a compact two-line block")
-        XCTAssertGreaterThanOrEqual(primaryValueFrame.minY, buttonFrame.minY, "Primary stat should stay inside the card")
-        XCTAssertLessThanOrEqual(summaryFrame.maxY, buttonFrame.maxY, "Summary should stay inside the card")
-        XCTAssertLessThan(primaryValueFrame.maxY, summaryFrame.minY, "Primary stat and summary should not overlap")
-        XCTAssertLessThan(buttonFrame.height, 150, "Stat-first layout should keep the card shorter than the previous version")
+    func testNextFocusLongInsightFitsAtAccessibilityXL() throws {
+        throw XCTSkip("Home hero redesigned to AI Insights panel; legacy nextFocus primary/summary identifiers no longer rendered.")
     }
 
-    func testNextFocusFallbackSetGoalSwitchesToMeasurementsTab() {
-        launchApp(isPremium: false, seedMeasurements: false)
-
-        let nextFocusMode = app.staticTexts["home.nextFocus.mode"].firstMatch
-        XCTAssertTrue(nextFocusMode.waitForExistence(timeout: 5), "Next focus mode hook should exist")
-        let nextFocusButton = nextFocusTrigger()
-        XCTAssertTrue(nextFocusButton.waitForExistence(timeout: 5), "Next focus trigger should exist")
-        XCTAssertEqual(nextFocusMode.label, "setGoal", "No positive measurement insight should fall back to Set goal")
-        nextFocusButton.tap()
-
-        let measurementsScroll = app.scrollViews["measurements.scroll"].firstMatch
-        XCTAssertTrue(measurementsScroll.waitForExistence(timeout: 5), "Set goal fallback should open Measurements")
+    func testNextFocusFallbackSetGoalSwitchesToMeasurementsTab() throws {
+        throw XCTSkip("Non-premium fallback flow removed in Home redesign; no hero CTA leads to Measurements anymore.")
     }
 
     func testTrialReminderPromptShowsDeclineAndConfirm() {
@@ -327,11 +301,20 @@ final class HomeViewUITests: XCTestCase {
     }
 
     private func nextFocusTrigger() -> XCUIElement {
-        let cardButton = app.buttons["home.nextFocus.button"].firstMatch
-        if cardButton.exists {
-            return cardButton
+        let candidates = [
+            "home.aiInsights.openAnalysis",
+            "home.nextFocus.button",
+            "home.hero.pulse.chip.nextFocus"
+        ]
+        let deadline = Date().addingTimeInterval(5)
+        while Date() < deadline {
+            for id in candidates {
+                let element = app.buttons[id].firstMatch
+                if element.exists { return element }
+            }
+            usleep(150_000)
         }
-        return app.buttons["home.hero.pulse.chip.nextFocus"].firstMatch
+        return app.buttons[candidates[0]].firstMatch
     }
 
     private func framesDoNotOverlap(_ first: XCUIElement, _ second: XCUIElement) -> Bool {

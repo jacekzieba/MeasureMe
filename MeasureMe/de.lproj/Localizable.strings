@@ -2,9 +2,9 @@
 
 "notification.log.title" = "Zeit, deine %@ einzutragen";
 "notification.log.body" = "Ein kurzer Eintrag hält deinen Fortschritt auf Kurs.";
-"notification.smart.title" = "%@ Zeit für einen kurzen Eintrag";
+"notification.smart.title" = "%@Zeit für einen kurzen Eintrag";
 "notification.smart.body" = "Seit deinem letzten Eintrag sind %d Tage vergangen. Füge eine Messung hinzu, um am Ball zu bleiben.";
-"notification.photo.title" = "%@ Zeit für ein Fortschrittsfoto";
+"notification.photo.title" = "%@Zeit für ein Fortschrittsfoto";
 "notification.photo.body" = "Seit deinem letzten Foto sind %d Tage vergangen – Bilder zeigen oft Veränderungen, die die Waage übersieht.";
 "notification.import.title" = "Neue %@ aus Health";
 "notification.import.body" = "Automatisch zu MeasureMe hinzugefügt.";
@@ -195,6 +195,8 @@
 "home.keymetrics.empty.selection.subtitle" = "Wähle die Maße, die Platz in der ersten Reihe erfordern.";
 "home.keymetrics.empty.selection.title" = "Wähle die Messwerte aus, die du wirklich im Blick behalten willst";
 "home.keymetrics.empty.selection.detail" = "Konzentriere dich auf die Messungen, die dein Ziel am besten zeigen.";
+"home.keymetrics.action.addValue" = "Ersten Eintrag hinzufügen";
+"home.keymetrics.action.setTarget" = "Ziel setzen";
 "home.keymetrics.ready.subtitle" = "%d Messwerte prägen diese Übersicht.";
 "home.focus.firstcheckin.title" = "Ersten Eintrag hinzufügen";
 "home.focus.firstcheckin.detail" = "Beginne mit Gewicht oder Taille, um Trends zu erkennen.";
@@ -580,6 +582,7 @@ Der BMI unterscheidet nicht zwischen Muskel- und Fettmasse. Deshalb können Spor
 "premium.subscription.error" = "Abonnements konnten nicht geladen werden (%@)";
 "premium.subscription.retry" = "Ladevorgang erneut versuchen";
 "premium.subscription.disabled" = "Das Laden von Abonnements wird durch aktuelle Debug-/Audit-Flags deaktiviert.";
+"premium.subscription.open_revenuecat_paywall" = "RevenueCat-Paywall öffnen";
 "premium.purchase.success" = "Kauf abgeschlossen. Premium ist jetzt aktiv.";
 "premium.purchase.cancelled" = "Kauf storniert.";
 "premium.purchase.pending" = "Der Kauf muss noch genehmigt werden.";
@@ -606,6 +609,23 @@ Der BMI unterscheidet nicht zwischen Muskel- und Fettmasse. Deshalb können Spor
 "premium.carousel.photos.body" = "Vergleiche Fotos im Laufe der Zeit. Schau dir Änderungen an, die die Waage nicht anzeigen kann.";
 "premium.carousel.indicators.title" = "Mehr als die Waage";
 "premium.carousel.indicators.body" = "Gesundheits- und Körperformindikatoren zeigen dir, was deine Zahlen für Gesundheit und sichtbaren Fortschritt bedeuten.";
+"premium.carousel.photos.unlimited.title" = "Unbegrenzte Fortschrittsfotos";
+"premium.carousel.photos.unlimited.body" = "Halte jeden Meilenstein fest. Tagge, filtere und vergleiche nebeneinander — ohne Speicherlimit.";
+"premium.carousel.photos.unlimited.feature.unlimited" = "Unbegrenzte Fotos";
+"premium.carousel.photos.unlimited.feature.tags" = "Tags & Filter";
+"premium.carousel.photos.unlimited.feature.compare" = "Vergleich nebeneinander";
+"premium.carousel.icloud.title" = "iCloud-Backup";
+"premium.carousel.icloud.body" = "Deine Messungen und Fotos bleiben sicher — verschlüsselt und auf allen Geräten synchronisiert.";
+"premium.carousel.icloud.feature.auto" = "Tägliches Auto-Backup";
+"premium.carousel.icloud.feature.encrypted" = "Ende-zu-Ende-Verschlüsselung";
+"premium.carousel.icloud.feature.restore" = "Auf jedem Gerät wiederherstellen";
+"premium.carousel.icloud.chip.today" = "Heute";
+"premium.carousel.icloud.chip.yesterday" = "Gestern";
+"premium.carousel.export.title" = "Daten exportieren";
+"premium.carousel.export.body" = "Lade CSV-Berichte aller Messwerte herunter. Nimm deine Daten überall mit — zum Trainer, Arzt oder ins Tabellenprogramm.";
+"premium.carousel.export.feature.csv" = "CSV-Export aller Messungen";
+"premium.carousel.export.feature.timeline" = "Foto-Zeitstrahl exportieren";
+"premium.carousel.export.feature.reports" = "Fortschrittsberichte teilen";
 "premium.carousel.unlock.title" = "Trainiere intelligenter. Sieh echte Fortschritte.";
 "premium.carousel.unlock.body" = "Hol dir alles an einem Ort – inklusive iCloud-Sync und Backups –, damit du leichter dranbleibst und sicherer vorankommst.";
 "premium.carousel.unlock.item.ai" = "Unbegrenzte KI-Einblicke";
@@ -1168,11 +1188,11 @@ in %@";
 "From" = "Von";
 "To" = "Zu";
 "tracked.keymetrics.header" = "An Start anheften";
-"tracked.keymetrics.description" = "Tippe auf das Stecknadel-Symbol, um 1 bis 3 Metriken an „Start“ und im Tab „Messungen“ anzuheften. Du entscheidest, wie viele.";
-"tracked.keymetrics.counter" = "%d von 3 gepinnt";
+"tracked.keymetrics.description" = "Tippe auf das Stecknadel-Symbol, um 1 bis 5 Metriken an „Start“ und im Tab „Messungen“ anzuheften. Du entscheidest, wie viele.";
+"tracked.keymetrics.counter" = "%d von 5 gepinnt";
 "tracked.keymetrics.empty" = "Aktiviere unten zuerst eine Metrik und komm dann hierher zurück, um sie auf der Startseite anzupinnen.";
 "tracked.active.header" = "Aktuell verfolgt";
-"tracked.active.description" = "Tippe auf das Stecknadel-Symbol, um bis zu 3 Metriken an „Start“ anzuheften. Wische, um die Verfolgung zu beenden. Ziehe, um die Reihenfolge zu ändern.";
+"tracked.active.description" = "Tippe auf das Stecknadel-Symbol, um bis zu 5 Metriken an „Start“ anzuheften. Wische, um die Verfolgung zu beenden. Ziehe, um die Reihenfolge zu ändern.";
 "tracked.section.health.subtitle" = "Aktiviere diese Option, um die Metrik zu verfolgen. Die Werte werden automatisch aus Apple Health synchronisiert.";
 "tracked.section.custom.subtitle" = "Aktiviere diese Option, um die Metrik zu verfolgen. Diese Werte trägst du manuell ein.";
 "tracked.section.allempty" = "Alle Metriken aus dieser Gruppe sind oben bereits aktiv.";
@@ -1197,7 +1217,7 @@ in %@";
 "photos.selected.count.few" = "%d ausgewählt";
 "photos.selected.count.many" = "%d ausgewählt";
 "photos.delete.confirmation" = "Möchtest du wirklich %d Fotos löschen? Das kann nicht rückgängig gemacht werden.";
-"photos.delete.confirmation.one" = "Möchtest du dieses Foto wirklich löschen? Das kann nicht rückgängig gemacht werden.";
+"photos.delete.confirmation.one" = "Möchtest du wirklich %d Foto löschen? Das kann nicht rückgängig gemacht werden.";
 "photos.delete.confirmation.few" = "Möchtest du wirklich %d Fotos löschen? Das kann nicht rückgängig gemacht werden.";
 "photos.delete.confirmation.many" = "Möchtest du wirklich %d Fotos löschen? Das kann nicht rückgängig gemacht werden.";
 "photos.delete.single.confirmation" = "Möchtest du dieses Foto wirklich löschen? Das kann nicht rückgängig gemacht werden.";
@@ -1395,6 +1415,10 @@ in %@";
 "Add measurement" = "Messung hinzufügen";
 "Add one-time or repeatable reminders. You can edit or remove them any time." = "Füge einmalige oder wiederholbare Erinnerungen hinzu. Du kannst sie jederzeit bearbeiten oder entfernen.";
 "Add photo" = "Foto hinzufügen";
+"Change photo" = "Foto ändern";
+"Profile photo" = "Profilfoto";
+"Remove" = "Entfernen";
+"Shown on your Home dashboard." = "Wird auf deinem Home-Dashboard angezeigt.";
 "Add reminder" = "Erinnerung hinzufügen";
 "Add the missing measurements to calculate these health indicators:" = "Füge die fehlenden Messungen hinzu, um diese Gesundheitsindikatoren zu berechnen:";
 "Add your first entry to see history and charts." = "Füge deinen ersten Eintrag hinzu, um Verlauf und Diagramme anzuzeigen.";
@@ -1453,7 +1477,7 @@ Der BMI unterscheidet nicht zwischen Muskel- und Fettmasse. Daher können Sportl
 "Choose from Library" = "Wähle aus der Bibliothek";
 "Choose indicators to show" = "Wähle die anzuzeigenden Indikatoren aus";
 "Choose one-time, daily or weekly schedule." = "Wähle einen einmaligen, täglichen oder wöchentlichen Zeitplan.";
-"Choose up to 3 to show on Home and Measurements." = "Wähle bis zu 3 aus, die auf Start und unter „Messungen“ angezeigt werden sollen.";
+"Choose up to 5 to show on Home and Measurements." = "Wähle bis zu 5 aus, die auf Start und unter „Messungen“ angezeigt werden sollen.";
 "Choose whether you want to increase or decrease this metric." = "Wähle, ob diese Metrik steigen oder sinken soll.";
 "Choose..." = "Wähle...";
 "Clear" = "Klar";
@@ -1779,7 +1803,7 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "Yes. Use Compare in the Photos tab and select two photos to view them side by side." = "Ja. Verwende „Vergleichen“ auf der Registerkarte „Fotos“ und wähle zwei Fotos aus, um sie nebeneinander anzuzeigen.";
 "Yes. Use Export data in Settings. Photos can be saved from the photo detail view." = "Ja. Verwende „Daten exportieren“ in den Einstellungen. Fotos können aus der Fotodetailansicht gespeichert werden.";
 "You can build muscle and lose fat at the same time, so the scale might not change much. Waist circumference often reflects fat loss more clearly than weight alone." = "Du kannst gleichzeitig Muskeln aufbauen und Fett verlieren, sodass sich die Waage möglicherweise kaum verändert. Der Taillenumfang zeigt Fettverlust oft deutlicher als das Gewicht allein.";
-"You can choose up to 3 key metrics for Home." = "Du kannst bis zu drei Schlüsselmetriken für Start auswählen.";
+"You can choose up to 5 key metrics for Home." = "Du kannst bis zu 5 Schlüsselmetriken für Start auswählen.";
 "You can only compare two photos at a time. Please deselect one photo before selecting another." = "Du kannst immer nur zwei Fotos gleichzeitig vergleichen. Deaktiviere erst ein Foto, bevor du ein anderes auswählst.";
 "You've set your height manually. Health metrics will use this value." = "Du hast deine Körpergröße manuell eingestellt. Gesundheitsmetriken verwenden diesen Wert.";
 "Your data is stored on device and encrypted. MeasureMe works offline by default." = "Deine Daten werden auf dem Gerät gespeichert und verschlüsselt. MeasureMe funktioniert standardmäßig offline.";
@@ -1955,7 +1979,7 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "German" = "Deutsch";
 "French" = "Französisch";
 "Your trend is being analyzed." = "Dein Trend wird analysiert.";
-"Keep logging consistently to get a clearer trend signal." = "Führe die Eintragierung konsequent fort, um ein klareres Trendsignal zu erhalten.";
+"Keep logging consistently to get a clearer trend signal." = "Trage deine Werte konsequent weiter ein, um ein klareres Trendsignal zu erhalten.";
 "Want less manual typing?" = "Weniger manuell eingeben?";
 "We can automatically fill in some values from Apple Health and keep them updated later." = "Wir können einige Werte automatisch aus Apple Health übernehmen und später aktuell halten.";
 "If you already track weight, body fat, or lean body mass in Apple Health, we can import that automatically." = "Wenn du Gewicht, Körperfett oder fettfreie Masse bereits in Apple Health erfasst, können wir das automatisch importieren.";
@@ -2016,3 +2040,49 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "Unlock photos" = "Fotos entsperren";
 "Unlock to view progress photos." = "Entsperren, um Fortschrittsfotos anzusehen.";
 "Upgrade to Premium Edition to unlock AI Insights." = "Wechsle zu Premium, um KI-Einblicke freizuschalten.";
+
+"premium.plan.lifetime" = "Lebenslang";
+"premium.plan.billing.lifetime" = "Einmalige Zahlung";
+"premium.cta.lifetime" = "Lebenslangen Zugriff freischalten";
+"premium.cta.billed.lifetime" = "Einmaliger Kauf. Kein Abonnement.";
+"premium.lifetime.more.options" = "Weitere Optionen";
+"premium.lifetime.tagline" = "Einmal zahlen, für immer dein";
+
+"premium.plan.flexible" = "Flexibel";
+"premium.plan.one.time" = "Einmaliger Kauf";
+"premium.other.options.show" = "Weitere Optionen";
+"premium.other.options.hide" = "Optionen ausblenden";
+"premium.carousel.analyst.bullet.1" = "Unbegrenzte KI-Körperanalysen";
+"premium.carousel.analyst.bullet.2" = "Gesundheitsübersicht";
+"premium.carousel.analyst.bullet.3" = "Smarte Erklärungen deines Fortschritts";
+"premium.carousel.photos.bullet.1" = "Fotovergleich nebeneinander";
+"premium.carousel.photos.bullet.2" = "Unbegrenzte Fortschrittsfotos";
+"premium.carousel.photos.bullet.3" = "Tags, Filter und Checkpoints";
+"premium.carousel.indicators.bullet.1" = "Taille-zu-Größe-Verhältnis";
+"premium.carousel.indicators.bullet.2" = "Körperformindikatoren";
+"premium.carousel.indicators.bullet.3" = "Trendbasierte Interpretation";
+"premium.carousel.icloud.bullet.1" = "iCloud-Sync";
+"premium.carousel.icloud.bullet.2" = "Backup-Wiederherstellung";
+"premium.carousel.icloud.bullet.3" = "Privat von Grund auf";
+"premium.carousel.export.bullet.1" = "CSV-Export";
+"premium.carousel.export.bullet.2" = "JSON-Export";
+"premium.carousel.export.bullet.3" = "PDF-Fortschrittsberichte";
+"premium.carousel.everything.bullet.1" = "Zielprognose";
+"premium.carousel.everything.bullet.2" = "Home- und Sperrbildschirm-Widgets";
+"premium.carousel.everything.bullet.3" = "Alle aktuellen und zukünftigen Premium-Funktionen";
+"premium.soft.prompt.post_measurement.title" = "Du beginnst, einen Trend aufzubauen";
+"premium.soft.prompt.post_measurement.body" = "Premium kann erklären, was sich verändert und was du als Nächstes anpassen solltest.";
+"premium.discover.card.title" = "Sieh, was dein Fortschritt bedeutet";
+"premium.discover.card.body" = "Schalte KI-Einblicke, Fotovergleiche, Exporte und Backups frei.";
+"premium.discover.card.cta" = "Premium entdecken";
+"accessibility.premium.slide.position" = "Folie %@ von %@: %@";
+"accessibility.premium.slide.dot" = "Folie %@ von %@";
+
+// App icon picker
+"App icon" = "App-Symbol";
+
+// App icon picker
+"Default" = "Standard";
+
+// App icon picker
+"Old" = "Alt";

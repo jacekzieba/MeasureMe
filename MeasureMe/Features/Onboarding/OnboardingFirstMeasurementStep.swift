@@ -16,10 +16,15 @@ struct OnboardingFirstMeasurementStep: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            onboardingSlideHeader(
-                title: OnboardingView.Step.firstMeasurement.title,
-                subtitle: OnboardingView.Step.firstMeasurement.subtitle
-            )
+            HStack(alignment: .top, spacing: 12) {
+                onboardingSlideHeader(
+                    title: OnboardingView.Step.firstMeasurement.title,
+                    subtitle: OnboardingView.Step.firstMeasurement.subtitle
+                )
+                Spacer(minLength: 0)
+                MeasureBuddyView(pose: .goals, size: 72)
+                    .padding(.top, -2)
+            }
 
             metricFields
             healthKitPrompt

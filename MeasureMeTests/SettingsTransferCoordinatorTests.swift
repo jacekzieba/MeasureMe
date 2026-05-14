@@ -25,9 +25,9 @@ final class SettingsTransferCoordinatorTests: XCTestCase {
 
     func testExportDataSetsStateAndPresentsShareSheetForNonEmptyOutput() async {
         let cases: [(SettingsExporter.ExportFormat, String, String, String)] = [
-            (.csv, "Preparing data export...", "csv-item", "CSV Subject"),
-            (.json, "Preparing JSON export...", "json-item", "JSON Subject"),
-            (.pdf, "Generating PDF report...", "pdf-item", "PDF Subject")
+            (.csv, AppLocalization.string("Preparing data export..."), "csv-item", "CSV Subject"),
+            (.json, AppLocalization.string("Preparing JSON export..."), "json-item", "JSON Subject"),
+            (.pdf, AppLocalization.string("Generating PDF report..."), "pdf-item", "PDF Subject")
         ]
 
         for (format, expectedMessage, item, subject) in cases {
@@ -123,7 +123,7 @@ final class SettingsTransferCoordinatorTests: XCTestCase {
         )
 
         await fulfillment(of: [presented], timeout: 1)
-        XCTAssertEqual(exportMessage, "Generating diagnostics...")
+        XCTAssertEqual(exportMessage, AppLocalization.string("Generating diagnostics..."))
         XCTAssertEqual(exportingStates, [true, false])
         XCTAssertEqual(shareItems.first as? String, "diagnostics")
         XCTAssertEqual(shareSubject, "Diagnostics")

@@ -156,6 +156,7 @@ final class AuditCaptureUITests: XCTestCase {
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
         XCTAssertTrue(onboardingNextButton(in: app).waitForExistence(timeout: 15))
         saveScreenshot(screen: "onboarding_welcome")
+        onboardingNextButton(in: app).tap()  // welcome → profile
 
         XCTAssertTrue(app.textFields["onboarding.name.field"].waitForExistence(timeout: 8))
         saveScreenshot(screen: "onboarding_profile")
@@ -191,7 +192,7 @@ final class AuditCaptureUITests: XCTestCase {
 
         let tileButton = app.buttons["metric.tile.open.weight"].firstMatch
         XCTAssertTrue(tileButton.waitForExistence(timeout: 8))
-        scrollToReveal(tileButton, in: app)
+        scrollToRevealHittable(tileButton, in: app)
         XCTAssertTrue(tileButton.isHittable)
 
         openTab(app, candidates: TabLabel.home)
@@ -384,6 +385,7 @@ final class AuditCaptureUITests: XCTestCase {
     }
 
     private func advanceOnboardingToHealthStep(in app: XCUIApplication) {
+        onboardingNextButton(in: app).tap()  // welcome → profile
         let priority = app.buttons["onboarding.priority.improveHealth"].firstMatch
         XCTAssertTrue(priority.waitForExistence(timeout: 8))
         scrollToReveal(priority, in: app, maxSwipes: 6)
@@ -508,13 +510,31 @@ final class AuditCaptureUITests: XCTestCase {
     private func scrollToReveal(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 4) {
         guard element.exists else { return }
         let window = app.windows.element(boundBy: 0)
-        if isPartiallyVisible(element, in: window) { return }
+        if isCenterVisible(element, in: window) { return }
         for _ in 0..<maxSwipes {
             app.swipeUp()
-            if isPartiallyVisible(element, in: window) {
-                return
-            }
+            if isCenterVisible(element, in: window) { return }
         }
+    }
+
+    private func scrollToRevealHittable(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 8) {
+        guard element.exists else { return }
+        if element.isHittable { return }
+        for _ in 0..<maxSwipes {
+            app.swipeUp()
+            if element.isHittable { return }
+        }
+    }
+
+    private func isCenterVisible(_ element: XCUIElement, in container: XCUIElement) -> Bool {
+        guard element.exists, container.exists else { return false }
+        let frame = element.frame
+        let containerFrame = container.frame
+        guard !frame.isEmpty, !containerFrame.isEmpty else { return false }
+        let intersection = frame.intersection(containerFrame)
+        guard !intersection.isNull, !intersection.isEmpty else { return false }
+        let visibleAreaRatio = (intersection.width * intersection.height) / (frame.width * frame.height)
+        return visibleAreaRatio >= 0.55
     }
 
     private func waitForExistenceWithScroll(

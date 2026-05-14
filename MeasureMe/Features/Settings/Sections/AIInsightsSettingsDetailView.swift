@@ -38,7 +38,7 @@ struct AIInsightsSettingsDetailView: View {
                                 .foregroundStyle(AppColorRoles.textSecondary)
                             Spacer()
                             Button(AppLocalization.aiString("Unlock")) {
-                                premiumStore.presentPaywall(reason: .feature("AI Insights"))
+                                premiumStore.presentPaywall(reason: .aiInsights)
                             }
                             .buttonStyle(.plain)
                             .foregroundStyle(theme.accent)

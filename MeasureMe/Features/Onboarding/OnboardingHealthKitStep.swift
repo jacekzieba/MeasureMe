@@ -7,7 +7,14 @@ struct OnboardingHealthKitStep: View {
     let onRequest: () -> Void
 
     var body: some View {
-        healthKitCard
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Spacer()
+                MeasureBuddyView(pose: .success, size: 88)
+                Spacer()
+            }
+            healthKitCard
+        }
     }
 
     private var healthKitCard: some View {

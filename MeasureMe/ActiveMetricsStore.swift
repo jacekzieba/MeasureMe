@@ -26,7 +26,7 @@ final class ActiveMetricsStore: ObservableObject {
     private var defaultsObserver: AnyCancellable?
     private let activeOrderKey = "metrics_active_order"
     private let keyMetricsKey = "home_key_metrics"
-    private let maxKeyMetrics = 3
+    private let maxKeyMetrics = 5
     private var lastPublishedStateSignature: String
     
     /// Debouncing - prevents excessive change publications.
@@ -158,7 +158,7 @@ final class ActiveMetricsStore: ObservableObject {
 
     // MARK: - Key Metrics (Home)
 
-    /// Returns key metrics for Home (max 3), always a subset of active metrics.
+    /// Returns key metrics for Home (max 5), always a subset of active metrics.
     /// If the user has never set key metrics (no key in UserDefaults),
     /// we automatically assign the first active metrics. If the user deliberately
     /// unchecked all stars (key exists but array is empty), we return [].
