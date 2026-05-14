@@ -65,7 +65,7 @@ struct OnboardingView: View {
     private var primaryButtonTitle: String {
         switch currentStep {
         case .welcome:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Continue",
                 "Dalej",
                 "Continuar",
@@ -74,7 +74,7 @@ struct OnboardingView: View {
                 "Continuar"
             )
         case .profile:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Show my metrics",
                 "Pokaż moje metryki",
                 "Mostrar mis métricas",
@@ -83,7 +83,7 @@ struct OnboardingView: View {
                 "Mostrar minhas métricas"
             )
         case .metrics:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Show photo check-ins",
                 "Pokaż check-iny zdjęciowe",
                 "Mostrar check-ins de fotos",
@@ -92,7 +92,7 @@ struct OnboardingView: View {
                 "Mostrar check-ins com fotos"
             )
         case .photos:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Set up Apple Health",
                 "Skonfiguruj Apple Health",
                 "Configurar Apple Health",
@@ -101,7 +101,7 @@ struct OnboardingView: View {
                 "Configurar o Apple Health"
             )
         case .health:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Start my journey",
                 "Rozpocznij moją drogę",
                 "Empezar mi camino",
@@ -115,7 +115,7 @@ struct OnboardingView: View {
     }
 
     private var skipButtonTitle: String {
-        FlowLocalization.system("Skip for now", "Pomiń na razie", "Omitir por ahora", "Vorerst überspringen", "Passer pour l'instant", "Pular por enquanto")
+        FlowLocalization.app("Skip for now", "Pomiń na razie", "Omitir por ahora", "Vorerst überspringen", "Passer pour l'instant", "Pular por enquanto")
     }
 
     private var isPrimaryEnabled: Bool {
@@ -149,7 +149,7 @@ struct OnboardingView: View {
         case .idle:
             return ""
         case .preparing:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Preparing Apple Health access…",
                 "Przygotowuję dostęp do Zdrowia…",
                 "Preparando acceso a Salud…",
@@ -158,7 +158,7 @@ struct OnboardingView: View {
                 "Preparando acesso ao Health…"
             )
         case .requestingSystemPrompt:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Opening Apple Health…",
                 "Otwieram okno Zdrowia…",
                 "Abriendo Apple Health…",
@@ -167,7 +167,7 @@ struct OnboardingView: View {
                 "Abrindo Apple Health…"
             )
         case .importingProfile:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Importing your baseline…",
                 "Importuję Twój punkt startowy…",
                 "Importando tu linię bazową…",
@@ -176,7 +176,7 @@ struct OnboardingView: View {
                 "Importando sua linha de base…"
             )
         case .completed:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Health connected",
                 "Zdrowie połączone",
                 "Salud conectada",
@@ -192,7 +192,7 @@ struct OnboardingView: View {
             return healthProgressTitle
         }
         if isSyncEnabled {
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Apple Health connected",
                 "Apple Health połączone",
                 "Apple Health conectado",
@@ -364,7 +364,7 @@ struct OnboardingView: View {
                 VStack(alignment: .leading, spacing: layout.sectionSpacing) {
                     HStack(alignment: .top, spacing: 12) {
                         onboardingSlideHeader(
-                            title: FlowLocalization.system(
+                            title: FlowLocalization.app(
                                 "What's your name?",
                                 "Jak masz na imię?",
                                 "¿Cómo te llamas?",
@@ -409,7 +409,7 @@ struct OnboardingView: View {
 
                     VStack(alignment: .leading, spacing: layout.groupSpacing) {
                         Text(
-                            FlowLocalization.system(
+                            FlowLocalization.app(
                                 "What do you want this app to help with first?",
                                 "W czym ta aplikacja ma pomóc Ci najpierw?",
                                 "¿En qué quieres que te ayude primero esta app?",
@@ -494,7 +494,7 @@ struct OnboardingView: View {
             onboardingInputCard {
                 VStack(alignment: .leading, spacing: layout.sectionSpacing) {
                     onboardingSlideHeader(
-                        title: FlowLocalization.system(
+                        title: FlowLocalization.app(
                             "Photos that show the change",
                             "Zdjęcia, które pokazują zmianę",
                             "Fotos que muestran el cambio",
@@ -502,7 +502,7 @@ struct OnboardingView: View {
                             "Photos qui montrent le changement",
                             "Fotos que mostram a mudança"
                         ),
-                        subtitle: FlowLocalization.system(
+                        subtitle: FlowLocalization.app(
                             "Use consistent check-ins so subtle progress becomes obvious before it feels dramatic.",
                             "Używaj spójnych check-inów, aby subtelny progres był widoczny, zanim stanie się spektakularny.",
                             "Usa check-ins consistentes para que el progreso sutil sea evidente antes de parecer drástico.",
@@ -516,7 +516,7 @@ struct OnboardingView: View {
                     introPhotosVisual(layout: layout)
 
                     Text(
-                        FlowLocalization.system(
+                        FlowLocalization.app(
                             "Front and side shots taken in similar light will make your weekly comparisons far more useful.",
                             "Zdjęcia z przodu i z boku robione w podobnym świetle sprawią, że tygodniowe porównania będą dużo bardziej użyteczne.",
                             "Las fotos de frente y de lado con luz similar harán mucho más útiles tus comparaciones semanales.",
@@ -533,7 +533,7 @@ struct OnboardingView: View {
             onboardingInputCard {
                 VStack(alignment: .leading, spacing: layout.sectionSpacing) {
                     onboardingSlideHeader(
-                        title: FlowLocalization.system(
+                        title: FlowLocalization.app(
                             "Connect Health. Keep it private.",
                             "Połącz Zdrowie. Zachowaj prywatność.",
                             "Conecta Salud. Mantén la privacidad.",
@@ -541,7 +541,7 @@ struct OnboardingView: View {
                             "Connectez Santé. Gardez le contrôle.",
                             "Conecte o Health. Mantenha a privacidade."
                         ),
-                        subtitle: FlowLocalization.system(
+                        subtitle: FlowLocalization.app(
                             "Apple Health is optional. Your measurements and photos stay on device, and you can still log everything manually.",
                             "Apple Health jest opcjonalne. Twoje pomiary i zdjęcia zostają na urządzeniu, a wszystko nadal możesz wpisywać ręcznie.",
                             "Apple Health es opcional. Tus medidas y fotos se quedan en el dispositivo y también puedes registrar todo manualmente.",
@@ -637,7 +637,7 @@ struct OnboardingView: View {
                 }
             }
 
-            Text(FlowLocalization.system(
+            Text(FlowLocalization.app(
                 "Build a simple body-tracking rhythm around metrics, photos, and insight.",
                 "Zbuduj prosty rytm śledzenia ciała wokół metryk, zdjęć i wniosków.",
                 "Crea un ritmo simple de seguimiento corporal con métricas, fotos e insights.",
@@ -775,9 +775,9 @@ struct OnboardingView: View {
     @State private var photoAfterAppeared = false
 
     private func introPhotosVisual(layout: OnboardingCardLayout) -> some View {
-        let beforeLabel = FlowLocalization.system("Before", "Przed", "Antes", "Vorher", "Avant", "Antes")
-        let afterLabel = FlowLocalization.system("After", "Po", "Después", "Nachher", "Après", "Depois")
-        let compareLabel = FlowLocalization.system("Compare", "Porównaj", "Comparar", "Vergleichen", "Comparer", "Comparar")
+        let beforeLabel = FlowLocalization.app("Before", "Przed", "Antes", "Vorher", "Avant", "Antes")
+        let afterLabel = FlowLocalization.app("After", "Po", "Después", "Nachher", "Après", "Depois")
+        let compareLabel = FlowLocalization.app("Compare", "Porównaj", "Comparar", "Vergleichen", "Comparer", "Comparar")
         let isRecomp = resolvedPriority == .improveHealth
         let photoWidth = isRecomp ? layout.photoWidth + (layout.isCompact ? 24 : 34) : layout.photoWidth
         let photoHeight = isRecomp ? layout.photoHeight + (layout.isCompact ? 24 : 34) : layout.photoHeight
@@ -890,7 +890,7 @@ struct OnboardingView: View {
                 .fill(Color.appAccent.opacity(0.18))
                 .frame(width: 118, height: 34)
                 .overlay {
-                    Text(FlowLocalization.system(
+                    Text(FlowLocalization.app(
                         "On-device",
                         "Na urządzeniu",
                         "En el dispositivo",
@@ -913,7 +913,7 @@ struct OnboardingView: View {
                             AppMotion.repeating(.easeInOut(duration: 1.25).repeatForever(autoreverses: true), enabled: shouldAnimate),
                             value: shieldGlowPhase
                         )
-                    Text(FlowLocalization.system(
+                    Text(FlowLocalization.app(
                         "Private by design",
                         "Prywatność od podstaw",
                         "Privacidad por diseño",
@@ -923,7 +923,7 @@ struct OnboardingView: View {
                     ))
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.appWhite)
-                    Text(FlowLocalization.system(
+                    Text(FlowLocalization.app(
                         "Your photos and measurements never leave your device.",
                         "Twoje zdjęcia i pomiary nigdy nie opuszczają urządzenia.",
                         "Tus fotos y medidas nunca salen de tu dispositivo.",
@@ -956,7 +956,7 @@ struct OnboardingView: View {
         VStack(spacing: 24) {
             Spacer(minLength: 0)
 
-            Text(FlowLocalization.system(
+            Text(FlowLocalization.app(
                 "Welcome to\nMeasureMe",
                 "Witaj w\nMeasureMe",
                 "Bienvenido a\nMeasureMe",
@@ -991,7 +991,7 @@ struct OnboardingView: View {
                 .frame(height: 160)
 
                 MiaraSpeechBubble(
-                    text: FlowLocalization.system(
+                    text: FlowLocalization.app(
                         "Hey, I'm Miara. I'll be here every week to show you how your body is actually changing. No scale drama, no shame, just a clear picture.",
                         "Hej, jestem Miara. Co tydzień pokażę Ci, jak naprawdę zmienia się Twoje ciało. Bez dramy z wagą i bez oceniania. Po prostu jasny obraz.",
                         "Hola, soy Miara. Cada semana te mostraré cómo está cambiando tu cuerpo de verdad. Sin drama de báscula y sin juicios. Solo una imagen clara.",
@@ -1049,7 +1049,7 @@ struct OnboardingView: View {
                 .foregroundStyle(Color.appAccent)
 
             Text(
-                FlowLocalization.system(
+                FlowLocalization.app(
                     "We'll start with %@.",
                     "Zaczniemy od %@.",
                     "Empezaremos con %@.",
@@ -1090,7 +1090,7 @@ struct OnboardingView: View {
         if let name = effectiveNameForGreeting {
             switch resolvedPriority {
             case .loseWeight:
-                return FlowLocalization.system(
+                return FlowLocalization.app(
                     "\(name), start with weight and waist.",
                     "\(name), zacznij od wagi i pasa.",
                     "\(name), empieza con peso y cintura.",
@@ -1099,7 +1099,7 @@ struct OnboardingView: View {
                     "\(name), comece com peso e cintura."
                 )
             case .buildMuscle:
-                return FlowLocalization.system(
+                return FlowLocalization.app(
                     "\(name), chest and arm size will tell the story.",
                     "\(name), klatka i ramię pokażą prawdziwy progres.",
                     "\(name), pecho y brazo contarán la historia.",
@@ -1108,7 +1108,7 @@ struct OnboardingView: View {
                     "\(name), peito e braço vão contar a história."
                 )
             case .improveHealth:
-                return FlowLocalization.system(
+                return FlowLocalization.app(
                     "\(name), waist and chest will keep this grounded.",
                     "\(name), pas i klatka dadzą tu najlepszy obraz.",
                     "\(name), cintura y pecho mantendrán esto claro.",
@@ -1121,7 +1121,7 @@ struct OnboardingView: View {
 
         switch resolvedPriority {
         case .loseWeight:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Start with weight and waist.",
                 "Zacznij od wagi i pasa.",
                 "Empieza con peso y cintura.",
@@ -1130,7 +1130,7 @@ struct OnboardingView: View {
                 "Comece com peso e cintura."
             )
         case .buildMuscle:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Chest and arm size will tell the story.",
                 "Klatka i ramię pokażą prawdziwy progres.",
                 "Pecho y brazo contarán la historia.",
@@ -1139,7 +1139,7 @@ struct OnboardingView: View {
                 "Peito e braço vão contar a história."
             )
         case .improveHealth:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Waist and chest will keep this grounded.",
                 "Pas i klatka dadzą tu najlepszy obraz.",
                 "Cintura y pecho mantendrán esto claro.",
@@ -1153,7 +1153,7 @@ struct OnboardingView: View {
     private var metricsStepSubtitle: String {
         switch resolvedPriority {
         case .loseWeight:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Weight shows pace. Waist confirms whether fat loss is actually happening.",
                 "Waga pokazuje tempo. Pas potwierdza, czy utrata tkanki tłuszczowej naprawdę zachodzi.",
                 "El peso muestra el ritmo. La cintura confirma si la pérdida de grasa realmente ocurre.",
@@ -1162,7 +1162,7 @@ struct OnboardingView: View {
                 "O peso mostra o ritmo. A cintura confirma se a perda de gordura está mesmo acontecendo."
             )
         case .buildMuscle:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "These two measurements surface muscle gain earlier than the scale will.",
                 "Te dwie metryki pokażą budowę mięśni wcześniej niż sama waga.",
                 "Estas dos medidas muestran ganancia muscular antes que la báscula.",
@@ -1171,7 +1171,7 @@ struct OnboardingView: View {
                 "Essas duas medidas mostram ganho muscular antes da balança."
             )
         case .improveHealth:
-            return FlowLocalization.system(
+            return FlowLocalization.app(
                 "Waist and chest together make recomp easier to trust when weight is noisy.",
                 "Pas i klatka razem ułatwiają ocenę rekompozycji, gdy waga szumi.",
                 "Cintura y pecho juntos facilitan confiar en la recomposición cuando el peso mete ruido.",
@@ -1204,8 +1204,8 @@ struct OnboardingView: View {
             return [
                 MetricsPreviewCardData(
                     title: MetricKind.weight.title,
-                    value: FlowLocalization.system("79.9 kg", "79,9 kg", "79,9 kg", "79,9 kg", "79,9 kg", "79,9 kg"),
-                    delta: FlowLocalization.system("-2.3 kg", "-2,3 kg", "-2,3 kg", "-2,3 kg", "-2,3 kg", "-2,3 kg"),
+                    value: FlowLocalization.app("79.9 kg", "79,9 kg", "79,9 kg", "79,9 kg", "79,9 kg", "79,9 kg"),
+                    delta: FlowLocalization.app("-2.3 kg", "-2,3 kg", "-2,3 kg", "-2,3 kg", "-2,3 kg", "-2,3 kg"),
                     tint: Color.appAccent,
                     backgroundTint: Color.appAccent,
                     points: [
@@ -1219,8 +1219,8 @@ struct OnboardingView: View {
                 ),
                 MetricsPreviewCardData(
                     title: MetricKind.waist.title,
-                    value: FlowLocalization.system("84.0 cm", "84,0 cm", "84,0 cm", "84,0 cm", "84,0 cm", "84,0 cm"),
-                    delta: FlowLocalization.system("-4.1 cm", "-4,1 cm", "-4,1 cm", "-4,1 cm", "-4,1 cm", "-4,1 cm"),
+                    value: FlowLocalization.app("84.0 cm", "84,0 cm", "84,0 cm", "84,0 cm", "84,0 cm", "84,0 cm"),
+                    delta: FlowLocalization.app("-4.1 cm", "-4,1 cm", "-4,1 cm", "-4,1 cm", "-4,1 cm", "-4,1 cm"),
                     tint: Color.cyan,
                     backgroundTint: Color.cyan.opacity(0.45),
                     points: [
@@ -1237,8 +1237,8 @@ struct OnboardingView: View {
             return [
                 MetricsPreviewCardData(
                     title: MetricKind.chest.title,
-                    value: FlowLocalization.system("109.0 cm", "109,0 cm", "109,0 cm", "109,0 cm", "109,0 cm", "109,0 cm"),
-                    delta: FlowLocalization.system("+3.2 cm", "+3,2 cm", "+3,2 cm", "+3,2 cm", "+3,2 cm", "+3,2 cm"),
+                    value: FlowLocalization.app("109.0 cm", "109,0 cm", "109,0 cm", "109,0 cm", "109,0 cm", "109,0 cm"),
+                    delta: FlowLocalization.app("+3.2 cm", "+3,2 cm", "+3,2 cm", "+3,2 cm", "+3,2 cm", "+3,2 cm"),
                     tint: Color.appAccent,
                     backgroundTint: Color.appAccent,
                     points: [
@@ -1252,8 +1252,8 @@ struct OnboardingView: View {
                 ),
                 MetricsPreviewCardData(
                     title: MetricKind.leftBicep.title,
-                    value: FlowLocalization.system("40.1 cm", "40,1 cm", "40,1 cm", "40,1 cm", "40,1 cm", "40,1 cm"),
-                    delta: FlowLocalization.system("+1.5 cm", "+1,5 cm", "+1,5 cm", "+1,5 cm", "+1,5 cm", "+1,5 cm"),
+                    value: FlowLocalization.app("40.1 cm", "40,1 cm", "40,1 cm", "40,1 cm", "40,1 cm", "40,1 cm"),
+                    delta: FlowLocalization.app("+1.5 cm", "+1,5 cm", "+1,5 cm", "+1,5 cm", "+1,5 cm", "+1,5 cm"),
                     tint: Color.appTeal,
                     backgroundTint: Color.appTeal.opacity(0.4),
                     points: [
@@ -1270,8 +1270,8 @@ struct OnboardingView: View {
             return [
                 MetricsPreviewCardData(
                     title: MetricKind.waist.title,
-                    value: FlowLocalization.system("82.8 cm", "82,8 cm", "82,8 cm", "82,8 cm", "82,8 cm", "82,8 cm"),
-                    delta: FlowLocalization.system("-2.6 cm", "-2,6 cm", "-2,6 cm", "-2,6 cm", "-2,6 cm", "-2,6 cm"),
+                    value: FlowLocalization.app("82.8 cm", "82,8 cm", "82,8 cm", "82,8 cm", "82,8 cm", "82,8 cm"),
+                    delta: FlowLocalization.app("-2.6 cm", "-2,6 cm", "-2,6 cm", "-2,6 cm", "-2,6 cm", "-2,6 cm"),
                     tint: Color.cyan,
                     backgroundTint: Color.cyan.opacity(0.45),
                     points: [
@@ -1285,8 +1285,8 @@ struct OnboardingView: View {
                 ),
                 MetricsPreviewCardData(
                     title: MetricKind.chest.title,
-                    value: FlowLocalization.system("102.4 cm", "102,4 cm", "102,4 cm", "102,4 cm", "102,4 cm", "102,4 cm"),
-                    delta: FlowLocalization.system("+1.1 cm", "+1,1 cm", "+1,1 cm", "+1,1 cm", "+1,1 cm", "+1,1 cm"),
+                    value: FlowLocalization.app("102.4 cm", "102,4 cm", "102,4 cm", "102,4 cm", "102,4 cm", "102,4 cm"),
+                    delta: FlowLocalization.app("+1.1 cm", "+1,1 cm", "+1,1 cm", "+1,1 cm", "+1,1 cm", "+1,1 cm"),
                     tint: Color.appAccent,
                     backgroundTint: Color.appAccent,
                     points: [
@@ -1313,7 +1313,7 @@ struct OnboardingView: View {
         switch resolvedPriority {
         case .loseWeight:
             let lineOne = personalizedIntro.isEmpty
-                ? FlowLocalization.system(
+                ? FlowLocalization.app(
                     "Weight is trending down and waist is tightening too.",
                     "Waga spada, a pas też się zmniejsza.",
                     "El peso baja y la cintura también se reduce.",
@@ -1321,7 +1321,7 @@ struct OnboardingView: View {
                     "Le poids baisse et la taille diminue aussi.",
                     "O peso está caindo e a cintura também."
                 )
-                : FlowLocalization.system(
+                : FlowLocalization.app(
                     "\(personalizedIntro), weight is trending down and waist is tightening too.",
                     "\(personalizedIntro), waga spada, a pas też się zmniejsza.",
                     "\(personalizedIntro), el peso baja y la cintura también se reduce.",
@@ -1330,9 +1330,9 @@ struct OnboardingView: View {
                     "\(personalizedIntro), o peso está caindo e a cintura também."
                 )
             return MetricsInsightCopy(
-                title: FlowLocalization.system("AI trend example", "Przykład trendu AI", "Ejemplo de tendencia IA", "KI-Trendbeispiel", "Exemple de tendance IA", "Exemplo de tendência de IA"),
+                title: FlowLocalization.app("AI trend example", "Przykład trendu AI", "Ejemplo de tendencia IA", "KI-Trendbeispiel", "Exemple de tendance IA", "Exemplo de tendência de IA"),
                 lineOne: lineOne,
-                lineTwo: FlowLocalization.system(
+                lineTwo: FlowLocalization.app(
                     "That is a much stronger fat-loss signal than scale weight on its own.",
                     "To dużo mocniejszy sygnał utraty tkanki tłuszczowej niż sama waga.",
                     "Eso es una señal de pérdida de grasa mucho más fuerte que el peso por sí solo.",
@@ -1340,7 +1340,7 @@ struct OnboardingView: View {
                     "C'est un signal de perte de graisse bien plus fort que le poids seul.",
                     "Esse é um sinal muito mais forte de perda de gordura do que o peso sozinho."
                 ),
-                tip: FlowLocalization.system(
+                tip: FlowLocalization.app(
                     "Keep protein high and keep your weekly movement consistent.",
                     "Trzymaj wysoko białko i utrzymuj regularny ruch w tygodniu.",
                     "Mantén alta la proteína y el movimiento semanal constante.",
@@ -1351,7 +1351,7 @@ struct OnboardingView: View {
             )
         case .buildMuscle:
             let lineOne = personalizedIntro.isEmpty
-                ? FlowLocalization.system(
+                ? FlowLocalization.app(
                     "Chest and left bicep are growing together.",
                     "Klatka i lewy biceps rosną razem.",
                     "Pecho y bíceps izquierdo están creciendo juntos.",
@@ -1359,7 +1359,7 @@ struct OnboardingView: View {
                     "Le torse et le biceps gauche progressent ensemble.",
                     "Peito e bíceps esquerdo estão crescendo juntos."
                 )
-                : FlowLocalization.system(
+                : FlowLocalization.app(
                     "\(personalizedIntro), chest and left bicep are growing together.",
                     "\(personalizedIntro), klatka i lewy biceps rosną razem.",
                     "\(personalizedIntro), pecho y bíceps izquierdo están creciendo juntos.",
@@ -1368,9 +1368,9 @@ struct OnboardingView: View {
                     "\(personalizedIntro), peito e bíceps esquerdo estão crescendo juntos."
                 )
             return MetricsInsightCopy(
-                title: FlowLocalization.system("AI trend example", "Przykład trendu AI", "Ejemplo de tendencia IA", "KI-Trendbeispiel", "Exemple de tendance IA", "Exemplo de tendência de IA"),
+                title: FlowLocalization.app("AI trend example", "Przykład trendu AI", "Ejemplo de tendencia IA", "KI-Trendbeispiel", "Exemple de tendance IA", "Exemplo de tendência de IA"),
                 lineOne: lineOne,
-                lineTwo: FlowLocalization.system(
+                lineTwo: FlowLocalization.app(
                     "This is the kind of signal that shows muscle gain before body weight explains it well.",
                     "To właśnie taki sygnał pokazuje budowę mięśni, zanim dobrze pokaże ją masa ciała.",
                     "Este es el tipo de señal que muestra músculo antes de que el peso lo explique.",
@@ -1378,7 +1378,7 @@ struct OnboardingView: View {
                     "C'est le type de signal qui montre le gain musculaire avant que le poids l'explique bien.",
                     "Esse é o tipo de sinal que mostra ganho muscular antes de o peso explicar bem."
                 ),
-                tip: FlowLocalization.system(
+                tip: FlowLocalization.app(
                     "Keep progressive overload steady and do not chase scale swings.",
                     "Utrzymuj progresywne przeciążenie i nie gon za wahaniami wagi.",
                     "Mantén la sobrecarga progresiva y no persigas las oscilaciones del peso.",
@@ -1389,7 +1389,7 @@ struct OnboardingView: View {
             )
         case .improveHealth:
             let lineOne = personalizedIntro.isEmpty
-                ? FlowLocalization.system(
+                ? FlowLocalization.app(
                     "Waist is tightening while chest stays full.",
                     "Pas się zmniejsza, a klatka zostaje pełna.",
                     "La cintura baja mientras el pecho se mantiene lleno.",
@@ -1397,7 +1397,7 @@ struct OnboardingView: View {
                     "La taille diminue pendant que le torse reste plein.",
                     "A cintura está diminuindo enquanto o peito se mantém cheio."
                 )
-                : FlowLocalization.system(
+                : FlowLocalization.app(
                     "\(personalizedIntro), waist is tightening while chest stays full.",
                     "\(personalizedIntro), pas się zmniejsza, a klatka zostaje pełna.",
                     "\(personalizedIntro), la cintura baja mientras el pecho se mantiene lleno.",
@@ -1406,9 +1406,9 @@ struct OnboardingView: View {
                     "\(personalizedIntro), a cintura está diminuindo enquanto o peito se mantém cheio."
                 )
             return MetricsInsightCopy(
-                title: FlowLocalization.system("AI trend example", "Przykład trendu AI", "Ejemplo de tendencia IA", "KI-Trendbeispiel", "Exemple de tendance IA", "Exemplo de tendência de IA"),
+                title: FlowLocalization.app("AI trend example", "Przykład trendu AI", "Ejemplo de tendencia IA", "KI-Trendbeispiel", "Exemple de tendance IA", "Exemplo de tendência de IA"),
                 lineOne: lineOne,
-                lineTwo: FlowLocalization.system(
+                lineTwo: FlowLocalization.app(
                     "That usually reads like recomposition, not random day-to-day noise.",
                     "To zwykle wygląda na rekompozycję, a nie losowy codzienny szum.",
                     "Eso suele parecer recomposición, no ruido diario aleatorio.",
@@ -1416,7 +1416,7 @@ struct OnboardingView: View {
                     "Cela ressemble généralement à une recomposition, pas à un bruit quotidien aléatoire.",
                     "Isso geralmente parece recomposição, não ruído aleatório do dia a dia."
                 ),
-                tip: FlowLocalization.system(
+                tip: FlowLocalization.app(
                     "Trust 2-4 week trends and keep your lifting routine boringly consistent.",
                     "Ufaj trendom z 2-4 tygodni i trzymaj nudno regularny trening siłowy.",
                     "Confía en las tendencias de 2-4 semanas y mantén tu rutina de fuerza muy constante.",
@@ -1440,7 +1440,7 @@ struct OnboardingView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(
-                        FlowLocalization.system(
+                        FlowLocalization.app(
                             "Private by design",
                             "Prywatność od podstaw",
                             "Privacidad desde el diseño",
@@ -1456,7 +1456,7 @@ struct OnboardingView: View {
                     .allowsTightening(true)
 
                     Text(
-                        FlowLocalization.system(
+                        FlowLocalization.app(
                             "Your photos and measurements never leave your device.",
                             "Twoje zdjęcia i pomiary nigdy nie opuszczają urządzenia.",
                             "Tus fotos y medidas nunca salen de tu dispositivo.",
@@ -1476,7 +1476,7 @@ struct OnboardingView: View {
             }
 
             Text(
-                FlowLocalization.system(
+                FlowLocalization.app(
                     "AI summaries run on device where available, and Apple Health access stays optional.",
                     "Podsumowania AI działają na urządzeniu tam, gdzie są dostępne, a dostęp do Apple Health pozostaje opcjonalny.",
                     "Los resúmenes de IA se ejecutan en el dispositivo cuando están disponibles y el acceso a Apple Health sigue siendo opcional.",
@@ -1654,7 +1654,7 @@ struct OnboardingView: View {
         case .health:
             onboardingSkippedHealthKit = true
             healthStatusLines = [
-                FlowLocalization.system(
+                FlowLocalization.app(
                     "You can connect Health later in Settings.",
                     "Health możesz połączyć później w Ustawieniach.",
                     "Puedes conectar Salud más tarde en Ajustes.",
@@ -1748,13 +1748,13 @@ struct OnboardingView: View {
                 }
 
                 var imported: [String] = [
-                    FlowLocalization.system("Health connected", "Health połączone", "Salud conectada", "Health verbunden", "Santé connectée", "Health conectado")
+                    FlowLocalization.app("Health connected", "Health połączone", "Salud conectada", "Health verbunden", "Santé connectée", "Health conectado")
                 ]
                 if profile.age != nil {
-                    imported.append(FlowLocalization.system("Age imported", "Zaimportowano wiek", "Edad importada", "Alter importiert", "Âge importé", "Idade importada"))
+                    imported.append(FlowLocalization.app("Age imported", "Zaimportowano wiek", "Edad importada", "Alter importiert", "Âge importé", "Idade importada"))
                 }
                 if profile.height != nil {
-                    imported.append(FlowLocalization.system("Height imported", "Zaimportowano wzrost", "Altura importada", "Größe importiert", "Taille importée", "Altura importada"))
+                    imported.append(FlowLocalization.app("Height imported", "Zaimportowano wzrost", "Altura importada", "Größe importiert", "Taille importée", "Altura importada"))
                 }
                 healthStatusLines = imported
                 updateHealthAuthorizationPhase(.completed)
@@ -1772,7 +1772,7 @@ struct OnboardingView: View {
                 onboardingSkippedHealthKit = true
                 updateHealthAuthorizationPhase(.idle)
                 healthStatusLines = [
-                    FlowLocalization.system(
+                    FlowLocalization.app(
                         "You can connect Health later in Settings.",
                         "Health możesz połączyć później w Ustawieniach.",
                         "Puedes conectar Salud más tarde en Ajustes.",

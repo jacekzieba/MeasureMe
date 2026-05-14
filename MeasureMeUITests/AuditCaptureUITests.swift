@@ -8,11 +8,84 @@ final class AuditCaptureUITests: XCTestCase {
         static let settings = ["tab.settings", "Settings", "Ustawienia"]
     }
 
+    private enum ScreenshotLocale: CaseIterable {
+        case enUS
+        case plPL
+        case esES
+        case deDE
+        case frFR
+        case ptBR
+
+        var launchArgument: String {
+            switch self {
+            case .enUS: return "-uiTestLanguageEN"
+            case .plPL: return "-uiTestLanguagePL"
+            case .esES: return "-uiTestLanguageES"
+            case .deDE: return "-uiTestLanguageDE"
+            case .frFR: return "-uiTestLanguageFR"
+            case .ptBR: return "-uiTestLanguagePTBR"
+            }
+        }
+
+        var filePrefix: String {
+            switch self {
+            case .enUS: return "en-US"
+            case .plPL: return "pl-PL"
+            case .esES: return "es-ES"
+            case .deDE: return "de-DE"
+            case .frFR: return "fr-FR"
+            case .ptBR: return "pt-BR"
+            }
+        }
+
+        var displayName: String {
+            switch self {
+            case .enUS: return "Alex"
+            case .plPL: return "Jan"
+            case .esES: return "Carlos"
+            case .deDE: return "Lukas"
+            case .frFR: return "Etienne"
+            case .ptBR: return "Joao"
+            }
+        }
+
+        var goalIndex: Int {
+            switch self {
+            case .enUS, .frFR: return 2
+            case .plPL, .deDE: return 1
+            case .esES, .ptBR: return 0
+            }
+        }
+
+        var appleLanguagesValue: String {
+            switch self {
+            case .enUS: return "(en-US)"
+            case .plPL: return "(pl-PL)"
+            case .esES: return "(es-ES)"
+            case .deDE: return "(de-DE)"
+            case .frFR: return "(fr-FR)"
+            case .ptBR: return "(pt-BR)"
+            }
+        }
+
+        var appleLocaleValue: String {
+            switch self {
+            case .enUS: return "en_US"
+            case .plPL: return "pl_PL"
+            case .esES: return "es_ES"
+            case .deDE: return "de_DE"
+            case .frFR: return "fr_FR"
+            case .ptBR: return "pt_BR"
+            }
+        }
+    }
+
     private lazy var outputDirectory: URL = {
         let env = ProcessInfo.processInfo.environment
         let rawPath = env["AUDIT_OUTPUT_DIR"] ?? "\(NSTemporaryDirectory())MeasureMeAudit"
         let url = URL(fileURLWithPath: rawPath, isDirectory: true)
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        print("AUDIT_OUTPUT_DIR=\(url.path)")
         return url
     }()
 
@@ -169,6 +242,20 @@ final class AuditCaptureUITests: XCTestCase {
         onboardingNextButton(in: app).tap()
         XCTAssertTrue(app.buttons["onboarding.health.allow"].waitForExistence(timeout: 8))
         saveScreenshot(screen: "onboarding_healthkit")
+    }
+
+    @MainActor
+    func testCaptureLocalizedOnboardingScreens() {
+        for locale in ScreenshotLocale.allCases {
+            captureLocalizedOnboardingScreens(locale: locale)
+        }
+    }
+
+    @MainActor
+    func testCaptureLocalizedAppScreens() {
+        for locale in ScreenshotLocale.allCases {
+            captureLocalizedAppScreens(locale: locale)
+        }
     }
 
     @MainActor
@@ -365,6 +452,10 @@ final class AuditCaptureUITests: XCTestCase {
         if identifierNext.waitForExistence(timeout: 0.5) {
             return identifierNext
         }
+        let standardNext = app.buttons["onboarding.next"].firstMatch
+        if standardNext.waitForExistence(timeout: 0.5) {
+            return standardNext
+        }
         return app.buttons["UITest Next"].firstMatch
     }
 
@@ -372,6 +463,10 @@ final class AuditCaptureUITests: XCTestCase {
         let identifierBack = app.buttons["onboarding.test.back"].firstMatch
         if identifierBack.waitForExistence(timeout: 0.5) {
             return identifierBack
+        }
+        let standardBack = app.buttons["onboarding.back"].firstMatch
+        if standardBack.waitForExistence(timeout: 0.5) {
+            return standardBack
         }
         return app.buttons["UITest Back"].firstMatch
     }
@@ -381,7 +476,22 @@ final class AuditCaptureUITests: XCTestCase {
         if identifierSkip.waitForExistence(timeout: 0.5) {
             return identifierSkip
         }
+        let standardSkip = app.buttons["onboarding.skip"].firstMatch
+        if standardSkip.waitForExistence(timeout: 0.5) {
+            return standardSkip
+        }
         return app.buttons["UITest Skip"].firstMatch
+    }
+
+    private func onboardingPriorityButton(in app: XCUIApplication, index: Int) -> XCUIElement? {
+        let identifiers = [
+            "onboarding.priority.loseWeight",
+            "onboarding.priority.buildMuscle",
+            "onboarding.priority.improveHealth"
+        ]
+        guard identifiers.indices.contains(index) else { return nil }
+        let button = app.buttons[identifiers[index]].firstMatch
+        return button.exists ? button : nil
     }
 
     private func advanceOnboardingToHealthStep(in app: XCUIApplication) {
@@ -470,6 +580,131 @@ final class AuditCaptureUITests: XCTestCase {
         } catch {
             XCTFail("Failed to save screenshot to \(url.path): \(error)")
         }
+    }
+
+    private func saveScreenshot(named fileName: String) {
+        let screenshot = XCUIScreen.main.screenshot()
+        let url = outputDirectory.appendingPathComponent(fileName)
+        do {
+            try screenshot.pngRepresentation.write(to: url)
+        } catch {
+            XCTFail("Failed to save screenshot to \(url.path): \(error)")
+        }
+    }
+
+    private func captureLocalizedOnboardingScreens(locale: ScreenshotLocale) {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestOnboardingMode",
+            "-uiTestForcePremium",
+            "-uiTestSeedMeasurements",
+            "-uiTestSeedPhotos", "2",
+            "-uiTestProfileName", locale.displayName,
+            locale.launchArgument,
+            "-auditCapture",
+            "-useMockData",
+            "-fixedDate", "2026-02-20T12:00:00Z"
+        ]
+        app.launchEnvironment["AUDIT_CAPTURE"] = "1"
+        app.launchEnvironment["MOCK_DATA"] = "1"
+        app.launchEnvironment["FIXED_DATE"] = "2026-02-20T12:00:00Z"
+        app.launchEnvironment["AppleLanguages"] = locale.appleLanguagesValue
+        app.launchEnvironment["AppleLocale"] = locale.appleLocaleValue
+        app.launch()
+
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
+
+        let nextButton = onboardingNextButton(in: app)
+        XCTAssertTrue(nextButton.waitForExistence(timeout: 15))
+        saveScreenshot(named: "\(locale.filePrefix)_hero_1.png")
+
+        nextButton.tap()
+
+        let nameField = app.textFields["onboarding.name.field"].firstMatch
+        XCTAssertTrue(nameField.waitForExistence(timeout: 8))
+        if let goal = onboardingPriorityButton(in: app, index: locale.goalIndex) {
+            scrollToReveal(goal, in: app, maxSwipes: 4)
+            goal.tap()
+        }
+        saveScreenshot(named: "\(locale.filePrefix)_checkin_2.png")
+
+        onboardingNextButton(in: app).tap()
+        saveScreenshot(named: "\(locale.filePrefix)_boosters_3.png")
+
+        onboardingNextButton(in: app).tap()
+        saveScreenshot(named: "\(locale.filePrefix)_photos_4.png")
+
+        onboardingNextButton(in: app).tap()
+        saveScreenshot(named: "\(locale.filePrefix)_health_5.png")
+
+        onboardingNextButton(in: app).tap()
+        saveScreenshot(named: "\(locale.filePrefix)_premium_6.png")
+
+        app.terminate()
+    }
+
+    private func captureLocalizedAppScreens(locale: ScreenshotLocale) {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uiTestMode",
+            "-uiTestSeedMeasurements",
+            "-uiTestSeedPhotos", "24",
+            "-uiTestForcePremium",
+            "-uiTestBypassHealthSummaryGuards",
+            "-uiTestLongHealthInsight",
+            "-uiTestProfileName", locale.displayName,
+            locale.launchArgument,
+            "-auditCapture",
+            "-useMockData",
+            "-disableAnalytics",
+            "-fixedDate", "2026-02-20T12:00:00Z"
+        ]
+        app.launchEnvironment["AUDIT_CAPTURE"] = "1"
+        app.launchEnvironment["MOCK_DATA"] = "1"
+        app.launchEnvironment["NETWORK_STUB"] = "1"
+        app.launchEnvironment["FIXED_DATE"] = "2026-02-20T12:00:00Z"
+        app.launchEnvironment["AppleLanguages"] = locale.appleLanguagesValue
+        app.launchEnvironment["AppleLocale"] = locale.appleLocaleValue
+        app.launch()
+
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 15))
+
+        openTab(app, candidates: TabLabel.home)
+        _ = app.otherElements["home.module.summaryHero"].waitForExistence(timeout: 5)
+        saveScreenshot(named: "\(locale.filePrefix)_home_1.png")
+
+        openTab(app, candidates: TabLabel.measurements)
+        XCTAssertTrue(app.scrollViews["measurements.scroll"].waitForExistence(timeout: 8))
+        app.swipeUp()
+        saveScreenshot(named: "\(locale.filePrefix)_measurements_2.png")
+
+        if let metricButton = firstExistingMetricTile(in: app) {
+            metricButton.tap()
+            sleep(1)
+            saveScreenshot(named: "\(locale.filePrefix)_metric_3.png")
+            navigateBack(app)
+        } else {
+            XCTFail("Missing metric tile for locale \(locale.filePrefix)")
+        }
+
+        openTab(app, candidates: TabLabel.photos)
+        let gridItem = app.buttons["photos.grid.item"].firstMatch
+        XCTAssertTrue(gridItem.waitForExistence(timeout: 8))
+        app.swipeUp()
+        saveScreenshot(named: "\(locale.filePrefix)_photos_4.png")
+
+        gridItem.tap()
+        sleep(1)
+        saveScreenshot(named: "\(locale.filePrefix)_photo-detail_5.png")
+        navigateBack(app)
+
+        openTab(app, candidates: TabLabel.settings)
+        sleep(1)
+        saveScreenshot(named: "\(locale.filePrefix)_settings_6.png")
+
+        app.terminate()
     }
 
     private func openQuickAdd(_ app: XCUIApplication) -> Bool {

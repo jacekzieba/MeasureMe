@@ -22,7 +22,7 @@ struct RootView: View {
     }
 
     private var showsOnboardingUITestOverlay: Bool {
-        isOnboardingUITestMode && isShowingOnboarding
+        isOnboardingUITestMode && isShowingOnboarding && !isAuditCaptureEnabled
     }
 
     private var showsTrialReminderDebugOverlay: Bool {

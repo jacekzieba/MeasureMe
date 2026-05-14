@@ -21,6 +21,7 @@ enum UITestArgument: String {
     case seedPhotoMetrics = "-uiTestSeedPhotoMetrics"
     case skipMeasurementSeeding = "-uiTestSkipMeasurementSeeding"
     case noActiveMetrics = "-uiTestNoActiveMetrics"
+    case profileName = "-uiTestProfileName"
 
     // Health
     case healthAuthDenied = "-uiTestHealthAuthDenied"
@@ -40,6 +41,10 @@ enum UITestArgument: String {
     // Language
     case languagePL = "-uiTestLanguagePL"
     case languageEN = "-uiTestLanguageEN"
+    case languageES = "-uiTestLanguageES"
+    case languageDE = "-uiTestLanguageDE"
+    case languageFR = "-uiTestLanguageFR"
+    case languagePTBR = "-uiTestLanguagePTBR"
     case languageSystem = "-uiTestLanguageSystem"
 
     // Physique / indicators

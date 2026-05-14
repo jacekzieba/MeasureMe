@@ -623,6 +623,9 @@ struct MeasureMeApp: App {
         if let pinnedAction = requestedHomePinnedAction(from: args) {
             defaults.set(\.home.homePinnedActionRaw, pinnedAction.rawValue)
         }
+        if let profileName = requestedUITestProfileName(from: args) {
+            defaults.set(\.profile.userName, profileName)
+        }
         if let pendingAction = requestedPendingAppEntryAction(from: args) {
             defaults.set(pendingAction.rawValue, forKey: AppSettingsKeys.Entry.pendingAppEntryAction)
         }
@@ -726,6 +729,10 @@ struct MeasureMeApp: App {
     private func requestedUITestLanguage(from args: [String]) -> String? {
         if args.contains(UITestArgument.languagePL.rawValue) { return "pl" }
         if args.contains(UITestArgument.languageEN.rawValue) { return "en" }
+        if args.contains(UITestArgument.languageES.rawValue) { return "es" }
+        if args.contains(UITestArgument.languageDE.rawValue) { return "de" }
+        if args.contains(UITestArgument.languageFR.rawValue) { return "fr" }
+        if args.contains(UITestArgument.languagePTBR.rawValue) { return "pt-BR" }
         if args.contains(UITestArgument.languageSystem.rawValue) { return "system" }
         return nil
     }
@@ -767,6 +774,10 @@ struct MeasureMeApp: App {
         return nil
     }
 
+    private func requestedUITestProfileName(from args: [String]) -> String? {
+        UITestArgument.value(for: .profileName, in: args)
+    }
+
     private func requestedActivationTask(from args: [String]) -> ActivationTask? {
         guard let value = UITestArgument.value(for: .activationTask, in: args) else { return nil }
         return ActivationTask(rawValue: value)
@@ -778,7 +789,7 @@ struct MeasureMeApp: App {
         for idx in 0..<safeCount {
             let date = Calendar.current.date(byAdding: .day, value: -idx, to: now) ?? now
             let size = CGSize(width: 1280, height: 1706)
-            guard let imageData = makeUITestImageData(index: idx, size: size) else { continue }
+            guard let imageData = makeUITestPhotoData(index: idx, size: size) else { continue }
             let tags: [PhotoTag] = idx.isMultiple(of: 2) ? [.wholeBody] : [.waist]
             let linkedMetrics: [MetricValueSnapshot]
             if withLinkedMetrics {
@@ -793,6 +804,20 @@ struct MeasureMeApp: App {
             }
             context.insert(PhotoEntry(imageData: imageData, date: date, tags: tags, linkedMetrics: linkedMetrics))
         }
+    }
+
+    private func makeUITestPhotoData(index: Int, size: CGSize) -> Data? {
+        let assetNames = [
+            "onboarding-before-recomp",
+            "onboarding-after-recomp"
+        ]
+
+        if let image = UIImage(named: assetNames[index % assetNames.count]),
+           let jpegData = image.jpegData(compressionQuality: 0.92) {
+            return jpegData
+        }
+
+        return makeUITestImageData(index: index, size: size)
     }
 
     private func makeUITestImageData(index: Int, size: CGSize) -> Data? {
