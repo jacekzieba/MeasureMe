@@ -70,6 +70,19 @@ final class QuickAddUITests: XCTestCase {
                       "Arkusz QuickAdd powinien sie pojawic z przyciskiem zapisu")
     }
 
+    private func tapKeyboardDone() {
+        let doneCandidates = ["Done", "Gotowe"]
+        for label in doneCandidates {
+            let button = app.buttons[label].firstMatch
+            if button.waitForExistence(timeout: 2) {
+                button.tap()
+                return
+            }
+        }
+
+        XCTFail("Expected keyboard Done button to exist.")
+    }
+
     private func quickAddLaunchStateSummary() -> String {
         let states = [
             ("pendingAddPhoto.active", app.otherElements["uitest.debug.pendingAddPhoto.active"].exists),
@@ -192,6 +205,32 @@ final class QuickAddUITests: XCTestCase {
             app.buttons["quickadd.save"].waitForExistence(timeout: 20),
             "Pending app entry action should present Quick Add right after launch"
         )
+    }
+
+    @MainActor
+    func testQuickAddFirstEntryKeepsFocusAndRestoresSaveButtonAfterDone() {
+        launchWithActiveMetrics()
+        openQuickAdd()
+
+        let firstHint = app.staticTexts["Enter your first value"].firstMatch
+        XCTAssertTrue(firstHint.waitForExistence(timeout: 5), "Hint first-time inputu powinien byc widoczny")
+
+        firstHint.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5), "Klawiatura powinna sie pojawic po rozpoczeciu edycji")
+
+        app.typeText("66")
+
+        XCTAssertFalse(app.buttons["quickadd.save"].exists, "Save bar powinien byc ukryty podczas edycji")
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS '66'")).firstMatch.waitForExistence(timeout: 5),
+            "Quick Add powinien zachowac obie cyfry wpisanej pierwszej wartosci"
+        )
+
+        tapKeyboardDone()
+
+        let saveButton = app.buttons["quickadd.save"]
+        XCTAssertTrue(saveButton.waitForExistence(timeout: 5), "Save bar powinien wrocic po zakonczeniu edycji")
+        XCTAssertTrue(saveButton.isHittable, "Save bar powinien byc klikalny po ukryciu klawiatury")
     }
 
     @MainActor

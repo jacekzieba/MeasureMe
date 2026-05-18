@@ -1371,6 +1371,16 @@ private struct PhotoGridView: View {
                             onAddPhoto: onAddPhoto
                         )
 
+                        if case .onboarding = heroState { } else {
+                            Button {
+                                onAddPhoto()
+                            } label: {
+                                Label(AppLocalization.string("Add Photo"), systemImage: "plus")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                        }
+
                         archiveSection
                     }
                         .padding(.horizontal, 12)
@@ -1681,18 +1691,6 @@ private extension PhotoView {
                     .accessibilityIdentifier("photos.add.button")
                     .accessibilityLabel(AppLocalization.string("Add Photo"))
 
-                    Menu {
-                        Button {
-                            openLibraryFlow(fromSourceChooserSheet: false)
-                        } label: {
-                            Label(AppLocalization.string("Choose from Library"), systemImage: "photo.on.rectangle")
-                        }
-                        .accessibilityIdentifier("photos.add.menu.library")
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
-                    .accessibilityIdentifier("photos.add.more.button")
-                    .accessibilityLabel(AppLocalization.string("More photo options"))
                 }
             }
         }

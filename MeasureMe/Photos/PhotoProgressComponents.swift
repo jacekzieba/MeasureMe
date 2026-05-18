@@ -101,7 +101,7 @@ struct PhotoCompareHeroCard: View {
                         Label(AppLocalization.string("Compare"), systemImage: "arrow.left.and.right")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                    .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
                 case .manualOnly:
                     VStack(alignment: .leading, spacing: 12) {
                         Text(AppLocalization.string("Too early for an automatic comparison. Choose photos manually."))

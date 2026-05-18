@@ -993,7 +993,7 @@ struct OnboardingView: View {
                 MiaraSpeechBubble(
                     text: FlowLocalization.app(
                         "Hey, I'm Miara. I'll be here every week to show you how your body is actually changing. No scale drama, no shame, just a clear picture.",
-                        "Hej, jestem Miara. Co tydzień pokażę Ci, jak naprawdę zmienia się Twoje ciało. Bez dramy z wagą i bez oceniania. Po prostu jasny obraz.",
+                        "Hej, jestem Miara. Będę pokazywać, jak naprawdę zmienia się Twoje ciało. Bez skupiania się tylko na wadze i bez oceniania. Tylko jasny obraz.",
                         "Hola, soy Miara. Cada semana te mostraré cómo está cambiando tu cuerpo de verdad. Sin drama de báscula y sin juicios. Solo una imagen clara.",
                         "Hey, ich bin Miara. Jede Woche zeige ich dir, wie sich dein Körper wirklich verändert. Kein Waagen-Drama, kein Urteil. Nur ein klares Bild.",
                         "Salut, c'est Miara. Chaque semaine, je te montre comment ton corps évolue vraiment. Sans drame de balance, sans jugement. Juste une image claire.",

@@ -3,6 +3,7 @@ import SwiftData
 import HealthKit
 import UIKit
 import Combine
+import MessageUI
 
 private extension Notification.Name {
     static let settingsOpenHomeSettingsRequested = Notification.Name("settingsOpenHomeSettingsRequested")
@@ -114,6 +115,9 @@ struct SettingsView: View {
     @State private var shareItems: [Any] = []
     @State private var shareSubject: String? = nil
     @State private var isPresentingShareSheet = false
+    @State private var isPresentingMailComposer = false
+    @State private var mailAttachmentData: Data? = nil
+    @State private var mailAttachmentFileName: String = ""
     @State private var isExporting = false
     @State private var exportMessage: String = ""
     @State private var showImportPicker = false
@@ -472,6 +476,15 @@ struct SettingsView: View {
             .sheet(isPresented: $isPresentingShareSheet) {
                 ShareSheet(items: shareItems, subject: shareSubject)
             }
+            .sheet(isPresented: $isPresentingMailComposer) {
+                MailComposerSheet(
+                    toRecipient: "measureme.approve254@passmail.net",
+                    subject: AppLocalization.string("MeasureMe diagnostics"),
+                    body: "",
+                    attachmentData: mailAttachmentData,
+                    attachmentFileName: mailAttachmentFileName
+                )
+            }
             .alert(
                 settingsAlertTitle,
                 isPresented: Binding(get: { activeAlert != nil }, set: { if !$0 { activeAlert = nil } }),
@@ -570,16 +583,27 @@ struct SettingsView: View {
     }
 
     private func exportDiagnosticsJSON() {
-        SettingsTransferCoordinator.exportDiagnostics(
-            context: modelContext,
-            isSyncEnabled: isSyncEnabled,
-            lastHealthImportTimestamp: lastHealthImportTimestamp,
-            setExportMessage: { exportMessage = $0 },
-            setIsExporting: { isExporting = $0 },
-            setShareItems: { shareItems = $0 },
-            setShareSubject: { shareSubject = $0 },
-            setIsPresentingShareSheet: { isPresentingShareSheet = $0 }
-        )
+        exportMessage = AppLocalization.string("Generating diagnostics...")
+        isExporting = true
+        Task {
+            let output = await SettingsExporter.exportDiagnostics(
+                context: modelContext,
+                isSyncEnabled: isSyncEnabled,
+                lastHealthImportTimestamp: lastHealthImportTimestamp
+            )
+            isExporting = false
+            guard !output.items.isEmpty, let url = output.items.first as? URL else { return }
+            if MFMailComposeViewController.canSendMail(),
+               let data = try? Data(contentsOf: url) {
+                mailAttachmentData = data
+                mailAttachmentFileName = url.lastPathComponent
+                isPresentingMailComposer = true
+            } else {
+                shareItems = output.items
+                shareSubject = output.subject
+                isPresentingShareSheet = true
+            }
+        }
     }
 
     private func shareApp() {
