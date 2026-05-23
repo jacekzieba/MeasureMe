@@ -57,10 +57,11 @@ struct MetricDetailView: View {
     @State private var commitmentInput: String = ""
     @State private var comparisonCache = ComparisonCache()
 
-    // MARK: - Cached Chart Calculations
-    // These are expensive to compute on every render; cached here and refreshed via .onChange
-    @State private var cachedYDomain: ClosedRange<Double> = 0...1
-    @State private var cachedTrendlineSegment: (startDate: Date, startValue: Double, endDate: Date, endValue: Double)? = nil
+    // MARK: - Cached Chart Calculations (held in MetricDetailViewModel)
+    @State private var detailViewModel = MetricDetailViewModel()
+
+    private var cachedYDomain: ClosedRange<Double> { detailViewModel.cachedYDomain }
+    private var cachedTrendlineSegment: (startDate: Date, startValue: Double, endDate: Date, endValue: Double)? { detailViewModel.cachedTrendlineSegment }
 
     @AppSetting(\.experience.photosFilterTag) var photosFilterTag: String = ""
 
@@ -588,8 +589,10 @@ struct MetricDetailView: View {
     }
 
     private func refreshChartCache() {
-        cachedYDomain = computeYDomain()
-        cachedTrendlineSegment = computeTrendlineSegment()
+        detailViewModel.refreshChartCache(
+            computeYDomain: { computeYDomain() },
+            computeTrendlineSegment: { computeTrendlineSegment() }
+        )
     }
 
     private func computeYDomain() -> ClosedRange<Double> {

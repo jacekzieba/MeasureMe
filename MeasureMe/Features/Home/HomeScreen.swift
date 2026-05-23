@@ -113,16 +113,18 @@ struct HomeView: View {
     @State private var hasAnyMeasurements = false
     @State private var totalMetricSampleCount = 0
 
-    // Zbuforowane dane pochodne - odswiezane przez onChange zamiast przeliczania przy kazdym renderze
-    @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
-    @State private var cachedLatestByKind: [MetricKind: MetricSample] = [:]
-    @State private var cachedGoalsByKind: [MetricKind: MetricGoal] = [:]
-    @State private var cachedCustomSamplesByIdentifier: [String: [MetricSample]] = [:]
-    @State private var cachedCustomLatestByIdentifier: [String: MetricSample] = [:]
-    @State private var cachedCustomGoalsByIdentifier: [String: MetricGoal] = [:]
-    @State private var cachedDashboardItems: [HomeModuleLayoutItem] = []
-    @State private var cachedVisiblePhotoTiles: [HomePhotoTile] = []
-    @State private var cachedNextFocusInsight: HomeNextFocusInsight?
+    // Zbuforowane dane pochodne - trzymane w HomeViewModel, odswiezane przez onChange
+    @State private var viewModel = HomeViewModel()
+
+    private var cachedSamplesByKind: [MetricKind: [MetricSample]] { viewModel.cachedSamplesByKind }
+    private var cachedLatestByKind: [MetricKind: MetricSample] { viewModel.cachedLatestByKind }
+    private var cachedGoalsByKind: [MetricKind: MetricGoal] { viewModel.cachedGoalsByKind }
+    private var cachedCustomSamplesByIdentifier: [String: [MetricSample]] { viewModel.cachedCustomSamplesByIdentifier }
+    private var cachedCustomLatestByIdentifier: [String: MetricSample] { viewModel.cachedCustomLatestByIdentifier }
+    private var cachedCustomGoalsByIdentifier: [String: MetricGoal] { viewModel.cachedCustomGoalsByIdentifier }
+    private var cachedDashboardItems: [HomeModuleLayoutItem] { viewModel.cachedDashboardItems }
+    private var cachedVisiblePhotoTiles: [HomePhotoTile] { viewModel.cachedVisiblePhotoTiles }
+    private var cachedNextFocusInsight: HomeNextFocusInsight? { viewModel.cachedNextFocusInsight }
 
     private let maxVisibleMetrics = 5
     private let maxVisiblePhotos = 6
@@ -433,49 +435,16 @@ struct HomeView: View {
     }
 
     private func refreshMeasurementCaches(allowFallbackFetch: Bool = true) {
-        var grouped: [MetricKind: [MetricSample]] = [:]
-        var latest: [MetricKind: MetricSample] = [:]
-        let kindsToKeep = Set(metricsStore.activeKinds).union([.waist, .height, .weight, .bodyFat, .leanBodyMass, .hips])
-
-        var customGrouped: [String: [MetricSample]] = [:]
-        var customLatest: [String: MetricSample] = [:]
-
-        for sample in recentSamples {
-            if sample.kindRaw.hasPrefix("custom_") {
-                customGrouped[sample.kindRaw, default: []].append(sample)
-                if customLatest[sample.kindRaw] == nil {
-                    customLatest[sample.kindRaw] = sample
-                }
-                continue
-            }
-            guard let kind = MetricKind(rawValue: sample.kindRaw) else { continue }
-            grouped[kind, default: []].append(sample)
-            if kindsToKeep.contains(kind), latest[kind] == nil {
-                latest[kind] = sample
-            }
-        }
-
-        cachedSamplesByKind = grouped
-        cachedLatestByKind = latest
-        cachedCustomSamplesByIdentifier = customGrouped
-        cachedCustomLatestByIdentifier = customLatest
-
-        // Cache custom goals
-        var customGoals: [String: MetricGoal] = [:]
-        for goal in goals where goal.kindRaw.hasPrefix("custom_") {
-            if customGoals[goal.kindRaw] == nil {
-                customGoals[goal.kindRaw] = goal
-            }
-        }
-        cachedCustomGoalsByIdentifier = customGoals
-
-        let fetchedMetricCount = allowFallbackFetch
-            ? ((try? modelContext.fetchCount(FetchDescriptor<MetricSample>())) ?? recentSamples.count)
-            : recentSamples.count
-        totalMetricSampleCount = fetchedMetricCount
-        hasAnyMeasurements = fetchedMetricCount > 0
-
-        rebuildNextFocusInsightCache()
+        viewModel.refreshMeasurementCaches(
+            recentSamples: recentSamples,
+            goals: goals,
+            activeKinds: metricsStore.activeKinds,
+            modelContext: modelContext,
+            allowFallbackFetch: allowFallbackFetch,
+            totalMetricSampleCountOut: &totalMetricSampleCount,
+            hasAnyMeasurementsOut: &hasAnyMeasurements,
+            nextFocusComputer: { computeNextFocusInsight() }
+        )
         refreshActivationProgress()
     }
 
@@ -768,29 +737,22 @@ struct HomeView: View {
 
     /// Przebudowuje goalsByKind na podstawie tablicy celow @Query.
     private func rebuildGoalsCache() {
-        var dict: [MetricKind: MetricGoal] = [:]
-        for goal in goals {
-            if let kind = MetricKind(rawValue: goal.kindRaw) {
-                dict[kind] = goal
-            }
-        }
-        cachedGoalsByKind = dict
-        rebuildNextFocusInsightCache()
+        viewModel.rebuildGoalsCache(
+            goals: goals,
+            nextFocusComputer: { computeNextFocusInsight() }
+        )
     }
 
     private func rebuildVisiblePhotoTilesCache() {
-        let persistedCandidateLimit = maxVisiblePhotos * 3
-        let persistedTiles = recentPhotos.prefix(persistedCandidateLimit).map { HomePhotoTile.persisted($0) }
-        let pendingTiles = pendingPhotoSaveStore.pendingItems.map { HomePhotoTile.pending($0) }
-        cachedVisiblePhotoTiles = Array(
-            (persistedTiles + pendingTiles)
-                .sorted { lhs, rhs in lhs.date > rhs.date }
-                .prefix(maxVisiblePhotos)
+        viewModel.rebuildVisiblePhotoTilesCache(
+            recentPhotos: Array(recentPhotos),
+            pendingItems: pendingPhotoSaveStore.pendingItems,
+            maxVisiblePhotos: maxVisiblePhotos
         )
     }
 
     private func rebuildNextFocusInsightCache() {
-        cachedNextFocusInsight = computeNextFocusInsight()
+        viewModel.rebuildNextFocusInsightCache(nextFocusComputer: { computeNextFocusInsight() })
     }
 
     private var dashboardColumns: Int {
@@ -802,16 +764,11 @@ struct HomeView: View {
     }
 
     private func rebuildDashboardItemsCache() {
-        let layout = settingsStore.homeLayoutSnapshot()
-        let runtimeVisibleItems = layout.items.map { item in
-            var next = item
-            next.isVisible = item.isVisible && shouldRenderModule(item.kind)
-            if item.kind == .summaryHero {
-                next.size = .wide
-            }
-            return next
-        }
-        cachedDashboardItems = HomeLayoutCompactor.compact(runtimeVisibleItems, columns: dashboardColumns)
+        viewModel.rebuildDashboardItemsCache(
+            settingsStore: settingsStore,
+            dashboardColumns: dashboardColumns,
+            shouldRenderModule: { shouldRenderModule($0) }
+        )
     }
 
     var body: some View {
