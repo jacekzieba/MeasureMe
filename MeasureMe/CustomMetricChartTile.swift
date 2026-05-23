@@ -8,6 +8,7 @@ struct CustomMetricChartTile: View {
 
     @Query private var samples: [MetricSample]
     @Query private var goals: [MetricGoal]
+    @State private var viewModel = CustomMetricChartTileViewModel()
 
     init(definition: CustomMetricDefinition, theme: FeatureTheme) {
         self.definition = definition
@@ -28,8 +29,8 @@ struct CustomMetricChartTile: View {
         )
     }
 
-    private var currentGoal: MetricGoal? { goals.first }
-    private var latest: MetricSample? { samples.last }
+    private var currentGoal: MetricGoal? { viewModel.currentGoal }
+    private var latest: MetricSample? { viewModel.latest }
 
     private var goalProgress: MetricGoalProgressSnapshot? {
         guard let goal = currentGoal, let latest else { return nil }
@@ -41,9 +42,9 @@ struct CustomMetricChartTile: View {
     }
 
     private var trendInfo: (delta: Double, outcome: MetricKind.TrendOutcome)? {
-        guard samples.count >= 2,
-              let last = samples.last,
-              let first = samples.first,
+        guard viewModel.samples.count >= 2,
+              let last = viewModel.samples.last,
+              let first = viewModel.samples.first,
               first.persistentModelID != last.persistentModelID else { return nil }
         let delta = last.value - first.value
         let outcome: MetricKind.TrendOutcome
@@ -58,10 +59,22 @@ struct CustomMetricChartTile: View {
     }
 
     var body: some View {
-        if samples.isEmpty {
-            emptyTile
-        } else {
-            fullTile
+        Group {
+            if viewModel.samples.isEmpty {
+                emptyTile
+            } else {
+                fullTile
+            }
+        }
+        .onAppear {
+            viewModel.samples = samples
+            viewModel.goals = goals
+        }
+        .onChange(of: samples) { _, newValue in
+            viewModel.samples = newValue
+        }
+        .onChange(of: goals) { _, newValue in
+            viewModel.goals = newValue
         }
     }
 
@@ -170,7 +183,7 @@ struct CustomMetricChartTile: View {
                     .frame(width: 126, alignment: .leading)
 
                     MetricTileSparklineChart(
-                        samples: samples,
+                        samples: viewModel.samples,
                         goal: currentGoal,
                         accent: theme.accent,
                         yDomain: yDomain,
@@ -215,7 +228,7 @@ struct CustomMetricChartTile: View {
     // MARK: - Helpers
 
     private var yDomain: ClosedRange<Double> {
-        let values = samples.map(\.value)
+        let values = viewModel.samples.map(\.value)
         guard let minVal = values.min(), let maxVal = values.max() else {
             return 0...1
         }
@@ -224,8 +237,8 @@ struct CustomMetricChartTile: View {
     }
 
     private var xDomain: ClosedRange<Date> {
-        guard let first = samples.first?.date,
-              let last = samples.last?.date else {
+        guard let first = viewModel.samples.first?.date,
+              let last = viewModel.samples.last?.date else {
             let start = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? AppClock.now
             return start...AppClock.now
         }
@@ -261,7 +274,7 @@ struct CustomMetricChartTile: View {
 
     private func baselineValue(for goal: MetricGoal) -> Double {
         if let startValue = goal.startValue { return startValue }
-        let sorted = samples.sorted { $0.date < $1.date }
+        let sorted = viewModel.samples.sorted { $0.date < $1.date }
         let anchorDate = goal.startDate ?? goal.createdDate
         if let baseline = sorted.last(where: { $0.date <= anchorDate }) {
             return baseline.value

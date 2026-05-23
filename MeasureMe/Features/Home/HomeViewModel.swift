@@ -2,10 +2,16 @@ import SwiftUI
 import SwiftData
 
 /// Lightweight @Observable ViewModel for HomeView.
-/// Holds the 9 cached properties that were previously @State in the view,
-/// along with their rebuild logic. The view still owns @Query, @AppSetting,
-/// and all SwiftUI state — it passes data in via refresh methods.
+/// Holds query results and cached computed properties.
+/// The view syncs @Query results here and reads data through the ViewModel.
 @Observable @MainActor final class HomeViewModel {
+
+    // MARK: - Query Results
+
+    var recentSamples: [MetricSample] = []
+    var goals: [MetricGoal] = []
+    var recentPhotos: [PhotoEntry] = []
+    var customDefinitions: [CustomMetricDefinition] = []
 
     // MARK: - Cached Properties (previously @State in HomeView)
 

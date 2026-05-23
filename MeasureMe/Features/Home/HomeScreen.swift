@@ -288,7 +288,7 @@ struct HomeView: View {
     }
 
     private var customDefinitionsMap: [String: CustomMetricDefinition] {
-        Dictionary(uniqueKeysWithValues: customDefinitions.map { ($0.identifier, $0) })
+        Dictionary(uniqueKeysWithValues: viewModel.customDefinitions.map { ($0.identifier, $0) })
     }
     
     
@@ -317,7 +317,7 @@ struct HomeView: View {
     }
 
     private var homeCompareCandidates: [PhotoEntry] {
-        recentPhotos
+        viewModel.recentPhotos
     }
 
     private var hasEnoughSavedPhotosForCompare: Bool {
@@ -435,6 +435,10 @@ struct HomeView: View {
     }
 
     private func refreshMeasurementCaches(allowFallbackFetch: Bool = true) {
+        viewModel.recentSamples = recentSamples
+        viewModel.goals = goals
+        viewModel.recentPhotos = Array(recentPhotos)
+        viewModel.customDefinitions = customDefinitions
         viewModel.refreshMeasurementCaches(
             recentSamples: recentSamples,
             goals: goals,
@@ -685,7 +689,7 @@ struct HomeView: View {
     }
 
     private func runCriticalStartupPhaseA() {
-        hasAnyMeasurements = !recentSamples.isEmpty
+        hasAnyMeasurements = !viewModel.recentSamples.isEmpty
         isLastPhotosSectionMounted = true
         isHealthSectionMounted = true
     }
@@ -2008,7 +2012,7 @@ struct HomeView: View {
         if let keyKind = dashboardVisibleMetrics.first,
            let keySample = cachedLatestByKind[keyKind] {
             selectedPair = (keyKind, keySample)
-        } else if let fallbackSample = recentSamples.first,
+        } else if let fallbackSample = viewModel.recentSamples.first,
                   let fallbackKind = MetricKind(rawValue: fallbackSample.kindRaw) {
             selectedPair = (fallbackKind, fallbackSample)
         } else {
@@ -2083,7 +2087,7 @@ struct HomeView: View {
         let milestoneThresholds: Set<Int> = [3, 7, 14, 30, 60, 100, 200]
         let now = AppClock.now
         let calendar = Calendar.current
-        let lastSampleDate = recentSamples.first?.date
+        let lastSampleDate = viewModel.recentSamples.first?.date
         let daysSinceLastSample: Int? = lastSampleDate.flatMap {
             calendar.dateComponents([.day], from: calendar.startOfDay(for: $0), to: calendar.startOfDay(for: now)).day
         }
@@ -2768,7 +2772,7 @@ struct HomeView: View {
 
     private var currentWeekCheckInDays: Int {
         let calendar = Calendar.current
-        let days = recentSamples
+        let days = viewModel.recentSamples
             .filter { calendar.isDate($0.date, equalTo: AppClock.now, toGranularity: .weekOfYear) }
             .map { calendar.startOfDay(for: $0.date) }
         return Set(days).count
@@ -2783,7 +2787,7 @@ struct HomeView: View {
 
     private var latestCheckInThisWeek: MetricSample? {
         let calendar = Calendar.current
-        return recentSamples.first { calendar.isDate($0.date, equalTo: AppClock.now, toGranularity: .weekOfYear) }
+        return viewModel.recentSamples.first { calendar.isDate($0.date, equalTo: AppClock.now, toGranularity: .weekOfYear) }
     }
 
     private var latestCheckInWeekday: String {
@@ -3605,7 +3609,7 @@ struct HomeView: View {
                     
                     Spacer()
                     
-                    if (recentPhotos.count + pendingPhotoSaveStore.pendingItems.count) > maxVisiblePhotos {
+                    if (viewModel.recentPhotos.count + pendingPhotoSaveStore.pendingItems.count) > maxVisiblePhotos {
                         Button {
                             router.selectedTab = .photos
                         } label: {

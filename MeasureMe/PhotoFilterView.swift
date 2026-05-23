@@ -2,15 +2,13 @@ import SwiftUI
 import SwiftData
 
 struct PhotoFilterView: View {
-    
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @ObservedObject var filters: PhotoFilters
-    
-    @Query private var allPhotos: [PhotoEntry]
 
-    /// Cache tagów — aktualizowany tylko przy zmianie bazy, nie przy każdym re-renderze.
-    @State private var availableTags: [PhotoTag] = []
+    @Query private var allPhotos: [PhotoEntry]
+    @State private var viewModel = PhotoFilterViewModel()
 
     var body: some View {
         NavigationStack {
@@ -18,7 +16,7 @@ struct PhotoFilterView: View {
                 AppScreenBackground(topHeight: 220, tint: Color.cyan.opacity(0.16))
                 Form {
                     dateRangeSection
-                    if !availableTags.isEmpty {
+                    if !viewModel.availableTags.isEmpty {
                         tagsSection
                     }
                 }
@@ -50,8 +48,8 @@ struct PhotoFilterView: View {
                 }
             }
         }
-        .onAppear { updateAvailableTags() }
-        .onChange(of: allPhotos) { updateAvailableTags() }
+        .onAppear { viewModel.updateAvailableTags(from: allPhotos) }
+        .onChange(of: allPhotos) { viewModel.updateAvailableTags(from: allPhotos) }
     }
 }
 
@@ -102,12 +100,6 @@ private extension PhotoFilterView {
 
     /// Skanuje allPhotos raz (przy pojawieniu się widoku lub zmianie bazy)
     /// i zapisuje wynik w @State, unikając powtórnych przeliczeń przy każdym re-renderze.
-    func updateAvailableTags() {
-        var tags = Set<PhotoTag>()
-        for photo in allPhotos { tags.formUnion(photo.tags) }
-        availableTags = tags.sorted { $0.title < $1.title }
-    }
-
     var tagsSection: some View {
         Section {
             if filters.selectedTags.isEmpty {
@@ -115,7 +107,7 @@ private extension PhotoFilterView {
                     .foregroundStyle(.secondary)
             }
             
-            ForEach(availableTags) { tag in
+            ForEach(viewModel.availableTags) { tag in
                 tagRow(for: tag)
             }
         } header: {

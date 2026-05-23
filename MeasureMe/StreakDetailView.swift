@@ -61,6 +61,7 @@ struct StreakDetailView: View {
     @ObservedObject var streakManager: StreakManager
 
     @Query private var thisWeekSamples: [MetricSample]
+    @State private var viewModel = StreakDetailViewModel()
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -144,7 +145,11 @@ struct StreakDetailView: View {
                 AllLogsView()
             }
             .onAppear {
+                viewModel.thisWeekSamples = thisWeekSamples
                 handleStreakDetailAppear()
+            }
+            .onChange(of: thisWeekSamples) { _, newValue in
+                viewModel.thisWeekSamples = newValue
             }
             .onChange(of: streakManager.isVacationModeActive) { _, _ in
                 handleVacationStateChange()
@@ -508,11 +513,7 @@ struct StreakDetailView: View {
 
     /// Day-offsets (from ISO week start) that have at least one MetricSample.
     private var activeDaysInWeek: Set<Int> {
-        let calendar = Calendar(identifier: .iso8601)
-        return Set(thisWeekSamples.compactMap { sample in
-            guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: sample.date)?.start else { return nil }
-            return calendar.dateComponents([.day], from: weekStart, to: sample.date).day
-        })
+        viewModel.activeDaysInWeek()
     }
 
     private func weekDayCell(_ day: WeekDay) -> some View {
@@ -1146,6 +1147,7 @@ private struct AllLogsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \CustomMetricDefinition.sortOrder)
     private var customDefinitions: [CustomMetricDefinition]
+    @State private var viewModel = AllLogsViewModel()
 
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
@@ -1176,7 +1178,7 @@ private struct AllLogsView: View {
     }
 
     private var customDefinitionByID: [String: CustomMetricDefinition] {
-        Dictionary(uniqueKeysWithValues: customDefinitions.map { ($0.identifier, $0) })
+        Dictionary(uniqueKeysWithValues: viewModel.customDefinitions.map { ($0.identifier, $0) })
     }
 
     private var activePredicate: Predicate<MetricSample>? {
@@ -1228,7 +1230,11 @@ private struct AllLogsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .onAppear {
+            viewModel.customDefinitions = customDefinitions
             handleAllLogsAppear()
+        }
+        .onChange(of: customDefinitions) { _, newValue in
+            viewModel.customDefinitions = newValue
         }
         .onChange(of: sourceFilter) { _, _ in
             handleAllLogsSourceFilterChange()

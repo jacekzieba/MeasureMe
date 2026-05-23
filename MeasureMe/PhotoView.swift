@@ -16,7 +16,8 @@ struct PhotoView: View {
     @EnvironmentObject private var router: AppRouter
     @ObservedObject private var photoPrivacyGate = PhotoPrivacyGate.shared
     @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)]) private var allPhotos: [PhotoEntry]
-    
+    @State private var viewModel = PhotoViewModel()
+
     @StateObject private var filters = PhotoFilters()
     @State private var showFilters = false
     @State private var showAddPhoto = false        // deep link / empty state
@@ -228,7 +229,11 @@ struct PhotoView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar { toolbarContent }
             .onAppear {
+                viewModel.allPhotos = allPhotos
                 handlePhotoViewAppear()
+            }
+            .onChange(of: allPhotos) { _, newValue in
+                viewModel.allPhotos = newValue
             }
             .onChange(of: router.photoComposerRequestID) { _, _ in
                 handlePhotoComposerRequestChange()
@@ -269,7 +274,7 @@ struct PhotoView: View {
                 if UIImagePickerController.isSourceTypeAvailable(.camera), !uiTestModeEnabled {
                     GuidedCameraView(
                         selectedImage: $cameraPickerImage,
-                        overlayImageData: allPhotos.first?.thumbnailOrImageData
+                        overlayImageData: viewModel.mostRecentPhotoThumbnailData
                     )
                 } else {
                     CameraPickerView(selectedImage: $cameraPickerImage)
@@ -325,7 +330,7 @@ struct PhotoView: View {
             }
             .sheet(item: $compareChooserContext) { context in
                 HomeCompareChooserSheet(
-                    photos: allPhotos,
+                    photos: viewModel.allPhotos,
                     initialOlderPhoto: context.olderPhoto,
                     initialNewerPhoto: context.newerPhoto,
                     preferredSlot: context.preferredSlot,

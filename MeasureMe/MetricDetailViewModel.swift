@@ -2,9 +2,15 @@ import SwiftUI
 import SwiftData
 
 /// Lightweight @Observable ViewModel for MetricDetailView.
-/// Holds the expensive cached chart state that was previously @State in the view.
-/// The view still owns @Query, @AppSetting, and all SwiftUI presentation state.
+/// Holds query results and cached chart state; the view syncs @Query results here
+/// and reads all data through the ViewModel.
 @Observable @MainActor final class MetricDetailViewModel {
+
+    // MARK: - Query Results
+
+    var samples: [MetricSample] = []
+    var goals: [MetricGoal] = []
+    var photos: [PhotoEntry] = []
 
     // MARK: - Cached Chart Calculations (previously @State in MetricDetailView)
 

@@ -8,14 +8,21 @@ struct HomeCompareChooserOnDemandSheet: View {
 
     @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)])
     private var photos: [PhotoEntry]
+    @State private var viewModel = HomeCompareChooserViewModel()
 
     var body: some View {
         HomeCompareChooserSheet(
-            photos: photos,
+            photos: viewModel.photos,
             initialOlderPhoto: initialOlderPhoto,
             initialNewerPhoto: initialNewerPhoto,
             onCompareSelected: onCompareSelected
         )
+        .onAppear {
+            viewModel.photos = photos
+        }
+        .onChange(of: photos) { _, newValue in
+            viewModel.photos = newValue
+        }
     }
 }
 

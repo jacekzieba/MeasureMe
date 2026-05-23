@@ -149,7 +149,7 @@ struct MetricDetailView: View {
     
     /// Current goal for this metric (can be nil)
     var currentGoal: MetricGoal? {
-        goals.first
+        detailViewModel.goals.first
     }
 
     var availableComparisonOptions: [MetricComparisonOption] {
@@ -230,7 +230,7 @@ struct MetricDetailView: View {
     }
     
     var relatedPhotos: [PhotoEntry] {
-        photos
+        detailViewModel.photos
     }
 
     var visiblePhotos: [PhotoEntry] {
@@ -242,7 +242,7 @@ struct MetricDetailView: View {
     }
 
     var comparisonCacheRefreshSignature: [PersistentIdentifier] {
-        samples.map(\.persistentModelID)
+        detailViewModel.samples.map(\.persistentModelID)
     }
 
     var previousSample: MetricSample? {
@@ -317,7 +317,7 @@ struct MetricDetailView: View {
     }
 
     var sortedSamplesAscending: [MetricSample] {
-        samples
+        detailViewModel.samples
     }
 
     var appleIntelligenceAvailable: Bool {
@@ -410,14 +410,28 @@ struct MetricDetailView: View {
         .onChange(of: chartRenderSamples.map(\.persistentModelID)) { _, _ in refreshChartCache() }
         .onChange(of: timeframe) { _, _ in refreshChartCache() }
         .onChange(of: currentGoal?.targetValue) { _, _ in refreshChartCache() }
-        .onAppear(perform: handleDetailAppear)
+        .onAppear {
+            detailViewModel.samples = samples
+            detailViewModel.goals = goals
+            detailViewModel.photos = photos
+            handleDetailAppear()
+        }
+        .onChange(of: samples) { _, newValue in
+            detailViewModel.samples = newValue
+        }
+        .onChange(of: goals) { _, newValue in
+            detailViewModel.goals = newValue
+        }
+        .onChange(of: photos) { _, newValue in
+            detailViewModel.photos = newValue
+        }
     }
 
     @ViewBuilder
     private var addMeasurementSheetContent: some View {
         AddMetricSampleView(
             kind: kind,
-            defaultMetricValue: samples.last?.value
+            defaultMetricValue: detailViewModel.samples.last?.value
         ) { date, metricValue in
             add(date: date, value: metricValue)
         }
@@ -488,7 +502,7 @@ struct MetricDetailView: View {
     @ViewBuilder
     private var detailContent: some View {
         VStack(alignment: .leading, spacing: 20) {
-            if samples.isEmpty {
+            if detailViewModel.samples.isEmpty {
                 emptyStateSection
                 howToMeasureSection
             } else {
@@ -1175,7 +1189,7 @@ struct MetricDetailView: View {
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionHeader(AppLocalization.string("History")) {
-                if samples.count > historyLimit {
+                if detailViewModel.samples.count > historyLimit {
                     Button(showAllHistory ? AppLocalization.string("Show Less") : AppLocalization.string("View All")) {
                         showAllHistory.toggle()
                     }
