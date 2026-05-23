@@ -928,9 +928,9 @@ private struct SettingsUITestHostView: View {
                         .buttonStyle(AppAccentButtonStyle())
                         .accessibilityIdentifier("postpurchase.getstarted")
                     }
-                    .padding(24)
+                    .padding(AppSpacing.lg)
                     .frame(maxWidth: .infinity)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
                     .padding(.horizontal, 16)
                     .padding(.bottom, 20)
                     .accessibilityIdentifier("postpurchase.sheet")
@@ -968,7 +968,7 @@ private struct SettingsUITestPaywallOverlay: View {
                 Text(AppLocalization.string("iCloud Backup"))
                     .font(AppTypography.bodyEmphasis)
                     .foregroundStyle(AppColorRoles.textPrimary)
-                    .padding(12)
+                    .padding(AppSpacing.sm)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .accessibilityIdentifier("premium.carousel.unlock.item.icloud")
 

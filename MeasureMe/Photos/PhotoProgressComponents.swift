@@ -48,7 +48,7 @@ struct PhotoCompareHeroCard: View {
     var body: some View {
         AppGlassCard(
             depth: .floating,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: photosTheme.strongTint,
             contentPadding: 16
         ) {
@@ -162,7 +162,7 @@ struct PhotoCompareHeroCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                     .fill(AppColorRoles.surfaceInteractive)
             )
         }
@@ -243,7 +243,7 @@ struct PhotoSessionSummaryCard: View {
                 .foregroundStyle(AppColorRoles.textPrimary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(AppSpacing.sm)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)

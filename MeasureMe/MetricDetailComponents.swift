@@ -485,7 +485,7 @@ struct MetricCompareSheet: View {
                             }
                             .padding(14)
                             .background(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                                     .fill(AppColorRoles.surfaceInteractive)
                             )
                         }
@@ -547,7 +547,7 @@ struct MetricCompareSheet: View {
         }
         .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
         )
     }
@@ -587,7 +587,7 @@ struct MetricCompareSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
         )
     }
@@ -602,7 +602,7 @@ struct MetricCompareSheet: View {
                 .foregroundStyle(AppColorRoles.textSecondary)
             Spacer(minLength: 0)
         }
-        .padding(16)
+        .padding(AppSpacing.md)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
@@ -784,7 +784,7 @@ struct MetricCompareSheet: View {
                 }
             }
         }
-        .padding(16)
+        .padding(AppSpacing.md)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
@@ -819,7 +819,7 @@ struct MetricCompareSheet: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                 .fill(AppColorRoles.surfaceCanvas.opacity(0.72))
         )
     }

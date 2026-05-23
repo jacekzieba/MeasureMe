@@ -112,7 +112,7 @@ private struct HomeAIInsightsPanel: View {
     var body: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: FeatureTheme.premium.softTint,
             contentPadding: 16
         ) {
@@ -315,7 +315,7 @@ struct HomeAIAnalysisView: View {
     private func analysisCard(_ item: HomeAIAnalysisItem) -> some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: tint(for: item.tone).opacity(0.16),
             contentPadding: 16
         ) {
@@ -325,7 +325,7 @@ struct HomeAIAnalysisView: View {
                     .foregroundStyle(tint(for: item.tone))
                     .frame(width: 44, height: 44)
                     .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .fill(tint(for: item.tone).opacity(0.16))
                     )
 
@@ -481,7 +481,7 @@ private func metricTileScaffold<Icon: View, Chart: View>(
             icon()
                 .frame(width: 30, height: 30)
                 .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                         .fill(style.accent.opacity(0.16))
                 )
 
@@ -539,7 +539,7 @@ private func metricTileScaffold<Icon: View, Chart: View>(
                 : AppLocalization.string("home.keymetrics.action.setTarget")
         )
     }
-    .padding(16)
+    .padding(AppSpacing.md)
     .frame(maxWidth: .infinity, minHeight: 228, alignment: .topLeading)
     .background(
         RoundedRectangle(cornerRadius: 22, style: .continuous)

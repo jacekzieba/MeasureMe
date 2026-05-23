@@ -990,7 +990,7 @@ struct MetricDetailView: View {
         .padding(.vertical, 6)
         .padding(.horizontal, 10)
         .background(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: AppRadius.sm)
                 .fill(color.opacity(0.06))
         )
     }
@@ -1074,7 +1074,7 @@ struct MetricDetailView: View {
         let periodLabel = AppLocalization.string(period.labelKey)
 
         VStack(spacing: 6) {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                 .fill(tileColor)
                 .overlay(
                     Text(result.map { kind.formattedDisplayValue(abs($0.displayDelta), unitsSystem: unitsSystem, includeUnit: false) } ?? "—")
@@ -1127,7 +1127,7 @@ struct MetricDetailView: View {
     }
 
     private var heroCardBackground: some View {
-        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous)
 
         return shape
             .fill(
@@ -1378,7 +1378,7 @@ struct MetricDetailView: View {
             }
             .padding(14)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                     .fill(AppColorRoles.surfaceInteractive)
             )
         } else {
@@ -1421,7 +1421,7 @@ struct MetricDetailView: View {
                 }
                 .padding(14)
                 .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                         .fill(AppColorRoles.surfaceInteractive)
                 )
             }
@@ -1530,7 +1530,7 @@ struct MetricDetailView: View {
     }
 
     private func actionCardBackground(accent: Color, isActive: Bool) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
         let fillColors: [Color] = {
             if colorScheme == .dark {
                 return [
@@ -1885,7 +1885,7 @@ struct MetricDetailView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                 .fill(AppColorRoles.surfaceCanvas.opacity(0.68))
         )
     }

@@ -1122,7 +1122,7 @@ struct MetricChartTile: View {
                         .accessibilityChartDescriptor(MetricChartAXDescriptor(descriptor: chartDescriptor))
                     }
                 }
-                .padding(16)
+                .padding(AppSpacing.md)
 
                 if let footerInsightText {
                     Divider()

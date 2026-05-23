@@ -508,10 +508,10 @@ struct PhysiqueIndicatorsSection: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                 .fill(AppColorRoles.surfacePrimary)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                         .fill(
                             ClaudeLightStyle.directionalGradient(
                                 colors: [AppColorRoles.accentPhysique.opacity(0.16), .clear],
@@ -523,7 +523,7 @@ struct PhysiqueIndicatorsSection: View {
                         )
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                         .stroke(Color.dynamic(light: AppColorRoles.accentPhysique.opacity(0.18), dark: AppColorRoles.accentPhysique.opacity(0.28)), lineWidth: 1)
                 )
         )
@@ -612,12 +612,12 @@ private struct PhysiqueMetricRow<Destination: View>: View {
                 }
             }
             .frame(minHeight: 44)
-            .padding(12)
+            .padding(AppSpacing.sm)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                     .fill(AppColorRoles.surfaceInteractive)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                             .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )
@@ -651,7 +651,7 @@ private struct PhysiqueRequiresGenderCard: View {
             .accessibilityIdentifier("physique.requires.gender.cta")
             .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 8))
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -710,7 +710,7 @@ private struct PhysiqueRatioDetailView: View {
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .fill(AppColorRoles.surfacePrimary)
                     )
 
@@ -741,7 +741,7 @@ private struct PhysiqueRatioDetailView: View {
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .fill(AppColorRoles.surfaceInteractive)
                     )
                 }
@@ -766,7 +766,7 @@ private struct PhysiqueRatioDetailView: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
         )
     }
@@ -805,7 +805,7 @@ private struct PhysiqueMissingDataDetailView: View {
                     }
                     .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 8))
                 }
-                .padding(16)
+                .padding(AppSpacing.md)
             }
         }
         .navigationTitle(metricName)
@@ -838,7 +838,7 @@ private struct GenderRequiredMetricView: View {
                     }
                     .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 8))
                 }
-                .padding(16)
+                .padding(AppSpacing.md)
             }
         }
         .navigationTitle(metricName)

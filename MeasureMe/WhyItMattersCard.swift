@@ -21,7 +21,7 @@ struct WhyItMattersCard: View {
                     ForEach(items) { item in
                         HStack(alignment: .top, spacing: 10) {
                             ZStack {
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                                     .fill(AppColorRoles.surfaceAccentSoft)
                                     .frame(width: 28, height: 28)
 
@@ -111,7 +111,7 @@ struct HealthInsightCard<Content: View>: View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
 
         content
-            .padding(16)
+            .padding(AppSpacing.md)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 shape
@@ -152,7 +152,7 @@ struct HealthInsightNoteCard<Content: View>: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
 
         content
             .padding(14)

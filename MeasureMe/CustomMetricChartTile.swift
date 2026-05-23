@@ -182,7 +182,7 @@ struct CustomMetricChartTile: View {
                     .frame(height: 96)
                 }
             }
-            .padding(16)
+            .padding(AppSpacing.md)
 
             Divider()
                 .overlay(AppColorRoles.borderSubtle.opacity(0.7))

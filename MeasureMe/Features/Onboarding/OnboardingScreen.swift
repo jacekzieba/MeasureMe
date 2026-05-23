@@ -387,11 +387,11 @@ struct OnboardingView: View {
                         .padding(.vertical, layout.nameFieldVerticalPadding)
                         .padding(.horizontal, 14)
                         .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                                 .fill(AppColorRoles.surfaceInteractive)
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                                 .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                         )
                         .focused($isNameFieldFocused)
@@ -451,12 +451,12 @@ struct OnboardingView: View {
                                         .font(.system(size: 20, weight: .semibold))
                                         .foregroundStyle(isSelected ? Color.appAccent : AppColorRoles.textTertiary)
                                 }
-                                .padding(16)
+                                .padding(AppSpacing.md)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                                         .fill(isSelected ? Color.appAccent.opacity(0.12) : AppColorRoles.surfaceInteractive)
                                         .overlay(
-                                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                                                 .stroke(isSelected ? Color.appAccent.opacity(0.45) : AppColorRoles.borderSubtle, lineWidth: 1)
                                         )
                                 )
@@ -734,12 +734,12 @@ struct OnboardingView: View {
             }
             .frame(height: 8)
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                 .fill(Color.appAccent.opacity(0.08))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                         .stroke(Color.appAccent.opacity(0.20), lineWidth: 1)
                 )
         )
@@ -1496,10 +1496,10 @@ struct OnboardingView: View {
         .padding(compact ? 12 : 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                         .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                 )
         )
@@ -2059,7 +2059,7 @@ private struct DummyMiniMetricChartCard: View {
 
     var body: some View {
         ZStack {
-            AppGlassBackground(depth: .elevated, cornerRadius: 24, tint: backgroundTint)
+            AppGlassBackground(depth: .elevated, cornerRadius: AppRadius.xl, tint: backgroundTint)
 
             VStack(alignment: .leading, spacing: compact ? 4 : AppSpacing.xs) {
                 Text(title)
@@ -2205,10 +2205,10 @@ private struct DummyAIInsightCard: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .fill(AppColorRoles.accentPrimary.opacity(0.10))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .stroke(AppColorRoles.accentPrimary.opacity(0.24), lineWidth: 1)
                     )
             )

@@ -23,12 +23,12 @@ struct OnboardingFeatureCard: View {
                     .foregroundStyle(Color.appGray)
             }
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColorRoles.surfaceInteractive)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                 .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
         )
     }
@@ -117,9 +117,9 @@ struct OnboardingEmptyStateCard: View {
         }
         .padding(14)
         .background(AppColorRoles.surfaceInteractive)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                 .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
         )
     }

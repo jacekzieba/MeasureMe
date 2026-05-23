@@ -267,9 +267,9 @@ struct PremiumPaywallView: View {
                         .buttonStyle(AppAccentButtonStyle())
                         .accessibilityIdentifier("postpurchase.getstarted")
                     }
-                    .padding(24)
+                    .padding(AppSpacing.lg)
                     .frame(maxWidth: .infinity)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
                     .padding(.horizontal, 16)
                     .padding(.bottom, 24)
                     .frame(maxHeight: .infinity, alignment: .bottom)
@@ -641,7 +641,7 @@ struct PremiumPaywallView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [slide.tint.opacity(0.34), slide.tint.opacity(0.14)],
@@ -650,7 +650,7 @@ struct PremiumPaywallView: View {
                         )
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .stroke(slide.tint.opacity(0.55), lineWidth: 1)
                     )
             )
@@ -785,9 +785,9 @@ struct PremiumPaywallView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
+                .padding(AppSpacing.sm)
                 .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                         .fill(Color.white.opacity(0.06))
                 )
                 #if DEBUG
@@ -901,10 +901,10 @@ struct PremiumPaywallView: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, minHeight: 44)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .fill(isSelected ? Color.appAccent.opacity(0.16) : Color.white.opacity(0.05))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .stroke(isSelected ? Color.appAccent : Color.white.opacity(0.14), lineWidth: 1)
                     )
             )

@@ -118,7 +118,7 @@ struct ComputedMetricDetailView: View {
                     .foregroundStyle(Color.bestAccessibleTextColor(onHex: classicCategoryColor))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(Color(hex: classicCategoryColor), in: RoundedRectangle(cornerRadius: 10))
+                    .background(Color(hex: classicCategoryColor), in: RoundedRectangle(cornerRadius: AppRadius.sm))
             }
 
             // BMI-specific age group info
@@ -137,7 +137,7 @@ struct ComputedMetricDetailView: View {
                 .foregroundStyle(AppColorRoles.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(24)
+        .padding(AppSpacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
@@ -448,7 +448,7 @@ struct ComputedMetricDetailView: View {
                 .foregroundStyle(AppColorRoles.textTertiary)
                 .italic()
         }
-        .padding(16)
+        .padding(AppSpacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             Color.appAccent.opacity(colorScheme == .dark ? 0.10 : 0.08),

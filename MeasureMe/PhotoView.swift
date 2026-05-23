@@ -207,7 +207,7 @@ struct PhotoView: View {
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 240)
                                     .background(.ultraThinMaterial)
-                                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
                                     .padding(.horizontal, 12)
                                     .padding(.bottom, 12)
                             }
@@ -1579,7 +1579,7 @@ private struct PhotoGridHeroSkeleton: View {
     }
 
     var body: some View {
-        SkeletonBlock(cornerRadius: 24, opacity: 0.18)
+        SkeletonBlock(cornerRadius: AppRadius.xl, opacity: 0.18)
             .frame(height: 280)
             .skeletonShimmer(enabled: shouldShimmer)
     }
@@ -1591,7 +1591,7 @@ private struct PhotoPrivacyLockedView: View {
     var body: some View {
         AppGlassCard(
             depth: .floating,
-            cornerRadius: 18,
+            cornerRadius: AppRadius.lg,
             tint: FeatureTheme.photos.strongTint,
             contentPadding: 18
         ) {

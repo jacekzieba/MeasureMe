@@ -243,7 +243,7 @@ struct GuidedCameraView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
-                .padding(24)
+                .padding(AppSpacing.lg)
                 .background(Color.black.opacity(0.78), in: RoundedRectangle(cornerRadius: 12))
                 .padding()
             }

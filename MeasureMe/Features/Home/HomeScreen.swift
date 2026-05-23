@@ -2658,7 +2658,7 @@ struct HomeView: View {
     private var greetingCard: some View {
         return AppGlassCard(
             depth: .floating,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.appAccent.opacity(0.26),
             contentPadding: 16
         ) {
@@ -3037,10 +3037,10 @@ struct HomeView: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                         .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                 )
         )
@@ -3089,7 +3089,7 @@ struct HomeView: View {
                 .foregroundStyle(AppColorRoles.textSecondary)
                 .lineLimit(2)
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -3140,7 +3140,7 @@ struct HomeView: View {
             }
             .foregroundStyle(AppColorRoles.textSecondary)
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -3474,7 +3474,7 @@ struct HomeView: View {
     private var measurementsSection: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.appAccent.opacity(0.18),
             contentPadding: 16
         ) {
@@ -3503,7 +3503,7 @@ struct HomeView: View {
                         .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
                         .accessibilityIdentifier("home.quickadd.button")
                     }
-                    .padding(12)
+                    .padding(AppSpacing.sm)
                     .background(AppColorRoles.surfacePrimary)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 } else if visibleMetrics.isEmpty {
@@ -3554,7 +3554,7 @@ struct HomeView: View {
     private var lastPhotosPlaceholder: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.cyan.opacity(0.14),
             contentPadding: 16
         ) {
@@ -3573,7 +3573,7 @@ struct HomeView: View {
     private var healthSectionPlaceholder: some View {
         AppGlassCard(
             depth: .base,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.cyan.opacity(0.16),
             contentPadding: 12
         ) {
@@ -3592,7 +3592,7 @@ struct HomeView: View {
     private var lastPhotosSection: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.cyan.opacity(0.14),
             contentPadding: 16
         ) {
@@ -3634,7 +3634,7 @@ struct HomeView: View {
     private var lastPhotosEmptyState: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.cyan.opacity(0.14),
             contentPadding: 16
         ) {

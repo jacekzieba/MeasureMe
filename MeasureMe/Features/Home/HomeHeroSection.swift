@@ -296,10 +296,10 @@ struct HomeHeroSection: View {
             .padding(summaryCardPadding)
             .frame(maxWidth: .infinity, minHeight: snapshot.prefersStackedPanels ? 116 : 104, alignment: .topLeading)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                     .fill(AppColorRoles.surfaceInteractive.opacity(colorScheme == .dark ? 0.72 : 1.0))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                             .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )
@@ -455,13 +455,13 @@ struct HomeHeroSection: View {
                     .font(AppTypography.microEmphasis)
                     .foregroundStyle(accent)
             }
-            .padding(12)
+            .padding(AppSpacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                     .fill(AppColorRoles.surfaceInteractive)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                             .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )
@@ -493,10 +493,10 @@ struct HomeHeroSection: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                 .fill(pillFill)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                         .stroke(pillStroke, lineWidth: 1)
                 )
         )
@@ -571,10 +571,10 @@ struct HomeHeroSection: View {
 
     private func pulseBackground(for tint: HeroPulseTint) -> some View {
         let color = pulseTintColor(tint)
-        return RoundedRectangle(cornerRadius: 18, style: .continuous)
+        return RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
             .fill(color.opacity(colorScheme == .dark ? 0.14 : 0.10))
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                     .stroke(color.opacity(0.32), lineWidth: 1)
             )
     }
@@ -709,7 +709,7 @@ struct HomeHeroSection: View {
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(12)
+            .padding(AppSpacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)

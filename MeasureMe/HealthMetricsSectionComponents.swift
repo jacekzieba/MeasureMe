@@ -22,7 +22,7 @@ struct HealthMetricsSectionCard<Content: View>: View {
             // Metryki
             content
         }
-        .padding(16)
+        .padding(AppSpacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -102,10 +102,10 @@ struct HealthMetricRow<Destination: View>: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 14)
             .background(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: AppRadius.sm)
                     .fill(AppColorRoles.surfaceInteractive)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10)
+                        RoundedRectangle(cornerRadius: AppRadius.sm)
                             .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )
