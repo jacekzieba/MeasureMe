@@ -38,9 +38,6 @@ struct MetricDetailView: View {
     
     @Query var photos: [PhotoEntry]
 
-    @Query(sort: [SortDescriptor(\MetricSample.date, order: .forward)])
-    private var allMetricSamples: [MetricSample]
-
     // MARK: - State Properties
     @State var showAddSheet = false
     @State var editingSample: MetricSample?
@@ -59,7 +56,12 @@ struct MetricDetailView: View {
     @State private var isEditingCommitment = false
     @State private var commitmentInput: String = ""
     @State private var comparisonCache = ComparisonCache()
-    
+
+    // MARK: - Cached Chart Calculations
+    // These are expensive to compute on every render; cached here and refreshed via .onChange
+    @State private var cachedYDomain: ClosedRange<Double> = 0...1
+    @State private var cachedTrendlineSegment: (startDate: Date, startValue: Double, endDate: Date, endValue: Double)? = nil
+
     @AppSetting(\.experience.photosFilterTag) var photosFilterTag: String = ""
 
     /// System jednostek: "metric" (kg, cm) lub "imperial" (lb, in)
@@ -239,7 +241,7 @@ struct MetricDetailView: View {
     }
 
     var comparisonCacheRefreshSignature: [PersistentIdentifier] {
-        allMetricSamples.map(\.persistentModelID)
+        samples.map(\.persistentModelID)
     }
 
     var previousSample: MetricSample? {
@@ -404,6 +406,9 @@ struct MetricDetailView: View {
             endChartScrubbing()
         }
         .onChange(of: comparisonCacheRefreshSignature) { _, _ in handleAllMetricSamplesCountChange() }
+        .onChange(of: chartRenderSamples.map(\.persistentModelID)) { _, _ in refreshChartCache() }
+        .onChange(of: timeframe) { _, _ in refreshChartCache() }
+        .onChange(of: currentGoal?.targetValue) { _, _ in refreshChartCache() }
         .onAppear(perform: handleDetailAppear)
     }
 
@@ -500,7 +505,10 @@ struct MetricDetailView: View {
     }
 
     private func rebuildComparisonCache() {
-        let grouped = Dictionary(grouping: allMetricSamples) { $0.kindRaw }
+        let allSamples = (try? context.fetch(FetchDescriptor<MetricSample>(
+            sortBy: [SortDescriptor(\.date, order: .forward)]
+        ))) ?? []
+        let grouped = Dictionary(grouping: allSamples) { $0.kindRaw }
         var samplesByKind: [MetricKind: [MetricSample]] = [:]
 
         let options = MetricKind.allCases.compactMap { candidate -> MetricComparisonOption? in
@@ -567,7 +575,8 @@ struct MetricDetailView: View {
     private func handleAllMetricSamplesCountChange() {
         rebuildComparisonCache()
         guard let comparisonKind else { return }
-        let stillExists = allMetricSamples.contains { $0.kindRaw == comparisonKind.rawValue }
+        let stillExists = comparisonCache.samplesByKind[comparisonKind] != nil &&
+            !(comparisonCache.samplesByKind[comparisonKind]?.isEmpty ?? true)
         if !stillExists {
             self.comparisonKind = nil
         }
@@ -575,6 +584,51 @@ struct MetricDetailView: View {
 
     private func handleDetailAppear() {
         rebuildComparisonCache()
+        refreshChartCache()
+    }
+
+    private func refreshChartCache() {
+        cachedYDomain = computeYDomain()
+        cachedTrendlineSegment = computeTrendlineSegment()
+    }
+
+    private func computeYDomain() -> ClosedRange<Double> {
+        var values = chartRenderSamples.map { displayValue($0.value) }
+        if let goal = currentGoal {
+            values.append(displayValue(goal.targetValue))
+        }
+        return Self.chartDomain(for: values, kind: kind)
+    }
+
+    private func computeTrendlineSegment() -> (startDate: Date, startValue: Double, endDate: Date, endValue: Double)? {
+        guard chartTrendSamples.count >= 2 else { return nil }
+
+        let times = chartTrendSamples.map { $0.date.timeIntervalSinceReferenceDate }
+        let values = chartTrendSamples.map { displayValue($0.value) }
+
+        let count = Double(values.count)
+        let sumX = times.reduce(0, +)
+        let sumY = values.reduce(0, +)
+        let sumXY = zip(times, values).reduce(0) { $0 + ($1.0 * $1.1) }
+        let sumXX = times.reduce(0) { $0 + ($1 * $1) }
+
+        let denominator = (count * sumXX - sumX * sumX)
+        guard denominator != 0 else { return nil }
+
+        let slope = (count * sumXY - sumX * sumY) / denominator
+        let intercept = (sumY - slope * sumX) / count
+
+        guard let startTime = times.first, let endTime = times.last,
+              let firstSample = chartTrendSamples.first, let lastSample = chartTrendSamples.last else { return nil }
+        let startValue = slope * startTime + intercept
+        let endValue = slope * endTime + intercept
+
+        return (
+            startDate: firstSample.date,
+            startValue: startValue,
+            endDate: lastSample.date,
+            endValue: endValue
+        )
     }
 
     @ViewBuilder
@@ -1605,7 +1659,7 @@ struct MetricDetailView: View {
 
     var chartView: some View {
         Chart {
-            if showTrendline, let trend = trendlineSegment {
+            if showTrendline, let trend = cachedTrendlineSegment {
                 ForEach(trendlinePoints(trend), id: \.date) { point in
                     LineMark(
                         x: .value("Date", point.date),
@@ -1621,7 +1675,7 @@ struct MetricDetailView: View {
             ForEach(chartRenderSamples, id: \.persistentModelID) { s in
                 AreaMark(
                     x: .value("Date", s.date),
-                    yStart: .value("Baseline", yDomain.lowerBound),
+                    yStart: .value("Baseline", cachedYDomain.lowerBound),
                     yEnd: .value("Value", displayValue(s.value))
                 )
                 .interpolationMethod(.monotone)
@@ -1689,7 +1743,7 @@ struct MetricDetailView: View {
                 }
             }
         }
-        .chartYScale(domain: yDomain)
+        .chartYScale(domain: cachedYDomain)
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 3)) { _ in
                 AxisGridLine().foregroundStyle(AppColorRoles.borderSubtle)
@@ -1849,37 +1903,6 @@ struct MetricDetailView: View {
         }
     }
 
-    var trendlineSegment: (startDate: Date, startValue: Double, endDate: Date, endValue: Double)? {
-        guard chartTrendSamples.count >= 2 else { return nil }
-
-        let times = chartTrendSamples.map { $0.date.timeIntervalSinceReferenceDate }
-        let values = chartTrendSamples.map { displayValue($0.value) }
-        
-        let count = Double(values.count)
-        let sumX = times.reduce(0, +)
-        let sumY = values.reduce(0, +)
-        let sumXY = zip(times, values).reduce(0) { $0 + ($1.0 * $1.1) }
-        let sumXX = times.reduce(0) { $0 + ($1 * $1) }
-        
-        let denominator = (count * sumXX - sumX * sumX)
-        guard denominator != 0 else { return nil }
-        
-        let slope = (count * sumXY - sumX * sumY) / denominator
-        let intercept = (sumY - slope * sumX) / count
-        
-        guard let startTime = times.first, let endTime = times.last,
-              let firstSample = chartTrendSamples.first, let lastSample = chartTrendSamples.last else { return nil }
-        let startValue = slope * startTime + intercept
-        let endValue = slope * endTime + intercept
-
-        return (
-            startDate: firstSample.date,
-            startValue: startValue,
-            endDate: lastSample.date,
-            endValue: endValue
-        )
-    }
-    
     func trendlinePoints(
         _ trend: (startDate: Date, startValue: Double, endDate: Date, endValue: Double)
     ) -> [(date: Date, value: Double)] {
@@ -1887,16 +1910,6 @@ struct MetricDetailView: View {
             (date: trend.startDate, value: trend.startValue),
             (date: trend.endDate, value: trend.endValue)
         ]
-    }
-
-    /// Dynamicznie oblicza zakres osi Y na podstawie danych i celu
-    /// Uwzględnia minimalny span i padding dla czytelności
-    var yDomain: ClosedRange<Double> {
-        var values = chartRenderSamples.map { displayValue($0.value) }
-        if let goal = currentGoal {
-            values.append(displayValue(goal.targetValue))
-        }
-        return Self.chartDomain(for: values, kind: kind)
     }
 
     private func updateScrubbedDate(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {

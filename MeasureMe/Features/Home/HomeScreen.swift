@@ -16,7 +16,7 @@ private extension Notification.Name {
 /// - Sekcja "Last Photos" z maksymalnie 6 ostatnimi zdjęciami (2 rzędy po 3)
 /// - Kolorystyka: wzrost = zielony, spadek = czerwony
 struct HomeView: View {
-    private static let homePhotoWindowDays = 3650
+    private static let homePhotoWindowDays = 365
     @ObservedObject private var settingsStore = AppSettingsStore.shared
 
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
