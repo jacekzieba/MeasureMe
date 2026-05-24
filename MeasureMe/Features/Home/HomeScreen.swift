@@ -74,8 +74,6 @@ struct HomeView: View {
     @Query private var customDefinitions: [CustomMetricDefinition]
     
     @State private var showQuickAddSheet = false
-    @State private var quickAddKinds: [MetricKind] = []
-    @State private var quickAddTelemetrySource: MeasurementTelemetrySource = .quickAdd
     @State private var showActivationMetricsSheet = false
     @State private var showActivationAddPhotoSheet = false
     @State private var showHomeSettingsSheet = false
@@ -83,29 +81,11 @@ struct HomeView: View {
     @State private var showStreakDetail = false
     @State private var showGoalStatusLegendSheet = false
     @State private var showActivationReminderPrompt = false
-    @State private var isRequestingActivationReminder = false
-    @State private var pendingActivationMetricCompletion = false
-    @State private var didShowActivationReminderPrompt = false
+    @State private var shouldPromptToOpenHealthSettings: Bool = false
     @State private var selectedPhotoForFullScreen: PhotoEntry?
     @State private var selectedHomeComparePair: HomeComparePair?
-    @State private var scrollOffset: CGFloat = 0
-    @State private var checklistStatusText: String?
-    @State private var isChecklistConnectingHealth: Bool = false
-    @State private var shouldShowHealthSettingsShortcut: Bool = false
-    @State private var shouldPromptToOpenHealthSettings: Bool = false
-    @State private var reminderChecklistCompleted: Bool = false
-    @State private var expandedSecondaryMetrics: Set<MetricKind> = []
-    @State private var didCheckSevenDayPaywallPrompt: Bool = false
-    @State private var didRunStartupPhases = false
-    @State private var didEmitHomeInitialRender = false
-    @State private var isPhotoMetricSyncInFlight = false
     @State private var hasAnySavedPhotosInStore = false
     @State private var hasEnoughSavedPhotosForCompareInStore = false
-    @State private var isLastPhotosSectionMounted = false
-    @State private var isHealthSectionMounted = false
-    @State private var deferredPhaseBTask: Task<Void, Never>?
-    @State private var deferredPhaseCTask: Task<Void, Never>?
-    @State private var deferredSectionMountTask: Task<Void, Never>?
     
     // Dane HealthKit
     @State var latestBodyFat: Double?
@@ -485,15 +465,15 @@ struct HomeView: View {
     ///   - If none exists, insert a new MetricSample.
     ///   - Nigdy nie usuwa MetricSample po usunieciu zdjecia; funkcja wykonuje tylko upsert.
     private func syncMeasurementsFromPhotosIfNeeded(force: Bool = false) async {
-        guard !isPhotoMetricSyncInFlight else { return }
+        guard !viewModel.isPhotoMetricSyncInFlight else { return }
         let mode = syncMode(force: force)
         let isIncrementalMode = mode == .incremental
-        isPhotoMetricSyncInFlight = true
+        viewModel.isPhotoMetricSyncInFlight = true
         defer {
             if isIncrementalMode {
                 StartupInstrumentation.event("HomePhotoSyncIncrementalEnd")
             }
-            isPhotoMetricSyncInFlight = false
+            viewModel.isPhotoMetricSyncInFlight = false
         }
 
         switch mode {
@@ -615,14 +595,14 @@ struct HomeView: View {
     }
 
     private func emitHomeInitialRenderIfNeeded() {
-        guard !didEmitHomeInitialRender else { return }
-        didEmitHomeInitialRender = true
+        guard !viewModel.didEmitHomeInitialRender else { return }
+        viewModel.didEmitHomeInitialRender = true
         StartupInstrumentation.event("HomeInitialRender")
     }
 
     private func runStartupPhasesIfNeeded() {
-        guard !didRunStartupPhases else { return }
-        didRunStartupPhases = true
+        guard !viewModel.didRunStartupPhases else { return }
+        viewModel.didRunStartupPhases = true
         runCriticalStartupPhaseA()
         scheduleDeferredStartupPhaseB()
         scheduleDeferredStartupPhaseC()
@@ -631,13 +611,13 @@ struct HomeView: View {
 
     private func runCriticalStartupPhaseA() {
         hasAnyMeasurements = !viewModel.recentSamples.isEmpty
-        isLastPhotosSectionMounted = true
-        isHealthSectionMounted = true
+        viewModel.isLastPhotosSectionMounted = true
+        viewModel.isHealthSectionMounted = true
     }
 
     private func scheduleDeferredStartupPhaseB() {
-        deferredPhaseBTask?.cancel()
-        deferredPhaseBTask = Task { @MainActor in
+        viewModel.deferredPhaseBTask?.cancel()
+        viewModel.deferredPhaseBTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(900))
             guard !Task.isCancelled else { return }
             refreshMeasurementCaches()
@@ -652,8 +632,8 @@ struct HomeView: View {
         delayMilliseconds: Int = 1500,
         forceSync: Bool = false
     ) {
-        deferredPhaseCTask?.cancel()
-        deferredPhaseCTask = Task { @MainActor in
+        viewModel.deferredPhaseCTask?.cancel()
+        viewModel.deferredPhaseCTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(delayMilliseconds))
             guard !Task.isCancelled else { return }
 
@@ -666,16 +646,16 @@ struct HomeView: View {
     }
 
     private func scheduleDeferredSectionMounts() {
-        deferredSectionMountTask?.cancel()
-        deferredSectionMountTask = Task { @MainActor in
+        viewModel.deferredSectionMountTask?.cancel()
+        viewModel.deferredSectionMountTask = Task { @MainActor in
             guard !Task.isCancelled else { return }
             StartupInstrumentation.event("HomeLastPhotosMountStart")
-            isLastPhotosSectionMounted = true
+            viewModel.isLastPhotosSectionMounted = true
             StartupInstrumentation.event("HomeLastPhotosMountEnd")
 
             guard !Task.isCancelled else { return }
             StartupInstrumentation.event("HomeHealthMountStart")
-            isHealthSectionMounted = true
+            viewModel.isHealthSectionMounted = true
             StartupInstrumentation.event("HomeHealthMountEnd")
         }
     }
@@ -741,130 +721,26 @@ struct HomeView: View {
 
     private var quickAddSheet: some View {
         QuickAddSheetView(
-            kinds: quickAddKinds.isEmpty ? metricsStore.activeKinds : quickAddKinds,
+            kinds: viewModel.quickAddKinds.isEmpty ? metricsStore.activeKinds : viewModel.quickAddKinds,
             latest: Dictionary(
                 uniqueKeysWithValues: cachedLatestByKind.map { ($0.key, ($0.value.value, $0.value.date)) }
             ),
             unitsSystem: unitsSystem,
-            telemetrySource: quickAddTelemetrySource
+            telemetrySource: viewModel.quickAddTelemetrySource
         ) {
-            quickAddKinds = []
-            quickAddTelemetrySource = .quickAdd
+            viewModel.quickAddKinds = []
+            viewModel.quickAddTelemetrySource = .quickAdd
             showQuickAddSheet = false
             refreshMeasurementCaches()
             refreshChecklistState()
         }
     }
 
-    private var homeUITestHooks: some View {
-        VStack(spacing: 0) {
-            if showActivationHub {
-                Text("1")
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .accessibilityIdentifier("home.module.activationHub.visible")
-                    .frame(width: 1, height: 1)
-                    .clipped()
-                Text(activationCurrentTask?.rawValue ?? "")
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .accessibilityIdentifier("home.activation.currentTask")
-                    .frame(width: 1, height: 1)
-                    .clipped()
-            }
-
-            if showHomeSettingsSheet {
-                Text("1")
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .accessibilityIdentifier("home.settings.sheet.present")
-                    .frame(width: 1, height: 1)
-                    .clipped()
-            }
-
-            Text(nextFocusInsight.accessibilityValue)
-                .font(.system(size: 1))
-                .foregroundStyle(.clear)
-                .accessibilityIdentifier("home.nextFocus.mode")
-                .frame(width: 1, height: 1)
-                .clipped()
-
-            Text(nextFocusInsight.cta)
-                .font(.system(size: 1))
-                .foregroundStyle(.clear)
-                .accessibilityIdentifier("home.nextFocus.cta")
-                .frame(width: 1, height: 1)
-                .clipped()
-
-            ForEach(homeSecondaryMetricUITestKinds, id: \.self) { kind in
-                Button {
-                    if expandedSecondaryMetrics.contains(kind) {
-                        expandedSecondaryMetrics.remove(kind)
-                    } else {
-                        expandedSecondaryMetrics.insert(kind)
-                    }
-                } label: {
-                    Color.clear
-                        .frame(width: 80, height: 80)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).toggle")
-            }
-
-            ForEach(Array(expandedSecondaryMetrics), id: \.self) { kind in
-                VStack {
-                    Color.clear
-                        .frame(width: 44, height: 44)
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("expanded")
-                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).expanded")
-                .frame(width: 44, height: 44)
-                .opacity(0.01)
-                .allowsHitTesting(false)
-            }
-
-            ForEach(Array(expandedSecondaryMetrics), id: \.self) { kind in
-                Button("collapse") { collapseSecondaryMetric(kind) }
-                .buttonStyle(.plain)
-                .frame(width: 44, height: 44)
-                .opacity(0.01)
-                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).collapseHook")
-            }
-
-            Text("\(expandedSecondaryMetrics.count)")
-                .font(.system(size: 1))
-                .foregroundStyle(.clear)
-                .accessibilityIdentifier("home.keyMetrics.secondary.expandedCount")
-                .frame(width: 1, height: 1)
-                .clipped()
-
-            Text(expandedSecondaryMetrics.map(\.rawValue).sorted().joined(separator: ","))
-                .font(.system(size: 1))
-                .foregroundStyle(.clear)
-                .accessibilityIdentifier("home.keyMetrics.secondary.expandedIDs")
-                .frame(width: 1, height: 1)
-                .clipped()
-        }
-    }
-
-    private var homeSecondaryMetricUITestKinds: [MetricKind] {
-        let visibleBuiltInSecondary = dashboardKeyIdentifiers.dropFirst().compactMap(MetricKind.init(rawValue:))
-        if !visibleBuiltInSecondary.isEmpty {
-            return visibleBuiltInSecondary
-        }
-
-        let fallbackKinds: [MetricKind] = [.bodyFat, .leanBodyMass, .waist]
-        let activeFallbackKinds = fallbackKinds.filter { metricsStore.activeKinds.contains($0) }
-        return activeFallbackKinds.isEmpty ? fallbackKinds : activeFallbackKinds
-    }
-
     private var baseHomeRoot: some View {
         ZStack(alignment: .top) {
             AppScreenBackground(
                 topHeight: 380,
-                scrollOffset: scrollOffset,
+                viewModel.scrollOffset: viewModel.scrollOffset,
                 tint: Color.cyan.opacity(0.22)
             )
 
@@ -895,101 +771,9 @@ struct HomeView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(scrollOffset < -16 ? .visible : .hidden, for: .navigationBar)
-        .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: isLastPhotosSectionMounted)
-        .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: isHealthSectionMounted)
-    }
-
-    private func sheetPresentedHomeRoot<Content: View>(_ content: Content) -> some View {
-        content
-            .sheet(isPresented: $showQuickAddSheet) {
-                quickAddSheet
-            }
-            .sheet(isPresented: $showActivationAddPhotoSheet) {
-                NavigationStack {
-                    AddPhotoView(telemetrySource: .activation, onSaved: {
-                        completeActivationTask(.addPhoto)
-                    })
-                    .environmentObject(metricsStore)
-                }
-            }
-            .sheet(isPresented: $showActivationMetricsSheet) {
-                ActivationMetricSelectionSheet(
-                    recommendedKinds: activationRecommendedKinds,
-                    metricsStore: metricsStore
-                ) {
-                    completeActivationTask(.chooseMetrics)
-                }
-            }
-            .sheet(isPresented: $showHomeSettingsSheet) {
-                NavigationStack {
-                    HomeSettingsDetailView()
-                }
-            }
-            .sheet(item: $selectedPhotoForFullScreen) { photo in
-                PhotoDetailView(photo: photo)
-            }
-            .sheet(isPresented: $showHomeCompareChooser) {
-                HomeCompareChooserOnDemandSheet(
-                    initialOlderPhoto: secondLatestSavedPhoto,
-                    initialNewerPhoto: latestSavedPhoto
-                ) { olderPhoto, newerPhoto in
-                    selectedHomeComparePair = HomeComparePair(olderPhoto: olderPhoto, newerPhoto: newerPhoto)
-                }
-                .presentationBackground(AppColorRoles.surfaceCanvas)
-            }
-            .sheet(item: $selectedHomeComparePair) { pair in
-                ComparePhotosView(olderPhoto: pair.olderPhoto, newerPhoto: pair.newerPhoto)
-            }
-            .sheet(isPresented: $showStreakDetail) {
-                StreakDetailView(streakManager: streakManager)
-            }
-            .sheet(isPresented: $showGoalStatusLegendSheet) {
-                GoalStatusLegendSheet(currentStatus: goalStatus, currentStatusColor: goalStatusColor)
-                    .presentationDetents([.fraction(0.42), .medium])
-                    .presentationDragIndicator(.visible)
-            }
-            .alert(
-                AppLocalization.string("Open iOS Settings now?"),
-                isPresented: $shouldPromptToOpenHealthSettings
-            ) {
-                Button(AppLocalization.string("Open iOS Settings")) {
-                    openAppSettings()
-                }
-                Button(AppLocalization.string("Not now"), role: .cancel) {}
-            } message: {
-                Text(AppLocalization.string("To enable Apple Health sync, go to iOS Settings → MeasureMe → Health."))
-            }
-            .alert(
-                FlowLocalization.app(
-                    "Want a nudge to log again tomorrow?",
-                    "Chcesz przypomnienie, żeby jutro znów coś zapisać?",
-                    "¿Quieres un recordatorio para registrar de nuevo mañana?",
-                    "Möchtest du morgen an den nächsten Eintrag erinnert werden?",
-                    "Voulez-vous un rappel pour enregistrer à nouveau demain ?",
-                    "Quer um lembrete para registrar de novo amanhã?"
-                ),
-                isPresented: $showActivationReminderPrompt
-            ) {
-                Button(FlowLocalization.app("Not now", "Nie teraz", "Ahora no", "Nicht jetzt", "Pas maintenant", "Agora não"), role: .cancel) {
-                    declineActivationReminderPrompt()
-                }
-                .accessibilityIdentifier("home.activation.reminder.skip")
-
-                Button(FlowLocalization.app("Remind me tomorrow", "Przypomnij mi jutro", "Recordarme mañana", "Morgen erinnern", "Me le rappeler demain", "Lembrar amanhã")) {
-                    acceptActivationReminderPrompt()
-                }
-                .accessibilityIdentifier("home.activation.reminder.accept")
-            } message: {
-                Text(FlowLocalization.app(
-                    "You just logged your first measurement. A timely reminder can help make the second one easier.",
-                    "Właśnie zapisano pierwszy pomiar. Dobre przypomnienie może ułatwić drugi.",
-                    "Acabas de registrar tu primera medida. Un recordatorio a tiempo puede facilitar la segunda.",
-                    "Du hast gerade deine erste Messung eingetragen. Eine passende Erinnerung macht die zweite leichter.",
-                    "Vous venez d'enregistrer votre première mesure. Un rappel au bon moment peut faciliter la deuxième.",
-                    "Você acabou de registrar sua primeira medição. Um lembrete no momento certo pode facilitar a segunda."
-                ))
-            }
+        .toolbarBackground(viewModel.scrollOffset < -16 ? .visible : .hidden, for: .navigationBar)
+        .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: viewModel.isLastPhotosSectionMounted)
+        .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: viewModel.isHealthSectionMounted)
     }
 
     private func lifecycleObservedHomeRoot<Content: View>(
@@ -1008,102 +792,14 @@ struct HomeView: View {
             }
     }
 
-    private func refreshingHomeRoot<Content: View>(_ content: Content) -> some View {
-        let contentWithMeasurementObservers = content
-            .onChange(of: recentSamplesSignature) { _, _ in
-                refreshMeasurementCaches()
-            }
-            .onChange(of: metricsStore.activeKinds) { _, _ in
-                refreshMeasurementCaches()
-                rebuildVisiblePhotoTilesCache()
-            }
-            .onChange(of: goals.count) { _, _ in
-                rebuildGoalsCache()
-                refreshActivationProgress()
-                rebuildDashboardItemsCache()
-            }
-
-        let contentWithChecklistObservers = contentWithMeasurementObservers
-            .onChange(of: settingsStore.snapshot.homeLayout.layoutData) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-            .onChange(of: horizontalSizeClass) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-            .onChange(of: isSyncEnabled) { _, _ in
-                refreshChecklistState()
-                fetchHealthKitData()
-            }
-            .onChange(of: recentPhotos.count) { _, _ in
-                refreshPhotoStoreState()
-                refreshChecklistState()
-                if didRunStartupPhases {
-                    scheduleDeferredStartupPhaseC(delayMilliseconds: 900)
-                }
-            }
-            .onChange(of: pendingPhotoItemsSignature) { _, _ in
-                refreshPhotoStoreState()
-            }
-            .onChange(of: onboardingChecklistMetricsCompleted) { _, _ in
-                refreshChecklistState()
-            }
-            .onChange(of: onboardingChecklistPremiumExplored) { _, _ in
-                refreshChecklistState()
-            }
-            .onChange(of: onboardingSkippedHealthKit) { _, _ in
-                refreshChecklistState()
-            }
-            .onChange(of: onboardingSkippedReminders) { _, _ in
-                refreshChecklistState()
-            }
-            .onChange(of: activationCurrentTaskID) { _, _ in
-                rebuildDashboardItemsCache()
-                trackCurrentActivationTaskViewed()
-            }
-            .onChange(of: activationIsDismissed) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-            .onChange(of: onboardingFlowVersion) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-
-        let observedContent = contentWithChecklistObservers
-            .onChange(of: showMeasurementsOnHome) { _, _ in
-                rebuildDashboardItemsCache()
-                rebuildNextFocusInsightCache()
-            }
-            .onChange(of: showLastPhotosOnHome) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-            .onChange(of: showHealthMetricsOnHome) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-            .onChange(of: router.selectedTab) { _, newTab in
-                if newTab == .home {
-                    refreshChecklistState()
-                }
-                if newTab == .measurements && !onboardingChecklistMetricsExplored && isWelcomeHomeState {
-                    onboardingChecklistMetricsExplored = true
-                    withAnimation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate)) {
-                        rebuildDashboardItemsCache()
-                    }
-                }
-            }
-
-        return observedContent
-            .refreshable {
-                await refreshHomeContent()
-            }
-    }
-
     private func handleHomeAppear() {
         Task { @MainActor in
             refreshPhotoStoreState()
             rebuildVisiblePhotoTilesCache()
             rebuildDashboardItemsCache()
             trackCurrentActivationTaskViewed()
-            if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
-                didCheckSevenDayPaywallPrompt = true
+            if autoCheckPaywallPrompt && !viewModel.didCheckSevenDayPaywallPrompt {
+                viewModel.didCheckSevenDayPaywallPrompt = true
                 premiumStore.checkSevenDayPromptIfNeeded()
                 // Home discovery prompt — only if user has built up enough data
                 // to feel value (≥2 measurements OR ≥1 photo). Coordinator
@@ -1123,7 +819,7 @@ struct HomeView: View {
     }
 
     private func handleHomeDisappear() {
-        expandedSecondaryMetrics.removeAll()
+        viewModel.expandedSecondaryMetrics.removeAll()
     }
 
     private func scrollToChecklist(using scrollProxy: ScrollViewProxy) {
@@ -1134,7 +830,7 @@ struct HomeView: View {
     }
 
     private func handleHomeScrollOffsetChange(_ value: CGFloat) {
-        scrollOffset = value
+        viewModel.scrollOffset = value
         let normalizedOffset = Double(value)
         // Defer AppSetting write to avoid publishing during the view-update pass.
         if abs(homeTabScrollOffset - normalizedOffset) > 8 {
@@ -1156,7 +852,7 @@ struct HomeView: View {
 
     private func collapseSecondaryMetric(_ kind: MetricKind) {
         withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-            _ = expandedSecondaryMetrics.remove(kind)
+            _ = viewModel.expandedSecondaryMetrics.remove(kind)
         }
     }
 
@@ -1754,7 +1450,7 @@ struct HomeView: View {
 
     private var recentPhotosModule: some View {
         Group {
-            if isLastPhotosSectionMounted {
+            if viewModel.isLastPhotosSectionMounted {
                 if hasAnyPhotoContent {
                     recentPhotosContentModule
                 } else {
@@ -1793,7 +1489,7 @@ struct HomeView: View {
 
     private var healthSummaryModule: some View {
         Group {
-            if isHealthSectionMounted {
+            if viewModel.isHealthSectionMounted {
                 HomeHealthSummaryCard(
                     snapshot: HomeHealthSummarySnapshot(
                         subtitle: healthModuleSubtitle,
@@ -2786,13 +2482,13 @@ struct HomeView: View {
             kind: kind,
             latestText: latestText,
             detailText: detailText,
-            isExpanded: expandedSecondaryMetrics.contains(kind),
+            isExpanded: viewModel.expandedSecondaryMetrics.contains(kind),
             onToggle: {
                 withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-                    if expandedSecondaryMetrics.contains(kind) {
-                        expandedSecondaryMetrics.remove(kind)
+                    if viewModel.expandedSecondaryMetrics.contains(kind) {
+                        viewModel.expandedSecondaryMetrics.remove(kind)
                     } else {
-                        expandedSecondaryMetrics.insert(kind)
+                        viewModel.expandedSecondaryMetrics.insert(kind)
                     }
                 }
             }
@@ -2884,10 +2580,10 @@ struct HomeView: View {
     private func toggleSecondaryMetric(_ kind: MetricKind) {
         Haptics.selection()
         withAnimation(.easeInOut(duration: 0.3)) {
-            if expandedSecondaryMetrics.contains(kind) {
-                _ = expandedSecondaryMetrics.remove(kind)
+            if viewModel.expandedSecondaryMetrics.contains(kind) {
+                _ = viewModel.expandedSecondaryMetrics.remove(kind)
             } else {
-                _ = expandedSecondaryMetrics.insert(kind)
+                _ = viewModel.expandedSecondaryMetrics.insert(kind)
             }
         }
     }
@@ -3101,7 +2797,7 @@ struct HomeView: View {
     private func handleNextFocusAction() {
         Haptics.selection()
         if isFreshHomeState {
-            quickAddKinds = [.weight]
+            viewModel.quickAddKinds = [.weight]
             presentQuickAdd(source: .quickAdd)
             return
         }
@@ -3143,7 +2839,7 @@ struct HomeView: View {
     }
 
     private func presentQuickAdd(source: MeasurementTelemetrySource) {
-        quickAddTelemetrySource = source
+        viewModel.quickAddTelemetrySource = source
         showQuickAddSheet = true
     }
 
@@ -3194,8 +2890,8 @@ struct HomeView: View {
     }
 
     private func acceptActivationReminderPrompt() {
-        guard !isRequestingActivationReminder else { return }
-        isRequestingActivationReminder = true
+        guard !viewModel.isRequestingActivationReminder else { return }
+        viewModel.isRequestingActivationReminder = true
         Analytics.shared.track(AnalyticsEvents.notificationsPermissionPrompted(source: .activation))
 
         Task { @MainActor in
@@ -3216,7 +2912,7 @@ struct HomeView: View {
                 )
             }
 
-            isRequestingActivationReminder = false
+            viewModel.isRequestingActivationReminder = false
             finishPendingActivationMetricCompletion()
         }
     }
@@ -3233,8 +2929,8 @@ struct HomeView: View {
     }
 
     private func finishPendingActivationMetricCompletion() {
-        guard pendingActivationMetricCompletion else { return }
-        pendingActivationMetricCompletion = false
+        guard viewModel.pendingActivationMetricCompletion else { return }
+        viewModel.pendingActivationMetricCompletion = false
     }
 
     private func skipActivationTask() {
@@ -3314,7 +3010,7 @@ struct HomeView: View {
     }
 
     private func refreshChecklistState() {
-        reminderChecklistCompleted = effects.reminderChecklistCompleted()
+        viewModel.reminderChecklistCompleted = effects.reminderChecklistCompleted()
         refreshActivationProgress()
     }
 
@@ -3323,10 +3019,10 @@ struct HomeView: View {
 
         if !isUITestMode,
            totalMetricSampleCount == 1,
-           !didShowActivationReminderPrompt,
+           !viewModel.didShowActivationReminderPrompt,
            !onboardingSkippedReminders,
            !effects.reminderChecklistCompleted() {
-            didShowActivationReminderPrompt = true
+            viewModel.didShowActivationReminderPrompt = true
             showActivationReminderPrompt = true
         }
 
@@ -3353,20 +3049,20 @@ struct HomeView: View {
     }
 
     private func connectHealthKitFromChecklist() {
-        guard !isSyncEnabled, !isChecklistConnectingHealth else { return }
+        guard !isSyncEnabled, !viewModel.isChecklistConnectingHealth else { return }
 
-        checklistStatusText = AppLocalization.string("Requesting Health access...")
-        shouldShowHealthSettingsShortcut = false
-        isChecklistConnectingHealth = true
+        viewModel.checklistStatusText = AppLocalization.string("Requesting Health access...")
+        viewModel.shouldShowHealthSettingsShortcut = false
+        viewModel.isChecklistConnectingHealth = true
 
         Task { @MainActor in
-            defer { isChecklistConnectingHealth = false }
+            defer { viewModel.isChecklistConnectingHealth = false }
             do {
                 try await effects.requestHealthKitAuthorization()
                 isSyncEnabled = true
                 onboardingSkippedHealthKit = true
-                checklistStatusText = AppLocalization.string("Connected to Apple Health.")
-                shouldShowHealthSettingsShortcut = false
+                viewModel.checklistStatusText = AppLocalization.string("Connected to Apple Health.")
+                viewModel.shouldShowHealthSettingsShortcut = false
                 Analytics.shared.track(
                     AnalyticsEvents.checklistItemCompleted(
                         item: "healthkit",
@@ -3378,18 +3074,18 @@ struct HomeView: View {
                 refreshChecklistState()
             } catch {
                 isSyncEnabled = false
-                checklistStatusText = AppLocalization.string("Health access denied. Go to iOS Settings → MeasureMe → Health and allow access.")
+                viewModel.checklistStatusText = AppLocalization.string("Health access denied. Go to iOS Settings → MeasureMe → Health and allow access.")
                 if let authError = error as? HealthKitAuthorizationError {
                     if authError == .denied {
-                        shouldShowHealthSettingsShortcut = true
+                        viewModel.shouldShowHealthSettingsShortcut = true
                         shouldPromptToOpenHealthSettings = true
                         Haptics.error()
                         return
                     } else {
-                        checklistStatusText = authError.errorDescription ?? checklistStatusText
+                        viewModel.checklistStatusText = authError.errorDescription ?? viewModel.checklistStatusText
                     }
                 }
-                shouldShowHealthSettingsShortcut = true
+                viewModel.shouldShowHealthSettingsShortcut = true
                 Haptics.error()
             }
         }
