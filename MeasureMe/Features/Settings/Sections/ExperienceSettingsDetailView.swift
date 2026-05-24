@@ -76,9 +76,9 @@ struct ExperienceSettingsDetailView: View {
             VStack(spacing: 8) {
                 iconPreview(previewAsset: previewAsset, iconName: iconName)
                     .frame(width: 64, height: 64)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .stroke(isSelected ? theme.accent : Color.white.opacity(0.12), lineWidth: isSelected ? 2.5 : 1)
                     )
                 Text(title)

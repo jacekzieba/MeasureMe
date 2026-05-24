@@ -51,10 +51,10 @@ struct OnboardingWelcomeStep: View {
             .padding(.vertical, 10)
             .padding(.horizontal, 12)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .fill(Color.appAccent.opacity(0.10))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .stroke(Color.appAccent.opacity(0.22), lineWidth: 1)
                     )
             )
@@ -87,10 +87,10 @@ struct OnboardingWelcomeStep: View {
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                 .fill(Color.appAccent.opacity(0.08))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                         .stroke(Color.appAccent.opacity(0.20), lineWidth: 1)
                 )
         )
@@ -138,7 +138,7 @@ struct OnboardingWelcomeStep: View {
                 }
             }
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .background(AppColorRoles.surfaceInteractive)
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         .overlay(
@@ -204,7 +204,7 @@ struct OnboardingWelcomeStep: View {
             trendPreview
             insightPreview
         }
-        .padding(8)
+        .padding(AppSpacing.xs)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(
@@ -391,11 +391,11 @@ struct OnboardingWelcomeStep: View {
             .chartYScale(domain: trendDomain)
             .frame(height: trendChartHeight)
         }
-        .padding(8)
+        .padding(AppSpacing.xs)
         .background(Color.dynamic(light: AppColorRoles.surfaceInteractive, dark: Color.white.opacity(0.04)))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                 .stroke(Color.dynamic(light: AppColorRoles.borderSubtle, dark: Color.white.opacity(0.10)), lineWidth: 1)
         )
     }

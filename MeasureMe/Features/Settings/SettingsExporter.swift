@@ -194,7 +194,7 @@ enum SettingsExporter {
             return ExportOutput(items: [], subject: "")
         }
         return ExportOutput(
-            items: [url, AppLocalization.string("Send diagnostics to ziebajacek@pm.me")],
+            items: [url, AppLocalization.string("Send diagnostics to measureme.approve254@passmail.net")],
             subject: AppLocalization.string("MeasureMe diagnostics")
         )
     }

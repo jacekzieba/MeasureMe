@@ -20,6 +20,10 @@ extension Color {
     static let appSkyMist = Color(hex: "#DDF1FF")
     static let appMintMist = Color(hex: "#C6F3E8")
     static let appLilacMist = Color(hex: "#E7E9FF")
+    static let appDanger = Color(hex: "#EF4444")
+    static let appBlue = Color(hex: "#3B82F6")
+    static let appViolet = Color(hex: "#A78BFA")
+    static let appMint = Color(hex: "#5DD39E")
 
     static func dynamic(light: Color, dark: Color) -> Color {
         Color(

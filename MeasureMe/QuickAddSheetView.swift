@@ -110,7 +110,7 @@ struct QuickAddSheetView: View {
                         }
                         .padding(.horizontal, AppSpacing.md)
                         .padding(.top, AppSpacing.sm)
-                        .padding(.bottom, useInlineSaveBar ? AppSpacing.lg : 120)
+                        .padding(.bottom, scrollContentBottomPadding)
                     }
                     .scrollIndicators(.hidden)
                     .scrollDismissesKeyboard(.interactively)
@@ -121,7 +121,7 @@ struct QuickAddSheetView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .accessibilityIdentifier("quickadd.sheet")
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if (!kinds.isEmpty || !customDefinitions.isEmpty) && !useInlineSaveBar {
+                if shouldShowBottomSaveBar {
                     saveBar
                 }
             }
@@ -235,6 +235,11 @@ struct QuickAddSheetView: View {
 
             valueInputField(for: kind, showRuler: showRuler)
                 .appInputContainer(focused: focusedKind == kind)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    focusedKind = kind
+                }
+                .accessibilityIdentifier("quickadd.input.container.\(kind.rawValue)")
 
             if let validationMessage = validationMessage(for: kind) {
                 InlineErrorBanner(message: validationMessage, accessibilityIdentifier: "quickadd.error.banner.\(kind.rawValue)")
@@ -298,6 +303,11 @@ struct QuickAddSheetView: View {
 
             customValueInputField(for: definition)
                 .appInputContainer(focused: focusedCustomId == id)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    focusedCustomId = id
+                }
+                .accessibilityIdentifier("quickadd.input.container.custom.\(id)")
         }
         .padding(AppSpacing.sm)
         .background(cardBackground(cornerRadius: AppRadius.md))
@@ -431,6 +441,18 @@ struct QuickAddSheetView: View {
             .background(cardBackground(cornerRadius: AppRadius.md))
     }
 
+    private var isEditingAnyField: Bool {
+        focusedKind != nil || focusedCustomId != nil
+    }
+
+    private var shouldShowBottomSaveBar: Bool {
+        (!kinds.isEmpty || !customDefinitions.isEmpty) && !useInlineSaveBar && !isEditingAnyField
+    }
+
+    private var scrollContentBottomPadding: CGFloat {
+        shouldShowBottomSaveBar ? 120 : AppSpacing.lg
+    }
+
     private var saveBar: some View {
         saveControls
         .padding(.horizontal, AppSpacing.md)
@@ -526,45 +548,6 @@ struct QuickAddSheetView: View {
 
     @ViewBuilder
     private func valueInputField(for kind: MetricKind, showRuler: Bool) -> some View {
-        ViewThatFits(in: .horizontal) {
-            inputRowHorizontal(for: kind, showRuler: showRuler)
-            inputRowVertical(for: kind, showRuler: showRuler)
-        }
-    }
-
-    private func inputRowHorizontal(for kind: MetricKind, showRuler: Bool) -> some View {
-        HStack(spacing: 8) {
-            Text(AppLocalization.string(
-                showRuler ? "Enter value" : "quickadd.first.value.hint"
-            ))
-            .font(showRuler ? AppTypography.caption : .subheadline.weight(.medium))
-            .foregroundStyle(AppColorRoles.textSecondary)
-            .lineLimit(2)
-
-            Spacer(minLength: 0)
-
-            TextField(
-                "0.0",
-                value: binding(for: kind),
-                format: .number.precision(.fractionLength(2))
-            )
-            .focused($focusedKind, equals: kind)
-            .keyboardType(.decimalPad)
-            .multilineTextAlignment(.trailing)
-            .font(showRuler
-                ? .title3.monospacedDigit().weight(.semibold)
-                : .title.monospacedDigit().weight(.bold))
-            .frame(minWidth: showRuler ? 72 : 88)
-            .accessibilityIdentifier("quickadd.input.\(kind.rawValue)")
-            .accessibilityLabel(AppLocalization.string("accessibility.value", kind.title))
-
-            Text(kind.unitSymbol(unitsSystem: unitsSystem))
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(AppColorRoles.textTertiary)
-        }
-    }
-
-    private func inputRowVertical(for kind: MetricKind, showRuler: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(AppLocalization.string(
                 showRuler ? "Enter value" : "quickadd.first.value.hint"
@@ -585,6 +568,7 @@ struct QuickAddSheetView: View {
                 .font(showRuler
                     ? .title3.monospacedDigit().weight(.semibold)
                     : .title.monospacedDigit().weight(.bold))
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityIdentifier("quickadd.input.\(kind.rawValue)")
                 .accessibilityLabel(AppLocalization.string("accessibility.value", kind.title))
 

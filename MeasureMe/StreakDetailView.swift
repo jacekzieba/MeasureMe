@@ -61,6 +61,7 @@ struct StreakDetailView: View {
     @ObservedObject var streakManager: StreakManager
 
     @Query private var thisWeekSamples: [MetricSample]
+    @State private var viewModel = StreakDetailViewModel()
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -144,7 +145,11 @@ struct StreakDetailView: View {
                 AllLogsView()
             }
             .onAppear {
+                viewModel.thisWeekSamples = thisWeekSamples
                 handleStreakDetailAppear()
+            }
+            .onChange(of: thisWeekSamples) { _, newValue in
+                viewModel.thisWeekSamples = newValue
             }
             .onChange(of: streakManager.isVacationModeActive) { _, _ in
                 handleVacationStateChange()
@@ -230,7 +235,7 @@ struct StreakDetailView: View {
     // MARK: - Stats Row
 
     private var statsSection: some View {
-        AppGlassCard(depth: .elevated, cornerRadius: 18, tint: .clear, contentPadding: 0) {
+        AppGlassCard(depth: .elevated, cornerRadius: AppRadius.lg, tint: .clear, contentPadding: 0) {
             HStack(spacing: 0) {
                 statColumn(
                     title: AppLocalization.string("streak.detail.streakStarted"),
@@ -279,7 +284,7 @@ struct StreakDetailView: View {
     // MARK: - This Week
 
     private var thisWeekSection: some View {
-        AppGlassCard(depth: .base, cornerRadius: 18, tint: .clear, contentPadding: 16) {
+        AppGlassCard(depth: .base, cornerRadius: AppRadius.lg, tint: .clear, contentPadding: 16) {
             VStack(alignment: .leading, spacing: 14) {
                 Text(AppLocalization.string("streak.detail.thisWeek"))
                     .font(AppTypography.captionEmphasis)
@@ -341,7 +346,7 @@ struct StreakDetailView: View {
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(streakTextSecondary)
                 }
-                .padding(12)
+                .padding(AppSpacing.sm)
                 .background(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(streakMuted)
@@ -359,7 +364,7 @@ struct StreakDetailView: View {
                 .datePickerStyle(.graphical)
                 .labelsHidden()
                 .tint(.orange)
-                .padding(12)
+                .padding(AppSpacing.sm)
                 .background(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(streakMuted)
@@ -409,7 +414,7 @@ struct StreakDetailView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .fill(Color.orange)
                     )
                 }
@@ -423,7 +428,7 @@ struct StreakDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                                     .fill(streakMuted)
                             )
                     }
@@ -508,11 +513,7 @@ struct StreakDetailView: View {
 
     /// Day-offsets (from ISO week start) that have at least one MetricSample.
     private var activeDaysInWeek: Set<Int> {
-        let calendar = Calendar(identifier: .iso8601)
-        return Set(thisWeekSamples.compactMap { sample in
-            guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: sample.date)?.start else { return nil }
-            return calendar.dateComponents([.day], from: weekStart, to: sample.date).day
-        })
+        viewModel.activeDaysInWeek()
     }
 
     private func weekDayCell(_ day: WeekDay) -> some View {
@@ -578,7 +579,7 @@ struct StreakDetailView: View {
     }
 
     private var milestoneSection: some View {
-        AppGlassCard(depth: .base, cornerRadius: 18, tint: .clear, contentPadding: 16) {
+        AppGlassCard(depth: .base, cornerRadius: AppRadius.lg, tint: .clear, contentPadding: 16) {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .center, spacing: 12) {
                     Text(weeksToNextMilestone > 0
@@ -683,7 +684,7 @@ struct StreakDetailView: View {
         Button {
             showAllLogs = true
         } label: {
-            AppGlassCard(depth: .base, cornerRadius: 18, tint: .clear, contentPadding: 16) {
+            AppGlassCard(depth: .base, cornerRadius: AppRadius.lg, tint: .clear, contentPadding: 16) {
                 HStack {
                     Image(systemName: "chart.bar.fill")
                         .font(.system(size: 18, weight: .semibold))
@@ -707,7 +708,7 @@ struct StreakDetailView: View {
     // MARK: - Motivational Card
 
     private var motivationalCard: some View {
-        AppGlassCard(depth: .base, cornerRadius: 18, tint: .orange, contentPadding: 18) {
+        AppGlassCard(depth: .base, cornerRadius: AppRadius.lg, tint: .orange, contentPadding: 18) {
             VStack(alignment: .leading, spacing: 8) {
                 Text(motivationalTitle)
                     .font(AppTypography.bodyEmphasis)
@@ -832,7 +833,7 @@ struct StreakDetailView: View {
     }
 
     private var activityHeatmapSection: some View {
-        AppGlassCard(depth: .base, cornerRadius: 18, tint: .clear, contentPadding: 16) {
+        AppGlassCard(depth: .base, cornerRadius: AppRadius.lg, tint: .clear, contentPadding: 16) {
             VStack(alignment: .leading, spacing: 14) {
                 // Header with title + optional year picker
                 HStack {
@@ -1146,6 +1147,7 @@ private struct AllLogsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \CustomMetricDefinition.sortOrder)
     private var customDefinitions: [CustomMetricDefinition]
+    @State private var viewModel = AllLogsViewModel()
 
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
@@ -1176,7 +1178,7 @@ private struct AllLogsView: View {
     }
 
     private var customDefinitionByID: [String: CustomMetricDefinition] {
-        Dictionary(uniqueKeysWithValues: customDefinitions.map { ($0.identifier, $0) })
+        Dictionary(uniqueKeysWithValues: viewModel.customDefinitions.map { ($0.identifier, $0) })
     }
 
     private var activePredicate: Predicate<MetricSample>? {
@@ -1228,7 +1230,11 @@ private struct AllLogsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .onAppear {
+            viewModel.customDefinitions = customDefinitions
             handleAllLogsAppear()
+        }
+        .onChange(of: customDefinitions) { _, newValue in
+            viewModel.customDefinitions = newValue
         }
         .onChange(of: sourceFilter) { _, _ in
             handleAllLogsSourceFilterChange()
@@ -1323,7 +1329,7 @@ private struct AllLogsView: View {
     }
 
     private func row(for sample: MetricSample) -> some View {
-        AppGlassCard(depth: .base, cornerRadius: 14, tint: .clear, contentPadding: 12) {
+        AppGlassCard(depth: .base, cornerRadius: AppRadius.md, tint: .clear, contentPadding: 12) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(metricTitle(for: sample))

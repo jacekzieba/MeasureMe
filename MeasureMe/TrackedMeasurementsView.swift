@@ -4,6 +4,7 @@ import SwiftData
 struct TrackedMeasurementsView: View {
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @Query(sort: \CustomMetricDefinition.sortOrder) private var customDefinitions: [CustomMetricDefinition]
+    @State private var viewModel = TrackedMeasurementsViewModel()
     private let theme = FeatureTheme.settings
 
     @State private var isEditingActive = false
@@ -96,6 +97,12 @@ struct TrackedMeasurementsView: View {
         .sheet(item: $editingCustomMetric) { definition in
             CustomMetricEditorView(existingDefinition: definition)
         }
+        .onChange(of: customDefinitions) { _, newValue in
+            viewModel.customDefinitions = newValue
+        }
+        .onAppear {
+            viewModel.customDefinitions = customDefinitions
+        }
     }
 
     // MARK: - Custom Metrics Section
@@ -132,7 +139,7 @@ struct TrackedMeasurementsView: View {
             .listRowSeparator(.hidden)
 
             // Rows
-            ForEach(customDefinitions) { definition in
+            ForEach(viewModel.customDefinitions) { definition in
                 CustomMetricRowView(
                     definition: definition,
                     isOn: metricsStore.customBinding(for: definition.identifier)
@@ -151,7 +158,7 @@ struct TrackedMeasurementsView: View {
                 }
             }
 
-            if customDefinitions.isEmpty {
+            if viewModel.customDefinitions.isEmpty {
                 Text(AppLocalization.string("custom.metric.empty"))
                     .font(AppTypography.caption)
                     .foregroundStyle(.tertiary)

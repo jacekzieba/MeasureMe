@@ -107,12 +107,12 @@ private struct HomeAIInsightsPanel: View {
 
     @State private var isAnalysisPresented = false
 
-    private let accent = Color(hex: "#FCA311")
+    private let accent = Color.appAmber
 
     var body: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: FeatureTheme.premium.softTint,
             contentPadding: 16
         ) {
@@ -214,7 +214,7 @@ private struct HomeAIInsightsPanel: View {
         case .positive:
             return AppColorRoles.stateSuccess
         case .warning:
-            return Color(hex: "#EF4444")
+            return Color.appDanger
         case .neutral:
             return accent
         }
@@ -233,7 +233,7 @@ private struct HomeProfileAvatar: View {
                     .scaledToFill()
             } else {
                 LinearGradient(
-                    colors: [Color(hex: "#FCA311"), Color(hex: "#5DD39E")],
+                    colors: [Color.appAmber, Color.appMint],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -253,7 +253,7 @@ private struct HomeProfileAvatar: View {
 struct HomeAIAnalysisView: View {
     let items: [HomeAIAnalysisItem]
 
-    private let accent = Color(hex: "#FCA311")
+    private let accent = Color.appAmber
 
     var body: some View {
         ScrollView {
@@ -315,7 +315,7 @@ struct HomeAIAnalysisView: View {
     private func analysisCard(_ item: HomeAIAnalysisItem) -> some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: tint(for: item.tone).opacity(0.16),
             contentPadding: 16
         ) {
@@ -325,7 +325,7 @@ struct HomeAIAnalysisView: View {
                     .foregroundStyle(tint(for: item.tone))
                     .frame(width: 44, height: 44)
                     .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .fill(tint(for: item.tone).opacity(0.16))
                     )
 
@@ -350,7 +350,7 @@ struct HomeAIAnalysisView: View {
         case .positive:
             return AppColorRoles.stateSuccess
         case .warning:
-            return Color(hex: "#FCA311")
+            return Color.appAmber
         case .neutral:
             return accent
         }
@@ -400,9 +400,9 @@ struct HomeCustomKeyMetricTile: View {
 
     private var style: HomeMetricTileStyle {
         HomeMetricTileStyle(
-            accent: Color(hex: "#A78BFA"),
-            softTint: Color(hex: "#A78BFA").opacity(0.14),
-            border: Color(hex: "#A78BFA").opacity(0.26)
+            accent: Color.appViolet,
+            softTint: Color.appViolet.opacity(0.14),
+            border: Color.appViolet.opacity(0.26)
         )
     }
 
@@ -447,13 +447,13 @@ private struct HomeMetricTileStyle {
         case .waist, .hips:
             accent = Color(hex: "#2DD4BF")
         case .bodyFat, .bust:
-            accent = Color(hex: "#FCA311")
+            accent = Color.appAmber
         case .leanBodyMass, .chest, .shoulders:
-            accent = Color(hex: "#5DD39E")
+            accent = Color.appMint
         case .height:
             accent = Color(hex: "#60A5FA")
         case .neck, .leftForearm, .rightForearm:
-            accent = Color(hex: "#A78BFA")
+            accent = Color.appViolet
         case .leftBicep, .rightBicep:
             accent = Color(hex: "#FB7185")
         case .leftThigh, .rightThigh, .leftCalf, .rightCalf:
@@ -481,7 +481,7 @@ private func metricTileScaffold<Icon: View, Chart: View>(
             icon()
                 .frame(width: 30, height: 30)
                 .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                         .fill(style.accent.opacity(0.16))
                 )
 
@@ -539,7 +539,7 @@ private func metricTileScaffold<Icon: View, Chart: View>(
                 : AppLocalization.string("home.keymetrics.action.setTarget")
         )
     }
-    .padding(16)
+    .padding(AppSpacing.md)
     .frame(maxWidth: .infinity, minHeight: 228, alignment: .topLeading)
     .background(
         RoundedRectangle(cornerRadius: 22, style: .continuous)

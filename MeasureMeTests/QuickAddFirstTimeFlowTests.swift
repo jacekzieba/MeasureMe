@@ -52,4 +52,20 @@ final class QuickAddFirstTimeFlowTests: XCTestCase {
             "Miarka powinna pozostac widoczna, gdy istnieje historia i wpis uzytkownika"
         )
     }
+
+    /// Co sprawdza: Pierwszy wpis ustawia baze miarki na wpisanej wartosci, nie na domyslnym fallbacku.
+    /// Dlaczego: To chroni first-time flow przed skokiem UI i utrata kontekstu po wpisaniu pierwszej cyfry.
+    /// Kryteria: Zakres miarki jest centrowany wokol wpisanej wartosci uzytkownika.
+    func testRulerRangeUsesTypedValueAsBaseForFirstEntry() {
+        let range = QuickAddMetricLogic.rulerRange(
+            for: .weight,
+            rulerBaseValue: nil,
+            currentInput: 66.0,
+            latestMetricValue: nil,
+            unitsSystem: "metric"
+        )
+
+        XCTAssertEqual(range.lowerBound, 36.0, accuracy: 0.001)
+        XCTAssertEqual(range.upperBound, 96.0, accuracy: 0.001)
+    }
 }

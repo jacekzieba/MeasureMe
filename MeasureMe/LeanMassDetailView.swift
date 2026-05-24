@@ -59,7 +59,7 @@ struct LeanMassDetailView: View {
                             .foregroundStyle(Color.bestAccessibleTextColor(onHex: "#3B82F6"))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
-                            .background(Color(hex: "#3B82F6"), in: RoundedRectangle(cornerRadius: 8))
+                            .background(Color.appBlue, in: RoundedRectangle(cornerRadius: 8))
                     }
 
                     HStack(spacing: 4) {
@@ -145,11 +145,11 @@ struct LeanMassDetailView: View {
                 )
             ])
 
-            HealthInsightNoteCard(accent: Color(hex: "#3B82F6")) {
+            HealthInsightNoteCard(accent: Color.appBlue) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
                         Image(systemName: "info.circle.fill")
-                            .foregroundStyle(Color(hex: "#3B82F6"))
+                            .foregroundStyle(Color.appBlue)
 
                         Text(AppLocalization.string("Data Source"))
                             .font(AppTypography.bodyEmphasis)
@@ -275,7 +275,7 @@ private struct BenefitRow: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .font(AppTypography.metricValue)
-                .foregroundStyle(Color(hex: "#FCA311"))
+                .foregroundStyle(Color.appAmber)
                 .frame(width: 32)
             
             VStack(alignment: .leading, spacing: 4) {

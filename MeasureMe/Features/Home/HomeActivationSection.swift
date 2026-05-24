@@ -92,7 +92,7 @@ struct HomeActivationCard: View {
                     Button(action: onSkip) {
                         Text(snapshot.skipCTA)
                             .frame(minHeight: 48)
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, AppSpacing.smmd)
                     }
                     .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
                     .accessibilityIdentifier("home.activation.skip")

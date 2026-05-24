@@ -100,7 +100,7 @@ struct HomeRecentPhotosCard: View {
     private var progressCard: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: theme.softTint,
             contentPadding: 0
         ) {
@@ -155,7 +155,7 @@ struct HomeRecentPhotosCard: View {
                         Label(AppLocalization.string("Compare"), systemImage: "rectangle.split.2x1")
                             .font(AppTypography.buttonLabel)
                             .foregroundStyle(theme.accent)
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, AppSpacing.smmd)
                             .padding(.vertical, 10)
                             .background(
                                 Capsule(style: .continuous)
@@ -167,7 +167,7 @@ struct HomeRecentPhotosCard: View {
                     .opacity(snapshot.hasEnoughSavedPhotosForCompare ? 1 : 0.55)
                     .accessibilityIdentifier("home.recentPhotos.compare.button")
                 }
-                .padding(16)
+                .padding(AppSpacing.md)
             }
         }
     }
@@ -324,12 +324,12 @@ struct HomeRecentPhotosEmptyCard: View {
                         .font(AppTypography.microEmphasis)
                         .foregroundStyle(theme.accent)
                 }
-                .padding(16)
+                .padding(AppSpacing.md)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     AppGlassBackground(
                         depth: .elevated,
-                        cornerRadius: 24,
+                        cornerRadius: AppRadius.xl,
                         tint: theme.softTint
                     )
                 )

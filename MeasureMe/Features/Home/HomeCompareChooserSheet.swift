@@ -8,14 +8,21 @@ struct HomeCompareChooserOnDemandSheet: View {
 
     @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)])
     private var photos: [PhotoEntry]
+    @State private var viewModel = HomeCompareChooserViewModel()
 
     var body: some View {
         HomeCompareChooserSheet(
-            photos: photos,
+            photos: viewModel.photos,
             initialOlderPhoto: initialOlderPhoto,
             initialNewerPhoto: initialNewerPhoto,
             onCompareSelected: onCompareSelected
         )
+        .onAppear {
+            viewModel.photos = photos
+        }
+        .onChange(of: photos) { _, newValue in
+            viewModel.photos = newValue
+        }
     }
 }
 
@@ -135,7 +142,7 @@ struct HomeCompareChooserSheet: View {
                         filterSection
                         photoGrid
                     }
-                    .padding(16)
+                    .padding(AppSpacing.md)
                 }
             }
             .navigationTitle(AppLocalization.string("home.compare.chooser.title"))
@@ -182,7 +189,7 @@ struct HomeCompareChooserSheet: View {
     private var pairHeader: some View {
         AppGlassCard(
             depth: .floating,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: photosTheme.strongTint,
             contentPadding: 18
         ) {
@@ -386,12 +393,12 @@ struct HomeCompareChooserSheet: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColorRoles.textSecondary)
             }
-            .padding(16)
+            .padding(AppSpacing.md)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                     .fill(AppColorRoles.surfacePrimary)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                             .fill(
                                 ClaudeLightStyle.directionalGradient(
                                     colors: [photosTheme.softTint, .clear],
@@ -401,7 +408,7 @@ struct HomeCompareChooserSheet: View {
                             )
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                             .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )
@@ -477,7 +484,7 @@ struct HomeCompareChooserSheet: View {
                         cacheID: String(describing: photo.persistentModelID)
                     )
                 } else {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                         .fill(AppColorRoles.surfaceInteractive)
                         .frame(width: 120, height: 120)
                         .overlay {
@@ -492,12 +499,12 @@ struct HomeCompareChooserSheet: View {
                     .foregroundStyle(AppColorRoles.textPrimary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
+            .padding(AppSpacing.sm)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                     .fill(AppColorRoles.surfaceInteractive)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                             .stroke(isFocused ? photosTheme.accent.opacity(0.5) : Color.clear, lineWidth: 1.5)
                     )
             )

@@ -32,7 +32,7 @@ struct MeasureBuddyToastOverlay: ViewModifier {
                             .lineLimit(2)
                     }
                     .padding(.vertical, 10)
-                    .padding(.horizontal, 14)
+                    .padding(.horizontal, AppSpacing.smmd)
                     .background(
                         Capsule(style: .continuous)
                             .fill(AppColorRoles.surfaceInteractive)

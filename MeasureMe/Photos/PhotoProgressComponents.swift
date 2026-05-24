@@ -48,7 +48,7 @@ struct PhotoCompareHeroCard: View {
     var body: some View {
         AppGlassCard(
             depth: .floating,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: photosTheme.strongTint,
             contentPadding: 16
         ) {
@@ -101,7 +101,7 @@ struct PhotoCompareHeroCard: View {
                         Label(AppLocalization.string("Compare"), systemImage: "arrow.left.and.right")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                    .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
                 case .manualOnly:
                     VStack(alignment: .leading, spacing: 12) {
                         Text(AppLocalization.string("Too early for an automatic comparison. Choose photos manually."))
@@ -162,7 +162,7 @@ struct PhotoCompareHeroCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                     .fill(AppColorRoles.surfaceInteractive)
             )
         }
@@ -243,7 +243,7 @@ struct PhotoSessionSummaryCard: View {
                 .foregroundStyle(AppColorRoles.textPrimary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(AppSpacing.sm)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)

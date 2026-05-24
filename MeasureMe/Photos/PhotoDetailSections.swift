@@ -12,7 +12,7 @@ struct PhotoPreviewSection: View {
     }
     
     var body: some View {
-        AppGlassCard(depth: .floating, cornerRadius: 24, tint: FeatureTheme.photos.strongTint, contentPadding: 12) {
+        AppGlassCard(depth: .floating, cornerRadius: AppRadius.xl, tint: FeatureTheme.photos.strongTint, contentPadding: 12) {
             DownsampledImageView(
                 imageData: imageData,
                 targetSize: CGSize(width: 600, height: 600),

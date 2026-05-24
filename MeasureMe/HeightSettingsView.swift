@@ -22,17 +22,15 @@ struct HeightSettingsView: View {
     
     @Query(sort: [SortDescriptor(\MetricSample.date, order: .reverse)])
     private var samples: [MetricSample]
+    @State private var viewModel = HeightSettingsViewModel()
     @State private var isImportingHeight = false
     @State private var healthImportMessage: String?
     private let theme = FeatureTheme.settings
-    
-    
-    // Pobierz najnowszy wzrost ze śledzonych metryk
+
     private var latestTrackedHeight: MetricSample? {
-        samples.first { $0.kindRaw == MetricKind.height.rawValue }
+        viewModel.latestTrackedHeight
     }
-    
-    // Skuteczny wzrost do użycia w obliczeniach
+
     private var effectiveHeight: Double? {
         if manualHeight > 0 {
             return manualHeight
@@ -214,10 +212,16 @@ struct HeightSettingsView: View {
                         }
                     }
         }
+        .onAppear {
+            viewModel.samples = samples
+        }
+        .onChange(of: samples) { _, newValue in
+            viewModel.samples = newValue
+        }
     }
-    
+
     // MARK: - Helpers
-    
+
     private var heightUnit: String {
         MetricKind.height.unitSymbol(unitsSystem: unitsSystem)
     }

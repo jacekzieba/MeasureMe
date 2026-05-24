@@ -23,12 +23,8 @@ struct MeasurementsTabView: View {
     @AppSetting(\.experience.hasCustomizedMetrics) private var hasCustomizedMetrics: Bool = false
     @State private var refreshToken = UUID()
     @Query private var samples: [MetricSample]
-    @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
-    @State private var cachedLatestByKind: [MetricKind: MetricSample] = [:]
-
     @Query(sort: \CustomMetricDefinition.sortOrder) private var customDefinitions: [CustomMetricDefinition]
-    @State private var cachedCustomSamples: [String: [MetricSample]] = [:]
-    @State private var cachedCustomLatest: [String: MetricSample] = [:]
+    @State private var viewModel = MeasurementsTabViewModel()
 
     @State private var selectedTab: MeasurementsTab = .metrics
     @State private var requestedMetricDetailKind: MetricKind?
@@ -71,14 +67,14 @@ struct MeasurementsTabView: View {
     }
 
     private var activeCustomDefinitions: [CustomMetricDefinition] {
-        let activeIds = metricsStore.activeCustomIdentifiers(from: customDefinitions)
-        let lookup = Dictionary(uniqueKeysWithValues: customDefinitions.map { ($0.identifier, $0) })
+        let activeIds = metricsStore.activeCustomIdentifiers(from: viewModel.customDefinitions)
+        let lookup = Dictionary(uniqueKeysWithValues: viewModel.customDefinitions.map { ($0.identifier, $0) })
         return activeIds.compactMap { lookup[$0] }
     }
 
-    private var samplesByKind: [MetricKind: [MetricSample]] { cachedSamplesByKind }
+    private var samplesByKind: [MetricKind: [MetricSample]] { viewModel.cachedSamplesByKind }
 
-    private var latestByKind: [MetricKind: MetricSample] { cachedLatestByKind }
+    private var latestByKind: [MetricKind: MetricSample] { viewModel.cachedLatestByKind }
 
     private var userGender: Gender {
         Gender(rawValue: userGenderRaw) ?? .notSpecified
@@ -207,7 +203,7 @@ struct MeasurementsTabView: View {
                             )
                             .padding(.horizontal, AppSpacing.md)
 
-                            if samples.isEmpty {
+                            if viewModel.samples.isEmpty {
                                 // MARK: - Hero empty state
                                 EmptyStateCard(
                                     title: AppLocalization.string("measurements.empty.title"),
@@ -534,31 +530,9 @@ struct MeasurementsTabView: View {
     }
 
     private func rebuildSamplesCache() {
-        var grouped: [MetricKind: [MetricSample]] = [:]
-        var latest: [MetricKind: MetricSample] = [:]
-        var customGrouped: [String: [MetricSample]] = [:]
-        var customLatest: [String: MetricSample] = [:]
-        for sample in samples {
-            if sample.isCustomMetric {
-                customGrouped[sample.kindRaw, default: []].append(sample)
-                if customLatest[sample.kindRaw] == nil {
-                    customLatest[sample.kindRaw] = sample
-                }
-                continue
-            }
-            guard let kind = MetricKind(rawValue: sample.kindRaw) else {
-                AppLog.debug("⚠️ Ignoring MetricSample with invalid kindRaw: \(sample.kindRaw)")
-                continue
-            }
-            grouped[kind, default: []].append(sample)
-            if latest[kind] == nil {
-                latest[kind] = sample
-            }
-        }
-        cachedSamplesByKind = grouped
-        cachedLatestByKind = latest
-        cachedCustomSamples = customGrouped
-        cachedCustomLatest = customLatest
+        viewModel.samples = samples
+        viewModel.customDefinitions = customDefinitions
+        viewModel.rebuildCaches()
     }
 
     private func presentMetricDetail(_ kind: MetricKind, requestID: UUID) {
@@ -761,7 +735,7 @@ private struct MeasurementsCategoryTabs: View {
             return ClaudeLightStyle.directionalGradient(
                 colors: [
                     Color.dynamic(light: Color(hex: "#5B7CFF"), dark: Color(hex: "#7DB5FF")),
-                    Color.dynamic(light: Color(hex: "#2F56D9"), dark: Color(hex: "#3B82F6"))
+                    Color.dynamic(light: Color(hex: "#2F56D9"), dark: Color.appBlue)
                 ],
                 colorScheme: colorScheme,
                 lightColor: AppColorRoles.surfaceInteractive
@@ -875,6 +849,7 @@ struct MetricChartTile: View {
 
     @Query private var samples: [MetricSample]
     @Query private var goals: [MetricGoal]
+    @State private var tileViewModel = MetricChartTileViewModel()
 
     @State private var shortInsight: String?
     @State private var isLoadingInsight = false
@@ -901,7 +876,7 @@ struct MetricChartTile: View {
     
     // Current goal for this metric
     private var currentGoal: MetricGoal? {
-        goals.first
+        tileViewModel.currentGoal
     }
 
     // MARK: - Data
@@ -911,7 +886,7 @@ struct MetricChartTile: View {
     }
 
     private var recentSamples: [MetricSample] {
-        samples.filter { $0.date >= startDate30 }
+        tileViewModel.samples.filter { $0.date >= startDate30 }
     }
 
     private var latest: MetricSample? {
@@ -948,6 +923,7 @@ struct MetricChartTile: View {
     }
 
     var body: some View {
+        Group {
         if recentSamples.isEmpty {
             // MARK: - Compact empty tile (no data)
             Group {
@@ -1034,7 +1010,7 @@ struct MetricChartTile: View {
                     }
                 }
             }
-            .padding(14)
+            .padding(AppSpacing.smmd)
             .background(
                 AppGlassBackground(
                     depth: .elevated,
@@ -1122,7 +1098,7 @@ struct MetricChartTile: View {
                         .accessibilityChartDescriptor(MetricChartAXDescriptor(descriptor: chartDescriptor))
                     }
                 }
-                .padding(16)
+                .padding(AppSpacing.md)
 
                 if let footerInsightText {
                     Divider()
@@ -1172,6 +1148,17 @@ struct MetricChartTile: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilitySummary)
             .accessibilityHint(AppLocalization.string("accessibility.opens.details", kind.title))
+        }
+        }
+        .onAppear {
+            tileViewModel.samples = samples
+            tileViewModel.goals = goals
+        }
+        .onChange(of: samples) { _, newValue in
+            tileViewModel.samples = newValue
+        }
+        .onChange(of: goals) { _, newValue in
+            tileViewModel.goals = newValue
         }
     }
 

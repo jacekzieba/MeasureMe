@@ -16,7 +16,8 @@ struct PhotoView: View {
     @EnvironmentObject private var router: AppRouter
     @ObservedObject private var photoPrivacyGate = PhotoPrivacyGate.shared
     @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)]) private var allPhotos: [PhotoEntry]
-    
+    @State private var viewModel = PhotoViewModel()
+
     @StateObject private var filters = PhotoFilters()
     @State private var showFilters = false
     @State private var showAddPhoto = false        // deep link / empty state
@@ -207,7 +208,7 @@ struct PhotoView: View {
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 240)
                                     .background(.ultraThinMaterial)
-                                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
                                     .padding(.horizontal, 12)
                                     .padding(.bottom, 12)
                             }
@@ -228,7 +229,11 @@ struct PhotoView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar { toolbarContent }
             .onAppear {
+                viewModel.allPhotos = allPhotos
                 handlePhotoViewAppear()
+            }
+            .onChange(of: allPhotos) { _, newValue in
+                viewModel.allPhotos = newValue
             }
             .onChange(of: router.photoComposerRequestID) { _, _ in
                 handlePhotoComposerRequestChange()
@@ -269,7 +274,7 @@ struct PhotoView: View {
                 if UIImagePickerController.isSourceTypeAvailable(.camera), !uiTestModeEnabled {
                     GuidedCameraView(
                         selectedImage: $cameraPickerImage,
-                        overlayImageData: allPhotos.first?.thumbnailOrImageData
+                        overlayImageData: viewModel.mostRecentPhotoThumbnailData
                     )
                 } else {
                     CameraPickerView(selectedImage: $cameraPickerImage)
@@ -325,7 +330,7 @@ struct PhotoView: View {
             }
             .sheet(item: $compareChooserContext) { context in
                 HomeCompareChooserSheet(
-                    photos: allPhotos,
+                    photos: viewModel.allPhotos,
                     initialOlderPhoto: context.olderPhoto,
                     initialNewerPhoto: context.newerPhoto,
                     preferredSlot: context.preferredSlot,
@@ -1371,6 +1376,16 @@ private struct PhotoGridView: View {
                             onAddPhoto: onAddPhoto
                         )
 
+                        if case .onboarding = heroState { } else {
+                            Button {
+                                onAddPhoto()
+                            } label: {
+                                Label(AppLocalization.string("Add Photo"), systemImage: "plus")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                        }
+
                         archiveSection
                     }
                         .padding(.horizontal, 12)
@@ -1569,7 +1584,7 @@ private struct PhotoGridHeroSkeleton: View {
     }
 
     var body: some View {
-        SkeletonBlock(cornerRadius: 24, opacity: 0.18)
+        SkeletonBlock(cornerRadius: AppRadius.xl, opacity: 0.18)
             .frame(height: 280)
             .skeletonShimmer(enabled: shouldShimmer)
     }
@@ -1581,7 +1596,7 @@ private struct PhotoPrivacyLockedView: View {
     var body: some View {
         AppGlassCard(
             depth: .floating,
-            cornerRadius: 18,
+            cornerRadius: AppRadius.lg,
             tint: FeatureTheme.photos.strongTint,
             contentPadding: 18
         ) {
@@ -1681,18 +1696,6 @@ private extension PhotoView {
                     .accessibilityIdentifier("photos.add.button")
                     .accessibilityLabel(AppLocalization.string("Add Photo"))
 
-                    Menu {
-                        Button {
-                            openLibraryFlow(fromSourceChooserSheet: false)
-                        } label: {
-                            Label(AppLocalization.string("Choose from Library"), systemImage: "photo.on.rectangle")
-                        }
-                        .accessibilityIdentifier("photos.add.menu.library")
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
-                    .accessibilityIdentifier("photos.add.more.button")
-                    .accessibilityLabel(AppLocalization.string("More photo options"))
                 }
             }
         }

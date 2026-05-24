@@ -16,7 +16,7 @@ private extension Notification.Name {
 /// - Sekcja "Last Photos" z maksymalnie 6 ostatnimi zdjęciami (2 rzędy po 3)
 /// - Kolorystyka: wzrost = zielony, spadek = czerwony
 struct HomeView: View {
-    private static let homePhotoWindowDays = 3650
+    private static let homePhotoWindowDays = 365
     @ObservedObject private var settingsStore = AppSettingsStore.shared
 
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
@@ -113,16 +113,18 @@ struct HomeView: View {
     @State private var hasAnyMeasurements = false
     @State private var totalMetricSampleCount = 0
 
-    // Zbuforowane dane pochodne - odswiezane przez onChange zamiast przeliczania przy kazdym renderze
-    @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
-    @State private var cachedLatestByKind: [MetricKind: MetricSample] = [:]
-    @State private var cachedGoalsByKind: [MetricKind: MetricGoal] = [:]
-    @State private var cachedCustomSamplesByIdentifier: [String: [MetricSample]] = [:]
-    @State private var cachedCustomLatestByIdentifier: [String: MetricSample] = [:]
-    @State private var cachedCustomGoalsByIdentifier: [String: MetricGoal] = [:]
-    @State private var cachedDashboardItems: [HomeModuleLayoutItem] = []
-    @State private var cachedVisiblePhotoTiles: [HomePhotoTile] = []
-    @State private var cachedNextFocusInsight: HomeNextFocusInsight?
+    // Zbuforowane dane pochodne - trzymane w HomeViewModel, odswiezane przez onChange
+    @State private var viewModel = HomeViewModel()
+
+    private var cachedSamplesByKind: [MetricKind: [MetricSample]] { viewModel.cachedSamplesByKind }
+    private var cachedLatestByKind: [MetricKind: MetricSample] { viewModel.cachedLatestByKind }
+    private var cachedGoalsByKind: [MetricKind: MetricGoal] { viewModel.cachedGoalsByKind }
+    private var cachedCustomSamplesByIdentifier: [String: [MetricSample]] { viewModel.cachedCustomSamplesByIdentifier }
+    private var cachedCustomLatestByIdentifier: [String: MetricSample] { viewModel.cachedCustomLatestByIdentifier }
+    private var cachedCustomGoalsByIdentifier: [String: MetricGoal] { viewModel.cachedCustomGoalsByIdentifier }
+    private var cachedDashboardItems: [HomeModuleLayoutItem] { viewModel.cachedDashboardItems }
+    private var cachedVisiblePhotoTiles: [HomePhotoTile] { viewModel.cachedVisiblePhotoTiles }
+    private var cachedNextFocusInsight: HomeNextFocusInsight? { viewModel.cachedNextFocusInsight }
 
     private let maxVisibleMetrics = 5
     private let maxVisiblePhotos = 6
@@ -192,61 +194,7 @@ struct HomeView: View {
         )
     }
 
-    private struct HomeComparePair: Identifiable {
-        let olderPhoto: PhotoEntry
-        let newerPhoto: PhotoEntry
-
-        var id: String {
-            "\(olderPhoto.persistentModelID)-\(newerPhoto.persistentModelID)"
-        }
-    }
-
-    private struct HomeHealthStatItem: Identifiable {
-        var id: String { label }
-        let label: String
-        let value: String
-        let badge: String?
-
-        init(label: String, value: String, badge: String? = nil) {
-            self.label = label
-            self.value = value
-            self.badge = badge
-        }
-    }
-
-    private struct HomeNextFocusInsight {
-        enum Action {
-            case metric(MetricKind)
-            case measurements
-        }
-
-        let headline: String?
-        let primaryValue: String?
-        let supportingLabel: String?
-        let contextLabel: String
-        let summary: String
-        let cta: String
-        let action: Action
-        let accessibilityValue: String
-    }
-
-    private struct HomeNextFocusCandidate {
-        let insight: HomeNextFocusInsight
-        let score: Double
-    }
-
-    private struct PhotoSyncSnapshotPayload: Sendable {
-        let kindRaw: String
-        let value: Double
-        let date: Date
-    }
-
-    private struct PhotoSyncCandidatePayload: Sendable {
-        let date: Date
-        let linkedMetrics: [PhotoSyncSnapshotPayload]
-    }
-
-    fileprivate enum HomePhotoTile: Identifiable {
+    enum HomePhotoTile: Identifiable {
         case persisted(PhotoEntry)
         case pending(PendingPhotoSaveItem)
 
@@ -286,7 +234,7 @@ struct HomeView: View {
     }
 
     private var customDefinitionsMap: [String: CustomMetricDefinition] {
-        Dictionary(uniqueKeysWithValues: customDefinitions.map { ($0.identifier, $0) })
+        Dictionary(uniqueKeysWithValues: viewModel.customDefinitions.map { ($0.identifier, $0) })
     }
     
     
@@ -315,7 +263,7 @@ struct HomeView: View {
     }
 
     private var homeCompareCandidates: [PhotoEntry] {
-        recentPhotos
+        viewModel.recentPhotos
     }
 
     private var hasEnoughSavedPhotosForCompare: Bool {
@@ -433,49 +381,20 @@ struct HomeView: View {
     }
 
     private func refreshMeasurementCaches(allowFallbackFetch: Bool = true) {
-        var grouped: [MetricKind: [MetricSample]] = [:]
-        var latest: [MetricKind: MetricSample] = [:]
-        let kindsToKeep = Set(metricsStore.activeKinds).union([.waist, .height, .weight, .bodyFat, .leanBodyMass, .hips])
-
-        var customGrouped: [String: [MetricSample]] = [:]
-        var customLatest: [String: MetricSample] = [:]
-
-        for sample in recentSamples {
-            if sample.kindRaw.hasPrefix("custom_") {
-                customGrouped[sample.kindRaw, default: []].append(sample)
-                if customLatest[sample.kindRaw] == nil {
-                    customLatest[sample.kindRaw] = sample
-                }
-                continue
-            }
-            guard let kind = MetricKind(rawValue: sample.kindRaw) else { continue }
-            grouped[kind, default: []].append(sample)
-            if kindsToKeep.contains(kind), latest[kind] == nil {
-                latest[kind] = sample
-            }
-        }
-
-        cachedSamplesByKind = grouped
-        cachedLatestByKind = latest
-        cachedCustomSamplesByIdentifier = customGrouped
-        cachedCustomLatestByIdentifier = customLatest
-
-        // Cache custom goals
-        var customGoals: [String: MetricGoal] = [:]
-        for goal in goals where goal.kindRaw.hasPrefix("custom_") {
-            if customGoals[goal.kindRaw] == nil {
-                customGoals[goal.kindRaw] = goal
-            }
-        }
-        cachedCustomGoalsByIdentifier = customGoals
-
-        let fetchedMetricCount = allowFallbackFetch
-            ? ((try? modelContext.fetchCount(FetchDescriptor<MetricSample>())) ?? recentSamples.count)
-            : recentSamples.count
-        totalMetricSampleCount = fetchedMetricCount
-        hasAnyMeasurements = fetchedMetricCount > 0
-
-        rebuildNextFocusInsightCache()
+        viewModel.recentSamples = recentSamples
+        viewModel.goals = goals
+        viewModel.recentPhotos = Array(recentPhotos)
+        viewModel.customDefinitions = customDefinitions
+        viewModel.refreshMeasurementCaches(
+            recentSamples: recentSamples,
+            goals: goals,
+            activeKinds: metricsStore.activeKinds,
+            modelContext: modelContext,
+            allowFallbackFetch: allowFallbackFetch,
+            totalMetricSampleCountOut: &totalMetricSampleCount,
+            hasAnyMeasurementsOut: &hasAnyMeasurements,
+            nextFocusComputer: { computeNextFocusInsight() }
+        )
         refreshActivationProgress()
     }
 
@@ -492,11 +411,6 @@ struct HomeView: View {
         hasAnySavedPhotosInStore = !newestPhotos.isEmpty
         hasEnoughSavedPhotosForCompareInStore = newestPhotos.count >= 2
         rebuildVisiblePhotoTilesCache()
-    }
-
-    private enum PhotoSyncMode {
-        case full
-        case incremental
     }
 
     private var hasPhotoSyncCursor: Bool {
@@ -716,7 +630,7 @@ struct HomeView: View {
     }
 
     private func runCriticalStartupPhaseA() {
-        hasAnyMeasurements = !recentSamples.isEmpty
+        hasAnyMeasurements = !viewModel.recentSamples.isEmpty
         isLastPhotosSectionMounted = true
         isHealthSectionMounted = true
     }
@@ -768,29 +682,22 @@ struct HomeView: View {
 
     /// Przebudowuje goalsByKind na podstawie tablicy celow @Query.
     private func rebuildGoalsCache() {
-        var dict: [MetricKind: MetricGoal] = [:]
-        for goal in goals {
-            if let kind = MetricKind(rawValue: goal.kindRaw) {
-                dict[kind] = goal
-            }
-        }
-        cachedGoalsByKind = dict
-        rebuildNextFocusInsightCache()
+        viewModel.rebuildGoalsCache(
+            goals: goals,
+            nextFocusComputer: { computeNextFocusInsight() }
+        )
     }
 
     private func rebuildVisiblePhotoTilesCache() {
-        let persistedCandidateLimit = maxVisiblePhotos * 3
-        let persistedTiles = recentPhotos.prefix(persistedCandidateLimit).map { HomePhotoTile.persisted($0) }
-        let pendingTiles = pendingPhotoSaveStore.pendingItems.map { HomePhotoTile.pending($0) }
-        cachedVisiblePhotoTiles = Array(
-            (persistedTiles + pendingTiles)
-                .sorted { lhs, rhs in lhs.date > rhs.date }
-                .prefix(maxVisiblePhotos)
+        viewModel.rebuildVisiblePhotoTilesCache(
+            recentPhotos: Array(recentPhotos),
+            pendingItems: pendingPhotoSaveStore.pendingItems,
+            maxVisiblePhotos: maxVisiblePhotos
         )
     }
 
     private func rebuildNextFocusInsightCache() {
-        cachedNextFocusInsight = computeNextFocusInsight()
+        viewModel.rebuildNextFocusInsightCache(nextFocusComputer: { computeNextFocusInsight() })
     }
 
     private var dashboardColumns: Int {
@@ -802,16 +709,11 @@ struct HomeView: View {
     }
 
     private func rebuildDashboardItemsCache() {
-        let layout = settingsStore.homeLayoutSnapshot()
-        let runtimeVisibleItems = layout.items.map { item in
-            var next = item
-            next.isVisible = item.isVisible && shouldRenderModule(item.kind)
-            if item.kind == .summaryHero {
-                next.size = .wide
-            }
-            return next
-        }
-        cachedDashboardItems = HomeLayoutCompactor.compact(runtimeVisibleItems, columns: dashboardColumns)
+        viewModel.rebuildDashboardItemsCache(
+            settingsStore: settingsStore,
+            dashboardColumns: dashboardColumns,
+            shouldRenderModule: { shouldRenderModule($0) }
+        )
     }
 
     var body: some View {
@@ -2022,7 +1924,7 @@ struct HomeView: View {
         case .slightlyOff:
             return Color.appAccent
         case .needsAttention:
-            return Color(hex: "#EF4444")
+            return Color.appDanger
         case .noGoals:
             return Color.white.opacity(0.82)
         }
@@ -2051,7 +1953,7 @@ struct HomeView: View {
         if let keyKind = dashboardVisibleMetrics.first,
            let keySample = cachedLatestByKind[keyKind] {
             selectedPair = (keyKind, keySample)
-        } else if let fallbackSample = recentSamples.first,
+        } else if let fallbackSample = viewModel.recentSamples.first,
                   let fallbackKind = MetricKind(rawValue: fallbackSample.kindRaw) {
             selectedPair = (fallbackKind, fallbackSample)
         } else {
@@ -2126,7 +2028,7 @@ struct HomeView: View {
         let milestoneThresholds: Set<Int> = [3, 7, 14, 30, 60, 100, 200]
         let now = AppClock.now
         let calendar = Calendar.current
-        let lastSampleDate = recentSamples.first?.date
+        let lastSampleDate = viewModel.recentSamples.first?.date
         let daysSinceLastSample: Int? = lastSampleDate.flatMap {
             calendar.dateComponents([.day], from: calendar.startOfDay(for: $0), to: calendar.startOfDay(for: now)).day
         }
@@ -2701,7 +2603,7 @@ struct HomeView: View {
     private var greetingCard: some View {
         return AppGlassCard(
             depth: .floating,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.appAccent.opacity(0.26),
             contentPadding: 16
         ) {
@@ -2752,12 +2654,6 @@ struct HomeView: View {
 
     private var trimmedUserName: String {
         userName.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private enum DayPart {
-        case morning
-        case afternoon
-        case evening
     }
 
     private var dayPart: DayPart {
@@ -2811,7 +2707,7 @@ struct HomeView: View {
 
     private var currentWeekCheckInDays: Int {
         let calendar = Calendar.current
-        let days = recentSamples
+        let days = viewModel.recentSamples
             .filter { calendar.isDate($0.date, equalTo: AppClock.now, toGranularity: .weekOfYear) }
             .map { calendar.startOfDay(for: $0.date) }
         return Set(days).count
@@ -2826,7 +2722,7 @@ struct HomeView: View {
 
     private var latestCheckInThisWeek: MetricSample? {
         let calendar = Calendar.current
-        return recentSamples.first { calendar.isDate($0.date, equalTo: AppClock.now, toGranularity: .weekOfYear) }
+        return viewModel.recentSamples.first { calendar.isDate($0.date, equalTo: AppClock.now, toGranularity: .weekOfYear) }
     }
 
     private var latestCheckInWeekday: String {
@@ -2834,7 +2730,7 @@ struct HomeView: View {
         return latestCheckInThisWeek.date.formatted(.dateTime.weekday(.wide))
     }
 
-    fileprivate enum GoalStatusLevel {
+    enum GoalStatusLevel {
         case onTrack
         case slightlyOff
         case needsAttention
@@ -2929,7 +2825,7 @@ struct HomeView: View {
             case .positive:
                 tint = AppColorRoles.stateSuccess
             case .negative:
-                tint = Color(hex: "#EF4444")
+                tint = Color.appDanger
             case .neutral:
                 tint = AppColorRoles.textTertiary
             }
@@ -2981,7 +2877,7 @@ struct HomeView: View {
         let isPositive = definition.favorsDecrease ? delta < 0 : delta > 0
         return HomeMetricDeltaChip(
             text: String(format: "%@%.1f %@", delta >= 0 ? "+" : "-", abs(delta), definition.unitLabel),
-            tint: isPositive ? AppColorRoles.stateSuccess : Color(hex: "#EF4444")
+            tint: isPositive ? AppColorRoles.stateSuccess : Color.appDanger
         )
     }
 
@@ -3042,13 +2938,6 @@ struct HomeView: View {
         }
     }
 
-    private struct ModuleHeaderAction: Identifiable {
-        let id = UUID()
-        let systemImage: String
-        let accessibilityLabel: String
-        let action: () -> Void
-    }
-
     private func editorialEmptyStateCard(
         eyebrow: String,
         title: String,
@@ -3077,13 +2966,13 @@ struct HomeView: View {
             }
             .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: AppRadius.md))
         }
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                         .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                 )
         )
@@ -3132,7 +3021,7 @@ struct HomeView: View {
                 .foregroundStyle(AppColorRoles.textSecondary)
                 .lineLimit(2)
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -3183,7 +3072,7 @@ struct HomeView: View {
             }
             .foregroundStyle(AppColorRoles.textSecondary)
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -3517,7 +3406,7 @@ struct HomeView: View {
     private var measurementsSection: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.appAccent.opacity(0.18),
             contentPadding: 16
         ) {
@@ -3546,7 +3435,7 @@ struct HomeView: View {
                         .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
                         .accessibilityIdentifier("home.quickadd.button")
                     }
-                    .padding(12)
+                    .padding(AppSpacing.sm)
                     .background(AppColorRoles.surfacePrimary)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 } else if visibleMetrics.isEmpty {
@@ -3583,7 +3472,7 @@ struct HomeView: View {
                         Image(systemName: "chevron.right")
                             .font(AppTypography.micro)
                     }
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(Color.appAmber)
                 }
                 .buttonStyle(LiquidCapsuleButtonStyle(tint: Color.appAccent.opacity(0.88)))
                 .accessibilityLabel(AppLocalization.string("accessibility.open.measurements"))
@@ -3597,7 +3486,7 @@ struct HomeView: View {
     private var lastPhotosPlaceholder: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.cyan.opacity(0.14),
             contentPadding: 16
         ) {
@@ -3616,7 +3505,7 @@ struct HomeView: View {
     private var healthSectionPlaceholder: some View {
         AppGlassCard(
             depth: .base,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.cyan.opacity(0.16),
             contentPadding: 12
         ) {
@@ -3635,7 +3524,7 @@ struct HomeView: View {
     private var lastPhotosSection: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.cyan.opacity(0.14),
             contentPadding: 16
         ) {
@@ -3648,7 +3537,7 @@ struct HomeView: View {
                     
                     Spacer()
                     
-                    if (recentPhotos.count + pendingPhotoSaveStore.pendingItems.count) > maxVisiblePhotos {
+                    if (viewModel.recentPhotos.count + pendingPhotoSaveStore.pendingItems.count) > maxVisiblePhotos {
                         Button {
                             router.selectedTab = .photos
                         } label: {
@@ -3658,7 +3547,7 @@ struct HomeView: View {
                                 Image(systemName: "chevron.right")
                                     .font(AppTypography.micro)
                             }
-                            .foregroundStyle(Color(hex: "#FCA311"))
+                            .foregroundStyle(Color.appAmber)
                         }
                         .buttonStyle(LiquidCapsuleButtonStyle(tint: Color.cyan.opacity(0.72)))
                         .accessibilityLabel(AppLocalization.string("accessibility.open.photos"))
@@ -3677,7 +3566,7 @@ struct HomeView: View {
     private var lastPhotosEmptyState: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.cyan.opacity(0.14),
             contentPadding: 16
         ) {
@@ -3703,190 +3592,3 @@ struct HomeView: View {
     }
 }
 
-private struct GoalStatusLegendSheet: View {
-    let currentStatus: HomeView.GoalStatusLevel
-    let currentStatusColor: Color
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(AppLocalization.string("home.goalstatus.legend.title"))
-                            .font(AppTypography.sectionTitle)
-                            .foregroundStyle(AppColorRoles.textPrimary)
-
-                        Text(AppLocalization.string("home.goalstatus.legend.subtitle"))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColorRoles.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    SettingsCard(tint: AppColorRoles.surfacePrimary) {
-                        goalLegendRow(
-                            color: AppColorRoles.stateSuccess,
-                            titleKey: "home.goalstatus.legend.ontrack.title",
-                            descriptionKey: "home.goalstatus.legend.ontrack.description"
-                        )
-                        SettingsRowDivider()
-                        goalLegendRow(
-                            color: AppColorRoles.stateWarning,
-                            titleKey: "home.goalstatus.legend.slightlyoff.title",
-                            descriptionKey: "home.goalstatus.legend.slightlyoff.description"
-                        )
-                        SettingsRowDivider()
-                        goalLegendRow(
-                            color: AppColorRoles.stateError,
-                            titleKey: "home.goalstatus.legend.needsattention.title",
-                            descriptionKey: "home.goalstatus.legend.needsattention.description"
-                        )
-                    }
-
-                    SettingsCard(tint: currentStatusColor.opacity(0.18)) {
-                        Text(AppLocalization.string("home.goalstatus.legend.current.title"))
-                            .font(AppTypography.eyebrow)
-                            .foregroundStyle(AppColorRoles.textTertiary)
-
-                        HStack(alignment: .top, spacing: 10) {
-                            Circle()
-                                .fill(currentStatusColor)
-                                .frame(width: 10, height: 10)
-                                .padding(.top, 5)
-                                .accessibilityHidden(true)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(currentStatusTitle)
-                                    .font(AppTypography.bodyStrong)
-                                    .foregroundStyle(AppColorRoles.textPrimary)
-
-                                Text(currentStatusDescription)
-                                    .font(AppTypography.caption)
-                                    .foregroundStyle(AppColorRoles.textSecondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                        .accessibilityElement(children: .combine)
-                    }
-                }
-                .padding(.horizontal, AppSpacing.md)
-                .padding(.top, AppSpacing.md)
-                .padding(.bottom, AppSpacing.lg)
-            }
-            .background(AppColorRoles.surfaceCanvas.ignoresSafeArea())
-            .navigationTitle(AppLocalization.string("home.goalstatus.legend.navtitle"))
-            .navigationBarTitleDisplayMode(.inline)
-        }
-    }
-
-    private var currentStatusTitle: String {
-        switch currentStatus {
-        case .onTrack:
-            return AppLocalization.string("home.goalstatus.legend.current.ontrack")
-        case .slightlyOff:
-            return AppLocalization.string("home.goalstatus.legend.current.slightlyoff")
-        case .needsAttention:
-            return AppLocalization.string("home.goalstatus.legend.current.needsattention")
-        case .noGoals:
-            return AppLocalization.string("home.goalstatus.legend.current.nogoals")
-        }
-    }
-
-    private var currentStatusDescription: String {
-        switch currentStatus {
-        case .onTrack:
-            return AppLocalization.string("home.goalstatus.legend.ontrack.description")
-        case .slightlyOff:
-            return AppLocalization.string("home.goalstatus.legend.slightlyoff.description")
-        case .needsAttention:
-            return AppLocalization.string("home.goalstatus.legend.needsattention.description")
-        case .noGoals:
-            return AppLocalization.string("home.goalstatus.legend.nogoals.description")
-        }
-    }
-
-    private func goalLegendRow(color: Color, titleKey: String, descriptionKey: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Circle()
-                .fill(color)
-                .frame(width: 10, height: 10)
-                .padding(.top, 5)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(AppLocalization.string(titleKey))
-                    .font(AppTypography.bodyStrong)
-                    .foregroundStyle(AppColorRoles.textPrimary)
-
-                Text(AppLocalization.string(descriptionKey))
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColorRoles.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
-private struct HomeLastPhotosGrid: View {
-    let tiles: [HomeView.HomePhotoTile]
-    let onPersistedTap: (PhotoEntry) -> Void
-
-    private let columns = 3
-    private let spacing: CGFloat = 8
-    private let minimumSide: CGFloat = 86
-
-    var body: some View {
-        GeometryReader { geometry in
-            let side = tileSide(for: geometry.size.width)
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.fixed(side), spacing: spacing), count: columns),
-                spacing: spacing
-            ) {
-                ForEach(tiles) { tile in
-                    switch tile {
-                    case .persisted(let photo):
-                        Button {
-                            onPersistedTap(photo)
-                        } label: {
-                            PhotoGridThumb(
-                                photo: photo,
-                                size: side,
-                                cacheID: String(describing: photo.id)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(AppLocalization.string("accessibility.open.photo.details"))
-                        .accessibilityValue(photo.date.formatted(date: .abbreviated, time: .omitted))
-                    case .pending(let pending):
-                        PendingPhotoGridCell(
-                            thumbnailData: pending.thumbnailData,
-                            progress: pending.progress,
-                            status: pending.status,
-                            targetSize: CGSize(width: side, height: side),
-                            cornerRadius: 12,
-                            cacheID: pending.id.uuidString,
-                            showsStatusLabel: false,
-                            accessibilityIdentifier: "home.lastPhotos.pending.item"
-                        )
-                        .frame(width: side, height: side)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(height: gridHeight)
-    }
-
-    private var gridHeight: CGFloat {
-        let rows = max(1, Int(ceil(Double(tiles.count) / Double(columns))))
-        return CGFloat(rows) * minimumSide + CGFloat(max(rows - 1, 0)) * spacing
-    }
-
-    private func tileSide(for width: CGFloat) -> CGFloat {
-        let totalSpacing = spacing * CGFloat(columns - 1)
-        guard width.isFinite, width > totalSpacing else { return minimumSide }
-        let raw = (width - totalSpacing) / CGFloat(columns)
-        guard raw.isFinite, raw > 0 else { return minimumSide }
-        return max(floor(raw), minimumSide)
-    }
-}

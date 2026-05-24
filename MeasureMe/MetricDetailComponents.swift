@@ -365,7 +365,7 @@ struct MetricCompareSheet: View {
     let currentKind: MetricKind
     let selectedKind: MetricKind?
     let options: [MetricComparisonOption]
-    @Binding var timeframe: MetricDetailView.Timeframe
+    @Binding var timeframe: Timeframe
     let unitsSystem: String
     let primarySamples: [MetricSample]
     let comparisonSamples: [MetricSample]
@@ -387,7 +387,7 @@ struct MetricCompareSheet: View {
         currentKind: MetricKind,
         selectedKind: MetricKind?,
         options: [MetricComparisonOption],
-        timeframe: Binding<MetricDetailView.Timeframe>,
+        timeframe: Binding<Timeframe>,
         unitsSystem: String,
         primarySamples: [MetricSample],
         comparisonSamples: [MetricSample],
@@ -483,9 +483,9 @@ struct MetricCompareSheet: View {
                                     .foregroundStyle(AppColorRoles.textPrimary)
                                 Spacer()
                             }
-                            .padding(14)
+                            .padding(AppSpacing.smmd)
                             .background(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                                     .fill(AppColorRoles.surfaceInteractive)
                             )
                         }
@@ -545,9 +545,9 @@ struct MetricCompareSheet: View {
                 .font(AppTypography.iconMedium)
                 .foregroundStyle(isSelected ? AppColorRoles.stateSuccess : AppColorRoles.textTertiary)
         }
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
         )
     }
@@ -585,9 +585,9 @@ struct MetricCompareSheet: View {
                 .foregroundStyle(AppColorRoles.textTertiary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
         )
     }
@@ -602,7 +602,7 @@ struct MetricCompareSheet: View {
                 .foregroundStyle(AppColorRoles.textSecondary)
             Spacer(minLength: 0)
         }
-        .padding(16)
+        .padding(AppSpacing.md)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
@@ -612,7 +612,7 @@ struct MetricCompareSheet: View {
     private var timeframeSelector: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(MetricDetailView.Timeframe.allCases) { option in
+                ForEach(Timeframe.allCases) { option in
                     Button {
                         selectTimeframe(option)
                     } label: {
@@ -784,7 +784,7 @@ struct MetricCompareSheet: View {
                 }
             }
         }
-        .padding(16)
+        .padding(AppSpacing.md)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
@@ -819,7 +819,7 @@ struct MetricCompareSheet: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                 .fill(AppColorRoles.surfaceCanvas.opacity(0.72))
         )
     }
@@ -921,7 +921,7 @@ struct MetricCompareSheet: View {
         dismiss()
     }
 
-    private func selectTimeframe(_ option: MetricDetailView.Timeframe) {
+    private func selectTimeframe(_ option: Timeframe) {
         withAnimation(.easeInOut(duration: 0.18)) {
             timeframe = option
             scrubbedDate = nil

@@ -145,7 +145,7 @@ private extension MultiPhotoImportView {
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Color.secondary.opacity(0.5))
             }
-            .padding(12)
+            .padding(AppSpacing.sm)
             .background(Color.cyan.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
@@ -176,7 +176,7 @@ private extension MultiPhotoImportView {
                                             .resizable()
                                             .scaledToFill()
                                     } else {
-                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                                             .fill(Color.white.opacity(0.08))
                                             .overlay {
                                                 ProgressView()
@@ -185,9 +185,9 @@ private extension MultiPhotoImportView {
                                     }
                                 }
                                 .frame(width: 80, height: 80)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                                         .stroke(Color.white.opacity(0.18), lineWidth: 1)
                                 )
                                 .overlay(alignment: .topTrailing) {
