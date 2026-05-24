@@ -13,6 +13,44 @@ import SwiftData
     var recentPhotos: [PhotoEntry] = []
     var customDefinitions: [CustomMetricDefinition] = []
 
+    // MARK: - Presentation State (moved from HomeView @State)
+
+    /// Quick-add sheet kinds/source — set before presenting the sheet.
+    var quickAddKinds: [MetricKind] = []
+    var quickAddTelemetrySource: MeasurementTelemetrySource = .quickAdd
+
+    /// Expanded secondary metrics in key metrics card.
+    var expandedSecondaryMetrics: Set<MetricKind> = []
+
+    /// Scroll offset of the home scroll view.
+    var scrollOffset: CGFloat = 0
+
+    /// Checklist / activation state flags.
+    var isRequestingActivationReminder: Bool = false
+    var pendingActivationMetricCompletion: Bool = false
+    var didShowActivationReminderPrompt: Bool = false
+    var reminderChecklistCompleted: Bool = false
+    var checklistStatusText: String?
+    var isChecklistConnectingHealth: Bool = false
+    var shouldShowHealthSettingsShortcut: Bool = false
+
+    /// Lifecycle / startup flags.
+    var didCheckSevenDayPaywallPrompt: Bool = false
+    var didRunStartupPhases: Bool = false
+    var didEmitHomeInitialRender: Bool = false
+
+    /// Section mounting flags (deferred rendering).
+    var isLastPhotosSectionMounted: Bool = false
+    var isHealthSectionMounted: Bool = false
+
+    /// In-flight sync guard.
+    var isPhotoMetricSyncInFlight: Bool = false
+
+    /// Deferred startup tasks.
+    var deferredPhaseBTask: Task<Void, Never>?
+    var deferredPhaseCTask: Task<Void, Never>?
+    var deferredSectionMountTask: Task<Void, Never>?
+
     // MARK: - Cached Properties (previously @State in HomeView)
 
     var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
