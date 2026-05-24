@@ -365,7 +365,7 @@ struct MetricCompareSheet: View {
     let currentKind: MetricKind
     let selectedKind: MetricKind?
     let options: [MetricComparisonOption]
-    @Binding var timeframe: MetricDetailView.Timeframe
+    @Binding var timeframe: Timeframe
     let unitsSystem: String
     let primarySamples: [MetricSample]
     let comparisonSamples: [MetricSample]
@@ -387,7 +387,7 @@ struct MetricCompareSheet: View {
         currentKind: MetricKind,
         selectedKind: MetricKind?,
         options: [MetricComparisonOption],
-        timeframe: Binding<MetricDetailView.Timeframe>,
+        timeframe: Binding<Timeframe>,
         unitsSystem: String,
         primarySamples: [MetricSample],
         comparisonSamples: [MetricSample],
@@ -612,7 +612,7 @@ struct MetricCompareSheet: View {
     private var timeframeSelector: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(MetricDetailView.Timeframe.allCases) { option in
+                ForEach(Timeframe.allCases) { option in
                     Button {
                         selectTimeframe(option)
                     } label: {
@@ -921,7 +921,7 @@ struct MetricCompareSheet: View {
         dismiss()
     }
 
-    private func selectTimeframe(_ option: MetricDetailView.Timeframe) {
+    private func selectTimeframe(_ option: Timeframe) {
         withAnimation(.easeInOut(duration: 0.18)) {
             timeframe = option
             scrubbedDate = nil

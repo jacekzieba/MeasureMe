@@ -22,8 +22,8 @@ import SwiftData
     var cachedCustomLatestByIdentifier: [String: MetricSample] = [:]
     var cachedCustomGoalsByIdentifier: [String: MetricGoal] = [:]
     var cachedDashboardItems: [HomeModuleLayoutItem] = []
-    var cachedVisiblePhotoTiles: [HomeView.HomePhotoTile] = []
-    var cachedNextFocusInsight: HomeView.HomeNextFocusInsight?
+    var cachedVisiblePhotoTiles: [HomePhotoTile] = []
+    var cachedNextFocusInsight: HomeNextFocusInsight?
 
     // MARK: - Rebuild: Measurement Caches
 
@@ -43,7 +43,7 @@ import SwiftData
         allowFallbackFetch: Bool = true,
         totalMetricSampleCountOut: inout Int,
         hasAnyMeasurementsOut: inout Bool,
-        nextFocusComputer: () -> HomeView.HomeNextFocusInsight?
+        nextFocusComputer: () -> HomeNextFocusInsight?
     ) {
         var grouped: [MetricKind: [MetricSample]] = [:]
         var latest: [MetricKind: MetricSample] = [:]
@@ -95,7 +95,7 @@ import SwiftData
     /// Called by the view when goals change.
     func rebuildGoalsCache(
         goals: [MetricGoal],
-        nextFocusComputer: () -> HomeView.HomeNextFocusInsight?
+        nextFocusComputer: () -> HomeNextFocusInsight?
     ) {
         var dict: [MetricKind: MetricGoal] = [:]
         for goal in goals {
@@ -116,8 +116,8 @@ import SwiftData
         maxVisiblePhotos: Int
     ) {
         let persistedCandidateLimit = maxVisiblePhotos * 3
-        let persistedTiles = recentPhotos.prefix(persistedCandidateLimit).map { HomeView.HomePhotoTile.persisted($0) }
-        let pendingTiles = pendingItems.map { HomeView.HomePhotoTile.pending($0) }
+        let persistedTiles = recentPhotos.prefix(persistedCandidateLimit).map { HomePhotoTile.persisted($0) }
+        let pendingTiles = pendingItems.map { HomePhotoTile.pending($0) }
         cachedVisiblePhotoTiles = Array(
             (persistedTiles + pendingTiles)
                 .sorted { lhs, rhs in lhs.date > rhs.date }
@@ -128,7 +128,7 @@ import SwiftData
     // MARK: - Rebuild: Next Focus Insight Cache
 
     func rebuildNextFocusInsightCache(
-        nextFocusComputer: () -> HomeView.HomeNextFocusInsight?
+        nextFocusComputer: () -> HomeNextFocusInsight?
     ) {
         cachedNextFocusInsight = nextFocusComputer()
     }
