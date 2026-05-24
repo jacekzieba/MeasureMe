@@ -100,7 +100,7 @@ struct OnboardingFirstMeasurementStep: View {
                     .frame(width: 26, alignment: .leading)
             }
         }
-        .padding(isPrimary ? 14 : 10)
+        .padding(isPrimary ? AppSpacing.smmd : 10)
         .background(
             RoundedRectangle(cornerRadius: isPrimary ? 16 : 12, style: .continuous)
                 .fill(isPrimary ? Color.appAccent.opacity(0.10) : AppColorRoles.surfaceInteractive)

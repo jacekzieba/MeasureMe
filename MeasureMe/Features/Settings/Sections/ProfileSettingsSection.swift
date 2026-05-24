@@ -279,7 +279,7 @@ private struct ProfileAvatarPreview: View {
                     .scaledToFill()
             } else {
                 LinearGradient(
-                    colors: [Color(hex: "#FCA311"), Color(hex: "#5DD39E")],
+                    colors: [Color.appAmber, Color.appMint],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )

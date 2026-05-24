@@ -102,11 +102,11 @@ struct RFMDetailView: View {
                 }
             }
 
-            HealthInsightNoteCard(accent: Color(hex: "#3B82F6")) {
+            HealthInsightNoteCard(accent: Color.appBlue) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
                         Image(systemName: "info.circle.fill")
-                            .foregroundStyle(Color(hex: "#3B82F6"))
+                            .foregroundStyle(Color.appBlue)
 
                         Text(AppLocalization.string("Important"))
                             .font(AppTypography.bodyEmphasis)

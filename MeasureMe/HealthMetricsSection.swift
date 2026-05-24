@@ -325,7 +325,7 @@ struct HealthMetricsSection: View {
                     }
                 }
             }
-            .padding(14)
+            .padding(AppSpacing.smmd)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .fill(Color.white.opacity(0.05))
@@ -895,7 +895,7 @@ private struct HealthIndicatorMissingDataView: View {
                                 .foregroundStyle(AppColorRoles.textPrimary)
                         }
                     }
-                    .padding(14)
+                    .padding(AppSpacing.smmd)
                     .background(
                         RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .fill(AppColorRoles.surfaceInteractive)

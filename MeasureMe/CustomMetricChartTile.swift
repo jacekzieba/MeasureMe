@@ -111,7 +111,7 @@ struct CustomMetricChartTile: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .background(
             AppGlassBackground(
                 depth: .elevated,

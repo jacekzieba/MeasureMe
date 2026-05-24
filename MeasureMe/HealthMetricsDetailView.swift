@@ -289,9 +289,9 @@ struct HealthMetricsDetailView: View {
         if category.contains("Normal") {
             return AppColorRoles.stateSuccess
         } else if category.contains("Overweight") || category.contains("Increased") {
-            return Color(hex: "#FCA311")
+            return Color.appAmber
         } else {
-            return Color(hex: "#EF4444")
+            return Color.appDanger
         }
     }
     

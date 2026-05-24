@@ -483,7 +483,7 @@ struct MetricCompareSheet: View {
                                     .foregroundStyle(AppColorRoles.textPrimary)
                                 Spacer()
                             }
-                            .padding(14)
+                            .padding(AppSpacing.smmd)
                             .background(
                                 RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                                     .fill(AppColorRoles.surfaceInteractive)
@@ -545,7 +545,7 @@ struct MetricCompareSheet: View {
                 .font(AppTypography.iconMedium)
                 .foregroundStyle(isSelected ? AppColorRoles.stateSuccess : AppColorRoles.textTertiary)
         }
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
@@ -585,7 +585,7 @@ struct MetricCompareSheet: View {
                 .foregroundStyle(AppColorRoles.textTertiary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)

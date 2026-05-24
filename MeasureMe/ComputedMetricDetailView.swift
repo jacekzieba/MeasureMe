@@ -143,7 +143,7 @@ struct ComputedMetricDetailView: View {
             LinearGradient(
                 colors: colorScheme == .dark
                     ? [
-                        Color(hex: "#14213D").opacity(0.5),
+                        Color.appNavy.opacity(0.5),
                         Color(hex: "#000000").opacity(0.3)
                     ]
                     : [
@@ -221,7 +221,7 @@ struct ComputedMetricDetailView: View {
             LinearGradient(
                 colors: colorScheme == .dark
                     ? [
-                        Color(hex: "#14213D").opacity(0.4),
+                        Color.appNavy.opacity(0.4),
                         Color(hex: "#000000")
                     ]
                     : [
@@ -368,7 +368,7 @@ struct ComputedMetricDetailView: View {
             LinearGradient(
                 colors: colorScheme == .dark
                     ? [
-                        Color(hex: "#14213D").opacity(0.4),
+                        Color.appNavy.opacity(0.4),
                         Color(hex: "#000000")
                     ]
                     : [
@@ -839,7 +839,7 @@ struct ComputedMetricDetailView: View {
 
     private var insightNoteAccentColor: Color {
         switch config {
-        case .bodyFat: return Color(hex: "#3B82F6")
+        case .bodyFat: return Color.appBlue
         default: return AppColorRoles.accentPrimary
         }
     }
@@ -924,7 +924,7 @@ struct LegendRow: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(
-                        colorScheme == .dark ? Color(hex: "#14213D").opacity(0.5) : AppColorRoles.surfaceInteractive,
+                        colorScheme == .dark ? Color.appNavy.opacity(0.5) : AppColorRoles.surfaceInteractive,
                         in: RoundedRectangle(cornerRadius: 6)
                     )
             }
@@ -941,11 +941,11 @@ struct LegendRow: View {
         if category.contains("Normal") {
             return AppColorRoles.stateSuccess
         } else if category.contains("Overweight") || category.contains("Increased") {
-            return Color(hex: "#FCA311")
+            return Color.appAmber
         } else if category.contains("Underweight") {
-            return Color(hex: "#3B82F6")
+            return Color.appBlue
         } else {
-            return Color(hex: "#EF4444")
+            return Color.appDanger
         }
     }
 }

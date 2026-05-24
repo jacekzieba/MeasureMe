@@ -223,7 +223,7 @@ struct HomeHealthSummaryCard: View {
                     .foregroundStyle(accent)
             }
         }
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)

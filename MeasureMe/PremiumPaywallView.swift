@@ -638,7 +638,7 @@ struct PremiumPaywallView: View {
             .lineSpacing(2)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 14)
+            .padding(.horizontal, AppSpacing.smmd)
             .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
@@ -722,7 +722,7 @@ struct PremiumPaywallView: View {
 
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color(hex: "#FCA311"))
+                .foregroundStyle(Color.appAmber)
         }
         .padding(.vertical, 2)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1195,7 +1195,7 @@ private struct PremiumBeforeAfterSlider: View {
                     sliderLabel(afterLabel)
                         .opacity(clampedSlider < 0.82 ? 1 : 0.35)
                 }
-                .padding(14)
+                .padding(AppSpacing.smmd)
                 .frame(maxHeight: .infinity, alignment: .bottom)
 
                 sliderHandle(height: height)

@@ -196,7 +196,7 @@ struct GuidedCameraView: View {
                     Text(AppLocalization.string("Match your last pose"))
                         .font(AppTypography.bodyEmphasis)
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
+                        .padding(.horizontal, AppSpacing.smmd)
                         .padding(.vertical, 8)
                         .background(Color.black.opacity(0.45), in: Capsule())
 

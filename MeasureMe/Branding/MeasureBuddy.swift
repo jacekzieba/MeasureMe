@@ -78,7 +78,7 @@ struct MeasureBuddySpeechBubble<Content: View>: View {
 
             content()
                 .padding(.vertical, 12)
-                .padding(.horizontal, 14)
+                .padding(.horizontal, AppSpacing.smmd)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)

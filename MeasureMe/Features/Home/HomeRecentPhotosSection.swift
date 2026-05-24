@@ -155,7 +155,7 @@ struct HomeRecentPhotosCard: View {
                         Label(AppLocalization.string("Compare"), systemImage: "rectangle.split.2x1")
                             .font(AppTypography.buttonLabel)
                             .foregroundStyle(theme.accent)
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, AppSpacing.smmd)
                             .padding(.vertical, 10)
                             .background(
                                 Capsule(style: .continuous)

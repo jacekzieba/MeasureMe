@@ -505,7 +505,7 @@ struct PhysiqueIndicatorsSection: View {
             }
             .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 8))
         }
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
@@ -549,7 +549,7 @@ private struct PhysiqueSectionCard<Content: View>: View {
 
             content
         }
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -707,7 +707,7 @@ private struct PhysiqueRatioDetailView: View {
                             .padding(.vertical, 6)
                             .background(Color(hex: categoryColor), in: RoundedRectangle(cornerRadius: 8))
                     }
-                    .padding(14)
+                    .padding(AppSpacing.smmd)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                         RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
@@ -738,7 +738,7 @@ private struct PhysiqueRatioDetailView: View {
                             }
                         }
                     }
-                    .padding(14)
+                    .padding(AppSpacing.smmd)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                         RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
@@ -763,7 +763,7 @@ private struct PhysiqueRatioDetailView: View {
                 .foregroundStyle(AppColorRoles.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)

@@ -1924,7 +1924,7 @@ struct HomeView: View {
         case .slightlyOff:
             return Color.appAccent
         case .needsAttention:
-            return Color(hex: "#EF4444")
+            return Color.appDanger
         case .noGoals:
             return Color.white.opacity(0.82)
         }
@@ -2825,7 +2825,7 @@ struct HomeView: View {
             case .positive:
                 tint = AppColorRoles.stateSuccess
             case .negative:
-                tint = Color(hex: "#EF4444")
+                tint = Color.appDanger
             case .neutral:
                 tint = AppColorRoles.textTertiary
             }
@@ -2877,7 +2877,7 @@ struct HomeView: View {
         let isPositive = definition.favorsDecrease ? delta < 0 : delta > 0
         return HomeMetricDeltaChip(
             text: String(format: "%@%.1f %@", delta >= 0 ? "+" : "-", abs(delta), definition.unitLabel),
-            tint: isPositive ? AppColorRoles.stateSuccess : Color(hex: "#EF4444")
+            tint: isPositive ? AppColorRoles.stateSuccess : Color.appDanger
         )
     }
 
@@ -2966,7 +2966,7 @@ struct HomeView: View {
             }
             .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: AppRadius.md))
         }
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
@@ -3472,7 +3472,7 @@ struct HomeView: View {
                         Image(systemName: "chevron.right")
                             .font(AppTypography.micro)
                     }
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(Color.appAmber)
                 }
                 .buttonStyle(LiquidCapsuleButtonStyle(tint: Color.appAccent.opacity(0.88)))
                 .accessibilityLabel(AppLocalization.string("accessibility.open.measurements"))
@@ -3547,7 +3547,7 @@ struct HomeView: View {
                                 Image(systemName: "chevron.right")
                                     .font(AppTypography.micro)
                             }
-                            .foregroundStyle(Color(hex: "#FCA311"))
+                            .foregroundStyle(Color.appAmber)
                         }
                         .buttonStyle(LiquidCapsuleButtonStyle(tint: Color.cyan.opacity(0.72)))
                         .accessibilityLabel(AppLocalization.string("accessibility.open.photos"))

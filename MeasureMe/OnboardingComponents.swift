@@ -115,7 +115,7 @@ struct OnboardingEmptyStateCard: View {
                 .font(AppTypography.caption)
                 .foregroundStyle(Color.appGray)
         }
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .background(AppColorRoles.surfaceInteractive)
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         .overlay(

@@ -155,7 +155,7 @@ struct HealthInsightNoteCard<Content: View>: View {
         let shape = RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
 
         content
-            .padding(14)
+            .padding(AppSpacing.smmd)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 shape

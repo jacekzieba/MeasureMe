@@ -735,7 +735,7 @@ private struct MeasurementsCategoryTabs: View {
             return ClaudeLightStyle.directionalGradient(
                 colors: [
                     Color.dynamic(light: Color(hex: "#5B7CFF"), dark: Color(hex: "#7DB5FF")),
-                    Color.dynamic(light: Color(hex: "#2F56D9"), dark: Color(hex: "#3B82F6"))
+                    Color.dynamic(light: Color(hex: "#2F56D9"), dark: Color.appBlue)
                 ],
                 colorScheme: colorScheme,
                 lightColor: AppColorRoles.surfaceInteractive
@@ -1010,7 +1010,7 @@ struct MetricChartTile: View {
                     }
                 }
             }
-            .padding(14)
+            .padding(AppSpacing.smmd)
             .background(
                 AppGlassBackground(
                     depth: .elevated,

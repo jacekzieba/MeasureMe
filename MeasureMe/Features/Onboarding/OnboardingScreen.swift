@@ -385,7 +385,7 @@ struct OnboardingView: View {
                         .textInputAutocapitalization(.words)
                         .font(.system(size: layout.nameFieldFontSize, weight: .semibold, design: .rounded))
                         .padding(.vertical, layout.nameFieldVerticalPadding)
-                        .padding(.horizontal, 14)
+                        .padding(.horizontal, AppSpacing.smmd)
                         .background(
                             RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                                 .fill(AppColorRoles.surfaceInteractive)
@@ -845,7 +845,7 @@ struct OnboardingView: View {
                     .font(AppTypography.captionEmphasis)
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.6), radius: 4, y: 2)
-                    .padding(.bottom, 14)
+                    .padding(.bottom, AppSpacing.smmd)
             }
             .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
             .overlay(
@@ -1477,7 +1477,7 @@ struct OnboardingView: View {
             .fixedSize(horizontal: false, vertical: true)
             .layoutPriority(1)
         }
-        .padding(compact ? 12 : 14)
+        .padding(compact ? AppSpacing.sm : AppSpacing.smmd)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)

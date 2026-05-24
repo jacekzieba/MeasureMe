@@ -175,7 +175,7 @@ struct InsightConversationView: View {
             Text(AppLocalization.string("insight.followup.limit"))
                 .font(AppTypography.micro)
                 .foregroundStyle(AppColorRoles.textSecondary)
-                .padding(.vertical, 14)
+                .padding(.vertical, AppSpacing.smmd)
                 .frame(maxWidth: .infinity)
         } else {
             HStack(spacing: 8) {

@@ -197,7 +197,7 @@ struct HomeExpandedMetricTrendChart: View {
         case .positive:
             return AppColorRoles.stateSuccess
         case .negative:
-            return Color(hex: "#EF4444")
+            return Color.appDanger
         case .neutral:
             return AppColorRoles.textTertiary
         }

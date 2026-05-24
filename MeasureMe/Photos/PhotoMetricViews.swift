@@ -28,7 +28,7 @@ struct MetricSnapshotRow: View {
                 .font(compact ? AppTypography.captionEmphasis : AppTypography.bodyEmphasis)
                 .foregroundStyle(.secondary)
         }
-        .padding(compact ? 10 : 14)
+        .padding(compact ? 10 : AppSpacing.smmd)
         .background(compact ? AppColorRoles.surfaceInteractive : Color(.systemGray6))
         .clipShape(RoundedRectangle(cornerRadius: compact ? 14 : 8))
     }

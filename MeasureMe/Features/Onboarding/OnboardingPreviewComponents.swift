@@ -276,7 +276,7 @@ struct DummyAIInsightCard: View {
                     )
             )
         }
-        .padding(.horizontal, compact ? 12 : 14)
+        .padding(.horizontal, compact ? AppSpacing.sm : AppSpacing.smmd)
         .padding(.vertical, compact ? 10 : 12)
         .background {
             AppGlassBackground(depth: .base, cornerRadius: 20, tint: AppColorRoles.accentPrimary.opacity(0.05))
@@ -337,7 +337,7 @@ struct OnboardingBeforeAfterSlider: View {
                     sliderLabel(afterLabel)
                         .opacity(clampedSlider < 0.82 ? 1 : 0.35)
                 }
-                .padding(14)
+                .padding(AppSpacing.smmd)
                 .frame(maxHeight: .infinity, alignment: .bottom)
 
                 sliderHandle(height: height)

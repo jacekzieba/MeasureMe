@@ -100,7 +100,7 @@ struct HealthMetricRow<Destination: View>: View {
             }
             .frame(minHeight: 72, alignment: .topLeading)
             .padding(.horizontal, 12)
-            .padding(.vertical, 14)
+            .padding(.vertical, AppSpacing.smmd)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.sm)
                     .fill(AppColorRoles.surfaceInteractive)

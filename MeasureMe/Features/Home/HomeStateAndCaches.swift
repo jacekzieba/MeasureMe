@@ -259,7 +259,7 @@ struct CustomMiniSparklineChart: View {
             }
             switch outcome {
             case .positive: self.trendColor = AppColorRoles.stateSuccess.opacity(0.85)
-            case .negative: self.trendColor = Color(hex: "#EF4444").opacity(0.85)
+            case .negative: self.trendColor = Color.appDanger.opacity(0.85)
             case .neutral:  self.trendColor = Color.gray.opacity(0.5)
             }
         } else {

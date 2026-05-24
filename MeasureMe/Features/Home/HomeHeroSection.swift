@@ -490,7 +490,7 @@ struct HomeHeroSection: View {
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
@@ -537,7 +537,7 @@ struct HomeHeroSection: View {
                         .foregroundStyle(AppColorRoles.textTertiary)
                 }
             }
-            .padding(14)
+            .padding(AppSpacing.smmd)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(pulseBackground(for: signal.tint))
         }
@@ -597,7 +597,7 @@ struct HomeHeroSection: View {
         switch tint {
         case .accent: return accent
         case .success: return AppColorRoles.stateSuccess
-        case .warning: return Color(hex: "#EF4444")
+        case .warning: return Color.appDanger
         case .neutral: return AppColorRoles.textTertiary
         }
     }

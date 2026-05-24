@@ -909,7 +909,7 @@ struct MetricDetailView: View {
                                 .foregroundStyle(AppColorRoles.textSecondary)
                         }
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, AppSpacing.smmd)
                         .contentShape(Rectangle())
                         .onTapGesture { edit(sample: s) }
                         .accessibilityLabel({
@@ -1085,7 +1085,7 @@ struct MetricDetailView: View {
 
                 Spacer()
             }
-            .padding(14)
+            .padding(AppSpacing.smmd)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                     .fill(AppColorRoles.surfaceInteractive)
@@ -1128,7 +1128,7 @@ struct MetricDetailView: View {
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColorRoles.textTertiary)
                 }
-                .padding(14)
+                .padding(AppSpacing.smmd)
                 .background(
                     RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                         .fill(AppColorRoles.surfaceInteractive)

@@ -13,7 +13,7 @@ private extension MetricDetailView {
     }
 
     static let trendPositive = Color(hex: "#16A34A")
-    static let trendNegative = Color(hex: "#EF4444")
+    static let trendNegative = Color.appDanger
 
     var trendsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
