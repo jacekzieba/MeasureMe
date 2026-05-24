@@ -519,7 +519,7 @@ private func metricTileScaffold<Icon: View, Chart: View>(
             .frame(height: 48)
 
         if let deltaChip {
-            Text("\(deltaChip.text) 30d")
+            Text("\(deltaChip.text) \(AppLocalization.string("home.keymetrics.delta.period.30d"))")
                 .font(AppTypography.captionEmphasis.monospacedDigit())
                 .foregroundStyle(deltaChip.tint)
                 .lineLimit(1)

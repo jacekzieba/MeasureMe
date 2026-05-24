@@ -400,7 +400,7 @@ struct OnboardingView: View {
                         .toolbar {
                             ToolbarItemGroup(placement: .keyboard) {
                                 Spacer()
-                                Button("Done") {
+                                Button(AppLocalization.string("Done")) {
                                     isNameFieldFocused = false
                                 }
                             }

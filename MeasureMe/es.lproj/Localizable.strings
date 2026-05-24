@@ -268,6 +268,7 @@
 "home.metric.accessibility.value" = "%@, %@";
 "home.metric.accessibility.nodata" = "%@, aún no hay datos";
 "home.keymetrics.delta.empty" = "Agrega un registro más para mostrar la tendencia de 7 días.";
+"home.keymetrics.delta.period.30d" = "30d";
 "home.keymetrics.openDetails" = "Abrir todos los detalles";
 "home.keymetrics.goal.achieved" = "Meta alcanzada";
 "home.keymetrics.goal.remaining" = "%@ restante hasta tu objetivo";

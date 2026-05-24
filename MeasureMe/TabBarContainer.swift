@@ -142,7 +142,7 @@ struct TabBarContainer: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 12)
 
-                    Button("Take Photo") {
+                    Button(AppLocalization.string("Take Photo")) {
                     }
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -152,7 +152,7 @@ struct TabBarContainer: View {
 
                     Divider().padding(.leading, 20)
 
-                    Button("Choose from Library") {
+                    Button(AppLocalization.string("Choose from Library")) {
                     }
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity, alignment: .leading)
