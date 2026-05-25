@@ -281,8 +281,8 @@ private struct GuidedCameraPreview: UIViewRepresentable {
 
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
-        view.previewLayer.session = session
-        view.previewLayer.videoGravity = .resizeAspectFill
+        view.previewLayer?.session = session
+        view.previewLayer?.videoGravity = .resizeAspectFill
         return view
     }
 
@@ -293,8 +293,8 @@ private struct GuidedCameraPreview: UIViewRepresentable {
             AVCaptureVideoPreviewLayer.self
         }
 
-        var previewLayer: AVCaptureVideoPreviewLayer {
-            layer as! AVCaptureVideoPreviewLayer
+        var previewLayer: AVCaptureVideoPreviewLayer? {
+            layer as? AVCaptureVideoPreviewLayer
         }
     }
 }
