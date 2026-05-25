@@ -1,98 +1,33 @@
 import SwiftData
 import SwiftUI
 
-enum AllLogsSourceFilter {
-    case all
-    case manual
-    case healthKit
-}
-
-enum AllLogsDateFilter {
-    case all
-    case custom(start: Date, end: Date)
-}
-
-enum AllLogsFilterEngine {
-    static func filter(
-        samples: [MetricSample],
-        sourceFilter: AllLogsSourceFilter,
-        dateFilter: AllLogsDateFilter,
-        calendar: Calendar = .current
-    ) -> [MetricSample] {
-        let startDate: Date?
-        let endDate: Date?
-
-        switch dateFilter {
-        case .all:
-            startDate = nil
-            endDate = nil
-        case .custom(let start, let end):
-            startDate = calendar.startOfDay(for: start)
-            let endDay = calendar.startOfDay(for: end)
-            endDate = calendar.date(byAdding: DateComponents(day: 1, second: -1), to: endDay)
-        }
-
-        return samples.filter { sample in
-            let matchesSource: Bool
-            switch sourceFilter {
-            case .all:
-                matchesSource = true
-            case .manual:
-                matchesSource = sample.source == .manual
-            case .healthKit:
-                matchesSource = sample.source == .healthKit
-            }
-
-            let matchesDate: Bool
-            if let startDate, let endDate {
-                matchesDate = sample.date >= startDate && sample.date <= endDate
-            } else {
-                matchesDate = true
-            }
-
-            return matchesSource && matchesDate
-        }
-    }
-}
-
 // MARK: - StreakDetailView
 
 struct StreakDetailView: View {
     @ObservedObject var streakManager: StreakManager
+    @StateObject private var viewModel = StreakDetailViewModel()
 
     @Query private var thisWeekSamples: [MetricSample]
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
-    @State private var flameScale: CGFloat = 1.0
-    @State private var glowRadius: CGFloat = 18
-    @State private var totalEntries: Int = 0
-    @State private var animationsStarted = false
-    @State private var allDayCounts: [Date: Int] = [:]
-    @State private var selectedYear: Int = 0
-    @State private var availableYears: [Int] = []
-    @State private var heatmapRevealed = false
-    @State private var actualFirstUseDate: Date? = nil
+    // Binding-required state (must stay in View)
     @State private var showAllLogs = false
     @State private var vacationEndSelection: Date = AppClock.now
-    @State private var showVacationConfirmation = false
-    @State private var vacationConfirmationMessage = ""
-    @State private var vacationCardPulse = false
-    @State private var isVacationPickerExpanded = false
 
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // MARK: - Adaptive colors
-    private var streakText: Color { colorScheme == .dark ? .white : AppColorRoles.textPrimary }
-    private var streakTextSecondary: Color { colorScheme == .dark ? .white.opacity(0.55) : AppColorRoles.textSecondary }
-    private var streakTextTertiary: Color { colorScheme == .dark ? .white.opacity(0.45) : AppColorRoles.textTertiary }
-    private var streakDivider: Color { colorScheme == .dark ? .white.opacity(0.16) : AppColorRoles.borderSubtle }
-    private var streakMuted: Color { colorScheme == .dark ? .white.opacity(0.07) : AppColorRoles.surfaceSecondary }
-    private var streakSubtle: Color { colorScheme == .dark ? .white.opacity(0.35) : AppColorRoles.textTertiary }
+    var streakText: Color { colorScheme == .dark ? .white : AppColorRoles.textPrimary }
+    var streakTextSecondary: Color { colorScheme == .dark ? .white.opacity(0.55) : AppColorRoles.textSecondary }
+    var streakTextTertiary: Color { colorScheme == .dark ? .white.opacity(0.45) : AppColorRoles.textTertiary }
+    var streakDivider: Color { colorScheme == .dark ? .white.opacity(0.16) : AppColorRoles.borderSubtle }
+    var streakMuted: Color { colorScheme == .dark ? .white.opacity(0.07) : AppColorRoles.surfaceSecondary }
+    var streakSubtle: Color { colorScheme == .dark ? .white.opacity(0.35) : AppColorRoles.textTertiary }
 
-    private var shouldAnimate: Bool {
+    var shouldAnimate: Bool {
         animationsEnabled && !reduceMotion
     }
 
@@ -126,7 +61,7 @@ struct StreakDetailView: View {
                         flameSection
                         statsSection
                         thisWeekSection
-                        if selectedYear > 0 {
+                        if viewModel.selectedYear > 0 {
                             activityHeatmapSection
                         }
                         milestoneSection
@@ -198,9 +133,9 @@ struct StreakDetailView: View {
                     .renderingMode(.original)
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 200, height: 200)
-                    .scaleEffect(flameScale * 1.30)
+                    .scaleEffect(viewModel.flameScale * 1.30)
                     .blur(radius: 22)
-                    .opacity(0.45 + Double(glowRadius - 18) / 20.0 * 0.30)
+                    .opacity(0.45 + Double(viewModel.glowRadius - 18) / 20.0 * 0.30)
 
                 // Layer 2 — main crisp flame with pulsing shadow glow
                 Image("FlameIcon")
@@ -208,9 +143,9 @@ struct StreakDetailView: View {
                     .renderingMode(.original)
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 160, height: 160)
-                    .scaleEffect(flameScale)
-                    .shadow(color: Color(red: 1.0, green: 0.55, blue: 0.05).opacity(0.78), radius: glowRadius)
-                    .shadow(color: Color.orange.opacity(0.45), radius: glowRadius * 1.6)
+                    .scaleEffect(viewModel.flameScale)
+                    .shadow(color: Color(red: 1.0, green: 0.55, blue: 0.05).opacity(0.78), radius: viewModel.glowRadius)
+                    .shadow(color: Color.orange.opacity(0.45), radius: viewModel.glowRadius * 1.6)
             }
             .frame(height: 200)
 
@@ -243,7 +178,7 @@ struct StreakDetailView: View {
 
                 statColumn(
                     title: AppLocalization.string("streak.detail.memberSince"),
-                    value: formattedDate(actualFirstUseDate ?? streakManager.firstActiveDate)
+                    value: formattedDate(viewModel.actualFirstUseDate ?? streakManager.firstActiveDate)
                 )
 
                 Rectangle()
@@ -296,166 +231,6 @@ struct StreakDetailView: View {
         }
     }
 
-    // MARK: - Vacation Mode
-
-    private var vacationModeSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: streakManager.isVacationModeActive ? "bed.double.fill" : "bed.double")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(streakManager.isVacationModeActive ? Color.orange : streakTextSecondary)
-                    .frame(width: 28, height: 28)
-                    .background(Circle().fill(streakMuted))
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(AppLocalization.string("streak.detail.vacation.title"))
-                        .font(AppTypography.captionEmphasis)
-                        .foregroundStyle(streakTextSecondary)
-                        .tracking(2)
-                        .textCase(.uppercase)
-
-                    Text(vacationStatusText)
-                        .font(AppTypography.body)
-                        .foregroundStyle(streakText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-
-            Button {
-                toggleVacationPicker()
-            } label: {
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(AppLocalization.string("streak.detail.vacation.endDate.label"))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(streakTextSecondary)
-
-                        Text(formattedDate(vacationEndSelection))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(streakText)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: isVacationPickerExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(streakTextSecondary)
-                }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(streakMuted)
-                )
-            }
-            .buttonStyle(.plain)
-
-            Group {
-                DatePicker(
-                    "",
-                    selection: $vacationEndSelection,
-                    in: Date()...,
-                    displayedComponents: [.date]
-                )
-                .datePickerStyle(.graphical)
-                .labelsHidden()
-                .tint(.orange)
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(streakMuted)
-                )
-            }
-            .frame(maxHeight: isVacationPickerExpanded ? 360 : 0, alignment: .top)
-            .opacity(isVacationPickerExpanded ? 1 : 0)
-            .clipped()
-            .allowsHitTesting(isVacationPickerExpanded)
-
-            if let endDate = streakManager.vacationEndDate, streakManager.isVacationModeActive {
-                Text(AppLocalization.string("streak.detail.vacation.ends", formattedDate(endDate)))
-                    .font(AppTypography.caption)
-                    .foregroundStyle(streakTextSecondary)
-            }
-
-            if showVacationConfirmation {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Color.green)
-                        .contentTransition(.symbolEffect(.replace))
-
-                    Text(vacationConfirmationMessage)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(streakText)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(Color.green.opacity(colorScheme == .dark ? 0.2 : 0.14))
-                )
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
-
-            HStack(spacing: 12) {
-                Button(action: applyVacationModeSelection) {
-                    Text(
-                        AppLocalization.string(
-                            streakManager.isVacationModeActive
-                                ? "streak.detail.vacation.update"
-                                : "streak.detail.vacation.enable"
-                        )
-                    )
-                    .font(AppTypography.bodyEmphasis)
-                    .foregroundStyle(Color.black.opacity(0.78))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.orange)
-                    )
-                }
-                .buttonStyle(.plain)
-
-                if streakManager.isVacationModeActive {
-                    Button(action: disableVacationMode) {
-                        Text(AppLocalization.string("streak.detail.vacation.disable"))
-                            .font(AppTypography.bodyEmphasis)
-                            .foregroundStyle(streakText)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(streakMuted)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .scaleEffect(vacationCardPulse ? 1.015 : 1)
-        .shadow(
-            color: vacationCardPulse ? Color.orange.opacity(colorScheme == .dark ? 0.28 : 0.18) : .clear,
-            radius: vacationCardPulse ? 18 : 0
-        )
-        .animation(
-            AppMotion.animation(AppMotion.emphasized, enabled: shouldAnimate),
-            value: vacationCardPulse
-        )
-        .animation(
-            AppMotion.animation(AppMotion.standard, enabled: shouldAnimate),
-            value: showVacationConfirmation
-        )
-    }
-
-    private var vacationStatusText: String {
-        if streakManager.isVacationModeActive {
-            return AppLocalization.string(
-                "streak.detail.vacation.active",
-                AppLocalization.string("streak.detail.vacation.active.date", formattedDate(streakManager.vacationEndDate))
-            )
-        }
-        return AppLocalization.string("streak.detail.vacation.inactive")
-    }
-
     private func handleStreakDetailAppear() {
         loadHeatmapData()
         syncVacationDurationFromState()
@@ -472,18 +247,18 @@ struct StreakDetailView: View {
         dismiss()
     }
 
-    private func toggleVacationPicker() {
+    func toggleVacationPicker() {
         Haptics.selection()
         withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-            isVacationPickerExpanded.toggle()
+            viewModel.isVacationPickerExpanded.toggle()
         }
     }
 
-    private func disableVacationMode() {
+    func disableVacationMode() {
         streakManager.disableVacationMode()
     }
 
-    private struct WeekDay {
+    struct WeekDay {
         let index: Int      // 0 = Mon … 6 = Sun (ISO)
         let label: String
         let isToday: Bool
@@ -695,7 +470,7 @@ struct StreakDetailView: View {
 
                     Spacer()
 
-                    Text("\(totalEntries)")
+                    Text("\(viewModel.totalEntries)")
                         .font(AppTypography.bodyEmphasis.monospacedDigit())
                         .foregroundStyle(streakText)
                 }
@@ -740,20 +515,20 @@ struct StreakDetailView: View {
         AppLocalization.string("streak.detail.motivational.\(motivationalTier).body")
     }
 
-    // MARK: - Activity Heatmap
+    // MARK: - Activity Heatmap data loading
 
-    private func loadHeatmapData() {
+    func loadHeatmapData() {
         let calendar = Calendar(identifier: .iso8601)
         let now = AppClock.now
 
         // Use the app's first launch date (stored when PremiumStore initializes)
         let firstLaunchTimestamp = UserDefaults.standard.double(forKey: AppSettingsKeys.Premium.firstLaunchDate)
         if firstLaunchTimestamp > 0 {
-            actualFirstUseDate = Date(timeIntervalSince1970: firstLaunchTimestamp)
+            viewModel.actualFirstUseDate = Date(timeIntervalSince1970: firstLaunchTimestamp)
         }
 
         guard let firstDate = streakManager.firstActiveDate else {
-            totalEntries = (try? modelContext.fetchCount(FetchDescriptor<MetricSample>())) ?? 0
+            viewModel.totalEntries = (try? modelContext.fetchCount(FetchDescriptor<MetricSample>())) ?? 0
             return
         }
 
@@ -761,7 +536,7 @@ struct StreakDetailView: View {
             predicate: #Predicate<MetricSample> { $0.date >= firstDate }
         )
         let samples = (try? modelContext.fetch(descriptor)) ?? []
-        totalEntries = samples.count
+        viewModel.totalEntries = samples.count
 
         // Group by start-of-day
         var dayCounts: [Date: Int] = [:]
@@ -770,303 +545,28 @@ struct StreakDetailView: View {
             dayCounts[day, default: 0] += 1
         }
 
-        allDayCounts = dayCounts
+        viewModel.allDayCounts = dayCounts
 
         // Build available years — only years that actually contain samples
         let currentYear = calendar.component(.year, from: now)
         let yearsWithData: Set<Int> = Set(dayCounts.keys.map { calendar.component(.year, from: $0) })
         let firstYear = yearsWithData.min() ?? currentYear
-        availableYears = Array(stride(from: currentYear, through: firstYear, by: -1))
+        viewModel.availableYears = Array(stride(from: currentYear, through: firstYear, by: -1))
             .filter { $0 == currentYear || yearsWithData.contains($0) }
-        selectedYear = currentYear
+        viewModel.selectedYear = currentYear
 
         if shouldAnimate {
             withAnimation(AppMotion.sectionEnter) {
-                heatmapRevealed = true
+                viewModel.heatmapRevealed = true
             }
         } else {
-            heatmapRevealed = true
+            viewModel.heatmapRevealed = true
         }
-    }
-
-    private func heatmapColor(for count: Int) -> Color {
-        switch count {
-        case 0:     return streakMuted
-        case 1:     return Color.orange.opacity(colorScheme == .dark ? 0.3 : 0.35)
-        case 2:     return Color.orange.opacity(colorScheme == .dark ? 0.55 : 0.6)
-        default:    return Color.appAccent
-        }
-    }
-
-    /// Months to display for the selected year — from first-active month,
-    /// padded to a multiple of 3 so the grid row is always full.
-    private var visibleMonths: [Int] {
-        let calendar = Calendar(identifier: .iso8601)
-        let now = AppClock.now
-        let currentYear = calendar.component(.year, from: now)
-        let currentMonth = calendar.component(.month, from: now)
-
-        let firstMonth: Int
-        if let firstDate = streakManager.firstActiveDate {
-            let firstYear = calendar.component(.year, from: firstDate)
-            firstMonth = (firstYear == selectedYear)
-                ? calendar.component(.month, from: firstDate)
-                : 1
-        } else {
-            firstMonth = 1
-        }
-
-        let lastMonth = (selectedYear == currentYear) ? currentMonth : 12
-        guard firstMonth <= lastMonth else { return [] }
-
-        // Pad to fill the last row of 3 columns (cap at December)
-        let count = lastMonth - firstMonth + 1
-        let remainder = count % 3
-        let padded = (remainder == 0) ? lastMonth : min(lastMonth + (3 - remainder), 12)
-        return Array(firstMonth...padded)
-    }
-
-    /// Always 3 columns so tiles stay small even with 1–2 months of data.
-    private var heatmapGridColumns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
-    }
-
-    private var activityHeatmapSection: some View {
-        AppGlassCard(depth: .base, cornerRadius: 18, tint: .clear, contentPadding: 16) {
-            VStack(alignment: .leading, spacing: 14) {
-                // Header with title + optional year picker
-                HStack {
-                    Text(AppLocalization.string("streak.detail.heatmap.title"))
-                        .font(AppTypography.captionEmphasis)
-                        .foregroundStyle(streakTextSecondary)
-                        .tracking(2)
-                        .textCase(.uppercase)
-
-                    Spacer()
-
-                    if availableYears.count > 1 {
-                        Menu {
-                            ForEach(availableYears, id: \.self) { year in
-                                Button {
-                                    heatmapRevealed = false
-                                    Task { @MainActor in
-                                        try? await Task.sleep(for: .milliseconds(40))
-                                        selectedYear = year
-                                        if shouldAnimate {
-                                            withAnimation(AppMotion.sectionEnter) {
-                                                heatmapRevealed = true
-                                            }
-                                        } else {
-                                            heatmapRevealed = true
-                                        }
-                                    }
-                                } label: {
-                                    HStack {
-                                        Text(String(year))
-                                        if year == selectedYear {
-                                            Image(systemName: "checkmark")
-                                        }
-                                    }
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 4) {
-                                Text(String(selectedYear))
-                                    .font(.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit())
-                                    .foregroundStyle(streakText)
-
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.system(size: 9, weight: .semibold))
-                                    .foregroundStyle(streakTextSecondary)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Capsule().fill(streakMuted))
-                        }
-                    }
-                }
-
-                // Adaptive grid — only months with potential data
-                LazyVGrid(columns: heatmapGridColumns, spacing: 12) {
-                    ForEach(Array(visibleMonths.enumerated()), id: \.element) { index, month in
-                        miniMonthView(month: month, showDayHeaders: index % 3 == 0)
-                    }
-                }
-
-                // Legend
-                HStack(spacing: 6) {
-                    Spacer()
-                    Text(AppLocalization.string("streak.detail.heatmap.less"))
-                        .font(AppTypography.micro)
-                        .foregroundStyle(streakTextTertiary)
-
-                    ForEach(0..<4, id: \.self) { level in
-                        RoundedRectangle(cornerRadius: 2, style: .continuous)
-                            .fill(heatmapColor(for: level))
-                            .frame(width: 10, height: 10)
-                    }
-
-                    Text(AppLocalization.string("streak.detail.heatmap.more"))
-                        .font(AppTypography.micro)
-                        .foregroundStyle(streakTextTertiary)
-                }
-            }
-        }
-    }
-
-    private func miniMonthView(month: Int, showDayHeaders: Bool = false) -> some View {
-        let cells = monthCells(month: month)
-
-        return VStack(alignment: .leading, spacing: 3) {
-            Text(monthName(month))
-                .font(.system(size: 10, weight: .medium, design: .rounded))
-                .foregroundStyle(streakTextSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            let dayCols = Array(repeating: GridItem(.flexible(), spacing: 2), count: 7)
-
-            if showDayHeaders {
-                let headers = dayHeaderSymbols()
-                LazyVGrid(columns: dayCols, spacing: 2) {
-                    ForEach(Array(headers.enumerated()), id: \.offset) { _, symbol in
-                        Text(symbol)
-                            .font(.system(size: 8, weight: .medium, design: .rounded))
-                            .foregroundStyle(streakSubtle)
-                    }
-                }
-            }
-
-            LazyVGrid(columns: dayCols, spacing: 2) {
-                ForEach(cells, id: \.id) { cell in
-                    heatmapCellView(cell, monthIndex: month)
-                }
-            }
-        }
-    }
-
-    /// Mon–Sun day-of-week symbols in current locale (e.g. P/W/Ś/C/P/S/N for Polish).
-    private func dayHeaderSymbols() -> [String] {
-        let formatter = DateFormatter()
-        formatter.locale = Locale.autoupdatingCurrent
-        let symbols = formatter.veryShortStandaloneWeekdaySymbols ?? []
-        guard symbols.count == 7 else { return [] }
-        // Rotate from Sunday-first to ISO Monday-first
-        return Array(symbols[1...]) + [symbols[0]]
-    }
-
-    private struct MonthCell: Identifiable {
-        let id: String
-        let count: Int
-        let isToday: Bool
-        let isVisible: Bool // false for leading/trailing blanks and future/pre-start days
-    }
-
-    private func monthCells(month: Int) -> [MonthCell] {
-        let calendar = Calendar(identifier: .iso8601)
-
-        // First day of this month
-        var comps = DateComponents()
-        comps.year = selectedYear
-        comps.month = month
-        comps.day = 1
-        guard let firstOfMonth = calendar.date(from: comps) else { return [] }
-
-        let range = calendar.range(of: .day, in: .month, for: firstOfMonth) ?? (1..<31)
-        let daysInMonth = range.count
-
-        // ISO 8601: Monday = 1 .. Sunday = 7
-        // We want Monday = column 0 .. Sunday = column 6
-        let firstWeekday = calendar.component(.weekday, from: firstOfMonth)
-        // Convert from Sunday=1..Saturday=7 to Monday=0..Sunday=6
-        let leadingBlanks = (firstWeekday + 5) % 7
-
-        // Determine first active date boundary
-        let firstActiveStart: Date = {
-            if let d = streakManager.firstActiveDate {
-                return calendar.startOfDay(for: d)
-            }
-            return .distantPast
-        }()
-
-        var cells: [MonthCell] = []
-
-        // Leading blanks
-        for i in 0..<leadingBlanks {
-            cells.append(MonthCell(id: "blank-lead-\(month)-\(i)", count: 0, isToday: false, isVisible: false))
-        }
-
-        // Actual days
-        for day in 1...daysInMonth {
-            var dayComps = DateComponents()
-            dayComps.year = selectedYear
-            dayComps.month = month
-            dayComps.day = day
-            guard let date = calendar.date(from: dayComps) else { continue }
-            let dayStart = calendar.startOfDay(for: date)
-            let isBeforeStart = dayStart < firstActiveStart
-            let isToday = calendar.isDateInToday(date)
-            let count = allDayCounts[dayStart] ?? 0
-
-            cells.append(MonthCell(
-                id: "day-\(month)-\(day)",
-                count: count,
-                isToday: isToday,
-                isVisible: !isBeforeStart
-            ))
-        }
-
-        // Trailing blanks to fill last row
-        let remainder = cells.count % 7
-        if remainder > 0 {
-            let trailingBlanks = 7 - remainder
-            for i in 0..<trailingBlanks {
-                cells.append(MonthCell(id: "blank-trail-\(month)-\(i)", count: 0, isToday: false, isVisible: false))
-            }
-        }
-
-        return cells
-    }
-
-    private func heatmapCellView(_ cell: MonthCell, monthIndex: Int) -> some View {
-        RoundedRectangle(cornerRadius: 2, style: .continuous)
-            .fill(cell.isVisible ? heatmapColor(for: cell.count) : Color.clear)
-            .aspectRatio(1, contentMode: .fit)
-            .overlay {
-                if cell.isToday && cell.isVisible {
-                    RoundedRectangle(cornerRadius: 2, style: .continuous)
-                        .stroke(colorScheme == .dark ? .white.opacity(0.7) : Color.appNavy.opacity(0.5), lineWidth: 1)
-                }
-            }
-            .shadow(
-                color: (cell.isVisible && cell.count >= 3)
-                    ? Color.appAccent.opacity(0.35) : .clear,
-                radius: 2
-            )
-            .opacity(heatmapRevealed ? 1 : 0)
-            .scaleEffect(heatmapRevealed ? 1 : 0.5)
-            .animation(
-                shouldAnimate
-                    ? .spring(response: 0.3, dampingFraction: 0.8)
-                        .delay(Double(monthIndex) * 0.04)
-                    : nil,
-                value: heatmapRevealed
-            )
-    }
-
-    private func monthName(_ month: Int) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "LLL"
-        var comps = DateComponents()
-        comps.year = selectedYear
-        comps.month = month
-        comps.day = 1
-        guard let date = Calendar(identifier: .iso8601).date(from: comps) else { return "" }
-        return formatter.string(from: date).uppercased()
     }
 
     // MARK: - Helpers
 
-    private func formattedDate(_ date: Date?) -> String {
+    func formattedDate(_ date: Date?) -> String {
         guard let date else { return "—" }
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -1082,393 +582,62 @@ struct StreakDetailView: View {
         }
     }
 
-    private func applyVacationModeSelection() {
+    func applyVacationModeSelection() {
         if streakManager.isVacationModeActive {
             streakManager.updateVacationMode(until: vacationEndSelection)
-            vacationConfirmationMessage = AppLocalization.string("streak.detail.vacation.confirmation.updated")
+            viewModel.vacationConfirmationMessage = AppLocalization.string("streak.detail.vacation.confirmation.updated")
         } else {
             streakManager.enableVacationMode(until: vacationEndSelection)
-            vacationConfirmationMessage = AppLocalization.string("streak.detail.vacation.confirmation.enabled")
+            viewModel.vacationConfirmationMessage = AppLocalization.string("streak.detail.vacation.confirmation.enabled")
         }
 
         if shouldAnimate {
             withAnimation(AppMotion.standard) {
-                isVacationPickerExpanded = false
+                viewModel.isVacationPickerExpanded = false
             }
         } else {
-            isVacationPickerExpanded = false
+            viewModel.isVacationPickerExpanded = false
         }
 
         Haptics.success()
         if shouldAnimate {
             withAnimation(AppMotion.emphasized) {
-                vacationCardPulse.toggle()
-                showVacationConfirmation = true
+                viewModel.vacationCardPulse.toggle()
+                viewModel.showVacationConfirmation = true
             }
         } else {
-            showVacationConfirmation = true
+            viewModel.showVacationConfirmation = true
         }
 
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(1100))
             if shouldAnimate {
                 withAnimation(AppMotion.standard) {
-                    vacationCardPulse = false
+                    viewModel.vacationCardPulse = false
                 }
             } else {
-                vacationCardPulse = false
+                viewModel.vacationCardPulse = false
             }
 
             try? await Task.sleep(for: .milliseconds(1300))
             if shouldAnimate {
                 withAnimation(AppMotion.toastOut) {
-                    showVacationConfirmation = false
+                    viewModel.showVacationConfirmation = false
                 }
             } else {
-                showVacationConfirmation = false
+                viewModel.showVacationConfirmation = false
             }
         }
     }
 
     private func startFlameAnimation() {
-        guard !animationsStarted else { return }
-        animationsStarted = true
+        guard !viewModel.animationsStarted else { return }
+        viewModel.animationsStarted = true
         withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
-            flameScale = 1.06
+            viewModel.flameScale = 1.06
         }
         withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true).delay(0.5)) {
-            glowRadius = 38
+            viewModel.glowRadius = 38
         }
-    }
-}
-
-private struct AllLogsView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \CustomMetricDefinition.sortOrder)
-    private var customDefinitions: [CustomMetricDefinition]
-
-    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
-
-    @State private var sourceFilter: SourceFilter = .all
-    @State private var dateFilter: DateFilter = .all
-    @State private var customStartDate: Date = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? AppClock.now
-    @State private var customEndDate: Date = AppClock.now
-    @State private var pagedSamples: [MetricSample] = []
-    @State private var currentOffset: Int = 0
-    @State private var hasMorePages: Bool = true
-    @State private var isLoadingPage: Bool = false
-
-    private let pageSize: Int = 80
-
-    private enum SourceFilter: String, CaseIterable, Identifiable {
-        case all
-        case manual
-        case healthKit
-
-        var id: String { rawValue }
-    }
-
-    private enum DateFilter: String, CaseIterable, Identifiable {
-        case all
-        case custom
-
-        var id: String { rawValue }
-    }
-
-    private var customDefinitionByID: [String: CustomMetricDefinition] {
-        Dictionary(uniqueKeysWithValues: customDefinitions.map { ($0.identifier, $0) })
-    }
-
-    private var activePredicate: Predicate<MetricSample>? {
-        let healthKitRaw = MetricSampleSource.healthKit.rawValue
-        let calendar = Calendar.current
-        let startDate = calendar.startOfDay(for: customStartDate)
-        let endDay = calendar.startOfDay(for: customEndDate)
-        let endDate = calendar.date(byAdding: DateComponents(day: 1, second: -1), to: endDay) ?? customEndDate
-
-        switch (sourceFilter, dateFilter) {
-        case (.all, .all):
-            return nil
-        case (.manual, .all):
-            return #Predicate<MetricSample> { $0.sourceRaw != healthKitRaw }
-        case (.healthKit, .all):
-            return #Predicate<MetricSample> { $0.sourceRaw == healthKitRaw }
-        case (.all, .custom):
-            return #Predicate<MetricSample> { $0.date >= startDate && $0.date <= endDate }
-        case (.manual, .custom):
-            return #Predicate<MetricSample> {
-                $0.sourceRaw != healthKitRaw &&
-                $0.date >= startDate &&
-                $0.date <= endDate
-            }
-        case (.healthKit, .custom):
-            return #Predicate<MetricSample> {
-                $0.sourceRaw == healthKitRaw &&
-                $0.date >= startDate &&
-                $0.date <= endDate
-            }
-        }
-    }
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            AppScreenBackground(topHeight: 300, tint: Color.appAccent.opacity(0.18))
-
-            ScrollView {
-                VStack(spacing: 12) {
-                    filtersCard
-                    listSection
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 28)
-            }
-        }
-        .navigationTitle(AppLocalization.string("alllogs.title"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .onAppear {
-            handleAllLogsAppear()
-        }
-        .onChange(of: sourceFilter) { _, _ in
-            handleAllLogsSourceFilterChange()
-        }
-        .onChange(of: dateFilter) { _, _ in
-            handleAllLogsDateFilterChange()
-        }
-        .onChange(of: customStartDate) { _, newValue in
-            handleAllLogsCustomStartDateChange(newValue)
-        }
-        .onChange(of: customEndDate) { _, newValue in
-            handleAllLogsCustomEndDateChange(newValue)
-        }
-    }
-
-    private var filtersCard: some View {
-        AppGlassCard(depth: .base, cornerRadius: 16, tint: .clear, contentPadding: 14) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(AppLocalization.string("Filters"))
-                    .font(AppTypography.captionEmphasis)
-                    .foregroundStyle(.white.opacity(0.65))
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(AppLocalization.string("alllogs.filter.source"))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.white.opacity(0.7))
-
-                    Picker("", selection: $sourceFilter) {
-                        Text(AppLocalization.string("alllogs.filter.all")).tag(SourceFilter.all)
-                        Text(AppLocalization.string("alllogs.filter.manual")).tag(SourceFilter.manual)
-                        Text(AppLocalization.string("alllogs.filter.healthkit")).tag(SourceFilter.healthKit)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(AppLocalization.string("Date Range"))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.white.opacity(0.7))
-
-                    Picker("", selection: $dateFilter) {
-                        Text(AppLocalization.string("alllogs.filter.all")).tag(DateFilter.all)
-                        Text(AppLocalization.string("photos.dateRange.custom")).tag(DateFilter.custom)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-
-                    if dateFilter == .custom {
-                        DatePicker(
-                            AppLocalization.string("From"),
-                            selection: $customStartDate,
-                            displayedComponents: [.date]
-                        )
-                        DatePicker(
-                            AppLocalization.string("To"),
-                            selection: $customEndDate,
-                            displayedComponents: [.date]
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var listSection: some View {
-        if pagedSamples.isEmpty && !isLoadingPage {
-            AppGlassCard(depth: .base, cornerRadius: 16, tint: .clear, contentPadding: 16) {
-                Text(AppLocalization.string("alllogs.empty"))
-                    .font(AppTypography.caption)
-                    .foregroundStyle(.white.opacity(0.65))
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
-        } else {
-            LazyVStack(spacing: 8) {
-                ForEach(pagedSamples, id: \.persistentModelID) { sample in
-                    row(for: sample)
-                        .onAppear {
-                            handleAllLogsRowAppear(sample)
-                        }
-                }
-
-                if isLoadingPage {
-                    ProgressView()
-                        .tint(.white.opacity(0.75))
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.vertical, 8)
-                }
-            }
-        }
-    }
-
-    private func row(for sample: MetricSample) -> some View {
-        AppGlassCard(depth: .base, cornerRadius: 14, tint: .clear, contentPadding: 12) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(metricTitle(for: sample))
-                        .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(.white)
-
-                    Spacer(minLength: 8)
-
-                    sourceBadge(for: sample.source)
-                }
-
-                HStack(spacing: 8) {
-                    Text(metricValueText(for: sample))
-                        .font(AppTypography.body)
-                        .foregroundStyle(.white.opacity(0.9))
-
-                    Spacer(minLength: 8)
-
-                    Text(sample.date.formatted(date: .abbreviated, time: .shortened))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.white.opacity(0.6))
-                        .multilineTextAlignment(.trailing)
-                }
-            }
-        }
-    }
-
-    private func sourceBadge(for source: MetricSampleSource) -> some View {
-        let label: String
-        switch source {
-        case .manual:
-            label = AppLocalization.string("alllogs.filter.manual")
-        case .healthKit:
-            label = AppLocalization.string("alllogs.filter.healthkit")
-        }
-
-        return Text(label)
-            .font(AppTypography.micro)
-            .foregroundStyle(.white.opacity(0.84))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(.white.opacity(0.12))
-            )
-    }
-
-    private func handleAllLogsAppear() {
-        if pagedSamples.isEmpty {
-            resetAndLoad()
-        }
-    }
-
-    private func handleAllLogsSourceFilterChange() {
-        resetAndLoad()
-    }
-
-    private func handleAllLogsDateFilterChange() {
-        resetAndLoad()
-    }
-
-    private func handleAllLogsCustomStartDateChange(_ newValue: Date) {
-        if newValue > customEndDate {
-            customEndDate = newValue
-        }
-        if dateFilter == .custom {
-            resetAndLoad()
-        }
-    }
-
-    private func handleAllLogsCustomEndDateChange(_ newValue: Date) {
-        if newValue < customStartDate {
-            customStartDate = newValue
-        }
-        if dateFilter == .custom {
-            resetAndLoad()
-        }
-    }
-
-    private func handleAllLogsRowAppear(_ sample: MetricSample) {
-        loadNextPageIfNeeded(currentSample: sample)
-    }
-
-    private func metricTitle(for sample: MetricSample) -> String {
-        if let kind = sample.kind {
-            return kind.title
-        }
-        if let custom = customDefinitionByID[sample.kindRaw] {
-            return custom.name
-        }
-        return sample.kindRaw
-    }
-
-    private func metricValueText(for sample: MetricSample) -> String {
-        if let kind = sample.kind {
-            return kind.formattedMetricValue(fromMetric: sample.value, unitsSystem: unitsSystem)
-        }
-        if let custom = customDefinitionByID[sample.kindRaw] {
-            return String(format: "%.2f %@", sample.value, custom.unitLabel)
-        }
-        return String(format: "%.2f", sample.value)
-    }
-
-    private func resetAndLoad() {
-        currentOffset = 0
-        hasMorePages = true
-        isLoadingPage = false
-        pagedSamples = []
-        loadNextPage()
-    }
-
-    private func loadNextPageIfNeeded(currentSample: MetricSample) {
-        guard !isLoadingPage, hasMorePages else { return }
-        guard let index = pagedSamples.firstIndex(where: { $0.persistentModelID == currentSample.persistentModelID }) else { return }
-        if index >= pagedSamples.count - 12 {
-            loadNextPage()
-        }
-    }
-
-    private func loadNextPage() {
-        guard !isLoadingPage, hasMorePages else { return }
-        isLoadingPage = true
-
-        var descriptor = FetchDescriptor<MetricSample>(
-            sortBy: [SortDescriptor(\.date, order: .reverse)]
-        )
-        descriptor.predicate = activePredicate
-        descriptor.fetchLimit = pageSize
-        descriptor.fetchOffset = currentOffset
-
-        do {
-            let batch = try modelContext.fetch(descriptor)
-            if batch.isEmpty {
-                hasMorePages = false
-            } else {
-                pagedSamples.append(contentsOf: batch)
-                currentOffset += batch.count
-                if batch.count < pageSize {
-                    hasMorePages = false
-                }
-            }
-        } catch {
-            hasMorePages = false
-        }
-
-        isLoadingPage = false
     }
 }

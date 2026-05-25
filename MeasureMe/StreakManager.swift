@@ -278,8 +278,8 @@ final class StreakManager: ObservableObject {
 
     /// Returns the ISO week identifier for the week before `weekID`.
     static func previousISOWeek(_ weekID: String, calendar: Calendar = Calendar(identifier: .iso8601)) -> String {
-        guard let monday = mondayOfWeek(weekID, calendar: calendar) else { return "" }
-        let previousMonday = calendar.date(byAdding: .day, value: -7, to: monday)!
+        guard let monday = mondayOfWeek(weekID, calendar: calendar),
+              let previousMonday = calendar.date(byAdding: .day, value: -7, to: monday) else { return "" }
         return previousMonday.isoWeekIdentifier(calendar: calendar)
     }
 

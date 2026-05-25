@@ -2361,7 +2361,7 @@ struct HomeView: View {
             guard fullDistance > 0.0001 else { continue }
             let remaining = abs(goal.remainingToGoal(currentValue: latest.value))
             let progress = max(0, min(1, 1 - (remaining / fullDistance)))
-            if best == nil || progress > best!.progress {
+            if best == nil || progress > best?.progress ?? 0 {
                 best = (kind, progress)
             }
         }
