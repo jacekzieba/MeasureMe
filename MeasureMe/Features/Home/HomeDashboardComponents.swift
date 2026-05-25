@@ -205,14 +205,14 @@ struct HomeWidgetCard<Content: View>: View {
     var body: some View {
         AppGlassCard(
             depth: depth,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: tint,
             contentPadding: contentPadding
         ) {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
         .overlay(alignment: .topLeading) {
             if let accessibilityIdentifier {
                 Color.clear
@@ -274,10 +274,10 @@ struct HomeQuickActionButton: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .minimumScaleFactor(0.85)
             }
-            .padding(12)
+            .padding(AppSpacing.sm)
             .frame(maxWidth: .infinity, minHeight: 88, alignment: .topLeading)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                     .fill(
                         colorScheme == .dark
                             ? AnyShapeStyle(AppColorRoles.surfaceInteractive)
@@ -286,7 +286,7 @@ struct HomeQuickActionButton: View {
                             )
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                             .fill(
                                 colorScheme == .dark
                                     ? AnyShapeStyle(
@@ -304,7 +304,7 @@ struct HomeQuickActionButton: View {
                             )
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                             .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )

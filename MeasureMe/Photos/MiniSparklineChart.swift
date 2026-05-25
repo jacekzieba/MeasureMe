@@ -35,7 +35,7 @@ struct MiniSparklineChart: View {
         case .positive:
             return AppColorRoles.stateSuccess.opacity(0.85)
         case .negative:
-            return Color(hex: "#EF4444").opacity(0.85)
+            return Color.appDanger.opacity(0.85)
         case .neutral:
             return Color.gray.opacity(0.5)
         }

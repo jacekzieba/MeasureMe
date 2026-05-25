@@ -9,7 +9,8 @@ struct PhotoDetailView: View {
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var premiumStore: PremiumStore
     @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)]) private var allPhotos: [PhotoEntry]
-    
+    @State private var viewModel = PhotoDetailViewModel()
+
     @Bindable var photo: PhotoEntry
     
     @State private var showFullScreen = false
@@ -96,16 +97,19 @@ struct PhotoDetailView: View {
                 Text(saveAlertMessage)
             }
         }
+        .onAppear {
+            viewModel.allPhotos = allPhotos
+        }
+        .onChange(of: allPhotos) { _, newValue in
+            viewModel.allPhotos = newValue
+        }
     }
 }
 
 // MARK: - Sections
 private extension PhotoDetailView {
     var previousPhoto: PhotoEntry? {
-        allPhotos
-            .filter { $0.persistentModelID != photo.persistentModelID && $0.date < photo.date }
-            .sorted { $0.date > $1.date }
-            .first
+        viewModel.previousPhoto(relativeTo: photo)
     }
     
     var photoSection: some View {

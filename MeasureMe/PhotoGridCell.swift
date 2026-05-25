@@ -22,7 +22,7 @@ struct PhotoGridCell: View {
             photoImage
                 .overlay {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(isSelected ? Color(hex: "#FCA311") : Color.clear, lineWidth: 3)
+                        .stroke(isSelected ? Color.appAmber : Color.clear, lineWidth: 3)
                 }
                 .scaleEffect(isSelected ? 0.95 : 1.0)
 
@@ -93,7 +93,7 @@ private extension PhotoGridCell {
     var selectionIndicator: some View {
         ZStack {
             Circle()
-                .fill(isSelected ? Color(hex: "#FCA311") : Color.white)
+                .fill(isSelected ? Color.appAmber : Color.white)
                 .frame(width: 28, height: 28)
                 .shadow(color: .black.opacity(0.2), radius: 3, y: 1)
 

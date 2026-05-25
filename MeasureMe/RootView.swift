@@ -183,9 +183,9 @@ struct OnboardingUITestOverlay: View {
                 .accessibilityIdentifier("root.onboarding.test.step")
         }
         .font(.system(size: 10, weight: .semibold))
-        .padding(8)
+        .padding(AppSpacing.xs)
         .background(Color.black.opacity(0.18))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(.top, 12)
         .padding(.leading, 8)
@@ -242,16 +242,16 @@ struct TrialReminderPromptOverlay: View {
                 .accessibilityIdentifier("premium.trial.reminder.prompt.visible")
 
             Button(declineTitle, role: .cancel, action: onDecline)
-                .buttonStyle(AppSecondaryButtonStyle(cornerRadius: 10))
+                .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.sm))
                 .frame(minWidth: 44, minHeight: 44)
                 .accessibilityIdentifier("premium.trial.reminder.prompt.decline")
 
             Button(confirmTitle, action: onConfirm)
-                .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 10))
+                .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: AppRadius.sm))
                 .frame(minWidth: 44, minHeight: 44)
                 .accessibilityIdentifier("premium.trial.reminder.prompt.confirm")
         }
-        .padding(8)
+        .padding(AppSpacing.xs)
         .background(Color.black.opacity(0.35))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)

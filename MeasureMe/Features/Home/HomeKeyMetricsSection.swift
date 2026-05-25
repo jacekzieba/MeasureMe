@@ -113,13 +113,13 @@ struct HomeKeyMetricsCard<Content: View>: View {
 
                 MeasureBuddyView(pose: .thumbs, size: 88)
             }
-            .padding(14)
+            .padding(AppSpacing.smmd)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                     .fill(AppColorRoles.surfaceInteractive)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                             .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                     )
             )

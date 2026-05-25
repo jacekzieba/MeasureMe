@@ -291,7 +291,7 @@ struct HealthMetricsSection: View {
                     Image(systemName: "sparkles")
                         .font(AppTypography.iconSmall)
                         .foregroundStyle(HealthIndicatorPalette.accent)
-                        .padding(8)
+                        .padding(AppSpacing.xs)
                         .background(AppColorRoles.surfaceAccentSoft)
                         .clipShape(Circle())
 
@@ -325,9 +325,9 @@ struct HealthMetricsSection: View {
                     }
                 }
             }
-            .padding(14)
+            .padding(AppSpacing.smmd)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .fill(Color.white.opacity(0.05))
             )
             .fixedSize(horizontal: false, vertical: true)
@@ -646,7 +646,7 @@ struct HealthMetricsSection: View {
                     .foregroundStyle(AppColorRoles.textSecondary)
             }
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -854,10 +854,10 @@ struct HealthMetricsSection: View {
                 }
                 .font(AppTypography.bodyEmphasis)
             }
-            .buttonStyle(AppCTAButtonStyle(cornerRadius: 10))
+            .buttonStyle(AppCTAButtonStyle(cornerRadius: AppRadius.sm))
             .padding(.top, 4)
         }
-        .padding(16)
+        .padding(AppSpacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -895,9 +895,9 @@ private struct HealthIndicatorMissingDataView: View {
                                 .foregroundStyle(AppColorRoles.textPrimary)
                         }
                     }
-                    .padding(14)
+                    .padding(AppSpacing.smmd)
                     .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                             .fill(AppColorRoles.surfaceInteractive)
                     )
 
@@ -945,7 +945,7 @@ private struct GenderRequiredIndicatorView: View {
                     }
                     .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: 8))
                 }
-                .padding(16)
+                .padding(AppSpacing.md)
             }
         }
         .navigationTitle(indicatorTitle)
@@ -1015,7 +1015,7 @@ private struct CentralFatRiskDetailView: View {
                     }
                 }
             }
-            .padding(16)
+            .padding(AppSpacing.md)
         }
         .background(AppColorRoles.surfaceCanvas.ignoresSafeArea())
         .navigationTitle(title)
@@ -1056,10 +1056,10 @@ private struct BodyShapeRiskScoreDetailView: View {
                     rangeRow(color: AppColorRoles.stateWarningHex, title: AppLocalization.string("Moderate risk"), value: "-0.272 ... 0.229")
                     rangeRow(color: AppColorRoles.stateErrorHex, title: AppLocalization.string("High risk"), value: "z > 0.229")
                 }
-                .padding(12)
+                .padding(AppSpacing.sm)
                 .background(AppColorRoles.surfaceInteractive, in: RoundedRectangle(cornerRadius: 12))
             }
-            .padding(16)
+            .padding(AppSpacing.md)
         }
         .background(AppColorRoles.surfaceCanvas.ignoresSafeArea())
         .navigationTitle(AppLocalization.string("Body Shape Risk"))
@@ -1116,10 +1116,10 @@ private struct WaistRiskDetailView: View {
                         row(title: AppLocalization.string("High risk"), value: "> 88 cm", color: AppColorRoles.stateErrorHex)
                     }
                 }
-                .padding(12)
+                .padding(AppSpacing.sm)
                 .background(AppColorRoles.surfaceInteractive, in: RoundedRectangle(cornerRadius: 12))
             }
-            .padding(16)
+            .padding(AppSpacing.md)
         }
         .background(AppColorRoles.surfaceCanvas.ignoresSafeArea())
         .navigationTitle(AppLocalization.string("Waist circumference"))

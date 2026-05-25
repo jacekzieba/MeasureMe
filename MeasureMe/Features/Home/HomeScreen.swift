@@ -16,7 +16,7 @@ private extension Notification.Name {
 /// - Sekcja "Last Photos" z maksymalnie 6 ostatnimi zdjęciami (2 rzędy po 3)
 /// - Kolorystyka: wzrost = zielony, spadek = czerwony
 struct HomeView: View {
-    private static let homePhotoWindowDays = 3650
+    private static let homePhotoWindowDays = 365
     @ObservedObject private var settingsStore = AppSettingsStore.shared
 
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
@@ -74,8 +74,6 @@ struct HomeView: View {
     @Query private var customDefinitions: [CustomMetricDefinition]
     
     @State private var showQuickAddSheet = false
-    @State private var quickAddKinds: [MetricKind] = []
-    @State private var quickAddTelemetrySource: MeasurementTelemetrySource = .quickAdd
     @State private var showActivationMetricsSheet = false
     @State private var showActivationAddPhotoSheet = false
     @State private var showHomeSettingsSheet = false
@@ -83,29 +81,11 @@ struct HomeView: View {
     @State private var showStreakDetail = false
     @State private var showGoalStatusLegendSheet = false
     @State private var showActivationReminderPrompt = false
-    @State private var isRequestingActivationReminder = false
-    @State private var pendingActivationMetricCompletion = false
-    @State private var didShowActivationReminderPrompt = false
+    @State private var shouldPromptToOpenHealthSettings: Bool = false
     @State private var selectedPhotoForFullScreen: PhotoEntry?
     @State private var selectedHomeComparePair: HomeComparePair?
-    @State private var scrollOffset: CGFloat = 0
-    @State private var checklistStatusText: String?
-    @State private var isChecklistConnectingHealth: Bool = false
-    @State private var shouldShowHealthSettingsShortcut: Bool = false
-    @State private var shouldPromptToOpenHealthSettings: Bool = false
-    @State private var reminderChecklistCompleted: Bool = false
-    @State private var expandedSecondaryMetrics: Set<MetricKind> = []
-    @State private var didCheckSevenDayPaywallPrompt: Bool = false
-    @State private var didRunStartupPhases = false
-    @State private var didEmitHomeInitialRender = false
-    @State private var isPhotoMetricSyncInFlight = false
     @State private var hasAnySavedPhotosInStore = false
     @State private var hasEnoughSavedPhotosForCompareInStore = false
-    @State private var isLastPhotosSectionMounted = false
-    @State private var isHealthSectionMounted = false
-    @State private var deferredPhaseBTask: Task<Void, Never>?
-    @State private var deferredPhaseCTask: Task<Void, Never>?
-    @State private var deferredSectionMountTask: Task<Void, Never>?
     
     // Dane HealthKit
     @State var latestBodyFat: Double?
@@ -113,16 +93,18 @@ struct HomeView: View {
     @State private var hasAnyMeasurements = false
     @State private var totalMetricSampleCount = 0
 
-    // Zbuforowane dane pochodne - odswiezane przez onChange zamiast przeliczania przy kazdym renderze
-    @State private var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
-    @State private var cachedLatestByKind: [MetricKind: MetricSample] = [:]
-    @State private var cachedGoalsByKind: [MetricKind: MetricGoal] = [:]
-    @State private var cachedCustomSamplesByIdentifier: [String: [MetricSample]] = [:]
-    @State private var cachedCustomLatestByIdentifier: [String: MetricSample] = [:]
-    @State private var cachedCustomGoalsByIdentifier: [String: MetricGoal] = [:]
-    @State private var cachedDashboardItems: [HomeModuleLayoutItem] = []
-    @State private var cachedVisiblePhotoTiles: [HomePhotoTile] = []
-    @State private var cachedNextFocusInsight: HomeNextFocusInsight?
+    // Zbuforowane dane pochodne - trzymane w HomeViewModel, odswiezane przez onChange
+    @State private var viewModel = HomeViewModel()
+
+    private var cachedSamplesByKind: [MetricKind: [MetricSample]] { viewModel.cachedSamplesByKind }
+    private var cachedLatestByKind: [MetricKind: MetricSample] { viewModel.cachedLatestByKind }
+    private var cachedGoalsByKind: [MetricKind: MetricGoal] { viewModel.cachedGoalsByKind }
+    private var cachedCustomSamplesByIdentifier: [String: [MetricSample]] { viewModel.cachedCustomSamplesByIdentifier }
+    private var cachedCustomLatestByIdentifier: [String: MetricSample] { viewModel.cachedCustomLatestByIdentifier }
+    private var cachedCustomGoalsByIdentifier: [String: MetricGoal] { viewModel.cachedCustomGoalsByIdentifier }
+    private var cachedDashboardItems: [HomeModuleLayoutItem] { viewModel.cachedDashboardItems }
+    private var cachedVisiblePhotoTiles: [HomePhotoTile] { viewModel.cachedVisiblePhotoTiles }
+    private var cachedNextFocusInsight: HomeNextFocusInsight? { viewModel.cachedNextFocusInsight }
 
     private let maxVisibleMetrics = 5
     private let maxVisiblePhotos = 6
@@ -192,61 +174,7 @@ struct HomeView: View {
         )
     }
 
-    private struct HomeComparePair: Identifiable {
-        let olderPhoto: PhotoEntry
-        let newerPhoto: PhotoEntry
-
-        var id: String {
-            "\(olderPhoto.persistentModelID)-\(newerPhoto.persistentModelID)"
-        }
-    }
-
-    private struct HomeHealthStatItem: Identifiable {
-        var id: String { label }
-        let label: String
-        let value: String
-        let badge: String?
-
-        init(label: String, value: String, badge: String? = nil) {
-            self.label = label
-            self.value = value
-            self.badge = badge
-        }
-    }
-
-    private struct HomeNextFocusInsight {
-        enum Action {
-            case metric(MetricKind)
-            case measurements
-        }
-
-        let headline: String?
-        let primaryValue: String?
-        let supportingLabel: String?
-        let contextLabel: String
-        let summary: String
-        let cta: String
-        let action: Action
-        let accessibilityValue: String
-    }
-
-    private struct HomeNextFocusCandidate {
-        let insight: HomeNextFocusInsight
-        let score: Double
-    }
-
-    private struct PhotoSyncSnapshotPayload: Sendable {
-        let kindRaw: String
-        let value: Double
-        let date: Date
-    }
-
-    private struct PhotoSyncCandidatePayload: Sendable {
-        let date: Date
-        let linkedMetrics: [PhotoSyncSnapshotPayload]
-    }
-
-    fileprivate enum HomePhotoTile: Identifiable {
+    enum HomePhotoTile: Identifiable {
         case persisted(PhotoEntry)
         case pending(PendingPhotoSaveItem)
 
@@ -286,7 +214,7 @@ struct HomeView: View {
     }
 
     private var customDefinitionsMap: [String: CustomMetricDefinition] {
-        Dictionary(uniqueKeysWithValues: customDefinitions.map { ($0.identifier, $0) })
+        Dictionary(uniqueKeysWithValues: viewModel.customDefinitions.map { ($0.identifier, $0) })
     }
     
     
@@ -315,7 +243,7 @@ struct HomeView: View {
     }
 
     private var homeCompareCandidates: [PhotoEntry] {
-        recentPhotos
+        viewModel.recentPhotos
     }
 
     private var hasEnoughSavedPhotosForCompare: Bool {
@@ -433,49 +361,20 @@ struct HomeView: View {
     }
 
     private func refreshMeasurementCaches(allowFallbackFetch: Bool = true) {
-        var grouped: [MetricKind: [MetricSample]] = [:]
-        var latest: [MetricKind: MetricSample] = [:]
-        let kindsToKeep = Set(metricsStore.activeKinds).union([.waist, .height, .weight, .bodyFat, .leanBodyMass, .hips])
-
-        var customGrouped: [String: [MetricSample]] = [:]
-        var customLatest: [String: MetricSample] = [:]
-
-        for sample in recentSamples {
-            if sample.kindRaw.hasPrefix("custom_") {
-                customGrouped[sample.kindRaw, default: []].append(sample)
-                if customLatest[sample.kindRaw] == nil {
-                    customLatest[sample.kindRaw] = sample
-                }
-                continue
-            }
-            guard let kind = MetricKind(rawValue: sample.kindRaw) else { continue }
-            grouped[kind, default: []].append(sample)
-            if kindsToKeep.contains(kind), latest[kind] == nil {
-                latest[kind] = sample
-            }
-        }
-
-        cachedSamplesByKind = grouped
-        cachedLatestByKind = latest
-        cachedCustomSamplesByIdentifier = customGrouped
-        cachedCustomLatestByIdentifier = customLatest
-
-        // Cache custom goals
-        var customGoals: [String: MetricGoal] = [:]
-        for goal in goals where goal.kindRaw.hasPrefix("custom_") {
-            if customGoals[goal.kindRaw] == nil {
-                customGoals[goal.kindRaw] = goal
-            }
-        }
-        cachedCustomGoalsByIdentifier = customGoals
-
-        let fetchedMetricCount = allowFallbackFetch
-            ? ((try? modelContext.fetchCount(FetchDescriptor<MetricSample>())) ?? recentSamples.count)
-            : recentSamples.count
-        totalMetricSampleCount = fetchedMetricCount
-        hasAnyMeasurements = fetchedMetricCount > 0
-
-        rebuildNextFocusInsightCache()
+        viewModel.recentSamples = recentSamples
+        viewModel.goals = goals
+        viewModel.recentPhotos = Array(recentPhotos)
+        viewModel.customDefinitions = customDefinitions
+        viewModel.refreshMeasurementCaches(
+            recentSamples: recentSamples,
+            goals: goals,
+            activeKinds: metricsStore.activeKinds,
+            modelContext: modelContext,
+            allowFallbackFetch: allowFallbackFetch,
+            totalMetricSampleCountOut: &totalMetricSampleCount,
+            hasAnyMeasurementsOut: &hasAnyMeasurements,
+            nextFocusComputer: { computeNextFocusInsight() }
+        )
         refreshActivationProgress()
     }
 
@@ -492,11 +391,6 @@ struct HomeView: View {
         hasAnySavedPhotosInStore = !newestPhotos.isEmpty
         hasEnoughSavedPhotosForCompareInStore = newestPhotos.count >= 2
         rebuildVisiblePhotoTilesCache()
-    }
-
-    private enum PhotoSyncMode {
-        case full
-        case incremental
     }
 
     private var hasPhotoSyncCursor: Bool {
@@ -571,15 +465,15 @@ struct HomeView: View {
     ///   - If none exists, insert a new MetricSample.
     ///   - Nigdy nie usuwa MetricSample po usunieciu zdjecia; funkcja wykonuje tylko upsert.
     private func syncMeasurementsFromPhotosIfNeeded(force: Bool = false) async {
-        guard !isPhotoMetricSyncInFlight else { return }
+        guard !viewModel.isPhotoMetricSyncInFlight else { return }
         let mode = syncMode(force: force)
         let isIncrementalMode = mode == .incremental
-        isPhotoMetricSyncInFlight = true
+        viewModel.isPhotoMetricSyncInFlight = true
         defer {
             if isIncrementalMode {
                 StartupInstrumentation.event("HomePhotoSyncIncrementalEnd")
             }
-            isPhotoMetricSyncInFlight = false
+            viewModel.isPhotoMetricSyncInFlight = false
         }
 
         switch mode {
@@ -701,14 +595,14 @@ struct HomeView: View {
     }
 
     private func emitHomeInitialRenderIfNeeded() {
-        guard !didEmitHomeInitialRender else { return }
-        didEmitHomeInitialRender = true
+        guard !viewModel.didEmitHomeInitialRender else { return }
+        viewModel.didEmitHomeInitialRender = true
         StartupInstrumentation.event("HomeInitialRender")
     }
 
     private func runStartupPhasesIfNeeded() {
-        guard !didRunStartupPhases else { return }
-        didRunStartupPhases = true
+        guard !viewModel.didRunStartupPhases else { return }
+        viewModel.didRunStartupPhases = true
         runCriticalStartupPhaseA()
         scheduleDeferredStartupPhaseB()
         scheduleDeferredStartupPhaseC()
@@ -716,14 +610,14 @@ struct HomeView: View {
     }
 
     private func runCriticalStartupPhaseA() {
-        hasAnyMeasurements = !recentSamples.isEmpty
-        isLastPhotosSectionMounted = true
-        isHealthSectionMounted = true
+        hasAnyMeasurements = !viewModel.recentSamples.isEmpty
+        viewModel.isLastPhotosSectionMounted = true
+        viewModel.isHealthSectionMounted = true
     }
 
     private func scheduleDeferredStartupPhaseB() {
-        deferredPhaseBTask?.cancel()
-        deferredPhaseBTask = Task { @MainActor in
+        viewModel.deferredPhaseBTask?.cancel()
+        viewModel.deferredPhaseBTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(900))
             guard !Task.isCancelled else { return }
             refreshMeasurementCaches()
@@ -738,8 +632,8 @@ struct HomeView: View {
         delayMilliseconds: Int = 1500,
         forceSync: Bool = false
     ) {
-        deferredPhaseCTask?.cancel()
-        deferredPhaseCTask = Task { @MainActor in
+        viewModel.deferredPhaseCTask?.cancel()
+        viewModel.deferredPhaseCTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(delayMilliseconds))
             guard !Task.isCancelled else { return }
 
@@ -752,45 +646,38 @@ struct HomeView: View {
     }
 
     private func scheduleDeferredSectionMounts() {
-        deferredSectionMountTask?.cancel()
-        deferredSectionMountTask = Task { @MainActor in
+        viewModel.deferredSectionMountTask?.cancel()
+        viewModel.deferredSectionMountTask = Task { @MainActor in
             guard !Task.isCancelled else { return }
             StartupInstrumentation.event("HomeLastPhotosMountStart")
-            isLastPhotosSectionMounted = true
+            viewModel.isLastPhotosSectionMounted = true
             StartupInstrumentation.event("HomeLastPhotosMountEnd")
 
             guard !Task.isCancelled else { return }
             StartupInstrumentation.event("HomeHealthMountStart")
-            isHealthSectionMounted = true
+            viewModel.isHealthSectionMounted = true
             StartupInstrumentation.event("HomeHealthMountEnd")
         }
     }
 
     /// Przebudowuje goalsByKind na podstawie tablicy celow @Query.
     private func rebuildGoalsCache() {
-        var dict: [MetricKind: MetricGoal] = [:]
-        for goal in goals {
-            if let kind = MetricKind(rawValue: goal.kindRaw) {
-                dict[kind] = goal
-            }
-        }
-        cachedGoalsByKind = dict
-        rebuildNextFocusInsightCache()
+        viewModel.rebuildGoalsCache(
+            goals: goals,
+            nextFocusComputer: { computeNextFocusInsight() }
+        )
     }
 
     private func rebuildVisiblePhotoTilesCache() {
-        let persistedCandidateLimit = maxVisiblePhotos * 3
-        let persistedTiles = recentPhotos.prefix(persistedCandidateLimit).map { HomePhotoTile.persisted($0) }
-        let pendingTiles = pendingPhotoSaveStore.pendingItems.map { HomePhotoTile.pending($0) }
-        cachedVisiblePhotoTiles = Array(
-            (persistedTiles + pendingTiles)
-                .sorted { lhs, rhs in lhs.date > rhs.date }
-                .prefix(maxVisiblePhotos)
+        viewModel.rebuildVisiblePhotoTilesCache(
+            recentPhotos: Array(recentPhotos),
+            pendingItems: pendingPhotoSaveStore.pendingItems,
+            maxVisiblePhotos: maxVisiblePhotos
         )
     }
 
     private func rebuildNextFocusInsightCache() {
-        cachedNextFocusInsight = computeNextFocusInsight()
+        viewModel.rebuildNextFocusInsightCache(nextFocusComputer: { computeNextFocusInsight() })
     }
 
     private var dashboardColumns: Int {
@@ -802,16 +689,11 @@ struct HomeView: View {
     }
 
     private func rebuildDashboardItemsCache() {
-        let layout = settingsStore.homeLayoutSnapshot()
-        let runtimeVisibleItems = layout.items.map { item in
-            var next = item
-            next.isVisible = item.isVisible && shouldRenderModule(item.kind)
-            if item.kind == .summaryHero {
-                next.size = .wide
-            }
-            return next
-        }
-        cachedDashboardItems = HomeLayoutCompactor.compact(runtimeVisibleItems, columns: dashboardColumns)
+        viewModel.rebuildDashboardItemsCache(
+            settingsStore: settingsStore,
+            dashboardColumns: dashboardColumns,
+            shouldRenderModule: { shouldRenderModule($0) }
+        )
     }
 
     var body: some View {
@@ -839,130 +721,26 @@ struct HomeView: View {
 
     private var quickAddSheet: some View {
         QuickAddSheetView(
-            kinds: quickAddKinds.isEmpty ? metricsStore.activeKinds : quickAddKinds,
+            kinds: viewModel.quickAddKinds.isEmpty ? metricsStore.activeKinds : viewModel.quickAddKinds,
             latest: Dictionary(
                 uniqueKeysWithValues: cachedLatestByKind.map { ($0.key, ($0.value.value, $0.value.date)) }
             ),
             unitsSystem: unitsSystem,
-            telemetrySource: quickAddTelemetrySource
+            telemetrySource: viewModel.quickAddTelemetrySource
         ) {
-            quickAddKinds = []
-            quickAddTelemetrySource = .quickAdd
+            viewModel.quickAddKinds = []
+            viewModel.quickAddTelemetrySource = .quickAdd
             showQuickAddSheet = false
             refreshMeasurementCaches()
             refreshChecklistState()
         }
     }
 
-    private var homeUITestHooks: some View {
-        VStack(spacing: 0) {
-            if showActivationHub {
-                Text("1")
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .accessibilityIdentifier("home.module.activationHub.visible")
-                    .frame(width: 1, height: 1)
-                    .clipped()
-                Text(activationCurrentTask?.rawValue ?? "")
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .accessibilityIdentifier("home.activation.currentTask")
-                    .frame(width: 1, height: 1)
-                    .clipped()
-            }
-
-            if showHomeSettingsSheet {
-                Text("1")
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .accessibilityIdentifier("home.settings.sheet.present")
-                    .frame(width: 1, height: 1)
-                    .clipped()
-            }
-
-            Text(nextFocusInsight.accessibilityValue)
-                .font(.system(size: 1))
-                .foregroundStyle(.clear)
-                .accessibilityIdentifier("home.nextFocus.mode")
-                .frame(width: 1, height: 1)
-                .clipped()
-
-            Text(nextFocusInsight.cta)
-                .font(.system(size: 1))
-                .foregroundStyle(.clear)
-                .accessibilityIdentifier("home.nextFocus.cta")
-                .frame(width: 1, height: 1)
-                .clipped()
-
-            ForEach(homeSecondaryMetricUITestKinds, id: \.self) { kind in
-                Button {
-                    if expandedSecondaryMetrics.contains(kind) {
-                        expandedSecondaryMetrics.remove(kind)
-                    } else {
-                        expandedSecondaryMetrics.insert(kind)
-                    }
-                } label: {
-                    Color.clear
-                        .frame(width: 80, height: 80)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).toggle")
-            }
-
-            ForEach(Array(expandedSecondaryMetrics), id: \.self) { kind in
-                VStack {
-                    Color.clear
-                        .frame(width: 44, height: 44)
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("expanded")
-                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).expanded")
-                .frame(width: 44, height: 44)
-                .opacity(0.01)
-                .allowsHitTesting(false)
-            }
-
-            ForEach(Array(expandedSecondaryMetrics), id: \.self) { kind in
-                Button("collapse") { collapseSecondaryMetric(kind) }
-                .buttonStyle(.plain)
-                .frame(width: 44, height: 44)
-                .opacity(0.01)
-                .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).collapseHook")
-            }
-
-            Text("\(expandedSecondaryMetrics.count)")
-                .font(.system(size: 1))
-                .foregroundStyle(.clear)
-                .accessibilityIdentifier("home.keyMetrics.secondary.expandedCount")
-                .frame(width: 1, height: 1)
-                .clipped()
-
-            Text(expandedSecondaryMetrics.map(\.rawValue).sorted().joined(separator: ","))
-                .font(.system(size: 1))
-                .foregroundStyle(.clear)
-                .accessibilityIdentifier("home.keyMetrics.secondary.expandedIDs")
-                .frame(width: 1, height: 1)
-                .clipped()
-        }
-    }
-
-    private var homeSecondaryMetricUITestKinds: [MetricKind] {
-        let visibleBuiltInSecondary = dashboardKeyIdentifiers.dropFirst().compactMap(MetricKind.init(rawValue:))
-        if !visibleBuiltInSecondary.isEmpty {
-            return visibleBuiltInSecondary
-        }
-
-        let fallbackKinds: [MetricKind] = [.bodyFat, .leanBodyMass, .waist]
-        let activeFallbackKinds = fallbackKinds.filter { metricsStore.activeKinds.contains($0) }
-        return activeFallbackKinds.isEmpty ? fallbackKinds : activeFallbackKinds
-    }
-
     private var baseHomeRoot: some View {
         ZStack(alignment: .top) {
             AppScreenBackground(
                 topHeight: 380,
-                scrollOffset: scrollOffset,
+                viewModel.scrollOffset: viewModel.scrollOffset,
                 tint: Color.cyan.opacity(0.22)
             )
 
@@ -993,101 +771,9 @@ struct HomeView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(scrollOffset < -16 ? .visible : .hidden, for: .navigationBar)
-        .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: isLastPhotosSectionMounted)
-        .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: isHealthSectionMounted)
-    }
-
-    private func sheetPresentedHomeRoot<Content: View>(_ content: Content) -> some View {
-        content
-            .sheet(isPresented: $showQuickAddSheet) {
-                quickAddSheet
-            }
-            .sheet(isPresented: $showActivationAddPhotoSheet) {
-                NavigationStack {
-                    AddPhotoView(telemetrySource: .activation, onSaved: {
-                        completeActivationTask(.addPhoto)
-                    })
-                    .environmentObject(metricsStore)
-                }
-            }
-            .sheet(isPresented: $showActivationMetricsSheet) {
-                ActivationMetricSelectionSheet(
-                    recommendedKinds: activationRecommendedKinds,
-                    metricsStore: metricsStore
-                ) {
-                    completeActivationTask(.chooseMetrics)
-                }
-            }
-            .sheet(isPresented: $showHomeSettingsSheet) {
-                NavigationStack {
-                    HomeSettingsDetailView()
-                }
-            }
-            .sheet(item: $selectedPhotoForFullScreen) { photo in
-                PhotoDetailView(photo: photo)
-            }
-            .sheet(isPresented: $showHomeCompareChooser) {
-                HomeCompareChooserOnDemandSheet(
-                    initialOlderPhoto: secondLatestSavedPhoto,
-                    initialNewerPhoto: latestSavedPhoto
-                ) { olderPhoto, newerPhoto in
-                    selectedHomeComparePair = HomeComparePair(olderPhoto: olderPhoto, newerPhoto: newerPhoto)
-                }
-                .presentationBackground(AppColorRoles.surfaceCanvas)
-            }
-            .sheet(item: $selectedHomeComparePair) { pair in
-                ComparePhotosView(olderPhoto: pair.olderPhoto, newerPhoto: pair.newerPhoto)
-            }
-            .sheet(isPresented: $showStreakDetail) {
-                StreakDetailView(streakManager: streakManager)
-            }
-            .sheet(isPresented: $showGoalStatusLegendSheet) {
-                GoalStatusLegendSheet(currentStatus: goalStatus, currentStatusColor: goalStatusColor)
-                    .presentationDetents([.fraction(0.42), .medium])
-                    .presentationDragIndicator(.visible)
-            }
-            .alert(
-                AppLocalization.string("Open iOS Settings now?"),
-                isPresented: $shouldPromptToOpenHealthSettings
-            ) {
-                Button(AppLocalization.string("Open iOS Settings")) {
-                    openAppSettings()
-                }
-                Button(AppLocalization.string("Not now"), role: .cancel) {}
-            } message: {
-                Text(AppLocalization.string("To enable Apple Health sync, go to iOS Settings → MeasureMe → Health."))
-            }
-            .alert(
-                FlowLocalization.app(
-                    "Want a nudge to log again tomorrow?",
-                    "Chcesz przypomnienie, żeby jutro znów coś zapisać?",
-                    "¿Quieres un recordatorio para registrar de nuevo mañana?",
-                    "Möchtest du morgen an den nächsten Eintrag erinnert werden?",
-                    "Voulez-vous un rappel pour enregistrer à nouveau demain ?",
-                    "Quer um lembrete para registrar de novo amanhã?"
-                ),
-                isPresented: $showActivationReminderPrompt
-            ) {
-                Button(FlowLocalization.app("Not now", "Nie teraz", "Ahora no", "Nicht jetzt", "Pas maintenant", "Agora não"), role: .cancel) {
-                    declineActivationReminderPrompt()
-                }
-                .accessibilityIdentifier("home.activation.reminder.skip")
-
-                Button(FlowLocalization.app("Remind me tomorrow", "Przypomnij mi jutro", "Recordarme mañana", "Morgen erinnern", "Me le rappeler demain", "Lembrar amanhã")) {
-                    acceptActivationReminderPrompt()
-                }
-                .accessibilityIdentifier("home.activation.reminder.accept")
-            } message: {
-                Text(FlowLocalization.app(
-                    "You just logged your first measurement. A timely reminder can help make the second one easier.",
-                    "Właśnie zapisano pierwszy pomiar. Dobre przypomnienie może ułatwić drugi.",
-                    "Acabas de registrar tu primera medida. Un recordatorio a tiempo puede facilitar la segunda.",
-                    "Du hast gerade deine erste Messung eingetragen. Eine passende Erinnerung macht die zweite leichter.",
-                    "Vous venez d'enregistrer votre première mesure. Un rappel au bon moment peut faciliter la deuxième.",
-                    "Você acabou de registrar sua primeira medição. Um lembrete no momento certo pode facilitar a segunda."
-                ))
-            }
+        .toolbarBackground(viewModel.scrollOffset < -16 ? .visible : .hidden, for: .navigationBar)
+        .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: viewModel.isLastPhotosSectionMounted)
+        .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: viewModel.isHealthSectionMounted)
     }
 
     private func lifecycleObservedHomeRoot<Content: View>(
@@ -1106,102 +792,14 @@ struct HomeView: View {
             }
     }
 
-    private func refreshingHomeRoot<Content: View>(_ content: Content) -> some View {
-        let contentWithMeasurementObservers = content
-            .onChange(of: recentSamplesSignature) { _, _ in
-                refreshMeasurementCaches()
-            }
-            .onChange(of: metricsStore.activeKinds) { _, _ in
-                refreshMeasurementCaches()
-                rebuildVisiblePhotoTilesCache()
-            }
-            .onChange(of: goals.count) { _, _ in
-                rebuildGoalsCache()
-                refreshActivationProgress()
-                rebuildDashboardItemsCache()
-            }
-
-        let contentWithChecklistObservers = contentWithMeasurementObservers
-            .onChange(of: settingsStore.snapshot.homeLayout.layoutData) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-            .onChange(of: horizontalSizeClass) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-            .onChange(of: isSyncEnabled) { _, _ in
-                refreshChecklistState()
-                fetchHealthKitData()
-            }
-            .onChange(of: recentPhotos.count) { _, _ in
-                refreshPhotoStoreState()
-                refreshChecklistState()
-                if didRunStartupPhases {
-                    scheduleDeferredStartupPhaseC(delayMilliseconds: 900)
-                }
-            }
-            .onChange(of: pendingPhotoItemsSignature) { _, _ in
-                refreshPhotoStoreState()
-            }
-            .onChange(of: onboardingChecklistMetricsCompleted) { _, _ in
-                refreshChecklistState()
-            }
-            .onChange(of: onboardingChecklistPremiumExplored) { _, _ in
-                refreshChecklistState()
-            }
-            .onChange(of: onboardingSkippedHealthKit) { _, _ in
-                refreshChecklistState()
-            }
-            .onChange(of: onboardingSkippedReminders) { _, _ in
-                refreshChecklistState()
-            }
-            .onChange(of: activationCurrentTaskID) { _, _ in
-                rebuildDashboardItemsCache()
-                trackCurrentActivationTaskViewed()
-            }
-            .onChange(of: activationIsDismissed) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-            .onChange(of: onboardingFlowVersion) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-
-        let observedContent = contentWithChecklistObservers
-            .onChange(of: showMeasurementsOnHome) { _, _ in
-                rebuildDashboardItemsCache()
-                rebuildNextFocusInsightCache()
-            }
-            .onChange(of: showLastPhotosOnHome) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-            .onChange(of: showHealthMetricsOnHome) { _, _ in
-                rebuildDashboardItemsCache()
-            }
-            .onChange(of: router.selectedTab) { _, newTab in
-                if newTab == .home {
-                    refreshChecklistState()
-                }
-                if newTab == .measurements && !onboardingChecklistMetricsExplored && isWelcomeHomeState {
-                    onboardingChecklistMetricsExplored = true
-                    withAnimation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate)) {
-                        rebuildDashboardItemsCache()
-                    }
-                }
-            }
-
-        return observedContent
-            .refreshable {
-                await refreshHomeContent()
-            }
-    }
-
     private func handleHomeAppear() {
         Task { @MainActor in
             refreshPhotoStoreState()
             rebuildVisiblePhotoTilesCache()
             rebuildDashboardItemsCache()
             trackCurrentActivationTaskViewed()
-            if autoCheckPaywallPrompt && !didCheckSevenDayPaywallPrompt {
-                didCheckSevenDayPaywallPrompt = true
+            if autoCheckPaywallPrompt && !viewModel.didCheckSevenDayPaywallPrompt {
+                viewModel.didCheckSevenDayPaywallPrompt = true
                 premiumStore.checkSevenDayPromptIfNeeded()
                 // Home discovery prompt — only if user has built up enough data
                 // to feel value (≥2 measurements OR ≥1 photo). Coordinator
@@ -1221,7 +819,7 @@ struct HomeView: View {
     }
 
     private func handleHomeDisappear() {
-        expandedSecondaryMetrics.removeAll()
+        viewModel.expandedSecondaryMetrics.removeAll()
     }
 
     private func scrollToChecklist(using scrollProxy: ScrollViewProxy) {
@@ -1232,7 +830,7 @@ struct HomeView: View {
     }
 
     private func handleHomeScrollOffsetChange(_ value: CGFloat) {
-        scrollOffset = value
+        viewModel.scrollOffset = value
         let normalizedOffset = Double(value)
         // Defer AppSetting write to avoid publishing during the view-update pass.
         if abs(homeTabScrollOffset - normalizedOffset) > 8 {
@@ -1254,7 +852,7 @@ struct HomeView: View {
 
     private func collapseSecondaryMetric(_ kind: MetricKind) {
         withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-            _ = expandedSecondaryMetrics.remove(kind)
+            _ = viewModel.expandedSecondaryMetrics.remove(kind)
         }
     }
 
@@ -1852,7 +1450,7 @@ struct HomeView: View {
 
     private var recentPhotosModule: some View {
         Group {
-            if isLastPhotosSectionMounted {
+            if viewModel.isLastPhotosSectionMounted {
                 if hasAnyPhotoContent {
                     recentPhotosContentModule
                 } else {
@@ -1891,7 +1489,7 @@ struct HomeView: View {
 
     private var healthSummaryModule: some View {
         Group {
-            if isHealthSectionMounted {
+            if viewModel.isHealthSectionMounted {
                 HomeHealthSummaryCard(
                     snapshot: HomeHealthSummarySnapshot(
                         subtitle: healthModuleSubtitle,
@@ -2022,7 +1620,7 @@ struct HomeView: View {
         case .slightlyOff:
             return Color.appAccent
         case .needsAttention:
-            return Color(hex: "#EF4444")
+            return Color.appDanger
         case .noGoals:
             return Color.white.opacity(0.82)
         }
@@ -2051,7 +1649,7 @@ struct HomeView: View {
         if let keyKind = dashboardVisibleMetrics.first,
            let keySample = cachedLatestByKind[keyKind] {
             selectedPair = (keyKind, keySample)
-        } else if let fallbackSample = recentSamples.first,
+        } else if let fallbackSample = viewModel.recentSamples.first,
                   let fallbackKind = MetricKind(rawValue: fallbackSample.kindRaw) {
             selectedPair = (fallbackKind, fallbackSample)
         } else {
@@ -2126,7 +1724,7 @@ struct HomeView: View {
         let milestoneThresholds: Set<Int> = [3, 7, 14, 30, 60, 100, 200]
         let now = AppClock.now
         let calendar = Calendar.current
-        let lastSampleDate = recentSamples.first?.date
+        let lastSampleDate = viewModel.recentSamples.first?.date
         let daysSinceLastSample: Int? = lastSampleDate.flatMap {
             calendar.dateComponents([.day], from: calendar.startOfDay(for: $0), to: calendar.startOfDay(for: now)).day
         }
@@ -2701,7 +2299,7 @@ struct HomeView: View {
     private var greetingCard: some View {
         return AppGlassCard(
             depth: .floating,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.appAccent.opacity(0.26),
             contentPadding: 16
         ) {
@@ -2752,12 +2350,6 @@ struct HomeView: View {
 
     private var trimmedUserName: String {
         userName.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private enum DayPart {
-        case morning
-        case afternoon
-        case evening
     }
 
     private var dayPart: DayPart {
@@ -2811,7 +2403,7 @@ struct HomeView: View {
 
     private var currentWeekCheckInDays: Int {
         let calendar = Calendar.current
-        let days = recentSamples
+        let days = viewModel.recentSamples
             .filter { calendar.isDate($0.date, equalTo: AppClock.now, toGranularity: .weekOfYear) }
             .map { calendar.startOfDay(for: $0.date) }
         return Set(days).count
@@ -2826,7 +2418,7 @@ struct HomeView: View {
 
     private var latestCheckInThisWeek: MetricSample? {
         let calendar = Calendar.current
-        return recentSamples.first { calendar.isDate($0.date, equalTo: AppClock.now, toGranularity: .weekOfYear) }
+        return viewModel.recentSamples.first { calendar.isDate($0.date, equalTo: AppClock.now, toGranularity: .weekOfYear) }
     }
 
     private var latestCheckInWeekday: String {
@@ -2834,7 +2426,7 @@ struct HomeView: View {
         return latestCheckInThisWeek.date.formatted(.dateTime.weekday(.wide))
     }
 
-    fileprivate enum GoalStatusLevel {
+    enum GoalStatusLevel {
         case onTrack
         case slightlyOff
         case needsAttention
@@ -2890,13 +2482,13 @@ struct HomeView: View {
             kind: kind,
             latestText: latestText,
             detailText: detailText,
-            isExpanded: expandedSecondaryMetrics.contains(kind),
+            isExpanded: viewModel.expandedSecondaryMetrics.contains(kind),
             onToggle: {
                 withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-                    if expandedSecondaryMetrics.contains(kind) {
-                        expandedSecondaryMetrics.remove(kind)
+                    if viewModel.expandedSecondaryMetrics.contains(kind) {
+                        viewModel.expandedSecondaryMetrics.remove(kind)
                     } else {
-                        expandedSecondaryMetrics.insert(kind)
+                        viewModel.expandedSecondaryMetrics.insert(kind)
                     }
                 }
             }
@@ -2929,7 +2521,7 @@ struct HomeView: View {
             case .positive:
                 tint = AppColorRoles.stateSuccess
             case .negative:
-                tint = Color(hex: "#EF4444")
+                tint = Color.appDanger
             case .neutral:
                 tint = AppColorRoles.textTertiary
             }
@@ -2981,17 +2573,17 @@ struct HomeView: View {
         let isPositive = definition.favorsDecrease ? delta < 0 : delta > 0
         return HomeMetricDeltaChip(
             text: String(format: "%@%.1f %@", delta >= 0 ? "+" : "-", abs(delta), definition.unitLabel),
-            tint: isPositive ? AppColorRoles.stateSuccess : Color(hex: "#EF4444")
+            tint: isPositive ? AppColorRoles.stateSuccess : Color.appDanger
         )
     }
 
     private func toggleSecondaryMetric(_ kind: MetricKind) {
         Haptics.selection()
         withAnimation(.easeInOut(duration: 0.3)) {
-            if expandedSecondaryMetrics.contains(kind) {
-                _ = expandedSecondaryMetrics.remove(kind)
+            if viewModel.expandedSecondaryMetrics.contains(kind) {
+                _ = viewModel.expandedSecondaryMetrics.remove(kind)
             } else {
-                _ = expandedSecondaryMetrics.insert(kind)
+                _ = viewModel.expandedSecondaryMetrics.insert(kind)
             }
         }
     }
@@ -3042,13 +2634,6 @@ struct HomeView: View {
         }
     }
 
-    private struct ModuleHeaderAction: Identifiable {
-        let id = UUID()
-        let systemImage: String
-        let accessibilityLabel: String
-        let action: () -> Void
-    }
-
     private func editorialEmptyStateCard(
         eyebrow: String,
         title: String,
@@ -3077,13 +2662,13 @@ struct HomeView: View {
             }
             .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: AppRadius.md))
         }
-        .padding(14)
+        .padding(AppSpacing.smmd)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                 .fill(AppColorRoles.surfaceInteractive)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                         .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                 )
         )
@@ -3132,7 +2717,7 @@ struct HomeView: View {
                 .foregroundStyle(AppColorRoles.textSecondary)
                 .lineLimit(2)
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -3183,7 +2768,7 @@ struct HomeView: View {
             }
             .foregroundStyle(AppColorRoles.textSecondary)
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -3212,7 +2797,7 @@ struct HomeView: View {
     private func handleNextFocusAction() {
         Haptics.selection()
         if isFreshHomeState {
-            quickAddKinds = [.weight]
+            viewModel.quickAddKinds = [.weight]
             presentQuickAdd(source: .quickAdd)
             return
         }
@@ -3254,7 +2839,7 @@ struct HomeView: View {
     }
 
     private func presentQuickAdd(source: MeasurementTelemetrySource) {
-        quickAddTelemetrySource = source
+        viewModel.quickAddTelemetrySource = source
         showQuickAddSheet = true
     }
 
@@ -3305,8 +2890,8 @@ struct HomeView: View {
     }
 
     private func acceptActivationReminderPrompt() {
-        guard !isRequestingActivationReminder else { return }
-        isRequestingActivationReminder = true
+        guard !viewModel.isRequestingActivationReminder else { return }
+        viewModel.isRequestingActivationReminder = true
         Analytics.shared.track(AnalyticsEvents.notificationsPermissionPrompted(source: .activation))
 
         Task { @MainActor in
@@ -3327,7 +2912,7 @@ struct HomeView: View {
                 )
             }
 
-            isRequestingActivationReminder = false
+            viewModel.isRequestingActivationReminder = false
             finishPendingActivationMetricCompletion()
         }
     }
@@ -3344,8 +2929,8 @@ struct HomeView: View {
     }
 
     private func finishPendingActivationMetricCompletion() {
-        guard pendingActivationMetricCompletion else { return }
-        pendingActivationMetricCompletion = false
+        guard viewModel.pendingActivationMetricCompletion else { return }
+        viewModel.pendingActivationMetricCompletion = false
     }
 
     private func skipActivationTask() {
@@ -3425,7 +3010,7 @@ struct HomeView: View {
     }
 
     private func refreshChecklistState() {
-        reminderChecklistCompleted = effects.reminderChecklistCompleted()
+        viewModel.reminderChecklistCompleted = effects.reminderChecklistCompleted()
         refreshActivationProgress()
     }
 
@@ -3434,10 +3019,10 @@ struct HomeView: View {
 
         if !isUITestMode,
            totalMetricSampleCount == 1,
-           !didShowActivationReminderPrompt,
+           !viewModel.didShowActivationReminderPrompt,
            !onboardingSkippedReminders,
            !effects.reminderChecklistCompleted() {
-            didShowActivationReminderPrompt = true
+            viewModel.didShowActivationReminderPrompt = true
             showActivationReminderPrompt = true
         }
 
@@ -3464,20 +3049,20 @@ struct HomeView: View {
     }
 
     private func connectHealthKitFromChecklist() {
-        guard !isSyncEnabled, !isChecklistConnectingHealth else { return }
+        guard !isSyncEnabled, !viewModel.isChecklistConnectingHealth else { return }
 
-        checklistStatusText = AppLocalization.string("Requesting Health access...")
-        shouldShowHealthSettingsShortcut = false
-        isChecklistConnectingHealth = true
+        viewModel.checklistStatusText = AppLocalization.string("Requesting Health access...")
+        viewModel.shouldShowHealthSettingsShortcut = false
+        viewModel.isChecklistConnectingHealth = true
 
         Task { @MainActor in
-            defer { isChecklistConnectingHealth = false }
+            defer { viewModel.isChecklistConnectingHealth = false }
             do {
                 try await effects.requestHealthKitAuthorization()
                 isSyncEnabled = true
                 onboardingSkippedHealthKit = true
-                checklistStatusText = AppLocalization.string("Connected to Apple Health.")
-                shouldShowHealthSettingsShortcut = false
+                viewModel.checklistStatusText = AppLocalization.string("Connected to Apple Health.")
+                viewModel.shouldShowHealthSettingsShortcut = false
                 Analytics.shared.track(
                     AnalyticsEvents.checklistItemCompleted(
                         item: "healthkit",
@@ -3489,18 +3074,18 @@ struct HomeView: View {
                 refreshChecklistState()
             } catch {
                 isSyncEnabled = false
-                checklistStatusText = AppLocalization.string("Health access denied. Go to iOS Settings → MeasureMe → Health and allow access.")
+                viewModel.checklistStatusText = AppLocalization.string("Health access denied. Go to iOS Settings → MeasureMe → Health and allow access.")
                 if let authError = error as? HealthKitAuthorizationError {
                     if authError == .denied {
-                        shouldShowHealthSettingsShortcut = true
+                        viewModel.shouldShowHealthSettingsShortcut = true
                         shouldPromptToOpenHealthSettings = true
                         Haptics.error()
                         return
                     } else {
-                        checklistStatusText = authError.errorDescription ?? checklistStatusText
+                        viewModel.checklistStatusText = authError.errorDescription ?? viewModel.checklistStatusText
                     }
                 }
-                shouldShowHealthSettingsShortcut = true
+                viewModel.shouldShowHealthSettingsShortcut = true
                 Haptics.error()
             }
         }
@@ -3517,7 +3102,7 @@ struct HomeView: View {
     private var measurementsSection: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.appAccent.opacity(0.18),
             contentPadding: 16
         ) {
@@ -3546,7 +3131,7 @@ struct HomeView: View {
                         .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
                         .accessibilityIdentifier("home.quickadd.button")
                     }
-                    .padding(12)
+                    .padding(AppSpacing.sm)
                     .background(AppColorRoles.surfacePrimary)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 } else if visibleMetrics.isEmpty {
@@ -3583,7 +3168,7 @@ struct HomeView: View {
                         Image(systemName: "chevron.right")
                             .font(AppTypography.micro)
                     }
-                    .foregroundStyle(Color(hex: "#FCA311"))
+                    .foregroundStyle(Color.appAmber)
                 }
                 .buttonStyle(LiquidCapsuleButtonStyle(tint: Color.appAccent.opacity(0.88)))
                 .accessibilityLabel(AppLocalization.string("accessibility.open.measurements"))
@@ -3597,7 +3182,7 @@ struct HomeView: View {
     private var lastPhotosPlaceholder: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.cyan.opacity(0.14),
             contentPadding: 16
         ) {
@@ -3616,7 +3201,7 @@ struct HomeView: View {
     private var healthSectionPlaceholder: some View {
         AppGlassCard(
             depth: .base,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.cyan.opacity(0.16),
             contentPadding: 12
         ) {
@@ -3635,7 +3220,7 @@ struct HomeView: View {
     private var lastPhotosSection: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.cyan.opacity(0.14),
             contentPadding: 16
         ) {
@@ -3648,7 +3233,7 @@ struct HomeView: View {
                     
                     Spacer()
                     
-                    if (recentPhotos.count + pendingPhotoSaveStore.pendingItems.count) > maxVisiblePhotos {
+                    if (viewModel.recentPhotos.count + pendingPhotoSaveStore.pendingItems.count) > maxVisiblePhotos {
                         Button {
                             router.selectedTab = .photos
                         } label: {
@@ -3658,7 +3243,7 @@ struct HomeView: View {
                                 Image(systemName: "chevron.right")
                                     .font(AppTypography.micro)
                             }
-                            .foregroundStyle(Color(hex: "#FCA311"))
+                            .foregroundStyle(Color.appAmber)
                         }
                         .buttonStyle(LiquidCapsuleButtonStyle(tint: Color.cyan.opacity(0.72)))
                         .accessibilityLabel(AppLocalization.string("accessibility.open.photos"))
@@ -3677,7 +3262,7 @@ struct HomeView: View {
     private var lastPhotosEmptyState: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 24,
+            cornerRadius: AppRadius.xl,
             tint: Color.cyan.opacity(0.14),
             contentPadding: 16
         ) {
@@ -3703,190 +3288,3 @@ struct HomeView: View {
     }
 }
 
-private struct GoalStatusLegendSheet: View {
-    let currentStatus: HomeView.GoalStatusLevel
-    let currentStatusColor: Color
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(AppLocalization.string("home.goalstatus.legend.title"))
-                            .font(AppTypography.sectionTitle)
-                            .foregroundStyle(AppColorRoles.textPrimary)
-
-                        Text(AppLocalization.string("home.goalstatus.legend.subtitle"))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColorRoles.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    SettingsCard(tint: AppColorRoles.surfacePrimary) {
-                        goalLegendRow(
-                            color: AppColorRoles.stateSuccess,
-                            titleKey: "home.goalstatus.legend.ontrack.title",
-                            descriptionKey: "home.goalstatus.legend.ontrack.description"
-                        )
-                        SettingsRowDivider()
-                        goalLegendRow(
-                            color: AppColorRoles.stateWarning,
-                            titleKey: "home.goalstatus.legend.slightlyoff.title",
-                            descriptionKey: "home.goalstatus.legend.slightlyoff.description"
-                        )
-                        SettingsRowDivider()
-                        goalLegendRow(
-                            color: AppColorRoles.stateError,
-                            titleKey: "home.goalstatus.legend.needsattention.title",
-                            descriptionKey: "home.goalstatus.legend.needsattention.description"
-                        )
-                    }
-
-                    SettingsCard(tint: currentStatusColor.opacity(0.18)) {
-                        Text(AppLocalization.string("home.goalstatus.legend.current.title"))
-                            .font(AppTypography.eyebrow)
-                            .foregroundStyle(AppColorRoles.textTertiary)
-
-                        HStack(alignment: .top, spacing: 10) {
-                            Circle()
-                                .fill(currentStatusColor)
-                                .frame(width: 10, height: 10)
-                                .padding(.top, 5)
-                                .accessibilityHidden(true)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(currentStatusTitle)
-                                    .font(AppTypography.bodyStrong)
-                                    .foregroundStyle(AppColorRoles.textPrimary)
-
-                                Text(currentStatusDescription)
-                                    .font(AppTypography.caption)
-                                    .foregroundStyle(AppColorRoles.textSecondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                        .accessibilityElement(children: .combine)
-                    }
-                }
-                .padding(.horizontal, AppSpacing.md)
-                .padding(.top, AppSpacing.md)
-                .padding(.bottom, AppSpacing.lg)
-            }
-            .background(AppColorRoles.surfaceCanvas.ignoresSafeArea())
-            .navigationTitle(AppLocalization.string("home.goalstatus.legend.navtitle"))
-            .navigationBarTitleDisplayMode(.inline)
-        }
-    }
-
-    private var currentStatusTitle: String {
-        switch currentStatus {
-        case .onTrack:
-            return AppLocalization.string("home.goalstatus.legend.current.ontrack")
-        case .slightlyOff:
-            return AppLocalization.string("home.goalstatus.legend.current.slightlyoff")
-        case .needsAttention:
-            return AppLocalization.string("home.goalstatus.legend.current.needsattention")
-        case .noGoals:
-            return AppLocalization.string("home.goalstatus.legend.current.nogoals")
-        }
-    }
-
-    private var currentStatusDescription: String {
-        switch currentStatus {
-        case .onTrack:
-            return AppLocalization.string("home.goalstatus.legend.ontrack.description")
-        case .slightlyOff:
-            return AppLocalization.string("home.goalstatus.legend.slightlyoff.description")
-        case .needsAttention:
-            return AppLocalization.string("home.goalstatus.legend.needsattention.description")
-        case .noGoals:
-            return AppLocalization.string("home.goalstatus.legend.nogoals.description")
-        }
-    }
-
-    private func goalLegendRow(color: Color, titleKey: String, descriptionKey: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Circle()
-                .fill(color)
-                .frame(width: 10, height: 10)
-                .padding(.top, 5)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(AppLocalization.string(titleKey))
-                    .font(AppTypography.bodyStrong)
-                    .foregroundStyle(AppColorRoles.textPrimary)
-
-                Text(AppLocalization.string(descriptionKey))
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColorRoles.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
-private struct HomeLastPhotosGrid: View {
-    let tiles: [HomeView.HomePhotoTile]
-    let onPersistedTap: (PhotoEntry) -> Void
-
-    private let columns = 3
-    private let spacing: CGFloat = 8
-    private let minimumSide: CGFloat = 86
-
-    var body: some View {
-        GeometryReader { geometry in
-            let side = tileSide(for: geometry.size.width)
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.fixed(side), spacing: spacing), count: columns),
-                spacing: spacing
-            ) {
-                ForEach(tiles) { tile in
-                    switch tile {
-                    case .persisted(let photo):
-                        Button {
-                            onPersistedTap(photo)
-                        } label: {
-                            PhotoGridThumb(
-                                photo: photo,
-                                size: side,
-                                cacheID: String(describing: photo.id)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(AppLocalization.string("accessibility.open.photo.details"))
-                        .accessibilityValue(photo.date.formatted(date: .abbreviated, time: .omitted))
-                    case .pending(let pending):
-                        PendingPhotoGridCell(
-                            thumbnailData: pending.thumbnailData,
-                            progress: pending.progress,
-                            status: pending.status,
-                            targetSize: CGSize(width: side, height: side),
-                            cornerRadius: 12,
-                            cacheID: pending.id.uuidString,
-                            showsStatusLabel: false,
-                            accessibilityIdentifier: "home.lastPhotos.pending.item"
-                        )
-                        .frame(width: side, height: side)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(height: gridHeight)
-    }
-
-    private var gridHeight: CGFloat {
-        let rows = max(1, Int(ceil(Double(tiles.count) / Double(columns))))
-        return CGFloat(rows) * minimumSide + CGFloat(max(rows - 1, 0)) * spacing
-    }
-
-    private func tileSide(for width: CGFloat) -> CGFloat {
-        let totalSpacing = spacing * CGFloat(columns - 1)
-        guard width.isFinite, width > totalSpacing else { return minimumSide }
-        let raw = (width - totalSpacing) / CGFloat(columns)
-        guard raw.isFinite, raw > 0 else { return minimumSide }
-        return max(floor(raw), minimumSide)
-    }
-}

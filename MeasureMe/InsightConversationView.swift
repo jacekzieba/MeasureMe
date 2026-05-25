@@ -114,13 +114,13 @@ struct InsightConversationView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                 .fill(AppColorRoles.surfaceGlass)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                 .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
         )
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -132,9 +132,9 @@ struct InsightConversationView: View {
             .foregroundStyle(.white)
             .multilineTextAlignment(.leading)
             .fixedSize(horizontal: false, vertical: true)
-            .padding(12)
+            .padding(AppSpacing.sm)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                     .fill(AppColorRoles.accentPrimary)
             )
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -155,13 +155,13 @@ struct InsightConversationView: View {
                 .foregroundStyle(AppColorRoles.textSecondary)
                 .redacted(reason: .placeholder)
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                 .fill(AppColorRoles.surfaceGlass)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                 .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
         )
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -175,7 +175,7 @@ struct InsightConversationView: View {
             Text(AppLocalization.string("insight.followup.limit"))
                 .font(AppTypography.micro)
                 .foregroundStyle(AppColorRoles.textSecondary)
-                .padding(.vertical, 14)
+                .padding(.vertical, AppSpacing.smmd)
                 .frame(maxWidth: .infinity)
         } else {
             HStack(spacing: 8) {

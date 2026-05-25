@@ -9,6 +9,7 @@ struct CustomMetricDetailView: View {
     @Environment(\.modelContext) private var context
     @Query private var samples: [MetricSample]
     @Query private var goals: [MetricGoal]
+    @State private var viewModel = CustomMetricDetailViewModel()
 
     @State private var timeframe: Timeframe = .month
     @State private var showGoalSheet = false
@@ -49,16 +50,16 @@ struct CustomMetricDetailView: View {
         )
     }
 
-    private var currentGoal: MetricGoal? { goals.first }
+    private var currentGoal: MetricGoal? { viewModel.currentGoal }
 
     private var chartSamples: [MetricSample] {
         if let start = timeframe.startDate() {
-            return samples.filter { $0.date >= start }
+            return viewModel.samples.filter { $0.date >= start }
         }
-        return samples
+        return viewModel.samples
     }
 
-    private var latest: MetricSample? { samples.last }
+    private var latest: MetricSample? { viewModel.samples.last }
 
     private var trendDelta: Double? {
         guard chartSamples.count >= 2,
@@ -94,7 +95,7 @@ struct CustomMetricDetailView: View {
     }
 
     private var historyItems: [MetricSample] {
-        let reversed = Array(samples.reversed())
+        let reversed = Array(viewModel.samples.reversed())
         return showAllHistory ? reversed : Array(reversed.prefix(20))
     }
 
@@ -124,7 +125,7 @@ struct CustomMetricDetailView: View {
             CustomGoalSheet(
                 definition: definition,
                 existingGoal: currentGoal,
-                samples: samples
+                samples: viewModel.samples
             )
         }
         .sheet(item: $editingSample) { sample in
@@ -132,6 +133,16 @@ struct CustomMetricDetailView: View {
                 sample: sample,
                 definition: definition
             )
+        }
+        .onAppear {
+            viewModel.samples = samples
+            viewModel.goals = goals
+        }
+        .onChange(of: samples) { _, newValue in
+            viewModel.samples = newValue
+        }
+        .onChange(of: goals) { _, newValue in
+            viewModel.goals = newValue
         }
     }
 
@@ -362,7 +373,7 @@ struct CustomMetricDetailView: View {
                         }
                     }
 
-                    if samples.count > 20 && !showAllHistory {
+                    if viewModel.samples.count > 20 && !showAllHistory {
                         Button {
                             withAnimation { showAllHistory = true }
                         } label: {

@@ -1,0 +1,193 @@
+import SwiftUI
+import SwiftData
+
+/// Lightweight @Observable ViewModel for HomeView.
+/// Holds query results and cached computed properties.
+/// The view syncs @Query results here and reads data through the ViewModel.
+@Observable @MainActor final class HomeViewModel {
+
+    // MARK: - Query Results
+
+    var recentSamples: [MetricSample] = []
+    var goals: [MetricGoal] = []
+    var recentPhotos: [PhotoEntry] = []
+    var customDefinitions: [CustomMetricDefinition] = []
+
+    // MARK: - Presentation State (moved from HomeView @State)
+
+    /// Quick-add sheet kinds/source — set before presenting the sheet.
+    var quickAddKinds: [MetricKind] = []
+    var quickAddTelemetrySource: MeasurementTelemetrySource = .quickAdd
+
+    /// Expanded secondary metrics in key metrics card.
+    var expandedSecondaryMetrics: Set<MetricKind> = []
+
+    /// Scroll offset of the home scroll view.
+    var scrollOffset: CGFloat = 0
+
+    /// Checklist / activation state flags.
+    var isRequestingActivationReminder: Bool = false
+    var pendingActivationMetricCompletion: Bool = false
+    var didShowActivationReminderPrompt: Bool = false
+    var reminderChecklistCompleted: Bool = false
+    var checklistStatusText: String?
+    var isChecklistConnectingHealth: Bool = false
+    var shouldShowHealthSettingsShortcut: Bool = false
+
+    /// Lifecycle / startup flags.
+    var didCheckSevenDayPaywallPrompt: Bool = false
+    var didRunStartupPhases: Bool = false
+    var didEmitHomeInitialRender: Bool = false
+
+    /// Section mounting flags (deferred rendering).
+    var isLastPhotosSectionMounted: Bool = false
+    var isHealthSectionMounted: Bool = false
+
+    /// In-flight sync guard.
+    var isPhotoMetricSyncInFlight: Bool = false
+
+    /// Deferred startup tasks.
+    var deferredPhaseBTask: Task<Void, Never>?
+    var deferredPhaseCTask: Task<Void, Never>?
+    var deferredSectionMountTask: Task<Void, Never>?
+
+    // MARK: - Cached Properties (previously @State in HomeView)
+
+    var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
+    var cachedLatestByKind: [MetricKind: MetricSample] = [:]
+    var cachedGoalsByKind: [MetricKind: MetricGoal] = [:]
+    var cachedCustomSamplesByIdentifier: [String: [MetricSample]] = [:]
+    var cachedCustomLatestByIdentifier: [String: MetricSample] = [:]
+    var cachedCustomGoalsByIdentifier: [String: MetricGoal] = [:]
+    var cachedDashboardItems: [HomeModuleLayoutItem] = []
+    var cachedVisiblePhotoTiles: [HomePhotoTile] = []
+    var cachedNextFocusInsight: HomeNextFocusInsight?
+
+    // MARK: - Rebuild: Measurement Caches
+
+    /// Called by the view when recentSamples or activeKinds change.
+    /// - Parameters:
+    ///   - recentSamples: The @Query result from the view.
+    ///   - goals: The @Query goals result from the view.
+    ///   - activeKinds: Active metric kinds from ActiveMetricsStore.
+    ///   - modelContext: For total count fetch.
+    ///   - totalMetricSampleCountOut: Written back to caller (view @State).
+    ///   - hasAnyMeasurementsOut: Written back to caller (view @State).
+    func refreshMeasurementCaches(
+        recentSamples: [MetricSample],
+        goals: [MetricGoal],
+        activeKinds: [MetricKind],
+        modelContext: ModelContext,
+        allowFallbackFetch: Bool = true,
+        totalMetricSampleCountOut: inout Int,
+        hasAnyMeasurementsOut: inout Bool,
+        nextFocusComputer: () -> HomeNextFocusInsight?
+    ) {
+        var grouped: [MetricKind: [MetricSample]] = [:]
+        var latest: [MetricKind: MetricSample] = [:]
+        let kindsToKeep = Set(activeKinds).union([.waist, .height, .weight, .bodyFat, .leanBodyMass, .hips])
+
+        var customGrouped: [String: [MetricSample]] = [:]
+        var customLatest: [String: MetricSample] = [:]
+
+        for sample in recentSamples {
+            if sample.kindRaw.hasPrefix("custom_") {
+                customGrouped[sample.kindRaw, default: []].append(sample)
+                if customLatest[sample.kindRaw] == nil {
+                    customLatest[sample.kindRaw] = sample
+                }
+                continue
+            }
+            guard let kind = MetricKind(rawValue: sample.kindRaw) else { continue }
+            grouped[kind, default: []].append(sample)
+            if kindsToKeep.contains(kind), latest[kind] == nil {
+                latest[kind] = sample
+            }
+        }
+
+        cachedSamplesByKind = grouped
+        cachedLatestByKind = latest
+        cachedCustomSamplesByIdentifier = customGrouped
+        cachedCustomLatestByIdentifier = customLatest
+
+        // Cache custom goals
+        var customGoals: [String: MetricGoal] = [:]
+        for goal in goals where goal.kindRaw.hasPrefix("custom_") {
+            if customGoals[goal.kindRaw] == nil {
+                customGoals[goal.kindRaw] = goal
+            }
+        }
+        cachedCustomGoalsByIdentifier = customGoals
+
+        let fetchedMetricCount = allowFallbackFetch
+            ? ((try? modelContext.fetchCount(FetchDescriptor<MetricSample>())) ?? recentSamples.count)
+            : recentSamples.count
+        totalMetricSampleCountOut = fetchedMetricCount
+        hasAnyMeasurementsOut = fetchedMetricCount > 0
+
+        cachedNextFocusInsight = nextFocusComputer()
+    }
+
+    // MARK: - Rebuild: Goals Cache
+
+    /// Called by the view when goals change.
+    func rebuildGoalsCache(
+        goals: [MetricGoal],
+        nextFocusComputer: () -> HomeNextFocusInsight?
+    ) {
+        var dict: [MetricKind: MetricGoal] = [:]
+        for goal in goals {
+            if let kind = MetricKind(rawValue: goal.kindRaw) {
+                dict[kind] = goal
+            }
+        }
+        cachedGoalsByKind = dict
+        cachedNextFocusInsight = nextFocusComputer()
+    }
+
+    // MARK: - Rebuild: Visible Photo Tiles Cache
+
+    /// Called by the view when photo state changes.
+    func rebuildVisiblePhotoTilesCache(
+        recentPhotos: [PhotoEntry],
+        pendingItems: [PendingPhotoSaveItem],
+        maxVisiblePhotos: Int
+    ) {
+        let persistedCandidateLimit = maxVisiblePhotos * 3
+        let persistedTiles = recentPhotos.prefix(persistedCandidateLimit).map { HomePhotoTile.persisted($0) }
+        let pendingTiles = pendingItems.map { HomePhotoTile.pending($0) }
+        cachedVisiblePhotoTiles = Array(
+            (persistedTiles + pendingTiles)
+                .sorted { lhs, rhs in lhs.date > rhs.date }
+                .prefix(maxVisiblePhotos)
+        )
+    }
+
+    // MARK: - Rebuild: Next Focus Insight Cache
+
+    func rebuildNextFocusInsightCache(
+        nextFocusComputer: () -> HomeNextFocusInsight?
+    ) {
+        cachedNextFocusInsight = nextFocusComputer()
+    }
+
+    // MARK: - Rebuild: Dashboard Items Cache
+
+    /// Called by the view when layout or visibility settings change.
+    func rebuildDashboardItemsCache(
+        settingsStore: AppSettingsStore,
+        dashboardColumns: Int,
+        shouldRenderModule: (HomeModuleKind) -> Bool
+    ) {
+        let layout = settingsStore.homeLayoutSnapshot()
+        let runtimeVisibleItems = layout.items.map { item in
+            var next = item
+            next.isVisible = item.isVisible && shouldRenderModule(item.kind)
+            if item.kind == .summaryHero {
+                next.size = .wide
+            }
+            return next
+        }
+        cachedDashboardItems = HomeLayoutCompactor.compact(runtimeVisibleItems, columns: dashboardColumns)
+    }
+}

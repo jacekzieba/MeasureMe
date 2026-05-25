@@ -58,11 +58,11 @@ struct OnboardingHealthKitStep: View {
                 .font(AppTypography.micro)
                 .foregroundStyle(AppColorRoles.textTertiary)
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .background(AppColorRoles.surfaceInteractive)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                 .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
         )
     }

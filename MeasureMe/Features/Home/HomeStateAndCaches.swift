@@ -48,10 +48,10 @@ struct HomeKeyMetricRow: View {
                     kind.iconView(font: AppTypography.metricTitle, size: 16, tint: accent)
                         .frame(width: 28, height: 28)
                         .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                                 .fill(AppColorRoles.surfaceAccentSoft)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                                         .stroke(accent.opacity(0.16), lineWidth: 1)
                                 )
                         )
@@ -105,12 +105,12 @@ struct HomeKeyMetricRow: View {
                 MiniSparklineChart(samples: samples, kind: kind, goal: goal)
                     .frame(width: 90, height: 44)
             } else {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                     .fill(AppColorRoles.surfaceInteractive)
                     .frame(width: 90, height: 44)
             }
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             if showsBackground {
@@ -259,7 +259,7 @@ struct CustomMiniSparklineChart: View {
             }
             switch outcome {
             case .positive: self.trendColor = AppColorRoles.stateSuccess.opacity(0.85)
-            case .negative: self.trendColor = Color(hex: "#EF4444").opacity(0.85)
+            case .negative: self.trendColor = Color.appDanger.opacity(0.85)
             case .neutral:  self.trendColor = Color.gray.opacity(0.5)
             }
         } else {
@@ -351,10 +351,10 @@ struct HomeCustomKeyMetricRow: View {
                         .frame(width: 28, height: 28)
                         .foregroundStyle(accent)
                         .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                                 .fill(AppColorRoles.surfaceAccentSoft)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                                         .stroke(accent.opacity(0.16), lineWidth: 1)
                                 )
                         )
@@ -412,12 +412,12 @@ struct HomeCustomKeyMetricRow: View {
                 )
                 .frame(width: 90, height: 44)
             } else {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                     .fill(AppColorRoles.surfaceInteractive)
                     .frame(width: 90, height: 44)
             }
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             ZStack {

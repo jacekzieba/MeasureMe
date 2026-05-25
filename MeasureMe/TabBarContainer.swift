@@ -164,7 +164,7 @@ struct TabBarContainer: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 240)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
                 .padding(.horizontal, 12)
                 .padding(.bottom, 12)
                 .accessibilityIdentifier("photos.sourceChooser.visible")

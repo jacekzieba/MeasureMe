@@ -177,7 +177,7 @@ struct HealthMetricsDetailView: View {
                         .foregroundStyle(Color.bestAccessibleTextColor(onHex: categoryColor))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(Color(hex: categoryColor), in: RoundedRectangle(cornerRadius: 10))
+                        .background(Color(hex: categoryColor), in: RoundedRectangle(cornerRadius: AppRadius.sm))
                 }
                 
                 Text(AppLocalization.string(description))
@@ -289,9 +289,9 @@ struct HealthMetricsDetailView: View {
         if category.contains("Normal") {
             return AppColorRoles.stateSuccess
         } else if category.contains("Overweight") || category.contains("Increased") {
-            return Color(hex: "#FCA311")
+            return Color.appAmber
         } else {
-            return Color(hex: "#EF4444")
+            return Color.appDanger
         }
     }
     

@@ -90,7 +90,7 @@ struct MetricInsightCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(minHeight: minimumCompactHeight, alignment: .topLeading)
         .fixedSize(horizontal: false, vertical: true)
-        .padding(compact ? 10 : 14)
+        .padding(compact ? 10 : AppSpacing.smmd)
         .background(
             RoundedRectangle(cornerRadius: compact ? 12 : 14, style: .continuous)
                 .fill(AppColorRoles.surfaceGlass)

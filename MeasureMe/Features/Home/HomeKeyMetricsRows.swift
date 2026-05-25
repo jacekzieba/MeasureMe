@@ -48,7 +48,7 @@ struct HomeSecondaryMetricToggleRow<ExpandedContent: View>: View {
                         .foregroundStyle(AppColorRoles.textTertiary)
                         .contentTransition(.symbolEffect(.replace))
                 }
-                .padding(12)
+                .padding(AppSpacing.sm)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plain)
@@ -146,7 +146,7 @@ struct HomeSecondaryMetricNavigationRow: View {
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(AppColorRoles.textTertiary)
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -197,7 +197,7 @@ struct HomeExpandedMetricTrendChart: View {
         case .positive:
             return AppColorRoles.stateSuccess
         case .negative:
-            return Color(hex: "#EF4444")
+            return Color.appDanger
         case .neutral:
             return AppColorRoles.textTertiary
         }
@@ -347,7 +347,7 @@ struct HomeCustomSecondaryMetricRow: View {
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(AppColorRoles.textTertiary)
         }
-        .padding(12)
+        .padding(AppSpacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)

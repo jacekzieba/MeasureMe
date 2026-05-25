@@ -431,7 +431,7 @@ struct ComparePhotosView: View {
                             Spacer()
                             dateBadge(newerPhoto.date)
                         }
-                        .padding(12)
+                        .padding(AppSpacing.sm)
                         Spacer()
                     }
                 }
@@ -530,7 +530,7 @@ struct ComparePhotosView: View {
             .lineLimit(1)
             .minimumScaleFactor(0.8)
             .foregroundStyle(AppColorRoles.textPrimary)
-            .padding(8)
+            .padding(AppSpacing.xs)
             .background(AppColorRoles.surfaceChrome.opacity(0.94))
             .overlay(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -575,7 +575,7 @@ struct ComparePhotosView: View {
     private var comparisonInfo: some View {
         AppGlassCard(
             depth: .elevated,
-            cornerRadius: 18,
+            cornerRadius: AppRadius.lg,
             tint: photosTheme.softTint,
             contentPadding: 14
         ) {
@@ -596,7 +596,7 @@ struct ComparePhotosView: View {
                 if !metricChanges.isEmpty {
                     AppGlassCard(
                         depth: .base,
-                        cornerRadius: 14,
+                        cornerRadius: AppRadius.md,
                         tint: measurementsTheme.softTint,
                         contentPadding: 12
                     ) {
@@ -1195,7 +1195,7 @@ private struct BeforeAfterSlider: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                         .foregroundStyle(AppColorRoles.textPrimary)
-                        .padding(8)
+                        .padding(AppSpacing.xs)
                         .background(AppColorRoles.surfaceChrome.opacity(0.94))
                         .overlay(
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -1213,7 +1213,7 @@ private struct BeforeAfterSlider: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                         .foregroundStyle(AppColorRoles.textPrimary)
-                        .padding(8)
+                        .padding(AppSpacing.xs)
                         .background(AppColorRoles.surfaceChrome.opacity(0.94))
                         .overlay(
                             RoundedRectangle(cornerRadius: 6, style: .continuous)

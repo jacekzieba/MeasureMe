@@ -29,13 +29,13 @@ struct SFSymbolPickerView: View {
                                             .font(.title3)
                                             .frame(width: 44, height: 44)
                                             .background(
-                                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                                                     .fill(selectedSymbol == symbol
                                                           ? Color.appAccent.opacity(0.2)
                                                           : Color.secondary.opacity(0.1))
                                             )
                                             .overlay(
-                                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
                                                     .stroke(selectedSymbol == symbol
                                                             ? Color.appAccent
                                                             : Color.clear, lineWidth: 2)
