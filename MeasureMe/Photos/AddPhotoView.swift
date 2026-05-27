@@ -152,12 +152,12 @@ struct AddPhotoView: View {
                 Task { await applySuggestedPoseIfNeeded(from: newValue) }
             }
         }
-        .onAppear {
+        .task {
             if shouldStartExpandedForUITests && !activeMetrics.activeKinds.isEmpty {
                 isMeasurementsExpanded = true
             }
             if let selectedImage {
-                Task { await applySuggestedPoseIfNeeded(from: selectedImage) }
+                await applySuggestedPoseIfNeeded(from: selectedImage)
             }
         }
     }

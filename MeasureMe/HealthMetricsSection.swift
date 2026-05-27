@@ -245,11 +245,9 @@ struct HealthMetricsSection: View {
             }
             await loadHealthInsightIfNeeded()
         }
-        .onAppear {
+        .task { @MainActor in
             guard runSideEffects else { return }
-            Task { @MainActor in
-                migrateLegacyVisibilityIfNeeded()
-            }
+            migrateLegacyVisibilityIfNeeded()
         }
     }
 

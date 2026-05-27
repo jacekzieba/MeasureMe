@@ -210,14 +210,12 @@ struct TabBarContainer: View {
         }
         .environmentObject(premiumStore)
         .environmentObject(router)
-        .onAppear {
-            Task { @MainActor in
-                applyAuditRouteIfNeeded()
-                mountTabIfNeeded(router.selectedTab)
-                consumePendingNavigationRouteIfNeeded()
-                consumePendingAppEntryActionIfNeeded()
-                schedulePendingAppEntryRetryIfNeeded()
-            }
+        .task { @MainActor in
+            applyAuditRouteIfNeeded()
+            mountTabIfNeeded(router.selectedTab)
+            consumePendingNavigationRouteIfNeeded()
+            consumePendingAppEntryActionIfNeeded()
+            schedulePendingAppEntryRetryIfNeeded()
         }
         .onReceive(NotificationCenter.default.publisher(for: AppNavigationRouteDispatcher.didEnqueueNotification)) { notification in
             guard let route = notification.object as? AppNavigationRoute else { return }

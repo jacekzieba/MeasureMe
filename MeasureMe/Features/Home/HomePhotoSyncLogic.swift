@@ -18,18 +18,16 @@ struct PhotoGridThumb: View {
         )
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .onAppear {
+        .task {
             guard photo.thumbnailData == nil else { return }
             guard !UITestArgument.isPresent(.mode) else { return }
-            Task {
-                await PhotoThumbnailBackfillService.shared.enqueueIfNeeded(
-                    photoID: photo.persistentModelID,
-                    originalImageData: photo.imageData,
-                    existingThumbnailData: photo.thumbnailData,
-                    modelContainer: modelContext.container,
-                    source: "home_last_photos"
-                )
-            }
+            await PhotoThumbnailBackfillService.shared.enqueueIfNeeded(
+                photoID: photo.persistentModelID,
+                originalImageData: photo.imageData,
+                existingThumbnailData: photo.thumbnailData,
+                modelContainer: modelContext.container,
+                source: "home_last_photos"
+            )
         }
     }
 }

@@ -325,27 +325,25 @@ struct PremiumPaywallView: View {
                 .accessibilityIdentifier("premium.paywall.close")
             }
         }
-        .onAppear {
-            Task { @MainActor in
-                premium.clearActionMessage()
-                Task {
-                    await premium.loadProducts()
-                    await premium.syncEntitlements()
-                }
-                if selectedProductID == nil {
-                    selectedProductID = yearly?.id ?? monthly?.id
-                }
-                // Jump the carousel to the slide most relevant to the trigger.
-                selectedSlide = premium.paywallReason.initialSlideKind.ordinal
-                Analytics.shared.track(
-                    AnalyticsEvents.paywallSlideSeen(
-                        slideID: String(selectedSlide),
-                        context: premium.paywallReason.analyticsReason
-                    )
+        .task { @MainActor in
+            premium.clearActionMessage()
+            Task {
+                await premium.loadProducts()
+                await premium.syncEntitlements()
+            }
+            if selectedProductID == nil {
+                selectedProductID = yearly?.id ?? monthly?.id
+            }
+            // Jump the carousel to the slide most relevant to the trigger.
+            selectedSlide = premium.paywallReason.initialSlideKind.ordinal
+            Analytics.shared.track(
+                AnalyticsEvents.paywallSlideSeen(
+                    slideID: String(selectedSlide),
+                    context: premium.paywallReason.analyticsReason
                 )
-                if shouldAnimateCTA {
-                    isCTAPulsing = true
-                }
+            )
+            if shouldAnimateCTA {
+                isCTAPulsing = true
             }
         }
         .onChange(of: selectedSlide) { _, newSlide in

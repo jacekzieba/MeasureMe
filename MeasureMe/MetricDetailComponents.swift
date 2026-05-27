@@ -979,18 +979,16 @@ struct MetricPhotosRow: View {
                 )
                 .frame(width: side, height: side)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .onAppear {
+                .task {
                     guard photo.thumbnailData == nil else { return }
                     guard !UITestArgument.isPresent(.mode) else { return }
-                    Task {
-                        await PhotoThumbnailBackfillService.shared.enqueueIfNeeded(
-                            photoID: photo.persistentModelID,
-                            originalImageData: photo.imageData,
-                            existingThumbnailData: photo.thumbnailData,
-                            modelContainer: modelContext.container,
-                            source: "metric_detail"
-                        )
-                    }
+                    await PhotoThumbnailBackfillService.shared.enqueueIfNeeded(
+                        photoID: photo.persistentModelID,
+                        originalImageData: photo.imageData,
+                        existingThumbnailData: photo.thumbnailData,
+                        modelContainer: modelContext.container,
+                        source: "metric_detail"
+                    )
                 }
             }
         }
