@@ -661,6 +661,7 @@ final class PremiumStore: ObservableObject {
             } else {
                 actionMessage = AppLocalization.string("premium.purchase.success")
                 actionMessageIsError = false
+                ReviewRequestManager.recordHighSatisfactionMoment()
                 await presentPostPurchaseSetupAfterCurrentModalDismisses()
             }
         } else {

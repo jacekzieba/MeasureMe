@@ -45,6 +45,7 @@ struct GoalNotificationSender {
                 return
             }
             settings.setGoalAchievedFlag(true, for: goalID)
+            ReviewRequestManager.recordHighSatisfactionMoment(settings: settings)
         }
     }
 
