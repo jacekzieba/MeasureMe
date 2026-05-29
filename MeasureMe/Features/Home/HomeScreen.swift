@@ -84,17 +84,35 @@ struct HomeView: View {
     @State private var shouldPromptToOpenHealthSettings: Bool = false
     @State private var selectedPhotoForFullScreen: PhotoEntry?
     @State private var selectedHomeComparePair: HomeComparePair?
-    @State private var hasAnySavedPhotosInStore = false
-    @State private var hasEnoughSavedPhotosForCompareInStore = false
-    
-    // Dane HealthKit
-    @State var latestBodyFat: Double?
-    @State var latestLeanMass: Double?
-    @State private var hasAnyMeasurements = false
-    @State private var totalMetricSampleCount = 0
+
+    // Dane HealthKit / pomiarów oraz pochodne flagi zdjęć – teraz w HomeViewModel.
+    private var latestBodyFat: Double? {
+        get { viewModel.latestBodyFat }
+        nonmutating set { viewModel.latestBodyFat = newValue }
+    }
+    private var latestLeanMass: Double? {
+        get { viewModel.latestLeanMass }
+        nonmutating set { viewModel.latestLeanMass = newValue }
+    }
+    private var hasAnyMeasurements: Bool {
+        get { viewModel.hasAnyMeasurements }
+        nonmutating set { viewModel.hasAnyMeasurements = newValue }
+    }
+    private var totalMetricSampleCount: Int {
+        get { viewModel.totalMetricSampleCount }
+        nonmutating set { viewModel.totalMetricSampleCount = newValue }
+    }
+    private var hasAnySavedPhotosInStore: Bool {
+        get { viewModel.hasAnySavedPhotosInStore }
+        nonmutating set { viewModel.hasAnySavedPhotosInStore = newValue }
+    }
+    private var hasEnoughSavedPhotosForCompareInStore: Bool {
+        get { viewModel.hasEnoughSavedPhotosForCompareInStore }
+        nonmutating set { viewModel.hasEnoughSavedPhotosForCompareInStore = newValue }
+    }
 
     // Zbuforowane dane pochodne - trzymane w HomeViewModel, odswiezane przez onChange
-    @State private var viewModel = HomeViewModel()
+    @State var viewModel = HomeViewModel()
 
     private var cachedSamplesByKind: [MetricKind: [MetricSample]] { viewModel.cachedSamplesByKind }
     private var cachedLatestByKind: [MetricKind: MetricSample] { viewModel.cachedLatestByKind }
@@ -371,8 +389,6 @@ struct HomeView: View {
             activeKinds: metricsStore.activeKinds,
             modelContext: modelContext,
             allowFallbackFetch: allowFallbackFetch,
-            totalMetricSampleCountOut: &totalMetricSampleCount,
-            hasAnyMeasurementsOut: &hasAnyMeasurements,
             nextFocusComputer: { computeNextFocusInsight() }
         )
         refreshActivationProgress()
@@ -383,280 +399,57 @@ struct HomeView: View {
     }
 
     private func refreshPhotoStoreState() {
-        var descriptor = FetchDescriptor<PhotoEntry>(
-            sortBy: [SortDescriptor(\.date, order: .reverse)]
-        )
-        descriptor.fetchLimit = 2
-        let newestPhotos = (try? modelContext.fetch(descriptor)) ?? []
-        hasAnySavedPhotosInStore = !newestPhotos.isEmpty
-        hasEnoughSavedPhotosForCompareInStore = newestPhotos.count >= 2
-        rebuildVisiblePhotoTilesCache()
-    }
-
-    private var hasPhotoSyncCursor: Bool {
-        photoMetricSyncLastDate > 0
-    }
-
-    private func syncMode(force: Bool) -> PhotoSyncMode {
-        if force || !hasPhotoSyncCursor {
-            return .full
-        }
-        return .incremental
-    }
-
-    private func photoCursorID(for photo: PhotoEntry) -> String {
-        String(describing: photo.persistentModelID)
-    }
-
-    private func isPhotoAfterSyncCursor(_ photo: PhotoEntry) -> Bool {
-        HomeView.isAfterPhotoSyncCursor(
-            photoDate: photo.date,
-            photoID: photoCursorID(for: photo),
-            cursorDate: photoMetricSyncLastDate,
-            cursorID: photoMetricSyncLastID
+        viewModel.refreshPhotoStoreState(
+            modelContext: modelContext,
+            recentPhotosForTiles: Array(recentPhotos),
+            pendingItems: pendingPhotoSaveStore.pendingItems,
+            maxVisiblePhotos: maxVisiblePhotos
         )
     }
 
-    private func updatePhotoSyncCursor(using photos: [PhotoEntry]) {
-        let candidates = photos.map { (date: $0.date, id: photoCursorID(for: $0)) }
-        guard let cursor = HomeView.newestPhotoSyncCursor(candidates: candidates) else { return }
-        photoMetricSyncLastDate = cursor.date
-        photoMetricSyncLastID = cursor.id
+    /// Cursor accessor that bridges `@AppSetting` storage into VM photo-sync logic.
+    private var photoSyncCursorAccess: HomePhotoSyncCursorAccess {
+        HomePhotoSyncCursorAccess(
+            getDate: { photoMetricSyncLastDate },
+            getID: { photoMetricSyncLastID },
+            setDate: { photoMetricSyncLastDate = $0 },
+            setID: { photoMetricSyncLastID = $0 }
+        )
     }
 
-    private nonisolated static func latestPhotoSyncSnapshotByKey(
-        from candidates: [PhotoSyncCandidatePayload]
-    ) -> [String: PhotoSyncSnapshotPayload] {
-        let calendar = Calendar.current
-        var latestByKey: [String: PhotoSyncSnapshotPayload] = [:]
-        for candidate in candidates {
-            let dayStart = calendar.startOfDay(for: candidate.date).timeIntervalSince1970
-            for snapshot in candidate.linkedMetrics {
-                let key = "\(snapshot.kindRaw)|\(dayStart)"
-                latestByKey[key] = snapshot
-            }
-        }
-        return latestByKey
-    }
-
-    private func fetchSyncCandidatePhotos(mode: PhotoSyncMode) throws -> [PhotoEntry] {
-        let descriptor: FetchDescriptor<PhotoEntry>
-        switch mode {
-        case .full:
-            descriptor = FetchDescriptor<PhotoEntry>(
-                sortBy: [SortDescriptor(\.date, order: .forward)]
-            )
-        case .incremental:
-            let cursorDate = Date(timeIntervalSince1970: photoMetricSyncLastDate)
-            descriptor = FetchDescriptor<PhotoEntry>(
-                predicate: #Predicate<PhotoEntry> { photo in
-                    photo.date >= cursorDate
-                },
-                sortBy: [SortDescriptor(\.date, order: .forward)]
-            )
-        }
-        return try modelContext.fetch(descriptor)
-    }
-    
-    /// Synchronizuje probki Measurement ze snapshotami metryk zapisanymi przy zdjeciach.
-    /// - Behavior:
-    ///   - Dla kazdego PhotoEntry i MetricValueSnapshot upewnia sie, ze istnieje MetricSample dla daty snapshotu.
-    ///   - Jesli probka dla (kind,date) istnieje, aktualizuje jej wartosc do wartosci snapshotu.
-    ///   - If none exists, insert a new MetricSample.
-    ///   - Nigdy nie usuwa MetricSample po usunieciu zdjecia; funkcja wykonuje tylko upsert.
     private func syncMeasurementsFromPhotosIfNeeded(force: Bool = false) async {
-        guard !viewModel.isPhotoMetricSyncInFlight else { return }
-        let mode = syncMode(force: force)
-        let isIncrementalMode = mode == .incremental
-        viewModel.isPhotoMetricSyncInFlight = true
-        defer {
-            if isIncrementalMode {
-                StartupInstrumentation.event("HomePhotoSyncIncrementalEnd")
-            }
-            viewModel.isPhotoMetricSyncInFlight = false
-        }
-
-        switch mode {
-        case .full:
-            StartupInstrumentation.event("HomePhotoSyncModeFull")
-        case .incremental:
-            StartupInstrumentation.event("HomePhotoSyncModeIncremental")
-            StartupInstrumentation.event("HomePhotoSyncIncrementalStart")
-        }
-
-        let candidatePhotos: [PhotoEntry]
-        do {
-            candidatePhotos = try fetchSyncCandidatePhotos(mode: mode)
-        } catch {
-            AppLog.debug("⚠️ Failed to fetch sync candidate photos: \(error)")
-            return
-        }
-        guard !candidatePhotos.isEmpty else { return }
-
-        let photosWithMetrics: [PhotoEntry]
-        switch mode {
-        case .full:
-            photosWithMetrics = candidatePhotos.filter { !$0.linkedMetrics.isEmpty }
-        case .incremental:
-            photosWithMetrics = candidatePhotos.filter { photo in
-                !photo.linkedMetrics.isEmpty && isPhotoAfterSyncCursor(photo)
-            }
-        }
-        guard !photosWithMetrics.isEmpty else {
-            updatePhotoSyncCursor(using: candidatePhotos)
-            return
-        }
-
-        let syncCandidates: [PhotoSyncCandidatePayload] = photosWithMetrics.map { photo in
-            PhotoSyncCandidatePayload(
-                date: photo.date,
-                linkedMetrics: photo.linkedMetrics.compactMap { snapshot in
-                    guard let kindRaw = snapshot.kind?.rawValue else { return nil }
-                    return PhotoSyncSnapshotPayload(kindRaw: kindRaw, value: snapshot.value, date: photo.date)
-                }
-            )
-        }
-
-        let latestSnapshotByKey = await Task.detached(priority: .utility) {
-            HomeView.latestPhotoSyncSnapshotByKey(from: syncCandidates)
-        }.value
-
-        guard !latestSnapshotByKey.isEmpty else {
-            updatePhotoSyncCursor(using: candidatePhotos)
-            return
-        }
-
-        let syncedKindsRaw = Set(latestSnapshotByKey.values.map(\.kindRaw))
-        let dayStarts = latestSnapshotByKey.keys.compactMap { key -> Double? in
-            let components = key.split(separator: "|")
-            guard components.count == 2 else { return nil }
-            return Double(components[1])
-        }
-        let minDayStart = dayStarts.min()
-        let maxDayStart = dayStarts.max()
-
-        // Buduje cache istniejacych probek po (kindRaw, dayStart)
-        var existingByKey: [String: MetricSample] = [:]
-        do {
-            let descriptor: FetchDescriptor<MetricSample>
-            if syncedKindsRaw.isEmpty {
-                descriptor = FetchDescriptor<MetricSample>(
-                    sortBy: [SortDescriptor(\.date, order: .reverse)]
-                )
-            } else if let minDayStart, let maxDayStart {
-                let kinds = Array(syncedKindsRaw)
-                let minDate = Date(timeIntervalSince1970: minDayStart)
-                let maxDateExclusive = Calendar.current.date(
-                    byAdding: .day,
-                    value: 1,
-                    to: Date(timeIntervalSince1970: maxDayStart)
-                ) ?? Date(timeIntervalSince1970: maxDayStart)
-                descriptor = FetchDescriptor<MetricSample>(
-                    predicate: #Predicate<MetricSample> { sample in
-                        kinds.contains(sample.kindRaw)
-                        && sample.date >= minDate
-                        && sample.date < maxDateExclusive
-                    },
-                    sortBy: [SortDescriptor(\.date, order: .reverse)]
-                )
-            } else {
-                let kinds = Array(syncedKindsRaw)
-                descriptor = FetchDescriptor<MetricSample>(
-                    predicate: #Predicate<MetricSample> { sample in
-                        kinds.contains(sample.kindRaw)
-                    },
-                    sortBy: [SortDescriptor(\.date, order: .reverse)]
-                )
-            }
-            let existing = try modelContext.fetch(descriptor)
-            let cal = Calendar.current
-            for sample in existing {
-                let startOfDay = cal.startOfDay(for: sample.date)
-                let key = "\(sample.kindRaw)|\(startOfDay.timeIntervalSince1970)"
-                if existingByKey[key] == nil { existingByKey[key] = sample }
-            }
-        } catch {
-            AppLog.debug("⚠️ Failed to build existing samples index: \(error)")
-        }
-
-        for (key, payload) in latestSnapshotByKey {
-            if let sample = existingByKey[key] {
-                sample.value = payload.value
-                sample.date = payload.date
-            } else if let kind = MetricKind(rawValue: payload.kindRaw) {
-                let sample = MetricSample(kind: kind, value: payload.value, date: payload.date)
-                modelContext.insert(sample)
-                existingByKey[key] = sample
-            }
-        }
-
-        // Celowo bez usuwania (usuniecie zdjecia nie powinno kasowac probek)
-        updatePhotoSyncCursor(using: candidatePhotos)
+        await viewModel.syncMeasurementsFromPhotosIfNeeded(
+            force: force,
+            modelContext: modelContext,
+            cursor: photoSyncCursorAccess
+        )
     }
 
     private func emitHomeInitialRenderIfNeeded() {
-        guard !viewModel.didEmitHomeInitialRender else { return }
-        viewModel.didEmitHomeInitialRender = true
-        StartupInstrumentation.event("HomeInitialRender")
+        viewModel.emitHomeInitialRenderIfNeeded()
     }
 
     private func runStartupPhasesIfNeeded() {
-        guard !viewModel.didRunStartupPhases else { return }
-        viewModel.didRunStartupPhases = true
-        runCriticalStartupPhaseA()
-        scheduleDeferredStartupPhaseB()
-        scheduleDeferredStartupPhaseC()
-        scheduleDeferredSectionMounts()
-    }
-
-    private func runCriticalStartupPhaseA() {
-        hasAnyMeasurements = !viewModel.recentSamples.isEmpty
-        viewModel.isLastPhotosSectionMounted = true
-        viewModel.isHealthSectionMounted = true
-    }
-
-    private func scheduleDeferredStartupPhaseB() {
-        viewModel.deferredPhaseBTask?.cancel()
-        viewModel.deferredPhaseBTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(900))
-            guard !Task.isCancelled else { return }
-            refreshMeasurementCaches()
-            rebuildGoalsCache()
-            refreshChecklistState()
-            fetchHealthKitData()
-            streakManager.recordAppOpen(context: modelContext)
-        }
+        viewModel.runStartupPhasesIfNeeded(
+            phaseB: {
+                refreshMeasurementCaches()
+                rebuildGoalsCache()
+                refreshChecklistState()
+                fetchHealthKitData()
+                streakManager.recordAppOpen(context: modelContext)
+            },
+            phaseC: {
+                await syncMeasurementsFromPhotosIfNeeded(force: false)
+            }
+        )
     }
 
     private func scheduleDeferredStartupPhaseC(
         delayMilliseconds: Int = 1500,
         forceSync: Bool = false
     ) {
-        viewModel.deferredPhaseCTask?.cancel()
-        viewModel.deferredPhaseCTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(delayMilliseconds))
-            guard !Task.isCancelled else { return }
-
-            let deferredSyncState = StartupInstrumentation.begin("HomeDeferredSync")
-            StartupInstrumentation.event("HomeDeferredSyncStart")
+        viewModel.scheduleDeferredStartupPhaseC(delayMilliseconds: delayMilliseconds) {
             await syncMeasurementsFromPhotosIfNeeded(force: forceSync)
-            StartupInstrumentation.event("HomeDeferredSyncEnd")
-            StartupInstrumentation.end("HomeDeferredSync", state: deferredSyncState)
-        }
-    }
-
-    private func scheduleDeferredSectionMounts() {
-        viewModel.deferredSectionMountTask?.cancel()
-        viewModel.deferredSectionMountTask = Task { @MainActor in
-            guard !Task.isCancelled else { return }
-            StartupInstrumentation.event("HomeLastPhotosMountStart")
-            viewModel.isLastPhotosSectionMounted = true
-            StartupInstrumentation.event("HomeLastPhotosMountEnd")
-
-            guard !Task.isCancelled else { return }
-            StartupInstrumentation.event("HomeHealthMountStart")
-            viewModel.isHealthSectionMounted = true
-            StartupInstrumentation.event("HomeHealthMountEnd")
         }
     }
 
