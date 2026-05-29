@@ -277,95 +277,16 @@ struct MeasureMeApp: App {
         }
     }
 
+    @MainActor
     private func runDeferredStartupWork(container: ModelContainer) {
-        guard !isRunningXCTest else { return }
-
-        scheduleDeferredStorageProtection()
-        scheduleDeferredHealthSetup(container: container)
-        scheduleDeferredAutoRestore(container: container)
-        scheduleDeferredWidgetRefresh(container: container)
-        scheduleDeferredBackupMaintenance(container: container)
-        scheduleDeferredWatchConnectivity(container: container)
-    }
-
-    private func scheduleDeferredStorageProtection() {
-        Task(priority: .utility) {
-            let storageProtectionState = StartupInstrumentation.begin("DeferredStorageProtection")
-            DatabaseEncryption.applyRecommendedProtectionIfNeeded()
-            StartupInstrumentation.end("DeferredStorageProtection", state: storageProtectionState)
-        }
-    }
-
-    private func scheduleDeferredHealthSetup(container: ModelContainer) {
-        Task(priority: .utility) {
-            try? await Task.sleep(for: .milliseconds(200))
-            let healthSetupState = StartupInstrumentation.begin("DeferredHealthKitSetup")
-            await MainActor.run {
-                NotificationManager.shared.scheduleSmartIfNeeded(context: container.mainContext)
-                NotificationManager.shared.scheduleAINotificationsIfNeeded(context: container.mainContext, trigger: .startup)
-                HealthKitManager.shared.configure(modelContainer: container)
-                _ = HealthKitManager.shared.reconcileStoredSyncState()
-                HealthKitManager.shared.startObservingHealthKitUpdates()
+        AppLifecycleCoordinator.performDeferredStartup(
+            container: container,
+            isRunningXCTest: isRunningXCTest,
+            settingsStore: settingsStore,
+            onAutoRestoreCompleted: { message in
+                autoRestoreMessage = message
             }
-            await IntentDeferredHealthSyncProcessor.processPendingIfNeeded()
-            StartupInstrumentation.end("DeferredHealthKitSetup", state: healthSetupState)
-        }
-    }
-
-    private func scheduleDeferredAutoRestore(container: ModelContainer) {
-        Task(priority: .utility) {
-            try? await Task.sleep(for: .milliseconds(250))
-            let autoRestoreState = StartupInstrumentation.begin("DeferredICloudAutoRestore")
-            let context = ModelContext(container)
-            let didRestore = await ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: context)
-            if didRestore {
-                await MainActor.run {
-                    autoRestoreMessage = AppLocalization.string("Latest iCloud backup was restored automatically. Review your measurements and photos to confirm everything looks right.")
-                }
-            }
-            StartupInstrumentation.end("DeferredICloudAutoRestore", state: autoRestoreState)
-        }
-    }
-
-    private func scheduleDeferredWidgetRefresh(container: ModelContainer) {
-        Task(priority: .background) {
-            try? await Task.sleep(for: .milliseconds(600))
-            let context = ModelContext(container)
-            let units = settingsStore.snapshot.profile.unitsSystem
-            WidgetDataWriter.writeAllAndReload(context: context, unitsSystem: units)
-            await MainActor.run {
-                WatchSessionManager.shared.sendApplicationContext()
-            }
-        }
-    }
-
-    private func scheduleDeferredBackupMaintenance(container: ModelContainer) {
-        Task(priority: .utility) {
-            try? await Task.sleep(for: .milliseconds(800))
-            let context = ModelContext(container)
-            let isPremium = AppSettingsStore.shared.snapshot.premium.premiumEntitlement
-            await ICloudBackupService.runScheduledBackupIfNeeded(context: context, isPremium: isPremium)
-            if isPremium, AppSettingsStore.shared.snapshot.iCloudBackup.isEnabled {
-                AppLifecycleCoordinator.scheduleBackgroundBackup()
-            }
-            if AppSettingsStore.shared.snapshot.notifications.notificationsEnabled,
-               AppSettingsStore.shared.snapshot.notifications.aiNotificationsEnabled {
-                AppLifecycleCoordinator.scheduleBackgroundAINotifications()
-            }
-        }
-    }
-
-    private func scheduleDeferredWatchConnectivity(container: ModelContainer) {
-        Task(priority: .utility) {
-            try? await Task.sleep(for: .milliseconds(500))
-            await MainActor.run {
-                WatchSessionManager.shared.configure(
-                    container: container,
-                    healthKit: HealthKitManager.shared
-                )
-                WatchSessionManager.shared.activate()
-            }
-        }
+        )
     }
 
     private func createPersistentModelContainer() throws -> ModelContainer {
