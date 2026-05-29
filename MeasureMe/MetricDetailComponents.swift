@@ -4,6 +4,27 @@ import Accessibility
 import SwiftData
 import Foundation
 
+// MARK: - File Overview
+//
+// This file bundles several top-level types related to the Metric Detail screen.
+// Until the Xcode project is updated to track individual files, each section below
+// is delineated with `// MARK: -` headers (visible in Xcode's jump bar).
+//
+// Sections (in order):
+//   1.  extension MetricDetailView                 — chart descriptors, insight, goal helpers, data CRUD
+//   2.  private extension Array<MetricSample>      — sample slicing helpers
+//   3.  struct MetricChartAXDescriptor             — accessibility chart descriptor wrapper
+//   4.  struct MetricComparisonOption              — comparison picker model
+//   5.  struct MetricCompareSheet                  — sheet for comparing two metrics
+//   6.  struct MetricPhotosRow                     — 3-column photo grid for metric detail
+//   7.  struct GoalProgressView                    — goal progress computation + card
+//   8.  struct ProgressViewCard                    — generic progress card UI
+//   9.  struct AddMetricSampleView                 — add new sample sheet
+//  10.  struct EditMetricSampleView                — edit existing sample sheet
+//  11.  struct SetGoalView                         — set / update goal sheet
+
+// MARK: - 1. MetricDetailView+Components (extension)
+
 @available(iOS 16.0, *)
 extension MetricDetailView {
     var chartDescriptor: AXChartDescriptor {
@@ -335,12 +356,16 @@ extension MetricDetailView {
     }
 }
 
+// MARK: - 2. Array<MetricSample> helpers
+
 private extension Array where Element == MetricSample {
     func filterInLast(days: Int, now: Date = AppClock.now) -> [MetricSample] {
         guard let start = Calendar.current.date(byAdding: .day, value: -days, to: now) else { return self }
         return filter { $0.date >= start }
     }
 }
+
+// MARK: - 3. MetricChartAXDescriptor
 
 @available(iOS 16.0, *)
 struct MetricChartAXDescriptor: AXChartDescriptorRepresentable {
@@ -351,6 +376,8 @@ struct MetricChartAXDescriptor: AXChartDescriptorRepresentable {
     }
 }
 
+// MARK: - 4. MetricComparisonOption
+
 struct MetricComparisonOption: Identifiable, Equatable {
     let kind: MetricKind
     let latestSample: MetricSample?
@@ -360,6 +387,8 @@ struct MetricComparisonOption: Identifiable, Equatable {
 
     var id: String { kind.rawValue }
 }
+
+// MARK: - 5. MetricCompareSheet
 
 struct MetricCompareSheet: View {
     let currentKind: MetricKind
@@ -949,6 +978,8 @@ struct MetricCompareSheet: View {
     }
 }
 
+// MARK: - 6. MetricPhotosRow
+
 struct MetricPhotosRow: View {
     let photos: [PhotoEntry]
     @State private var availableWidth: CGFloat = 0
@@ -1009,6 +1040,8 @@ struct MetricPhotosRow: View {
     }
 }
 
+// MARK: - 7. GoalProgressView
+
 struct GoalProgressView: View {
     let goal: MetricGoal
     let latest: MetricSample
@@ -1055,6 +1088,8 @@ struct GoalProgressView: View {
         )
     }
 }
+
+// MARK: - 8. ProgressViewCard
 
 struct ProgressViewCard: View {
     private let measurementsTheme = FeatureTheme.measurements
@@ -1206,7 +1241,7 @@ struct ProgressViewCard: View {
     }
 }
 
-// MARK: - Add Metric Sample View
+// MARK: - 9. AddMetricSampleView
 
 /// **AddMetricSampleView**
 /// Sheet do dodawania nowej próbki metryki.
@@ -1336,7 +1371,7 @@ struct AddMetricSampleView: View {
     }
 }
 
-// MARK: - Edit Metric Sample View
+// MARK: - 10. EditMetricSampleView
 
 /// **EditMetricSampleView**
 /// Sheet do edycji istniejącej próbki metryki.
@@ -1466,7 +1501,7 @@ struct EditMetricSampleView: View {
     }
 }
 
-// MARK: - Set Goal View
+// MARK: - 11. SetGoalView
 
 /// **SetGoalView**
 /// Sheet do ustawiania lub aktualizacji celu dla metryki.
