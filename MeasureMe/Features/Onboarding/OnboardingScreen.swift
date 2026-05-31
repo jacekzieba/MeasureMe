@@ -381,7 +381,7 @@ struct OnboardingView: View {
                             .padding(.top, -4)
                     }
 
-                    TextField("e.g. Alex", text: $nameInput)
+                    TextField(FlowLocalization.app("e.g. Alex", "np. Alex", "p. ej. Alex", "z. B. Alex", "p. ex. Alex", "ex. Alex"), text: $nameInput)
                         .textInputAutocapitalization(.words)
                         .font(.system(size: layout.nameFieldFontSize, weight: .semibold, design: .rounded))
                         .padding(.vertical, layout.nameFieldVerticalPadding)
