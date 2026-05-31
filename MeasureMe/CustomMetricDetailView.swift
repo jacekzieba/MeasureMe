@@ -1,6 +1,7 @@
 import SwiftUI
 import Charts
 import SwiftData
+import Accessibility
 
 struct CustomMetricDetailView: View {
     private let measurementsTheme = FeatureTheme.measurements
@@ -295,8 +296,72 @@ struct CustomMetricDetailView: View {
                     }
                 }
                 .frame(height: 200)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(definition.name)
+                .accessibilityChartDescriptor(MetricChartAXDescriptor(descriptor: customChartDescriptor))
             }
         }
+    }
+
+    /// VoiceOver audio-graph descriptor for the custom-metric chart,
+    /// mirroring the built-in metric charts' accessibility.
+    private var customChartDescriptor: AXChartDescriptor {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "MMM d"
+        let points: [(String, Double)] = chartSamples.map {
+            (dateFormatter.string(from: $0.date), $0.value)
+        }
+        let unit = definition.unitLabel
+
+        let xAxis = AXCategoricalDataAxisDescriptor(
+            title: AppLocalization.string("Date"),
+            categoryOrder: points.map(\.0)
+        )
+
+        let values = points.map(\.1)
+        let minValue = values.min() ?? 0
+        let maxValue = values.max() ?? 1
+
+        let yAxis = AXNumericDataAxisDescriptor(
+            title: "\(definition.name) (\(unit))",
+            range: minValue...maxValue,
+            gridlinePositions: [],
+            valueDescriptionProvider: { value in
+                String(format: "%.1f %@", value, unit)
+            }
+        )
+
+        let series = AXDataSeriesDescriptor(
+            name: definition.name,
+            isContinuous: true,
+            dataPoints: points.map { AXDataPoint(x: $0.0, y: $0.1) }
+        )
+
+        let summary: String
+        if let first = values.first, let last = values.last {
+            let trend = last == first
+                ? AppLocalization.string("trend.steady")
+                : (last > first ? AppLocalization.string("trend.up") : AppLocalization.string("trend.down"))
+            summary = AppLocalization.string(
+                "chart.summary.metric",
+                definition.name,
+                AppLocalization.string("Last 30 days").lowercased(),
+                String(format: "%.1f", first),
+                String(format: "%.1f", last),
+                trend
+            )
+        } else {
+            summary = AppLocalization.string("chart.summary.empty", definition.name)
+        }
+
+        return AXChartDescriptor(
+            title: AppLocalization.string("chart.title.metric", definition.name),
+            summary: summary,
+            xAxis: xAxis,
+            yAxis: yAxis,
+            additionalAxes: [],
+            series: [series]
+        )
     }
 
     // MARK: - Goal Section

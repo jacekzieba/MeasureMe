@@ -76,6 +76,24 @@ struct CustomMetricChartTile: View {
         .onChange(of: goals) { _, newValue in
             viewModel.goals = newValue
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var accessibilitySummary: String {
+        guard let latest else {
+            return AppLocalization.string("chart.summary.empty", definition.name)
+        }
+        let valueText = String(format: "%.1f %@", latest.value, definition.unitLabel)
+        let trend: String
+        if let delta = trendInfo?.delta {
+            trend = delta == 0
+                ? AppLocalization.string("trend.steady")
+                : (delta > 0 ? AppLocalization.string("trend.up") : AppLocalization.string("trend.down"))
+        } else {
+            trend = AppLocalization.string("trend.steady")
+        }
+        return "\(definition.name): \(valueText), \(trend)"
     }
 
     // MARK: - Empty Tile
