@@ -3,7 +3,7 @@ import SwiftData
 
 // MARK: - Hero Section
 
-private extension MetricDetailView {
+extension MetricDetailView {
 
     var heroSection: some View {
         VStack(spacing: 18) {

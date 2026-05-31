@@ -3,7 +3,7 @@ import SwiftData
 
 // MARK: - Sheet Presentation
 
-private extension HomeView {
+extension HomeView {
 
     func sheetPresentedHomeRoot<Content: View>(_ content: Content) -> some View {
         content

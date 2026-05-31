@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Weight Prediction Expanded Content
 
-private extension MetricDetailView {
+extension MetricDetailView {
     @ViewBuilder
     func weightPredictionExpandedContent(rates: GoalPredictionEngine.WeightPredictionRates) -> some View {
         VStack(spacing: 12) {

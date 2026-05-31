@@ -593,10 +593,7 @@ struct HealthMetricsSection: View {
     }
 
     private func formatWeight(_ kg: Double) -> String {
-        if unitsSystem == "imperial" {
-            return String(format: "%.1f lb", kg * 2.20462)
-        }
-        return String(format: "%.1f kg", kg)
+        MetricKind.weight.formattedMetricValue(fromMetric: kg, unitsSystem: unitsSystem)
     }
 
     private func leanMassPercentage() -> Double? {

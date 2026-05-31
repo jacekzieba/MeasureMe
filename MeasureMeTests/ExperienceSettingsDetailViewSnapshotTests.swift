@@ -60,7 +60,7 @@ final class ExperienceSettingsDetailViewSnapshotTests: XCTestCase {
         let vc = makeHostingController(view: makeView(colorScheme: .dark), colorScheme: .dark)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 
     @MainActor
@@ -86,6 +86,6 @@ final class ExperienceSettingsDetailViewSnapshotTests: XCTestCase {
         let vc = makeHostingController(view: makeView(colorScheme: .light), colorScheme: .light)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 }

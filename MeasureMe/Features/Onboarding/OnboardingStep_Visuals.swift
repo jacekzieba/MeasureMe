@@ -3,7 +3,7 @@ import UIKit
 
 // MARK: - Step Visuals (Photos, Health, Privacy)
 
-private extension OnboardingView {
+extension OnboardingView {
 
     func introPhotosVisual(layout: OnboardingCardLayout) -> some View {
         let beforeLabel = FlowLocalization.app("Before", "Przed", "Antes", "Vorher", "Avant", "Antes")

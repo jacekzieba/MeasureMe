@@ -129,7 +129,7 @@ struct GoalStatusLegendSheet: View {
 // MARK: - Home Last Photos Grid
 
 struct HomeLastPhotosGrid: View {
-    let tiles: [HomeView.HomePhotoTile]
+    let tiles: [HomePhotoTile]
     let onPersistedTap: (PhotoEntry) -> Void
 
     private let columns = 3

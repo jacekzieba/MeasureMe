@@ -21,7 +21,7 @@ struct MeasurementsTabView: View {
     @AppSetting(\.home.settingsOpenTrackedMeasurements) private var settingsOpenTrackedMeasurements: Bool = false
     @AppSetting(\.experience.quickAddHintDismissed) private var quickAddHintDismissed: Bool = false
     @AppSetting(\.experience.hasCustomizedMetrics) private var hasCustomizedMetrics: Bool = false
-    @StateObject private var viewModel = MeasurementsTabViewModel()
+    @State private var viewModel = MeasurementsTabViewModel()
     @Query private var samples: [MetricSample]
 
     @Query(sort: \CustomMetricDefinition.sortOrder) private var customDefinitions: [CustomMetricDefinition]

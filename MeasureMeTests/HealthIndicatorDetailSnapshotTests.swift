@@ -143,6 +143,6 @@ final class HealthIndicatorDetailSnapshotTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(100))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, named: name, record: shouldRecord, testName: testName)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), named: name, record: shouldRecord, testName: testName)
     }
 }

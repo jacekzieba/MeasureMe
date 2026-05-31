@@ -21,10 +21,10 @@ import Foundation
 /// - Display value calculations are cached via computed properties
 /// - Uses `persistentModelID` as a stable identifier in loops
 struct MetricDetailView: View {
-    private let measurementsTheme = FeatureTheme.measurements
+    let measurementsTheme = FeatureTheme.measurements
     let kind: MetricKind
-    @EnvironmentObject private var premiumStore: PremiumStore
-    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject var premiumStore: PremiumStore
+    @Environment(\.colorScheme) var colorScheme
 
     // MARK: - SwiftData Queries
     @Environment(\.modelContext) var context
@@ -47,21 +47,21 @@ struct MetricDetailView: View {
     @State var showAllHistory = false
     @State var insightState: InsightState = .loading
     @State var isLoadingInsight = false
-    @State private var showInsightConversation = false
+    @State var showInsightConversation = false
     @State var comparisonKind: MetricKind?
-    @State private var scrubbedDate: Date?
-    @State private var chartScrubState: ChartScrubState = .idle
-    @State private var chartWidth: CGFloat = 0
-    @State private var isPredictionExpanded = false
-    @State private var isEditingCommitment = false
-    @State private var commitmentInput: String = ""
-    @State private var comparisonCache = ComparisonCache()
+    @State var scrubbedDate: Date?
+    @State var chartScrubState: ChartScrubState = .idle
+    @State var chartWidth: CGFloat = 0
+    @State var isPredictionExpanded = false
+    @State var isEditingCommitment = false
+    @State var commitmentInput: String = ""
+    @State var comparisonCache = ComparisonCache()
 
     // MARK: - Cached Chart Calculations (held in MetricDetailViewModel)
-    @State private var detailViewModel = MetricDetailViewModel()
+    @State var detailViewModel = MetricDetailViewModel()
 
-    private var cachedYDomain: ClosedRange<Double> { detailViewModel.cachedYDomain }
-    private var cachedTrendlineSegment: (startDate: Date, startValue: Double, endDate: Date, endValue: Double)? { detailViewModel.cachedTrendlineSegment }
+    var cachedYDomain: ClosedRange<Double> { detailViewModel.cachedYDomain }
+    var cachedTrendlineSegment: (startDate: Date, startValue: Double, endDate: Date, endValue: Double)? { detailViewModel.cachedTrendlineSegment }
 
     @AppSetting(\.experience.photosFilterTag) var photosFilterTag: String = ""
 
@@ -517,7 +517,7 @@ struct MetricDetailView: View {
         comparisonCache = ComparisonCache(options: options, samplesByKind: samplesByKind)
     }
 
-    private func sectionHeader(_ title: String) -> some View {
+    func sectionHeader(_ title: String) -> some View {
         Text(title)
             .font(AppTypography.eyebrow)
             .foregroundStyle(AppColorRoles.textSecondary)
@@ -606,7 +606,7 @@ struct MetricDetailView: View {
     }
 
     @ViewBuilder
-    private func sectionHeader<Accessory: View>(
+    func sectionHeader<Accessory: View>(
         _ title: String,
         @ViewBuilder accessory: () -> Accessory
     ) -> some View {
@@ -616,7 +616,7 @@ struct MetricDetailView: View {
         }
     }
 
-    private var currentValueTrendSummary: (text: String, color: Color, icon: String)? {
+    var currentValueTrendSummary: (text: String, color: Color, icon: String)? {
         guard let start = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) else { return nil }
         let window = sortedSamplesAscending.filter { $0.date >= start }
         guard let newest = window.max(by: { $0.date < $1.date }),
@@ -704,7 +704,7 @@ struct MetricDetailView: View {
         }
     }
 
-    private var compareActionValueText: String {
+    var compareActionValueText: String {
         guard let comparisonKind else {
             return hasComparisonOptions
                 ? AppLocalization.string("metric.compare.cta.idle")
@@ -837,7 +837,7 @@ struct MetricDetailView: View {
         scrubbedDate = date
     }
 
-    private func handleChartTap(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
+    func handleChartTap(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
         guard isChartScrubbingEnabled else { return }
         guard isLocationNearChartSeries(location, proxy: proxy, geometry: geometry) else {
             endChartScrubbing()
@@ -848,7 +848,7 @@ struct MetricDetailView: View {
         updateScrubbedDate(at: location, proxy: proxy, geometry: geometry)
     }
 
-    private func handleChartDragChanged(_ value: DragGesture.Value, proxy: ChartProxy, geometry: GeometryProxy) {
+    func handleChartDragChanged(_ value: DragGesture.Value, proxy: ChartProxy, geometry: GeometryProxy) {
         guard isChartScrubbingEnabled else { return }
 
         switch chartScrubState {
@@ -867,7 +867,7 @@ struct MetricDetailView: View {
         }
     }
 
-    private func endChartScrubbing() {
+    func endChartScrubbing() {
         chartScrubState = .idle
         scrubbedDate = nil
     }
@@ -909,7 +909,7 @@ struct MetricDetailView: View {
         }
     }
 
-    private func updateChartWidthIfNeeded(_ newWidth: CGFloat) {
+    func updateChartWidthIfNeeded(_ newWidth: CGFloat) {
         let normalized = max(newWidth, 0)
         guard abs(chartWidth - normalized) >= 1 else { return }
         chartWidth = normalized

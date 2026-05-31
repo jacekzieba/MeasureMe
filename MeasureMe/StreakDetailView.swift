@@ -5,19 +5,19 @@ import SwiftUI
 
 struct StreakDetailView: View {
     @ObservedObject var streakManager: StreakManager
-    @StateObject private var viewModel = StreakDetailViewModel()
+    @State var viewModel = StreakDetailViewModel()
 
-    @Query private var thisWeekSamples: [MetricSample]
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
+    @Query var thisWeekSamples: [MetricSample]
+    @Environment(\.modelContext) var modelContext
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
 
     // Binding-required state (must stay in View)
-    @State private var showAllLogs = false
-    @State private var vacationEndSelection: Date = AppClock.now
+    @State var showAllLogs = false
+    @State var vacationEndSelection: Date = AppClock.now
 
-    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppSetting(\.experience.animationsEnabled) var animationsEnabled: Bool = true
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     // MARK: - Adaptive colors
     var streakText: Color { colorScheme == .dark ? .white : AppColorRoles.textPrimary }
@@ -92,7 +92,7 @@ struct StreakDetailView: View {
 
     // MARK: - Header
 
-    private var headerBar: some View {
+    var headerBar: some View {
         HStack {
             Button(action: dismissStreakDetail) {
                 Image(systemName: "chevron.left")
@@ -122,7 +122,7 @@ struct StreakDetailView: View {
 
     // MARK: - Flame + Count
 
-    private var flameSection: some View {
+    var flameSection: some View {
         VStack(spacing: 12) {
             Spacer().frame(height: 44) // space for floating header
 
@@ -164,7 +164,7 @@ struct StreakDetailView: View {
 
     // MARK: - Stats Row
 
-    private var statsSection: some View {
+    var statsSection: some View {
         AppGlassCard(depth: .elevated, cornerRadius: 18, tint: .clear, contentPadding: 0) {
             HStack(spacing: 0) {
                 statColumn(
@@ -194,7 +194,7 @@ struct StreakDetailView: View {
         }
     }
 
-    private func statColumn(title: String, value: String) -> some View {
+    func statColumn(title: String, value: String) -> some View {
         VStack(spacing: 4) {
             Text(value)
                 .font(AppTypography.bodyEmphasis)
@@ -213,7 +213,7 @@ struct StreakDetailView: View {
 
     // MARK: - This Week
 
-    private var thisWeekSection: some View {
+    var thisWeekSection: some View {
         AppGlassCard(depth: .base, cornerRadius: 18, tint: .clear, contentPadding: 16) {
             VStack(alignment: .leading, spacing: 14) {
                 Text(AppLocalization.string("streak.detail.thisWeek"))
@@ -231,7 +231,7 @@ struct StreakDetailView: View {
         }
     }
 
-    private func handleStreakDetailAppear() {
+    func handleStreakDetailAppear() {
         loadHeatmapData()
         syncVacationDurationFromState()
         if shouldAnimate {
@@ -239,11 +239,11 @@ struct StreakDetailView: View {
         }
     }
 
-    private func handleVacationStateChange() {
+    func handleVacationStateChange() {
         syncVacationDurationFromState()
     }
 
-    private func dismissStreakDetail() {
+    func dismissStreakDetail() {
         dismiss()
     }
 
@@ -265,7 +265,7 @@ struct StreakDetailView: View {
         let isPast: Bool
     }
 
-    private var weekDays: [WeekDay] {
+    var weekDays: [WeekDay] {
         let calendar = Calendar(identifier: .iso8601)
         let now = AppClock.now
         guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start else { return [] }
@@ -282,7 +282,7 @@ struct StreakDetailView: View {
     }
 
     /// Day-offsets (from ISO week start) that have at least one MetricSample.
-    private var activeDaysInWeek: Set<Int> {
+    var activeDaysInWeek: Set<Int> {
         let calendar = Calendar(identifier: .iso8601)
         return Set(thisWeekSamples.compactMap { sample in
             guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: sample.date)?.start else { return nil }
@@ -290,7 +290,7 @@ struct StreakDetailView: View {
         })
     }
 
-    private func weekDayCell(_ day: WeekDay) -> some View {
+    func weekDayCell(_ day: WeekDay) -> some View {
         let hasEntry = activeDaysInWeek.contains(day.index)
         let isFuture = !day.isPast && !day.isToday
 
@@ -329,30 +329,30 @@ struct StreakDetailView: View {
 
     // MARK: - Next Milestone
 
-    private let milestones = [4, 8, 13, 26, 52, 104]
+    let milestones = [4, 8, 13, 26, 52, 104]
 
-    private var nextMilestone: Int {
+    var nextMilestone: Int {
         milestones.first(where: { $0 > streakManager.currentStreak })
             ?? milestones.last
             ?? max(streakManager.currentStreak, 1)
     }
 
-    private var previousMilestone: Int {
+    var previousMilestone: Int {
         milestones.last(where: { $0 <= streakManager.currentStreak }) ?? 0
     }
 
-    private var milestoneProgress: Double {
+    var milestoneProgress: Double {
         let range = Double(nextMilestone - previousMilestone)
         guard range > 0 else { return 1 }
         let done = Double(streakManager.currentStreak - previousMilestone)
         return min(max(done / range, 0), 1)
     }
 
-    private var weeksToNextMilestone: Int {
+    var weeksToNextMilestone: Int {
         max(nextMilestone - streakManager.currentStreak, 0)
     }
 
-    private var milestoneSection: some View {
+    var milestoneSection: some View {
         AppGlassCard(depth: .base, cornerRadius: 18, tint: .clear, contentPadding: 16) {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .center, spacing: 12) {
@@ -418,7 +418,7 @@ struct StreakDetailView: View {
         }
     }
 
-    private func milestoneFlameIcon(count: Int, isActive: Bool) -> some View {
+    func milestoneFlameIcon(count: Int, isActive: Bool) -> some View {
         VStack(spacing: 4) {
             ZStack {
                 Circle()
@@ -454,7 +454,7 @@ struct StreakDetailView: View {
 
     // MARK: - Total Logs
 
-    private var totalLogsRow: some View {
+    var totalLogsRow: some View {
         Button {
             showAllLogs = true
         } label: {
@@ -481,7 +481,7 @@ struct StreakDetailView: View {
 
     // MARK: - Motivational Card
 
-    private var motivationalCard: some View {
+    var motivationalCard: some View {
         AppGlassCard(depth: .base, cornerRadius: 18, tint: .orange, contentPadding: 18) {
             VStack(alignment: .leading, spacing: 8) {
                 Text(motivationalTitle)
@@ -497,7 +497,7 @@ struct StreakDetailView: View {
         }
     }
 
-    private var motivationalTier: Int {
+    var motivationalTier: Int {
         switch streakManager.currentStreak {
         case 0..<4: return 0
         case 4..<8: return 1
@@ -507,11 +507,11 @@ struct StreakDetailView: View {
         }
     }
 
-    private var motivationalTitle: String {
+    var motivationalTitle: String {
         AppLocalization.string("streak.detail.motivational.\(motivationalTier).title")
     }
 
-    private var motivationalBody: String {
+    var motivationalBody: String {
         AppLocalization.string("streak.detail.motivational.\(motivationalTier).body")
     }
 
@@ -574,7 +574,7 @@ struct StreakDetailView: View {
         return formatter.string(from: date)
     }
 
-    private func syncVacationDurationFromState() {
+    func syncVacationDurationFromState() {
         if let endDate = streakManager.vacationEndDate {
             vacationEndSelection = endDate
         } else {
@@ -630,7 +630,7 @@ struct StreakDetailView: View {
         }
     }
 
-    private func startFlameAnimation() {
+    func startFlameAnimation() {
         guard !viewModel.animationsStarted else { return }
         viewModel.animationsStarted = true
         withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {

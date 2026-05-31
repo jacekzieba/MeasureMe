@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 // MARK: - Home Compare Pair
 
@@ -88,4 +89,29 @@ struct ModuleHeaderAction: Identifiable {
     let systemImage: String
     let accessibilityLabel: String
     let action: () -> Void
+}
+
+// MARK: - Home Photo Tile
+
+enum HomePhotoTile: Identifiable {
+    case persisted(PhotoEntry)
+    case pending(PendingPhotoSaveItem)
+
+    var id: String {
+        switch self {
+        case .persisted(let photo):
+            return "persisted_\(String(describing: photo.persistentModelID))"
+        case .pending(let item):
+            return "pending_\(item.id.uuidString)"
+        }
+    }
+
+    var date: Date {
+        switch self {
+        case .persisted(let photo):
+            return photo.date
+        case .pending(let item):
+            return item.date
+        }
+    }
 }

@@ -3,7 +3,7 @@ import UIKit
 
 // MARK: - Privacy Card
 
-private extension OnboardingView {
+extension OnboardingView {
 
     func privacyCard(compact: Bool) -> some View {
         VStack(alignment: .leading, spacing: compact ? 8 : 12) {

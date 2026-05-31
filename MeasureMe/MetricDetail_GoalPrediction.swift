@@ -3,7 +3,7 @@ import SwiftData
 
 // MARK: - Goal Prediction Section
 
-private extension MetricDetailView {
+extension MetricDetailView {
 
     @ViewBuilder
     var goalPredictionSection: some View {

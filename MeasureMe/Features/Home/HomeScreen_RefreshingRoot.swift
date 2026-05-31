@@ -3,7 +3,7 @@ import SwiftData
 
 // MARK: - Refreshing Root (onChange observers + pull-to-refresh)
 
-private extension HomeView {
+extension HomeView {
 
     func refreshingHomeRoot<Content: View>(_ content: Content) -> some View {
         let contentWithMeasurementObservers = content

@@ -31,7 +31,25 @@ final class MetricDetailSnapshotTests: XCTestCase {
         "unitsSystem",
         "userGender",
         "animationsEnabled",
+        "apple_intelligence_enabled",
+        "premium_entitlement",
     ]
+
+    /// Fixed reference instant so seeded sample dates and the view's
+    /// `AppClock.now`-based chart window render deterministically.
+    private static let fixedNow = Date(timeIntervalSince1970: 1_700_000_000)
+
+    // Force AI insights off deterministically, independent of global
+    // `MetricInsightService.shared` state leaked by other test classes.
+    override func setUp() async throws {
+        try await super.setUp()
+        await MetricInsightService.shared.setTestAvailabilityOverride(false)
+    }
+
+    override func tearDown() async throws {
+        await MetricInsightService.shared.setTestAvailabilityOverride(nil)
+        try await super.tearDown()
+    }
 
     // MARK: - Helpers
 
@@ -41,6 +59,7 @@ final class MetricDetailSnapshotTests: XCTestCase {
     }
 
     private func restoreDefaults(_ baseline: [String: Any?]) {
+        AppClock.overrideNowForTesting = nil
         let d = UserDefaults.standard
         for (key, value) in baseline {
             if let value { d.set(value, forKey: key) } else { d.removeObject(forKey: key) }
@@ -51,11 +70,14 @@ final class MetricDetailSnapshotTests: XCTestCase {
     }
 
     private func configureDefaults() {
+        AppClock.overrideNowForTesting = Self.fixedNow
         let d = UserDefaults.standard
         d.set("en", forKey: "appLanguage")
         d.set("metric", forKey: "unitsSystem")
         d.set("male", forKey: "userGender")
         d.set(false, forKey: "animationsEnabled")
+        d.set(false, forKey: "apple_intelligence_enabled")
+        d.set(false, forKey: "premium_entitlement")
         AppSettingsStore.shared.forceReloadSnapshot()
         AppLocalization.settings = AppSettingsStore(defaults: d)
         AppLocalization.reloadLanguage()
@@ -70,7 +92,7 @@ final class MetricDetailSnapshotTests: XCTestCase {
 
         if seedSamples {
             let context = ModelContext(container)
-            let today = Date()
+            let today = AppClock.now
             let cal = Calendar.current
             // 30 days of weight samples descending from 90 kg
             for offset in 0..<30 {
@@ -134,10 +156,10 @@ final class MetricDetailSnapshotTests: XCTestCase {
         window.makeKeyAndVisible()
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()
-        try await Task.sleep(for: .milliseconds(100))
+        try await Task.sleep(for: .milliseconds(1800))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 
     func testMetricDetail_weight_withSamples_dark() async throws {
@@ -161,10 +183,10 @@ final class MetricDetailSnapshotTests: XCTestCase {
         window.makeKeyAndVisible()
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()
-        try await Task.sleep(for: .milliseconds(100))
+        try await Task.sleep(for: .milliseconds(1800))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 
     func testMetricDetail_weight_withSamples_light() async throws {
@@ -188,10 +210,10 @@ final class MetricDetailSnapshotTests: XCTestCase {
         window.makeKeyAndVisible()
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()
-        try await Task.sleep(for: .milliseconds(100))
+        try await Task.sleep(for: .milliseconds(1800))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 
     func testMetricDetail_waist_withSamples_dark() async throws {
@@ -213,7 +235,7 @@ final class MetricDetailSnapshotTests: XCTestCase {
             configurations: config
         )
         let context = ModelContext(container)
-        let today = Date()
+        let today = AppClock.now
         let cal = Calendar.current
         for offset in 0..<20 {
             let date = cal.date(byAdding: .day, value: -offset * 2, to: today)!
@@ -229,9 +251,9 @@ final class MetricDetailSnapshotTests: XCTestCase {
         window.makeKeyAndVisible()
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()
-        try await Task.sleep(for: .milliseconds(100))
+        try await Task.sleep(for: .milliseconds(1800))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 }

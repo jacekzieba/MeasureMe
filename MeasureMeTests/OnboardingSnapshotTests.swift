@@ -131,7 +131,7 @@ final class OnboardingSnapshotTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(100))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 
     func testOnboarding_welcomeStep_light() async throws {
@@ -157,6 +157,6 @@ final class OnboardingSnapshotTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(100))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 }

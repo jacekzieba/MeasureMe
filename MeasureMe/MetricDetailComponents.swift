@@ -63,9 +63,9 @@ extension MetricDetailView {
 
         let minText = kind.formattedDisplayValue(minValue, unitsSystem: unitsSystem)
         let maxText = kind.formattedDisplayValue(maxValue, unitsSystem: unitsSystem)
-        let trendText = trendlineSegment?.endValue == trendlineSegment?.startValue
+        let trendText = cachedTrendlineSegment?.endValue == cachedTrendlineSegment?.startValue
             ? AppLocalization.string("trend.steady")
-            : ((trendlineSegment?.endValue ?? 0) > (trendlineSegment?.startValue ?? 0)
+            : ((cachedTrendlineSegment?.endValue ?? 0) > (cachedTrendlineSegment?.startValue ?? 0)
                ? AppLocalization.string("trend.up")
                : AppLocalization.string("trend.down"))
         let summary = AppLocalization.string(
@@ -88,8 +88,8 @@ extension MetricDetailView {
 
     /// Określa dynamiczną pozycję etykiety celu na wykresie
     func goalLabelPosition(for goalValue: Double) -> AnnotationPosition {
-        let minV = yDomain.lowerBound
-        let maxV = yDomain.upperBound
+        let minV = cachedYDomain.lowerBound
+        let maxV = cachedYDomain.upperBound
         let span = max(maxV - minV, 0.0001)
         let rel = (goalValue - minV) / span
         if rel > 0.85 { return .bottom }
@@ -410,7 +410,7 @@ struct MetricCompareSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var isPickerExpanded: Bool
-    @State private var scrubbedDate: Date?
+    @State var scrubbedDate: Date?
 
     init(
         currentKind: MetricKind,
@@ -1092,7 +1092,7 @@ struct GoalProgressView: View {
 // MARK: - 8. ProgressViewCard
 
 struct ProgressViewCard: View {
-    private let measurementsTheme = FeatureTheme.measurements
+    let measurementsTheme = FeatureTheme.measurements
     @Environment(\.colorScheme) private var colorScheme
     let isAchieved: Bool
     let progress: Double

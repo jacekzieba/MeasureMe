@@ -3,7 +3,7 @@ import SwiftData
 
 // MARK: - Chart Controls (secondary action cards, legend)
 
-private extension MetricDetailView {
+extension MetricDetailView {
 
     var chartSectionContent: some View {
         VStack(spacing: 12) {

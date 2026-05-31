@@ -30,7 +30,7 @@ extension HomeView {
 }
 
 struct HomeKeyMetricRow: View {
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorScheme) var colorScheme
     let kind: MetricKind
     let latest: MetricSample?
     let goal: MetricGoal?
@@ -38,8 +38,8 @@ struct HomeKeyMetricRow: View {
     let unitsSystem: String
     var showsBackground: Bool = true
 
-    private let cornerRadius: CGFloat = 16
-    private let accent = Color.appAccent
+    let cornerRadius: CGFloat = 16
+    let accent = Color.appAccent
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -140,11 +140,11 @@ struct HomeKeyMetricRow: View {
         }
     }
 
-    private func valueString(metricValue: Double) -> String {
+    func valueString(metricValue: Double) -> String {
         kind.formattedMetricValue(fromMetric: metricValue, unitsSystem: unitsSystem)
     }
 
-    private func baselineValue(for goal: MetricGoal) -> Double {
+    func baselineValue(for goal: MetricGoal) -> Double {
         if let sv = goal.startValue { return sv }
         guard !samples.isEmpty else { return latest?.value ?? goal.targetValue }
         let sorted = samples.sorted { $0.date < $1.date }
@@ -232,9 +232,9 @@ private struct HomeGoalProgressBar: View {
 
 /// Sparkline chart for custom metrics. Uses favorsDecrease to determine trend color.
 struct CustomMiniSparklineChart: View {
-    private let recentSamples: [MetricSample]
-    private let trendColor: Color
-    @Environment(\.colorScheme) private var colorScheme
+    let recentSamples: [MetricSample]
+    let trendColor: Color
+    @Environment(\.colorScheme) var colorScheme
 
     init(samples: [MetricSample], favorsDecrease: Bool, goal: MetricGoal?) {
         let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? AppClock.now
@@ -310,7 +310,7 @@ struct CustomMiniSparklineChart: View {
         .accessibilityElement(children: .ignore)
     }
 
-    private func normalizedPoints(in size: CGSize) -> [CGPoint] {
+    func normalizedPoints(in size: CGSize) -> [CGPoint] {
         guard !recentSamples.isEmpty else { return [] }
         let values = recentSamples.map(\.value)
         let minValue = values.min() ?? 0
@@ -333,14 +333,14 @@ struct CustomMiniSparklineChart: View {
 // MARK: - Home Custom Key Metric Row
 
 struct HomeCustomKeyMetricRow: View {
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorScheme) var colorScheme
     let definition: CustomMetricDefinition
     let latest: MetricSample?
     let goal: MetricGoal?
     let samples: [MetricSample]
 
-    private let cornerRadius: CGFloat = 16
-    private let accent = Color.appAccent
+    let cornerRadius: CGFloat = 16
+    let accent = Color.appAccent
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -445,14 +445,14 @@ struct HomeCustomKeyMetricRow: View {
         )
     }
 
-    private func formattedValue(_ value: Double) -> String {
+    func formattedValue(_ value: Double) -> String {
         let formatted = value.truncatingRemainder(dividingBy: 1) == 0
             ? String(format: "%.0f", value)
             : String(format: "%.1f", value)
         return "\(formatted) \(definition.unitLabel)"
     }
 
-    private func baselineValue(for goal: MetricGoal) -> Double {
+    func baselineValue(for goal: MetricGoal) -> Double {
         if let sv = goal.startValue { return sv }
         guard !samples.isEmpty else { return latest?.value ?? goal.targetValue }
         let sorted = samples.sorted { $0.date < $1.date }
@@ -465,8 +465,8 @@ struct HomeCustomKeyMetricRow: View {
 }
 
 struct PressableTileStyle: ButtonStyle {
-    @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppSetting(\.experience.animationsEnabled) var animationsEnabled: Bool = true
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         let shouldAnimate = AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)

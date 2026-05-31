@@ -173,12 +173,9 @@ struct LeanMassDetailView: View {
     }
     
     private var formattedValue: (value: String, unit: String) {
-        if unitsSystem == "imperial" {
-            let lbs = value * 2.20462
-            return (String(format: "%.1f", lbs), "lb")
-        } else {
-            return (String(format: "%.1f", value), "kg")
-        }
+        let displayValue = MetricKind.leanBodyMass.valueForDisplay(fromMetric: value, unitsSystem: unitsSystem)
+        let unit = MetricKind.leanBodyMass.unitSymbol(unitsSystem: unitsSystem)
+        return (String(format: "%.1f", displayValue), unit)
     }
     
     private var category: (name: String, color: String) {

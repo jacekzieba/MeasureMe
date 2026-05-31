@@ -3,17 +3,17 @@ import SwiftUI
 
 // MARK: - MeasurementsTabViewModel
 
-@MainActor
-final class MeasurementsTabViewModel: ObservableObject {
+@Observable @MainActor
+final class MeasurementsTabViewModel {
 
     // MARK: - Sample cache
 
-    @Published var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
-    @Published var cachedLatestByKind: [MetricKind: MetricSample] = [:]
-    @Published var cachedCustomSamples: [String: [MetricSample]] = [:]
-    @Published var cachedCustomLatest: [String: MetricSample] = [:]
+    var cachedSamplesByKind: [MetricKind: [MetricSample]] = [:]
+    var cachedLatestByKind: [MetricKind: MetricSample] = [:]
+    var cachedCustomSamples: [String: [MetricSample]] = [:]
+    var cachedCustomLatest: [String: MetricSample] = [:]
 
     // MARK: - Refresh
 
-    @Published var refreshToken = UUID()
+    var refreshToken = UUID()
 }

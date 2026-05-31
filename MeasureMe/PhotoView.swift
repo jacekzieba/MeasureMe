@@ -18,7 +18,7 @@ struct PhotoView: View {
     @Query(sort: [SortDescriptor(\PhotoEntry.date, order: .reverse)]) private var allPhotos: [PhotoEntry]
 
     @StateObject private var filters = PhotoFilters()
-    @StateObject private var viewModel = PhotoViewModel()
+    @State private var viewModel = PhotoViewModel()
 
     // Bindings kept in View (used directly as modifier bindings)
     @State private var showFilters = false

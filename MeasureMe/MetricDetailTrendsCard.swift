@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Trends Card
 
-private extension MetricDetailView {
+extension MetricDetailView {
     var trendPeriods: [TrendPeriod] {
         [
             TrendPeriod(days: 7, labelKey: "trends.period.7d"),

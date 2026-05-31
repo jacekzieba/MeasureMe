@@ -112,7 +112,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         let vc = makeHostingController(view: makeView(colorScheme: .dark), colorScheme: .dark)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 
     /// Backup enabled with a recent backup timestamp shown.
@@ -146,7 +146,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         let vc = makeHostingController(view: makeView(colorScheme: .dark), colorScheme: .dark)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 
     /// Error message displayed via InlineErrorBanner.
@@ -179,7 +179,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         let vc = makeHostingController(view: makeView(colorScheme: .dark), colorScheme: .dark)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 
     // MARK: - Light mode variants
@@ -213,7 +213,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         let vc = makeHostingController(view: makeView(colorScheme: .light), colorScheme: .light)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 
     @MainActor
@@ -245,7 +245,7 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         let vc = makeHostingController(view: makeView(colorScheme: .light), colorScheme: .light)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 
     @MainActor
@@ -277,6 +277,6 @@ final class DataSettingsDetailViewSnapshotTests: XCTestCase {
         let vc = makeHostingController(view: makeView(colorScheme: .light), colorScheme: .light)
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 }

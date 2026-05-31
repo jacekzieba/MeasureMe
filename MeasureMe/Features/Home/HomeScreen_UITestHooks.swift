@@ -3,7 +3,7 @@ import SwiftData
 
 // MARK: - UI Test Hooks
 
-private extension HomeView {
+extension HomeView {
 
     var homeUITestHooks: some View {
         VStack(spacing: 0) {

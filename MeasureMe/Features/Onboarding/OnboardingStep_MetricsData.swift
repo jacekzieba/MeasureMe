@@ -3,7 +3,7 @@ import UIKit
 
 // MARK: - Metrics Step Data (preview cards and insight copy)
 
-private extension OnboardingView {
+extension OnboardingView {
 
     var metricsPreviewCards: [MetricsPreviewCardData] {
         switch resolvedPriority {

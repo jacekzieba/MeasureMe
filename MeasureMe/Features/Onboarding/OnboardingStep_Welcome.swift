@@ -3,7 +3,7 @@ import UIKit
 
 // MARK: - Welcome Step
 
-private extension OnboardingView {
+extension OnboardingView {
 
     @ViewBuilder
     func onboardingWelcomeSlide(layout: OnboardingCardLayout) -> some View {

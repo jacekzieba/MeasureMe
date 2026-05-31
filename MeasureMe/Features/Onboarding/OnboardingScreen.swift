@@ -39,7 +39,7 @@ struct OnboardingView: View {
     @State private var healthAuthorizationVisualProgress: CGFloat = 0
     @State private var didPrewarmHealthKitAuthorization = false
     @State private var hasTrackedStart = false
-    @State private var slideAppeared = false
+    @State var slideAppeared = false
     @FocusState private var isNameFieldFocused: Bool
 
     private let isUITestOnboardingMode = UITestArgument.isPresent(.onboardingMode)
@@ -48,7 +48,7 @@ struct OnboardingView: View {
         self.effects = effects ?? .live
     }
 
-    private var shouldAnimate: Bool {
+    var shouldAnimate: Bool {
         AppMotion.shouldAnimate(animationsEnabled: animationsEnabled, reduceMotion: reduceMotion)
     }
 
@@ -122,7 +122,7 @@ struct OnboardingView: View {
         !isRequestingHealthKit || currentStep != .health
     }
 
-    private var resolvedPriority: OnboardingPriority {
+    var resolvedPriority: OnboardingPriority {
         if let selectedPriority {
             return selectedPriority
         }
@@ -602,10 +602,10 @@ struct OnboardingView: View {
         }
     }
 
-    @State private var slideBlobAnimate = false
-    @State private var welcomeShimmerEnabled = true
+    @State var slideBlobAnimate = false
+    @State var welcomeShimmerEnabled = true
 
-    private func ambientBlobs(for slideIndex: Int) -> some View {
+    func ambientBlobs(for slideIndex: Int) -> some View {
         AmbientBlobsView(
             blobs: Self.blobSpecs(for: slideIndex),
             animate: slideBlobAnimate,
@@ -683,9 +683,9 @@ struct OnboardingView: View {
         }
     }
 
-    @State private var photoAfterAppeared = false
-    @State private var healthCardsAppeared = false
-    @State private var shieldGlowPhase = false
+    @State var photoAfterAppeared = false
+    @State var healthCardsAppeared = false
+    @State var shieldGlowPhase = false
 
     private func onboardingInputCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         AppGlassCard(depth: .elevated, cornerRadius: 28, tint: Color.appAccent, contentPadding: 20) {
@@ -766,7 +766,7 @@ struct OnboardingView: View {
         )
     }
 
-    private var effectiveNameForGreeting: String? {
+    var effectiveNameForGreeting: String? {
         let trimmedInput = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedInput.isEmpty { return trimmedInput }
         let trimmedStored = userName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -870,7 +870,7 @@ struct OnboardingView: View {
         }
     }
 
-    private var onboardingBeforeAssetName: String {
+    var onboardingBeforeAssetName: String {
         let preferred: String
         switch resolvedPriority {
         case .loseWeight:
@@ -883,7 +883,7 @@ struct OnboardingView: View {
         return assetName(preferred: preferred, fallback: "onboarding-before")
     }
 
-    private var onboardingAfterAssetName: String {
+    var onboardingAfterAssetName: String {
         let preferred: String
         switch resolvedPriority {
         case .loseWeight:

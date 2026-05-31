@@ -10,7 +10,7 @@ struct AllLogsView: View {
 
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
-    @State private var sourceFilter: SourceFilter = .all
+    @State private var sourceFilter: AllLogsFilterEngine.SourceFilter = .all
     @State private var dateFilter: DateFilter = .all
     @State private var customStartDate: Date = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) ?? AppClock.now
     @State private var customEndDate: Date = AppClock.now
@@ -20,14 +20,6 @@ struct AllLogsView: View {
     @State private var isLoadingPage: Bool = false
 
     private let pageSize: Int = 80
-
-    private enum SourceFilter: String, CaseIterable, Identifiable {
-        case all
-        case manual
-        case healthKit
-
-        var id: String { rawValue }
-    }
 
     private enum DateFilter: String, CaseIterable, Identifiable {
         case all
@@ -42,10 +34,9 @@ struct AllLogsView: View {
 
     private var activePredicate: Predicate<MetricSample>? {
         let healthKitRaw = MetricSampleSource.healthKit.rawValue
-        let calendar = Calendar.current
-        let startDate = calendar.startOfDay(for: customStartDate)
-        let endDay = calendar.startOfDay(for: customEndDate)
-        let endDate = calendar.date(byAdding: DateComponents(day: 1, second: -1), to: endDay) ?? customEndDate
+        let bounds = AllLogsFilterEngine.customDateBounds(start: customStartDate, end: customEndDate)
+        let startDate = bounds.start
+        let endDate = bounds.end
 
         switch (sourceFilter, dateFilter) {
         case (.all, .all):
@@ -118,9 +109,9 @@ struct AllLogsView: View {
                         .foregroundStyle(.white.opacity(0.7))
 
                     Picker("", selection: $sourceFilter) {
-                        Text(AppLocalization.string("alllogs.filter.all")).tag(SourceFilter.all)
-                        Text(AppLocalization.string("alllogs.filter.manual")).tag(SourceFilter.manual)
-                        Text(AppLocalization.string("alllogs.filter.healthkit")).tag(SourceFilter.healthKit)
+                        Text(AppLocalization.string("alllogs.filter.all")).tag(AllLogsFilterEngine.SourceFilter.all)
+                        Text(AppLocalization.string("alllogs.filter.manual")).tag(AllLogsFilterEngine.SourceFilter.manual)
+                        Text(AppLocalization.string("alllogs.filter.healthkit")).tag(AllLogsFilterEngine.SourceFilter.healthKit)
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()

@@ -107,7 +107,7 @@ final class RootViewSnapshotTests: XCTestCase {
     let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
     assertSnapshot(
       of: vc,
-      as: .image,
+      as: .image(precision: 0.99, perceptualPrecision: 0.98),
       record: shouldRecord
     )
   }

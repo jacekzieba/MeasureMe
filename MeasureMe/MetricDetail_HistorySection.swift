@@ -3,7 +3,7 @@ import SwiftData
 
 // MARK: - History, Empty State, and How-To-Measure Sections
 
-private extension MetricDetailView {
+extension MetricDetailView {
 
     var emptyStateSection: some View {
         VStack(spacing: 16) {

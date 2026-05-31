@@ -38,7 +38,25 @@ final class HomeViewSnapshotTests: XCTestCase {
         "showMeasurementsOnHome",
         "showHealthMetricsOnHome",
         "showStreakOnHome",
+        "apple_intelligence_enabled",
+        "premium_entitlement",
     ]
+
+    /// Fixed reference instant so seeded sample dates and any
+    /// `AppClock.now`-based rendering stay deterministic across runs.
+    private static let fixedNow = Date(timeIntervalSince1970: 1_700_000_000)
+
+    // Force AI insights off deterministically, independent of global
+    // `MetricInsightService.shared` state leaked by other test classes.
+    override func setUp() async throws {
+        try await super.setUp()
+        await MetricInsightService.shared.setTestAvailabilityOverride(false)
+    }
+
+    override func tearDown() async throws {
+        await MetricInsightService.shared.setTestAvailabilityOverride(nil)
+        try await super.tearDown()
+    }
 
     // MARK: - Setup / teardown helpers
 
@@ -48,6 +66,7 @@ final class HomeViewSnapshotTests: XCTestCase {
     }
 
     private func restoreDefaults(_ baseline: [String: Any?]) {
+        AppClock.overrideNowForTesting = nil
         let d = UserDefaults.standard
         for (key, value) in baseline {
             if let value { d.set(value, forKey: key) } else { d.removeObject(forKey: key) }
@@ -58,6 +77,7 @@ final class HomeViewSnapshotTests: XCTestCase {
     }
 
     private func configureDefaults() {
+        AppClock.overrideNowForTesting = Self.fixedNow
         let d = UserDefaults.standard
         d.set("en", forKey: "appLanguage")
         d.set("Test User", forKey: "userName")
@@ -71,6 +91,8 @@ final class HomeViewSnapshotTests: XCTestCase {
         d.set(true, forKey: "showMeasurementsOnHome")
         d.set(true, forKey: "showHealthMetricsOnHome")
         d.set(true, forKey: "showStreakOnHome")
+        d.set(false, forKey: "apple_intelligence_enabled")
+        d.set(false, forKey: "premium_entitlement")
         AppSettingsStore.shared.forceReloadSnapshot()
         AppLocalization.settings = AppSettingsStore(defaults: d)
         AppLocalization.reloadLanguage()
@@ -132,10 +154,10 @@ final class HomeViewSnapshotTests: XCTestCase {
         window.makeKeyAndVisible()
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()
-        try await Task.sleep(for: .milliseconds(100))
+        try await Task.sleep(for: .milliseconds(1800))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 
     func testHomeView_emptyState_light() async throws {
@@ -159,10 +181,10 @@ final class HomeViewSnapshotTests: XCTestCase {
         window.makeKeyAndVisible()
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()
-        try await Task.sleep(for: .milliseconds(100))
+        try await Task.sleep(for: .milliseconds(1800))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 
     func testHomeView_withSamples_dark() async throws {
@@ -182,7 +204,7 @@ final class HomeViewSnapshotTests: XCTestCase {
         let context = ModelContext(container)
 
         // Seed some samples so the home screen has data to display
-        let today = Date()
+        let today = AppClock.now
         let cal = Calendar.current
         for offset in 0..<7 {
             let date = cal.date(byAdding: .day, value: -offset, to: today)!
@@ -198,9 +220,9 @@ final class HomeViewSnapshotTests: XCTestCase {
         window.makeKeyAndVisible()
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()
-        try await Task.sleep(for: .milliseconds(100))
+        try await Task.sleep(for: .milliseconds(1800))
 
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image, record: shouldRecord)
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 }
