@@ -251,6 +251,7 @@ struct MeasurementsTabView: View {
                                                 .contentShape(Rectangle())
                                         }
                                         .buttonStyle(.plain)
+                                        .appHitTarget()
                                     }
                                 }
                                 .padding(.horizontal, AppSpacing.md)

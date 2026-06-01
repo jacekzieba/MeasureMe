@@ -102,6 +102,7 @@ struct StreakDetailView: View {
                     .background(Circle().fill(colorScheme == .dark ? .white.opacity(0.12) : AppColorRoles.surfaceGlass))
             }
             .buttonStyle(.plain)
+            .appHitTarget()
 
             Spacer()
 
@@ -113,8 +114,8 @@ struct StreakDetailView: View {
 
             Spacer()
 
-            // Invisible balance element to center title
-            Color.clear.frame(width: 36, height: 36)
+            // Invisible balance element to center title (matches back button hit target)
+            Color.clear.frame(width: 44, height: 44)
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)

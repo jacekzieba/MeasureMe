@@ -65,6 +65,7 @@ struct InsightConversationView: View {
                             .foregroundStyle(AppColorRoles.textSecondary)
                     }
                     .accessibilityLabel(AppLocalization.string("Close"))
+                    .appHitTarget()
                 }
             }
         }
