@@ -61,7 +61,9 @@ enum AppColorRoles {
         dark: UIColor.white.withAlphaComponent(0.74)
     )
     static let textTertiary = dynamic(
-        light: UIColor(Color(hex: "#73726C")),
+        // Darkened from #73726C to meet WCAG AA (4.5:1) for body text on all
+        // light surfaces (was AA-large-only on Secondary/Interactive/AccentSoft).
+        light: UIColor(Color(hex: "#6B6A64")),
         dark: UIColor.white.withAlphaComponent(0.58)
     )
     static let textOnAccent = Color(hex: "#141413")
