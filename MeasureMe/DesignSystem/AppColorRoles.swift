@@ -122,7 +122,10 @@ enum AppColorRoles {
         dark: Color(hex: "#4ADE80")
     )
     static let stateWarning = Color.dynamic(
-        light: Color(hex: stateWarningHex),
+        // Darker than the badge hex (#D97706) so warning *text* meets WCAG AA
+        // (5.4:1 on white). Badges keep stateWarningHex as background with
+        // bestAccessibleTextColor on top.
+        light: Color(hex: "#A8520C"),
         dark: Color(hex: "#F59E0B")
     )
     static let stateError = Color.dynamic(
