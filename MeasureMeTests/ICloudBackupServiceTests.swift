@@ -6,6 +6,7 @@ import CryptoKit
 @MainActor
 final class ICloudBackupServiceTests: XCTestCase {
     private var backupRootURL: URL!
+    private var originalPremiumEntitlement: Any?
 
     override func setUpWithError() throws {
         backupRootURL = FileManager.default.temporaryDirectory
@@ -14,6 +15,7 @@ final class ICloudBackupServiceTests: XCTestCase {
         ICloudBackupService.testBackupRootURLOverride = backupRootURL
         ICloudBackupService.testNowOverride = nil
         ICloudBackupService.testEncryptionKeyOverride = SymmetricKey(size: .bits256)
+        originalPremiumEntitlement = UserDefaults.standard.object(forKey: AppSettingsKeys.Premium.entitlement)
         AppSettingsStore.shared.set(\.premium.premiumEntitlement, true)
         AppSettingsStore.shared.set(\.iCloudBackup.isEnabled, true)
         AppSettingsStore.shared.set(\.iCloudBackup.lastSuccessTimestamp, 0)
@@ -27,6 +29,11 @@ final class ICloudBackupServiceTests: XCTestCase {
     override func tearDownWithError() throws {
         ICloudBackupService.resetTestOverrides()
         AppSettingsStore.shared.set(\.profile.profilePhotoData, nil)
+        if let originalPremiumEntitlement {
+            UserDefaults.standard.set(originalPremiumEntitlement, forKey: AppSettingsKeys.Premium.entitlement)
+        } else {
+            UserDefaults.standard.removeObject(forKey: AppSettingsKeys.Premium.entitlement)
+        }
         if let backupRootURL {
             try? FileManager.default.removeItem(at: backupRootURL)
         }
