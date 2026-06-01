@@ -93,8 +93,6 @@ extension MetricDetailView {
             }
         }
         .chartYScale(domain: cachedYDomain)
-        .chartScrollableAxes(.horizontal)
-        .chartXVisibleDomain(length: chartVisibleDomainLength)
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 3)) { _ in
                 AxisGridLine().foregroundStyle(AppColorRoles.borderSubtle)
@@ -140,13 +138,14 @@ extension MetricDetailView {
                             }
                     )
                     .simultaneousGesture(
-                        MagnificationGesture()
-                            .onChanged { scale in
-                                let proposed = chartZoomBaseFraction / scale
-                                chartZoomFraction = min(max(proposed, 0.06), 1.0)
+                        DragGesture(minimumDistance: 10)
+                            .onChanged { value in
+                                handleChartDragChanged(value, proxy: proxy, geometry: geometry)
                             }
                             .onEnded { _ in
-                                chartZoomBaseFraction = chartZoomFraction
+                                if chartScrubState != .idle {
+                                    endChartScrubbing()
+                                }
                             }
                     )
             }
@@ -163,19 +162,5 @@ extension MetricDetailView {
         .accessibilityChartDescriptor(MetricChartAXDescriptor(descriptor: chartDescriptor))
         .accessibilityLabel(AppLocalization.string("accessibility.chart", kind.title))
         .accessibilityHint(AppLocalization.string("accessibility.chart.hint"))
-    }
-
-    /// Width of the visible time window for the scrollable chart.
-    /// At `chartZoomFraction == 1` the whole range is shown (no scrolling);
-    /// pinch-zoom shrinks it, which makes the chart horizontally pannable.
-    var chartVisibleDomainLength: TimeInterval {
-        let day: TimeInterval = 60 * 60 * 24
-        guard let first = chartRenderSamples.first?.date,
-              let last = chartRenderSamples.last?.date,
-              last > first else {
-            return day * 30
-        }
-        let fullSpan = last.timeIntervalSince(first)
-        return max(fullSpan * chartZoomFraction, day)
     }
 }

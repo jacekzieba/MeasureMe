@@ -51,10 +51,6 @@ struct MetricDetailView: View {
     @State var comparisonKind: MetricKind?
     @State var scrubbedDate: Date?
     @State var chartScrubState: ChartScrubState = .idle
-    /// Continuous pinch-zoom level for the chart: 1.0 = full time range visible,
-    /// smaller = zoomed in (and horizontally scrollable/pannable).
-    @State var chartZoomFraction: Double = 1.0
-    @State var chartZoomBaseFraction: Double = 1.0
     @State var chartWidth: CGFloat = 0
     @State var isPredictionExpanded = false
     @State var isEditingCommitment = false
