@@ -38,9 +38,10 @@ enum ReviewRequestManager {
     /// Call at high-satisfaction moments (goal achieved, purchase). Bypasses entry count,
     /// but still respects the 2-week cooldown so we don't over-prompt.
     @MainActor
-    static func recordHighSatisfactionMoment(settings: AppSettingsStore = .shared) {
+    static func recordHighSatisfactionMoment(settings: AppSettingsStore? = nil) {
         if AuditConfig.current.isEnabled { return }
 
+        let settings = settings ?? .shared
         let now = AppClock.now
         let lastPrompt = settings.object(forKey: lastPromptKey) as? Date
         let enoughTime = lastPrompt == nil || now.timeIntervalSince(lastPrompt ?? now) >= twoWeeks

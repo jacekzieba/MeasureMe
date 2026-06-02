@@ -424,6 +424,10 @@ struct MeasureMeApp: App {
             defaults.set(\.onboarding.hasCompletedOnboarding, false)
             defaults.set(\.onboarding.onboardingFlowVersion, 0)
             defaults.set(\.profile.userName, "")
+            // Onboarding content buttons don't receive synthesized XCUITest taps, so the
+            // chosen goal is supplied via a launch argument. Reset it otherwise so a goal
+            // persisted by a prior launch can't leak into the next test.
+            defaults.set(\.onboarding.onboardingPrimaryGoal, UITestArgument.value(for: .onboardingPriority, in: args) ?? "")
             defaults.set(\.experience.appAppearance, AppAppearance.dark.rawValue)
             defaults.set(\.experience.appLanguage, uiTestLanguage)
             defaults.set(\.premium.premiumEntitlement, false)

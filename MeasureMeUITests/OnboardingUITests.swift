@@ -55,10 +55,13 @@ final class OnboardingUITests: XCTestCase {
     }
 
     private func selectGoalAndAdvance(_ identifier: String) {
+        // Onboarding content buttons don't receive synthesized XCUITest taps (the flow
+        // bridges navigation through NotificationCenter for the same reason), so the goal
+        // is chosen via a launch argument rather than by tapping the priority card.
+        let priorityRaw = identifier.replacingOccurrences(of: "onboarding.priority.", with: "")
+        launchApp(arguments: ["-uiTestOnboardingMode", "-uiTestOnboardingPriority", priorityRaw])
         advancePastWelcome()
-        let button = app.buttons[identifier].firstMatch
-        XCTAssertTrue(button.waitForExistence(timeout: 5))
-        button.tap()
+        XCTAssertTrue(app.buttons[identifier].waitForExistence(timeout: 5))
         nextButton.tap()
     }
 

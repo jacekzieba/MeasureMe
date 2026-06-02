@@ -5,6 +5,7 @@ struct MetricInsightCard: View {
     let compact: Bool
     let isLoading: Bool
     var onRefresh: (() -> Void)? = nil
+    var onExpandToggle: ((Bool) -> Void)? = nil
 
     @State private var shimmerPhase: CGFloat = 0
     @State private var isExpanded = false
@@ -54,6 +55,7 @@ struct MetricInsightCard: View {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 isExpanded.toggle()
                             }
+                            onExpandToggle?(isExpanded)
                         } label: {
                             Text(AppLocalization.aiString(isExpanded ? "Show less" : "Show more"))
                                 .font(AppTypography.microEmphasis)

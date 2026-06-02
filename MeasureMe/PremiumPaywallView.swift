@@ -862,6 +862,9 @@ struct PremiumPaywallView: View {
                         Text(planTitle(for: product))
                             .font(AppTypography.body)
                             .foregroundStyle(.white.opacity(0.88))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                            .fixedSize(horizontal: true, vertical: false)
                         if let badge {
                             Text(badge)
                                 .font(.system(size: 10, weight: .bold))

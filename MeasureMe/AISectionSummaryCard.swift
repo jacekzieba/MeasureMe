@@ -109,6 +109,9 @@ struct AISectionSummaryCard: View {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isExpanded.toggle()
                         }
+                        if let sectionID = input?.sectionID {
+                            Analytics.shared.track(AnalyticsEvents.aiInsightExpanded(kind: .section, metric: sectionID, expanded: isExpanded))
+                        }
                     } label: {
                         Text(AppLocalization.aiString(isExpanded ? "Show less" : "Show more"))
                             .font(AppTypography.microEmphasis)
@@ -157,7 +160,8 @@ struct AISectionSummaryCard: View {
     @MainActor
     private func refreshInsight() async {
         guard premiumStore.isPremium, AppleIntelligenceSupport.isAvailable(), let input else { return }
-        await MetricInsightService.shared.invalidateSections()
+        Analytics.shared.track(AnalyticsEvents.aiInsightRefreshed(kind: .section, sectionID: input.sectionID))
+        await MetricInsightService.shared.invalidate(sectionID: input.sectionID)
         isLoading = true
         text = await MetricInsightService.shared.generateSectionInsight(for: input)
         isExpanded = false

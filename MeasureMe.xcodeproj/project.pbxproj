@@ -1263,7 +1263,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = MeasureMeWidget/MeasureMeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					Info.plist,
 					"*.entitlements",
@@ -1276,7 +1276,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme.MeasureMeWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1295,7 +1295,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = MeasureMeWidget/MeasureMeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					Info.plist,
 					"*.entitlements",
@@ -1308,7 +1308,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 1.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jacek.measureme.MeasureMeWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

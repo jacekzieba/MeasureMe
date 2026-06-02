@@ -254,6 +254,7 @@ extension MetricDetailView {
     @MainActor
     func refreshInsight() async {
         guard let input = insightInput else { return }
+        Analytics.shared.track(AnalyticsEvents.aiInsightRefreshed(kind: .metric, sectionID: input.metricTitle))
         await MetricInsightService.shared.invalidate(for: input.metricTitle)
         await loadInsightIfNeeded()
     }

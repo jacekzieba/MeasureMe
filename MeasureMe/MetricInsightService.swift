@@ -141,10 +141,11 @@ nonisolated struct InsightDiskCache {
 
     /// Stable cache key that survives app restarts.
     /// Includes today's date so the cache naturally expires daily,
-    /// and the latest value so it regenerates when new data arrives.
-    static func stableKey(metricTitle: String, latestValueText: String) -> String {
+    /// the latest value so it regenerates when new data arrives,
+    /// and the prompt version so bumping the prompt auto-invalidates old entries.
+    static func stableKey(metricTitle: String, latestValueText: String, promptVersion: String) -> String {
         let today = ISO8601DateFormatter().string(from: Date()).prefix(10) // YYYY-MM-DD
-        return "\(metricTitle)_\(latestValueText)_\(today)"
+        return "v\(promptVersion)_\(metricTitle)_\(latestValueText)_\(today)"
     }
 
     static func read(forKey key: String) -> MetricInsightPair? {
@@ -201,6 +202,19 @@ actor MetricInsightService {
     private static let logger = Logger(subsystem: "com.jacek.measureme", category: "AIInsights")
     static let cacheLimit = 50
 
+    /// Bump when prompts change. Flows into the disk cache key so old insights regenerate,
+    /// and into telemetry so prompt iterations can be compared.
+    static let promptVersion = "2"
+
+    /// Minimum number of samples in the analysis window before we ask the model for a
+    /// metric insight. Below this, deltas are nil and the model would invent trends, so we
+    /// return a deterministic, grounded fallback instead.
+    static let minSampleCountForGeneration = 3
+
+    /// Hard ceiling on a single generation. The on-device model can stall on weak hardware;
+    /// past this we fall back rather than leave the shimmer spinning forever.
+    static let generationTimeout: Duration = .seconds(8)
+
     private var cache: [MetricInsightInput: MetricInsightPair] = [:]
     private var healthCache: [HealthInsightInput: String] = [:]
     private var sectionCache: [SectionInsightInput: String] = [:]
@@ -233,6 +247,62 @@ actor MetricInsightService {
         }
     }
 
+    // MARK: - Telemetry
+
+    private nonisolated func trackGenerated(
+        kind: AIInsightKind,
+        metric: String,
+        promptVersion: String,
+        shortLength: Int,
+        detailedLength: Int,
+        validated: Bool
+    ) async {
+        await MainActor.run {
+            Analytics.shared.track(AnalyticsEvents.aiInsightGenerated(
+                kind: kind,
+                metric: metric,
+                promptVersion: promptVersion,
+                shortLength: shortLength,
+                detailedLength: detailedLength,
+                validated: validated
+            ))
+        }
+    }
+
+    private nonisolated func trackFallback(
+        kind: AIInsightKind,
+        metric: String,
+        reason: AIInsightFallbackReason
+    ) async {
+        await MainActor.run {
+            Analytics.shared.track(AnalyticsEvents.aiInsightFallback(
+                kind: kind,
+                metric: metric,
+                reason: reason
+            ))
+        }
+    }
+
+    // MARK: - Timeout
+
+    /// Runs `operation`, throwing `MetricInsightError.timedOut` if it exceeds `generationTimeout`.
+    private func withTimeout<T: Sendable>(
+        _ operation: @escaping @Sendable () async throws -> T
+    ) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask { try await operation() }
+            group.addTask {
+                try await Task.sleep(for: Self.generationTimeout)
+                throw MetricInsightError.timedOut
+            }
+            guard let result = try await group.next() else {
+                throw MetricInsightError.timedOut
+            }
+            group.cancelAll()
+            return result
+        }
+    }
+
     #if DEBUG
     /// Visible only in tests via @testable import.
     private var _testGenerateOverride: (@Sendable (MetricInsightInput) async throws -> MetricInsightPair)?
@@ -255,6 +325,8 @@ actor MetricInsightService {
     func setTestAvailabilityOverride(_ value: Bool?) {
         _testAvailabilityOverride = value
     }
+
+    var metricGenerateOverrideActive: Bool { _testGenerateOverride != nil }
     #endif
 
     #if canImport(FoundationModels)
@@ -343,6 +415,12 @@ actor MetricInsightService {
         sectionCache.removeAll()
     }
 
+    /// Invalidate only one section so refreshing e.g. the health summary doesn't regenerate
+    /// physique, metrics, and every other section card.
+    func invalidate(sectionID: String) {
+        sectionCache = sectionCache.filter { $0.key.sectionID != sectionID }
+    }
+
     // MARK: - Generation
 
     func generateInsight(for input: MetricInsightInput) async -> MetricInsightPair? {
@@ -361,10 +439,22 @@ actor MetricInsightService {
         }
 
         // Check persistent disk cache — use stable key (no hashValue, which changes each launch)
-        let diskKey = InsightDiskCache.stableKey(metricTitle: input.metricTitle, latestValueText: input.latestValueText)
+        let diskKey = InsightDiskCache.stableKey(
+            metricTitle: input.metricTitle,
+            latestValueText: input.latestValueText,
+            promptVersion: Self.promptVersion
+        )
         if let diskCached = InsightDiskCache.read(forKey: diskKey) {
             cache[input] = diskCached
             return diskCached
+        }
+
+        // Min-sample gate: below the threshold deltas are nil and the model would invent a
+        // trend. Return a grounded, deterministic fallback and do NOT cache it, so a real
+        // insight is generated as soon as enough data exists.
+        guard input.sampleCount >= Self.minSampleCountForGeneration else {
+            await trackFallback(kind: .metric, metric: input.metricTitle, reason: .insufficientSamples)
+            return InsightTextProcessor.fallbackMetric(for: input)
         }
 
         if let running = inFlight[input] {
@@ -373,12 +463,40 @@ actor MetricInsightService {
 
         let task = Task<MetricInsightPair?, Never> { [input] in
             do {
-                let generated = try await self.generate(input: input)
-                self.storeGenerated(generated, for: input)
-                return generated
+                let raw = try await self.generate(input: input)
+                #if DEBUG
+                // Test overrides exercise caching/concurrency, not output quality — don't run
+                // the quality validator against their synthetic pairs.
+                if self.metricGenerateOverrideActive {
+                    self.storeGenerated(raw, for: input)
+                    return raw
+                }
+                #endif
+                switch MetricInsightOutputValidator.validate(raw, input: input) {
+                case .valid(let pair):
+                    self.storeGenerated(pair, for: input)
+                    await self.trackGenerated(
+                        kind: .metric,
+                        metric: input.metricTitle,
+                        promptVersion: Self.promptVersion,
+                        shortLength: pair.shortText.count,
+                        detailedLength: pair.detailedText.count,
+                        validated: true
+                    )
+                    return pair
+                case .invalid(let reason):
+                    // Fallback is grounded in the input; do not cache so the model is retried later.
+                    await self.trackFallback(kind: .metric, metric: input.metricTitle, reason: reason)
+                    return InsightTextProcessor.fallbackMetric(for: input)
+                }
             } catch {
                 Self.logger.warning("Metric insight generation failed for \(input.metricTitle): \(error.localizedDescription)")
-                return nil
+                await self.trackFallback(
+                    kind: .metric,
+                    metric: input.metricTitle,
+                    reason: Self.fallbackReason(for: error)
+                )
+                return InsightTextProcessor.fallbackMetric(for: input)
             }
         }
         inFlight[input] = task
@@ -388,13 +506,25 @@ actor MetricInsightService {
         return value
     }
 
+    /// Maps a thrown generation error to the telemetry reason.
+    private static func fallbackReason(for error: Error) -> AIInsightFallbackReason {
+        if let insightError = error as? MetricInsightError, case .timedOut = insightError {
+            return .timeout
+        }
+        return .generationError
+    }
+
     private func storeGenerated(_ insight: MetricInsightPair, for input: MetricInsightInput) {
         if cache.count >= Self.cacheLimit {
             cache.removeAll()
         }
         cache[input] = insight
 
-        let diskKey = InsightDiskCache.stableKey(metricTitle: input.metricTitle, latestValueText: input.latestValueText)
+        let diskKey = InsightDiskCache.stableKey(
+            metricTitle: input.metricTitle,
+            latestValueText: input.latestValueText,
+            promptVersion: Self.promptVersion
+        )
         InsightDiskCache.write(insight, forKey: diskKey)
     }
 
@@ -417,14 +547,29 @@ actor MetricInsightService {
         let task = Task<String?, Never> { [input] in
             do {
                 let generated = try await self.generateHealth(input: input)
-                if self.healthCache.count >= Self.cacheLimit {
-                    self.healthCache.removeAll()
+                switch MetricInsightOutputValidator.validateText(generated, maxLength: 460) {
+                case .valid(let text):
+                    if self.healthCache.count >= Self.cacheLimit {
+                        self.healthCache.removeAll()
+                    }
+                    self.healthCache[input] = text
+                    await self.trackGenerated(
+                        kind: .health,
+                        metric: "health",
+                        promptVersion: Self.promptVersion,
+                        shortLength: 0,
+                        detailedLength: text.count,
+                        validated: true
+                    )
+                    return text
+                case .invalid(let reason):
+                    await self.trackFallback(kind: .health, metric: "health", reason: reason)
+                    return InsightTextProcessor.fallbackHealth(for: input)
                 }
-                self.healthCache[input] = generated
-                return generated
             } catch {
                 Self.logger.warning("Health insight generation failed: \(error.localizedDescription)")
-                return nil
+                await self.trackFallback(kind: .health, metric: "health", reason: Self.fallbackReason(for: error))
+                return InsightTextProcessor.fallbackHealth(for: input)
             }
         }
         healthInFlight[input] = task
@@ -453,14 +598,29 @@ actor MetricInsightService {
         let task = Task<String?, Never> { [input] in
             do {
                 let generated = try await self.generateSection(input: input)
-                if self.sectionCache.count >= Self.cacheLimit {
-                    self.sectionCache.removeAll()
+                switch MetricInsightOutputValidator.validateText(generated, maxLength: 460) {
+                case .valid(let text):
+                    if self.sectionCache.count >= Self.cacheLimit {
+                        self.sectionCache.removeAll()
+                    }
+                    self.sectionCache[input] = text
+                    await self.trackGenerated(
+                        kind: .section,
+                        metric: input.sectionID,
+                        promptVersion: Self.promptVersion,
+                        shortLength: 0,
+                        detailedLength: text.count,
+                        validated: true
+                    )
+                    return text
+                case .invalid(let reason):
+                    await self.trackFallback(kind: .section, metric: input.sectionID, reason: reason)
+                    return InsightTextProcessor.fallbackSection(for: input)
                 }
-                self.sectionCache[input] = generated
-                return generated
             } catch {
                 Self.logger.warning("Section insight generation failed for \(input.sectionID): \(error.localizedDescription)")
-                return nil
+                await self.trackFallback(kind: .section, metric: input.sectionID, reason: Self.fallbackReason(for: error))
+                return InsightTextProcessor.fallbackSection(for: input)
             }
         }
         sectionInFlight[input] = task
@@ -502,56 +662,21 @@ actor MetricInsightService {
         await acquireGenerationSlot()
 
         do {
-            let session = LanguageModelSession(
-                model: .default,
-                instructions: """
-                You are a calm, supportive health-tracking coach.
-                Write in clear, plain English.
-                Keep tone non-judgmental, practical, concise, and quietly motivating.
-                Address the user directly using "you" and "your".
-                Never write in third person about the user.
-
-                Safety rules:
-                Do not provide medical diagnosis or medical advice.
-                Do not mention diseases, mortality, or clinical "risk of" outcomes.
-                Do not recommend supplements, medications, or extreme diets.
-                If some data is missing or ambiguous, do not guess; omit that detail.
-                Do not repeat placeholders like "unknown", "n/a", or "not enough data".
-
-                Format rules:
-                Do not use markdown, hashtags, bullets, quotes, or bold markers.
-                Do not add greetings, preambles, framing phrases, or meta text (e.g., "As an AI...").
-                Return exactly two paragraphs separated by a single line containing only: <SEP>
-                Do not include any other line breaks.
-
-                Content rules:
-                The prompt includes a "Measurement type" field. Use it to select appropriate language:
-                - "body circumference" → describe size, girth, or measurements — NEVER use "tall" or height-related language.
-                - "height (linear, vertical)" → only here may you use "tall" or similar.
-                - "body weight" → describe weight in kg or lbs.
-                Use the provided goal direction if present; otherwise use the default favorable direction hint as a weak hint, not a certainty.
-                Lead with the strongest supported signal, not a generic summary.
-                If short-term and longer-term windows differ, explain whether momentum is picking up, slowing, reversing, or just noisy.
-                If changes are small, frame stability as a meaningful consistency signal instead of fake urgency.
-                Never claim muscle gain, fat loss, or a plateau unless the provided data directly supports that wording.
-                Paragraph 1: 1 very short sentence, around 35-70 characters, summarizing the most important trend. This is shown as a headline on a compact card — keep it punchy and specific.
-                Paragraph 2: 2-4 short sentences, around 150-250 characters total.
-                Paragraph 2 must include:
-                - one comparison across available trend windows (7/14/30/90 when available),
-                - one concrete recommendation for the next 7 days,
-                - if a goal is present: mention progress so far, current momentum, and whether the pace looks aligned, too slow, or off-track. Go beyond just an estimated completion date — highlight what is working and what may need adjusting.
-
-                Example output:
-                Weight trending down steadily.
-                <SEP>
-                You lost 0.8 kg in 30 days while your 7-day pace picked up. Try one extra walk this week to keep momentum. You are 2.3 kg from your goal and recent progress looks solid.
-                """
-            )
-
+            let instructions = InsightTextProcessor.metricInstructions()
             let prompt = InsightTextProcessor.buildPrompt(for: input)
-            let response = try await session.respond(to: prompt)
+            // Session is created and consumed inside the timed child task so only Sendable
+            // values (the two strings) cross the task boundary.
+            let pair = try await withTimeout { () -> MetricInsightPair in
+                let session = LanguageModelSession(model: .default, instructions: instructions)
+                let response = try await session.respond(to: prompt, generating: GeneratedMetricInsight.self)
+                let headline = InsightTextProcessor.sanitize(response.content.headline)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                let detail = InsightTextProcessor.sanitize(response.content.detail)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                return MetricInsightPair(shortText: headline, detailedText: detail)
+            }
             releaseGenerationSlot()
-            return InsightTextProcessor.parse(response.content)
+            return pair
         } catch {
             releaseGenerationSlot()
             throw error
@@ -584,42 +709,14 @@ actor MetricInsightService {
         await acquireGenerationSlot()
 
         do {
-            let session = LanguageModelSession(
-                model: .default,
-                instructions: """
-                You are a supportive health and fitness coach.
-                Write in plain English.
-                Address the user directly using "you" and "your".
-                Never write in third person about the user.
-                Summarize current state, recent changes, and trend direction by connecting the signals instead of listing them.
-                Prefer body-composition interpretations such as weight vs waist, body fat vs lean mass, or scale weight vs waist-based indicators when the data supports that.
-                If the data is broadly stable, explain why that stability is still useful.
-                Include one concrete focus area and one practical next-step instruction.
-                Keep it warm, factual, and non-alarming.
-                Use positive framing without sounding generic.
-                Avoid judgmental labels or appearance shaming.
-
-                Safety rules:
-                Do not provide medical diagnosis or medical advice.
-                Do not mention diseases, mortality, or clinical "risk of" outcomes.
-                Do not recommend supplements, medications, or extreme diets.
-                If some data is missing or ambiguous, do not guess; omit that detail.
-                Do not repeat placeholders like "unknown", "n/a", or "not enough data".
-
-                Format rules:
-                Do not use markdown, hashtags, bullets, quotes, or bold markers.
-                Do not add greetings, preambles, framing phrases, or meta text (e.g., "As an AI...").
-                Output 3-4 short sentences in one paragraph, max 420 characters.
-
-                Example output:
-                Your weight is holding steady at 82 kg with body fat down slightly over the past week. Your waist-to-height ratio sits in a healthy range and your lean mass is well maintained. Focus on hitting three strength sessions this week and keeping daily steps above 8,000.
-                """
-            )
-
+            let instructions = InsightTextProcessor.healthInstructions()
             let prompt = InsightTextProcessor.buildHealthPrompt(for: input)
-            let response = try await session.respond(to: prompt)
-            let normalized = InsightTextProcessor.sanitize(response.content)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let normalized = try await withTimeout { () -> String in
+                let session = LanguageModelSession(model: .default, instructions: instructions)
+                let response = try await session.respond(to: prompt)
+                return InsightTextProcessor.sanitize(response.content)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            }
             releaseGenerationSlot()
             return normalized
         } catch {
@@ -654,37 +751,14 @@ actor MetricInsightService {
         await acquireGenerationSlot()
 
         do {
-            let session = LanguageModelSession(
-                model: .default,
-                instructions: """
-                You are a concise fitness and body-tracking coach.
-                Write in plain English.
-                Address the user directly using "you" and "your".
-                Never write in third person about the user.
-                Summarize the current state from the provided section data.
-                Connect related metrics instead of reciting them one by one.
-                Lead with the strongest supported pattern.
-                If the data shows a subtle relation, mismatch, or hidden signal, mention it briefly.
-                If the data is broadly stable, treat that as a meaningful consistency signal.
-                Mention one practical next step for the next 7 days.
-
-                Safety rules:
-                Do not provide medical diagnosis or medical advice.
-                Do not mention diseases, mortality, or clinical "risk of" outcomes.
-                Do not recommend supplements, medications, or extreme diets.
-                If data is missing, skip it instead of guessing.
-
-                Format rules:
-                Do not use markdown, bullets, quotes, or headings.
-                Do not add greetings or meta text.
-                Output 2-4 short sentences in one paragraph, max 420 characters.
-                """
-            )
-
+            let instructions = InsightTextProcessor.sectionInstructions()
             let prompt = InsightTextProcessor.buildSectionPrompt(for: input)
-            let response = try await session.respond(to: prompt)
-            let normalized = InsightTextProcessor.sanitize(response.content)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let normalized = try await withTimeout { () -> String in
+                let session = LanguageModelSession(model: .default, instructions: instructions)
+                let response = try await session.respond(to: prompt)
+                return InsightTextProcessor.sanitize(response.content)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            }
             releaseGenerationSlot()
             return normalized
         } catch {
@@ -697,6 +771,18 @@ actor MetricInsightService {
     }
 }
 
+#if canImport(FoundationModels)
+@available(iOS 26.0, *)
+@Generable(description: "A short coaching insight about one tracked body metric.")
+struct GeneratedMetricInsight {
+    @Guide(description: "One punchy headline naming the strongest trend, referencing a specific number. Max 10 words.")
+    let headline: String
+    @Guide(description: "2 to 4 short sentences: compare available trend windows, give one concrete action for the next 7 days, and address goal progress if a goal is present. Max 60 words.")
+    let detail: String
+}
+#endif
+
 private enum MetricInsightError: Error {
     case notAvailable
+    case timedOut
 }

@@ -268,6 +268,8 @@ struct OnboardingPremiumStep: View {
                             Text(planTitle(for: product))
                                 .font(AppTypography.body)
                                 .foregroundStyle(AppColorRoles.textPrimary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
                             Text(planSubtitle(for: product))
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppColorRoles.textSecondary)

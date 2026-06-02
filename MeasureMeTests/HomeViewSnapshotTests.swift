@@ -40,7 +40,14 @@ final class HomeViewSnapshotTests: XCTestCase {
         "showStreakOnHome",
         "apple_intelligence_enabled",
         "premium_entitlement",
-    ]
+    ] + metricStateKeys
+
+    /// Keys that drive which metric cards Home renders. They are not in the app's
+    /// own reset list, so without managing them here, active/key-metric state leaks
+    /// between test runs and makes Home snapshots non-deterministic.
+    private static let metricStateKeys: [String] =
+        MetricKind.allCases.map { "metric_\($0 == .leanBodyMass ? "nonFatMass" : $0.rawValue)_enabled" }
+        + ["metrics_active_order", "home_key_metrics", "custom_metrics_order", "has_customized_metrics"]
 
     /// Fixed reference instant so seeded sample dates and any
     /// `AppClock.now`-based rendering stay deterministic across runs.
@@ -76,7 +83,10 @@ final class HomeViewSnapshotTests: XCTestCase {
         AppLocalization.reloadLanguage()
     }
 
-    private func configureDefaults() {
+    /// - Parameter keyMetrics: metrics to mark active and pin to Home. Empty renders
+    ///   the empty-state board. Explicitly setting these makes the snapshot independent
+    ///   of any metric-enable state leaked by other tests.
+    private func configureDefaults(keyMetrics: [MetricKind] = []) {
         AppClock.overrideNowForTesting = Self.fixedNow
         let d = UserDefaults.standard
         d.set("en", forKey: "appLanguage")
@@ -93,6 +103,17 @@ final class HomeViewSnapshotTests: XCTestCase {
         d.set(true, forKey: "showStreakOnHome")
         d.set(false, forKey: "apple_intelligence_enabled")
         d.set(false, forKey: "premium_entitlement")
+
+        // Deterministic metric board: clear any leaked state, then enable the requested set.
+        for key in Self.metricStateKeys { d.removeObject(forKey: key) }
+        let raw = keyMetrics.map(\.rawValue)
+        for kind in keyMetrics {
+            let suffix = kind == .leanBodyMass ? "nonFatMass" : kind.rawValue
+            d.set(true, forKey: "metric_\(suffix)_enabled")
+        }
+        d.set(raw, forKey: "metrics_active_order")
+        d.set(raw, forKey: "home_key_metrics")
+
         AppSettingsStore.shared.forceReloadSnapshot()
         AppLocalization.settings = AppSettingsStore(defaults: d)
         AppLocalization.reloadLanguage()
@@ -197,7 +218,7 @@ final class HomeViewSnapshotTests: XCTestCase {
             UIView.setAnimationsEnabled(wereAnimationsEnabled)
         }
 
-        configureDefaults()
+        configureDefaults(keyMetrics: [.weight, .bodyFat])
         UIView.setAnimationsEnabled(false)
 
         let container = try makeContainer()

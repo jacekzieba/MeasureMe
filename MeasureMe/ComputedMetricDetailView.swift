@@ -754,7 +754,7 @@ struct ComputedMetricDetailView: View {
         switch config {
         case .absi(let result):
             return absiRanges(gender: result.gender)
-        case .bodyFat(let value, let gender):
+        case .bodyFat(_, let gender):
             return bodyFatRanges(gender: gender)
         case .conicity(let result):
             return conicityRanges(gender: result.gender)

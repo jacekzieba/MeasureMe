@@ -7,6 +7,7 @@ enum UITestArgument: String {
     case openExperienceSettings = "-uiTestOpenExperienceSettings"
     case openSingleAdd = "-uiTestOpenSingleAdd"
     case openMultiImport = "-uiTestOpenMultiImport"
+    case onboardingPriority = "-uiTestOnboardingPriority"
 
     // Premium / billing
     case forcePremium = "-uiTestForcePremium"

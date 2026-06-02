@@ -665,7 +665,10 @@ struct MetricDetailView: View {
                         text: text,
                         compact: false,
                         isLoading: isLoadingInsight,
-                        onRefresh: { Task { await refreshInsight() } }
+                        onRefresh: { Task { await refreshInsight() } },
+                        onExpandToggle: { expanded in
+                            Analytics.shared.track(AnalyticsEvents.aiInsightExpanded(kind: .metric, metric: kind.englishTitle, expanded: expanded))
+                        }
                     )
                     .contentShape(Rectangle())
                     .onTapGesture { showInsightConversation = true }

@@ -1,17 +1,17 @@
 import Foundation
 
-struct AnalyticsEvent: Equatable {
+nonisolated struct AnalyticsEvent: Equatable {
     let name: String
     let parameters: [String: String]
 }
 
-enum AnalyticsBool {
+nonisolated enum AnalyticsBool {
     static func string(_ value: Bool) -> String {
         value ? "true" : "false"
     }
 }
 
-enum AnalyticsEventName {
+nonisolated enum AnalyticsEventName {
     enum Onboarding {
         static let sessionStarted = "com.jacekzieba.measureme.onboarding.session_started"
         static let stepViewed = "com.jacekzieba.measureme.onboarding.step_viewed"
@@ -71,9 +71,35 @@ enum AnalyticsEventName {
     enum Reminders {
         static let seeded = "com.jacekzieba.measureme.reminders.seeded"
     }
+
+    enum AIInsight {
+        static let generated = "com.jacekzieba.measureme.ai_insight.generated"
+        static let fallback = "com.jacekzieba.measureme.ai_insight.fallback"
+        static let refreshed = "com.jacekzieba.measureme.ai_insight.refreshed"
+        static let expanded = "com.jacekzieba.measureme.ai_insight.expanded"
+    }
 }
 
-enum MeasurementTelemetrySource: String {
+nonisolated enum AIInsightKind: String {
+    case metric
+    case health
+    case section
+}
+
+/// Why a generated insight was replaced by a deterministic fallback.
+nonisolated enum AIInsightFallbackReason: String {
+    case insufficientSamples = "insufficient_samples"
+    case timeout
+    case generationError = "generation_error"
+    case validationEmpty = "validation_empty"
+    case validationLength = "validation_length"
+    case validationDisallowedLanguage = "validation_disallowed_language"
+    case validationHallucinatedNumber = "validation_hallucinated_number"
+    case validationContradiction = "validation_contradiction"
+    case validationNoSpecifics = "validation_no_specifics"
+}
+
+nonisolated enum MeasurementTelemetrySource: String {
     case onboarding
     case activation
     case quickAdd = "quick_add"
@@ -82,13 +108,13 @@ enum MeasurementTelemetrySource: String {
     case intent
 }
 
-enum PhotoTelemetrySource: String {
+nonisolated enum PhotoTelemetrySource: String {
     case activation
     case photos
     case multiImport = "multi_import"
 }
 
-enum PaywallTelemetrySource: String {
+nonisolated enum PaywallTelemetrySource: String {
     case onboarding
     case activation
     case checklist
@@ -96,16 +122,16 @@ enum PaywallTelemetrySource: String {
     case feature
 }
 
-enum NotificationTelemetrySource: String {
+nonisolated enum NotificationTelemetrySource: String {
     case activation
     case checklist
 }
 
-enum ReminderTelemetrySource: String {
+nonisolated enum ReminderTelemetrySource: String {
     case activation
 }
 
-enum AnalyticsEvents {
+nonisolated enum AnalyticsEvents {
     static let onboardingFlowVersion = "4"
 
     static func onboardingSessionStarted(entrypoint: String, restoredState: Bool) -> AnalyticsEvent {
@@ -393,6 +419,63 @@ enum AnalyticsEvents {
             parameters: [
                 "source": source.rawValue,
                 "repeat_rule": repeatRule.rawValue
+            ]
+        )
+    }
+
+    static func aiInsightGenerated(
+        kind: AIInsightKind,
+        metric: String,
+        promptVersion: String,
+        shortLength: Int,
+        detailedLength: Int,
+        validated: Bool
+    ) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.AIInsight.generated,
+            parameters: [
+                "kind": kind.rawValue,
+                "metric": metric,
+                "prompt_version": promptVersion,
+                "length_short": String(shortLength),
+                "length_detailed": String(detailedLength),
+                "validated": AnalyticsBool.string(validated)
+            ]
+        )
+    }
+
+    static func aiInsightFallback(
+        kind: AIInsightKind,
+        metric: String,
+        reason: AIInsightFallbackReason
+    ) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.AIInsight.fallback,
+            parameters: [
+                "kind": kind.rawValue,
+                "metric": metric,
+                "reason": reason.rawValue
+            ]
+        )
+    }
+
+    static func aiInsightRefreshed(kind: AIInsightKind, sectionID: String) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.AIInsight.refreshed,
+            parameters: [
+                "kind": kind.rawValue,
+                "section_id": sectionID
+            ]
+        )
+    }
+
+    static func aiInsightExpanded(kind: AIInsightKind, metric: String, expanded: Bool) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.AIInsight.expanded,
+            parameters: [
+                "kind": kind.rawValue,
+                "metric": metric,
+                "expanded": AnalyticsBool.string(expanded)
             ]
         )
     }
