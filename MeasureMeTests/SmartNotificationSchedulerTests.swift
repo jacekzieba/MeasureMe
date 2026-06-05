@@ -230,6 +230,24 @@ final class SmartNotificationSchedulerTests: XCTestCase {
         XCTAssertTrue(patternCandidates.isEmpty)
     }
 
+    func testPatternCandidate_RespectsSmartDaysMinimum() {
+        // Pattern: weight on Saturdays at 10AM; last log was 7 days ago.
+        for week in 0..<4 {
+            let d = date("2026-01-03 10:00").addingTimeInterval(Double(week * 7) * 86400)
+            insertSample(kind: .weight, date: d)
+        }
+
+        let now = date("2026-01-31 11:00") // Saturday, 7 days after latest sample
+        let scheduler = makeScheduler(now: now)
+        let candidates = scheduler.computeCandidates(
+            activeMetricKinds: ["weight"],
+            smartDays: 14
+        )
+
+        let patternCandidates = candidates.filter { $0.reason == .missedPattern }
+        XCTAssertTrue(patternCandidates.isEmpty)
+    }
+
     func testPatternCandidate_OutsideTimeWindow_NoCandidate() {
         // Pattern: weight on Saturdays at 10AM (bucket 9-12)
         for week in 0..<4 {

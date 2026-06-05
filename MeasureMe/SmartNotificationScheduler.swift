@@ -97,10 +97,11 @@ struct SmartNotificationScheduler {
             let bucketEnd = pattern.hourBucketStart + 3
             guard currentHour >= pattern.hourBucketStart && currentHour <= bucketEnd + 2 else { continue }
 
-            // Check user hasn't logged this metric today
-            if let lastDate = analysis.lastLogDates[pattern.kindRaw],
-               calendar.isDate(lastDate, inSameDayAs: now) {
-                continue
+            // Check user hasn't logged this metric within the configured smart reminder interval.
+            if let lastDate = analysis.lastLogDates[pattern.kindRaw] {
+                guard now.timeIntervalSince(lastDate) >= TimeInterval(max(smartDays, 1)) * 86400 else {
+                    continue
+                }
             }
 
             let metricTitle = metricDisplayName(for: pattern.kindRaw)

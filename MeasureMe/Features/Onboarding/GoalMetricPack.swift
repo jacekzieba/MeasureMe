@@ -6,9 +6,11 @@ enum GoalMetricPack {
         case .loseWeight:
             return [.weight, .waist]
         case .buildMuscle:
-            return [.chest, .leftBicep]
+            return [.weight, .chest, .leftBicep, .waist]
         case .improveHealth:
-            return [.waist, .chest]
+            return [.weight, .waist, .chest, .leftBicep]
+        case .trackHealth:
+            return [.weight, .waist]
         }
     }
 

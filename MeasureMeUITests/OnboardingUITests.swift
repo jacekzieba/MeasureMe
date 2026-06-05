@@ -65,24 +65,28 @@ final class OnboardingUITests: XCTestCase {
         nextButton.tap()
     }
 
-    private func advanceToHealthStep(selecting identifier: String = "onboarding.priority.improveHealth") {
+    private func advanceToStartingPoint(selecting identifier: String = "onboarding.priority.improveHealth") {
         selectGoalAndAdvance(identifier)
-        nextButton.tap()
+        XCTAssertTrue(app.buttons["onboarding.startingPoint.importHealth"].waitForExistence(timeout: 5))
+    }
+
+    private func advanceToHealthImportContext(selecting identifier: String = "onboarding.priority.improveHealth") {
+        advanceToStartingPoint(selecting: identifier)
         nextButton.tap()
         XCTAssertTrue(app.buttons["onboarding.health.allow"].waitForExistence(timeout: 5))
     }
 
-    func testOnboardingStartsOnCombinedProfileStep() {
+    func testOnboardingShowsGoalSelectionAfterWelcome() {
         advancePastWelcome()
-        XCTAssertTrue(app.textFields["onboarding.name.field"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["onboarding.priority.loseWeight"].exists)
         XCTAssertTrue(app.buttons["onboarding.priority.buildMuscle"].exists)
         XCTAssertTrue(app.buttons["onboarding.priority.improveHealth"].exists)
+        XCTAssertTrue(app.buttons["onboarding.priority.trackHealth"].exists)
         XCTAssertTrue(skipButton.waitForExistence(timeout: 5))
         XCTAssertTrue(waitForOnboardingStep("step:1"))
     }
 
-    func testBackNavigationReturnsFromMetricsToProfileStep() {
+    func testBackNavigationReturnsFromStartingPointToGoalStep() {
         selectGoalAndAdvance("onboarding.priority.loseWeight")
 
         let stepHook = app.staticTexts["root.onboarding.test.step"].firstMatch
@@ -92,50 +96,44 @@ final class OnboardingUITests: XCTestCase {
         backButton.tap()
 
         XCTAssertTrue(waitForOnboardingStep("step:1"))
-        XCTAssertTrue(app.textFields["onboarding.name.field"].exists)
+        XCTAssertTrue(app.buttons["onboarding.priority.loseWeight"].exists)
     }
 
-    func testMetricsScreenReflectsSelectedGoal() {
+    func testStartingPointReflectsSelectedGoal() {
         selectGoalAndAdvance("onboarding.priority.buildMuscle")
 
+        XCTAssertTrue(app.staticTexts["Weight"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Chest"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Left bicep"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Arms"].waitForExistence(timeout: 5))
         XCTAssertTrue(waitForOnboardingStep("step:2"))
     }
 
-    func testHealthPromptAppearsAfterMetricsAndPhotos() {
-        advanceToHealthStep()
+    func testHealthPromptAppearsOnlyAfterImportChoice() {
+        advanceToStartingPoint()
+        XCTAssertFalse(app.buttons["onboarding.health.allow"].exists)
+
+        nextButton.tap()
 
         let healthButton = app.buttons["onboarding.health.allow"].firstMatch
-        XCTAssertTrue(healthButton.exists, "Health soft ask should appear before the final Premium step")
+        XCTAssertTrue(healthButton.waitForExistence(timeout: 5), "Health context should appear after choosing Apple Health import")
         XCTAssertTrue(skipButton.exists, "Health step should still allow skipping")
         XCTAssertTrue(app.descendants(matching: .any)["onboarding.privacy.note"].firstMatch.exists)
     }
 
-    func testPremiumStepAppearsAfterHealth() {
-        advanceToHealthStep()
+    func testManualPathReachesDashboardWithoutPremiumStep() {
+        advanceToStartingPoint()
+        skipButton.tap()
 
-        nextButton.tap()
-
-        XCTAssertTrue(waitForOnboardingStep("step:5"))
-        XCTAssertTrue(app.buttons["onboarding.premium.trial"].firstMatch.waitForExistence(timeout: 8))
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8), "Manual path should open the main app")
+        XCTAssertFalse(app.buttons["onboarding.premium.trial"].firstMatch.exists)
     }
 
     func testOnboardingCanReachDashboardWithSkips() {
         skipButton.tap()
         XCTAssertTrue(waitForOnboardingStep("step:1"))
 
-        nextButton.tap()
+        skipButton.tap()
         XCTAssertTrue(waitForOnboardingStep("step:2"))
-
-        nextButton.tap()
-        XCTAssertTrue(waitForOnboardingStep("step:3"))
-
-        skipButton.tap()
-        XCTAssertTrue(waitForOnboardingStep("step:4"))
-
-        skipButton.tap()
-        XCTAssertTrue(waitForOnboardingStep("step:5"))
 
         skipButton.tap()
 

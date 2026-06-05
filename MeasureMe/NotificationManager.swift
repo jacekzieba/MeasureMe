@@ -336,11 +336,13 @@ final class NotificationManager: ObservableObject {
     func recordMeasurement(date: Date = .now) {
         lastLogDate = date
         cancelSmartNotification()
+        cancelAllSmartMetricNotifications()
     }
 
     func recordMeasurement(kinds: [MetricKind], date: Date = .now) {
         lastLogDate = date
         cancelSmartNotification()
+        cancelAllSmartMetricNotifications()
         updatePerMetricLastDates(kinds: kinds, date: date)
     }
 

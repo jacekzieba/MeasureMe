@@ -258,6 +258,23 @@ final class NotificationManagerTests: XCTestCase {
         XCTAssertTrue(center.removedIdentifiers.contains("measurement_smart_reminder"))
     }
 
+    func testRecordMeasurementWithKinds_CancelsPendingSmartMetricNotifications() async {
+        let center = MockNotificationCenterClient()
+        center.pendingIdentifiers = [
+            "smart_metric_stale_weight",
+            "smart_metric_pattern_waist",
+            "measurement_reminder_keep"
+        ]
+        let manager = makeManager(center: center)
+
+        manager.recordMeasurement(kinds: [.weight], date: .now)
+        await waitUntil(center.removedIdentifiers.contains("smart_metric_stale_weight"))
+
+        XCTAssertTrue(center.removedIdentifiers.contains("smart_metric_stale_weight"))
+        XCTAssertTrue(center.removedIdentifiers.contains("smart_metric_pattern_waist"))
+        XCTAssertFalse(center.removedIdentifiers.contains("measurement_reminder_keep"))
+    }
+
     // MARK: - perMetricSmartEnabled
 
     func testPerMetricSmartEnabled_DefaultsToTrue() {

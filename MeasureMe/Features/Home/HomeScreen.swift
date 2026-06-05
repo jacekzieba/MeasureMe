@@ -1323,11 +1323,11 @@ struct HomeView: View {
     var activationTaskSequence: [ActivationTask] {
         var sequence: [ActivationTask] = [
             .firstMeasurement,
-            .addPhoto,
-            .personalizeProfile,
-            .connectHealth,
             .chooseMetrics,
             .setReminders,
+            .addPhoto,
+            .connectHealth,
+            .personalizeProfile,
             .explorePremium
         ]
         if premiumStore.isPremium {
@@ -3057,4 +3057,3 @@ struct HomeView: View {
         }
     }
 }
-

@@ -7,7 +7,7 @@ extension OnboardingView {
 
     var metricsPreviewCards: [MetricsPreviewCardData] {
         switch resolvedPriority {
-        case .loseWeight:
+        case .loseWeight, .trackHealth:
             return [
                 MetricsPreviewCardData(
                     title: MetricKind.weight.title,
@@ -118,7 +118,7 @@ extension OnboardingView {
         }
 
         switch resolvedPriority {
-        case .loseWeight:
+        case .loseWeight, .trackHealth:
             let lineOne = personalizedIntro.isEmpty
                 ? FlowLocalization.app(
                     "Weight is trending down and waist is tightening too.",

@@ -89,11 +89,11 @@
 "goal.start.date.label" = "Starting date";
 
 // Goal Prediction
-"metric.goal.prediction.title" = "Goal Prediction";
+"metric.goal.prediction.title" = "Progress forecast";
 "metric.goal.trend.opposite" = "Your recent trend is moving away from your goal. Small changes to your routine can help get back on track.";
 "metric.goal.trend.flat" = "Your trend is currently stable. Once progress begins, we'll estimate your goal date.";
 "metric.goal.trend.too_far" = "At your current pace, the goal is more than 5 years away. Consider adjusting your target.";
-"metric.goal.premium.locked.title" = "Goal Prediction";
+"metric.goal.premium.locked.title" = "Progress forecast";
 "metric.goal.premium.locked.message" = "Upgrade to Premium to see when you'll reach your goal.";
 
 // Prediction Rates (expandable card)
@@ -627,13 +627,13 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "premium.carousel.export.feature.csv" = "CSV export of all measurements";
 "premium.carousel.export.feature.timeline" = "Export photo timeline";
 "premium.carousel.export.feature.reports" = "Share progress reports";
-"premium.carousel.unlock.title" = "Train smarter. See real progress.";
-"premium.carousel.unlock.body" = "Get everything in one place, including iCloud sync and backups, to stay consistent and move faster with confidence.";
-"premium.carousel.unlock.item.ai" = "Unlimited AI Body Insights";
-"premium.carousel.unlock.item.compare" = "Photo Comparison Tool";
-"premium.carousel.unlock.item.health" = "Health & Trends Analysis";
-"premium.carousel.unlock.item.export" = "Data Export (CSV, JSON, PDF)";
-"premium.carousel.unlock.item.prediction" = "Goal Prediction";
+"premium.carousel.unlock.title" = "Understand your progress faster";
+"premium.carousel.unlock.body" = "See how weight, waist, photos and trends fit together when you need a clearer read.";
+"premium.carousel.unlock.item.ai" = "AI summaries from your measurements";
+"premium.carousel.unlock.item.compare" = "Side-by-side photo comparisons";
+"premium.carousel.unlock.item.health" = "Weight, waist and health trends together";
+"premium.carousel.unlock.item.export" = "Export progress when you need it";
+"premium.carousel.unlock.item.prediction" = "Progress forecast";
 "premium.carousel.unlock.item.icloud" = "iCloud sync & backup restore";
 "premium.carousel.unlock.item.overlay" = "Ghost Overlay Photo Comparison";
 "premium.carousel.unlock.item.social" = "Transformation Card for Social Media";
@@ -979,7 +979,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "AI Insights: unavailable (Premium Edition required)" = "AI Insights: unavailable (Premium Edition required)";
 "What if AI Insights are unavailable?" = "What if AI Insights are unavailable?";
 "AI Insights in MeasureMe use Apple Intelligence. You need a supported device and language, plus Apple Intelligence enabled in system settings." = "AI Insights in MeasureMe use Apple Intelligence. You need a supported device and language, plus Apple Intelligence enabled in system settings.";
-"Premium unlocks AI Insights, Goal Prediction, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled." = "Premium unlocks AI Insights, Goal Prediction, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled.";
+"Premium unlocks AI Insights, Goal Prediction, Health Indicators, Physique Indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled." = "Premium unlocks AI summaries, progress forecast, health indicators, physique indicators, data export, and photo comparison. AI Insights in MeasureMe use Apple Intelligence, so Apple Intelligence must be available and enabled.";
 "premium.carousel.indicators.more" = "And 5 more";
 "premium.compare.benefit.visual" = "Visual proof";
 "premium.compare.benefit.timeline" = "Timeline context";
@@ -1910,8 +1910,8 @@ The thresholds differ between males and females due to different body compositio
 "faq.premium.aiinsights.a" = "AI Insights uses Apple Intelligence to analyse your recent trend and generate a short, personalised summary. It runs on device, requires a supported device with Apple Intelligence enabled, and refreshes once per day or when a new value is logged.";
 "faq.premium.icloudbackup.q" = "What does iCloud backup include?";
 "faq.premium.icloudbackup.a" = "iCloud backup stores all your measurements, goals, and photos in encrypted form in your personal iCloud account. It runs automatically when the app is in the background and can be restored from Settings → Data → Restore from backup.";
-"faq.premium.goalprediction.q" = "How does Goal Prediction work?";
-"faq.premium.goalprediction.a" = "When you set a goal, Goal Prediction uses Double Exponential Smoothing to analyse your recent trend and estimate when you will reach your target. It needs at least 7 measurements over 7 days. If your trend is moving away from the goal or is flat, a helpful message is shown instead of a date.";
+"faq.premium.goalprediction.q" = "How does Progress forecast work?";
+"faq.premium.goalprediction.a" = "When you set a goal, Progress forecast uses Double Exponential Smoothing to analyse your recent trend and estimate when you may reach your target. It needs at least 7 measurements over 7 days. If your trend is moving away from the goal or is flat, a helpful message is shown instead of a date.";
 
 /* Settings search catalog */
 "App version and legal" = "App version and legal";

@@ -11,7 +11,12 @@ final class OnboardingToGoalJourneyUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-uiTestOnboardingMode", "-uiTestSeedMeasurements"]
+        app.launchArguments = [
+            "-uiTestOnboardingMode",
+            "-uiTestSeedMeasurements",
+            "-uiTestOnboardingPriority",
+            "buildMuscle"
+        ]
         app.launch()
     }
 
@@ -42,16 +47,12 @@ final class OnboardingToGoalJourneyUITests: XCTestCase {
 
         let buildMuscle = app.buttons["onboarding.priority.buildMuscle"].firstMatch
         XCTAssertTrue(buildMuscle.waitForExistence(timeout: 8), "Polaczony krok profilu i celu powinien byc widoczny")
-        buildMuscle.tap()
-        next.tap()  // profile → metrics
+        next.tap()  // goal → starting point
 
-        next.tap()  // metrics → photos
-        next.tap()  // photos → health
-
+        XCTAssertTrue(app.buttons["onboarding.startingPoint.manual"].firstMatch.waitForExistence(timeout: 8), "Opcja recznego logowania powinna byc widoczna")
         let skip = app.buttons["UITest Skip"].firstMatch
-        XCTAssertTrue(app.buttons["onboarding.health.allow"].firstMatch.waitForExistence(timeout: 8), "Krok Health powinien byc widoczny")
-        skip.tap()  // health → premium
-        skip.tap()  // premium → finish
+        XCTAssertTrue(skip.waitForExistence(timeout: 5), "Mostek UI testow powinien pozwolic przejsc sciezka reczna")
+        skip.tap()
     }
 
     private func onboardingNextButton() -> XCUIElement {
