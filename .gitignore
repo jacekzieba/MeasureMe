@@ -14,6 +14,14 @@ DerivedData/
 build/
 *.xcresult
 
+# Local tooling state
+.mavis/
+.opencode/
+
+# Local reference assets
+photos/
+measure_buddy_10_poses_transparent/
+
 # SwiftPM
 .swiftpm/
 
