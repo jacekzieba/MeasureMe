@@ -46,14 +46,6 @@ private final class OnboardingNotificationManagerMock: OnboardingNotificationMan
     }
 }
 
-private final class OnboardingAnalyticsMock: OnboardingAnalyticsTracking {
-    private(set) var trackedSignals: [AnalyticsSignal] = []
-
-    func track(_ signal: AnalyticsSignal) {
-        trackedSignals.append(signal)
-    }
-}
-
 @MainActor
 final class OnboardingEffectsTests: XCTestCase {
     private func makeDefaults(suffix: String = UUID().uuidString) -> UserDefaults {
@@ -77,7 +69,6 @@ final class OnboardingEffectsTests: XCTestCase {
         let effects = OnboardingEffects(
             healthKit: OnboardingHealthKitMock(),
             notifications: notifications,
-            analytics: OnboardingAnalyticsMock(),
             settings: AppSettingsStore(defaults: makeDefaults())
         )
 
@@ -101,7 +92,6 @@ final class OnboardingEffectsTests: XCTestCase {
         let effects = OnboardingEffects(
             healthKit: OnboardingHealthKitMock(),
             notifications: notifications,
-            analytics: OnboardingAnalyticsMock(),
             settings: AppSettingsStore(defaults: makeDefaults())
         )
         let newDate = Date(timeIntervalSince1970: 1_710_000_000)
@@ -115,22 +105,18 @@ final class OnboardingEffectsTests: XCTestCase {
         XCTAssertEqual(notifications.scheduledBatches[0].count, 1)
     }
 
-    func testTrackAndGoalStatUseInjectedDependencies() {
-        let analytics = OnboardingAnalyticsMock()
+    func testGoalStatUsesInjectedSettings() {
         let defaults = makeDefaults()
         let store = AppSettingsStore(defaults: defaults)
         let effects = OnboardingEffects(
             healthKit: OnboardingHealthKitMock(),
             notifications: OnboardingNotificationManagerMock(),
-            analytics: analytics,
             settings: store
         )
 
-        effects.track(.onboardingStarted)
         effects.incrementWelcomeGoalSelectionStat(goalRawValue: "loseWeight")
         effects.incrementWelcomeGoalSelectionStat(goalRawValue: "loseWeight")
 
-        XCTAssertEqual(analytics.trackedSignals, [.onboardingStarted])
         XCTAssertEqual(store.integer(forKey: "onboarding_goal_selection_stat_loseWeight"), 2)
     }
 }

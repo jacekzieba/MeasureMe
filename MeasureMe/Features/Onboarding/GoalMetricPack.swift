@@ -1,17 +1,24 @@
 import Foundation
 
 enum GoalMetricPack {
+    static let defaultTrackedKinds: [MetricKind] = [.weight, .bodyFat]
+
     static func recommendedKinds(for priority: OnboardingPriority) -> [MetricKind] {
+        let goalSpecificKinds: [MetricKind]
         switch priority {
         case .loseWeight:
-            return [.weight, .waist]
+            goalSpecificKinds = [.weight, .waist]
         case .buildMuscle:
-            return [.weight, .chest, .leftBicep, .waist]
+            goalSpecificKinds = [.chest, .leftBicep, .rightBicep]
         case .improveHealth:
-            return [.weight, .waist, .chest, .leftBicep]
-        case .trackHealth:
-            return [.weight, .waist]
+            goalSpecificKinds = [.waist, .chest]
         }
+
+        return mergedKinds(goalSpecificKinds)
+    }
+
+    static func trackedKinds(for priority: OnboardingPriority) -> [MetricKind] {
+        mergedKinds(defaultTrackedKinds + recommendedKinds(for: priority))
     }
 
     static func recommendedKinds(for goals: Set<OnboardingView.WelcomeGoal>) -> [MetricKind] {
@@ -28,5 +35,10 @@ enum GoalMetricPack {
         }
 
         return result
+    }
+
+    private static func mergedKinds(_ kinds: [MetricKind]) -> [MetricKind] {
+        var seen = Set<MetricKind>()
+        return kinds.filter { seen.insert($0).inserted }
     }
 }

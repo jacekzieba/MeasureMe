@@ -506,6 +506,9 @@ final class PremiumStore: ObservableObject {
         if isAuthorized {
             notificationManager.notificationsEnabled = true
             notificationManager.scheduleTrialEndingReminder(daysFromNow: 12)
+            analytics.track(
+                AnalyticsEvents.remindersSeeded(source: .premiumTrial, repeatRule: .once)
+            )
             actionMessage = AppLocalization.string("premium.purchase.trial.success")
             showTrialReminderOptInPrompt = false
             showTrialNotificationPermissionPrompt = false
@@ -520,14 +523,24 @@ final class PremiumStore: ObservableObject {
 
     func confirmTrialNotificationPermissionOptIn() async {
         let previousNotificationsPreference = notificationManager.notificationsEnabled
+        analytics.track(AnalyticsEvents.notificationsPermissionPrompted(source: .premiumTrial))
         let granted = await notificationManager.requestAuthorization()
 
         if granted {
             notificationManager.notificationsEnabled = true
             notificationManager.scheduleTrialEndingReminder(daysFromNow: 12)
+            analytics.track(
+                AnalyticsEvents.notificationsPermissionResolved(source: .premiumTrial, result: "granted")
+            )
+            analytics.track(
+                AnalyticsEvents.remindersSeeded(source: .premiumTrial, repeatRule: .once)
+            )
             actionMessage = AppLocalization.string("premium.purchase.trial.success")
         } else {
             notificationManager.notificationsEnabled = previousNotificationsPreference
+            analytics.track(
+                AnalyticsEvents.notificationsPermissionResolved(source: .premiumTrial, result: "denied")
+            )
             actionMessage = AppLocalization.string("premium.purchase.trial.enable.notifications")
         }
 
@@ -553,21 +566,34 @@ final class PremiumStore: ObservableObject {
         actionMessageIsError = false
     }
 
-    func restorePurchases() async {
+    func restorePurchases(source: PurchaseRestoreSource = .settings) async {
+        analytics.track(AnalyticsEvents.purchaseRestoreStarted(source: source))
         let wasPremium = isPremium
         do {
             let info = try await billingClient.restorePurchases()
             applyCustomerInfo(info)
             if isPremium {
+                analytics.track(
+                    AnalyticsEvents.purchaseRestoreCompleted(
+                        source: source,
+                        result: wasPremium ? "already_active" : "restored"
+                    )
+                )
                 actionMessage = wasPremium
                     ? AppLocalization.string("premium.restore.already.active")
                     : AppLocalization.string("premium.restore.success")
                 actionMessageIsError = false
             } else {
+                analytics.track(
+                    AnalyticsEvents.purchaseRestoreCompleted(source: source, result: "none")
+                )
                 actionMessage = AppLocalization.string("premium.restore.none")
                 actionMessageIsError = false
             }
         } catch {
+            analytics.track(
+                AnalyticsEvents.purchaseRestoreCompleted(source: source, result: "failed")
+            )
             actionMessage = AppLocalization.string("premium.restore.failed", error.localizedDescription)
             actionMessageIsError = true
         }
@@ -637,8 +663,9 @@ final class PremiumStore: ObservableObject {
                 return
             }
             analytics.track(
-                signalName: PremiumTelemetrySignal.purchaseCancelled,
-                parameters: purchaseContextParameters(source: "direct_purchase")
+                AnalyticsEvents.purchaseCancelled(
+                    parameters: purchaseContextParameters(source: "direct_purchase")
+                )
             )
             actionMessage = AppLocalization.string("premium.purchase.cancelled")
             actionMessageIsError = false
@@ -666,8 +693,9 @@ final class PremiumStore: ObservableObject {
             }
         } else {
             analytics.track(
-                signalName: PremiumTelemetrySignal.purchasePending,
-                parameters: purchaseContextParameters(source: "direct_purchase")
+                AnalyticsEvents.purchasePending(
+                    parameters: purchaseContextParameters(source: "direct_purchase")
+                )
             )
             actionMessage = AppLocalization.string("premium.purchase.pending")
             actionMessageIsError = false
@@ -720,8 +748,7 @@ final class PremiumStore: ObservableObject {
     ) {
         guard markPurchaseTrackedIfNeeded(purchaseKey: purchaseKey) else { return }
         analytics.track(
-            signalName: PremiumTelemetrySignal.purchaseCompleted,
-            parameters: parameters
+            AnalyticsEvents.purchaseCompleted(parameters: parameters)
         )
     }
 
@@ -782,12 +809,6 @@ enum PremiumConstants {
     static let monthlyProductID = "com.measureme.premium.monthly"
     static let yearlyProductID = "com.measureme.premium.yearly"
     static let lifetimeProductID = "com.measureme.premium.lifetime"
-}
-
-private enum PremiumTelemetrySignal {
-    static let purchaseCompleted = "com.jacekzieba.measureme.purchase.completed"
-    static let purchaseCancelled = "com.jacekzieba.measureme.purchase.cancelled"
-    static let purchasePending = "com.jacekzieba.measureme.purchase.pending"
 }
 
 extension PremiumStore.PaywallReason {

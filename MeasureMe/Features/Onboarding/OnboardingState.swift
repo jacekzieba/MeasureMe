@@ -4,7 +4,6 @@ extension OnboardingView {
     enum WelcomeGoal: String, CaseIterable {
         case loseWeight
         case buildMuscle
-        case recomposition
         case trackHealth
 
         var priority: OnboardingPriority {
@@ -13,30 +12,31 @@ extension OnboardingView {
                 return .loseWeight
             case .buildMuscle:
                 return .buildMuscle
-            case .recomposition:
-                return .improveHealth
             case .trackHealth:
-                return .trackHealth
+                return .improveHealth
             }
         }
     }
 
     enum InputStep: Int, CaseIterable {
         case welcome
-        case goal
-        case startingPoint
-        case healthImport
+        case profile
+        case metrics
+        case photos
+        case health
 
         var analyticsName: String {
             switch self {
             case .welcome:
                 return "welcome"
-            case .goal:
-                return "goal"
-            case .startingPoint:
-                return "starting_point"
-            case .healthImport:
-                return "health_import"
+            case .profile:
+                return "profile"
+            case .metrics:
+                return "metrics"
+            case .photos:
+                return "photos"
+            case .health:
+                return "health"
             }
         }
     }
@@ -48,32 +48,32 @@ extension OnboardingView {
         var title: String {
             switch self {
             case .welcome:
-                return FlowLocalization.app(
-                    "Track your body change without obsessing over the scale",
-                    "Śledź zmiany sylwetki bez obsesji na punkcie wagi",
-                    "Sigue el cambio de tu cuerpo sin obsesionarte con la báscula",
-                    "Verfolge Körperveränderung ohne Waagen-Obsession",
-                    "Suivez votre corps sans obsession de la balance",
-                    "Acompanhe mudanças no corpo sem obsessão pela balança"
-                )
+                return AppLocalization.systemString("Welcome")
             case .firstMeasurement:
-                return AppLocalization.systemString("Add your first measurements")
+                return FlowLocalization.app(
+                    "Save your starting point",
+                    "Zapisz punkt startowy",
+                    "Guarda tu punto de partida",
+                    "Speichere deinen Startpunkt",
+                    "Enregistrez votre point de départ",
+                    "Salve seu ponto de partida"
+                )
             }
         }
 
         var subtitle: String {
             switch self {
             case .welcome:
-                return FlowLocalization.app(
-                    "MeasureMe helps you track weight, waist, photos and trends in one private place.",
-                    "MeasureMe pomaga śledzić wagę, pas, zdjęcia i trendy w jednym prywatnym miejscu.",
-                    "MeasureMe te ayuda a seguir peso, cintura, fotos y tendencias en un lugar privado.",
-                    "MeasureMe hilft dir, Gewicht, Taille, Fotos und Trends an einem privaten Ort zu verfolgen.",
-                    "MeasureMe vous aide à suivre poids, taille, photos et tendances dans un espace privé.",
-                    "O MeasureMe ajuda a acompanhar peso, cintura, fotos e tendências em um lugar privado."
-                )
+                return AppLocalization.systemString("Set your goal and preview your progress")
             case .firstMeasurement:
-                return AppLocalization.systemString("Just a few values to personalize your insights")
+                return FlowLocalization.app(
+                    "This is not a score. It is your baseline.",
+                    "To nie wynik. To punkt startowy.",
+                    "No es una nota. Es tu línea base.",
+                    "Das ist keine Bewertung. Es ist dein Ausgangspunkt.",
+                    "Ce n'est pas un score. C'est votre point de départ.",
+                    "Isto não é uma nota. É sua linha de base."
+                )
             }
         }
     }
@@ -85,10 +85,8 @@ extension OnboardingView.WelcomeGoal {
             return AppLocalization.systemString("Lose weight")
         case .buildMuscle:
             return AppLocalization.systemString("Build muscle")
-        case .recomposition:
-            return AppLocalization.systemString("Recomposition")
         case .trackHealth:
-            return AppLocalization.systemString("Track health")
+            return AppLocalization.systemString("Maintain / recomp")
         }
     }
 }

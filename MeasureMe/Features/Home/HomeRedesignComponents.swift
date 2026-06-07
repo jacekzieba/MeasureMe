@@ -8,10 +8,31 @@ struct HomeAIInsightItem: Identifiable {
         case neutral
     }
 
+    enum Kind: Equatable {
+        case trend
+        case baseline
+        case forming
+        case photoComparison
+        case premiumLocked
+    }
+
     let id = UUID()
     let symbol: String
     let text: String
     let tone: Tone
+    let kind: Kind
+
+    init(
+        symbol: String,
+        text: String,
+        tone: Tone,
+        kind: Kind = .trend
+    ) {
+        self.symbol = symbol
+        self.text = text
+        self.tone = tone
+        self.kind = kind
+    }
 }
 
 struct HomeAIAnalysisItem: Identifiable {
@@ -45,7 +66,12 @@ struct HomeTopSummarySection: View {
     let isPremium: Bool
     let insights: [HomeAIInsightItem]
     let analysisItems: [HomeAIAnalysisItem]
+    let showStreak: Bool
+    let streakCount: Int
+    let shouldAnimateStreak: Bool
     let onUnlockPremium: () -> Void
+    let onOpenStreak: () -> Void
+    let onStreakAnimationComplete: () -> Void
     let onOpenProfile: () -> Void
 
     var body: some View {
@@ -86,6 +112,19 @@ struct HomeTopSummarySection: View {
             }
 
             Spacer(minLength: 10)
+
+            if showStreak {
+                Button(action: onOpenStreak) {
+                    StreakBadge(
+                        count: streakCount,
+                        shouldAnimate: shouldAnimateStreak,
+                        onAnimationComplete: onStreakAnimationComplete
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(AppLocalization.string("accessibility.streak.count", streakCount))
+                .accessibilityIdentifier("home.streak.badge")
+            }
 
             Button(action: onOpenProfile) {
                 HomeProfileAvatar(profilePhotoData: profilePhotoData, fallbackText: avatarText)
@@ -133,20 +172,23 @@ private struct HomeAIInsightsPanel: View {
                                 .foregroundStyle(AppColorRoles.textPrimary)
                                 .lineLimit(3)
                                 .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityIdentifier("home.aiInsights.primaryText")
 
-                            Button {
-                                isAnalysisPresented = true
-                            } label: {
-                                HStack(spacing: 3) {
-                                    Text(FlowLocalization.app("See full analysis", "Zobacz pełną analizę", "Ver análisis completo", "Vollständige Analyse ansehen", "Voir l'analyse complète", "Ver análise completa"))
-                                    Text("→")
+                            if firstInsight.kind == .trend && !analysisItems.isEmpty {
+                                Button {
+                                    isAnalysisPresented = true
+                                } label: {
+                                    HStack(spacing: 3) {
+                                        Text(FlowLocalization.app("See full analysis", "Zobacz pełną analizę", "Ver análisis completo", "Vollständige Analyse ansehen", "Voir l'analyse complète", "Ver análise completa"))
+                                        Text("→")
+                                    }
+                                    .font(.system(size: 10, weight: .heavy))
+                                    .foregroundStyle(accent)
                                 }
-                                .font(.system(size: 10, weight: .heavy))
-                                .foregroundStyle(accent)
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("home.aiInsights.openAnalysis")
+                                .padding(.top, 2)
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("home.aiInsights.openAnalysis")
-                            .padding(.top, 2)
                         } else {
                             Text(AppLocalization.string("AI Insights"))
                                 .font(AppTypography.headlineEmphasis)

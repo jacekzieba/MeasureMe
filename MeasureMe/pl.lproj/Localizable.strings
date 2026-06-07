@@ -111,11 +111,11 @@
 "goal.start.help.first" = "Brak pomiarów — ta wartość zostanie zapisana jako pierwszy wpis.";
 
 // Goal Prediction
-"metric.goal.prediction.title" = "Prognoza postępu";
+"metric.goal.prediction.title" = "Prognoza celu";
 "metric.goal.trend.opposite" = "Twój ostatni trend oddala się od celu. Drobne zmiany w codziennej rutynie mogą pomóc w powrocie na właściwy tor.";
 "metric.goal.trend.flat" = "Twój trend jest obecnie stabilny. Gdy pojawi się postęp, oszacujemy datę osiągnięcia celu.";
 "metric.goal.trend.too_far" = "W obecnym tempie cel jest oddalony o ponad 5 lat. Rozważ dostosowanie celu.";
-"metric.goal.premium.locked.title" = "Prognoza postępu";
+"metric.goal.premium.locked.title" = "Prognoza celu";
 "metric.goal.premium.locked.message" = "Przejdź na Premium, aby zobaczyć, kiedy osiągniesz swój cel.";
 
 // Prediction Rates (expandable card)
@@ -1132,13 +1132,13 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "premium.carousel.export.feature.csv" = "Eksport CSV wszystkich pomiarów";
 "premium.carousel.export.feature.timeline" = "Eksport osi czasu zdjęć";
 "premium.carousel.export.feature.reports" = "Udostępniaj raporty postępów";
-"premium.carousel.unlock.title" = "Szybciej zrozum swój progres";
-"premium.carousel.unlock.body" = "Zobacz razem wagę, pas, zdjęcia i trendy, gdy potrzebujesz jaśniejszego obrazu.";
-"premium.carousel.unlock.item.ai" = "Podsumowania AI z Twoich pomiarów";
-"premium.carousel.unlock.item.compare" = "Porównywanie zdjęć obok siebie";
-"premium.carousel.unlock.item.health" = "Trendy wagi, pasa i zdrowia razem";
-"premium.carousel.unlock.item.export" = "Eksport progresu, gdy go potrzebujesz";
-"premium.carousel.unlock.item.prediction" = "Prognoza postępu";
+"premium.carousel.unlock.title" = "Trenuj mądrzej, zobacz progres";
+"premium.carousel.unlock.body" = "Miej wszystko w jednym miejscu, w tym synchronizację i kopię zapasową w iCloud, aby utrzymać regularność i przyspieszyć postępy.";
+"premium.carousel.unlock.item.ai" = "Nielimitowane analizy AI";
+"premium.carousel.unlock.item.compare" = "Narzędzie porównywania zdjęć";
+"premium.carousel.unlock.item.health" = "Analiza zdrowia i trendów";
+"premium.carousel.unlock.item.export" = "Eksport danych (CSV, JSON, PDF)";
+"premium.carousel.unlock.item.prediction" = "Prognoza celu";
 "premium.carousel.unlock.item.icloud" = "Synchronizacja i kopia zapasowa w iCloud";
 "premium.carousel.unlock.item.overlay" = "Porównywanie zdjęć z nakładką ghost";
 "premium.carousel.unlock.item.social" = "Karta przemiany na media społecznościowe";

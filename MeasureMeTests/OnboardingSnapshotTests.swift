@@ -7,6 +7,7 @@
 
 import XCTest
 import SwiftUI
+import SwiftData
 import SnapshotTesting
 
 // NOTE: record is controlled by the RECORD_SNAPSHOTS env var rather than a hard-coded flag.
@@ -29,10 +30,6 @@ private final class StubOnboardingNotifications: OnboardingNotificationManaging 
     func loadReminders() -> [MeasurementReminder] { [] }
     func saveReminders(_ reminders: [MeasurementReminder]) {}
     func scheduleAllReminders(_ reminders: [MeasurementReminder]) {}
-}
-
-private final class StubOnboardingAnalytics: OnboardingAnalyticsTracking {
-    func track(_ signal: AnalyticsSignal) {}
 }
 
 // MARK: -
@@ -89,12 +86,26 @@ final class OnboardingSnapshotTests: XCTestCase {
         OnboardingEffects(
             healthKit: StubOnboardingHealthKit(),
             notifications: StubOnboardingNotifications(),
-            analytics: StubOnboardingAnalytics()
         )
     }
 
-    private func makeHostingController(colorScheme: ColorScheme) -> UIHostingController<some View> {
+    private func makeContainer() throws -> ModelContainer {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+        return try ModelContainer(
+            for: MetricSample.self, MetricGoal.self, PhotoEntry.self, CustomMetricDefinition.self,
+            configurations: config
+        )
+    }
+
+    private func makeHostingController(colorScheme: ColorScheme) throws -> UIHostingController<some View> {
+        let container = try makeContainer()
+        let metricsStore = ActiveMetricsStore()
+        let pendingPhotoStore = PendingPhotoSaveStore(autoStartProcessing: false)
+
         let view = OnboardingView(effects: makeEffects())
+            .modelContainer(container)
+            .environmentObject(metricsStore)
+            .environmentObject(pendingPhotoStore)
             .preferredColorScheme(colorScheme)
 
         let vc = UIHostingController(rootView: view)
@@ -121,7 +132,7 @@ final class OnboardingSnapshotTests: XCTestCase {
         configureDefaults()
         UIView.setAnimationsEnabled(false)
 
-        let vc = makeHostingController(colorScheme: .dark)
+        let vc = try makeHostingController(colorScheme: .dark)
 
         let window = UIWindow(frame: vc.view.frame)
         window.rootViewController = vc
@@ -147,7 +158,7 @@ final class OnboardingSnapshotTests: XCTestCase {
         configureDefaults()
         UIView.setAnimationsEnabled(false)
 
-        let vc = makeHostingController(colorScheme: .light)
+        let vc = try makeHostingController(colorScheme: .light)
 
         let window = UIWindow(frame: vc.view.frame)
         window.rootViewController = vc

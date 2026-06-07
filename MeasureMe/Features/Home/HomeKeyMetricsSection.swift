@@ -73,13 +73,31 @@ struct HomeKeyMetricsCard<Content: View>: View {
             Spacer(minLength: 8)
 
             Button(action: onEdit) {
-                Text(AppLocalization.string("Edit"))
+                Text(editButtonTitle)
                     .font(AppTypography.sectionAction)
                     .foregroundStyle(theme.accent)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.trailing)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(AppLocalization.string("Open tracked metrics settings"))
+            .accessibilityIdentifier("home.keyMetrics.reviewTrackedMetrics")
         }
+    }
+
+    private var editButtonTitle: String {
+        guard snapshot.state == .content else {
+            return AppLocalization.string("Edit")
+        }
+        return FlowLocalization.app(
+            "Review tracked metrics",
+            "Przejrzyj śledzone metryki",
+            "Revisar metricas seguidas",
+            "Verfolgte Metriken pruefen",
+            "Revoir les indicateurs suivis",
+            "Revisar metricas acompanhadas"
+        )
     }
 
     private func emptyStateCard(

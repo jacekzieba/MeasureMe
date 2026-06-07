@@ -1,18 +1,13 @@
 import SwiftUI
 
 /// Onboarding step 2: lightweight first measurement form.
-/// Shows only the recommended metrics for the selected goals (2-4 fields, not 18).
-/// Weight is always first and prominent. At least one value required to proceed.
+/// Shows only the recommended metrics for the selected goal. At least one value is required to proceed.
 struct OnboardingFirstMeasurementStep: View {
     @FocusState private var focusedKind: MetricKind?
 
     let recommendedKinds: [MetricKind]
     @Binding var entries: [MetricKind: String]
     let unitsSystem: String
-    let isHealthKitSyncEnabled: Bool
-    let isRequestingHealthKit: Bool
-    let healthKitStatusText: String?
-    let onRequestHealthKit: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -26,12 +21,21 @@ struct OnboardingFirstMeasurementStep: View {
                     .padding(.top, -2)
             }
 
+            Text(
+                FlowLocalization.app(
+                    "Enter whatever you have now. You can add more later.",
+                    "Wpisz tyle, ile masz teraz. Resztę dodasz później.",
+                    "Escribe lo que tengas ahora. Podrás añadir más después.",
+                    "Trage ein, was du jetzt hast. Den Rest kannst du später ergänzen.",
+                    "Saisissez ce que vous avez maintenant. Vous pourrez ajouter le reste plus tard.",
+                    "Digite o que você tiver agora. Você pode adicionar mais depois."
+                )
+            )
+            .font(AppTypography.caption)
+            .foregroundStyle(AppColorRoles.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+
             metricFields
-            healthKitPrompt
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            dismissKeyboard()
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -48,8 +52,7 @@ struct OnboardingFirstMeasurementStep: View {
     private var metricFields: some View {
         VStack(spacing: 8) {
             ForEach(Array(recommendedKinds.enumerated()), id: \.element) { index, kind in
-                let isWeight = kind == .weight
-                metricRow(kind: kind, isPrimary: isWeight && index == 0)
+                metricRow(kind: kind, isPrimary: index == 0)
             }
         }
     }
@@ -93,6 +96,8 @@ struct OnboardingFirstMeasurementStep: View {
                     .frame(width: isPrimary ? 90 : 72)
                     .focused($focusedKind, equals: kind)
                     .accessibilityIdentifier("onboarding.measurement.\(kind.rawValue)")
+                    .accessibilityLabel("\(kind.title) \(AppLocalization.systemString("value"))")
+                    .accessibilityValue(entries[kind] ?? "")
 
                 Text(kind.unitSymbol(unitsSystem: unitsSystem))
                     .font(isPrimary ? AppTypography.bodyEmphasis : AppTypography.captionEmphasis)
@@ -123,22 +128,6 @@ struct OnboardingFirstMeasurementStep: View {
         case .percent:
             return "20.0"
         }
-    }
-
-    private var healthKitPrompt: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(AppLocalization.systemString("Want less manual typing?"))
-                .font(AppTypography.captionEmphasis)
-                .foregroundStyle(AppColorRoles.textPrimary)
-
-            OnboardingHealthKitStep(
-                isSyncEnabled: isHealthKitSyncEnabled,
-                isRequesting: isRequestingHealthKit,
-                statusText: healthKitStatusText,
-                onRequest: onRequestHealthKit
-            )
-        }
-        .padding(.top, 4)
     }
 
     private func dismissKeyboard() {

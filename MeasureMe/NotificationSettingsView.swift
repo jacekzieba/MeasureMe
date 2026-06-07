@@ -446,16 +446,23 @@ private extension NotificationSettingsView {
     func enableReminders(oldValue: Bool, newValue: Bool) {
         Task { @MainActor in
             if newValue {
+                Analytics.shared.track(AnalyticsEvents.notificationsPermissionPrompted(source: .settings))
                 let granted = await NotificationManager.shared.requestAuthorization()
                 if granted {
                     NotificationManager.shared.notificationsEnabled = true
                     store.rescheduleAll()
                     NotificationManager.shared.scheduleSmartIfNeeded()
                     NotificationManager.shared.clearLastSchedulingError()
+                    Analytics.shared.track(
+                        AnalyticsEvents.notificationsPermissionResolved(source: .settings, result: "granted")
+                    )
                     acknowledgeSaved()
                 } else {
                     notificationsEnabled = false
                     NotificationManager.shared.notificationsEnabled = false
+                    Analytics.shared.track(
+                        AnalyticsEvents.notificationsPermissionResolved(source: .settings, result: "denied")
+                    )
                     permissionMessage = AppLocalization.string("Permission denied. Enable notifications in Settings.")
                     showPermissionAlert = true
                 }
@@ -473,6 +480,7 @@ private extension NotificationSettingsView {
     func updateSmartNotifications(oldValue: Bool, newValue: Bool) {
         if newValue && !notificationsEnabled {
             Task { @MainActor in
+                Analytics.shared.track(AnalyticsEvents.notificationsPermissionPrompted(source: .settings))
                 let granted = await NotificationManager.shared.requestAuthorization()
                 if granted {
                     notificationsEnabled = true
@@ -480,10 +488,16 @@ private extension NotificationSettingsView {
                     NotificationManager.shared.smartEnabled = true
                     NotificationManager.shared.scheduleSmartIfNeeded()
                     NotificationManager.shared.clearLastSchedulingError()
+                    Analytics.shared.track(
+                        AnalyticsEvents.notificationsPermissionResolved(source: .settings, result: "granted")
+                    )
                     acknowledgeSaved()
                 } else {
                     smartEnabled = false
                     NotificationManager.shared.smartEnabled = false
+                    Analytics.shared.track(
+                        AnalyticsEvents.notificationsPermissionResolved(source: .settings, result: "denied")
+                    )
                     permissionMessage = AppLocalization.string("Permission denied. Enable notifications in Settings.")
                     showPermissionAlert = true
                 }
@@ -540,16 +554,23 @@ private extension NotificationSettingsView {
     func updateAINotifications(oldValue: Bool, newValue: Bool) {
         if newValue && !notificationsEnabled {
             Task { @MainActor in
+                Analytics.shared.track(AnalyticsEvents.notificationsPermissionPrompted(source: .settings))
                 let granted = await NotificationManager.shared.requestAuthorization()
                 if granted {
                     notificationsEnabled = true
                     NotificationManager.shared.notificationsEnabled = true
                     NotificationManager.shared.aiNotificationsEnabled = true
                     NotificationManager.shared.scheduleAINotificationsIfNeeded(context: modelContext, trigger: .startup)
+                    Analytics.shared.track(
+                        AnalyticsEvents.notificationsPermissionResolved(source: .settings, result: "granted")
+                    )
                     acknowledgeSaved()
                 } else {
                     aiNotificationsEnabled = false
                     NotificationManager.shared.aiNotificationsEnabled = false
+                    Analytics.shared.track(
+                        AnalyticsEvents.notificationsPermissionResolved(source: .settings, result: "denied")
+                    )
                     permissionMessage = AppLocalization.string("Permission denied. Enable notifications in Settings.")
                     showPermissionAlert = true
                 }
@@ -627,6 +648,7 @@ private final class ReminderStore: ObservableObject {
         let reminder = MeasurementReminder(date: date, repeatRule: repeatRule)
         reminders = Self.sanitize(reminders + [reminder])
         persist()
+        Analytics.shared.track(AnalyticsEvents.remindersSeeded(source: .settings, repeatRule: repeatRule))
     }
 
     func delete(at offsets: IndexSet) {

@@ -700,9 +700,19 @@ struct HomeView: View {
             isPremium: homeSummaryIsPremium,
             insights: homeAIInsights,
             analysisItems: homeAIAnalysisItems,
+            showStreak: showStreakOnHome && streakManager.currentStreak >= 1,
+            streakCount: streakManager.currentStreak,
+            shouldAnimateStreak: streakManager.shouldPlayAnimation,
             onUnlockPremium: {
                 Haptics.selection()
                 premiumStore.presentPaywall(reason: .aiInsights)
+            },
+            onOpenStreak: {
+                Haptics.selection()
+                showStreakDetail = true
+            },
+            onStreakAnimationComplete: {
+                streakManager.markAnimationPlayed()
             },
             onOpenProfile: {
                 Haptics.selection()
@@ -816,23 +826,13 @@ struct HomeView: View {
         var items: [HomeAIInsightItem] = []
 
         for kind in dashboardVisibleMetrics {
-            guard let delta = metricDeltaChip(for: kind, days: 30) else { continue }
-            let tone = homeInsightTone(for: kind)
-            items.append(
-                HomeAIInsightItem(
-                    symbol: tone == .positive ? "arrow.down.right" : "arrow.up.right",
-                    text: FlowLocalization.app(
-                        "\(kind.title): \(delta.text) in 30 days.",
-                        "\(kind.title): \(delta.text) w 30 dni.",
-                        "\(kind.title): \(delta.text) en 30 dias.",
-                        "\(kind.title): \(delta.text) in 30 Tagen.",
-                        "\(kind.title) : \(delta.text) en 30 jours.",
-                        "\(kind.title): \(delta.text) em 30 dias."
-                    ),
-                    tone: tone
-                )
-            )
+            guard let trendItem = homeTrendInsightItem(for: kind, days: 30) else { continue }
+            items.append(trendItem)
             if items.count == 2 { break }
+        }
+
+        if items.isEmpty {
+            items.append(homeNewUserInsightItem)
         }
 
         if hasEnoughSavedPhotosForCompare, let latestSavedPhoto, let secondLatestSavedPhoto {
@@ -848,29 +848,101 @@ struct HomeView: View {
                         "Les photos de progression sont pretes pour \(days) jours de comparaison.",
                         "Fotos de progresso prontas para comparar \(days) dias."
                     ),
-                    tone: .neutral
+                    tone: .neutral,
+                    kind: .photoComparison
                 )
             )
-        }
-
-        if items.isEmpty {
+        } else if hasAnySavedPhotosInStore {
             items.append(
                 HomeAIInsightItem(
-                    symbol: "plus.circle",
+                    symbol: "camera",
                     text: FlowLocalization.app(
-                        "Add a few measurements to unlock sharper trend summaries.",
-                        "Dodaj kilka pomiarow, aby zobaczyc trafniejsze podsumowania trendow.",
-                        "Agrega algunas mediciones para ver resumenes mas claros.",
-                        "Fuge ein paar Messungen hinzu, um klarere Trends zu sehen.",
-                        "Ajoutez quelques mesures pour des tendances plus nettes.",
-                        "Adicione algumas medidas para ver tendencias mais claras."
+                        "Add another photo later to compare progress.",
+                        "Dodaj pozniej kolejne zdjecie, aby porownac postepy.",
+                        "Agrega otra foto mas tarde para comparar el progreso.",
+                        "Fuege spaeter ein weiteres Foto hinzu, um Fortschritte zu vergleichen.",
+                        "Ajoutez une autre photo plus tard pour comparer les progres.",
+                        "Adicione outra foto depois para comparar o progresso."
                     ),
-                    tone: .neutral
+                    tone: .neutral,
+                    kind: .photoComparison
                 )
             )
         }
 
         return Array(items.prefix(3))
+    }
+
+    func homeTrendInsightItem(for kind: MetricKind, days: Int) -> HomeAIInsightItem? {
+        guard let window = trendWindowSamples(for: kind, days: days),
+              let delta = metricDeltaChip(for: kind, days: days) else { return nil }
+
+        let newest = kind.valueForDisplay(fromMetric: window.newest.value, unitsSystem: unitsSystem)
+        let oldest = kind.valueForDisplay(fromMetric: window.oldest.value, unitsSystem: unitsSystem)
+        guard abs(newest - oldest) >= minimumInsightDelta(for: kind) else { return nil }
+
+        let tone = homeInsightTone(for: kind)
+        return HomeAIInsightItem(
+            symbol: tone == .positive ? "arrow.down.right" : "arrow.up.right",
+            text: FlowLocalization.app(
+                "\(kind.title): \(delta.text) in 30 days.",
+                "\(kind.title): \(delta.text) w 30 dni.",
+                "\(kind.title): \(delta.text) en 30 dias.",
+                "\(kind.title): \(delta.text) in 30 Tagen.",
+                "\(kind.title) : \(delta.text) en 30 jours.",
+                "\(kind.title): \(delta.text) em 30 dias."
+            ),
+            tone: tone,
+            kind: .trend
+        )
+    }
+
+    var homeNewUserInsightItem: HomeAIInsightItem {
+        guard hasAnyMeasurements || totalMetricSampleCount > 0 else {
+            return HomeAIInsightItem(
+                symbol: "plus.circle",
+                text: FlowLocalization.app(
+                    "Add your first measurement to create a starting point.",
+                    "Dodaj pierwszy pomiar, aby utworzyc punkt startowy.",
+                    "Agrega tu primera medicion para crear un punto inicial.",
+                    "Fuege deine erste Messung hinzu, um einen Startpunkt zu erstellen.",
+                    "Ajoutez votre premiere mesure pour creer un point de depart.",
+                    "Adicione sua primeira medida para criar um ponto inicial."
+                ),
+                tone: .neutral,
+                kind: .baseline
+            )
+        }
+
+        if totalMetricSampleCount <= 1 {
+            return HomeAIInsightItem(
+                symbol: "checkmark.circle",
+                text: FlowLocalization.app(
+                    "Baseline saved. You have your first point. Add one more check-in to see the first trend.",
+                    "Punkt startowy zapisany. Masz pierwszy punkt. Dodaj kolejny check-in, aby zobaczyc pierwszy trend.",
+                    "Punto inicial guardado. Ya tienes el primer punto. Agrega otro registro para ver la primera tendencia.",
+                    "Startpunkt gespeichert. Du hast deinen ersten Punkt. Fuege einen weiteren Check-in hinzu, um den ersten Trend zu sehen.",
+                    "Point de depart enregistre. Vous avez votre premier point. Ajoutez un autre check-in pour voir la premiere tendance.",
+                    "Ponto inicial salvo. Voce tem seu primeiro ponto. Adicione outro check-in para ver a primeira tendencia."
+                ),
+                tone: .neutral,
+                kind: .baseline
+            )
+        }
+
+        return HomeAIInsightItem(
+            symbol: "waveform.path.ecg",
+            text: FlowLocalization.app(
+                "First trend is forming. Keep logging this week to make the signal clearer.",
+                "Pierwszy trend sie tworzy. Zapisuj pomiary w tym tygodniu, aby sygnal byl czytelniejszy.",
+                "La primera tendencia se esta formando. Sigue registrando esta semana para aclarar la senal.",
+                "Der erste Trend entsteht. Protokolliere diese Woche weiter, damit das Signal klarer wird.",
+                "La premiere tendance se forme. Continuez cette semaine pour rendre le signal plus clair.",
+                "A primeira tendencia esta se formando. Continue registrando esta semana para deixar o sinal mais claro."
+            ),
+            tone: .neutral,
+            kind: .forming
+        )
     }
 
     var homeAIAnalysisItems: [HomeAIAnalysisItem] {
@@ -1323,13 +1395,25 @@ struct HomeView: View {
     var activationTaskSequence: [ActivationTask] {
         var sequence: [ActivationTask] = [
             .firstMeasurement,
+            .addPhoto,
+            .personalizeProfile,
+            .connectHealth,
             .chooseMetrics,
             .setReminders,
-            .addPhoto,
-            .connectHealth,
-            .personalizeProfile,
             .explorePremium
         ]
+
+        if onboardingFlowVersion >= 4 {
+            let startOnlySequence: [ActivationTask] = [
+                .firstMeasurement,
+                .addPhoto
+            ]
+            if let activationCurrentTask, !startOnlySequence.contains(activationCurrentTask) {
+                return sequence
+            }
+            return startOnlySequence
+        }
+
         if premiumStore.isPremium {
             sequence.removeAll { $0 == .explorePremium }
         }
@@ -1337,7 +1421,18 @@ struct HomeView: View {
     }
 
     var activationVisibleTaskSequence: [ActivationTask] {
-        activationTaskSequence.filter { task in
+        if onboardingFlowVersion >= 4 {
+            return activationTaskSequence.filter { task in
+                task == activationCurrentTask
+                    || (
+                        !activationCompletedTaskIDs.contains(task.rawValue)
+                        && !activationSkippedTaskIDs.contains(task.rawValue)
+                        && !isActivationTaskSatisfied(task)
+                    )
+            }
+        }
+
+        return activationTaskSequence.filter { task in
             task == activationCurrentTask
                 || activationCompletedTaskIDs.contains(task.rawValue)
                 || activationSkippedTaskIDs.contains(task.rawValue)
@@ -2766,6 +2861,13 @@ struct HomeView: View {
     }
 
     func dismissActivationHub() {
+        Analytics.shared.track(
+            AnalyticsEvents.activationDismissed(
+                currentTask: activationCurrentTask?.rawValue,
+                completedTasksCount: activationCompletedTaskIDs.count,
+                skippedTasksCount: activationSkippedTaskIDs.count
+            )
+        )
         activationIsDismissed = true
         settingsStore.setHomeModuleVisibility(false, for: .activationHub)
         rebuildDashboardItemsCache()
@@ -2824,6 +2926,14 @@ struct HomeView: View {
         viewModel.checklistStatusText = AppLocalization.string("Requesting Health access...")
         viewModel.shouldShowHealthSettingsShortcut = false
         viewModel.isChecklistConnectingHealth = true
+        Analytics.shared.track(
+            AnalyticsEvents.checklistItemStarted(
+                item: "healthkit",
+                source: "home_checklist",
+                task: activationCurrentTask?.rawValue
+            )
+        )
+        Analytics.shared.track(AnalyticsEvents.healthPermissionPrompted(source: .checklist))
 
         Task { @MainActor in
             defer { viewModel.isChecklistConnectingHealth = false }
@@ -2833,6 +2943,9 @@ struct HomeView: View {
                 onboardingSkippedHealthKit = true
                 viewModel.checklistStatusText = AppLocalization.string("Connected to Apple Health.")
                 viewModel.shouldShowHealthSettingsShortcut = false
+                Analytics.shared.track(
+                    AnalyticsEvents.healthPermissionResolved(source: .checklist, result: "granted")
+                )
                 Analytics.shared.track(
                     AnalyticsEvents.checklistItemCompleted(
                         item: "healthkit",
@@ -2844,6 +2957,9 @@ struct HomeView: View {
                 refreshChecklistState()
             } catch {
                 isSyncEnabled = false
+                Analytics.shared.track(
+                    AnalyticsEvents.healthPermissionResolved(source: .checklist, result: "denied")
+                )
                 viewModel.checklistStatusText = AppLocalization.string("Health access denied. Go to iOS Settings → MeasureMe → Health and allow access.")
                 if let authError = error as? HealthKitAuthorizationError {
                     if authError == .denied {

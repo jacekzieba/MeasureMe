@@ -9,15 +9,11 @@ final class OnboardingFlowTests: XCTestCase {
         )
         XCTAssertEqual(
             GoalMetricPack.recommendedKinds(for: .buildMuscle),
-            [.weight, .chest, .leftBicep, .waist]
+            [.chest, .leftBicep, .rightBicep]
         )
         XCTAssertEqual(
             GoalMetricPack.recommendedKinds(for: .improveHealth),
-            [.weight, .waist, .chest, .leftBicep]
-        )
-        XCTAssertEqual(
-            GoalMetricPack.recommendedKinds(for: .trackHealth),
-            [.weight, .waist]
+            [.waist, .chest]
         )
     }
 
@@ -27,7 +23,23 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertTrue(merged.contains(.chest))
         XCTAssertTrue(merged.contains(.waist))
         XCTAssertTrue(merged.contains(.leftBicep))
+        XCTAssertTrue(merged.contains(.rightBicep))
         XCTAssertEqual(merged.count, Set(merged).count)
+    }
+
+    func testTrackedMetricPackAlwaysIncludesWeightAndBodyFat() {
+        for priority in OnboardingPriority.allCases {
+            let tracked = GoalMetricPack.trackedKinds(for: priority)
+
+            XCTAssertTrue(tracked.contains(.weight), "\(priority.rawValue) should keep weight enabled")
+            XCTAssertTrue(tracked.contains(.bodyFat), "\(priority.rawValue) should keep body fat enabled")
+            XCTAssertEqual(tracked.count, Set(tracked).count)
+        }
+
+        XCTAssertEqual(
+            GoalMetricPack.trackedKinds(for: .buildMuscle),
+            [.weight, .bodyFat, .chest, .leftBicep, .rightBicep]
+        )
     }
 
     func testMaintainRecompKeepsImproveHealthRawValueForCompatibility() {
@@ -43,27 +55,26 @@ final class OnboardingFlowTests: XCTestCase {
                 "Recomposição"
             )
         )
-        XCTAssertEqual(OnboardingView.WelcomeGoal.recomposition.priority, .improveHealth)
-        XCTAssertEqual(OnboardingView.WelcomeGoal.recomposition.title, "Recomposition")
+        XCTAssertEqual(OnboardingView.WelcomeGoal.trackHealth.priority, .improveHealth)
+        XCTAssertEqual(OnboardingView.WelcomeGoal.trackHealth.title, "Maintain / recomp")
     }
 
     func testWelcomeGoalMapsToCurrentPriorityModel() {
         XCTAssertEqual(OnboardingView.WelcomeGoal.loseWeight.priority, .loseWeight)
         XCTAssertEqual(OnboardingView.WelcomeGoal.buildMuscle.priority, .buildMuscle)
-        XCTAssertEqual(OnboardingView.WelcomeGoal.recomposition.priority, .improveHealth)
-        XCTAssertEqual(OnboardingView.WelcomeGoal.trackHealth.priority, .trackHealth)
+        XCTAssertEqual(OnboardingView.WelcomeGoal.trackHealth.priority, .improveHealth)
     }
 
-    func testInputStepsUseShortActivationFlowWithoutPremium() {
+    func testInputStepsEndAtOptionalHealthStep() {
         XCTAssertEqual(
             OnboardingView.InputStep.allCases.map(\.analyticsName),
-            ["welcome", "goal", "starting_point", "health_import"]
+            ["welcome", "profile", "metrics", "photos", "health"]
         )
-        XCTAssertEqual(OnboardingView.InputStep.healthImport.rawValue, 3)
+        XCTAssertEqual(OnboardingView.InputStep.health.rawValue, 4)
     }
 
     func testActivationTaskOrderingSupportsManualMeasurementBeforePhoto() {
-        XCTAssertEqual(ActivationTask.initial, .firstMeasurement)
-        XCTAssertEqual(ActivationTask.allCases, [.firstMeasurement, .chooseMetrics, .setReminders, .addPhoto, .connectHealth, .personalizeProfile, .explorePremium])
+        XCTAssertEqual(ActivationTask.initial, .addPhoto)
+        XCTAssertEqual(ActivationTask.allCases, [.firstMeasurement, .addPhoto, .personalizeProfile, .connectHealth, .chooseMetrics, .setReminders, .explorePremium])
     }
 }

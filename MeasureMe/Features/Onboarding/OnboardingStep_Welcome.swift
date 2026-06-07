@@ -11,14 +11,15 @@ extension OnboardingView {
             Spacer(minLength: 0)
 
             Text(FlowLocalization.app(
-                "Track your body change without obsessing over the scale",
-                "Śledź zmiany sylwetki bez obsesji na punkcie wagi",
-                "Sigue el cambio de tu cuerpo sin obsesionarte con la báscula",
-                "Verfolge Körperveränderung ohne Waagen-Obsession",
-                "Suivez votre corps sans obsession de la balance",
-                "Acompanhe mudanças no corpo sem obsessão pela balança"
+                "Welcome to\nMeasureMe",
+                "Witaj w\nMeasureMe",
+                "Bienvenido a\nMeasureMe",
+                "Willkommen bei\nMeasureMe",
+                "Bienvenue dans\nMeasureMe",
+                "Bem-vindo ao\nMeasureMe"
             ))
-            .font(.system(size: 36, weight: .heavy, design: .rounded))
+            .font(.system(size: 40, weight: .heavy))
+            .tracking(-1.0)
             .multilineTextAlignment(.center)
             .foregroundStyle(AppColorRoles.textPrimary)
             .padding(.horizontal, 24)
@@ -45,12 +46,12 @@ extension OnboardingView {
 
                 MiaraSpeechBubble(
                     text: FlowLocalization.app(
-                        "MeasureMe helps you track weight, waist, photos and trends in one private place.",
-                        "MeasureMe pomaga śledzić wagę, pas, zdjęcia i trendy w jednym prywatnym miejscu.",
-                        "MeasureMe te ayuda a seguir peso, cintura, fotos y tendencias en un lugar privado.",
-                        "MeasureMe hilft dir, Gewicht, Taille, Fotos und Trends an einem privaten Ort zu verfolgen.",
-                        "MeasureMe vous aide à suivre poids, taille, photos et tendances dans un espace privé.",
-                        "O MeasureMe ajuda a acompanhar peso, cintura, fotos e tendências em um lugar privado."
+                        "Hey, I'm Miara. I'll be here every week to show you how your body is actually changing. No scale drama, no shame, just a clear picture.",
+                        "Hej, jestem Miara. Będę pokazywać, jak naprawdę zmienia się Twoje ciało. Bez skupiania się tylko na wadze i bez oceniania. Tylko jasny obraz.",
+                        "Hola, soy Miara. Cada semana te mostraré cómo está cambiando tu cuerpo de verdad. Sin drama de báscula y sin juicios. Solo una imagen clara.",
+                        "Hey, ich bin Miara. Jede Woche zeige ich dir, wie sich dein Körper wirklich verändert. Kein Waagen-Drama, kein Urteil. Nur ein klares Bild.",
+                        "Salut, c'est Miara. Chaque semaine, je te montre comment ton corps évolue vraiment. Sans drame de balance, sans jugement. Juste une image claire.",
+                        "Oi, sou a Miara. Toda semana vou te mostrar como seu corpo está mudando de verdade. Sem drama da balança, sem julgamento. Só uma imagem clara."
                     )
                 )
                 .padding(.horizontal, 16)

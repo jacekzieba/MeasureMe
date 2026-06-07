@@ -7,7 +7,7 @@ extension OnboardingView {
 
     var metricsPreviewCards: [MetricsPreviewCardData] {
         switch resolvedPriority {
-        case .loseWeight, .trackHealth:
+        case .loseWeight:
             return [
                 MetricsPreviewCardData(
                     title: MetricKind.weight.title,
@@ -118,7 +118,7 @@ extension OnboardingView {
         }
 
         switch resolvedPriority {
-        case .loseWeight, .trackHealth:
+        case .loseWeight:
             let lineOne = personalizedIntro.isEmpty
                 ? FlowLocalization.app(
                     "Weight is trending down and waist is tightening too.",
@@ -159,20 +159,20 @@ extension OnboardingView {
         case .buildMuscle:
             let lineOne = personalizedIntro.isEmpty
                 ? FlowLocalization.app(
-                    "Chest and left bicep are growing together.",
-                    "Klatka i lewy biceps rosną razem.",
-                    "Pecho y bíceps izquierdo están creciendo juntos.",
-                    "Brust und linker Bizeps wachsen zusammen.",
-                    "Le torse et le biceps gauche progressent ensemble.",
-                    "Peito e bíceps esquerdo estão crescendo juntos."
+                    "Chest and both arms are growing together.",
+                    "Klatka i oba ramiona rosną razem.",
+                    "Pecho y ambos brazos están creciendo juntos.",
+                    "Brust und beide Arme wachsen zusammen.",
+                    "Le torse et les deux bras progressent ensemble.",
+                    "Peito e os dois braços estão crescendo juntos."
                 )
                 : FlowLocalization.app(
-                    "\(personalizedIntro), chest and left bicep are growing together.",
-                    "\(personalizedIntro), klatka i lewy biceps rosną razem.",
-                    "\(personalizedIntro), pecho y bíceps izquierdo están creciendo juntos.",
-                    "\(personalizedIntro), Brust und linker Bizeps wachsen zusammen.",
-                    "\(personalizedIntro), le torse et le biceps gauche progressent ensemble.",
-                    "\(personalizedIntro), peito e bíceps esquerdo estão crescendo juntos."
+                    "\(personalizedIntro), chest and both arms are growing together.",
+                    "\(personalizedIntro), klatka i oba ramiona rosną razem.",
+                    "\(personalizedIntro), pecho y ambos brazos están creciendo juntos.",
+                    "\(personalizedIntro), Brust und beide Arme wachsen zusammen.",
+                    "\(personalizedIntro), le torse et les deux bras progressent ensemble.",
+                    "\(personalizedIntro), peito e os dois braços estão crescendo juntos."
                 )
             return MetricsInsightCopy(
                 title: FlowLocalization.app("AI trend example", "Przykład trendu AI", "Ejemplo de tendencia IA", "KI-Trendbeispiel", "Exemple de tendance IA", "Exemplo de tendência de IA"),

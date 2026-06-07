@@ -82,6 +82,7 @@ struct HealthSettingsSection: View {
 
             if newValue {
                 syncStatusMessage = nil
+                Analytics.shared.track(AnalyticsEvents.healthPermissionPrompted(source: .settings))
                 authorizationTask = Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(100))
                     guard !Task.isCancelled else { return }
@@ -89,10 +90,16 @@ struct HealthSettingsSection: View {
                     do {
                         try await HealthKitManager.shared.requestAuthorization()
                         syncStatusMessage = nil
+                        Analytics.shared.track(
+                            AnalyticsEvents.healthPermissionResolved(source: .settings, result: "granted")
+                        )
                     } catch {
                         isSyncEnabled = false
                         syncStatusMessage = HealthKitManager.userFacingSyncErrorMessage(for: error)
                         AppLog.debug("⚠️ HealthKit authorization failed: \(error.localizedDescription)")
+                        Analytics.shared.track(
+                            AnalyticsEvents.healthPermissionResolved(source: .settings, result: "denied")
+                        )
                         Haptics.error()
                     }
                 }

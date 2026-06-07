@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import UIKit
 
 @MainActor
@@ -9,6 +10,13 @@ struct OnboardingView: View {
         case requestingSystemPrompt
         case importingProfile
         case completed
+    }
+
+    private struct BaselineDisplayEntry: Identifiable {
+        let kind: MetricKind
+        let value: Double
+
+        var id: String { kind.rawValue }
     }
 
     private let effects: OnboardingEffects
@@ -25,14 +33,24 @@ struct OnboardingView: View {
     @AppSetting(\.profile.userName) private var userName: String = ""
     @AppSetting(\.profile.userAge) private var userAge: Int = 0
     @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
     @AppSetting(\.health.isSyncEnabled) private var isSyncEnabled: Bool = false
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
 
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @EnvironmentObject private var metricsStore: ActiveMetricsStore
+    @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
 
     @State private var currentStep: InputStep = .welcome
     @State private var nameInput: String = ""
     @State private var selectedPriority: OnboardingPriority?
+    @State private var firstMeasurementEntries: [MetricKind: String] = [:]
+    @State private var hasSavedFirstMeasurement = false
+    @State private var firstMeasurementErrorMessage: String?
+    @State private var isSavingFirstMeasurement = false
+    @State private var showOnboardingPhotoSheet = false
+    @State private var hasSavedOnboardingPhoto = false
     @State private var isRequestingHealthKit = false
     @State private var healthStatusLines: [String] = []
     @State private var healthAuthorizationPhase: HealthAuthorizationPhase = .idle
@@ -59,21 +77,49 @@ struct OnboardingView: View {
 
     private var canGoBack: Bool { currentStep != .welcome }
 
-    private var isSkipVisible: Bool { currentStep != .welcome && currentStep != .startingPoint }
-    private var isFooterHidden: Bool { currentStep == .goal || currentStep == .startingPoint || currentStep == .healthImport }
+    private var isSkipVisible: Bool { currentStep != .welcome }
+    private var isFooterHidden: Bool { false }
 
     private var primaryButtonTitle: String {
         switch currentStep {
         case .welcome:
             return FlowLocalization.app(
-                "Get started",
-                "Zaczynamy",
+                "Continue",
+                "Dalej",
                 "Continuar",
                 "Weiter",
-                "Commencer",
-                "Começar"
+                "Continuer",
+                "Continuar"
             )
-        case .goal:
+        case .profile:
+            return FlowLocalization.app(
+                "Create my starting point",
+                "Utwórz punkt startowy",
+                "Crear mi punto de partida",
+                "Meinen Startpunkt erstellen",
+                "Créer mon point de départ",
+                "Criar meu ponto de partida"
+            )
+        case .metrics:
+            if hasSavedFirstMeasurement {
+                return FlowLocalization.app(
+                    "Continue",
+                    "Dalej",
+                    "Continuar",
+                    "Weiter",
+                    "Continuer",
+                    "Continuar"
+                )
+            }
+            return FlowLocalization.app(
+                "Save starting point",
+                "Zapisz punkt startowy",
+                "Guardar punto de partida",
+                "Startpunkt speichern",
+                "Enregistrer le point de départ",
+                "Salvar ponto de partida"
+            )
+        case .photos:
             return FlowLocalization.app(
                 "Continue",
                 "Dalej",
@@ -82,23 +128,14 @@ struct OnboardingView: View {
                 "Continuer",
                 "Continuar"
             )
-        case .startingPoint:
+        case .health:
             return FlowLocalization.app(
-                "Import from Apple Health",
-                "Importuj z Apple Health",
-                "Importar desde Apple Health",
-                "Aus Apple Health importieren",
-                "Importer depuis Apple Health",
-                "Importar do Apple Health"
-            )
-        case .healthImport:
-            return FlowLocalization.app(
-                "Continue",
-                "Dalej",
-                "Continuar",
-                "Weiter",
-                "Continuer",
-                "Continuar"
+                "See my dashboard",
+                "Pokaż dashboard",
+                "Ver mi panel",
+                "Mein Dashboard ansehen",
+                "Voir mon tableau de bord",
+                "Ver meu painel"
             )
         }
     }
@@ -109,9 +146,9 @@ struct OnboardingView: View {
 
     private var isPrimaryEnabled: Bool {
         switch currentStep {
-        case .goal:
-            return selectedPriority != nil || !onboardingPrimaryGoalRaw.isEmpty
-        case .healthImport:
+        case .metrics:
+            return !isSavingFirstMeasurement && !isRequestingHealthKit && (hasSavedFirstMeasurement || hasAnyFirstMeasurementInput)
+        case .health:
             return !isRequestingHealthKit
         default:
             return true
@@ -128,10 +165,6 @@ struct OnboardingView: View {
         return .improveHealth
     }
 
-    private var explicitPriority: OnboardingPriority? {
-        selectedPriority ?? OnboardingPriority(rawValue: onboardingPrimaryGoalRaw)
-    }
-
     private var hasRestoredInputState: Bool {
         !onboardingPrimaryGoalRaw.isEmpty
             || !userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -144,51 +177,21 @@ struct OnboardingView: View {
 
     private var recommendedKinds: [MetricKind] { GoalMetricPack.recommendedKinds(for: resolvedPriority) }
 
-    private var startingPointTitle: String {
-        switch resolvedPriority {
-        case .loseWeight:
-            return FlowLocalization.app("Start with Weight + Waist", "Zacznij od Wagi + Pasa", "Empieza con Peso + Cintura", "Starte mit Gewicht + Taille", "Commencez par Poids + Taille", "Comece com Peso + Cintura")
-        case .buildMuscle:
-            return FlowLocalization.app("Start with Weight + Key Measurements", "Zacznij od Wagi + Kluczowych pomiarów", "Empieza con Peso + medidas clave", "Starte mit Gewicht + wichtigen Messwerten", "Commencez par Poids + mesures clés", "Comece com Peso + medições-chave")
-        case .improveHealth:
-            return FlowLocalization.app("Track both fat loss and muscle gain", "Śledź utratę tłuszczu i przyrost mięśni", "Sigue pérdida de grasa y ganancia muscular", "Verfolge Fettverlust und Muskelaufbau", "Suivez perte de graisse et gain musculaire", "Acompanhe perda de gordura e ganho muscular")
-        case .trackHealth:
-            return FlowLocalization.app("Build a simple health baseline", "Zbuduj prosty punkt zdrowia", "Crea una base simple de salud", "Baue eine einfache Gesundheitsbasis", "Créez une base santé simple", "Crie uma base simples de saúde")
+    private var hasAnyFirstMeasurementInput: Bool {
+        recommendedKinds.contains { kind in
+            !(firstMeasurementEntries[kind] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
     }
 
-    private var startingPointBody: String {
-        switch resolvedPriority {
-        case .loseWeight:
-            return FlowLocalization.app("Weight shows the pace. Waist helps confirm real body change.", "Waga pokazuje tempo. Pas pomaga potwierdzić realną zmianę ciała.", "El peso muestra el ritmo. La cintura ayuda a confirmar el cambio real.", "Gewicht zeigt das Tempo. Die Taille bestätigt echte Veränderung.", "Le poids montre le rythme. La taille confirme le vrai changement.", "O peso mostra o ritmo. A cintura ajuda a confirmar mudança real.")
-        case .buildMuscle:
-            return FlowLocalization.app("Weight shows overall change. Body measurements help track muscle growth.", "Waga pokazuje ogólną zmianę. Pomiary ciała pomagają śledzić wzrost mięśni.", "El peso muestra el cambio general. Las medidas ayudan a seguir músculo.", "Gewicht zeigt die Gesamtänderung. Körpermaße zeigen Muskelwachstum.", "Le poids montre l'évolution globale. Les mesures suivent la croissance musculaire.", "O peso mostra a mudança geral. Medidas corporais acompanham crescimento muscular.")
-        case .improveHealth:
-            return FlowLocalization.app("Weight may move slowly. Waist, photos and measurements show the bigger picture.", "Waga może zmieniać się wolno. Pas, zdjęcia i pomiary pokazują większy obraz.", "El peso puede moverse lento. Cintura, fotos y medidas muestran el panorama.", "Gewicht bewegt sich oft langsam. Taille, Fotos und Maße zeigen das Gesamtbild.", "Le poids peut bouger lentement. Taille, photos et mesures montrent l'ensemble.", "O peso pode mudar devagar. Cintura, fotos e medidas mostram o quadro maior.")
-        case .trackHealth:
-            return FlowLocalization.app("Start with a few consistent measurements and watch long-term trends.", "Zacznij od kilku regularnych pomiarów i obserwuj długoterminowe trendy.", "Empieza con pocas medidas constantes y observa tendencias a largo plazo.", "Starte mit wenigen konstanten Messwerten und beobachte Langzeittrends.", "Commencez avec quelques mesures régulières et suivez les tendances.", "Comece com poucas medições consistentes e acompanhe tendências de longo prazo.")
+    private var firstMeasurementDisplayEntries: [BaselineDisplayEntry] {
+        recommendedKinds.compactMap { kind in
+            guard let value = parseDisplayValue(firstMeasurementEntries[kind]) else { return nil }
+            return BaselineDisplayEntry(kind: kind, value: value)
         }
     }
 
-    private var startingPointMetricLabels: [String] {
-        switch resolvedPriority {
-        case .loseWeight, .trackHealth:
-            return [MetricKind.weight.title, MetricKind.waist.title]
-        case .buildMuscle:
-            return [
-                MetricKind.weight.title,
-                MetricKind.chest.title,
-                FlowLocalization.app("Arms", "Ramiona", "Brazos", "Arme", "Bras", "Braços"),
-                MetricKind.waist.title
-            ]
-        case .improveHealth:
-            return [
-                MetricKind.weight.title,
-                MetricKind.waist.title,
-                FlowLocalization.app("Photos", "Zdjęcia", "Fotos", "Fotos", "Photos", "Fotos"),
-                FlowLocalization.app("Chest / Arms", "Klatka / ramiona", "Pecho / brazos", "Brust / Arme", "Torse / bras", "Peito / braços")
-            ]
-        }
+    private var onboardingPhotoMetricValues: [MetricKind: Double] {
+        Dictionary(uniqueKeysWithValues: firstMeasurementDisplayEntries.map { ($0.kind, $0.value) })
     }
 
     private var healthProgressTitle: String {
@@ -313,6 +316,19 @@ struct OnboardingView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
             dismissKeyboardFocus()
         }
+        .sheet(isPresented: $showOnboardingPhotoSheet) {
+            NavigationStack {
+                AddPhotoView(
+                    initialMetricValues: onboardingPhotoMetricValues,
+                    telemetrySource: .onboarding,
+                    onSaved: {
+                        hasSavedOnboardingPhoto = true
+                    }
+                )
+                .environmentObject(metricsStore)
+                .environmentObject(pendingPhotoSaveStore)
+            }
+        }
     }
 
     private var topBar: some View {
@@ -336,12 +352,7 @@ struct OnboardingView: View {
 
             Spacer()
 
-            if isSkipVisible {
-                skipLink
-            } else {
-                Color.clear
-                    .frame(width: 116, height: 44)
-            }
+            skipLink
         }
         .padding(.horizontal, AppSpacing.lg)
         .padding(.top, 12)
@@ -411,17 +422,254 @@ struct OnboardingView: View {
         switch step {
         case .welcome:
             onboardingWelcomeSlide(layout: layout)
-        case .goal:
+        case .profile:
             onboardingInputCard {
-                goalSelectionContent(layout: layout)
+                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                    HStack(alignment: .top, spacing: 12) {
+                        onboardingSlideHeader(
+                            title: FlowLocalization.app(
+                                "What's your name?",
+                                "Jak masz na imię?",
+                                "¿Cómo te llamas?",
+                                "Wie heißt du?",
+                                "Comment vous appelez-vous ?",
+                                "Como você se chama?"
+                            ),
+                            subtitle: "",
+                            titleSize: layout.headerTitleSize - 4
+                        )
+
+                        MeasureBuddyView(pose: .welcome, size: 72, idleAnimation: false)
+                            .shadow(color: Color.appAccent.opacity(0.35), radius: 10, x: 0, y: 6)
+                            .padding(.top, -4)
+                    }
+
+                    TextField(FlowLocalization.app("e.g. Alex", "np. Alex", "p. ej. Alex", "z. B. Alex", "p. ex. Alex", "ex. Alex"), text: $nameInput)
+                        .textInputAutocapitalization(.words)
+                        .font(.system(size: layout.nameFieldFontSize, weight: .semibold, design: .rounded))
+                        .padding(.vertical, layout.nameFieldVerticalPadding)
+                        .padding(.horizontal, AppSpacing.smmd)
+                        .background(
+                            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                                .fill(AppColorRoles.surfaceInteractive)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                                .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                        )
+                        .focused($isNameFieldFocused)
+                        .submitLabel(.done)
+                        .onSubmit { isNameFieldFocused = false }
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button(AppLocalization.string("Done")) {
+                                    isNameFieldFocused = false
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier("onboarding.name.field")
+
+                    VStack(alignment: .leading, spacing: layout.groupSpacing) {
+                        Text(
+                            FlowLocalization.app(
+                                "What do you want this app to help with first?",
+                                "W czym ta aplikacja ma pomóc Ci najpierw?",
+                                "¿En qué quieres que te ayude primero esta app?",
+                                "Wobei soll dir diese App zuerst helfen?",
+                                "Sur quoi voulez-vous que cette app vous aide en premier ?",
+                                "Em que você quer que este app ajude primeiro?"
+                            )
+                        )
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                        Text(
+                            FlowLocalization.app(
+                                "This only chooses your starting metrics. You can change tracked metrics and set numeric goals later.",
+                                "To tylko wybiera metryki startowe. Śledzone metryki i cele liczbowe zmienisz później.",
+                                "Esto solo elige tus métricas iniciales. Podrás cambiar métricas y objetivos numéricos después.",
+                                "Das wählt nur deine Startmetriken. Verfolgte Metriken und Zahlenziele kannst du später ändern.",
+                                "Cela choisit seulement vos indicateurs de départ. Vous pourrez modifier les indicateurs suivis et les objectifs chiffrés plus tard.",
+                                "Isso só escolhe suas métricas iniciais. Você pode mudar métricas acompanhadas e metas numéricas depois."
+                            )
+                        )
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                        ForEach(OnboardingPriority.allCases, id: \.self) { priority in
+                            let isSelected = selectedPriority == priority
+                            Button {
+                                Haptics.selection()
+                                selectedPriority = isSelected ? nil : priority
+                            } label: {
+                                HStack(spacing: 14) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(OnboardingCopy.priorityTitle(priority))
+                                            .font(AppTypography.bodyEmphasis)
+                                            .foregroundStyle(AppColorRoles.textPrimary)
+                                        Text(OnboardingCopy.prioritySubtitle(priority))
+                                            .font(AppTypography.caption)
+                                            .foregroundStyle(AppColorRoles.textSecondary)
+                                            .lineLimit(3)
+                                            .minimumScaleFactor(0.86)
+                                            .multilineTextAlignment(.leading)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                            .layoutPriority(1)
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundStyle(isSelected ? Color.appAccent : AppColorRoles.textTertiary)
+                                }
+                                .padding(AppSpacing.md)
+                                .background(
+                                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                                        .fill(isSelected ? Color.appAccent.opacity(0.12) : AppColorRoles.surfaceInteractive)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                                                .stroke(isSelected ? Color.appAccent.opacity(0.45) : AppColorRoles.borderSubtle, lineWidth: 1)
+                                        )
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("onboarding.priority.\(priority.rawValue)")
+                        }
+                    }
+
+                    if let selectedPriority {
+                        recommendedMetricsBanner(for: selectedPriority)
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isNameFieldFocused = false
+                }
             }
-        case .startingPoint:
+        case .metrics:
             onboardingInputCard {
-                startingPointContent(layout: layout)
+                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                    if hasSavedFirstMeasurement {
+                        savedBaselineCard
+                    } else {
+                        OnboardingFirstMeasurementStep(
+                            recommendedKinds: recommendedKinds,
+                            entries: $firstMeasurementEntries,
+                            unitsSystem: unitsSystem
+                        )
+
+                        if let firstMeasurementErrorMessage {
+                            Label(firstMeasurementErrorMessage, systemImage: "exclamationmark.triangle.fill")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(Color.orange)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                                        .fill(Color.orange.opacity(0.10))
+                                )
+                                .accessibilityIdentifier("onboarding.measurement.error")
+                        }
+                    }
+                }
             }
-        case .healthImport:
+        case .photos:
             onboardingInputCard {
-                healthImportContent(layout: layout)
+                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                    onboardingSlideHeader(
+                        title: FlowLocalization.app(
+                            "You have a starting point",
+                            "Masz punkt startowy",
+                            "Ya tienes un punto de partida",
+                            "Du hast einen Startpunkt",
+                            "Vous avez un point de départ",
+                            "Você tem um ponto de partida"
+                        ),
+                        subtitle: FlowLocalization.app(
+                            "The next check-in can show what changed. A photo is private and optional.",
+                            "Następny check-in pokaże zmianę. Zdjęcie jest prywatne i opcjonalne.",
+                            "El siguiente check-in podrá mostrar qué cambió. La foto es privada y opcional.",
+                            "Der nächste Check-in kann zeigen, was sich verändert hat. Ein Foto ist privat und optional.",
+                            "Le prochain check-in pourra montrer ce qui a changé. La photo est privée et facultative.",
+                            "O próximo check-in pode mostrar o que mudou. A foto é privada e opcional."
+                        ),
+                        titleSize: layout.headerTitleSize
+                    )
+
+                    if hasSavedFirstMeasurement {
+                        savedBaselineCard
+                    } else {
+                        skippedBaselineCard
+                    }
+
+                    startPhotoCard
+                }
+            }
+        case .health:
+            onboardingInputCard {
+                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                    onboardingSlideHeader(
+                        title: FlowLocalization.app(
+                            "Connect Health. Keep it private.",
+                            "Połącz Zdrowie. Zachowaj prywatność.",
+                            "Conecta Salud. Mantén la privacidad.",
+                            "Health verbinden. Privat bleiben.",
+                            "Connectez Santé. Gardez le contrôle.",
+                            "Conecte o Health. Mantenha a privacidade."
+                        ),
+                        subtitle: FlowLocalization.app(
+                            "Apple Health is optional. Your measurements and photos stay on device, and you can still log everything manually.",
+                            "Apple Health jest opcjonalne. Twoje pomiary i zdjęcia zostają na urządzeniu, a wszystko nadal możesz wpisywać ręcznie.",
+                            "Apple Health es opcional. Tus medidas y fotos se quedan en el dispositivo y también puedes registrar todo manualmente.",
+                            "Apple Health ist optional. Deine Messwerte und Fotos bleiben auf dem Gerät und du kannst alles auch manuell eintragen.",
+                            "Apple Health est facultatif. Vos mesures et photos restent sur l'appareil, et vous pouvez tout enregistrer manuellement.",
+                            "O Apple Health é opcional. Suas medidas e fotos ficam no aparelho, e você ainda pode registrar tudo manualmente."
+                        ),
+                        titleSize: layout.headerTitleSize
+                    )
+
+                    flowChipList(labels: recommendedKinds.map(\.title))
+
+                    if isRequestingHealthKit {
+                        onboardingHealthProgress
+                    }
+
+                    if !healthStatusLines.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(healthStatusLines, id: \.self) { line in
+                                Label(line, systemImage: "checkmark.circle.fill")
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(Color.appAccent)
+                            }
+                        }
+                    }
+
+                    Button(action: requestHealthAccess) {
+                        HStack(spacing: 10) {
+                            if isRequestingHealthKit {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .tint(AppColorRoles.textOnAccent)
+                            }
+                            Text(healthButtonTitle)
+                        }
+                        .foregroundStyle(AppColorRoles.textOnAccent)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 50)
+                    }
+                    .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                    .disabled(isRequestingHealthKit || isSyncEnabled)
+                    .accessibilityIdentifier("onboarding.health.allow")
+
+                    privacyCard(compact: layout.isCompact)
+                }
             }
             .task {
                 guard !didPrewarmHealthKitAuthorization else { return }
@@ -431,199 +679,215 @@ struct OnboardingView: View {
         }
     }
 
+    private var savedBaselineCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(
+                FlowLocalization.app(
+                    "Baseline saved",
+                    "Punkt startowy zapisany",
+                    "Línea base guardada",
+                    "Startpunkt gespeichert",
+                    "Point de départ enregistré",
+                    "Linha de base salva"
+                ),
+                systemImage: "checkmark.circle.fill"
+            )
+            .font(AppTypography.bodyEmphasis)
+            .foregroundStyle(Color.appAccent)
+
+            Text(
+                FlowLocalization.app(
+                    "You have a first dot on the chart. The next check-in can show a trend.",
+                    "Masz pierwszą kropkę na wykresie. Następny check-in może pokazać trend.",
+                    "Ya tienes el primer punto en el gráfico. El siguiente check-in podrá mostrar una tendencia.",
+                    "Du hast den ersten Punkt im Diagramm. Der nächste Check-in kann einen Trend zeigen.",
+                    "Vous avez un premier point sur le graphique. Le prochain check-in pourra montrer une tendance.",
+                    "Você tem o primeiro ponto no gráfico. O próximo check-in pode mostrar uma tendência."
+                )
+            )
+            .font(AppTypography.caption)
+            .foregroundStyle(AppColorRoles.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+
+            VStack(spacing: 8) {
+                ForEach(firstMeasurementDisplayEntries) { entry in
+                    HStack(spacing: 10) {
+                        entry.kind.iconView(size: 16, tint: Color.appAccent)
+                            .frame(width: 28, height: 28)
+                            .background(Color.appAccent.opacity(0.12))
+                            .clipShape(Circle())
+
+                        Text(entry.kind.title)
+                            .font(AppTypography.captionEmphasis)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+
+                        Spacer(minLength: 0)
+
+                        Text(entry.kind.formattedDisplayValue(entry.value, unitsSystem: unitsSystem))
+                            .font(AppTypography.captionEmphasis)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+                            .monospacedDigit()
+                    }
+                }
+            }
+            .accessibilityIdentifier("onboarding.baseline.summary")
+        }
+        .padding(AppSpacing.smmd)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                .fill(Color.appAccent.opacity(0.09))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                        .stroke(Color.appAccent.opacity(0.22), lineWidth: 1)
+                )
+        )
+    }
+
+    private var skippedBaselineCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(
+                FlowLocalization.app(
+                    "No tape measure right now?",
+                    "Nie masz teraz miarki?",
+                    "¿No tienes cinta métrica ahora?",
+                    "Kein Maßband zur Hand?",
+                    "Pas de mètre ruban maintenant ?",
+                    "Sem fita métrica agora?"
+                ),
+                systemImage: "clock.arrow.circlepath"
+            )
+            .font(AppTypography.captionEmphasis)
+            .foregroundStyle(AppColorRoles.textPrimary)
+
+            Text(
+                FlowLocalization.app(
+                    "You can add the first measurement later. A private starting photo can still help future comparisons.",
+                    "Pierwszy pomiar dodasz później. Prywatne zdjęcie startowe nadal pomoże w przyszłych porównaniach.",
+                    "Podrás añadir la primera medida después. Una foto inicial privada aún ayudará en futuras comparaciones.",
+                    "Die erste Messung kannst du später hinzufügen. Ein privates Startfoto hilft trotzdem bei späteren Vergleichen.",
+                    "Vous pourrez ajouter la première mesure plus tard. Une photo initiale privée aidera quand même les comparaisons futures.",
+                    "Você pode adicionar a primeira medida depois. Uma foto inicial privada ainda ajuda comparações futuras."
+                )
+            )
+            .font(AppTypography.caption)
+            .foregroundStyle(AppColorRoles.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(AppSpacing.smmd)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+        )
+    }
+
+    private var startPhotoCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: hasSavedOnboardingPhoto ? "photo.badge.checkmark.fill" : "camera.viewfinder")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Color.appAccent)
+                    .frame(width: 38, height: 38)
+                    .background(Color.appAccent.opacity(0.13))
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(
+                        hasSavedOnboardingPhoto
+                            ? FlowLocalization.app(
+                                "Starting photo added",
+                                "Zdjęcie startowe dodane",
+                                "Foto inicial añadida",
+                                "Startfoto hinzugefügt",
+                                "Photo initiale ajoutée",
+                                "Foto inicial adicionada"
+                            )
+                            : FlowLocalization.app(
+                                "Add a starting photo",
+                                "Dodaj zdjęcie startowe",
+                                "Añade una foto inicial",
+                                "Startfoto hinzufügen",
+                                "Ajouter une photo initiale",
+                                "Adicionar foto inicial"
+                            )
+                    )
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+
+                    Text(
+                        FlowLocalization.app(
+                            "Private and optional. Front and side photos in similar light make comparisons easier.",
+                            "Prywatne i opcjonalne. Zdjęcia z przodu i z boku w podobnym świetle ułatwiają porównania.",
+                            "Privada y opcional. Fotos de frente y lado con luz similar facilitan las comparaciones.",
+                            "Privat und optional. Front- und Seitenfotos bei ähnlichem Licht machen Vergleiche leichter.",
+                            "Privée et facultative. Les photos de face et de profil dans une lumière similaire facilitent les comparaisons.",
+                            "Privada e opcional. Fotos de frente e lado com luz parecida facilitam comparações."
+                        )
+                    )
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Button {
+                Haptics.medium()
+                showOnboardingPhotoSheet = true
+            } label: {
+                Label(
+                    hasSavedOnboardingPhoto
+                        ? FlowLocalization.app(
+                            "Add another photo",
+                            "Dodaj kolejne zdjęcie",
+                            "Añadir otra foto",
+                            "Weiteres Foto hinzufügen",
+                            "Ajouter une autre photo",
+                            "Adicionar outra foto"
+                        )
+                        : FlowLocalization.app(
+                            "Add starting photo",
+                            "Dodaj zdjęcie startowe",
+                            "Añadir foto inicial",
+                            "Startfoto hinzufügen",
+                            "Ajouter une photo initiale",
+                            "Adicionar foto inicial"
+                        ),
+                    systemImage: "plus"
+                )
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 46)
+            }
+            .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
+            .accessibilityIdentifier("onboarding.photo.add")
+
+            Text(
+                FlowLocalization.app(
+                    "You can skip this and add a photo later.",
+                    "Możesz pominąć i dodać zdjęcie później.",
+                    "Puedes saltarlo y añadir una foto más tarde.",
+                    "Du kannst das überspringen und später ein Foto hinzufügen.",
+                    "Vous pouvez passer cette étape et ajouter une photo plus tard.",
+                    "Você pode pular e adicionar uma foto depois."
+                )
+            )
+            .font(AppTypography.micro)
+            .foregroundStyle(AppColorRoles.textTertiary)
+        }
+        .padding(AppSpacing.smmd)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                )
+        )
+    }
+
     @State var slideBlobAnimate = false
     @State var welcomeShimmerEnabled = true
-
-    private func goalSelectionContent(layout: OnboardingCardLayout) -> some View {
-        VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-            HStack(alignment: .top, spacing: 12) {
-                onboardingSlideHeader(
-                    title: FlowLocalization.app(
-                        "What are you working toward?",
-                        "Nad czym pracujesz?",
-                        "¿En qué estás trabajando?",
-                        "Woran arbeitest du?",
-                        "Quel est votre objectif ?",
-                        "No que você está trabalhando?"
-                    ),
-                    subtitle: FlowLocalization.app(
-                        "Choose one goal to shape your first baseline.",
-                        "Wybierz jeden cel, aby dopasować pierwszy punkt startowy.",
-                        "Elige un objetivo para adaptar tu primera base.",
-                        "Wähle ein Ziel, damit deine erste Basis passt.",
-                        "Choisissez un objectif pour adapter votre première base.",
-                        "Escolha um objetivo para ajustar sua primeira base."
-                    ),
-                    titleSize: layout.headerTitleSize - 2
-                )
-
-                MeasureBuddyView(pose: .goals, size: 76, idleAnimation: false)
-                    .shadow(color: Color.appAccent.opacity(0.28), radius: 10, x: 0, y: 6)
-            }
-
-            VStack(spacing: 10) {
-                ForEach(OnboardingPriority.onboardingOptions, id: \.self) { priority in
-                    goalOptionButton(priority)
-                }
-            }
-        }
-    }
-
-    private func goalOptionButton(_ priority: OnboardingPriority) -> some View {
-        let isSelected = explicitPriority == priority
-        return Button {
-            chooseGoal(priority)
-        } label: {
-            HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(OnboardingCopy.priorityTitle(priority))
-                        .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                    Text(OnboardingCopy.prioritySubtitle(priority))
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColorRoles.textSecondary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.86)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer()
-
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(isSelected ? Color.appAccent : AppColorRoles.textTertiary)
-            }
-            .padding(AppSpacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                    .fill(isSelected ? Color.appAccent.opacity(0.12) : AppColorRoles.surfaceInteractive)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                            .stroke(isSelected ? Color.appAccent.opacity(0.45) : AppColorRoles.borderSubtle, lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("onboarding.priority.\(priority.rawValue)")
-    }
-
-    private func startingPointContent(layout: OnboardingCardLayout) -> some View {
-        VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-            onboardingSlideHeader(
-                title: startingPointTitle,
-                subtitle: startingPointBody,
-                titleSize: layout.headerTitleSize - 2
-            )
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text(FlowLocalization.app("Recommended metrics", "Polecane pomiary", "Medidas recomendadas", "Empfohlene Messwerte", "Mesures recommandées", "Medições recomendadas"))
-                    .font(AppTypography.microEmphasis)
-                    .foregroundStyle(Color.appAccent)
-
-                flowChipList(labels: startingPointMetricLabels)
-            }
-
-            VStack(spacing: 10) {
-                Button(action: beginAppleHealthImport) {
-                    Label(
-                        FlowLocalization.app(
-                            "Import from Apple Health",
-                            "Importuj z Apple Health",
-                            "Importar desde Apple Health",
-                            "Aus Apple Health importieren",
-                            "Importer depuis Apple Health",
-                            "Importar do Apple Health"
-                        ),
-                        systemImage: "heart.text.square.fill"
-                    )
-                    .foregroundStyle(AppColorRoles.textOnAccent)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 50)
-                }
-                .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-                .accessibilityIdentifier("onboarding.startingPoint.importHealth")
-
-                Button(action: chooseManualStartingPoint) {
-                    Label(
-                        FlowLocalization.app(
-                            "Log manually",
-                            "Wpisz ręcznie",
-                            "Registrar manualmente",
-                            "Manuell eintragen",
-                            "Saisir manuellement",
-                            "Registrar manualmente"
-                        ),
-                        systemImage: "square.and.pencil"
-                    )
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 50)
-                }
-                .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
-                .accessibilityIdentifier("onboarding.startingPoint.manual")
-            }
-        }
-    }
-
-    private func healthImportContent(layout: OnboardingCardLayout) -> some View {
-        VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-            onboardingSlideHeader(
-                title: OnboardingCopy.healthPromptTitle,
-                subtitle: OnboardingCopy.healthPromptBody,
-                titleSize: layout.headerTitleSize - 2
-            )
-
-            VStack(spacing: 10) {
-                Button(action: requestHealthAccess) {
-                    HStack(spacing: 10) {
-                        if isRequestingHealthKit {
-                            ProgressView()
-                                .controlSize(.small)
-                                .tint(AppColorRoles.textOnAccent)
-                        }
-                        Text(healthButtonTitle)
-                    }
-                    .foregroundStyle(AppColorRoles.textOnAccent)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 50)
-                }
-                .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-                .disabled(isRequestingHealthKit || isSyncEnabled)
-                .accessibilityIdentifier("onboarding.health.allow")
-
-                Button(action: chooseManualStartingPoint) {
-                    Text(FlowLocalization.app(
-                        "Log manually",
-                        "Wpisz ręcznie",
-                        "Registrar manualmente",
-                        "Manuell eintragen",
-                        "Saisir manuellement",
-                        "Registrar manualmente"
-                    ))
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 50)
-                }
-                .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
-                .accessibilityIdentifier("onboarding.health.manual")
-            }
-
-            if isRequestingHealthKit {
-                onboardingHealthProgress
-            }
-
-            if !healthStatusLines.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(healthStatusLines, id: \.self) { line in
-                        Label(line, systemImage: "checkmark.circle.fill")
-                            .font(AppTypography.caption)
-                            .foregroundStyle(Color.appAccent)
-                    }
-                }
-            }
-
-            privacyCard(compact: layout.isCompact)
-        }
-    }
 
     func ambientBlobs(for slideIndex: Int) -> some View {
         AmbientBlobsView(
@@ -751,27 +1015,43 @@ struct OnboardingView: View {
     }
 
     private func recommendedMetricsBanner(for priority: OnboardingPriority) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.appAccent)
+        let metrics = GoalMetricPack.recommendedKinds(for: priority)
+        let metricTitles = metrics.map(\.title)
 
-            Text(
-                FlowLocalization.app(
-                    "We'll start with %@.",
-                    "Zaczniemy od %@.",
-                    "Empezaremos con %@.",
-                    "Wir starten mit %@.",
-                    "Nous allons commencer par %@.",
-                    "Vamos começar com %@."
-                )
-                .replacingOccurrences(
-                    of: "%@",
-                    with: GoalMetricPack.recommendedKinds(for: priority).map(\.title).joined(separator: " + ")
-                )
-            )
-            .font(AppTypography.captionEmphasis)
-            .foregroundStyle(AppColorRoles.textPrimary)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.appAccent)
+
+                Text(FlowLocalization.app(
+                    "We'll start with",
+                    "Zaczniemy od",
+                    "Empezaremos con",
+                    "Wir starten mit",
+                    "Nous allons commencer par",
+                    "Vamos começar com"
+                ))
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(AppColorRoles.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+
+            FlowLayout(spacing: 8) {
+                ForEach(metricTitles, id: \.self) { title in
+                    Text(title)
+                        .font(AppTypography.captionEmphasis)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(AppColorRoles.surfaceInteractive)
+                        )
+                }
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
@@ -783,6 +1063,18 @@ struct OnboardingView: View {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(Color.appAccent.opacity(0.24), lineWidth: 1)
                 )
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            FlowLocalization.app(
+                "Recommended starting metrics: %@",
+                "Rekomendowane metryki startowe: %@",
+                "Metricas iniciales recomendadas: %@",
+                "Empfohlene Startmetriken: %@",
+                "Indicateurs de depart recommandes : %@",
+                "Metricas iniciais recomendadas: %@"
+            )
+            .replacingOccurrences(of: "%@", with: metricTitles.joined(separator: ", "))
         )
     }
 
@@ -808,12 +1100,12 @@ struct OnboardingView: View {
                 )
             case .buildMuscle:
                 return FlowLocalization.app(
-                    "\(name), chest and arm size will tell the story.",
-                    "\(name), klatka i ramię pokażą prawdziwy progres.",
-                    "\(name), pecho y brazo contarán la historia.",
-                    "\(name), Brust und Armumfang erzählen die Geschichte.",
-                    "\(name), le torse et le bras raconteront l'histoire.",
-                    "\(name), peito e braço vão contar a história."
+                    "\(name), chest and both arms will tell the story.",
+                    "\(name), klatka i oba ramiona pokażą prawdziwy progres.",
+                    "\(name), pecho y ambos brazos contarán la historia.",
+                    "\(name), Brust und beide Arme erzählen die Geschichte.",
+                    "\(name), le torse et les deux bras raconteront l'histoire.",
+                    "\(name), peito e os dois braços vão contar a história."
                 )
             case .improveHealth:
                 return FlowLocalization.app(
@@ -823,15 +1115,6 @@ struct OnboardingView: View {
                     "\(name), Taille und Brust halten das hier geerdet.",
                     "\(name), la taille et le torse garderont cela lisible.",
                     "\(name), cintura e peito vão dar o melhor sinal aqui."
-                )
-            case .trackHealth:
-                return FlowLocalization.app(
-                    "\(name), start with a simple health baseline.",
-                    "\(name), zacznij od prostego punktu zdrowia.",
-                    "\(name), empieza con una base simple de salud.",
-                    "\(name), starte mit einer einfachen Gesundheitsbasis.",
-                    "\(name), commencez par une base santé simple.",
-                    "\(name), comece com uma base simples de saúde."
                 )
             }
         }
@@ -848,12 +1131,12 @@ struct OnboardingView: View {
             )
         case .buildMuscle:
             return FlowLocalization.app(
-                "Chest and arm size will tell the story.",
-                "Klatka i ramię pokażą prawdziwy progres.",
-                "Pecho y brazo contarán la historia.",
-                "Brust und Armumfang erzählen die Geschichte.",
-                "Le torse et le bras raconteront l'histoire.",
-                "Peito e braço vão contar a história."
+                "Chest and both arms will tell the story.",
+                "Klatka i oba ramiona pokażą prawdziwy progres.",
+                "Pecho y ambos brazos contarán la historia.",
+                "Brust und beide Arme erzählen die Geschichte.",
+                "Le torse et les deux bras raconteront l'histoire.",
+                "Peito e os dois braços vão contar a história."
             )
         case .improveHealth:
             return FlowLocalization.app(
@@ -863,15 +1146,6 @@ struct OnboardingView: View {
                 "Taille und Brust halten das hier geerdet.",
                 "La taille et le torse garderont cela lisible.",
                 "Cintura e peito vão dar o melhor sinal aqui."
-            )
-        case .trackHealth:
-            return FlowLocalization.app(
-                "Start with weight and waist.",
-                "Zacznij od wagi i pasa.",
-                "Empieza con peso y cintura.",
-                "Starte mit Gewicht und Taille.",
-                "Commencez par le poids et la taille.",
-                "Comece com peso e cintura."
             )
         }
     }
@@ -905,15 +1179,6 @@ struct OnboardingView: View {
                 "La taille et le torse ensemble rendent la recomposition plus fiable quand le poids est bruité.",
                 "Cintura e peito juntos tornam a recomposição mais clara quando o peso oscila."
             )
-        case .trackHealth:
-            return FlowLocalization.app(
-                "A few consistent measurements make long-term trends easier to read.",
-                "Kilka regularnych pomiarów ułatwia odczyt długoterminowych trendów.",
-                "Unas pocas medidas constantes facilitan leer tendencias largas.",
-                "Wenige konstante Messwerte machen Langzeittrends leichter lesbar.",
-                "Quelques mesures régulières rendent les tendances plus lisibles.",
-                "Poucas medições consistentes tornam tendências longas mais claras."
-            )
         }
     }
 
@@ -926,8 +1191,6 @@ struct OnboardingView: View {
             preferred = "onboarding-before-build-muscle"
         case .improveHealth:
             preferred = "onboarding-before-recomp"
-        case .trackHealth:
-            preferred = "onboarding-before"
         }
         return assetName(preferred: preferred, fallback: "onboarding-before")
     }
@@ -941,8 +1204,6 @@ struct OnboardingView: View {
             preferred = "onboarding-after-build-muscle"
         case .improveHealth:
             preferred = "onboarding-after-recomp"
-        case .trackHealth:
-            preferred = "onboarding-after"
         }
         return assetName(preferred: preferred, fallback: "onboarding-after")
     }
@@ -1005,6 +1266,7 @@ struct OnboardingView: View {
     }
 
     private func goToNextStep() {
+        seedFirstMeasurementForUITestsIfNeeded()
         guard isPrimaryEnabled else { return }
         switch currentStep {
         case .welcome:
@@ -1014,14 +1276,24 @@ struct OnboardingView: View {
                     stepIndex: InputStep.welcome.rawValue + 1
                 )
             )
-            animateToInputStep(.goal)
-        case .goal:
-            persistGoalSelection(trackStepCompletion: true)
-            animateToInputStep(.startingPoint)
-        case .startingPoint:
-            beginAppleHealthImport()
-        case .healthImport:
-            requestHealthAccess()
+            animateToInputStep(.profile)
+        case .profile:
+            persistProfileSelections()
+            animateToInputStep(.metrics)
+        case .metrics:
+            guard saveFirstMeasurementIfNeeded() else { return }
+            completeStepAndAdvance(from: .metrics, to: .photos)
+        case .photos:
+            completeStepAndAdvance(from: .photos, to: .health)
+        case .health:
+            onboardingSkippedHealthKit = !isSyncEnabled
+            Analytics.shared.track(
+                AnalyticsEvents.onboardingStepCompleted(
+                    step: InputStep.health.analyticsName,
+                    stepIndex: InputStep.health.rawValue + 1
+                )
+            )
+            finishOnboarding()
         }
     }
 
@@ -1036,12 +1308,153 @@ struct OnboardingView: View {
 
         switch currentStep {
         case .welcome:
-            animateToInputStep(.goal)
-        case .goal:
-            persistGoalSelection(trackStepCompletion: true)
-            animateToInputStep(.startingPoint)
-        case .startingPoint, .healthImport:
-            chooseManualStartingPoint()
+            animateToInputStep(.profile)
+        case .profile:
+            animateToInputStep(.metrics)
+        case .metrics:
+            firstMeasurementErrorMessage = nil
+            animateToInputStep(.photos)
+        case .photos:
+            animateToInputStep(.health)
+        case .health:
+            onboardingSkippedHealthKit = true
+            healthStatusLines = [
+                FlowLocalization.app(
+                    "You can connect Health later in Settings.",
+                    "Health możesz połączyć później w Ustawieniach.",
+                    "Puedes conectar Salud más tarde en Ajustes.",
+                    "Du kannst Health später in den Einstellungen verbinden.",
+                    "Vous pourrez connecter Santé plus tard dans Réglages.",
+                    "Você pode conectar o Health depois nos Ajustes."
+                )
+            ]
+            finishOnboarding()
+        }
+    }
+
+    private func completeStepAndAdvance(from completedStep: InputStep, to nextStep: InputStep) {
+        Analytics.shared.track(
+            AnalyticsEvents.onboardingStepCompleted(
+                step: completedStep.analyticsName,
+                stepIndex: completedStep.rawValue + 1
+            )
+        )
+        animateToInputStep(nextStep)
+    }
+
+    private func saveFirstMeasurementIfNeeded() -> Bool {
+        if hasSavedFirstMeasurement {
+            return true
+        }
+        guard let entries = makeFirstMeasurementSaveEntries() else {
+            return false
+        }
+
+        isSavingFirstMeasurement = true
+        defer { isSavingFirstMeasurement = false }
+
+        do {
+            try effects.saveFirstMeasurement(
+                entries: entries,
+                date: AppClock.now,
+                unitsSystem: unitsSystem,
+                context: modelContext
+            )
+            firstMeasurementErrorMessage = nil
+            hasSavedFirstMeasurement = true
+            Haptics.success()
+            return true
+        } catch {
+            firstMeasurementErrorMessage = FlowLocalization.app(
+                "Could not save this starting point. Try again.",
+                "Nie udało się zapisać punktu startowego. Spróbuj ponownie.",
+                "No se pudo guardar este punto de partida. Inténtalo de nuevo.",
+                "Dieser Startpunkt konnte nicht gespeichert werden. Bitte versuche es erneut.",
+                "Impossible d'enregistrer ce point de départ. Réessayez.",
+                "Não foi possível salvar este ponto de partida. Tente novamente."
+            )
+            return false
+        }
+    }
+
+    private func makeFirstMeasurementSaveEntries() -> [QuickAddSaveService.Entry]? {
+        var entries: [QuickAddSaveService.Entry] = []
+
+        for kind in recommendedKinds {
+            let rawValue = firstMeasurementEntries[kind]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !rawValue.isEmpty else { continue }
+
+            guard let displayValue = parseDisplayValue(rawValue) else {
+                firstMeasurementErrorMessage = FlowLocalization.app(
+                    "Enter a valid number for %@.",
+                    "Wpisz poprawną liczbę dla %@.",
+                    "Introduce un número válido para %@.",
+                    "Gib eine gültige Zahl für %@ ein.",
+                    "Saisissez un nombre valide pour %@.",
+                    "Digite um número válido para %@."
+                )
+                .replacingOccurrences(of: "%@", with: kind.title)
+                return nil
+            }
+
+            let validation = MetricInputValidator.validateMetricDisplayValue(
+                displayValue,
+                kind: kind,
+                unitsSystem: unitsSystem
+            )
+            guard validation.isValid else {
+                firstMeasurementErrorMessage = validation.message
+                return nil
+            }
+
+            entries.append(
+                QuickAddSaveService.Entry(
+                    kind: kind,
+                    metricValue: kind.valueToMetric(fromDisplay: displayValue, unitsSystem: unitsSystem)
+                )
+            )
+        }
+
+        guard !entries.isEmpty else {
+            firstMeasurementErrorMessage = FlowLocalization.app(
+                "Add at least one value to save your starting point.",
+                "Dodaj przynajmniej jedną wartość, aby zapisać punkt startowy.",
+                "Añade al menos un valor para guardar tu punto de partida.",
+                "Füge mindestens einen Wert hinzu, um deinen Startpunkt zu speichern.",
+                "Ajoutez au moins une valeur pour enregistrer votre point de départ.",
+                "Adicione pelo menos um valor para salvar seu ponto de partida."
+            )
+            return nil
+        }
+
+        return entries
+    }
+
+    private func parseDisplayValue(_ rawValue: String?) -> Double? {
+        guard let rawValue else { return nil }
+        let normalized = rawValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: ",", with: ".")
+        guard !normalized.isEmpty else { return nil }
+        return Double(normalized)
+    }
+
+    private func seedFirstMeasurementForUITestsIfNeeded() {
+        guard isUITestOnboardingMode,
+              currentStep == .metrics,
+              !hasSavedFirstMeasurement,
+              !hasAnyFirstMeasurementInput,
+              let firstKind = recommendedKinds.first else {
+            return
+        }
+
+        switch firstKind.unitCategory {
+        case .weight:
+            firstMeasurementEntries[firstKind] = unitsSystem == "imperial" ? "165" : "75"
+        case .length:
+            firstMeasurementEntries[firstKind] = unitsSystem == "imperial" ? "35" : "90"
+        case .percent:
+            firstMeasurementEntries[firstKind] = "20"
         }
     }
 
@@ -1058,15 +1471,7 @@ struct OnboardingView: View {
         }
     }
 
-    private func chooseGoal(_ priority: OnboardingPriority) {
-        Haptics.selection()
-        selectedPriority = priority
-        onboardingPrimaryGoalRaw = priority.rawValue
-        persistGoalSelection(trackStepCompletion: true)
-        animateToInputStep(.startingPoint)
-    }
-
-    private func persistGoalSelection(trackStepCompletion: Bool) {
+    private func persistProfileSelections() {
         let trimmed = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
             userName = trimmed
@@ -1076,47 +1481,24 @@ struct OnboardingView: View {
         onboardingPrimaryGoalRaw = priority.rawValue
         applyMetricPackIfNeeded()
         Analytics.shared.track(AnalyticsEvents.onboardingPrioritySelected(priority: priority.analyticsValue))
-        if trackStepCompletion {
-            Analytics.shared.track(
-                AnalyticsEvents.onboardingStepCompleted(
-                    step: InputStep.goal.analyticsName,
-                    stepIndex: InputStep.goal.rawValue + 1
-                )
-            )
-        }
-    }
-
-    private func beginAppleHealthImport() {
-        persistGoalSelection(trackStepCompletion: false)
         Analytics.shared.track(
             AnalyticsEvents.onboardingStepCompleted(
-                step: InputStep.startingPoint.analyticsName,
-                stepIndex: InputStep.startingPoint.rawValue + 1
+                step: InputStep.profile.analyticsName,
+                stepIndex: InputStep.profile.rawValue + 1
             )
         )
-        animateToInputStep(.healthImport)
-    }
-
-    private func chooseManualStartingPoint() {
-        onboardingSkippedHealthKit = true
-        Analytics.shared.track(
-            AnalyticsEvents.onboardingStepCompleted(
-                step: currentStep.analyticsName,
-                stepIndex: currentStep.rawValue + 1
-            )
-        )
-        finishOnboarding()
     }
 
     private func applyMetricPackIfNeeded() {
         let customizedMetricsBefore = effects.hasCustomizedMetrics()
         guard !customizedMetricsBefore else { return }
-        effects.applyMetricPack(recommendedKinds)
+        let trackedKinds = GoalMetricPack.trackedKinds(for: resolvedPriority)
+        effects.applyMetricPack(trackedKinds)
         Analytics.shared.track(
             AnalyticsEvents.onboardingMetricPackApplied(
                 priority: resolvedPriority.analyticsValue,
                 packID: resolvedPriority.rawValue,
-                metricsCount: recommendedKinds.count,
+                metricsCount: trackedKinds.count,
                 customizedMetricsBefore: customizedMetricsBefore
             )
         )
@@ -1165,13 +1547,6 @@ struct OnboardingView: View {
                         importedHeight: profile.height != nil
                     )
                 )
-                Analytics.shared.track(
-                    AnalyticsEvents.onboardingStepCompleted(
-                        step: InputStep.healthImport.analyticsName,
-                        stepIndex: InputStep.healthImport.rawValue + 1
-                    )
-                )
-                finishOnboarding()
             } catch {
                 isSyncEnabled = false
                 onboardingSkippedHealthKit = true
@@ -1228,10 +1603,16 @@ struct OnboardingView: View {
         let priority = resolvedPriority
         onboardingPrimaryGoalRaw = priority.rawValue
         applyMetricPackIfNeeded()
-        activationCurrentTaskID = ActivationTask.firstMeasurement.rawValue
-        activationCompletedTaskIDsRaw = ""
+        let completedActivationTasks = initialActivationCompletedTaskIDs()
+        activationCompletedTaskIDsRaw = completedActivationTasks.sorted().joined(separator: ",")
+        if let nextActivationTask = initialActivationCurrentTask(completedTasks: completedActivationTasks) {
+            activationCurrentTaskID = nextActivationTask.rawValue
+            activationIsDismissed = false
+        } else {
+            activationCurrentTaskID = ""
+            activationIsDismissed = true
+        }
         activationSkippedTaskIDsRaw = ""
-        activationIsDismissed = false
         onboardingFlowVersion = Int(AnalyticsEvents.onboardingFlowVersion) ?? 4
 
         if shouldAnimate {
@@ -1249,6 +1630,48 @@ struct OnboardingView: View {
                 completedAllSteps: true
             )
         )
+    }
+
+    private func initialActivationCompletedTaskIDs() -> Set<String> {
+        var completed = Set<String>()
+        if hasSavedFirstMeasurement {
+            completed.insert(ActivationTask.firstMeasurement.rawValue)
+        }
+        if hasSavedOnboardingPhoto {
+            completed.insert(ActivationTask.addPhoto.rawValue)
+        }
+        if !userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || userAge > 0 || manualHeight > 0 {
+            completed.insert(ActivationTask.personalizeProfile.rawValue)
+        }
+        if isSyncEnabled {
+            completed.insert(ActivationTask.connectHealth.rawValue)
+        }
+        return completed
+    }
+
+    private func initialActivationCurrentTask(completedTasks: Set<String>) -> ActivationTask? {
+        [
+            ActivationTask.firstMeasurement,
+            .addPhoto
+        ]
+        .first { task in
+            !completedTasks.contains(task.rawValue) && !isActivationTaskSatisfiedDuringOnboarding(task)
+        }
+    }
+
+    private func isActivationTaskSatisfiedDuringOnboarding(_ task: ActivationTask) -> Bool {
+        switch task {
+        case .firstMeasurement:
+            return hasSavedFirstMeasurement
+        case .addPhoto:
+            return hasSavedOnboardingPhoto
+        case .personalizeProfile:
+            return !userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || userAge > 0 || manualHeight > 0
+        case .connectHealth:
+            return isSyncEnabled || onboardingSkippedHealthKit
+        case .chooseMetrics, .setReminders, .explorePremium:
+            return false
+        }
     }
 
     private func onboardingLayout(for availableHeight: CGFloat) -> OnboardingCardLayout {

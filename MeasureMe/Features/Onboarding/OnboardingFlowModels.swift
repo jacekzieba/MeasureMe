@@ -4,25 +4,20 @@ enum OnboardingPriority: String, CaseIterable, Sendable {
     case loseWeight
     case buildMuscle
     case improveHealth
-    case trackHealth
-
-    static var onboardingOptions: [OnboardingPriority] {
-        [.loseWeight, .buildMuscle, .improveHealth, .trackHealth]
-    }
 
     var analyticsValue: String { rawValue }
 }
 
 enum ActivationTask: String, CaseIterable, Sendable {
     case firstMeasurement
+    case addPhoto
+    case personalizeProfile
+    case connectHealth
     case chooseMetrics
     case setReminders
-    case addPhoto
-    case connectHealth
-    case personalizeProfile
     case explorePremium
 
-    static let initial: ActivationTask = .firstMeasurement
+    static let initial: ActivationTask = .addPhoto
 }
 
 enum FlowLocalization {
@@ -88,8 +83,6 @@ enum OnboardingCopy {
             return FlowLocalization.app("Build muscle", "Budować mięśnie", "Ganar músculo", "Muskeln aufbauen", "Prendre du muscle", "Ganhar massa muscular")
         case .improveHealth:
             return FlowLocalization.app("Recomposition", "Rekompozycja", "Recomposición", "Rekomposition", "Recomposition", "Recomposição")
-        case .trackHealth:
-            return FlowLocalization.app("Track health", "Śledzić zdrowie", "Seguir salud", "Gesundheit verfolgen", "Suivre la santé", "Acompanhar saúde")
         }
     }
 
@@ -106,12 +99,12 @@ enum OnboardingCopy {
             )
         case .buildMuscle:
             return FlowLocalization.app(
-                "Focus on chest and arm growth instead of obsessing over scale weight.",
+                "Focus on chest and both arms instead of obsessing over scale weight.",
                 "Skup się na wzroście klatki i ramion zamiast obsesyjnie patrzeć na wagę.",
-                "Enfócate en el crecimiento de pecho y brazo en lugar de obsesionarte con la báscula.",
-                "Konzentriere dich auf Brust- und Armzuwachs statt auf die Waage.",
+                "Enfócate en el crecimiento de pecho y brazos en lugar de obsesionarte con la báscula.",
+                "Konzentriere dich auf Brust- und Armwachstum statt auf die Waage.",
                 "Concentrez-vous sur la progression du torse et des bras plutôt que sur la balance.",
-                "Foque no crescimento do peito e do braço em vez de se prender à balança."
+                "Foque no crescimento do peito e dos braços em vez de se prender à balança."
             )
         case .improveHealth:
             return FlowLocalization.app(
@@ -121,15 +114,6 @@ enum OnboardingCopy {
                 "Nutze Taille und Brust zusammen, um Recomposition ohne täglichen Lärm zu erkennen.",
                 "Utilisez la taille et le torse ensemble pour repérer la recomposition sans réagir au bruit quotidien.",
                 "Use cintura e peito juntos para notar recomposição sem reagir ao ruído diário."
-            )
-        case .trackHealth:
-            return FlowLocalization.app(
-                "Keep a simple baseline for long-term trends.",
-                "Zbuduj prosty punkt startowy dla długoterminowych trendów.",
-                "Crea una base simple para tendencias a largo plazo.",
-                "Baue eine einfache Basis für langfristige Trends auf.",
-                "Créez une base simple pour les tendances à long terme.",
-                "Crie uma base simples para tendências de longo prazo."
             )
         }
     }
@@ -255,22 +239,22 @@ enum OnboardingCopy {
     }
 
     static var healthPromptTitle: String {
-        FlowLocalization.app("Import your starting point", "Zaimportuj punkt startowy", "Importa tu punto de partida", "Startpunkt importieren", "Importez votre point de départ", "Importe seu ponto inicial")
+        FlowLocalization.app("Import from Apple Health?", "Zaimportować z Apple Health?", "¿Importar desde Apple Health?", "Aus Apple Health importieren?", "Importer depuis Apple Health ?", "Importar do Apple Health?")
     }
 
     static var healthPromptBody: String {
         FlowLocalization.app(
-            "MeasureMe can read selected measurements from Apple Health to create your baseline. Health access is optional and you can log manually instead.",
-            "MeasureMe może odczytać wybrane pomiary z Apple Health, aby utworzyć punkt startowy. Dostęp do Zdrowia jest opcjonalny i możesz wpisywać dane ręcznie.",
-            "MeasureMe puede leer medidas seleccionadas de Apple Health para crear tu base. El acceso a Salud es opcional y también puedes registrar manualmente.",
-            "MeasureMe kann ausgewählte Messwerte aus Apple Health lesen, um deine Basis zu erstellen. Health-Zugriff ist optional und du kannst manuell eintragen.",
-            "MeasureMe peut lire certaines mesures depuis Apple Health pour créer votre base. L'accès Santé est facultatif et vous pouvez saisir les données manuellement.",
-            "O MeasureMe pode ler medições selecionadas do Apple Health para criar sua base. O acesso ao Health é opcional e você pode registrar manualmente."
+            "Connect Apple Health to import history and keep your baseline up to date automatically.",
+            "Połącz Apple Health, aby zaimportować historię i automatycznie aktualizować punkt startowy.",
+            "Conecta Apple Health para importar historial y mantener tu base al día automáticamente.",
+            "Verbinde Apple Health, um Verlauf zu importieren und deine Basis automatisch aktuell zu halten.",
+            "Connectez Apple Health pour importer l'historique et garder votre base à jour automatiquement.",
+            "Conecte o Apple Health para importar histórico e manter sua base atualizada automaticamente."
         )
     }
 
     static var healthAllowCTA: String {
-        FlowLocalization.app("Continue", "Dalej", "Continuar", "Weiter", "Continuer", "Continuar")
+        FlowLocalization.app("Import history", "Importuj historię", "Importar historial", "Verlauf importieren", "Importer l'historique", "Importar histórico")
     }
 
     static var healthSkipCTA: String {
@@ -333,17 +317,17 @@ enum OnboardingCopy {
     static func activationTaskTitle(_ task: ActivationTask) -> String {
         switch task {
         case .firstMeasurement:
-            return FlowLocalization.app("Confirm your starting measurements", "Potwierdź pomiary startowe", "Confirma tus medidas iniciales", "Startmessungen bestätigen", "Confirmez vos mesures de départ", "Confirme suas medições iniciais")
+            return FlowLocalization.app("Add your first measurement", "Dodaj pierwszy pomiar", "Añade tu primera medida", "Füge deine erste Messung hinzu", "Ajoutez votre première mesure", "Adicione sua primeira medição")
+        case .addPhoto:
+            return FlowLocalization.app("Add your first photo", "Dodaj pierwsze zdjęcie", "Añade tu primera foto", "Füge dein erstes Foto hinzu", "Ajoutez votre première photo", "Adicione sua primeira foto")
+        case .personalizeProfile:
+            return FlowLocalization.app("Personalize your profile", "Uzupełnij profil", "Personaliza tu perfil", "Profil ausfüllen", "Personnalisez votre profil", "Personalize seu perfil")
+        case .connectHealth:
+            return FlowLocalization.app("Connect Apple Health", "Połącz z Apple Health", "Conecta Apple Health", "Mit Apple Health verbinden", "Connecter Apple Health", "Conectar Apple Health")
         case .chooseMetrics:
             return FlowLocalization.app("Choose what to track", "Wybierz, co śledzić", "Elige qué seguir", "Wähle, was du verfolgen willst", "Choisissez quoi suivre", "Escolha o que acompanhar")
         case .setReminders:
-            return FlowLocalization.app("Set a weekly check-in reminder", "Ustaw tygodniowe przypomnienie", "Configura un recordatorio semanal", "Wöchentliche Erinnerung einrichten", "Définissez un rappel hebdomadaire", "Defina um lembrete semanal")
-        case .addPhoto:
-            return FlowLocalization.app("Add a progress photo", "Dodaj zdjęcie postępu", "Añade una foto de progreso", "Fortschrittsfoto hinzufügen", "Ajoutez une photo de progression", "Adicione uma foto de progresso")
-        case .connectHealth:
-            return FlowLocalization.app("Connect Apple Health", "Połącz z Apple Health", "Conecta Apple Health", "Mit Apple Health verbinden", "Connecter Apple Health", "Conectar Apple Health")
-        case .personalizeProfile:
-            return FlowLocalization.app("Personalize your profile", "Uzupełnij profil", "Personaliza tu perfil", "Profil ausfüllen", "Personnalisez votre profil", "Personalize seu perfil")
+            return FlowLocalization.app("Set reminders", "Ustaw przypomnienia", "Configura recordatorios", "Erinnerungen einrichten", "Définissez des rappels", "Defina lembretes")
         case .explorePremium:
             return FlowLocalization.app("Explore Premium", "Sprawdź Premium", "Explora Premium", "Premium ansehen", "Découvrez Premium", "Explore o Premium")
         }
@@ -353,48 +337,21 @@ enum OnboardingCopy {
         switch task {
         case .firstMeasurement:
             return FlowLocalization.app(
-                "Add or import your first Weight + Waist baseline.",
-                "Dodaj lub zaimportuj pierwszą bazę Waga + Pas.",
-                "Añade o importa tu primera base de Peso + Cintura.",
-                "Füge deine erste Basis aus Gewicht + Taille hinzu oder importiere sie.",
-                "Ajoutez ou importez votre première base Poids + Taille.",
-                "Adicione ou importe sua primeira base de Peso + Cintura."
-            )
-        case .chooseMetrics:
-            return FlowLocalization.app(
-                "Customize the measurements that match your goal.",
-                "Dostosuj pomiary do swojego celu.",
-                "Personaliza las medidas que coinciden con tu objetivo.",
-                "Passe die Messwerte an dein Ziel an.",
-                "Personnalisez les mesures qui correspondent à votre objectif.",
-                "Personalize as medições que combinam com seu objetivo."
-            )
-        case .setReminders:
-            return FlowLocalization.app(
-                "Build a consistent tracking habit.",
-                "Zbuduj regularny nawyk śledzenia.",
-                "Crea un hábito constante de seguimiento.",
-                "Baue eine konstante Tracking-Gewohnheit auf.",
-                "Créez une habitude de suivi régulière.",
-                "Crie um hábito consistente de acompanhamento."
+                "Log one measurement manually to create your starting point.",
+                "Wpisz jeden pomiar ręcznie, aby utworzyć punkt startowy.",
+                "Registra una medida manualmente para crear tu punto de partida.",
+                "Trage eine Messung manuell ein, um deinen Startpunkt zu setzen.",
+                "Enregistrez une mesure manuellement pour créer votre point de départ.",
+                "Registre uma medição manualmente para criar seu ponto inicial."
             )
         case .addPhoto:
             return FlowLocalization.app(
-                "Optional, but useful for visual comparison.",
-                "Opcjonalne, ale przydatne do porównań wizualnych.",
-                "Opcional, pero útil para comparar visualmente.",
-                "Optional, aber nützlich für visuelle Vergleiche.",
-                "Facultatif, mais utile pour la comparaison visuelle.",
-                "Opcional, mas útil para comparação visual."
-            )
-        case .connectHealth:
-            return FlowLocalization.app(
-                "Sync supported measurements automatically with Apple Health.",
-                "Synchronizuj obsługiwane pomiary automatycznie z Apple Health.",
-                "Sincroniza medidas compatibles automáticamente con Apple Health.",
-                "Synchronisiere unterstützte Messwerte automatisch mit Apple Health.",
-                "Synchronisez automatiquement les mesures compatibles avec Apple Health.",
-                "Sincronize medições compatíveis automaticamente com Apple Health."
+                "Add one photo to make this starting point visual.",
+                "Dodaj jedno zdjęcie, aby punkt startowy był widoczny.",
+                "Añade una foto para hacer visual este punto de partida.",
+                "Füge ein Foto hinzu, damit dein Startpunkt sichtbar wird.",
+                "Ajoutez une photo pour rendre ce point de départ visuel.",
+                "Adicione uma foto para deixar esse ponto inicial visual."
             )
         case .personalizeProfile:
             return FlowLocalization.app(
@@ -404,6 +361,33 @@ enum OnboardingCopy {
                 "Trage Größe, Alter und Geschlecht ein, damit die Indikatoren stimmen.",
                 "Ajoutez votre taille, âge et genre pour des indicateurs précis.",
                 "Adicione altura, idade e gênero para indicadores precisos."
+            )
+        case .connectHealth:
+            return FlowLocalization.app(
+                "Sync weight, body fat and other metrics automatically with Apple Health.",
+                "Synchronizuj wagę, tkankę tłuszczową i inne pomiary z Apple Health.",
+                "Sincroniza peso, grasa corporal y otras métricas con Apple Health.",
+                "Gewicht, Körperfett und mehr automatisch mit Apple Health synchronisieren.",
+                "Synchronisez poids, masse grasse et autres avec Apple Health.",
+                "Sincronize peso, gordura corporal e mais com a Apple Health."
+            )
+        case .chooseMetrics:
+            return FlowLocalization.app(
+                "Pin the metrics you want on Home and Quick Add.",
+                "Przypnij metryki, które chcesz widzieć na Home i w szybkim dodawaniu.",
+                "Fija las métricas que quieres en Inicio y Añadir rápido.",
+                "Pinne die Messwerte, die du auf Home und in Quick Add sehen willst.",
+                "Épinglez les mesures à afficher sur l'accueil et l'ajout rapide.",
+                "Fixe as métricas que você quer na Home e no atalho de adição."
+            )
+        case .setReminders:
+            return FlowLocalization.app(
+                "Add a gentle reminder so check-ins stay easy to remember.",
+                "Dodaj łagodne przypomnienie, żeby łatwiej pamiętać o pomiarach.",
+                "Añade un recordatorio suave para no olvidar los registros.",
+                "Füge eine sanfte Erinnerung hinzu, damit Einträge leichter dranbleiben.",
+                "Ajoutez un rappel discret pour penser aux suivis.",
+                "Adicione um lembrete leve para não esquecer os registros."
             )
         case .explorePremium:
             return FlowLocalization.app(
@@ -420,7 +404,7 @@ enum OnboardingCopy {
     static func activationPrimaryCTA(_ task: ActivationTask) -> String {
         switch task {
         case .firstMeasurement:
-            return FlowLocalization.app("Confirm baseline", "Potwierdź bazę", "Confirmar base", "Basis bestätigen", "Confirmer la base", "Confirmar base")
+            return FlowLocalization.app("Add measurement", "Dodaj pomiar", "Añadir medida", "Messung hinzufügen", "Ajouter une mesure", "Adicionar medição")
         case .addPhoto:
             return FlowLocalization.app("Add photo", "Dodaj zdjęcie", "Añadir foto", "Foto hinzufügen", "Ajouter une photo", "Adicionar foto")
         case .personalizeProfile:
@@ -445,16 +429,14 @@ enum OnboardingCopy {
     }
 
     static var premiumTitle: String {
-        FlowLocalization.app("Understand your progress faster", "Szybciej zrozum swój progres", "Entiende tu progreso más rápido", "Verstehe deinen Fortschritt schneller", "Comprenez vos progrès plus vite", "Entenda seu progresso mais rápido")
+        FlowLocalization.app("Go deeper when you're ready", "Wejdź głębiej, kiedy będziesz gotowy", "Ve más allá cuando quieras", "Geh tiefer, wenn du bereit bist", "Allez plus loin quand vous serez prêt", "Vá mais fundo quando estiver pronto")
     }
 
     static var premiumBullets: [String] {
         [
-            FlowLocalization.app("See whether weight change matches waist change", "Sprawdź, czy zmiana wagi pasuje do zmiany pasa", "Comprueba si el cambio de peso coincide con la cintura", "Sieh, ob Gewichts- und Taillenänderung zusammenpassen", "Voyez si le poids évolue comme la taille", "Veja se a mudança de peso combina com a cintura"),
-            FlowLocalization.app("Compare photos side by side", "Porównuj zdjęcia obok siebie", "Compara fotos lado a lado", "Vergleiche Fotos nebeneinander", "Comparez les photos côte à côte", "Compare fotos lado a lado"),
-            FlowLocalization.app("Get AI summaries from your measurements", "Otrzymuj podsumowania AI z pomiarów", "Obtén resúmenes de IA de tus medidas", "Erhalte KI-Zusammenfassungen aus deinen Messwerten", "Obtenez des résumés IA de vos mesures", "Receba resumos de IA das suas medições"),
-            FlowLocalization.app("Export progress when you need it", "Eksportuj progres, gdy go potrzebujesz", "Exporta tu progreso cuando lo necesites", "Exportiere Fortschritt, wenn du ihn brauchst", "Exportez vos progrès si besoin", "Exporte o progresso quando precisar"),
-            FlowLocalization.app("Keep long-term trends in one place", "Trzymaj długoterminowe trendy w jednym miejscu", "Mantén tendencias a largo plazo en un lugar", "Halte Langzeittrends an einem Ort", "Gardez les tendances long terme au même endroit", "Mantenha tendências de longo prazo em um lugar")
+            FlowLocalization.app("Photo comparison modes", "Tryby porównywania zdjęć", "Modos de comparación de fotos", "Fotovergleichsmodi", "Modes de comparaison photo", "Modos de comparação de fotos"),
+            FlowLocalization.app("AI summaries and richer trend context", "Analizy AI i bogatszy kontekst trendów", "Resúmenes de IA y contexto de tendencias", "KI-Zusammenfassungen und reicherer Trendkontext", "Résumés IA et contexte de tendance enrichi", "Resumos com IA e contexto de tendências"),
+            FlowLocalization.app("Health and physique indicators in one place", "Wskaźniki zdrowia i sylwetki w jednym miejscu", "Indicadores de salud y físico en un solo lugar", "Gesundheits- und Körperindikatoren an einem Ort", "Indicateurs santé et silhouette au même endroit", "Indicadores de saúde e físico em um só lugar")
         ]
     }
 }

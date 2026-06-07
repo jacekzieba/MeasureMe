@@ -143,15 +143,6 @@ final class AnalyticsClientTests: XCTestCase {
         XCTAssertNil(AppTab.compose.analyticsSelectionSignal)
     }
 
-    func testOnboardingStepToSignalMapping() {
-        XCTAssertEqual(AnalyticsSignal.onboardingStepViewed(stepIndex: 0), .onboardingStepWelcomeViewed)
-        XCTAssertEqual(AnalyticsSignal.onboardingStepViewed(stepIndex: 1), .onboardingStepFirstMeasurementViewed)
-        XCTAssertNil(AnalyticsSignal.onboardingStepViewed(stepIndex: 2))
-        XCTAssertNil(AnalyticsSignal.onboardingStepViewed(stepIndex: 3))
-        XCTAssertNil(AnalyticsSignal.onboardingStepViewed(stepIndex: -1))
-        XCTAssertNil(AnalyticsSignal.onboardingStepViewed(stepIndex: 99))
-    }
-
     func testFirstEventsSignalNames() {
         XCTAssertEqual(AnalyticsSignal.firstMetricAdded.rawValue, "com.jacekzieba.measureme.metric.first_added")
         XCTAssertEqual(AnalyticsSignal.firstPhotoAdded.rawValue, "com.jacekzieba.measureme.photo.first_added")

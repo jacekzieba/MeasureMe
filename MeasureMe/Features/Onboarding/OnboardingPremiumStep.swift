@@ -395,7 +395,10 @@ struct OnboardingPremiumStep: View {
                         Link(AppLocalization.string("Privacy Policy"), destination: LegalLinks.privacyPolicy)
                             .accessibilityIdentifier("onboarding.premium.privacy")
                         Button(AppLocalization.string("Restore purchases")) {
-                            Task { await premiumStore.restorePurchases() }
+                            Analytics.shared.track(
+                                AnalyticsEvents.paywallRestoreTapped(context: PremiumStore.PaywallReason.onboarding.analyticsReason)
+                            )
+                            Task { await premiumStore.restorePurchases(source: .onboarding) }
                         }
                         .accessibilityIdentifier("onboarding.premium.restore")
                         Link(AppLocalization.string("Terms of Use"), destination: LegalLinks.termsOfUse)
@@ -406,7 +409,10 @@ struct OnboardingPremiumStep: View {
                         Link(AppLocalization.string("Privacy Policy"), destination: LegalLinks.privacyPolicy)
                             .accessibilityIdentifier("onboarding.premium.privacy")
                         Button(AppLocalization.string("Restore purchases")) {
-                            Task { await premiumStore.restorePurchases() }
+                            Analytics.shared.track(
+                                AnalyticsEvents.paywallRestoreTapped(context: PremiumStore.PaywallReason.onboarding.analyticsReason)
+                            )
+                            Task { await premiumStore.restorePurchases(source: .onboarding) }
                         }
                         .accessibilityIdentifier("onboarding.premium.restore")
                         Link(AppLocalization.string("Terms of Use"), destination: LegalLinks.termsOfUse)

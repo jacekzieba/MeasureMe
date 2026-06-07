@@ -29,17 +29,22 @@ nonisolated enum AnalyticsEventName {
         static let taskStarted = "com.jacekzieba.measureme.activation.task_started"
         static let taskCompleted = "com.jacekzieba.measureme.activation.task_completed"
         static let taskSkipped = "com.jacekzieba.measureme.activation.task_skipped"
+        static let dismissed = "com.jacekzieba.measureme.activation.dismissed"
         static let completed = "com.jacekzieba.measureme.activation.completed"
     }
 
     enum Checklist {
-        static let itemViewed = "com.jacekzieba.measureme.checklist.item_viewed"
         static let itemStarted = "com.jacekzieba.measureme.checklist.item_started"
         static let itemCompleted = "com.jacekzieba.measureme.checklist.item_completed"
     }
 
     enum Measurement {
         static let saved = "com.jacekzieba.measureme.measurement.saved"
+    }
+
+    enum Health {
+        static let permissionPrompted = "com.jacekzieba.measureme.health.permission_prompted"
+        static let permissionResolved = "com.jacekzieba.measureme.health.permission_resolved"
     }
 
     enum Photo {
@@ -55,7 +60,14 @@ nonisolated enum AnalyticsEventName {
         static let closed = "com.jacekzieba.measureme.paywall.closed"
         static let restoreTapped = "com.jacekzieba.measureme.paywall.restore_tapped"
         static let purchaseStarted = "com.jacekzieba.measureme.paywall.purchase_started"
-        static let purchaseCancelled = "com.jacekzieba.measureme.paywall.purchase_cancelled"
+    }
+
+    enum Purchase {
+        static let completed = "com.jacekzieba.measureme.purchase.completed"
+        static let cancelled = "com.jacekzieba.measureme.purchase.cancelled"
+        static let pending = "com.jacekzieba.measureme.purchase.pending"
+        static let restoreStarted = "com.jacekzieba.measureme.purchase.restore_started"
+        static let restoreCompleted = "com.jacekzieba.measureme.purchase.restore_completed"
     }
 
     enum PremiumPrompt {
@@ -108,7 +120,13 @@ nonisolated enum MeasurementTelemetrySource: String {
     case intent
 }
 
+nonisolated enum HealthTelemetrySource: String {
+    case checklist
+    case settings
+}
+
 nonisolated enum PhotoTelemetrySource: String {
+    case onboarding
     case activation
     case photos
     case multiImport = "multi_import"
@@ -125,10 +143,20 @@ nonisolated enum PaywallTelemetrySource: String {
 nonisolated enum NotificationTelemetrySource: String {
     case activation
     case checklist
+    case settings
+    case premiumTrial = "premium_trial"
 }
 
 nonisolated enum ReminderTelemetrySource: String {
     case activation
+    case premiumTrial = "premium_trial"
+    case settings
+}
+
+nonisolated enum PurchaseRestoreSource: String {
+    case onboarding
+    case paywall
+    case settings
 }
 
 nonisolated enum AnalyticsEvents {
@@ -273,6 +301,17 @@ nonisolated enum AnalyticsEvents {
         )
     }
 
+    static func activationDismissed(currentTask: String?, completedTasksCount: Int, skippedTasksCount: Int) -> AnalyticsEvent {
+        var parameters: [String: String] = [
+            "completed_tasks_count": String(completedTasksCount),
+            "skipped_tasks_count": String(skippedTasksCount)
+        ]
+        if let currentTask {
+            parameters["current_task"] = currentTask
+        }
+        return AnalyticsEvent(name: AnalyticsEventName.Activation.dismissed, parameters: parameters)
+    }
+
     static func activationCompleted(completedTasksCount: Int, skippedTasksCount: Int) -> AnalyticsEvent {
         AnalyticsEvent(
             name: AnalyticsEventName.Activation.completed,
@@ -281,10 +320,6 @@ nonisolated enum AnalyticsEvents {
                 "skipped_tasks_count": String(skippedTasksCount)
             ]
         )
-    }
-
-    static func checklistItemViewed(item: String, source: String, task: String? = nil) -> AnalyticsEvent {
-        checklistEvent(name: AnalyticsEventName.Checklist.itemViewed, item: item, source: source, task: task)
     }
 
     static func checklistItemStarted(item: String, source: String, task: String? = nil) -> AnalyticsEvent {
@@ -302,6 +337,23 @@ nonisolated enum AnalyticsEvents {
                 "source": source.rawValue,
                 "metrics_count": String(metricsCount),
                 "is_first_measurement": AnalyticsBool.string(isFirstMeasurement)
+            ]
+        )
+    }
+
+    static func healthPermissionPrompted(source: HealthTelemetrySource) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.Health.permissionPrompted,
+            parameters: ["source": source.rawValue]
+        )
+    }
+
+    static func healthPermissionResolved(source: HealthTelemetrySource, result: String) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.Health.permissionResolved,
+            parameters: [
+                "source": source.rawValue,
+                "result": result
             ]
         )
     }
@@ -375,10 +427,41 @@ nonisolated enum AnalyticsEvents {
         )
     }
 
-    static func paywallPurchaseCancelled(planID: String, context: String) -> AnalyticsEvent {
+    static func purchaseCompleted(parameters: [String: String]) -> AnalyticsEvent {
         AnalyticsEvent(
-            name: AnalyticsEventName.Paywall.purchaseCancelled,
-            parameters: ["plan_id": planID, "context": context]
+            name: AnalyticsEventName.Purchase.completed,
+            parameters: parameters
+        )
+    }
+
+    static func purchaseCancelled(parameters: [String: String]) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.Purchase.cancelled,
+            parameters: parameters
+        )
+    }
+
+    static func purchasePending(parameters: [String: String]) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.Purchase.pending,
+            parameters: parameters
+        )
+    }
+
+    static func purchaseRestoreStarted(source: PurchaseRestoreSource) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.Purchase.restoreStarted,
+            parameters: ["source": source.rawValue]
+        )
+    }
+
+    static func purchaseRestoreCompleted(source: PurchaseRestoreSource, result: String) -> AnalyticsEvent {
+        AnalyticsEvent(
+            name: AnalyticsEventName.Purchase.restoreCompleted,
+            parameters: [
+                "source": source.rawValue,
+                "result": result
+            ]
         )
     }
 

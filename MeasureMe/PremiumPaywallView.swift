@@ -1022,7 +1022,10 @@ struct PremiumPaywallView: View {
         return HStack(spacing: 22) {
             Link(AppLocalization.string("Privacy Policy"), destination: LegalLinks.privacyPolicy)
             Button(AppLocalization.string("Restore purchases")) {
-                Task { await premium.restorePurchases() }
+                Analytics.shared.track(
+                    AnalyticsEvents.paywallRestoreTapped(context: premium.paywallReason.analyticsReason)
+                )
+                Task { await premium.restorePurchases(source: .paywall) }
             }
             Button(AppLocalization.string("Customer Center")) {
                 isCustomerCenterPresented = true

@@ -23,22 +23,6 @@ protocol OnboardingNotificationManaging: AnyObject {
 
 extension NotificationManager: OnboardingNotificationManaging {}
 
-protocol OnboardingAnalyticsTracking {
-    func track(_ signal: AnalyticsSignal)
-}
-
-struct OnboardingAnalyticsAdapter: OnboardingAnalyticsTracking {
-    private let client: AnalyticsClient
-
-    init(client: AnalyticsClient = Analytics.shared) {
-        self.client = client
-    }
-
-    func track(_ signal: AnalyticsSignal) {
-        client.track(signal)
-    }
-}
-
 struct OnboardingReminderSeedState {
     let repeatRule: ReminderRepeat
     let reminderWeekday: Int
@@ -52,23 +36,16 @@ struct OnboardingEffects {
 
     private let healthKit: OnboardingHealthKitAuthorizing
     private let notifications: OnboardingNotificationManaging
-    private let analytics: OnboardingAnalyticsTracking
     private let settings: AppSettingsStore
 
     init(
         healthKit: OnboardingHealthKitAuthorizing? = nil,
         notifications: OnboardingNotificationManaging? = nil,
-        analytics: OnboardingAnalyticsTracking? = nil,
         settings: AppSettingsStore? = nil
     ) {
         self.healthKit = healthKit ?? HealthKitManager.shared
         self.notifications = notifications ?? NotificationManager.shared
-        self.analytics = analytics ?? OnboardingAnalyticsAdapter()
         self.settings = settings ?? .shared
-    }
-
-    func track(_ signal: AnalyticsSignal) {
-        analytics.track(signal)
     }
 
     func prewarmHealthKitAuthorization() async {
