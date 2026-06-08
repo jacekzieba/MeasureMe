@@ -220,6 +220,7 @@ final class AuditCaptureUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = [
             "-uiTestOnboardingMode",
+            "-uiTestOnboardingPriority", "improveHealth",
             "-auditCapture",
             "-useMockData",
             "-fixedDate", "2026-02-20T12:00:00Z"
@@ -238,8 +239,7 @@ final class AuditCaptureUITests: XCTestCase {
         app.buttons["onboarding.priority.improveHealth"].tap()
         onboardingNextButton(in: app).tap()
         saveScreenshot(screen: "onboarding_metrics")
-        onboardingNextButton(in: app).tap()
-        onboardingNextButton(in: app).tap()
+        advanceOnboardingFromCurrentStepToHealth(in: app)
         XCTAssertTrue(app.buttons["onboarding.health.allow"].waitForExistence(timeout: 8))
         saveScreenshot(screen: "onboarding_healthkit")
     }
@@ -307,6 +307,7 @@ final class AuditCaptureUITests: XCTestCase {
         let onboardingApp = XCUIApplication()
         onboardingApp.launchArguments = [
             "-uiTestOnboardingMode",
+            "-uiTestOnboardingPriority", "improveHealth",
             "-auditCapture",
             "-useMockData",
             "-fixedDate", "2026-02-20T12:00:00Z",
@@ -380,6 +381,7 @@ final class AuditCaptureUITests: XCTestCase {
         let onboardingApp = XCUIApplication()
         onboardingApp.launchArguments = [
             "-uiTestOnboardingMode",
+            "-uiTestOnboardingPriority", "improveHealth",
             "-auditCapture",
             "-useMockData",
             "-fixedDate", "2026-02-20T12:00:00Z"
@@ -502,9 +504,29 @@ final class AuditCaptureUITests: XCTestCase {
         tapWithoutAXScroll(priority)
 
         onboardingNextButton(in: app).tap()
-        onboardingNextButton(in: app).tap()
-        onboardingNextButton(in: app).tap()
+        advanceOnboardingFromCurrentStepToHealth(in: app)
         XCTAssertTrue(app.buttons["onboarding.health.allow"].firstMatch.waitForExistence(timeout: 8))
+    }
+
+    private func advanceOnboardingFromCurrentStepToHealth(in app: XCUIApplication) {
+        let stepHook = app.staticTexts["root.onboarding.test.step"].firstMatch
+        for _ in 0..<4 {
+            if waitForOnboardingStep("step:4", stepHook: stepHook, timeout: 1.5) {
+                return
+            }
+            onboardingNextButton(in: app).tap()
+        }
+        XCTAssertTrue(
+            waitForOnboardingStep("step:4", stepHook: stepHook, timeout: 3),
+            "Expected onboarding to reach Health step; current marker: \(stepHook.exists ? stepHook.label : "missing")"
+        )
+    }
+
+    private func waitForOnboardingStep(_ expected: String, stepHook: XCUIElement, timeout: TimeInterval) -> Bool {
+        guard stepHook.waitForExistence(timeout: timeout) else { return false }
+        let predicate = NSPredicate(format: "label == %@", expected)
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: stepHook)
+        return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
     }
 
     private func fallbackTabIndex(for candidates: [String]) -> Int? {

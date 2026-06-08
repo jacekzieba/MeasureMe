@@ -148,6 +148,7 @@ struct HomeRecentPhotosCard: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.82)
                     }
+                    .layoutPriority(1)
 
                     Spacer(minLength: 8)
 
@@ -155,18 +156,24 @@ struct HomeRecentPhotosCard: View {
                         Label(AppLocalization.string("Compare"), systemImage: "rectangle.split.2x1")
                             .font(AppTypography.buttonLabel)
                             .foregroundStyle(theme.accent)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
                             .padding(.horizontal, AppSpacing.smmd)
                             .padding(.vertical, 10)
+                            .frame(minWidth: 116, minHeight: 44)
                             .background(
                                 Capsule(style: .continuous)
                                     .stroke(theme.accent, lineWidth: 1.4)
                             )
                     }
                     .buttonStyle(.plain)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .contentShape(Rectangle())
                     .disabled(!snapshot.hasEnoughSavedPhotosForCompare)
                     .opacity(snapshot.hasEnoughSavedPhotosForCompare ? 1 : 0.55)
                     .accessibilityIdentifier("home.recentPhotos.compare.button")
                 }
+                .frame(minHeight: 56)
                 .padding(AppSpacing.md)
             }
         }

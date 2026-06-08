@@ -182,6 +182,8 @@ scripts/release_validation.sh archive-rc
 ```
 
 The validation script prints the expected arguments and creates artifacts under `build/release-validation/`.
+Before running `device-ui` on a physical device, enable Focus / Do Not Disturb so notification banners cannot steal taps. If a single device UI failure log shows `BannerNotification`, rerun that specific test before classifying it as a product regression.
+For release-candidate profiling, run `scripts/release_validation.sh profile-guide <device-id>` and capture at least 60 seconds each for Time Profiler, Leaks, and Allocations. Verify saved traces with `xcrun xctrace export --input <trace> --toc`; Instruments timeline warnings such as `dylibs overlap` should be documented as tool limitations, not treated as automatic leak evidence.
 
 ## Premium And Billing
 

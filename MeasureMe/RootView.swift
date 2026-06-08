@@ -47,6 +47,7 @@ struct RootView: View {
             autoCheckPaywallPrompt: autoCheckPaywallPrompt,
             isShowingOnboarding: isShowingOnboarding,
             showsOnboardingUITestOverlay: showsOnboardingUITestOverlay,
+            showsOnboardingUITestStepMarker: isOnboardingUITestMode && isShowingOnboarding && !showsOnboardingUITestOverlay,
             showsTrialReminderDebugOverlay: showsTrialReminderDebugOverlay,
             isUITestMode: isUITestMode,
             onboardingUITestBridge: onboardingUITestBridge,

@@ -89,17 +89,9 @@ struct MetricDetailView: View {
             filter: #Predicate<MetricGoal> { $0.kindRaw == kindValue }
         )
 
-        if let tag = PhotoTag(metricKind: kind) {
-            _photos = Query(
-                filter: #Predicate<PhotoEntry> { $0.tags.contains(tag) },
-                sort: [SortDescriptor(\.date, order: .reverse)]
-            )
-        } else {
-            _photos = Query(
-                filter: #Predicate<PhotoEntry> { _ in false },
-                sort: [SortDescriptor(\.date, order: .reverse)]
-            )
-        }
+        _photos = Query(
+            sort: [SortDescriptor(\.date, order: .reverse)]
+        )
     }
     
     // MARK: - Computed Properties
@@ -187,7 +179,8 @@ struct MetricDetailView: View {
     }
     
     var relatedPhotos: [PhotoEntry] {
-        detailViewModel.photos
+        guard let relatedTag else { return [] }
+        return detailViewModel.photos.filter { $0.tags.contains(relatedTag) }
     }
 
     var visiblePhotos: [PhotoEntry] {
@@ -913,7 +906,7 @@ struct MetricDetailView: View {
     }
 
     func updateChartWidthIfNeeded(_ newWidth: CGFloat) {
-        let normalized = max(newWidth, 0)
+        let normalized = newWidth.isFinite ? max(newWidth, 0) : 0
         guard abs(chartWidth - normalized) >= 1 else { return }
         chartWidth = normalized
     }

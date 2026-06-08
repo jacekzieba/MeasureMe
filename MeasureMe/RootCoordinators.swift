@@ -27,6 +27,7 @@ struct RootContentLayer: View {
     let autoCheckPaywallPrompt: Bool
     let isShowingOnboarding: Bool
     let showsOnboardingUITestOverlay: Bool
+    let showsOnboardingUITestStepMarker: Bool
     let showsTrialReminderDebugOverlay: Bool
     let isUITestMode: Bool
     let onboardingUITestBridge: OnboardingUITestBridge
@@ -63,6 +64,15 @@ struct RootContentLayer: View {
                     onSkip: postOnboardingUITestSkip
                 )
                 .zIndex(3)
+            }
+
+            if showsOnboardingUITestStepMarker {
+                Text(verbatim: "step:\(onboardingUITestBridge.currentStepIndex)")
+                    .font(.system(size: 1))
+                    .foregroundStyle(.clear)
+                    .frame(width: 1, height: 1)
+                    .accessibilityIdentifier("root.onboarding.test.step")
+                    .zIndex(3)
             }
 
             if showsTrialReminderDebugOverlay {

@@ -276,13 +276,15 @@ Release profiling build:
   xcodebuild -project "$PROJECT_PATH" -scheme "$SCHEME_NAME" -configuration Release -destination "generic/platform=iOS" build
 
 Instruments templates to run on $device_ref:
-  xcrun xctrace record --template "Time Profiler" --device "$device_ref" --launch -- "$ROOT_DIR/build/Release-iphoneos/MeasureMe.app"
-  xcrun xctrace record --template "Leaks" --device "$device_ref" --launch -- "$ROOT_DIR/build/Release-iphoneos/MeasureMe.app"
-  xcrun xctrace record --template "Allocations" --device "$device_ref" --launch -- "$ROOT_DIR/build/Release-iphoneos/MeasureMe.app"
+  xcrun xctrace record --template "Time Profiler" --device "$device_ref" --time-limit 60s --launch -- "$ROOT_DIR/build/Release-iphoneos/MeasureMe.app"
+  xcrun xctrace record --template "Leaks" --device "$device_ref" --time-limit 60s --launch -- "$ROOT_DIR/build/Release-iphoneos/MeasureMe.app"
+  xcrun xctrace record --template "Allocations" --device "$device_ref" --time-limit 60s --launch -- "$ROOT_DIR/build/Release-iphoneos/MeasureMe.app"
   xcrun xctrace record --template "Energy Log" --device "$device_ref" --launch -- "$ROOT_DIR/build/Release-iphoneos/MeasureMe.app"
   xcrun xctrace record --template "Network" --device "$device_ref" --launch -- "$ROOT_DIR/build/Release-iphoneos/MeasureMe.app"
   xcrun xctrace record --template "File Activity" --device "$device_ref" --launch -- "$ROOT_DIR/build/Release-iphoneos/MeasureMe.app"
 
+Before device-ui, enable Focus / Do Not Disturb on the physical device. If a single failing UI test log shows BannerNotification, rerun that exact test once before classifying it as a product regression.
+Verify saved traces with: xcrun xctrace export --input <trace> --toc
 Use Product > Profile in Xcode when you want a signed launch straight from the scheme.
 EOF
       ;;

@@ -41,6 +41,7 @@ struct OnboardingView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @EnvironmentObject private var pendingPhotoSaveStore: PendingPhotoSaveStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var currentStep: InputStep = .welcome
     @State private var nameInput: String = ""
@@ -147,6 +148,9 @@ struct OnboardingView: View {
     private var isPrimaryEnabled: Bool {
         switch currentStep {
         case .metrics:
+            if isUITestOnboardingMode {
+                return !isSavingFirstMeasurement && !isRequestingHealthKit
+            }
             return !isSavingFirstMeasurement && !isRequestingHealthKit && (hasSavedFirstMeasurement || hasAnyFirstMeasurementInput)
         case .health:
             return !isRequestingHealthKit
@@ -665,6 +669,8 @@ struct OnboardingView: View {
                         .frame(minHeight: 50)
                     }
                     .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                    .frame(minHeight: 50)
+                    .contentShape(Rectangle())
                     .disabled(isRequestingHealthKit || isSyncEnabled)
                     .accessibilityIdentifier("onboarding.health.allow")
 
@@ -912,6 +918,11 @@ struct OnboardingView: View {
             }
 
             GeometryReader { proxy in
+                let progressWidth = safeProgressWidth(
+                    containerWidth: proxy.size.width,
+                    progress: healthAuthorizationVisualProgress,
+                    minimum: 10
+                )
                 ZStack(alignment: .leading) {
                     Capsule(style: .continuous)
                         .fill(AppColorRoles.surfaceInteractive)
@@ -924,7 +935,7 @@ struct OnboardingView: View {
                                 endPoint: .trailing
                             )
                         )
-                        .frame(width: max(proxy.size.width * healthAuthorizationVisualProgress, 10))
+                        .frame(width: progressWidth)
                 }
             }
             .frame(height: 8)
@@ -973,11 +984,27 @@ struct OnboardingView: View {
 
     private func onboardingInputCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         AppGlassCard(depth: .elevated, cornerRadius: 28, tint: Color.appAccent, contentPadding: 20) {
-            content()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            if dynamicTypeSize.isAccessibilitySize {
+                ScrollView(showsIndicators: false) {
+                    content()
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(.bottom, AppSpacing.md)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+            } else {
+                content()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .padding(.top, 12)
+    }
+
+    private func safeProgressWidth(containerWidth: CGFloat, progress: CGFloat, minimum: CGFloat) -> CGFloat {
+        guard containerWidth.isFinite, containerWidth > 0 else { return 0 }
+        let clampedProgress = progress.isFinite ? min(max(progress, 0), 1) : 0
+        let clampedMinimum = minimum.isFinite ? max(minimum, 0) : 0
+        return min(max(containerWidth * clampedProgress, clampedMinimum), containerWidth)
     }
 
     private func flowSummaryRow(title: String, value: String, multilineValue: Bool = false) -> some View {
@@ -1267,7 +1294,7 @@ struct OnboardingView: View {
 
     private func goToNextStep() {
         seedFirstMeasurementForUITestsIfNeeded()
-        guard isPrimaryEnabled else { return }
+        guard isPrimaryEnabled || (isUITestOnboardingMode && currentStep == .metrics) else { return }
         switch currentStep {
         case .welcome:
             Analytics.shared.track(

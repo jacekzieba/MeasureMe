@@ -488,6 +488,8 @@ struct QuickAddSheetView: View {
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(AppCTAButtonStyle(size: dynamicTypeSize.isAccessibilitySize ? .large : .regular, cornerRadius: AppRadius.md))
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
             .disabled(isSaving)
             .opacity(isSaving ? 0.64 : 1)
             .accessibilityIdentifier("quickadd.save")
@@ -841,11 +843,12 @@ private struct RulerSlider: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let width = max(proxy.size.width, 1)
-            let height = max(proxy.size.height, 1)
+            let width = proxy.size.width.isFinite ? max(proxy.size.width, 1) : 1
+            let height = proxy.size.height.isFinite ? max(proxy.size.height, 1) : 1
             let drawableWidth = max(width - horizontalInset * 2, 1)
             let span = max(range.upperBound - range.lowerBound, 0.0001)
-            let ratio = min(max((value - range.lowerBound) / span, 0), 1)
+            let rawRatio = (value - range.lowerBound) / span
+            let ratio = rawRatio.isFinite ? min(max(rawRatio, 0), 1) : 0
             let indicatorX = horizontalInset + CGFloat(ratio) * drawableWidth
 
             ZStack(alignment: .leading) {

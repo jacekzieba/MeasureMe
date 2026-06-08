@@ -990,9 +990,9 @@ struct MetricPhotosRow: View {
 
     private var side: CGFloat {
         let totalSpacing = spacing * 2
-        let width = availableWidth > 0 ? availableWidth : 0
+        let width = availableWidth.isFinite && availableWidth > 0 ? availableWidth : 0
         let raw = (width - totalSpacing) / 3
-        return max(floor(raw), 86)
+        return raw.isFinite ? max(floor(raw), 86) : 86
     }
 
     var body: some View {
