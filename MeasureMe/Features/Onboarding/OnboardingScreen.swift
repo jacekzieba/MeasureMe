@@ -58,13 +58,20 @@ struct OnboardingView: View {
     @State private var healthAuthorizationVisualProgress: CGFloat = 0
     @State private var didPrewarmHealthKitAuthorization = false
     @State private var hasTrackedStart = false
+    @State private var rhythmWeekday: Int = 1          // Calendar weekday: 1 = Sunday
+    @State private var rhythmHour: Int = 9
+    @State private var isSchedulingRhythm = false
+    @State private var didSetReminderRhythm = false
+    @State private var showMoreMetrics = false
     @State var slideAppeared = false
     @FocusState private var isNameFieldFocused: Bool
+    @FocusState private var isWeightFieldFocused: Bool
 
     private let isUITestOnboardingMode = UITestArgument.isPresent(.onboardingMode)
 
-    init(effects: OnboardingEffects? = nil) {
+    init(effects: OnboardingEffects? = nil, initialStep: InputStep = .welcome) {
         self.effects = effects ?? .live
+        _currentStep = State(initialValue: initialStep)
     }
 
     var shouldAnimate: Bool {
@@ -85,6 +92,15 @@ struct OnboardingView: View {
         switch currentStep {
         case .welcome:
             return FlowLocalization.app(
+                "Let's go",
+                "Zaczynamy",
+                "Empezamos",
+                "Los geht's",
+                "C'est parti",
+                "Vamos lá"
+            )
+        case .goal:
+            return FlowLocalization.app(
                 "Continue",
                 "Dalej",
                 "Continuar",
@@ -92,16 +108,7 @@ struct OnboardingView: View {
                 "Continuer",
                 "Continuar"
             )
-        case .profile:
-            return FlowLocalization.app(
-                "Create my starting point",
-                "Utwórz punkt startowy",
-                "Crear mi punto de partida",
-                "Meinen Startpunkt erstellen",
-                "Créer mon point de départ",
-                "Criar meu ponto de partida"
-            )
-        case .metrics:
+        case .startingPoint:
             if hasSavedFirstMeasurement {
                 return FlowLocalization.app(
                     "Continue",
@@ -120,7 +127,26 @@ struct OnboardingView: View {
                 "Enregistrer le point de départ",
                 "Salvar ponto de partida"
             )
-        case .photos:
+        case .rhythm:
+            if isReminderRhythmSet {
+                return FlowLocalization.app(
+                    "Continue",
+                    "Dalej",
+                    "Continuar",
+                    "Weiter",
+                    "Continuer",
+                    "Continuar"
+                )
+            }
+            return FlowLocalization.app(
+                "Remind me then",
+                "Przypomnij mi wtedy",
+                "Recuérdamelo entonces",
+                "Erinnere mich dann",
+                "Rappelle-moi alors",
+                "Lembre-me então"
+            )
+        case .boosters:
             return FlowLocalization.app(
                 "Continue",
                 "Dalej",
@@ -129,7 +155,7 @@ struct OnboardingView: View {
                 "Continuer",
                 "Continuar"
             )
-        case .health:
+        case .plan:
             return FlowLocalization.app(
                 "See my dashboard",
                 "Pokaż dashboard",
@@ -147,16 +173,23 @@ struct OnboardingView: View {
 
     private var isPrimaryEnabled: Bool {
         switch currentStep {
-        case .metrics:
+        case .goal:
+            return selectedPriority != nil
+        case .startingPoint:
             if isUITestOnboardingMode {
                 return !isSavingFirstMeasurement && !isRequestingHealthKit
             }
             return !isSavingFirstMeasurement && !isRequestingHealthKit && (hasSavedFirstMeasurement || hasAnyFirstMeasurementInput)
-        case .health:
+        case .boosters:
             return !isRequestingHealthKit
         default:
             return true
         }
+    }
+
+    /// True once a weekly check-in reminder has been scheduled (rhythm step).
+    private var isReminderRhythmSet: Bool {
+        didSetReminderRhythm || effects.isReminderScheduled()
     }
 
     var resolvedPriority: OnboardingPriority {
@@ -181,14 +214,28 @@ struct OnboardingView: View {
 
     private var recommendedKinds: [MetricKind] { GoalMetricPack.recommendedKinds(for: resolvedPriority) }
 
+    /// v5 starting point: weight is always the hero, followed by the goal pack (deduped).
+    private var startingPointKinds: [MetricKind] {
+        var kinds: [MetricKind] = [.weight]
+        for kind in recommendedKinds where kind != .weight {
+            kinds.append(kind)
+        }
+        return kinds
+    }
+
+    /// Goal-pack metrics shown under "Add more (optional)" (everything except the weight hero).
+    private var additionalStartingPointKinds: [MetricKind] {
+        startingPointKinds.filter { $0 != .weight }
+    }
+
     private var hasAnyFirstMeasurementInput: Bool {
-        recommendedKinds.contains { kind in
+        startingPointKinds.contains { kind in
             !(firstMeasurementEntries[kind] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
     }
 
     private var firstMeasurementDisplayEntries: [BaselineDisplayEntry] {
-        recommendedKinds.compactMap { kind in
+        startingPointKinds.compactMap { kind in
             guard let value = parseDisplayValue(firstMeasurementEntries[kind]) else { return nil }
             return BaselineDisplayEntry(kind: kind, value: value)
         }
@@ -262,7 +309,7 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            AppScreenBackground(topHeight: 400, tint: Color.appAccent.opacity(0.2))
+            AppScreenBackground(topHeight: 400, tint: Color.appAccent.opacity(0.2), showsAmbientBlobs: false)
 
             VStack(spacing: 0) {
                 topBar
@@ -378,6 +425,7 @@ struct OnboardingView: View {
 
     private func dismissKeyboardFocus() {
         isNameFieldFocused = false
+        isWeightFieldFocused = false
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
@@ -426,90 +474,35 @@ struct OnboardingView: View {
         switch step {
         case .welcome:
             onboardingWelcomeSlide(layout: layout)
-        case .profile:
+        case .goal:
             onboardingInputCard {
                 VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                    HStack(alignment: .top, spacing: 12) {
-                        onboardingSlideHeader(
-                            title: FlowLocalization.app(
-                                "What's your name?",
-                                "Jak masz na imię?",
-                                "¿Cómo te llamas?",
-                                "Wie heißt du?",
-                                "Comment vous appelez-vous ?",
-                                "Como você se chama?"
-                            ),
-                            subtitle: "",
-                            titleSize: layout.headerTitleSize - 4
-                        )
-
-                        MeasureBuddyView(pose: .welcome, size: 72, idleAnimation: false)
-                            .shadow(color: Color.appAccent.opacity(0.35), radius: 10, x: 0, y: 6)
-                            .padding(.top, -4)
-                    }
-
-                    TextField(FlowLocalization.app("e.g. Alex", "np. Alex", "p. ej. Alex", "z. B. Alex", "p. ex. Alex", "ex. Alex"), text: $nameInput)
-                        .textInputAutocapitalization(.words)
-                        .font(.system(size: layout.nameFieldFontSize, weight: .semibold, design: .rounded))
-                        .padding(.vertical, layout.nameFieldVerticalPadding)
-                        .padding(.horizontal, AppSpacing.smmd)
-                        .background(
-                            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                                .fill(AppColorRoles.surfaceInteractive)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                                .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
-                        )
-                        .focused($isNameFieldFocused)
-                        .submitLabel(.done)
-                        .onSubmit { isNameFieldFocused = false }
-                        .toolbar {
-                            ToolbarItemGroup(placement: .keyboard) {
-                                Spacer()
-                                Button(AppLocalization.string("Done")) {
-                                    isNameFieldFocused = false
-                                }
-                            }
-                        }
-                        .accessibilityIdentifier("onboarding.name.field")
+                    onboardingSlideHeader(
+                        title: FlowLocalization.app(
+                            "What's your goal?",
+                            "Jaki masz cel?",
+                            "¿Cuál es tu objetivo?",
+                            "Was ist dein Ziel?",
+                            "Quel est votre objectif ?",
+                            "Qual é o seu objetivo?"
+                        ),
+                        subtitle: FlowLocalization.app(
+                            "We'll match your starting metrics to it.",
+                            "Dobierzemy do niego metryki startowe.",
+                            "Ajustaremos tus métricas iniciales a él.",
+                            "Wir richten deine Startmetriken danach aus.",
+                            "Nous adapterons vos indicateurs de départ.",
+                            "Vamos ajustar suas métricas iniciais a ele."
+                        ),
+                        titleSize: layout.headerTitleSize
+                    )
 
                     VStack(alignment: .leading, spacing: layout.groupSpacing) {
-                        Text(
-                            FlowLocalization.app(
-                                "What do you want this app to help with first?",
-                                "W czym ta aplikacja ma pomóc Ci najpierw?",
-                                "¿En qué quieres que te ayude primero esta app?",
-                                "Wobei soll dir diese App zuerst helfen?",
-                                "Sur quoi voulez-vous que cette app vous aide en premier ?",
-                                "Em que você quer que este app ajude primeiro?"
-                            )
-                        )
-                        .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(AppColorRoles.textPrimary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                        Text(
-                            FlowLocalization.app(
-                                "This only chooses your starting metrics. You can change tracked metrics and set numeric goals later.",
-                                "To tylko wybiera metryki startowe. Śledzone metryki i cele liczbowe zmienisz później.",
-                                "Esto solo elige tus métricas iniciales. Podrás cambiar métricas y objetivos numéricos después.",
-                                "Das wählt nur deine Startmetriken. Verfolgte Metriken und Zahlenziele kannst du später ändern.",
-                                "Cela choisit seulement vos indicateurs de départ. Vous pourrez modifier les indicateurs suivis et les objectifs chiffrés plus tard.",
-                                "Isso só escolhe suas métricas iniciais. Você pode mudar métricas acompanhadas e metas numéricas depois."
-                            )
-                        )
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColorRoles.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
                         ForEach(OnboardingPriority.allCases, id: \.self) { priority in
                             let isSelected = selectedPriority == priority
                             Button {
                                 Haptics.selection()
-                                selectedPriority = isSelected ? nil : priority
+                                selectGoalAndAdvance(priority)
                             } label: {
                                 HStack(spacing: 14) {
                                     VStack(alignment: .leading, spacing: 4) {
@@ -556,131 +549,840 @@ struct OnboardingView: View {
                     isNameFieldFocused = false
                 }
             }
-        case .metrics:
-            onboardingInputCard {
-                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                    if hasSavedFirstMeasurement {
-                        savedBaselineCard
-                    } else {
-                        OnboardingFirstMeasurementStep(
-                            recommendedKinds: recommendedKinds,
-                            entries: $firstMeasurementEntries,
-                            unitsSystem: unitsSystem
-                        )
+        case .startingPoint:
+            startingPointStep(layout: layout)
+        case .rhythm:
+            rhythmStep(layout: layout)
+        case .boosters:
+            boostersStep(layout: layout)
+                .task {
+                    guard !didPrewarmHealthKitAuthorization else { return }
+                    didPrewarmHealthKitAuthorization = true
+                    await effects.prewarmHealthKitAuthorization()
+                }
+        case .plan:
+            planStep(layout: layout)
+        }
+    }
 
-                        if let firstMeasurementErrorMessage {
-                            Label(firstMeasurementErrorMessage, systemImage: "exclamationmark.triangle.fill")
-                                .font(AppTypography.caption)
-                                .foregroundStyle(Color.orange)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 8)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(
-                                    RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                                        .fill(Color.orange.opacity(0.10))
-                                )
-                                .accessibilityIdentifier("onboarding.measurement.error")
+    // MARK: - v5 step bodies
+
+    @ViewBuilder
+    private func startingPointStep(layout: OnboardingCardLayout) -> some View {
+        onboardingInputCard {
+            VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                if hasSavedFirstMeasurement {
+                    savedBaselineCard
+                } else {
+                    onboardingSlideHeader(
+                        title: FlowLocalization.app(
+                            "Your starting point",
+                            "Twój punkt startowy",
+                            "Tu punto de partida",
+                            "Dein Startpunkt",
+                            "Votre point de départ",
+                            "Seu ponto de partida"
+                        ),
+                        subtitle: FlowLocalization.app(
+                            "Weight is enough. Add the rest whenever you like.",
+                            "Wystarczy waga. Resztę dodasz, kiedy zechcesz.",
+                            "Con el peso basta. Añade el resto cuando quieras.",
+                            "Das Gewicht reicht. Den Rest ergänzt du jederzeit.",
+                            "Le poids suffit. Ajoutez le reste quand vous voulez.",
+                            "O peso já basta. Adicione o resto quando quiser."
+                        ),
+                        titleSize: layout.headerTitleSize
+                    )
+
+                    weightHeroCard
+
+                    if !additionalStartingPointKinds.isEmpty {
+                        addMoreMetricsSection
+                    }
+
+                    if let firstMeasurementErrorMessage {
+                        Label(firstMeasurementErrorMessage, systemImage: "exclamationmark.triangle.fill")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(Color.orange)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                                    .fill(Color.orange.opacity(0.10))
+                            )
+                            .accessibilityIdentifier("onboarding.measurement.error")
+                    }
+
+                    eveningExitCard
+                }
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button(AppLocalization.string("Done")) { dismissKeyboardFocus() }
+                }
+            }
+            .onAppear {
+                guard !hasSavedFirstMeasurement, (firstMeasurementEntries[.weight] ?? "").isEmpty else { return }
+                let delay: TimeInterval = shouldAnimate ? 0.4 : 0.05
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    if currentStep == .startingPoint { isWeightFieldFocused = true }
+                }
+            }
+        }
+    }
+
+    private var weightHeroCard: some View {
+        let binding = Binding<String>(
+            get: { firstMeasurementEntries[.weight] ?? "" },
+            set: { firstMeasurementEntries[.weight] = $0 }
+        )
+        let isImperial = unitsSystem == "imperial"
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(FlowLocalization.app("WEIGHT", "WAGA", "PESO", "GEWICHT", "POIDS", "PESO"))
+                    .font(AppTypography.captionEmphasis)
+                    .tracking(0.5)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                Spacer()
+                weightUnitToggle
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                TextField(isImperial ? "165" : "75", text: binding)
+                    .keyboardType(.decimalPad)
+                    .focused($isWeightFieldFocused)
+                    .font(.system(size: 56, weight: .bold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(AppColorRoles.textPrimary)
+                    .fixedSize()
+                    .accessibilityIdentifier("onboarding.measurement.weight")
+                Text(MetricKind.weight.unitSymbol(unitsSystem: unitsSystem))
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColorRoles.textTertiary)
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous)
+                .fill(Color.appAccent.opacity(0.10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous)
+                        .stroke(Color.appAccent.opacity(0.45), lineWidth: 1.5)
+                )
+        )
+    }
+
+    private var weightUnitToggle: some View {
+        HStack(spacing: 2) {
+            ForEach(["kg", "lb"], id: \.self) { unit in
+                let selected = (unit == "lb") == (unitsSystem == "imperial")
+                Button {
+                    Haptics.selection()
+                    unitsSystem = (unit == "kg") ? "metric" : "imperial"
+                } label: {
+                    Text(unit)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(selected ? AppColorRoles.textOnAccent : AppColorRoles.textSecondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(Capsule(style: .continuous).fill(selected ? Color.appAccent : Color.clear))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("onboarding.weight.unit.\(unit)")
+            }
+        }
+        .padding(3)
+        .background(Capsule(style: .continuous).fill(AppColorRoles.surfaceInteractive))
+    }
+
+    private var addMoreMetricsSection: some View {
+        VStack(spacing: 8) {
+            Button {
+                Haptics.selection()
+                if shouldAnimate {
+                    withAnimation(AppMotion.standard) { showMoreMetrics.toggle() }
+                } else {
+                    showMoreMetrics.toggle()
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    HStack(spacing: 6) {
+                        Text(FlowLocalization.app("Add more", "Dodaj więcej", "Añadir más", "Mehr hinzufügen", "Ajouter plus", "Adicionar mais"))
+                            .font(AppTypography.bodyEmphasis)
+                            .foregroundStyle(AppColorRoles.textPrimary)
+                        Text(FlowLocalization.app("(optional)", "(opcjonalnie)", "(opcional)", "(optional)", "(facultatif)", "(opcional)"))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColorRoles.textTertiary)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                    .layoutPriority(1)
+
+                    Spacer(minLength: 0)
+
+                    if !showMoreMetrics {
+                        ForEach(additionalStartingPointKinds.prefix(2), id: \.self) { kind in
+                            Text(kind.title)
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColorRoles.textSecondary)
+                                .lineLimit(1)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Capsule(style: .continuous).fill(AppColorRoles.surfaceElevated))
                         }
                     }
-                }
-            }
-        case .photos:
-            onboardingInputCard {
-                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                    onboardingSlideHeader(
-                        title: FlowLocalization.app(
-                            "You have a starting point",
-                            "Masz punkt startowy",
-                            "Ya tienes un punto de partida",
-                            "Du hast einen Startpunkt",
-                            "Vous avez un point de départ",
-                            "Você tem um ponto de partida"
-                        ),
-                        subtitle: FlowLocalization.app(
-                            "The next check-in can show what changed. A photo is private and optional.",
-                            "Następny check-in pokaże zmianę. Zdjęcie jest prywatne i opcjonalne.",
-                            "El siguiente check-in podrá mostrar qué cambió. La foto es privada y opcional.",
-                            "Der nächste Check-in kann zeigen, was sich verändert hat. Ein Foto ist privat und optional.",
-                            "Le prochain check-in pourra montrer ce qui a changé. La photo est privée et facultative.",
-                            "O próximo check-in pode mostrar o que mudou. A foto é privada e opcional."
-                        ),
-                        titleSize: layout.headerTitleSize
-                    )
 
-                    if hasSavedFirstMeasurement {
-                        savedBaselineCard
-                    } else {
-                        skippedBaselineCard
+                    Image(systemName: showMoreMetrics ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(AppColorRoles.textTertiary)
+                }
+                .padding(AppSpacing.smmd)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                        .fill(AppColorRoles.surfaceInteractive)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                                .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("onboarding.measurement.addMore")
+
+            if showMoreMetrics {
+                VStack(spacing: 8) {
+                    ForEach(additionalStartingPointKinds, id: \.self) { kind in
+                        additionalMetricRow(kind: kind)
                     }
-
-                    startPhotoCard
                 }
             }
-        case .health:
-            onboardingInputCard {
-                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+        }
+    }
+
+    private func additionalMetricRow(kind: MetricKind) -> some View {
+        let binding = Binding<String>(
+            get: { firstMeasurementEntries[kind] ?? "" },
+            set: { firstMeasurementEntries[kind] = $0 }
+        )
+        let placeholder: String = {
+            switch kind.unitCategory {
+            case .weight: return unitsSystem == "imperial" ? "165" : "75"
+            case .length: return unitsSystem == "imperial" ? "35" : "90"
+            case .percent: return "20"
+            }
+        }()
+        return HStack(spacing: 12) {
+            kind.iconView(size: 18, tint: Color.appAccent)
+                .frame(width: 30, height: 30)
+                .background(Color.appAccent.opacity(0.14))
+                .clipShape(Circle())
+
+            Text(kind.title)
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(AppColorRoles.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            Spacer(minLength: 0)
+
+            TextField(placeholder, text: binding)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .font(.system(size: 18, weight: .semibold, design: .rounded).monospacedDigit())
+                .foregroundStyle(AppColorRoles.textPrimary)
+                .frame(width: 64)
+                .accessibilityIdentifier("onboarding.measurement.\(kind.rawValue)")
+
+            Text(kind.unitSymbol(unitsSystem: unitsSystem))
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(AppColorRoles.textSecondary)
+                .frame(width: 24, alignment: .leading)
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.smmd, style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.smmd, style: .continuous)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                )
+        )
+    }
+
+    @ViewBuilder
+    private func boostersStep(layout: OnboardingCardLayout) -> some View {
+        onboardingInputCard {
+            VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                onboardingSlideHeader(
+                    title: FlowLocalization.app(
+                        "Two boosters to start",
+                        "Dwa boostery na start",
+                        "Dos potenciadores para empezar",
+                        "Zwei Booster zum Start",
+                        "Deux boosters pour démarrer",
+                        "Dois reforços para começar"
+                    ),
+                    subtitle: FlowLocalization.app(
+                        "Optional — but they speed up your first insights.",
+                        "Opcjonalne — ale przyspieszą pierwsze wnioski.",
+                        "Opcionales, pero aceleran tus primeros hallazgos.",
+                        "Optional – aber sie beschleunigen deine ersten Einblicke.",
+                        "Facultatifs, mais ils accélèrent vos premiers insights.",
+                        "Opcionais, mas aceleram seus primeiros insights."
+                    ),
+                    titleSize: layout.headerTitleSize
+                )
+
+                startPhotoCard
+
+                healthBoosterCard
+
+                privacyCard(compact: layout.isCompact)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var healthBoosterCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: isSyncEnabled ? "heart.fill" : "heart")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Color.appAccent)
+                    .frame(width: 38, height: 38)
+                    .background(Color.appAccent.opacity(0.13))
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(OnboardingCopy.activationTaskTitle(.connectHealth))
+                        .font(AppTypography.bodyEmphasis)
+                        .foregroundStyle(AppColorRoles.textPrimary)
+                    Text(OnboardingCopy.activationTaskBody(.connectHealth))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColorRoles.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            if !healthStatusLines.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(healthStatusLines, id: \.self) { line in
+                        Label(line, systemImage: "checkmark.circle.fill")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(Color.appAccent)
+                    }
+                }
+            }
+
+            Button(action: requestHealthAccess) {
+                HStack(spacing: 10) {
+                    if isRequestingHealthKit {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(AppColorRoles.textPrimary)
+                    }
+                    Text(healthButtonTitle)
+                        .frame(maxWidth: .infinity)
+                }
+                .frame(minHeight: 46)
+            }
+            .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
+            .disabled(isRequestingHealthKit || isSyncEnabled)
+            .accessibilityIdentifier("onboarding.health.allow")
+        }
+        .padding(AppSpacing.smmd)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                )
+        )
+    }
+
+    // MARK: - Starting point: evening-exit
+
+    private var eveningExitCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Image(systemName: "bell.badge")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color.appTeal)
+                    .frame(width: 34, height: 34)
+                    .background(Color.appTeal.opacity(0.16))
+                    .clipShape(Circle())
+
+                Text(FlowLocalization.app(
+                    "Can't measure right now?",
+                    "Nie masz jak się teraz zmierzyć?",
+                    "¿No puedes medirte ahora?",
+                    "Kannst du dich gerade nicht messen?",
+                    "Pas moyen de vous mesurer maintenant ?",
+                    "Sem como se medir agora?"
+                ))
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(AppColorRoles.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Button(action: triggerEveningReminder) {
+                Text(FlowLocalization.app(
+                    "Remind me tonight",
+                    "Przypomnij wieczorem",
+                    "Recordar esta noche",
+                    "Heute Abend erinnern",
+                    "Rappel ce soir",
+                    "Lembrar à noite"
+                ))
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(Color.appTeal)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 40)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color.appTeal.opacity(0.12))
+                        .overlay(Capsule(style: .continuous).stroke(Color.appTeal.opacity(0.55), lineWidth: 1.5))
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(isSchedulingRhythm)
+            .accessibilityIdentifier("onboarding.measurement.remindTonight")
+        }
+        .padding(AppSpacing.smmd)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+        )
+    }
+
+    // MARK: - Rhythm step (v5 · variant B)
+
+    @ViewBuilder
+    private func rhythmStep(layout: OnboardingCardLayout) -> some View {
+        onboardingInputCard {
+            VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                onboardingSlideHeader(
+                    title: FlowLocalization.app(
+                        "Let's lock in your first trend",
+                        "Umówmy się na pierwszy trend",
+                        "Fijemos tu primera tendencia",
+                        "Sichern wir deinen ersten Trend",
+                        "Fixons votre première tendance",
+                        "Vamos marcar sua primeira tendência"
+                    ),
+                    subtitle: FlowLocalization.app(
+                        "Next week's measurement shows which way you're heading.",
+                        "Drugi pomiar za tydzień pokaże, w którą stronę idziesz.",
+                        "La medida de la próxima semana mostrará hacia dónde vas.",
+                        "Die Messung nächste Woche zeigt, wohin es geht.",
+                        "La mesure de la semaine prochaine montrera votre direction.",
+                        "A medição da próxima semana mostra para onde você vai."
+                    ),
+                    titleSize: layout.headerTitleSize
+                )
+
+                rhythmTimelineCard
+                rhythmPrePromptCard
+            }
+        }
+    }
+
+    private var selectedRhythmLabel: String {
+        let symbols = Calendar.current.weekdaySymbols
+        let day = symbols[(rhythmWeekday - 1) % symbols.count].capitalized
+        return "\(day), \(rhythmHour):00"
+    }
+
+    private var rhythmTimelineCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            rhythmTimelineRow(
+                dotColor: Color.appEmerald,
+                glow: false,
+                title: FlowLocalization.app("Today", "Dziś", "Hoy", "Heute", "Aujourd'hui", "Hoje"),
+                subtitle: FlowLocalization.app("Starting point saved", "Punkt startowy zapisany", "Punto de partida guardado", "Startpunkt gespeichert", "Point de départ enregistré", "Ponto inicial salvo"),
+                isLast: false,
+                check: true
+            )
+            rhythmTimelineRow(
+                dotColor: Color.appAccent,
+                glow: true,
+                title: selectedRhythmLabel,
+                subtitle: FlowLocalization.app("Second measurement — your first trend on the chart", "Drugi pomiar — Twój pierwszy trend na wykresie", "Segunda medida: tu primera tendencia en el gráfico", "Zweite Messung – dein erster Trend im Diagramm", "Deuxième mesure — votre première tendance sur le graphique", "Segunda medição — sua primeira tendência no gráfico"),
+                isLast: false,
+                check: false
+            )
+            rhythmTimelineRow(
+                dotColor: AppColorRoles.textTertiary,
+                glow: false,
+                title: FlowLocalization.app("Following weeks", "Kolejne tygodnie", "Próximas semanas", "Folgende Wochen", "Semaines suivantes", "Próximas semanas"),
+                subtitle: FlowLocalization.app("The trend grows with each check-in", "Trend rośnie z każdym check-inem", "La tendencia crece con cada control", "Der Trend wächst mit jedem Check-in", "La tendance grandit à chaque suivi", "A tendência cresce a cada check-in"),
+                isLast: true,
+                check: false
+            )
+
+            Rectangle()
+                .fill(AppColorRoles.borderSubtle)
+                .frame(height: 1)
+                .padding(.top, 4)
+                .padding(.bottom, 14)
+
+            rhythmDayPicker
+                .padding(.bottom, 12)
+            rhythmTimePicker
+        }
+        .padding(AppSpacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.lgl, style: .continuous)
+                .fill(AppColorRoles.surfaceElevated)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.lgl, style: .continuous)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                )
+        )
+    }
+
+    private func rhythmTimelineRow(dotColor: Color, glow: Bool, title: String, subtitle: String, isLast: Bool, check: Bool) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(spacing: 0) {
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 13, height: 13)
+                    .shadow(color: glow ? dotColor.opacity(0.7) : .clear, radius: glow ? 7 : 0)
+                    .padding(.top, 3)
+                if !isLast {
+                    Rectangle()
+                        .fill(AppColorRoles.borderSubtle)
+                        .frame(width: 2)
+                        .frame(maxHeight: .infinity)
+                }
+            }
+            .frame(width: 13)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 7) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(isLast ? AppColorRoles.textSecondary : AppColorRoles.textPrimary)
+                    if check {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Color.appEmerald)
+                    }
+                }
+                Text(subtitle)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.bottom, isLast ? 0 : 16)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var rhythmDayPicker: some View {
+        let symbols = Calendar.current.veryShortWeekdaySymbols
+        let order = [2, 3, 4, 5, 6, 7, 1] // Mon…Sun in Calendar weekday numbers
+        return VStack(alignment: .leading, spacing: 10) {
+            Text(FlowLocalization.app(
+                "Day of the week",
+                "Dzień tygodnia",
+                "Día de la semana",
+                "Wochentag",
+                "Jour de la semaine",
+                "Dia da semana"
+            ))
+            .font(AppTypography.captionEmphasis)
+            .foregroundStyle(AppColorRoles.textSecondary)
+
+            HStack(spacing: 6) {
+                ForEach(order, id: \.self) { weekday in
+                    let isSelected = rhythmWeekday == weekday
+                    Button {
+                        Haptics.selection()
+                        rhythmWeekday = weekday
+                    } label: {
+                        Text(symbols[(weekday - 1) % symbols.count])
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundStyle(isSelected ? AppColorRoles.textOnAccent : AppColorRoles.textSecondary)
+                            .frame(width: 38, height: 38)
+                            .background(
+                                Circle()
+                                    .fill(isSelected ? Color.appAccent : AppColorRoles.surfaceInteractive)
+                                    .overlay(Circle().stroke(isSelected ? Color.clear : AppColorRoles.borderSubtle, lineWidth: 1))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("onboarding.rhythm.day.\(weekday)")
+                }
+            }
+        }
+    }
+
+    private var rhythmTimePicker: some View {
+        let options: [(hour: Int, label: String)] = [
+            (9, FlowLocalization.app("Morning 9:00", "Rano 9:00", "Mañana 9:00", "Morgens 9:00", "Matin 9:00", "Manhã 9:00")),
+            (15, "15:00"),
+            (20, FlowLocalization.app("Evening 20:00", "Wieczorem 20:00", "Noche 20:00", "Abends 20:00", "Soir 20:00", "Noite 20:00"))
+        ]
+        return VStack(alignment: .leading, spacing: 10) {
+            Text(FlowLocalization.app("Time", "Godzina", "Hora", "Uhrzeit", "Heure", "Hora"))
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(AppColorRoles.textSecondary)
+
+            HStack(spacing: 8) {
+                ForEach(options, id: \.hour) { option in
+                    let isSelected = rhythmHour == option.hour
+                    Button {
+                        Haptics.selection()
+                        rhythmHour = option.hour
+                    } label: {
+                        Text(option.label)
+                            .font(AppTypography.captionEmphasis)
+                            .foregroundStyle(isSelected ? AppColorRoles.textOnAccent : AppColorRoles.textPrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(isSelected ? Color.appAccent : AppColorRoles.surfaceInteractive)
+                                    .overlay(Capsule().stroke(isSelected ? Color.clear : AppColorRoles.borderSubtle, lineWidth: 1))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("onboarding.rhythm.time.\(option.hour)")
+                }
+            }
+        }
+    }
+
+    private var rhythmPrePromptCard: some View {
+        HStack(spacing: 14) {
+            MeasureBuddyView(pose: .reminder, size: 56, idleAnimation: false)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(isReminderRhythmSet
+                     ? FlowLocalization.app("Reminder set", "Przypomnienie ustawione", "Recordatorio listo", "Erinnerung gesetzt", "Rappel défini", "Lembrete pronto")
+                     : FlowLocalization.app("One notification a week", "Jedno powiadomienie tygodniowo", "Una notificación por semana", "Eine Benachrichtigung pro Woche", "Une notification par semaine", "Uma notificação por semana"))
+                .font(AppTypography.bodyEmphasis)
+                .foregroundStyle(AppColorRoles.textPrimary)
+
+                Text(isReminderRhythmSet
+                     ? FlowLocalization.app("See you on your check-in day. Change it anytime.", "Do zobaczenia w dniu check-inu. Zmienisz to w każdej chwili.", "Nos vemos en tu día de control. Cámbialo cuando quieras.", "Bis zu deinem Check-in-Tag. Jederzeit änderbar.", "À votre jour de suivi. Modifiable à tout moment.", "Até o seu dia de check-in. Mude quando quiser.")
+                     : FlowLocalization.app("Just a check-in nudge. No spam — promise.", "Tylko przypomnienie o check-inie. Zero spamu — obiecuję.", "Solo un aviso de control. Sin spam, lo prometo.", "Nur ein Check-in-Hinweis. Kein Spam – versprochen.", "Juste un rappel de suivi. Pas de spam, promis.", "Só um lembrete de check-in. Sem spam — prometo."))
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColorRoles.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+
+            if isReminderRhythmSet {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(Color.appEmerald)
+            }
+        }
+        .padding(AppSpacing.smmd)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                .fill(Color.appAccent.opacity(0.10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                        .stroke(Color.appAccent.opacity(0.22), lineWidth: 1)
+                )
+        )
+    }
+
+    // MARK: - Plan step (v5 · contract)
+
+    @ViewBuilder
+    private func planStep(layout: OnboardingCardLayout) -> some View {
+        onboardingInputCard {
+            VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+                HStack(alignment: .top, spacing: 12) {
                     onboardingSlideHeader(
                         title: FlowLocalization.app(
-                            "Connect Health. Keep it private.",
-                            "Połącz Zdrowie. Zachowaj prywatność.",
-                            "Conecta Salud. Mantén la privacidad.",
-                            "Health verbinden. Privat bleiben.",
-                            "Connectez Santé. Gardez le contrôle.",
-                            "Conecte o Health. Mantenha a privacidade."
+                            "Your plan is ready",
+                            "Twój plan jest gotowy",
+                            "Tu plan está listo",
+                            "Dein Plan ist bereit",
+                            "Votre plan est prêt",
+                            "Seu plano está pronto"
                         ),
                         subtitle: FlowLocalization.app(
-                            "Apple Health is optional. Your measurements and photos stay on device, and you can still log everything manually.",
-                            "Apple Health jest opcjonalne. Twoje pomiary i zdjęcia zostają na urządzeniu, a wszystko nadal możesz wpisywać ręcznie.",
-                            "Apple Health es opcional. Tus medidas y fotos se quedan en el dispositivo y también puedes registrar todo manualmente.",
-                            "Apple Health ist optional. Deine Messwerte und Fotos bleiben auf dem Gerät und du kannst alles auch manuell eintragen.",
-                            "Apple Health est facultatif. Vos mesures et photos restent sur l'appareil, et vous pouvez tout enregistrer manuellement.",
-                            "O Apple Health é opcional. Suas medidas e fotos ficam no aparelho, e você ainda pode registrar tudo manualmente."
+                            "The first dot is in. The second makes it a trend.",
+                            "Pierwsza kropka już jest. Druga zrobi z niej trend.",
+                            "El primer punto ya está. El segundo lo convierte en tendencia.",
+                            "Der erste Punkt ist da. Der zweite macht einen Trend daraus.",
+                            "Le premier point est là. Le second en fait une tendance.",
+                            "O primeiro ponto já está. O segundo vira tendência."
                         ),
                         titleSize: layout.headerTitleSize
                     )
 
+                    MeasureBuddyView(pose: .celebration, size: 72)
+                        .padding(.top, -2)
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 8) {
+                        Text(FlowLocalization.app("Goal", "Cel", "Objetivo", "Ziel", "Objectif", "Meta"))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColorRoles.textSecondary)
+                        Text(resolvedPriorityTitle)
+                            .font(AppTypography.captionEmphasis)
+                            .foregroundStyle(AppColorRoles.textOnAccent)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Capsule(style: .continuous).fill(Color.appAccent))
+                        Spacer(minLength: 0)
+                    }
                     flowChipList(labels: recommendedKinds.map(\.title))
 
-                    if isRequestingHealthKit {
-                        onboardingHealthProgress
-                    }
-
-                    if !healthStatusLines.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(healthStatusLines, id: \.self) { line in
-                                Label(line, systemImage: "checkmark.circle.fill")
-                                    .font(AppTypography.caption)
-                                    .foregroundStyle(Color.appAccent)
-                            }
-                        }
-                    }
-
-                    Button(action: requestHealthAccess) {
-                        HStack(spacing: 10) {
-                            if isRequestingHealthKit {
-                                ProgressView()
-                                    .controlSize(.small)
-                                    .tint(AppColorRoles.textOnAccent)
-                            }
-                            Text(healthButtonTitle)
-                        }
-                        .foregroundStyle(AppColorRoles.textOnAccent)
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: 50)
-                    }
-                    .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-                    .frame(minHeight: 50)
-                    .contentShape(Rectangle())
-                    .disabled(isRequestingHealthKit || isSyncEnabled)
-                    .accessibilityIdentifier("onboarding.health.allow")
-
-                    privacyCard(compact: layout.isCompact)
+                    planMiniChart
+                        .padding(.top, 4)
                 }
+                .padding(AppSpacing.smmd)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                        .fill(AppColorRoles.surfaceInteractive)
+                )
+
+                nextCheckInCard
+
+                MiaraSpeechBubble(
+                    text: FlowLocalization.app(
+                        "See you on check-in day — that's when I'll show your first trend.",
+                        "Do zobaczenia w dniu check-inu — wtedy pokażę Ci pierwszy trend.",
+                        "Nos vemos el día del control: ahí te mostraré tu primera tendencia.",
+                        "Bis zum Check-in-Tag — dann zeige ich dir deinen ersten Trend.",
+                        "À votre jour de suivi — je vous montrerai votre première tendance.",
+                        "Até o dia do check-in — aí mostro sua primeira tendência."
+                    )
+                )
             }
-            .task {
-                guard !didPrewarmHealthKitAuthorization else { return }
-                didPrewarmHealthKitAuthorization = true
-                await effects.prewarmHealthKitAuthorization()
+        }
+    }
+
+    private var nextCheckInCard: some View {
+        HStack(spacing: 13) {
+            Image(systemName: "bell.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color.appAccent)
+                .frame(width: 44, height: 44)
+                .background(Color.appAccent.opacity(0.13))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(FlowLocalization.app("Next check-in", "Następny check-in", "Próximo control", "Nächster Check-in", "Prochain suivi", "Próximo check-in"))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                Text(nextCheckInText)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColorRoles.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+
+            if isReminderRhythmSet {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(Color.appEmerald)
+            }
+        }
+        .padding(AppSpacing.smmd)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                .fill(AppColorRoles.surfaceInteractive)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                )
+        )
+    }
+
+    private var nextCheckInText: String {
+        guard isReminderRhythmSet else {
+            return FlowLocalization.app(
+                "Set a reminder from your dashboard",
+                "Ustaw przypomnienie na dashboardzie",
+                "Configura un recordatorio desde el panel",
+                "Erinnerung im Dashboard einstellen",
+                "Définissez un rappel depuis le tableau de bord",
+                "Defina um lembrete pelo painel"
+            )
+        }
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.setLocalizedDateFormatFromTemplate("EEEE d MMM HH:mm")
+        return formatter.string(from: rhythmReminderDate())
+    }
+
+    private var planMiniChart: some View {
+        VStack(spacing: 6) {
+            Canvas { ctx, size in
+                let w = size.width, h = size.height
+                let baseY = h - 6
+                let todayPt = CGPoint(x: 24, y: h - 26)
+                let futurePt = CGPoint(x: w - 28, y: h - 46)
+
+                var baseline = Path()
+                baseline.move(to: CGPoint(x: 6, y: baseY))
+                baseline.addLine(to: CGPoint(x: w - 6, y: baseY))
+                ctx.stroke(baseline, with: .color(AppColorRoles.borderSubtle), lineWidth: 1.5)
+
+                var projection = Path()
+                projection.move(to: todayPt)
+                projection.addCurve(
+                    to: futurePt,
+                    control1: CGPoint(x: w * 0.42, y: h - 30),
+                    control2: CGPoint(x: w * 0.64, y: h - 42)
+                )
+                ctx.stroke(
+                    projection,
+                    with: .color(AppColorRoles.textTertiary),
+                    style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [2, 6])
+                )
+
+                let ring = Path(ellipseIn: CGRect(x: futurePt.x - 5, y: futurePt.y - 5, width: 10, height: 10))
+                ctx.stroke(ring, with: .color(Color.appAccent), style: StrokeStyle(lineWidth: 2, dash: [3, 3]))
+
+                ctx.fill(
+                    Path(ellipseIn: CGRect(x: todayPt.x - 14, y: todayPt.y - 14, width: 28, height: 28)),
+                    with: .color(Color.appAccent.opacity(0.16))
+                )
+                ctx.fill(
+                    Path(ellipseIn: CGRect(x: todayPt.x - 6, y: todayPt.y - 6, width: 12, height: 12)),
+                    with: .color(Color.appAccent)
+                )
+            }
+            .frame(height: 76)
+            .accessibilityHidden(true)
+
+            HStack {
+                Text(FlowLocalization.app("Today", "Dziś", "Hoy", "Heute", "Auj.", "Hoje"))
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                Spacer()
+                Text(FlowLocalization.app("First trend", "Pierwszy trend", "Primera tendencia", "Erster Trend", "1re tendance", "1ª tendência"))
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppColorRoles.textTertiary)
             }
         }
     }
@@ -1294,7 +1996,7 @@ struct OnboardingView: View {
 
     private func goToNextStep() {
         seedFirstMeasurementForUITestsIfNeeded()
-        guard isPrimaryEnabled || (isUITestOnboardingMode && currentStep == .metrics) else { return }
+        guard isPrimaryEnabled || (isUITestOnboardingMode && currentStep == .startingPoint) else { return }
         switch currentStep {
         case .welcome:
             Analytics.shared.track(
@@ -1303,21 +2005,27 @@ struct OnboardingView: View {
                     stepIndex: InputStep.welcome.rawValue + 1
                 )
             )
-            animateToInputStep(.profile)
-        case .profile:
+            animateToInputStep(.goal)
+        case .goal:
             persistProfileSelections()
-            animateToInputStep(.metrics)
-        case .metrics:
+            animateToInputStep(.startingPoint)
+        case .startingPoint:
             guard saveFirstMeasurementIfNeeded() else { return }
-            completeStepAndAdvance(from: .metrics, to: .photos)
-        case .photos:
-            completeStepAndAdvance(from: .photos, to: .health)
-        case .health:
+            completeStepAndAdvance(from: .startingPoint, to: .rhythm)
+        case .rhythm:
+            if isReminderRhythmSet {
+                completeStepAndAdvance(from: .rhythm, to: .boosters)
+            } else {
+                enableReminderRhythm()
+            }
+        case .boosters:
+            completeStepAndAdvance(from: .boosters, to: .plan)
+        case .plan:
             onboardingSkippedHealthKit = !isSyncEnabled
             Analytics.shared.track(
                 AnalyticsEvents.onboardingStepCompleted(
-                    step: InputStep.health.analyticsName,
-                    stepIndex: InputStep.health.rawValue + 1
+                    step: InputStep.plan.analyticsName,
+                    stepIndex: InputStep.plan.rawValue + 1
                 )
             )
             finishOnboarding()
@@ -1335,26 +2043,19 @@ struct OnboardingView: View {
 
         switch currentStep {
         case .welcome:
-            animateToInputStep(.profile)
-        case .profile:
-            animateToInputStep(.metrics)
-        case .metrics:
+            animateToInputStep(.goal)
+        case .goal:
+            animateToInputStep(.startingPoint)
+        case .startingPoint:
             firstMeasurementErrorMessage = nil
-            animateToInputStep(.photos)
-        case .photos:
-            animateToInputStep(.health)
-        case .health:
-            onboardingSkippedHealthKit = true
-            healthStatusLines = [
-                FlowLocalization.app(
-                    "You can connect Health later in Settings.",
-                    "Health możesz połączyć później w Ustawieniach.",
-                    "Puedes conectar Salud más tarde en Ajustes.",
-                    "Du kannst Health später in den Einstellungen verbinden.",
-                    "Vous pourrez connecter Santé plus tard dans Réglages.",
-                    "Você pode conectar o Health depois nos Ajustes."
-                )
-            ]
+            animateToInputStep(.rhythm)
+        case .rhythm:
+            onboardingSkippedReminders = true
+            animateToInputStep(.boosters)
+        case .boosters:
+            onboardingSkippedHealthKit = !isSyncEnabled
+            animateToInputStep(.plan)
+        case .plan:
             finishOnboarding()
         }
     }
@@ -1407,7 +2108,7 @@ struct OnboardingView: View {
     private func makeFirstMeasurementSaveEntries() -> [QuickAddSaveService.Entry]? {
         var entries: [QuickAddSaveService.Entry] = []
 
-        for kind in recommendedKinds {
+        for kind in startingPointKinds {
             let rawValue = firstMeasurementEntries[kind]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             guard !rawValue.isEmpty else { continue }
 
@@ -1468,10 +2169,10 @@ struct OnboardingView: View {
 
     private func seedFirstMeasurementForUITestsIfNeeded() {
         guard isUITestOnboardingMode,
-              currentStep == .metrics,
+              currentStep == .startingPoint,
               !hasSavedFirstMeasurement,
               !hasAnyFirstMeasurementInput,
-              let firstKind = recommendedKinds.first else {
+              let firstKind = startingPointKinds.first else {
             return
         }
 
@@ -1499,10 +2200,6 @@ struct OnboardingView: View {
     }
 
     private func persistProfileSelections() {
-        let trimmed = nameInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty {
-            userName = trimmed
-        }
         let priority = resolvedPriority
         selectedPriority = priority
         onboardingPrimaryGoalRaw = priority.rawValue
@@ -1510,10 +2207,103 @@ struct OnboardingView: View {
         Analytics.shared.track(AnalyticsEvents.onboardingPrioritySelected(priority: priority.analyticsValue))
         Analytics.shared.track(
             AnalyticsEvents.onboardingStepCompleted(
-                step: InputStep.profile.analyticsName,
-                stepIndex: InputStep.profile.rawValue + 1
+                step: InputStep.goal.analyticsName,
+                stepIndex: InputStep.goal.rawValue + 1
             )
         )
+    }
+
+    private func selectGoalAndAdvance(_ priority: OnboardingPriority) {
+        let isReselect = selectedPriority == priority
+        selectedPriority = isReselect ? nil : priority
+        guard !isReselect else { return }
+        let delay: TimeInterval = shouldAnimate ? 0.45 : 0
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            guard currentStep == .goal, selectedPriority == priority else { return }
+            goToNextStep()
+        }
+    }
+
+    // MARK: - Reminder rhythm (v5)
+
+    private func rhythmReminderDate() -> Date {
+        var components = DateComponents()
+        components.weekday = rhythmWeekday
+        components.hour = rhythmHour
+        components.minute = 0
+        return Calendar.current.nextDate(
+            after: AppClock.now,
+            matching: components,
+            matchingPolicy: .nextTime
+        ) ?? AppClock.now
+    }
+
+    private func eveningReminderDate() -> Date {
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: AppClock.now)
+        components.hour = 20
+        components.minute = 0
+        let candidate = calendar.date(from: components) ?? AppClock.now
+        if candidate > AppClock.now {
+            return candidate
+        }
+        return calendar.date(byAdding: .day, value: 1, to: candidate) ?? candidate
+    }
+
+    private func enableReminderRhythm() {
+        guard !isSchedulingRhythm else { return }
+        isSchedulingRhythm = true
+        Task { @MainActor in
+            defer { isSchedulingRhythm = false }
+            let granted = await effects.requestNotificationAuthorization()
+            effects.setNotificationsEnabled(granted)
+            Analytics.shared.track(
+                AnalyticsEvents.notificationsPermissionResolved(
+                    source: .activation,
+                    result: granted ? "granted" : "denied"
+                )
+            )
+            if granted {
+                effects.upsertReminder(date: rhythmReminderDate(), repeatRule: .weekly)
+                onboardingSkippedReminders = false
+                didSetReminderRhythm = true
+                Analytics.shared.track(
+                    AnalyticsEvents.remindersSeeded(source: .activation, repeatRule: .weekly)
+                )
+                Haptics.success()
+            } else {
+                onboardingSkippedReminders = true
+            }
+            completeStepAndAdvance(from: .rhythm, to: .boosters)
+        }
+    }
+
+    private func triggerEveningReminder() {
+        guard !isSchedulingRhythm else { return }
+        isSchedulingRhythm = true
+        Task { @MainActor in
+            defer { isSchedulingRhythm = false }
+            let granted = await effects.requestNotificationAuthorization()
+            effects.setNotificationsEnabled(granted)
+            Analytics.shared.track(
+                AnalyticsEvents.notificationsPermissionResolved(
+                    source: .activation,
+                    result: granted ? "granted" : "denied"
+                )
+            )
+            if granted {
+                effects.upsertReminder(date: eveningReminderDate(), repeatRule: .once)
+                onboardingSkippedReminders = false
+                didSetReminderRhythm = true
+                Analytics.shared.track(
+                    AnalyticsEvents.remindersSeeded(source: .activation, repeatRule: .once)
+                )
+                Haptics.success()
+            } else {
+                onboardingSkippedReminders = true
+            }
+            finishOnboarding()
+        }
     }
 
     private func applyMetricPackIfNeeded() {
@@ -1640,7 +2430,7 @@ struct OnboardingView: View {
             activationIsDismissed = true
         }
         activationSkippedTaskIDsRaw = ""
-        onboardingFlowVersion = Int(AnalyticsEvents.onboardingFlowVersion) ?? 4
+        onboardingFlowVersion = Int(AnalyticsEvents.onboardingFlowVersion) ?? 5
 
         if shouldAnimate {
             withAnimation(AppMotion.quick) {

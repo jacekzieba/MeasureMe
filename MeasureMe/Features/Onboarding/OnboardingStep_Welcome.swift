@@ -7,59 +7,111 @@ extension OnboardingView {
 
     @ViewBuilder
     func onboardingWelcomeSlide(layout: OnboardingCardLayout) -> some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 22) {
             Spacer(minLength: 0)
 
-            Text(FlowLocalization.app(
-                "Welcome to\nMeasureMe",
-                "Witaj w\nMeasureMe",
-                "Bienvenido a\nMeasureMe",
-                "Willkommen bei\nMeasureMe",
-                "Bienvenue dans\nMeasureMe",
-                "Bem-vindo ao\nMeasureMe"
-            ))
-            .font(.system(size: 40, weight: .heavy))
-            .tracking(-1.0)
-            .multilineTextAlignment(.center)
-            .foregroundStyle(AppColorRoles.textPrimary)
+            welcomeProofCard
+                .padding(.horizontal, 20)
+
+            VStack(spacing: 10) {
+                Text(FlowLocalization.app(
+                    "See change, week after week",
+                    "Zobacz zmianę, tydzień po tygodniu",
+                    "Mira el cambio, semana tras semana",
+                    "Sieh Veränderung, Woche für Woche",
+                    "Voyez le changement, semaine après semaine",
+                    "Veja a mudança, semana após semana"
+                ))
+                .font(.system(size: layout.isCompact ? 30 : 34, weight: .heavy, design: .rounded))
+                .tracking(-0.5)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(AppColorRoles.textPrimary)
+
+                Text(FlowLocalization.app(
+                    "Measurements, photos and trends — all stay on your device.",
+                    "Pomiary, zdjęcia i trendy — wszystko zostaje na Twoim urządzeniu.",
+                    "Medidas, fotos y tendencias: todo se queda en tu dispositivo.",
+                    "Messwerte, Fotos und Trends – alles bleibt auf deinem Gerät.",
+                    "Mesures, photos et tendances — tout reste sur votre appareil.",
+                    "Medições, fotos e tendências — tudo fica no seu aparelho."
+                ))
+                .font(AppTypography.body)
+                .foregroundStyle(AppColorRoles.textSecondary)
+                .multilineTextAlignment(.center)
+            }
             .padding(.horizontal, 24)
 
-            VStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [Color.appAccent.opacity(0.28), Color.clear],
-                                center: .center,
-                                startRadius: 10,
-                                endRadius: 110
-                            )
-                        )
-                        .frame(width: 200, height: 200)
-                        .blur(radius: 6)
-                        .allowsHitTesting(false)
-
-                    MeasureBuddyView(pose: .welcome, size: 150)
-                        .shadow(color: Color.appAccent.opacity(0.40), radius: 20, x: 0, y: 14)
-                }
-                .frame(height: 160)
+            HStack(alignment: .bottom, spacing: 12) {
+                MeasureBuddyView(pose: .welcome, size: 76)
+                    .shadow(color: Color.appAccent.opacity(0.35), radius: 12, x: 0, y: 8)
 
                 MiaraSpeechBubble(
                     text: FlowLocalization.app(
-                        "Hey, I'm Miara. I'll be here every week to show you how your body is actually changing. No scale drama, no shame, just a clear picture.",
-                        "Hej, jestem Miara. Będę pokazywać, jak naprawdę zmienia się Twoje ciało. Bez skupiania się tylko na wadze i bez oceniania. Tylko jasny obraz.",
-                        "Hola, soy Miara. Cada semana te mostraré cómo está cambiando tu cuerpo de verdad. Sin drama de báscula y sin juicios. Solo una imagen clara.",
-                        "Hey, ich bin Miara. Jede Woche zeige ich dir, wie sich dein Körper wirklich verändert. Kein Waagen-Drama, kein Urteil. Nur ein klares Bild.",
-                        "Salut, c'est Miara. Chaque semaine, je te montre comment ton corps évolue vraiment. Sans drame de balance, sans jugement. Juste une image claire.",
-                        "Oi, sou a Miara. Toda semana vou te mostrar como seu corpo está mudando de verdade. Sem drama da balança, sem julgamento. Só uma imagem clara."
+                        "Hi! I'll show you your first trend in just a week.",
+                        "Cześć! Pierwszy trend pokażę Ci już za tydzień.",
+                        "¡Hola! Te mostraré tu primera tendencia en una semana.",
+                        "Hi! Deinen ersten Trend zeige ich dir schon in einer Woche.",
+                        "Salut ! Je vous montrerai votre première tendance dans une semaine.",
+                        "Oi! Vou te mostrar sua primeira tendência em uma semana."
                     )
                 )
-                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
             }
+            .padding(.horizontal, 20)
 
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var welcomeProofCard: some View {
+        HStack(spacing: 0) {
+            welcomeProofHalf(
+                assetName: "onboarding-before",
+                badge: FlowLocalization.app("Start", "Start", "Inicio", "Start", "Départ", "Início"),
+                accent: false,
+                alignment: .bottomLeading
+            )
+            welcomeProofHalf(
+                assetName: "onboarding-after",
+                badge: FlowLocalization.app("Week 12", "Tydzień 12", "Semana 12", "Woche 12", "Semaine 12", "Semana 12"),
+                accent: true,
+                alignment: .bottomTrailing
+            )
+        }
+        .frame(height: 250)
+        .overlay(
+            Rectangle()
+                .fill(Color.white.opacity(0.65))
+                .frame(width: 1.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous)
+                .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.18), radius: 18, x: 0, y: 12)
+    }
+
+    private func welcomeProofHalf(assetName: String, badge: String, accent: Bool, alignment: Alignment) -> some View {
+        Image(assetName)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(maxWidth: .infinity)
+            .frame(height: 250)
+            .clipped()
+            .overlay(alignment: alignment) {
+                Text(badge)
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundStyle(accent ? AppColorRoles.textOnAccent : Color.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(accent ? Color.appAccent : Color.black.opacity(0.62))
+                    )
+                    .padding(12)
+            }
     }
 
     var introWelcomeVisual: some View {

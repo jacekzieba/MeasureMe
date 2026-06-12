@@ -109,9 +109,9 @@ Allowed values:
   - Parameters: `source`, `metrics_count`, `is_first_measurement`
   - Funnel role: value creation and first measurement conversion.
 - `com.jacekzieba.measureme.metric.first_added`
-  - Meaning: first metric sample after onboarding completion.
+  - Meaning: the user's genuine first metric sample. Since onboarding v5 saves the baseline during onboarding, this fires on that baseline (no longer gated on onboarding completion).
 - `com.jacekzieba.measureme.metric.second_added`
-  - Meaning: second metric sample after onboarding completion.
+  - Meaning: the user's second distinct measurement (the comeback signal); fires after onboarding completion once at least one sample already exists. Use together with `measurement.saved (is_first_measurement=false)` as the retention signal.
 
 Allowed values:
 - `source`: `onboarding|activation|quick_add|widget|watch|intent`

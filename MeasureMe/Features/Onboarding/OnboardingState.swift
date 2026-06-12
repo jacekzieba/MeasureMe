@@ -20,44 +20,37 @@ extension OnboardingView {
 
     enum InputStep: Int, CaseIterable {
         case welcome
-        case profile
-        case metrics
-        case photos
-        case health
+        case goal
+        case startingPoint
+        case rhythm
+        case boosters
+        case plan
 
         var analyticsName: String {
             switch self {
             case .welcome:
                 return "welcome"
-            case .profile:
-                return "profile"
-            case .metrics:
-                return "metrics"
-            case .photos:
-                return "photos"
-            case .health:
-                return "health"
+            case .goal:
+                return "goal"
+            case .startingPoint:
+                return "starting_point"
+            case .rhythm:
+                return "rhythm"
+            case .boosters:
+                return "boosters"
+            case .plan:
+                return "plan"
             }
         }
     }
 
     enum Step {
         case welcome
-        case firstMeasurement
 
         var title: String {
             switch self {
             case .welcome:
                 return AppLocalization.systemString("Welcome")
-            case .firstMeasurement:
-                return FlowLocalization.app(
-                    "Save your starting point",
-                    "Zapisz punkt startowy",
-                    "Guarda tu punto de partida",
-                    "Speichere deinen Startpunkt",
-                    "Enregistrez votre point de départ",
-                    "Salve seu ponto de partida"
-                )
             }
         }
 
@@ -65,15 +58,6 @@ extension OnboardingView {
             switch self {
             case .welcome:
                 return AppLocalization.systemString("Set your goal and preview your progress")
-            case .firstMeasurement:
-                return FlowLocalization.app(
-                    "This is not a score. It is your baseline.",
-                    "To nie wynik. To punkt startowy.",
-                    "No es una nota. Es tu línea base.",
-                    "Das ist keine Bewertung. Es ist dein Ausgangspunkt.",
-                    "Ce n'est pas un score. C'est votre point de départ.",
-                    "Isto não é uma nota. É sua linha de base."
-                )
             }
         }
     }

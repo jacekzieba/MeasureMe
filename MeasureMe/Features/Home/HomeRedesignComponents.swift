@@ -58,6 +58,13 @@ enum HomeAIAnalysisItemsPolicy {
     }
 }
 
+/// Dashboard B: state shown right after the very first measurement (one dot on the chart).
+struct HomeFirstDotSnapshot {
+    let metricLabel: String
+    let valueText: String
+    let comeBackText: String
+}
+
 struct HomeTopSummarySection: View {
     let dateText: String
     let greetingTitle: String
@@ -69,6 +76,7 @@ struct HomeTopSummarySection: View {
     let showStreak: Bool
     let streakCount: Int
     let shouldAnimateStreak: Bool
+    var firstDot: HomeFirstDotSnapshot? = nil
     let onUnlockPremium: () -> Void
     let onOpenStreak: () -> Void
     let onStreakAnimationComplete: () -> Void
@@ -77,6 +85,10 @@ struct HomeTopSummarySection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
+
+            if let firstDot {
+                firstDotCard(firstDot)
+            }
 
             HomeAIInsightsPanel(
                 isPremium: isPremium,
@@ -92,6 +104,95 @@ struct HomeTopSummarySection: View {
                 .accessibilityElement()
                 .accessibilityIdentifier("home.module.summaryHero")
                 .allowsHitTesting(false)
+        }
+    }
+
+    private func firstDotCard(_ snap: HomeFirstDotSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(snap.metricLabel)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                Text(snap.valueText)
+                    .font(.system(size: 38, weight: .bold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(AppColorRoles.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+
+            firstDotChart
+                .frame(height: 84)
+                .accessibilityHidden(true)
+
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "bell.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.appAccent)
+                Text(snap.comeBackText)
+                    .font(AppTypography.captionEmphasis)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(AppSpacing.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                    .fill(AppColorRoles.surfaceInteractive)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                            .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                    )
+            )
+        }
+        .padding(AppSpacing.smmd)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.lgl, style: .continuous)
+                .fill(AppColorRoles.surfaceElevated)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.lgl, style: .continuous)
+                        .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
+                )
+        )
+        .accessibilityIdentifier("home.hero.firstDot")
+    }
+
+    private var firstDotChart: some View {
+        Canvas { ctx, size in
+            let w = size.width, h = size.height
+            let baseY = h - 6
+            let todayPt = CGPoint(x: 26, y: h - 30)
+            let futurePt = CGPoint(x: w - 36, y: h - 52)
+
+            var baseline = Path()
+            baseline.move(to: CGPoint(x: 6, y: baseY))
+            baseline.addLine(to: CGPoint(x: w - 6, y: baseY))
+            ctx.stroke(baseline, with: .color(AppColorRoles.borderSubtle), lineWidth: 1.5)
+
+            var projection = Path()
+            projection.move(to: todayPt)
+            projection.addCurve(
+                to: futurePt,
+                control1: CGPoint(x: w * 0.42, y: h - 34),
+                control2: CGPoint(x: w * 0.64, y: h - 48)
+            )
+            ctx.stroke(
+                projection,
+                with: .color(AppColorRoles.textTertiary),
+                style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [2, 6])
+            )
+
+            let ring = Path(ellipseIn: CGRect(x: futurePt.x - 5, y: futurePt.y - 5, width: 10, height: 10))
+            ctx.stroke(ring, with: .color(Color.appAccent), style: StrokeStyle(lineWidth: 2, dash: [3, 3]))
+
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: todayPt.x - 15, y: todayPt.y - 15, width: 30, height: 30)),
+                with: .color(Color.appAccent.opacity(0.16))
+            )
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: todayPt.x - 6, y: todayPt.y - 6, width: 12, height: 12)),
+                with: .color(Color.appAccent)
+            )
         }
     }
 

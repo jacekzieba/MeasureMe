@@ -97,12 +97,15 @@ final class OnboardingSnapshotTests: XCTestCase {
         )
     }
 
-    private func makeHostingController(colorScheme: ColorScheme) throws -> UIHostingController<some View> {
+    private func makeHostingController(
+        colorScheme: ColorScheme,
+        initialStep: OnboardingView.InputStep = .welcome
+    ) throws -> UIHostingController<some View> {
         let container = try makeContainer()
         let metricsStore = ActiveMetricsStore()
         let pendingPhotoStore = PendingPhotoSaveStore(autoStartProcessing: false)
 
-        let view = OnboardingView(effects: makeEffects())
+        let view = OnboardingView(effects: makeEffects(), initialStep: initialStep)
             .modelContainer(container)
             .environmentObject(metricsStore)
             .environmentObject(pendingPhotoStore)
@@ -118,8 +121,8 @@ final class OnboardingSnapshotTests: XCTestCase {
 
     // MARK: - Tests
 
-    /// Welcome step — the very first screen shown to a new user.
-    func testOnboarding_welcomeStep_dark() async throws {
+    /// Renders every v5 onboarding step in light + dark for visual review / regression.
+    func testOnboarding_v5Steps() async throws {
         try requireSimulatorSnapshotEnvironment()
 
         let baseline = backupDefaults()
@@ -132,42 +135,33 @@ final class OnboardingSnapshotTests: XCTestCase {
         configureDefaults()
         UIView.setAnimationsEnabled(false)
 
-        let vc = try makeHostingController(colorScheme: .dark)
-
-        let window = UIWindow(frame: vc.view.frame)
-        window.rootViewController = vc
-        window.makeKeyAndVisible()
-        vc.view.setNeedsLayout()
-        vc.view.layoutIfNeeded()
-        try await Task.sleep(for: .milliseconds(100))
-
         let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
-    }
+        let steps: [(OnboardingView.InputStep, String)] = [
+            (.welcome, "1-welcome"),
+            (.goal, "2-goal"),
+            (.startingPoint, "3-startingPoint"),
+            (.rhythm, "4-rhythm"),
+            (.boosters, "5-boosters"),
+            (.plan, "6-plan"),
+        ]
 
-    func testOnboarding_welcomeStep_light() async throws {
-        try requireSimulatorSnapshotEnvironment()
-
-        let baseline = backupDefaults()
-        let wereAnimationsEnabled = UIView.areAnimationsEnabled
-        defer {
-            restoreDefaults(baseline)
-            UIView.setAnimationsEnabled(wereAnimationsEnabled)
+        for scheme in [ColorScheme.light, .dark] {
+            let schemeName = scheme == .dark ? "dark" : "light"
+            for (step, name) in steps {
+                let vc = try makeHostingController(colorScheme: scheme, initialStep: step)
+                let window = UIWindow(frame: vc.view.frame)
+                window.rootViewController = vc
+                window.makeKeyAndVisible()
+                vc.view.setNeedsLayout()
+                vc.view.layoutIfNeeded()
+                try await Task.sleep(for: .milliseconds(140))
+                assertSnapshot(
+                    of: vc,
+                    as: .image(precision: 0.99, perceptualPrecision: 0.98),
+                    named: "\(name)_\(schemeName)",
+                    record: shouldRecord
+                )
+            }
         }
-
-        configureDefaults()
-        UIView.setAnimationsEnabled(false)
-
-        let vc = try makeHostingController(colorScheme: .light)
-
-        let window = UIWindow(frame: vc.view.frame)
-        window.rootViewController = vc
-        window.makeKeyAndVisible()
-        vc.view.setNeedsLayout()
-        vc.view.layoutIfNeeded()
-        try await Task.sleep(for: .milliseconds(100))
-
-        let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
-        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
     }
 }

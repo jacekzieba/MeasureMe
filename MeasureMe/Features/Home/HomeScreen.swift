@@ -691,6 +691,52 @@ struct HomeView: View {
         .measurements
     }
 
+    /// Dashboard B: starting-point + projection card, shown only right after the first measurement.
+    var homeFirstDotSnapshot: HomeFirstDotSnapshot? {
+        guard totalMetricSampleCount == 1,
+              hasAnyMeasurements,
+              let measurement = heroPrimaryMeasurement else {
+            return nil
+        }
+        let label = FlowLocalization.app(
+            "\(measurement.label) · starting point",
+            "\(measurement.label) · punkt startowy",
+            "\(measurement.label) · punto de partida",
+            "\(measurement.label) · Startpunkt",
+            "\(measurement.label) · point de départ",
+            "\(measurement.label) · ponto inicial"
+        )
+        let comeBack: String
+        if let reminderDate = effects.nextReminderDate() {
+            let formatter = DateFormatter()
+            formatter.locale = .current
+            formatter.setLocalizedDateFormatFromTemplate("EEEE HH:mm")
+            let when = formatter.string(from: reminderDate)
+            comeBack = FlowLocalization.app(
+                "Next check-in: \(when). Your second entry reveals your first trend.",
+                "Następny check-in: \(when). Drugi pomiar pokaże pierwszy trend.",
+                "Próximo control: \(when). Tu segunda medida revela tu primera tendencia.",
+                "Nächster Check-in: \(when). Die zweite Messung zeigt deinen ersten Trend.",
+                "Prochain suivi : \(when). Votre deuxième mesure révèle votre première tendance.",
+                "Próximo check-in: \(when). A segunda medição revela sua primeira tendência."
+            )
+        } else {
+            comeBack = FlowLocalization.app(
+                "Your second entry reveals your first trend — come back for your next check-in.",
+                "Drugi pomiar pokaże pierwszy trend — wróć na kolejny check-in.",
+                "Tu segunda medida revela tu primera tendencia — vuelve en tu próximo control.",
+                "Die zweite Messung zeigt deinen ersten Trend — komm zum nächsten Check-in zurück.",
+                "Votre deuxième mesure révèle votre première tendance — revenez pour votre prochain suivi.",
+                "A segunda medição revela sua primeira tendência — volte no próximo check-in."
+            )
+        }
+        return HomeFirstDotSnapshot(
+            metricLabel: label,
+            valueText: measurement.value,
+            comeBackText: comeBack
+        )
+    }
+
     var summaryHeroModule: some View {
         HomeTopSummarySection(
             dateText: homeHeaderDateText,
@@ -703,6 +749,7 @@ struct HomeView: View {
             showStreak: showStreakOnHome && streakManager.currentStreak >= 1,
             streakCount: streakManager.currentStreak,
             shouldAnimateStreak: streakManager.shouldPlayAnimation,
+            firstDot: homeFirstDotSnapshot,
             onUnlockPremium: {
                 Haptics.selection()
                 premiumStore.presentPaywall(reason: .aiInsights)
@@ -2890,7 +2937,7 @@ struct HomeView: View {
         guard onboardingFlowVersion >= 2 else { return }
 
         if !isUITestMode,
-           totalMetricSampleCount == 1,
+           hasAnyMeasurements,
            !viewModel.didShowActivationReminderPrompt,
            !onboardingSkippedReminders,
            !effects.reminderChecklistCompleted() {

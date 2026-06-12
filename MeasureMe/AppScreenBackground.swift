@@ -6,6 +6,9 @@ struct AppScreenBackground: View {
     var scrollOffset: CGFloat = 0
     var tint: Color = .appAccent.opacity(0.2)
     var showsSpotlight: Bool = true
+    /// When false, the decorative dark-mode blobs/spotlight are suppressed and only
+    /// the flat gradient remains (used by onboarding so glows don't bleed through cards).
+    var showsAmbientBlobs: Bool = true
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -35,40 +38,42 @@ struct AppScreenBackground: View {
                     )
                     .ignoresSafeArea()
 
-                    blob(
-                        color: tint,
-                        width: width * 0.95,
-                        height: topHeight * 0.78,
-                        blurRadius: prefersPerformanceMode ? 18 : 32
-                    )
-                    .offset(
-                        x: width * 0.16,
-                        y: -108 + parallax
-                    )
+                    if showsAmbientBlobs {
+                        blob(
+                            color: tint,
+                            width: width * 0.95,
+                            height: topHeight * 0.78,
+                            blurRadius: prefersPerformanceMode ? 18 : 32
+                        )
+                        .offset(
+                            x: width * 0.16,
+                            y: -108 + parallax
+                        )
 
-                    blob(
-                        color: Color.cyan.opacity(0.18),
-                        width: width * 0.86,
-                        height: topHeight * 0.68,
-                        blurRadius: prefersPerformanceMode ? 18 : 32
-                    )
-                    .offset(
-                        x: -width * 0.18,
-                        y: 18 + parallax * 0.6
-                    )
+                        blob(
+                            color: Color.cyan.opacity(0.18),
+                            width: width * 0.86,
+                            height: topHeight * 0.68,
+                            blurRadius: prefersPerformanceMode ? 18 : 32
+                        )
+                        .offset(
+                            x: -width * 0.18,
+                            y: 18 + parallax * 0.6
+                        )
 
-                    blob(
-                        color: Color.white.opacity(0.10),
-                        width: width * 0.65,
-                        height: topHeight * 0.48,
-                        blurRadius: prefersPerformanceMode ? 14 : 28
-                    )
-                    .offset(
-                        x: width * 0.22,
-                        y: 54 + parallax * 0.5
-                    )
+                        blob(
+                            color: Color.white.opacity(0.10),
+                            width: width * 0.65,
+                            height: topHeight * 0.48,
+                            blurRadius: prefersPerformanceMode ? 14 : 28
+                        )
+                        .offset(
+                            x: width * 0.22,
+                            y: 54 + parallax * 0.5
+                        )
+                    }
 
-                    if showsSpotlight && !prefersPerformanceMode {
+                    if showsAmbientBlobs && showsSpotlight && !prefersPerformanceMode {
                         Ellipse()
                             .fill(
                                 LinearGradient(

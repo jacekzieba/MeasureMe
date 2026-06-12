@@ -65,12 +65,12 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertEqual(OnboardingView.WelcomeGoal.trackHealth.priority, .improveHealth)
     }
 
-    func testInputStepsEndAtOptionalHealthStep() {
+    func testInputStepsFollowV5Flow() {
         XCTAssertEqual(
             OnboardingView.InputStep.allCases.map(\.analyticsName),
-            ["welcome", "profile", "metrics", "photos", "health"]
+            ["welcome", "goal", "starting_point", "rhythm", "boosters", "plan"]
         )
-        XCTAssertEqual(OnboardingView.InputStep.health.rawValue, 4)
+        XCTAssertEqual(OnboardingView.InputStep.plan.rawValue, 5)
     }
 
     func testActivationTaskOrderingSupportsManualMeasurementBeforePhoto() {

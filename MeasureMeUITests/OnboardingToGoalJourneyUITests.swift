@@ -11,7 +11,7 @@ final class OnboardingToGoalJourneyUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-uiTestOnboardingMode", "-uiTestSeedMeasurements"]
+        app.launchArguments = ["-uiTestOnboardingMode", "-uiTestSeedMeasurements", "-uiTestOnboardingPriority", "buildMuscle"]
         app.launch()
     }
 
@@ -37,22 +37,23 @@ final class OnboardingToGoalJourneyUITests: XCTestCase {
 
     private func completeOnboardingFlow() {
         let next = onboardingNextButton()
+        let skip = onboardingSkipButton()
         XCTAssertTrue(next.waitForExistence(timeout: 12), "Przycisk Dalej powinien istniec podczas onboardingu")
-        next.tap()  // welcome → profile
+        next.tap()  // welcome → goal
 
-        let buildMuscle = app.buttons["onboarding.priority.buildMuscle"].firstMatch
-        XCTAssertTrue(buildMuscle.waitForExistence(timeout: 8), "Polaczony krok profilu i celu powinien byc widoczny")
-        buildMuscle.tap()
-        next.tap()  // profile → metrics
+        // Goal jest wybrany przez launch arg (-uiTestOnboardingPriority buildMuscle).
+        XCTAssertTrue(app.buttons["onboarding.priority.buildMuscle"].firstMatch.waitForExistence(timeout: 8), "Krok celu powinien byc widoczny")
+        next.tap()  // goal → starting point
 
-        let chestField = app.textFields["onboarding.measurement.chest"].firstMatch
-        XCTAssertTrue(chestField.waitForExistence(timeout: 8), "Krok pomiaru powinien pozwalac zapisac punkt startowy")
-        next.tap()  // metrics → photos
-        next.tap()  // photos → health
+        let weightField = app.textFields["onboarding.measurement.weight"].firstMatch
+        XCTAssertTrue(weightField.waitForExistence(timeout: 8), "Krok punktu startowego powinien pokazac hero wagi")
+        next.tap()  // starting point → rhythm (zapisuje punkt startowy)
 
-        let skip = app.buttons["UITest Skip"].firstMatch
-        XCTAssertTrue(app.buttons["onboarding.health.allow"].firstMatch.waitForExistence(timeout: 8), "Krok Health powinien byc widoczny")
-        skip.tap()  // health → finish
+        skip.tap()  // rhythm → boosters (skip omija prompt o powiadomienia)
+
+        XCTAssertTrue(app.buttons["onboarding.health.allow"].firstMatch.waitForExistence(timeout: 8), "Krok boosterow powinien zawierac Apple Health")
+        skip.tap()  // boosters → plan
+        next.tap()  // plan → finish
     }
 
     private func onboardingNextButton() -> XCUIElement {
@@ -61,6 +62,14 @@ final class OnboardingToGoalJourneyUITests: XCTestCase {
             return identifierNext
         }
         return app.buttons["UITest Next"].firstMatch
+    }
+
+    private func onboardingSkipButton() -> XCUIElement {
+        let identifierSkip = app.buttons["onboarding.test.skip"].firstMatch
+        if identifierSkip.waitForExistence(timeout: 0.5) {
+            return identifierSkip
+        }
+        return app.buttons["UITest Skip"].firstMatch
     }
 
     private func openMeasurementsTab() {

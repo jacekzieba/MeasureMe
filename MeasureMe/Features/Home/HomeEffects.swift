@@ -42,6 +42,16 @@ struct HomeEffects {
         return notifications.notificationsEnabled && hasAnyReminder
     }
 
+    /// Next scheduled reminder, preferring the weekly check-in. Used by Dashboard B copy.
+    func nextReminderDate() -> Date? {
+        let reminders = notifications.loadReminders()
+        let preferred = reminders.first(where: { $0.repeatRule == .weekly })
+            ?? reminders.first(where: { $0.repeatRule == .daily })
+            ?? reminders.first(where: { $0.repeatRule == .once })
+            ?? reminders.first
+        return preferred?.date
+    }
+
     func requestNotificationAuthorization() async -> Bool {
         await notifications.requestAuthorization()
     }

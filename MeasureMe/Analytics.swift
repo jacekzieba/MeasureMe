@@ -87,7 +87,9 @@ enum AnalyticsFirstEventTracker {
     }
 
     static func trackSecondMetricIfNeeded(previousMetricCount: Int) {
-        guard previousMetricCount == 1 else { return }
+        // >= 1 (not == 1): a multi-metric baseline jumps the count past 1, so the
+        // comeback save must still count as the "second" distinct measurement.
+        guard previousMetricCount >= 1 else { return }
         guard settings.snapshot.onboarding.hasCompletedOnboarding else { return }
         guard settings.snapshot.analytics.secondMetricAddedTracked == false else { return }
 
@@ -130,9 +132,10 @@ enum AnalyticsFirstEventTracker {
     }
 
     private static func shouldTrackFirstMetricEvent() -> Bool {
-        let snapshot = settings.snapshot
-        guard snapshot.onboarding.hasCompletedOnboarding else { return false }
-        return snapshot.analytics.firstMetricAddedTracked == false
+        // No onboarding gate: in v5 the baseline is saved during onboarding, so
+        // first_added must fire on that genuine first measurement instead of being
+        // lost (the count is no longer 0 by the time onboarding completes).
+        return settings.snapshot.analytics.firstMetricAddedTracked == false
     }
 
     private static func shouldTrackFirstPhotoEvent() -> Bool {

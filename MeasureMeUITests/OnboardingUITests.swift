@@ -1,5 +1,6 @@
 import XCTest
 
+/// v5 onboarding flow (6 steps): welcome(0) → goal(1) → startingPoint(2) → rhythm(3) → boosters(4) → plan(5).
 final class OnboardingUITests: XCTestCase {
     private var app: XCUIApplication!
 
@@ -54,38 +55,42 @@ final class OnboardingUITests: XCTestCase {
         nextButton.tap()
     }
 
+    /// Goal cards don't receive synthesized XCUITest taps, so the goal is chosen via a launch
+    /// argument; the test then advances from welcome to the goal step and on to starting point.
     private func selectGoalAndAdvance(_ identifier: String) {
-        // Onboarding content buttons don't receive synthesized XCUITest taps (the flow
-        // bridges navigation through NotificationCenter for the same reason), so the goal
-        // is chosen via a launch argument rather than by tapping the priority card.
         let priorityRaw = identifier.replacingOccurrences(of: "onboarding.priority.", with: "")
         launchApp(arguments: ["-uiTestOnboardingMode", "-uiTestOnboardingPriority", priorityRaw])
         advancePastWelcome()
         XCTAssertTrue(app.buttons[identifier].waitForExistence(timeout: 5))
+        XCTAssertTrue(waitForOnboardingStep("step:1"))
         nextButton.tap()
     }
 
-    private func assertFirstMeasurementFieldVisible(kind rawKind: String = "waist") {
-        let field = app.textFields["onboarding.measurement.\(rawKind)"].firstMatch
-        XCTAssertTrue(field.waitForExistence(timeout: 5), "Expected first measurement field for \(rawKind)")
+    private func assertWeightHeroFieldVisible() {
+        let field = app.textFields["onboarding.measurement.weight"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "Expected the weight hero field on the starting point step")
     }
 
-    private func advanceToHealthStep(selecting identifier: String = "onboarding.priority.improveHealth") {
+    /// Navigate to the boosters step where the Apple Health soft ask lives.
+    /// Rhythm is reached then *skipped* so the test never triggers the notification system prompt.
+    private func advanceToBoostersStep(selecting identifier: String = "onboarding.priority.improveHealth") {
         selectGoalAndAdvance(identifier)
-        assertFirstMeasurementFieldVisible()
-        XCTAssertFalse(app.buttons["onboarding.health.allow"].exists, "Health prompt should not appear on the measurement step")
-        XCTAssertFalse(app.buttons["onboarding.booster.healthkit"].exists, "Inline HealthKit booster should not appear on the measurement step")
+        XCTAssertTrue(waitForOnboardingStep("step:2"))
+        assertWeightHeroFieldVisible()
+        XCTAssertFalse(app.buttons["onboarding.health.allow"].exists, "Health prompt should not appear on the starting point step")
 
-        nextButton.tap()
-        XCTAssertFalse(app.buttons["onboarding.health.allow"].exists, "Health prompt should not appear on the photo step")
+        nextButton.tap() // starting point → rhythm
+        XCTAssertTrue(waitForOnboardingStep("step:3"))
+        XCTAssertFalse(app.buttons["onboarding.health.allow"].exists, "Health prompt should not appear on the rhythm step")
 
-        nextButton.tap()
+        skipButton.tap() // rhythm → boosters (skip avoids the notification permission prompt)
+        XCTAssertTrue(waitForOnboardingStep("step:4"))
         XCTAssertTrue(app.buttons["onboarding.health.allow"].waitForExistence(timeout: 5))
     }
 
-    func testOnboardingStartsOnCombinedProfileStep() {
+    func testOnboardingStartsOnGoalStep() {
         advancePastWelcome()
-        XCTAssertTrue(app.textFields["onboarding.name.field"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.textFields["onboarding.name.field"].exists, "v5 goal step no longer asks for a name")
         XCTAssertTrue(app.buttons["onboarding.priority.loseWeight"].exists)
         XCTAssertTrue(app.buttons["onboarding.priority.buildMuscle"].exists)
         XCTAssertTrue(app.buttons["onboarding.priority.improveHealth"].exists)
@@ -93,50 +98,48 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertTrue(waitForOnboardingStep("step:1"))
     }
 
-    func testBackNavigationReturnsFromMetricsToProfileStep() {
+    func testBackNavigationReturnsFromStartingPointToGoal() {
         selectGoalAndAdvance("onboarding.priority.loseWeight")
 
-        let stepHook = app.staticTexts["root.onboarding.test.step"].firstMatch
-        XCTAssertTrue(stepHook.waitForExistence(timeout: 5))
-        XCTAssertEqual(stepHook.label, "step:2")
+        XCTAssertTrue(waitForOnboardingStep("step:2"))
 
         backButton.tap()
 
         XCTAssertTrue(waitForOnboardingStep("step:1"))
-        XCTAssertTrue(app.textFields["onboarding.name.field"].exists)
+        XCTAssertTrue(app.buttons["onboarding.priority.loseWeight"].exists)
     }
 
-    func testMetricsScreenReflectsSelectedGoal() {
+    func testStartingPointShowsWeightHero() {
         selectGoalAndAdvance("onboarding.priority.buildMuscle")
 
-        XCTAssertTrue(app.staticTexts["Chest"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Left bicep"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Right bicep"].waitForExistence(timeout: 5))
+        assertWeightHeroFieldVisible()
         XCTAssertTrue(waitForOnboardingStep("step:2"))
     }
 
-    func testHealthPromptAppearsAfterMetricsAndPhotos() {
-        advanceToHealthStep()
+    func testHealthPromptAppearsOnBoostersStep() {
+        advanceToBoostersStep()
 
         let healthButton = app.buttons["onboarding.health.allow"].firstMatch
-        XCTAssertTrue(healthButton.exists, "Health soft ask should appear before the dashboard")
-        XCTAssertTrue(skipButton.exists, "Health step should still allow skipping")
-        XCTAssertTrue(app.descendants(matching: .any)["onboarding.privacy.note"].firstMatch.exists)
+        XCTAssertTrue(healthButton.exists, "Health soft ask should appear on the boosters step")
+        XCTAssertTrue(skipButton.exists, "Boosters step should still allow skipping")
     }
 
-    func testOnboardingFinishesAfterHealth() {
-        advanceToHealthStep()
+    func testOnboardingFinishesFromPlan() {
+        advanceToBoostersStep()
 
-        nextButton.tap()
+        nextButton.tap() // boosters → plan
+        XCTAssertTrue(waitForOnboardingStep("step:5"))
 
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8), "Finishing Health should open the main app")
+        nextButton.tap() // plan → dashboard
+
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8), "Finishing the plan should open the main app")
     }
 
     func testOnboardingCanReachDashboardWithSkips() {
         skipButton.tap()
         XCTAssertTrue(waitForOnboardingStep("step:1"))
 
-        nextButton.tap()
+        skipButton.tap()
         XCTAssertTrue(waitForOnboardingStep("step:2"))
 
         skipButton.tap()
@@ -144,6 +147,9 @@ final class OnboardingUITests: XCTestCase {
 
         skipButton.tap()
         XCTAssertTrue(waitForOnboardingStep("step:4"))
+
+        skipButton.tap()
+        XCTAssertTrue(waitForOnboardingStep("step:5"))
 
         skipButton.tap()
 

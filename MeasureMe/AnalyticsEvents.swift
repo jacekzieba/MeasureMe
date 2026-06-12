@@ -160,7 +160,7 @@ nonisolated enum PurchaseRestoreSource: String {
 }
 
 nonisolated enum AnalyticsEvents {
-    static let onboardingFlowVersion = "4"
+    static let onboardingFlowVersion = "5"
 
     static func onboardingSessionStarted(entrypoint: String, restoredState: Bool) -> AnalyticsEvent {
         AnalyticsEvent(
