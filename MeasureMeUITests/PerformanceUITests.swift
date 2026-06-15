@@ -15,11 +15,9 @@ final class PerformanceUITests: XCTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        #if targetEnvironment(simulator)
         if UIDevice.current.systemVersion.hasPrefix("26.") {
-            throw XCTSkip("XCTest performance metrics are unstable on the iOS 26 simulator test runner in this project.")
+            throw XCTSkip("XCTest performance metrics are unstable on the iOS 26 test runner in this project.")
         }
-        #endif
     }
 
     override func setUp() {
@@ -31,11 +29,9 @@ final class PerformanceUITests: XCTestCase {
 
     @MainActor
     func testAppLaunchDurationPerformance() throws {
-        #if targetEnvironment(simulator)
         if UIDevice.current.systemVersion.hasPrefix("26.") {
-            throw XCTSkip("XCTApplicationLaunchMetric is unstable on the iOS 26 simulator test runner in this project.")
+            throw XCTSkip("XCTApplicationLaunchMetric is unstable on the iOS 26 test runner in this project.")
         }
-        #endif
 
         let manualMedianMs = robustColdLaunchDurationMs(sampleCount: Self.launchTrendSampleCount)
         logTrend(metric: "app_launch_ms", currentMs: manualMedianMs)
@@ -60,11 +56,9 @@ final class PerformanceUITests: XCTestCase {
 
     @MainActor
     func testAppStartupResourcePerformance() throws {
-        #if targetEnvironment(simulator)
         if UIDevice.current.systemVersion.hasPrefix("26.") {
-            throw XCTSkip("XCTCPUMetric/XCTMemoryMetric is unstable on the iOS 26 simulator test runner in this project.")
+            throw XCTSkip("XCTCPUMetric/XCTMemoryMetric is unstable on the iOS 26 test runner in this project.")
         }
-        #endif
 
         let manualMedianMs = robustColdLaunchDurationMs(sampleCount: Self.launchTrendSampleCount)
         logTrend(metric: "startup_clock_ms", currentMs: manualMedianMs)

@@ -189,8 +189,8 @@ final class HomeViewUITests: XCTestCase {
 
         let compareButton = app.buttons["home.recentPhotos.compare.button"].firstMatch
         XCTAssertTrue(compareButton.waitForExistence(timeout: 5), "Recent photos compare card should exist")
-        scrollToReveal(compareButton, maxSwipes: 4)
-        compareButton.tap()
+        scrollToReveal(compareButton, maxSwipes: 8)
+        tapVisibleElement(compareButton)
 
         XCTAssertTrue(app.buttons["Close Premium screen"].waitForExistence(timeout: 5), "Non-premium compare tap should open the paywall")
     }
@@ -380,6 +380,21 @@ final class HomeViewUITests: XCTestCase {
                 return
             }
         }
+    }
+
+    private func tapVisibleElement(_ element: XCUIElement) {
+        XCTAssertTrue(element.exists, "Expected element to exist before tapping")
+        if element.isHittable {
+            element.tap()
+            return
+        }
+
+        let window = app.windows.element(boundBy: 0)
+        XCTAssertTrue(
+            isPartiallyVisible(element, in: window),
+            "Expected element to be visible before coordinate tap"
+        )
+        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
 
     private func isPartiallyVisible(_ element: XCUIElement, in container: XCUIElement) -> Bool {

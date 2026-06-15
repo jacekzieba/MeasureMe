@@ -495,9 +495,15 @@ final class AuditCaptureUITests: XCTestCase {
     }
 
     private func advanceOnboardingToHealthStep(in app: XCUIApplication) {
-        onboardingNextButton(in: app).tap()  // welcome → goal
         let priority = app.buttons["onboarding.priority.improveHealth"].firstMatch
-        XCTAssertTrue(priority.waitForExistence(timeout: 8))
+        for _ in 0..<2 where !priority.exists {
+            let next = onboardingNextButton(in: app)
+            XCTAssertTrue(next.waitForExistence(timeout: 8))
+            scrollToRevealHittable(next, in: app)
+            tapWithoutAXScroll(next)
+            _ = priority.waitForExistence(timeout: 4)
+        }
+        XCTAssertTrue(priority.exists, "Expected onboarding goal choices after leaving welcome")
         scrollToReveal(priority, in: app, maxSwipes: 6)
         tapWithoutAXScroll(priority)
 

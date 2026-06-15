@@ -39,7 +39,8 @@ struct AISectionSummaryCard: View {
                             Image(systemName: "arrow.clockwise")
                                 .font(AppTypography.micro)
                                 .foregroundStyle(AppColorRoles.textSecondary)
-                                .frame(width: 28, height: 28)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(AppLocalization.aiString("Refresh insight"))
