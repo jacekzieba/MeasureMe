@@ -328,6 +328,7 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(home.homeTabScrollOffset, forKey: AppSettingsKeys.Home.homeTabScrollOffset)
             defaults.set(home.homePhotoMetricSyncLastDate, forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastDate)
             defaults.set(home.homePhotoMetricSyncLastID, forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastID)
+            defaults.set(home.hasReviewedTrackedMetrics, forKey: AppSettingsKeys.Home.hasReviewedTrackedMetrics)
             defaults.set(home.settingsOpenTrackedMeasurements, forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements)
             defaults.set(home.settingsOpenReminders, forKey: AppSettingsKeys.Home.settingsOpenReminders)
             defaults.set(home.settingsOpenHomeSettings, forKey: AppSettingsKeys.Home.settingsOpenHomeSettings)

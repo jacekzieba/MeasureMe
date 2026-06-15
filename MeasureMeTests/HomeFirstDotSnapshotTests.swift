@@ -9,6 +9,13 @@ import SnapshotTesting
 @MainActor
 final class HomeFirstDotSnapshotTests: XCTestCase {
 
+    func testSameDayPhotosDoNotClaimZeroDayComparison() {
+        let text = HomePhotoComparisonCopy.insightText(days: 0)
+
+        XCTAssertFalse(text.contains("0"))
+        XCTAssertTrue(HomePhotoComparisonCopy.insightText(days: 12).contains("12"))
+    }
+
     private func requireSimulatorSnapshotEnvironment() throws {
         guard ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] != nil else {
             throw XCTSkip("Snapshot baseline is simulator-only")
@@ -37,7 +44,8 @@ final class HomeFirstDotSnapshotTests: XCTestCase {
                 onUnlockPremium: {},
                 onOpenStreak: {},
                 onStreakAnimationComplete: {},
-                onOpenProfile: {}
+                onOpenProfile: {},
+                onOpenPhotos: {}
             )
             .padding(16)
             .frame(maxHeight: .infinity, alignment: .top)

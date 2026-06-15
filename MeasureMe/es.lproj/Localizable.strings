@@ -969,7 +969,6 @@ El IMC no distingue entre masa muscular y grasa, por lo que atletas o personas c
 "profile.stats.phrase.7" = "Más de 1000 entradas. Compromiso legendario.";
 "Enable AI Insights" = "Activar análisis con IA";
 "AI Insights" = "Análisis con IA";
-"AI Insights aren’t available right now." = "Los análisis con IA no están disponibles en este momento.";
 "Show more" = "Mostrar más";
 "Show less" = "Mostrar menos";
 "Not enough data to generate insights yet." = "Aún no hay suficientes datos para generar análisis.";
@@ -1123,7 +1122,6 @@ El IMC no distingue entre masa muscular y grasa, por lo que atletas o personas c
 "One number is all you need to begin." = "Un número es todo lo que necesitas para empezar.";
 "optional" = "opcional";
 "You'll track:" = "Vas a seguir:";
-"You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Tienes una tendencia a la baja constante. Mantén 3 sesiones de fuerza y ​​más de 8.000 pasos esta semana.";
 "onboarding.trend.delta" = "-0,3 kg/semana";
 "onboarding.goal.badge" = "Objetivo %.2f kg";
 "onboarding.week.label" = "W%d";

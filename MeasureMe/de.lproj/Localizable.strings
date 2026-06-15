@@ -969,7 +969,6 @@ Der BMI unterscheidet nicht zwischen Muskel- und Fettmasse. Deshalb können Spor
 "profile.stats.phrase.7" = "Über 1000 Einträge. Legendäres Tempo.";
 "Enable AI Insights" = "KI-Einblicke aktivieren";
 "AI Insights" = "KI-Einblicke";
-"AI Insights aren’t available right now." = "KI-Einblicke sind derzeit nicht verfügbar.";
 "Show more" = "Mehr anzeigen";
 "Show less" = "Weniger anzeigen";
 "Not enough data to generate insights yet." = "Es liegen noch nicht genügend Daten vor, um Erkenntnisse zu gewinnen.";
@@ -1123,7 +1122,6 @@ Der BMI unterscheidet nicht zwischen Muskel- und Fettmasse. Deshalb können Spor
 "One number is all you need to begin." = "Eine Zahl genügt für den Start.";
 "optional" = "optional";
 "You'll track:" = "Du wirst erfassen:";
-"You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Dein Trend geht stetig nach unten. Halte diese Woche 3 Krafteinheiten und mehr als 8.000 Schritte durch.";
 "onboarding.trend.delta" = "-0,3 kg/Woche";
 "onboarding.goal.badge" = "Ziel: %.2f kg";
 "onboarding.week.label" = "KW %d";

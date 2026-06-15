@@ -80,6 +80,6 @@ extension OnboardingView {
                         .stroke(AppColorRoles.borderSubtle, lineWidth: 1)
                 )
         )
-        .accessibilityIdentifier("onboarding.privacy.note")
+        .accessibilityIdentifier("onboarding.privacy.card")
     }
 }

@@ -5,25 +5,12 @@ struct MetricInsightCard: View {
     let compact: Bool
     let isLoading: Bool
     var onRefresh: (() -> Void)? = nil
-    var onExpandToggle: ((Bool) -> Void)? = nil
 
     @State private var shimmerPhase: CGFloat = 0
-    @State private var isExpanded = false
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    private let collapsedLineLimit = 4
     private var minimumCompactHeight: CGFloat? {
         compact ? 74 : nil
-    }
-
-    private var compactLineLimit: Int? {
-        guard compact, !dynamicTypeSize.isAccessibilitySize else { return nil }
-        return 2
-    }
-
-    private var canExpand: Bool {
-        !compact && !isLoading && text.count > 220
     }
 
     var body: some View {
@@ -44,26 +31,9 @@ struct MetricInsightCard: View {
                         .font(compact ? AppTypography.microEmphasis : AppTypography.body)
                         .foregroundStyle(AppColorRoles.textPrimary)
                         .multilineTextAlignment(.leading)
-                        .lineLimit(compactLineLimit ?? (canExpand && !isExpanded ? collapsedLineLimit : nil))
-                        .fixedSize(horizontal: false, vertical: true)
-                        .layoutPriority(1)
+                        .appUntruncatedText()
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityIdentifier(compact ? "insight.card.text.compact" : "insight.card.text.detail")
-
-                    if canExpand {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                isExpanded.toggle()
-                            }
-                            onExpandToggle?(isExpanded)
-                        } label: {
-                            Text(AppLocalization.aiString(isExpanded ? "Show less" : "Show more"))
-                                .font(AppTypography.microEmphasis)
-                                .foregroundStyle(AppColorRoles.accentPrimary)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("insight.card.expand")
-                    }
                 }
 
                 HStack {
@@ -131,9 +101,6 @@ struct MetricInsightCard: View {
                     shimmerPhase = 1
                 }
             }
-        }
-        .onChange(of: text) { _, _ in
-            isExpanded = false
         }
     }
 

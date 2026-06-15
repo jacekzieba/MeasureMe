@@ -30,8 +30,8 @@ struct GoalNotificationSender {
             let name = settings.snapshot.profile.userName.trimmingCharacters(in: .whitespacesAndNewlines)
             let suffix = name.isEmpty ? "" : ", \(name)"
             let content = UNMutableNotificationContent()
-            content.title = AppLocalization.string("notification.goal.title", suffix)
-            content.body = AppLocalization.string("notification.goal.body", kind.title)
+            content.title = AppLocalization.string("notification.goal.title", suffix).capitalizingNotificationStart()
+            content.body = AppLocalization.string("notification.goal.body", kind.title).capitalizingNotificationStart()
             content.sound = .default
 
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)

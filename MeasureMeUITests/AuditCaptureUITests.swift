@@ -230,15 +230,13 @@ final class AuditCaptureUITests: XCTestCase {
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
         XCTAssertTrue(onboardingNextButton(in: app).waitForExistence(timeout: 15))
         saveScreenshot(screen: "onboarding_welcome")
-        onboardingNextButton(in: app).tap()  // welcome → profile
-
-        XCTAssertTrue(app.textFields["onboarding.name.field"].waitForExistence(timeout: 8))
-        saveScreenshot(screen: "onboarding_profile")
+        onboardingNextButton(in: app).tap()  // welcome → goal
 
         XCTAssertTrue(app.buttons["onboarding.priority.improveHealth"].waitForExistence(timeout: 8))
+        saveScreenshot(screen: "onboarding_goal")
         app.buttons["onboarding.priority.improveHealth"].tap()
-        onboardingNextButton(in: app).tap()
-        saveScreenshot(screen: "onboarding_metrics")
+        onboardingNextButton(in: app).tap()  // goal → starting point
+        saveScreenshot(screen: "onboarding_starting_point")
         advanceOnboardingFromCurrentStepToHealth(in: app)
         XCTAssertTrue(app.buttons["onboarding.health.allow"].waitForExistence(timeout: 8))
         saveScreenshot(screen: "onboarding_healthkit")
@@ -497,7 +495,7 @@ final class AuditCaptureUITests: XCTestCase {
     }
 
     private func advanceOnboardingToHealthStep(in app: XCUIApplication) {
-        onboardingNextButton(in: app).tap()  // welcome → profile
+        onboardingNextButton(in: app).tap()  // welcome → goal
         let priority = app.buttons["onboarding.priority.improveHealth"].firstMatch
         XCTAssertTrue(priority.waitForExistence(timeout: 8))
         scrollToReveal(priority, in: app, maxSwipes: 6)
@@ -509,12 +507,16 @@ final class AuditCaptureUITests: XCTestCase {
     }
 
     private func advanceOnboardingFromCurrentStepToHealth(in app: XCUIApplication) {
+        // v5 flow: welcome(0) → goal(1) → startingPoint(2) → rhythm(3) → boosters/health(4) → plan(5).
+        // The goal step gates Next on a priority selection and rhythm needs two Next taps, so we
+        // drive the intermediate steps with Skip (which always advances) and stop once we land on
+        // the Health/boosters step (step:4) without skipping past it.
         let stepHook = app.staticTexts["root.onboarding.test.step"].firstMatch
-        for _ in 0..<4 {
+        for _ in 0..<6 {
             if waitForOnboardingStep("step:4", stepHook: stepHook, timeout: 1.5) {
                 return
             }
-            onboardingNextButton(in: app).tap()
+            onboardingSkipButton(in: app).tap()
         }
         XCTAssertTrue(
             waitForOnboardingStep("step:4", stepHook: stepHook, timeout: 3),
@@ -640,27 +642,28 @@ final class AuditCaptureUITests: XCTestCase {
         XCTAssertTrue(nextButton.waitForExistence(timeout: 15))
         saveScreenshot(named: "\(locale.filePrefix)_hero_1.png")
 
-        nextButton.tap()
+        nextButton.tap()  // welcome → goal
 
-        let nameField = app.textFields["onboarding.name.field"].firstMatch
-        XCTAssertTrue(nameField.waitForExistence(timeout: 8))
         if let goal = onboardingPriorityButton(in: app, index: locale.goalIndex) {
+            XCTAssertTrue(goal.waitForExistence(timeout: 8))
             scrollToReveal(goal, in: app, maxSwipes: 4)
             goal.tap()
         }
-        saveScreenshot(named: "\(locale.filePrefix)_checkin_2.png")
+        saveScreenshot(named: "\(locale.filePrefix)_goal_2.png")
 
-        onboardingNextButton(in: app).tap()
-        saveScreenshot(named: "\(locale.filePrefix)_boosters_3.png")
+        // Skip advances unconditionally on every step, so it deterministically walks the
+        // remaining v5 steps (starting point → rhythm → boosters/health → plan).
+        onboardingSkipButton(in: app).tap()  // goal → starting point
+        saveScreenshot(named: "\(locale.filePrefix)_starting_3.png")
 
-        onboardingNextButton(in: app).tap()
-        saveScreenshot(named: "\(locale.filePrefix)_photos_4.png")
+        onboardingSkipButton(in: app).tap()  // starting point → rhythm
+        saveScreenshot(named: "\(locale.filePrefix)_rhythm_4.png")
 
-        onboardingNextButton(in: app).tap()
+        onboardingSkipButton(in: app).tap()  // rhythm → boosters/health
         saveScreenshot(named: "\(locale.filePrefix)_health_5.png")
 
-        onboardingNextButton(in: app).tap()
-        saveScreenshot(named: "\(locale.filePrefix)_premium_6.png")
+        onboardingSkipButton(in: app).tap()  // boosters → plan
+        saveScreenshot(named: "\(locale.filePrefix)_plan_6.png")
 
         app.terminate()
     }

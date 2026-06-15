@@ -1,6 +1,54 @@
 import XCTest
 
 final class TextTruncationUITests: XCTestCase {
+    private final class ClippingIssueCollector {
+        var issues = Set<String>()
+    }
+
+    private struct TestLocale {
+        let name: String
+        let appLanguageArgument: String
+        let appleLanguages: String
+        let appleLocale: String
+
+        static let english = TestLocale(
+            name: "English",
+            appLanguageArgument: "-uiTestLanguageEN",
+            appleLanguages: "(en)",
+            appleLocale: "en_US"
+        )
+        static let polish = TestLocale(
+            name: "Polish",
+            appLanguageArgument: "-uiTestLanguagePL",
+            appleLanguages: "(pl)",
+            appleLocale: "pl_PL"
+        )
+        static let spanish = TestLocale(
+            name: "Spanish",
+            appLanguageArgument: "-uiTestLanguageES",
+            appleLanguages: "(es)",
+            appleLocale: "es_ES"
+        )
+        static let german = TestLocale(
+            name: "German",
+            appLanguageArgument: "-uiTestLanguageDE",
+            appleLanguages: "(de)",
+            appleLocale: "de_DE"
+        )
+        static let french = TestLocale(
+            name: "French",
+            appLanguageArgument: "-uiTestLanguageFR",
+            appleLanguages: "(fr)",
+            appleLocale: "fr_FR"
+        )
+        static let portugueseBrazil = TestLocale(
+            name: "Portuguese (Brazil)",
+            appLanguageArgument: "-uiTestLanguagePTBR",
+            appleLanguages: "(pt-BR)",
+            appleLocale: "pt_BR"
+        )
+    }
+
     private var app: XCUIApplication!
 
     override func setUp() {
@@ -10,63 +58,146 @@ final class TextTruncationUITests: XCTestCase {
     }
 
     @MainActor
-    func testMainScreensDoNotShowTruncatedTextAtAccessibilityXLInPolish() {
+    func testEnglishTextIsNotClipped() throws {
+        try assertTextIsNotClipped(in: .english)
+    }
+
+    @MainActor
+    func testPolishTextIsNotClipped() throws {
+        try assertTextIsNotClipped(in: .polish)
+    }
+
+    @MainActor
+    func testSpanishTextIsNotClipped() throws {
+        try assertTextIsNotClipped(in: .spanish)
+    }
+
+    @MainActor
+    func testGermanTextIsNotClipped() throws {
+        try assertTextIsNotClipped(in: .german)
+    }
+
+    @MainActor
+    func testFrenchTextIsNotClipped() throws {
+        try assertTextIsNotClipped(in: .french)
+    }
+
+    @MainActor
+    func testPortugueseBrazilTextIsNotClipped() throws {
+        try assertTextIsNotClipped(in: .portugueseBrazil)
+    }
+
+    @MainActor
+    private func assertTextIsNotClipped(in locale: TestLocale) throws {
+        let collector = ClippingIssueCollector()
+        try assertMainScreensDoNotClipText(in: locale, collector: collector)
+        app.terminate()
+        try assertOnboardingDoesNotClipText(in: locale, collector: collector)
+
+        XCTAssertTrue(
+            collector.issues.isEmpty,
+            """
+            Clipped text found for \(locale.name):
+            \(collector.issues.sorted().joined(separator: "\n"))
+            """
+        )
+    }
+
+    @MainActor
+    private func assertMainScreensDoNotClipText(
+        in locale: TestLocale,
+        collector: ClippingIssueCollector
+    ) throws {
         app.launchArguments = [
             "-uiTestMode",
             "-uiTestForcePremium",
             "-uiTestSeedMeasurements",
             "-uiTestSeedPhotos", "24",
             "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL",
-            "-AppleLanguages", "(pl)",
-            "-AppleLocale", "pl_PL"
+            locale.appLanguageArgument,
+            "-AppleLanguages", locale.appleLanguages,
+            "-AppleLocale", locale.appleLocale
         ]
         app.launch()
 
-        scanCurrentScreenForTruncatedText(context: "Home", maxSwipes: 3)
+        try scanCurrentScreenForTruncatedText(
+            context: "\(locale.name).Home",
+            maxSwipes: 3,
+            collector: collector
+        )
 
         tapTab("tab.measurements", fallbackLabels: ["Measurements", "Pomiary"])
-        scanCurrentScreenForTruncatedText(context: "Measurements", maxSwipes: 3)
+        try scanCurrentScreenForTruncatedText(
+            context: "\(locale.name).Measurements",
+            maxSwipes: 3,
+            collector: collector
+        )
 
         tapIfExists(app.buttons["measurements.tab.health"].firstMatch)
-        scanCurrentScreenForTruncatedText(context: "Measurements.Health", maxSwipes: 2)
+        try scanCurrentScreenForTruncatedText(
+            context: "\(locale.name).Measurements.Health",
+            maxSwipes: 2,
+            collector: collector
+        )
 
         tapIfExists(app.buttons["measurements.tab.physique"].firstMatch)
-        scanCurrentScreenForTruncatedText(context: "Measurements.Physique", maxSwipes: 2)
+        try scanCurrentScreenForTruncatedText(
+            context: "\(locale.name).Measurements.Physique",
+            maxSwipes: 2,
+            collector: collector
+        )
 
         tapTab("tab.photos", fallbackLabels: ["Photos", "Zdjęcia"])
-        scanCurrentScreenForTruncatedText(context: "Photos", maxSwipes: 3)
+        try scanCurrentScreenForTruncatedText(
+            context: "\(locale.name).Photos",
+            maxSwipes: 3,
+            collector: collector
+        )
 
         tapTab("tab.settings", fallbackLabels: ["Settings", "Ustawienia"])
-        scanCurrentScreenForTruncatedText(context: "Settings", maxSwipes: 4)
+        try scanCurrentScreenForTruncatedText(
+            context: "\(locale.name).Settings",
+            maxSwipes: 4,
+            collector: collector
+        )
     }
 
     @MainActor
-    func testOnboardingDoesNotShowTruncatedTextAtAccessibilityXLInPolish() {
+    private func assertOnboardingDoesNotClipText(
+        in locale: TestLocale,
+        collector: ClippingIssueCollector
+    ) throws {
         app.launchArguments = [
             "-uiTestOnboardingMode",
+            "-uiTestOnboardingPriority", "improveHealth",
             "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL",
-            "-AppleLanguages", "(pl)",
-            "-AppleLocale", "pl_PL"
+            locale.appLanguageArgument,
+            "-AppleLanguages", locale.appleLanguages,
+            "-AppleLocale", locale.appleLocale
         ]
         app.launch()
 
-        for step in 1...2 {
-            scanCurrentScreenForTruncatedText(context: "Onboarding.Step\(step)", maxSwipes: 2)
+        let stepMarker = app.staticTexts["root.onboarding.test.step"].firstMatch
+        XCTAssertTrue(stepMarker.waitForExistence(timeout: 10), "Onboarding step marker should exist")
 
-            if step == 1 {
-                let nextButton = onboardingNextButton()
-                if nextButton.waitForExistence(timeout: 2), nextButton.isHittable {
-                    nextButton.tap()
-                } else {
-                    break
-                }
+        for step in 0..<6 {
+            waitForOnboardingStep(step, marker: stepMarker)
+            try scanCurrentScreenForTruncatedText(
+                context: "\(locale.name).Onboarding.Step\(step + 1)",
+                maxSwipes: 2,
+                collector: collector
+            )
+
+            guard step < 5 else { continue }
+            let advanceButton = step == 0 ? onboardingNextButton() : onboardingSkipButton()
+            XCTAssertTrue(
+                advanceButton.waitForExistence(timeout: 3),
+                "Onboarding advance button should exist for step \(step + 1)"
+            )
+            if advanceButton.isHittable {
+                advanceButton.tap()
             } else {
-                let skipButton = app.buttons["onboarding.skip"].firstMatch
-                if skipButton.waitForExistence(timeout: 2), skipButton.isHittable {
-                    skipButton.tap()
-                } else {
-                    break
-                }
+                advanceButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             }
         }
     }
@@ -77,6 +208,24 @@ final class TextTruncationUITests: XCTestCase {
             return uiTestNext
         }
         return app.buttons["onboarding.next"].firstMatch
+    }
+
+    private func onboardingSkipButton() -> XCUIElement {
+        let uiTestSkip = app.buttons["onboarding.test.skip"].firstMatch
+        if uiTestSkip.waitForExistence(timeout: 0.5) {
+            return uiTestSkip
+        }
+        return app.buttons["onboarding.skip"].firstMatch
+    }
+
+    private func waitForOnboardingStep(_ step: Int, marker: XCUIElement) {
+        let predicate = NSPredicate(format: "label == %@", "step:\(step)")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: marker)
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [expectation], timeout: 5),
+            .completed,
+            "Expected onboarding step \(step + 1), current marker: \(marker.exists ? marker.label : "missing")"
+        )
     }
 
     private func tapTab(_ identifier: String, fallbackLabels: [String]) {
@@ -152,30 +301,30 @@ final class TextTruncationUITests: XCTestCase {
         }
     }
 
-    private func scanCurrentScreenForTruncatedText(context: String, maxSwipes: Int) {
+    private func scanCurrentScreenForTruncatedText(
+        context: String,
+        maxSwipes: Int,
+        collector: ClippingIssueCollector
+    ) throws {
         for swipeIndex in 0...maxSwipes {
-            assertNoVisibleTextUsesEllipsis(context: "\(context).screen\(swipeIndex)")
+            let window = app.windows.element(boundBy: 0)
+            XCTAssertTrue(window.waitForExistence(timeout: 5), "App window should exist before text truncation scan")
+
+            // Apple's `.textClipped` audit only reports that text *may* clip at large
+            // Dynamic Type sizes, which over-flags intentional styled labels (uppercase
+            // eyebrows, the date header, etc.). We instead assert on *actual* truncation:
+            // any visible StaticText/Button whose rendered string shows a trailing
+            // ellipsis. Parsing one debug dump is far faster than resolving each element.
+            let offenders = app.debugDescription
+                .components(separatedBy: .newlines)
+                .filter { ($0.contains("StaticText") || $0.contains("Button")) && $0.contains("…") }
+            for offender in offenders {
+                collector.issues.insert("\(context): \(offender.trimmingCharacters(in: .whitespaces))")
+            }
+
             if swipeIndex < maxSwipes {
                 app.swipeUp()
             }
         }
-    }
-
-    private func assertNoVisibleTextUsesEllipsis(context: String, file: StaticString = #filePath, line: UInt = #line) {
-        let window = app.windows.element(boundBy: 0)
-        XCTAssertTrue(window.waitForExistence(timeout: 5), "App window should exist before text truncation scan")
-
-        // Parsing one debug dump is much faster than resolving every XCUI element individually.
-        let debugLines = app.debugDescription.components(separatedBy: .newlines)
-        let offenders = debugLines.filter { line in
-            (line.contains("StaticText") || line.contains("Button")) && line.contains("…")
-        }
-
-        XCTAssertTrue(
-            offenders.isEmpty,
-            "Potentially truncated text found in \(context): \(offenders.joined(separator: " | "))",
-            file: file,
-            line: line
-        )
     }
 }

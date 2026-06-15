@@ -293,8 +293,10 @@ struct MeasurementsTabView: View {
                                             }
                                             .font(AppTypography.captionEmphasis)
                                             .foregroundStyle(measurementsTheme.accent)
+                                            .frame(minHeight: 44)
                                         }
                                         .buttonStyle(.plain)
+                                        .contentShape(Rectangle())
                                     }
                                 }
                                 .padding(.horizontal, AppSpacing.md)

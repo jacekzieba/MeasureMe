@@ -19,6 +19,7 @@ struct AppSettingsSnapshot: Sendable {
         var homeTabScrollOffset: Double
         var homePhotoMetricSyncLastDate: Double
         var homePhotoMetricSyncLastID: String
+        var hasReviewedTrackedMetrics: Bool
         var settingsOpenTrackedMeasurements: Bool
         var settingsOpenReminders: Bool
         var settingsOpenHomeSettings: Bool
@@ -215,6 +216,7 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.Onboarding.onboardingChecklistMetricsCompleted: false,
         AppSettingsKeys.Onboarding.onboardingChecklistMetricsExplored: false,
         AppSettingsKeys.Onboarding.onboardingChecklistPremiumExplored: false,
+        AppSettingsKeys.Home.hasReviewedTrackedMetrics: false,
         AppSettingsKeys.Home.settingsOpenTrackedMeasurements: false,
         AppSettingsKeys.Home.settingsOpenReminders: false,
         AppSettingsKeys.Home.homeLayoutSchemaVersion: HomeLayoutSnapshot.currentSchemaVersion,
@@ -264,6 +266,7 @@ struct AppSettingsSnapshot: Sendable {
                 homeTabScrollOffset: defaults.double(forKey: AppSettingsKeys.Home.homeTabScrollOffset),
                 homePhotoMetricSyncLastDate: defaults.double(forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastDate),
                 homePhotoMetricSyncLastID: defaults.string(forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastID) ?? "",
+                hasReviewedTrackedMetrics: defaults.bool(forKey: AppSettingsKeys.Home.hasReviewedTrackedMetrics),
                 settingsOpenTrackedMeasurements: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements),
                 settingsOpenReminders: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenReminders),
                 settingsOpenHomeSettings: defaults.bool(forKey: AppSettingsKeys.Home.settingsOpenHomeSettings),

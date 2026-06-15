@@ -275,14 +275,17 @@ struct HealthMetricsSection: View {
             Text(AppLocalization.aiString("AI Insights aren't available right now."))
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textSecondary)
+                .appUntruncatedText()
         } else if !hasAnyMetricEnabled && !bypassGuards {
             Text(AppLocalization.string("Enable health indicators in Settings to generate your summary."))
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textSecondary)
+                .appUntruncatedText()
         } else if !hasSummaryMeasurementData && !bypassGuards {
             Text(AppLocalization.aiString("AI summary needs measurement data. Add your first measurement to get personalized insights."))
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textSecondary)
+                .appUntruncatedText()
         } else {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .top, spacing: 10) {
@@ -297,9 +300,7 @@ struct HealthMetricsSection: View {
                         .font(AppTypography.body)
                         .foregroundStyle(.primary)
                         .multilineTextAlignment(.leading)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .layoutPriority(1)
+                        .appUntruncatedText()
                         .redacted(reason: isLoadingInsight ? .placeholder : [])
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityIdentifier("home.health.ai.text")
@@ -915,6 +916,9 @@ private struct HealthIndicatorMissingDataView: View {
 }
 
 private struct GenderRequiredIndicatorView: View {
+    @EnvironmentObject private var router: AppRouter
+    @AppSetting(\.home.settingsOpenProfile) private var settingsOpenProfile: Bool = false
+
     let indicatorTitle: String
 
     var body: some View {
@@ -932,8 +936,10 @@ private struct GenderRequiredIndicatorView: View {
                         .foregroundStyle(AppColorRoles.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    NavigationLink {
-                        SettingsView()
+                    Button {
+                        Haptics.selection()
+                        settingsOpenProfile = true
+                        router.selectTab(.settings)
                     } label: {
                         Text(AppLocalization.string("Open profile settings"))
                             .font(AppTypography.captionEmphasis)

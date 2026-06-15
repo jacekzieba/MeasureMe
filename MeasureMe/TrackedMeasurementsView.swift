@@ -4,6 +4,7 @@ import SwiftData
 struct TrackedMeasurementsView: View {
     @EnvironmentObject private var metricsStore: ActiveMetricsStore
     @Query(sort: \CustomMetricDefinition.sortOrder) private var customDefinitions: [CustomMetricDefinition]
+    @AppSetting(\.home.hasReviewedTrackedMetrics) private var hasReviewedTrackedMetrics: Bool = false
     @State private var viewModel = TrackedMeasurementsViewModel()
     private let theme = FeatureTheme.settings
 
@@ -102,6 +103,7 @@ struct TrackedMeasurementsView: View {
         }
         .onAppear {
             viewModel.customDefinitions = customDefinitions
+            hasReviewedTrackedMetrics = true
         }
     }
 

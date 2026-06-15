@@ -19,7 +19,7 @@ struct SettingsAISection: View {
                         .onChange(of: appleIntelligenceEnabled) { _, _ in Haptics.selection() }
                     } else {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(AppLocalization.string("AI Insights aren’t available right now."))
+                            Text(AppLocalization.string("AI Insights aren't available right now."))
                                 .font(AppTypography.caption)
                                 .foregroundStyle(.secondary)
                             NavigationLink {

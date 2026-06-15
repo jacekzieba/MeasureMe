@@ -58,6 +58,7 @@ struct HomeView: View {
     @AppSetting(\.home.settingsOpenHomeSettings) var settingsOpenHomeSettings: Bool = false
     @AppSetting(\.home.settingsOpenProfile) var settingsOpenProfile: Bool = false
     @AppSetting(\.home.settingsOpenHealth) var settingsOpenHealth: Bool = false
+    @AppSetting(\.home.hasReviewedTrackedMetrics) var hasReviewedTrackedMetrics: Bool = false
     @AppSetting(\.home.homePhotoMetricSyncLastDate) var photoMetricSyncLastDate: Double = 0
     @AppSetting(\.home.homePhotoMetricSyncLastID) var photoMetricSyncLastID: String = ""
     @AppStorage("home.comparePhotosCardDismissed") var comparePhotosCardDismissed: Bool = false
@@ -529,7 +530,7 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
-                .padding(.bottom, 32)
+                .padding(.bottom, 96)
             }
             .coordinateSpace(name: "homeScroll")
             .onPreferenceChange(HomeScrollOffsetKey.self) { value in
@@ -765,6 +766,10 @@ struct HomeView: View {
                 Haptics.selection()
                 settingsOpenProfile = true
                 router.selectedTab = .settings
+            },
+            onOpenPhotos: {
+                Haptics.selection()
+                router.selectedTab = .photos
             }
         )
     }
@@ -793,7 +798,8 @@ struct HomeView: View {
             ),
             onAddMeasurement: { presentQuickAdd(source: .quickAdd) },
             onOpenMeasurements: { router.selectTab(.measurements) },
-            onEdit: openTrackedMetricsSettings
+            onEdit: openTrackedMetricsSettings,
+            hasReviewedTrackedMetrics: hasReviewedTrackedMetrics
         ) {
             let ids = dashboardKeyIdentifiers
             let defMap = customDefinitionsMap
@@ -886,15 +892,8 @@ struct HomeView: View {
             let days = max(Calendar.current.dateComponents([.day], from: secondLatestSavedPhoto.date, to: latestSavedPhoto.date).day ?? 0, 0)
             items.append(
                 HomeAIInsightItem(
-                    symbol: "camera.viewfinder",
-                    text: FlowLocalization.app(
-                        "Progress photos are ready for a \(days)-day comparison.",
-                        "Zdjecia postepu sa gotowe do porownania z \(days) dni.",
-                        "Las fotos de progreso estan listas para comparar \(days) dias.",
-                        "Fortschrittsfotos sind bereit fur einen \(days)-Tage-Vergleich.",
-                        "Les photos de progression sont pretes pour \(days) jours de comparaison.",
-                        "Fotos de progresso prontas para comparar \(days) dias."
-                    ),
+                    symbol: days > 0 ? "camera.viewfinder" : "camera",
+                    text: HomePhotoComparisonCopy.insightText(days: days),
                     tone: .neutral,
                     kind: .photoComparison
                 )
@@ -1214,6 +1213,7 @@ struct HomeView: View {
 
         if hasEnoughSavedPhotosForCompare, let latestSavedPhoto, let secondLatestSavedPhoto {
             let days = max(Calendar.current.dateComponents([.day], from: secondLatestSavedPhoto.date, to: latestSavedPhoto.date).day ?? 0, 0)
+            guard days > 0 else { return nil }
             return HomeAIAnalysisItem(
                 symbol: "camera.viewfinder",
                 title: FlowLocalization.app(

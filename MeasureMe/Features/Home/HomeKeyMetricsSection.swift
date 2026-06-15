@@ -16,6 +16,7 @@ struct HomeKeyMetricsCard<Content: View>: View {
     let onAddMeasurement: () -> Void
     let onOpenMeasurements: () -> Void
     let onEdit: () -> Void
+    let hasReviewedTrackedMetrics: Bool
     @ViewBuilder let content: () -> Content
 
     private let theme = FeatureTheme.measurements
@@ -48,6 +49,7 @@ struct HomeKeyMetricsCard<Content: View>: View {
             Color.clear
                 .contentShape(Rectangle())
                 .accessibilityElement()
+                .accessibilityLabel(AppLocalization.string("Key metrics"))
                 .accessibilityIdentifier("home.module.keyMetrics")
                 .allowsHitTesting(false)
         }
@@ -79,15 +81,21 @@ struct HomeKeyMetricsCard<Content: View>: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.trailing)
                     .fixedSize(horizontal: false, vertical: true)
+                    .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
             }
             .buttonStyle(.plain)
+            .contentShape(Rectangle())
             .accessibilityLabel(AppLocalization.string("Open tracked metrics settings"))
+            .accessibilityValue(hasReviewedTrackedMetrics ? "reviewed" : "prompt")
             .accessibilityIdentifier("home.keyMetrics.reviewTrackedMetrics")
         }
     }
 
     private var editButtonTitle: String {
         guard snapshot.state == .content else {
+            return AppLocalization.string("Edit")
+        }
+        guard !hasReviewedTrackedMetrics else {
             return AppLocalization.string("Edit")
         }
         return FlowLocalization.app(

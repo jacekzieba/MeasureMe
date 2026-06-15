@@ -441,6 +441,7 @@ struct MeasureMeApp: App {
             defaults.set(\.onboarding.activationSkippedTaskIDs, "")
             defaults.set(\.onboarding.activationIsDismissed, false)
             defaults.set(\.home.homeTabScrollOffset, 0.0)
+            defaults.set(\.home.hasReviewedTrackedMetrics, false)
             for key in metricKeys {
                 defaults.set(enabledByDefault.contains(key), forKey: key)
             }

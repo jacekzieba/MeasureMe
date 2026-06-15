@@ -113,6 +113,7 @@ run_xcodebuild() {
 
 critical_ui_filters=(
   "-only-testing:MeasureMeUITests/MeasureMeUITests"
+  "-only-testing:MeasureMeUITests/AccessibilityQualityUITests"
   "-only-testing:MeasureMeUITests/OnboardingUITests"
   "-only-testing:MeasureMeUITests/SettingsViewUITests"
   "-only-testing:MeasureMeUITests/QuickAddUITests"

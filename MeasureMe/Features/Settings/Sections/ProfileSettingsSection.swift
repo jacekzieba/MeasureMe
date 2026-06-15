@@ -87,6 +87,7 @@ struct ProfileSettingsSection: View {
                     }
                     .buttonStyle(.plain)
                 }
+                .accessibilityIdentifier("settings.profile.gender")
 
                 SettingsRowDivider()
 

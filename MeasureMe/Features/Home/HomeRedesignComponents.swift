@@ -35,6 +35,29 @@ struct HomeAIInsightItem: Identifiable {
     }
 }
 
+enum HomePhotoComparisonCopy {
+    static func insightText(days: Int) -> String {
+        guard days > 0 else {
+            return FlowLocalization.app(
+                "Your photos are saved. Add another photo on a future date to compare progress.",
+                "Zdjęcia są zapisane. Dodaj kolejne w innym dniu, aby porównać postępy.",
+                "Tus fotos están guardadas. Añade otra en una fecha futura para comparar el progreso.",
+                "Deine Fotos sind gespeichert. Füge an einem späteren Tag ein weiteres Foto hinzu.",
+                "Vos photos sont enregistrées. Ajoutez-en une autre à une date ultérieure pour comparer.",
+                "Suas fotos foram salvas. Adicione outra em uma data futura para comparar o progresso."
+            )
+        }
+        return FlowLocalization.app(
+            "Progress photos are ready for a \(days)-day comparison.",
+            "Zdjęcia postępu są gotowe do porównania z \(days) dni.",
+            "Las fotos de progreso están listas para comparar \(days) días.",
+            "Fortschrittsfotos sind bereit für einen \(days)-Tage-Vergleich.",
+            "Les photos de progression sont prêtes pour \(days) jours de comparaison.",
+            "Fotos de progresso prontas para comparar \(days) dias."
+        )
+    }
+}
+
 struct HomeAIAnalysisItem: Identifiable {
     let id = UUID()
     let symbol: String
@@ -81,6 +104,7 @@ struct HomeTopSummarySection: View {
     let onOpenStreak: () -> Void
     let onStreakAnimationComplete: () -> Void
     let onOpenProfile: () -> Void
+    let onOpenPhotos: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -94,7 +118,8 @@ struct HomeTopSummarySection: View {
                 isPremium: isPremium,
                 insights: insights,
                 analysisItems: analysisItems,
-                onUnlockPremium: onUnlockPremium
+                onUnlockPremium: onUnlockPremium,
+                onOpenPhotos: onOpenPhotos
             )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -102,6 +127,7 @@ struct HomeTopSummarySection: View {
             Color.clear
                 .contentShape(Rectangle())
                 .accessibilityElement()
+                .accessibilityLabel(AppLocalization.string("AI Insights"))
                 .accessibilityIdentifier("home.module.summaryHero")
                 .allowsHitTesting(false)
         }
@@ -244,6 +270,7 @@ private struct HomeAIInsightsPanel: View {
     let insights: [HomeAIInsightItem]
     let analysisItems: [HomeAIAnalysisItem]
     let onUnlockPremium: () -> Void
+    let onOpenPhotos: () -> Void
 
     @State private var isAnalysisPresented = false
 
@@ -271,8 +298,7 @@ private struct HomeAIInsightsPanel: View {
                             Text(firstInsight.text)
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(AppColorRoles.textPrimary)
-                                .lineLimit(3)
-                                .fixedSize(horizontal: false, vertical: true)
+                                .appUntruncatedText()
                                 .accessibilityIdentifier("home.aiInsights.primaryText")
 
                             if firstInsight.kind == .trend && !analysisItems.isEmpty {
@@ -285,10 +311,11 @@ private struct HomeAIInsightsPanel: View {
                                     }
                                     .font(.system(size: 10, weight: .heavy))
                                     .foregroundStyle(accent)
+                                    .frame(minWidth: 44, minHeight: 44, alignment: .leading)
                                 }
                                 .buttonStyle(.plain)
+                                .contentShape(Rectangle())
                                 .accessibilityIdentifier("home.aiInsights.openAnalysis")
-                                .padding(.top, 2)
                             }
                         } else {
                             Text(AppLocalization.string("AI Insights"))
@@ -320,8 +347,7 @@ private struct HomeAIInsightsPanel: View {
                                 Text(AppLocalization.aiString("Upgrade to Premium Edition to unlock AI Insights."))
                                     .font(AppTypography.caption)
                                     .foregroundStyle(AppColorRoles.textSecondary)
-                                    .lineLimit(2)
-                                    .fixedSize(horizontal: false, vertical: true)
+                                    .appUntruncatedText()
                             }
 
                             Spacer(minLength: 0)
@@ -337,8 +363,9 @@ private struct HomeAIInsightsPanel: View {
         }
     }
 
+    @ViewBuilder
     private func insightRow(_ item: HomeAIInsightItem) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+        let row = HStack(alignment: .firstTextBaseline, spacing: 10) {
             Image(systemName: item.symbol)
                 .font(AppTypography.iconSmall)
                 .foregroundStyle(tint(for: item.tone))
@@ -347,8 +374,19 @@ private struct HomeAIInsightsPanel: View {
             Text(item.text)
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textSecondary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
+                .appUntruncatedText()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+        if item.kind == .photoComparison {
+            Button(action: onOpenPhotos) {
+                row
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(AppLocalization.string("Photos"))
+            .accessibilityIdentifier("home.aiInsights.openPhotos")
+        } else {
+            row
         }
     }
 
@@ -440,6 +478,7 @@ struct HomeAIAnalysisView: View {
                 ))
                 .font(.system(size: 16, weight: .heavy))
                 .foregroundStyle(AppColorRoles.textPrimary)
+                .appUntruncatedText()
 
                 Text(FlowLocalization.app(
                     "Generated from your recent body metrics and photos.",
@@ -451,6 +490,7 @@ struct HomeAIAnalysisView: View {
                 ))
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textSecondary)
+                .appUntruncatedText()
             }
         }
     }
@@ -476,12 +516,12 @@ struct HomeAIAnalysisView: View {
                     Text(item.title)
                         .font(AppTypography.headlineEmphasis)
                         .foregroundStyle(tint(for: item.tone))
-                        .fixedSize(horizontal: false, vertical: true)
+                        .appUntruncatedText()
 
                     Text(item.detail)
                         .font(AppTypography.body)
                         .foregroundStyle(AppColorRoles.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .appUntruncatedText()
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -7,11 +7,11 @@ extension OnboardingView {
 
     @ViewBuilder
     func onboardingWelcomeSlide(layout: OnboardingCardLayout) -> some View {
-        VStack(spacing: 22) {
+        VStack(spacing: layout.isCompact ? 14 : 22) {
             Spacer(minLength: 0)
 
-            welcomeProofCard
-                .padding(.horizontal, 20)
+            welcomeProofCard(compact: layout.isCompact)
+                .padding(.horizontal, layout.isCompact ? 8 : 20)
 
             VStack(spacing: 10) {
                 Text(FlowLocalization.app(
@@ -24,7 +24,10 @@ extension OnboardingView {
                 ))
                 .font(.system(size: layout.isCompact ? 30 : 34, weight: .heavy, design: .rounded))
                 .tracking(-0.5)
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(AppColorRoles.textPrimary)
 
                 Text(FlowLocalization.app(
@@ -38,11 +41,13 @@ extension OnboardingView {
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textSecondary)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, 24)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, layout.isCompact ? 12 : 24)
 
             HStack(alignment: .bottom, spacing: 12) {
-                MeasureBuddyView(pose: .welcome, size: 76)
+                MeasureBuddyView(pose: .welcome, size: layout.isCompact ? 64 : 76)
                     .shadow(color: Color.appAccent.opacity(0.35), radius: 12, x: 0, y: 8)
 
                 MiaraSpeechBubble(
@@ -57,29 +62,32 @@ extension OnboardingView {
                 )
                 .padding(.bottom, 8)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, layout.isCompact ? 8 : 20)
 
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var welcomeProofCard: some View {
-        HStack(spacing: 0) {
+    private func welcomeProofCard(compact: Bool) -> some View {
+        let height: CGFloat = compact ? 210 : 250
+        return HStack(spacing: 0) {
             welcomeProofHalf(
                 assetName: "onboarding-before",
                 badge: FlowLocalization.app("Start", "Start", "Inicio", "Start", "Départ", "Início"),
                 accent: false,
-                alignment: .bottomLeading
+                alignment: .bottomLeading,
+                height: height
             )
             welcomeProofHalf(
                 assetName: "onboarding-after",
                 badge: FlowLocalization.app("Week 12", "Tydzień 12", "Semana 12", "Woche 12", "Semaine 12", "Semana 12"),
                 accent: true,
-                alignment: .bottomTrailing
+                alignment: .bottomTrailing,
+                height: height
             )
         }
-        .frame(height: 250)
+        .frame(height: height)
         .overlay(
             Rectangle()
                 .fill(Color.white.opacity(0.65))
@@ -93,12 +101,12 @@ extension OnboardingView {
         .shadow(color: Color.black.opacity(0.18), radius: 18, x: 0, y: 12)
     }
 
-    private func welcomeProofHalf(assetName: String, badge: String, accent: Bool, alignment: Alignment) -> some View {
+    private func welcomeProofHalf(assetName: String, badge: String, accent: Bool, alignment: Alignment, height: CGFloat) -> some View {
         Image(assetName)
             .resizable()
             .aspectRatio(contentMode: .fill)
             .frame(maxWidth: .infinity)
-            .frame(height: 250)
+            .frame(height: height)
             .clipped()
             .overlay(alignment: alignment) {
                 Text(badge)

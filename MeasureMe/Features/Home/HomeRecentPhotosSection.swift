@@ -65,6 +65,7 @@ struct HomeRecentPhotosCard: View {
             Color.clear
                 .contentShape(Rectangle())
                 .accessibilityElement()
+                .accessibilityLabel(AppLocalization.string("Progress photos"))
                 .accessibilityIdentifier("home.module.recentPhotos")
                 .allowsHitTesting(false)
         }
@@ -91,8 +92,10 @@ struct HomeRecentPhotosCard: View {
                 Text(AppLocalization.string("View all"))
                     .font(AppTypography.sectionAction)
                     .foregroundStyle(theme.accent)
+                    .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
             }
             .buttonStyle(.plain)
+            .contentShape(Rectangle())
             .accessibilityLabel(AppLocalization.string("accessibility.open.photos"))
         }
     }
@@ -259,6 +262,7 @@ struct HomeRecentPhotosCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: photoCornerRadius, style: .continuous))
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(photoItemAccessibilityLabel(for: photo.date))
             .accessibilityIdentifier("home.recentPhotos.item.\(index)")
         case .pending(let pending):
             PendingPhotoGridCell(
@@ -273,7 +277,12 @@ struct HomeRecentPhotosCard: View {
             )
             .frame(width: width, height: 150)
             .clipShape(RoundedRectangle(cornerRadius: photoCornerRadius, style: .continuous))
+            .accessibilityLabel(photoItemAccessibilityLabel(for: pending.date))
         }
+    }
+
+    private func photoItemAccessibilityLabel(for date: Date) -> String {
+        "\(AppLocalization.string("Progress photos")), \(date.formatted(.dateTime.month(.abbreviated).year()))"
     }
 
     private func tileMonthYear(_ tile: HomeRecentPhotoTileViewModel?) -> String {
@@ -312,8 +321,10 @@ struct HomeRecentPhotosEmptyCard: View {
                     Text(AppLocalization.string("View all"))
                         .font(AppTypography.sectionAction)
                         .foregroundStyle(theme.accent)
+                        .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
                 }
                 .buttonStyle(.plain)
+                .contentShape(Rectangle())
             }
 
             Button(action: onOpenPhotos) {
@@ -347,6 +358,7 @@ struct HomeRecentPhotosEmptyCard: View {
             Color.clear
                 .contentShape(Rectangle())
                 .accessibilityElement()
+                .accessibilityLabel(AppLocalization.string("Progress photos"))
                 .accessibilityIdentifier("home.module.recentPhotos")
                 .allowsHitTesting(false)
         }

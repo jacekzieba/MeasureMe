@@ -89,8 +89,10 @@ struct PhotoCompareHeroCard: View {
                             onOpenChooser()
                         } label: {
                             Text(AppLocalization.string("Choose Photos"))
+                                .frame(minHeight: 44)
                         }
                         .buttonStyle(.plain)
+                        .contentShape(Rectangle())
                         .font(AppTypography.sectionAction)
                         .foregroundStyle(photosTheme.accent)
                     }

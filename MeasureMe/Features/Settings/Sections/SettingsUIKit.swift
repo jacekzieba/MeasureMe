@@ -69,6 +69,7 @@ struct SettingsCardHeader: View {
                 Image(systemName: systemImage)
                     .font(AppTypography.iconMedium)
                     .foregroundStyle(AppColorRoles.accentPrimary)
+                    .accessibilityHidden(true)
             }
             Text(title)
                 .font(AppTypography.bodyStrong)
@@ -233,7 +234,8 @@ struct SettingsDetailScaffold<Content: View>: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarBackground(AppColorRoles.surfaceChrome, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }
 
@@ -272,7 +274,8 @@ struct SettingsScrollDetailScaffold<Content: View>: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarBackground(AppColorRoles.surfaceChrome, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }
 

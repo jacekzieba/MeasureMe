@@ -183,6 +183,33 @@ final class AINotificationEngineTests: XCTestCase {
         XCTAssertEqual(decision.title, "50% reached")
     }
 
+    func testOutputValidatorCapitalizesLowercaseNotificationCopy() throws {
+        let candidate = sampleCandidate(facts: ["Current value: 80 kg"])
+        let output = AINotificationGeneratedOutput(
+            shouldSend: true,
+            title: "progress update",
+            body: "your current value is 80 kg.",
+            tone: "calm",
+            priority: "passive",
+            reason: "update"
+        )
+
+        let decision = try XCTUnwrap(AINotificationOutputValidator.validate(output: output, candidate: candidate))
+        XCTAssertEqual(decision.title, "Progress update")
+        XCTAssertEqual(decision.body, "Your current value is 80 kg.")
+    }
+
+    func testNotificationCapitalizationSkipsLeadingSymbols() {
+        XCTAssertEqual("✨ log your measurements".capitalizingNotificationStart(), "✨ Log your measurements")
+        XCTAssertEqual("50% reached".capitalizingNotificationStart(), "50% reached")
+    }
+
+    func testEnglishReminderTitlesBeginWithUppercaseCopy() {
+        XCTAssertEqual(AppLocalization.string("notification.log.title", ""), "Log your measurements")
+        XCTAssertEqual(AppLocalization.string("notification.smart.title", ""), "Time for a quick log")
+        XCTAssertEqual(AppLocalization.string("notification.photo.title", ""), "Time for a progress photo")
+    }
+
     private func makeBuilder(trigger: AINotificationTrigger, now: Date) -> AINotificationCandidateBuilder {
         AINotificationCandidateBuilder(
             context: context,

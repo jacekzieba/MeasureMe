@@ -67,6 +67,44 @@ final class HomeViewUITests: XCTestCase {
         XCTAssertEqual(tileCount.label, "2", "Recent photos should expose the comparison pair on Home")
     }
 
+    func testAddAnotherPhotoInsightOpensPhotosTab() {
+        launchApp(seedPhotos: 1)
+
+        let openPhotos = app.buttons["home.aiInsights.openPhotos"].firstMatch
+        XCTAssertTrue(openPhotos.waitForExistence(timeout: 5), "Single-photo insight should be tappable")
+        openPhotos.tap()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["uitest.debug.tab.photos"].waitForExistence(timeout: 5),
+            "Photo insight should switch to the Photos tab"
+        )
+    }
+
+    func testTrackedMetricsReviewPromptBecomesEditAfterOpeningSettings() {
+        launchApp()
+
+        let review = app.buttons["home.keyMetrics.reviewTrackedMetrics"].firstMatch
+        scrollToReveal(review, maxSwipes: 4)
+        XCTAssertTrue(review.waitForExistence(timeout: 5), "Tracked metrics review action should exist")
+        review.tap()
+
+        XCTAssertTrue(
+            app.navigationBars.staticTexts["Tracked measurements"].firstMatch.waitForExistence(timeout: 5),
+            "Review action should open tracked measurements"
+        )
+
+        let homeTab = app.tabBars.buttons["tab.home"].firstMatch.exists
+            ? app.tabBars.buttons["tab.home"].firstMatch
+            : app.tabBars.buttons["Home"].firstMatch
+        XCTAssertTrue(homeTab.waitForExistence(timeout: 5))
+        homeTab.tap()
+
+        let edit = app.buttons["home.keyMetrics.reviewTrackedMetrics"].firstMatch
+        scrollToReveal(edit, maxSwipes: 4)
+        XCTAssertTrue(edit.waitForExistence(timeout: 5))
+        XCTAssertEqual(edit.value as? String, "reviewed")
+    }
+
     func testActivationHubStartsAfterFirstMeasurementOnPhotoTask() {
         launchApp(extraArguments: [
             "-uiTestActivationHub",
@@ -80,7 +118,10 @@ final class HomeViewUITests: XCTestCase {
     func testActivationHubSkipAdvancesToNextTask() {
         launchApp(extraArguments: [
             "-uiTestActivationHub",
-            "-uiTestActivationTask", "chooseMetrics"
+            "-uiTestActivationTask", "chooseMetrics",
+            // Keep the reminders task pending so it is the next *unsatisfied* task after
+            // skipping "Choose what to track"; otherwise it is auto-satisfied and skipped.
+            "-uiTestChecklistNeedsReminders"
         ], isPremium: false, seedMeasurements: true, seedPhotos: 0)
 
         let activationHub = app.otherElements["home.module.activationHub"].firstMatch
@@ -90,7 +131,10 @@ final class HomeViewUITests: XCTestCase {
         let skipButton = app.buttons["home.activation.skip"].firstMatch
         scrollToReveal(skipButton, maxSwipes: 6)
         XCTAssertTrue(skipButton.waitForExistence(timeout: 5), "Activation hub skip should exist")
-        skipButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // Tap the element (not a forced geometric-centre coordinate): when the activation card
+        // sits at the bottom edge its centre overlaps the tab bar, so a 0.5/0.5 coordinate tap
+        // would hit a tab. `.tap()` resolves a genuinely hittable point on the skip button.
+        skipButton.tap()
 
         let nextTaskTitle = NSPredicate(format: "label IN %@", ["Set reminders", "Ustaw przypomnienia"])
         XCTAssertTrue(app.staticTexts.matching(nextTaskTitle).firstMatch.waitForExistence(timeout: 5), "Skip should move the user to the next real activation task")
@@ -145,6 +189,7 @@ final class HomeViewUITests: XCTestCase {
 
         let compareButton = app.buttons["home.recentPhotos.compare.button"].firstMatch
         XCTAssertTrue(compareButton.waitForExistence(timeout: 5), "Recent photos compare card should exist")
+        scrollToReveal(compareButton, maxSwipes: 4)
         compareButton.tap()
 
         XCTAssertTrue(app.buttons["Close Premium screen"].waitForExistence(timeout: 5), "Non-premium compare tap should open the paywall")
@@ -327,11 +372,11 @@ final class HomeViewUITests: XCTestCase {
 
     private func scrollToReveal(_ element: XCUIElement, maxSwipes: Int) {
         let window = app.windows.element(boundBy: 0)
-        if isPartiallyVisible(element, in: window) { return }
+        if isPartiallyVisible(element, in: window), element.isHittable { return }
 
         for _ in 0..<maxSwipes {
             app.swipeUp()
-            if isPartiallyVisible(element, in: window) {
+            if isPartiallyVisible(element, in: window), element.isHittable {
                 return
             }
         }

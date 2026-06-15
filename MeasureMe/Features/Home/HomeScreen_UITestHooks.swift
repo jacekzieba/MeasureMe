@@ -58,6 +58,7 @@ extension HomeView {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Toggle \(kind.rawValue)")
                 .accessibilityIdentifier("home.keyMetrics.secondary.\(kind.rawValue).toggle")
             }
 

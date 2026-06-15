@@ -1400,7 +1400,6 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "notification.smart.after.days" = "Po %d dniach braku aktywności";
 "Enable AI Insights" = "Włącz Analizy AI";
 "AI Insights" = "Analizy AI";
-"AI Insights aren’t available right now." = "Analizy AI są teraz niedostępne.";
 "Show more" = "Pokaż więcej";
 "Show less" = "Pokaż mniej";
 "Not enough data to generate insights yet." = "Za mało danych, aby wygenerować podsumowanie.";
@@ -1512,7 +1511,6 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "One number is all you need to begin." = "Na start wystarczy jedna liczba.";
 "optional" = "opcjonalnie";
 "You'll track:" = "Będziesz śledzić:";
-"You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Trend spadkowy jest stabilny. W tym tygodniu utrzymaj 3 treningi siłowe i ponad 8 tys. kroków.";
 "onboarding.trend.delta" = "-0,3 kg/tydz.";
 "onboarding.goal.badge" = "Cel %.2f kg";
 "onboarding.week.label" = "T%d";

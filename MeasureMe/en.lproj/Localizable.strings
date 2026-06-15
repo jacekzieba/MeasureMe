@@ -1,10 +1,10 @@
 /* Localizable.strings */
 
-"notification.log.title" = "%@log your measurements";
+"notification.log.title" = "%@Log your measurements";
 "notification.log.body" = "A quick check-in now keeps your progress on track.";
-"notification.smart.title" = "%@time for a quick log";
+"notification.smart.title" = "%@Time for a quick log";
 "notification.smart.body" = "It’s been %d days since your last entry—add a measurement to stay on track.";
-"notification.photo.title" = "%@time for a progress photo";
+"notification.photo.title" = "%@Time for a progress photo";
 "notification.photo.body" = "It’s been %d days since your last photo—images reveal changes the scale misses.";
 "notification.import.title" = "New %@ from Health";
 "notification.import.body" = "Added automatically to MeasureMe.";
@@ -969,7 +969,6 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "profile.stats.phrase.7" = "1000+ entries. Legendary commitment.";
 "Enable AI Insights" = "Enable AI Insights";
 "AI Insights" = "AI Insights";
-"AI Insights aren’t available right now." = "AI Insights aren’t available right now.";
 "Show more" = "Show more";
 "Show less" = "Show less";
 "Not enough data to generate insights yet." = "Not enough data to generate insights yet.";
@@ -1123,7 +1122,6 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "One number is all you need to begin." = "One number is all you need to begin.";
 "optional" = "optional";
 "You'll track:" = "You'll track:";
-"You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week.";
 "onboarding.trend.delta" = "-0.3 kg/week";
 "onboarding.goal.badge" = "Goal %.2f kg";
 "onboarding.week.label" = "W%d";
@@ -1659,7 +1657,9 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "Premium Edition required" = "Premium Edition required";
 "Progress" = "Progress";
 "Progress clarity" = "Progress clarity";
+"Progress photos" = "Progress photos";
 "Progress starts at the value you had when the goal was created and moves toward the target. It reaches 100% when the goal is met." = "Progress starts at the value you had when the goal was created and moves toward the target. It reaches 100% when the goal is met.";
+"View all" = "View all";
 "RFM acts as a body-fat estimator interpreted through a visual lens in this section." = "RFM acts as a body-fat estimator interpreted through a visual lens in this section.";
 "Range" = "Range";
 "Read frequently asked questions" = "Read frequently asked questions";

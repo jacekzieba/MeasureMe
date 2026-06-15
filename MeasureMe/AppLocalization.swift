@@ -1,5 +1,25 @@
 import Foundation
 
+extension String {
+    func capitalizingNotificationStart() -> String {
+        var index = startIndex
+
+        while index < endIndex {
+            let character = String(self[index])
+            if character.rangeOfCharacter(from: .decimalDigits) != nil {
+                return self
+            }
+            if character.lowercased() != character.uppercased() {
+                let nextIndex = self.index(after: index)
+                return String(self[..<index]) + character.uppercased() + String(self[nextIndex...])
+            }
+            index = self.index(after: index)
+        }
+
+        return self
+    }
+}
+
 enum AppLanguage: String {
     case system
     case en

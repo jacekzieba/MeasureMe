@@ -515,8 +515,10 @@ struct PhotoGridView: View {
                 } label: {
                     Label(gridLayoutMode.toggleTitle, systemImage: gridLayoutMode.toggleIcon)
                         .labelStyle(.iconOnly)
+                        .frame(minWidth: 44, minHeight: 44)
                 }
                 .buttonStyle(.plain)
+                .contentShape(Rectangle())
                 .foregroundStyle(photosTheme.accent)
                 .accessibilityLabel(gridLayoutMode.toggleTitle)
             }

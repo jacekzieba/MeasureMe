@@ -12,19 +12,69 @@ final class LocalizationConsistencyTests: XCTestCase {
         "complication.localizable": "MeasureMeWatchComplications/%@.lproj/Localizable.strings"
     ]
 
-    func testEnglishLocalizationMatchesAllSupportedLocalizationsAcrossAllTables() throws {
+    func testEverySupportedLocalizationHasExactlyTheEnglishKeySetAcrossAllTables() throws {
+        for table in tablePaths.keys.sorted() {
+            let english = try parseStringsFile(named: "en", table: table)
+            let englishKeys = Set(english.values.keys)
+
+            for languageCode in supportedLanguages where languageCode != "en" {
+                let localized = try parseStringsFile(named: languageCode, table: table)
+                let localizedKeys = Set(localized.values.keys)
+
+                let missing = englishKeys.subtracting(localizedKeys).sorted()
+                let unexpected = localizedKeys.subtracting(englishKeys).sorted()
+
+                XCTAssertTrue(
+                    missing.isEmpty && unexpected.isEmpty,
+                    """
+                    Localization coverage mismatch for \(languageCode) in \(table).
+                    Missing: \(missing.joined(separator: ", "))
+                    Unexpected: \(unexpected.joined(separator: ", "))
+                    """
+                )
+            }
+        }
+    }
+
+    func testSupportedLocalizationsHaveNoEmptyValuesAcrossAllTables() throws {
+        for table in tablePaths.keys.sorted() {
+            for languageCode in supportedLanguages {
+                let localization = try parseStringsFile(named: languageCode, table: table)
+                let emptyKeys = localization.values.compactMap { key, value in
+                    value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? key : nil
+                }.sorted()
+
+                XCTAssertTrue(
+                    emptyKeys.isEmpty,
+                    "Empty \(languageCode) translations in \(table): \(emptyKeys.joined(separator: ", "))"
+                )
+            }
+        }
+    }
+
+    func testLocalizedFormatArgumentsMatchEnglishAcrossAllTables() throws {
         for table in tablePaths.keys.sorted() {
             let english = try parseStringsFile(named: "en", table: table)
 
             for languageCode in supportedLanguages where languageCode != "en" {
                 let localized = try parseStringsFile(named: languageCode, table: table)
 
-                let missingInLocalized = Set(english.values.keys).subtracting(localized.values.keys).sorted()
+                for key in english.values.keys.sorted() {
+                    let englishValue = try XCTUnwrap(english.values[key])
+                    let localizedValue = try XCTUnwrap(localized.values[key])
+                    let englishSignature = try formatArgumentSignature(in: englishValue)
+                    let localizedSignature = try formatArgumentSignature(in: localizedValue)
 
-                XCTAssertTrue(
-                    missingInLocalized.isEmpty,
-                    "Missing \(languageCode) localization keys for \(table): \(missingInLocalized.joined(separator: ", "))"
-                )
+                    XCTAssertEqual(
+                        localizedSignature,
+                        englishSignature,
+                        """
+                        Format arguments differ for \(languageCode) key '\(key)' in \(table).
+                        English: \(englishValue)
+                        Localized: \(localizedValue)
+                        """
+                    )
+                }
             }
         }
     }
@@ -96,11 +146,17 @@ final class LocalizationConsistencyTests: XCTestCase {
                 ]
             )
         }
-        let values = Dictionary(uniqueKeysWithValues: dictionary.map { key, value in
-            let normalizedKey = normalizedLocalizationKey(key)
-            let normalizedValue = normalizedConsistencyValue(String(describing: value))
-            return (normalizedKey, normalizedValue)
-        })
+        // Key normalization (apostrophe/dash unification, mojibake repair) can map two
+        // distinct raw keys onto the same normalized key. Merge last-wins to mirror the
+        // textual parser instead of trapping like `Dictionary(uniqueKeysWithValues:)`.
+        let values = Dictionary(
+            dictionary.map { key, value in
+                let normalizedKey = normalizedLocalizationKey(key)
+                let normalizedValue = normalizedConsistencyValue(String(describing: value))
+                return (normalizedKey, normalizedValue)
+            },
+            uniquingKeysWith: { _, latest in latest }
+        )
         return ParsedStrings(values: values, duplicates: [])
     }
 
@@ -188,6 +244,14 @@ final class LocalizationConsistencyTests: XCTestCase {
             }
         }
 
+        if let nestedResourceURL = nestedBundledStringsFileURL(
+            languageCode: languageCode,
+            resourceName: resourceName,
+            table: table
+        ) {
+            return nestedResourceURL
+        }
+
         let preview = checkedBundlePaths.prefix(10).joined(separator: " | ")
         throw NSError(
             domain: "LocalizationConsistencyTests",
@@ -196,6 +260,49 @@ final class LocalizationConsistencyTests: XCTestCase {
                 NSLocalizedDescriptionKey: "Could not find \(subdirectory)/\(resourceName).strings in loaded bundles. Checked: \(preview)"
             ]
         )
+    }
+
+    private func nestedBundledStringsFileURL(
+        languageCode: String,
+        resourceName: String,
+        table: String
+    ) -> URL? {
+        let suffix = "/\(languageCode).lproj/\(resourceName).strings"
+        let roots = [Bundle.main.bundleURL, Bundle(for: Self.self).bundleURL]
+        var candidates: [URL] = []
+
+        for root in roots {
+            guard let enumerator = FileManager.default.enumerator(
+                at: root,
+                includingPropertiesForKeys: [.isRegularFileKey],
+                options: [.skipsHiddenFiles]
+            ) else {
+                continue
+            }
+
+            for case let url as URL in enumerator where url.path.hasSuffix(suffix) {
+                candidates.append(url)
+            }
+        }
+
+        return candidates
+            .filter { nestedResourceMatchesTable($0, table: table) }
+            .sorted { $0.path < $1.path }
+            .first
+    }
+
+    private func nestedResourceMatchesTable(_ url: URL, table: String) -> Bool {
+        let path = url.path
+        switch table {
+        case "widget.localizable":
+            return path.contains("MeasureMeWidget.appex/")
+        case "watch.watch":
+            return path.contains("/Watch/") && path.contains(".app/")
+        case "complication.localizable":
+            return path.contains("MeasureMeWatchComplicationsExtension.appex/")
+        default:
+            return !path.contains(".appex/") && !path.contains("/Watch/")
+        }
     }
 
     private func normalizedLocalizationKey(_ key: String) -> String {
@@ -240,6 +347,19 @@ final class LocalizationConsistencyTests: XCTestCase {
         normalizedLocalizationKey(value)
             .lowercased()
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func formatArgumentSignature(in value: String) throws -> [String] {
+        let regex = try XCTUnwrap(
+            NSRegularExpression(
+                pattern: "(?<!%)%(?!%)(?:\\d+\\$)?[-+#0]*(?:\\*|\\d+)?(?:\\.(?:\\*|\\d+))?((?:hh|h|ll|l|q|z|t|j)?[@diuoxXfFeEgGaAcCsSp])"
+            )
+        )
+        let range = NSRange(value.startIndex..<value.endIndex, in: value)
+        return regex.matches(in: value, range: range).compactMap { match in
+            guard let tokenRange = Range(match.range(at: 1), in: value) else { return nil }
+            return String(value[tokenRange]).lowercased()
+        }.sorted()
     }
 
     private struct ParsedStrings {

@@ -627,6 +627,9 @@ private struct PhysiqueMetricRow<Destination: View>: View {
 }
 
 private struct PhysiqueRequiresGenderCard: View {
+    @EnvironmentObject private var router: AppRouter
+    @AppSetting(\.home.settingsOpenProfile) private var settingsOpenProfile: Bool = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
@@ -642,8 +645,10 @@ private struct PhysiqueRequiresGenderCard: View {
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColorRoles.textSecondary)
 
-            NavigationLink {
-                SettingsView()
+            Button {
+                Haptics.selection()
+                settingsOpenProfile = true
+                router.selectTab(.settings)
             } label: {
                 Text(AppLocalization.string("Open profile settings"))
                     .font(AppTypography.captionEmphasis)
@@ -814,6 +819,9 @@ private struct PhysiqueMissingDataDetailView: View {
 }
 
 private struct GenderRequiredMetricView: View {
+    @EnvironmentObject private var router: AppRouter
+    @AppSetting(\.home.settingsOpenProfile) private var settingsOpenProfile: Bool = false
+
     let metricName: String
 
     var body: some View {
@@ -830,8 +838,10 @@ private struct GenderRequiredMetricView: View {
                         .foregroundStyle(AppColorRoles.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    NavigationLink {
-                        SettingsView()
+                    Button {
+                        Haptics.selection()
+                        settingsOpenProfile = true
+                        router.selectTab(.settings)
                     } label: {
                         Text(AppLocalization.string("Open profile settings"))
                             .font(AppTypography.captionEmphasis)

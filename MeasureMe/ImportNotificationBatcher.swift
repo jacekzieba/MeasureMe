@@ -65,8 +65,8 @@ final class ImportNotificationBatcher {
         guard status == .authorized || status == .provisional else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = AppLocalization.string("notification.import.summary.title")
-        content.body = Self.summaryBody(for: kinds)
+        content.title = AppLocalization.string("notification.import.summary.title").capitalizingNotificationStart()
+        content.body = Self.summaryBody(for: kinds).capitalizingNotificationStart()
         content.sound = .default
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)

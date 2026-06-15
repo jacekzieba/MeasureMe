@@ -96,9 +96,13 @@ final class MeasurementsPhysiqueUITests: XCTestCase {
         )
         let ctaElement = app.descendants(matching: .any)["physique.requires.gender.cta"].firstMatch
         let ctaFallback = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", "profile settings")).firstMatch
+        let cta = ctaElement.waitForExistence(timeout: 5) ? ctaElement : ctaFallback
+        XCTAssertTrue(cta.waitForExistence(timeout: 5), "Open profile settings CTA should be visible")
+        cta.tap()
+
         XCTAssertTrue(
-            ctaElement.waitForExistence(timeout: 5) || ctaFallback.waitForExistence(timeout: 5),
-            "Open profile settings CTA should be visible"
+            app.descendants(matching: .any)["settings.profile.gender"].firstMatch.waitForExistence(timeout: 5),
+            "Profile CTA should open the Profile settings screen at the gender control"
         )
     }
 

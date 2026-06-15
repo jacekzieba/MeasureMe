@@ -98,6 +98,18 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertTrue(waitForOnboardingStep("step:1"))
     }
 
+    func testSelectedGoalWaitsForContinue() {
+        launchApp(arguments: ["-uiTestOnboardingMode", "-uiTestOnboardingPriority", "buildMuscle"])
+        advancePastWelcome()
+
+        XCTAssertTrue(app.buttons["onboarding.priority.buildMuscle"].waitForExistence(timeout: 5))
+        XCTAssertTrue(waitForOnboardingStep("step:1"))
+
+        XCTAssertFalse(waitForOnboardingStep("step:2", timeout: 1))
+        XCTAssertTrue(waitForOnboardingStep("step:1"))
+        XCTAssertFalse(app.textFields["onboarding.measurement.weight"].exists)
+    }
+
     func testBackNavigationReturnsFromStartingPointToGoal() {
         selectGoalAndAdvance("onboarding.priority.loseWeight")
 
@@ -122,6 +134,20 @@ final class OnboardingUITests: XCTestCase {
         let healthButton = app.buttons["onboarding.health.allow"].firstMatch
         XCTAssertTrue(healthButton.exists, "Health soft ask should appear on the boosters step")
         XCTAssertTrue(skipButton.exists, "Boosters step should still allow skipping")
+    }
+
+    func testBoostersContentFitsAboveContinueButton() {
+        advanceToBoostersStep()
+
+        let privacyCard = app.descendants(matching: .any)["onboarding.privacy.card"].firstMatch
+        let standardNext = app.buttons["onboarding.next"].firstMatch
+        XCTAssertTrue(privacyCard.waitForExistence(timeout: 5))
+        XCTAssertTrue(standardNext.waitForExistence(timeout: 5))
+        XCTAssertLessThanOrEqual(
+            privacyCard.frame.maxY,
+            standardNext.frame.minY,
+            "Private by design must remain fully visible above Continue"
+        )
     }
 
     func testOnboardingFinishesFromPlan() {

@@ -296,8 +296,8 @@ final class NotificationManager: ObservableObject {
         let content = UNMutableNotificationContent()
         let name = settings.snapshot.profile.userName.trimmingCharacters(in: .whitespacesAndNewlines)
         let prefix = name.isEmpty ? "" : "\(name), "
-        content.title = AppLocalization.string("notification.log.title", prefix)
-        content.body = AppLocalization.string("notification.log.body")
+        content.title = AppLocalization.string("notification.log.title", prefix).capitalizingNotificationStart()
+        content.body = AppLocalization.string("notification.log.body").capitalizingNotificationStart()
         content.sound = .default
         
         let calendar = Calendar.current
@@ -430,9 +430,9 @@ final class NotificationManager: ObservableObject {
         let content = UNMutableNotificationContent()
         let name = settings.snapshot.profile.userName.trimmingCharacters(in: .whitespacesAndNewlines)
         let prefix = name.isEmpty ? "" : "\(name), "
-        content.title = AppLocalization.string("notification.smart.title", prefix)
+        content.title = AppLocalization.string("notification.smart.title", prefix).capitalizingNotificationStart()
         let daysSince = lastLogDate.map { max(1, Int(ceil(now.timeIntervalSince($0) / 86400.0))) } ?? days
-        content.body = AppLocalization.plural("notification.smart.body", daysSince)
+        content.body = AppLocalization.plural("notification.smart.body", daysSince).capitalizingNotificationStart()
         content.sound = .default
 
         let request = UNNotificationRequest(
@@ -459,8 +459,8 @@ final class NotificationManager: ObservableObject {
         cancelAllSmartMetricNotifications()
 
         let content = UNMutableNotificationContent()
-        content.title = candidate.title
-        content.body = candidate.body
+        content.title = candidate.title.capitalizingNotificationStart()
+        content.body = candidate.body.capitalizingNotificationStart()
         content.sound = .default
 
         let components = Calendar.current.dateComponents(
@@ -523,9 +523,9 @@ final class NotificationManager: ObservableObject {
         let content = UNMutableNotificationContent()
         let name = settings.snapshot.profile.userName.trimmingCharacters(in: .whitespacesAndNewlines)
         let prefix = name.isEmpty ? "" : "\(name), "
-        content.title = AppLocalization.string("notification.photo.title", prefix)
+        content.title = AppLocalization.string("notification.photo.title", prefix).capitalizingNotificationStart()
         let daysSince = max(1, Int(ceil(since / 86400.0)))
-        content.body = AppLocalization.plural("notification.photo.body", daysSince)
+        content.body = AppLocalization.plural("notification.photo.body", daysSince).capitalizingNotificationStart()
         content.sound = .default
 
         let nextFire = nextSmartFireDate(from: now)
@@ -548,8 +548,8 @@ final class NotificationManager: ObservableObject {
         guard notificationsEnabled else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = AppLocalization.string("notification.trial.ends.soon.title")
-        content.body = AppLocalization.string("notification.trial.ends.soon.body")
+        content.title = AppLocalization.string("notification.trial.ends.soon.title").capitalizingNotificationStart()
+        content.body = AppLocalization.string("notification.trial.ends.soon.body").capitalizingNotificationStart()
         content.sound = .default
 
         let seconds = max(TimeInterval(daysFromNow * 24 * 60 * 60), 60)
@@ -761,8 +761,8 @@ final class NotificationManager: ObservableObject {
 
     private func scheduleAINotification(candidate: AINotificationCandidate, decision: AINotificationDecision) {
         let content = UNMutableNotificationContent()
-        content.title = decision.title
-        content.body = decision.body
+        content.title = decision.title.capitalizingNotificationStart()
+        content.body = decision.body.capitalizingNotificationStart()
         content.sound = .default
         content.categoryIdentifier = aiCategoryIdentifier(for: candidate.kind)
         content.threadIdentifier = candidate.threadIdentifier

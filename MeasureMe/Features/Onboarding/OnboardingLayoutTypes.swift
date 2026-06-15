@@ -31,9 +31,9 @@ struct OnboardingCardLayout {
 
     static let compact = OnboardingCardLayout(
         isCompact: true,
-        headerTitleSize: 30,
-        sectionSpacing: 12,
-        groupSpacing: 6,
+        headerTitleSize: 28,
+        sectionSpacing: 10,
+        groupSpacing: 5,
         nameFieldFontSize: 22,
         nameFieldVerticalPadding: 7,
         photoWidth: 190,

@@ -969,7 +969,6 @@ L'IMC ne distingue pas la masse musculaire de la masse grasse. Les sportifs ou l
 "profile.stats.phrase.7" = "Plus de 1000 entrées. Un engagement légendaire.";
 "Enable AI Insights" = "Activer les analyses IA";
 "AI Insights" = "Analyses IA";
-"AI Insights aren’t available right now." = "Les analyses IA ne sont pas disponibles pour le moment.";
 "Show more" = "Afficher plus";
 "Show less" = "Afficher moins";
 "Not enough data to generate insights yet." = "Pas encore assez de données pour générer des informations.";
@@ -1123,7 +1122,6 @@ L'IMC ne distingue pas la masse musculaire de la masse grasse. Les sportifs ou l
 "One number is all you need to begin." = "Un seul chiffre suffit pour commencer.";
 "optional" = "facultatif";
 "You'll track:" = "Vous suivrez :";
-"You’re trending down steadily. Keep 3 strength sessions and 8k+ steps this week." = "Vous avez une tendance à la baisse constante. Gardez 3 séances de musculation et plus de 8 000 pas cette semaine.";
 "onboarding.trend.delta" = "-0,3 kg/semaine";
 "onboarding.goal.badge" = "Objectif %.2f kg";
 "onboarding.week.label" = "S%d";

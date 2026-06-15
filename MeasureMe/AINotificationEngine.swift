@@ -882,8 +882,8 @@ enum AINotificationOutputValidator {
         let priority = AINotificationPriority(rawValue: output.priority) ?? candidate.priority
         return AINotificationDecision(
             shouldSend: true,
-            title: title,
-            body: body,
+            title: title.capitalizingNotificationStart(),
+            body: body.capitalizingNotificationStart(),
             priority: priority,
             reason: output.reason
         )

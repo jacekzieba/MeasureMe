@@ -30,6 +30,7 @@ enum AppSettingsKeys {
         static let homeTabScrollOffset = "home_tab_scroll_offset"
         static let homePhotoMetricSyncLastDate = "home_photo_metric_sync_last_date"
         static let homePhotoMetricSyncLastID = "home_photo_metric_sync_last_id"
+        static let hasReviewedTrackedMetrics = "home_has_reviewed_tracked_metrics"
         static let settingsOpenTrackedMeasurements = "settings_open_tracked_measurements"
         static let settingsOpenReminders = "settings_open_reminders"
         static let settingsOpenHomeSettings = "settings_open_home_settings"

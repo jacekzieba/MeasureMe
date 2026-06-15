@@ -109,7 +109,7 @@ struct OnboardingView: View {
                 "Continuar"
             )
         case .startingPoint:
-            if hasSavedFirstMeasurement {
+            if hasSavedFirstMeasurement || didSetReminderRhythm {
                 return FlowLocalization.app(
                     "Continue",
                     "Dalej",
@@ -176,10 +176,11 @@ struct OnboardingView: View {
         case .goal:
             return selectedPriority != nil
         case .startingPoint:
+            let hasStartingPointAction = hasSavedFirstMeasurement || hasAnyFirstMeasurementInput || didSetReminderRhythm
             if isUITestOnboardingMode {
                 return !isSavingFirstMeasurement && !isRequestingHealthKit
             }
-            return !isSavingFirstMeasurement && !isRequestingHealthKit && (hasSavedFirstMeasurement || hasAnyFirstMeasurementInput)
+            return !isSavingFirstMeasurement && !isRequestingHealthKit && hasStartingPointAction
         case .boosters:
             return !isRequestingHealthKit
         default:
@@ -305,8 +306,6 @@ struct OnboardingView: View {
         return OnboardingCopy.healthAllowCTA
     }
 
-    private let footerReservedHeight: CGFloat = 94
-
     var body: some View {
         ZStack {
             AppScreenBackground(topHeight: 400, tint: Color.appAccent.opacity(0.2), showsAmbientBlobs: false)
@@ -318,7 +317,6 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.top, AppSpacing.md)
-                    .padding(.bottom, isFooterHidden ? 0 : footerReservedHeight)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -502,7 +500,7 @@ struct OnboardingView: View {
                             let isSelected = selectedPriority == priority
                             Button {
                                 Haptics.selection()
-                                selectGoalAndAdvance(priority)
+                                selectGoal(priority)
                             } label: {
                                 HStack(spacing: 14) {
                                     VStack(alignment: .leading, spacing: 4) {
@@ -624,7 +622,11 @@ struct OnboardingView: View {
                 }
             }
             .onAppear {
-                guard !hasSavedFirstMeasurement, (firstMeasurementEntries[.weight] ?? "").isEmpty else { return }
+                guard !isUITestOnboardingMode,
+                      !hasSavedFirstMeasurement,
+                      (firstMeasurementEntries[.weight] ?? "").isEmpty else {
+                    return
+                }
                 let delay: TimeInterval = shouldAnimate ? 0.4 : 0.05
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                     if currentStep == .startingPoint { isWeightFieldFocused = true }
@@ -836,9 +838,9 @@ struct OnboardingView: View {
                     titleSize: layout.headerTitleSize
                 )
 
-                startPhotoCard
+                startPhotoCard(compact: layout.isCompact)
 
-                healthBoosterCard
+                healthBoosterCard(compact: layout.isCompact)
 
                 privacyCard(compact: layout.isCompact)
             }
@@ -846,13 +848,13 @@ struct OnboardingView: View {
     }
 
     @ViewBuilder
-    private var healthBoosterCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
+    private func healthBoosterCard(compact: Bool) -> some View {
+        VStack(alignment: .leading, spacing: compact ? 8 : 12) {
+            HStack(alignment: .top, spacing: compact ? 8 : 12) {
                 Image(systemName: isSyncEnabled ? "heart.fill" : "heart")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(Color.appAccent)
-                    .frame(width: 38, height: 38)
+                    .frame(width: compact ? 34 : 38, height: compact ? 34 : 38)
                     .background(Color.appAccent.opacity(0.13))
                     .clipShape(Circle())
 
@@ -868,10 +870,10 @@ struct OnboardingView: View {
             }
 
             if !healthStatusLines.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: compact ? 3 : 6) {
                     ForEach(healthStatusLines, id: \.self) { line in
                         Label(line, systemImage: "checkmark.circle.fill")
-                            .font(AppTypography.caption)
+                            .font(compact ? AppTypography.microEmphasis : AppTypography.caption)
                             .foregroundStyle(Color.appAccent)
                     }
                 }
@@ -893,7 +895,7 @@ struct OnboardingView: View {
             .disabled(isRequestingHealthKit || isSyncEnabled)
             .accessibilityIdentifier("onboarding.health.allow")
         }
-        .padding(AppSpacing.smmd)
+        .padding(compact ? AppSpacing.sm : AppSpacing.smmd)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
@@ -1490,14 +1492,14 @@ struct OnboardingView: View {
         )
     }
 
-    private var startPhotoCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
+    private func startPhotoCard(compact: Bool) -> some View {
+        VStack(alignment: .leading, spacing: compact ? 8 : 12) {
+            HStack(alignment: .top, spacing: compact ? 8 : 12) {
                 Image(systemName: hasSavedOnboardingPhoto ? "photo.badge.checkmark.fill" : "camera.viewfinder")
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Color.appAccent)
-                    .frame(width: 38, height: 38)
-                    .background(Color.appAccent.opacity(0.13))
+                    .foregroundStyle(hasSavedOnboardingPhoto ? Color.appEmerald : Color.appAccent)
+                    .frame(width: compact ? 34 : 38, height: compact ? 34 : 38)
+                    .background((hasSavedOnboardingPhoto ? Color.appEmerald : Color.appAccent).opacity(0.13))
                     .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -1539,21 +1541,38 @@ struct OnboardingView: View {
                 }
             }
 
-            Button {
-                Haptics.medium()
-                showOnboardingPhotoSheet = true
-            } label: {
+            if hasSavedOnboardingPhoto {
                 Label(
-                    hasSavedOnboardingPhoto
-                        ? FlowLocalization.app(
-                            "Add another photo",
-                            "Dodaj kolejne zdjęcie",
-                            "Añadir otra foto",
-                            "Weiteres Foto hinzufügen",
-                            "Ajouter une autre photo",
-                            "Adicionar outra foto"
+                    FlowLocalization.app(
+                        "Your photo has been added",
+                        "Twoje zdjęcie zostało dodane",
+                        "Tu foto ha sido añadida",
+                        "Dein Foto wurde hinzugefügt",
+                        "Votre photo a été ajoutée",
+                        "Sua foto foi adicionada"
+                    ),
+                    systemImage: "checkmark.circle.fill"
+                )
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(Color.appEmerald)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: compact ? 38 : 46)
+                .background(
+                    RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                        .fill(Color.appEmerald.opacity(0.12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                                .stroke(Color.appEmerald.opacity(0.35), lineWidth: 1)
                         )
-                        : FlowLocalization.app(
+                )
+                .accessibilityIdentifier("onboarding.photo.added")
+            } else {
+                Button {
+                    Haptics.medium()
+                    showOnboardingPhotoSheet = true
+                } label: {
+                    Label(
+                        FlowLocalization.app(
                             "Add starting photo",
                             "Dodaj zdjęcie startowe",
                             "Añadir foto inicial",
@@ -1561,28 +1580,29 @@ struct OnboardingView: View {
                             "Ajouter une photo initiale",
                             "Adicionar foto inicial"
                         ),
-                    systemImage: "plus"
-                )
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 46)
-            }
-            .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
-            .accessibilityIdentifier("onboarding.photo.add")
+                        systemImage: "plus"
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: compact ? 40 : 46)
+                }
+                .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
+                .accessibilityIdentifier("onboarding.photo.add")
 
-            Text(
-                FlowLocalization.app(
-                    "You can skip this and add a photo later.",
-                    "Możesz pominąć i dodać zdjęcie później.",
-                    "Puedes saltarlo y añadir una foto más tarde.",
-                    "Du kannst das überspringen und später ein Foto hinzufügen.",
-                    "Vous pouvez passer cette étape et ajouter une photo plus tard.",
-                    "Você pode pular e adicionar uma foto depois."
+                Text(
+                    FlowLocalization.app(
+                        "You can skip this and add a photo later.",
+                        "Możesz pominąć i dodać zdjęcie później.",
+                        "Puedes saltarlo y añadir una foto más tarde.",
+                        "Du kannst das überspringen und später ein Foto hinzufügen.",
+                        "Vous pouvez passer cette étape et ajouter une photo plus tard.",
+                        "Você pode pular e adicionar uma foto depois."
+                    )
                 )
-            )
-            .font(AppTypography.micro)
-            .foregroundStyle(AppColorRoles.textTertiary)
+                .font(AppTypography.micro)
+                .foregroundStyle(AppColorRoles.textTertiary)
+            }
         }
-        .padding(AppSpacing.smmd)
+        .padding(compact ? AppSpacing.sm : AppSpacing.smmd)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
@@ -1685,7 +1705,7 @@ struct OnboardingView: View {
     @State var shieldGlowPhase = false
 
     private func onboardingInputCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        AppGlassCard(depth: .elevated, cornerRadius: 28, tint: Color.appAccent, contentPadding: 20) {
+        AppGlassCard(depth: .elevated, cornerRadius: 28, tint: Color.appAccent, contentPadding: 16) {
             if dynamicTypeSize.isAccessibilitySize {
                 ScrollView(showsIndicators: false) {
                     content()
@@ -1699,7 +1719,7 @@ struct OnboardingView: View {
             }
         }
         .frame(maxHeight: .infinity, alignment: .top)
-        .padding(.top, 12)
+        .padding(.top, 6)
     }
 
     private func safeProgressWidth(containerWidth: CGFloat, progress: CGFloat, minimum: CGFloat) -> CGFloat {
@@ -1991,6 +2011,7 @@ struct OnboardingView: View {
               let previous = InputStep(rawValue: currentStep.rawValue - 1) else {
             return
         }
+        dismissKeyboardFocus()
         animateToInputStep(previous)
     }
 
@@ -2010,7 +2031,11 @@ struct OnboardingView: View {
             persistProfileSelections()
             animateToInputStep(.startingPoint)
         case .startingPoint:
-            guard saveFirstMeasurementIfNeeded() else { return }
+            if !hasSavedFirstMeasurement && !hasAnyFirstMeasurementInput {
+                guard didSetReminderRhythm else { return }
+            } else {
+                guard saveFirstMeasurementIfNeeded() else { return }
+            }
             completeStepAndAdvance(from: .startingPoint, to: .rhythm)
         case .rhythm:
             if isReminderRhythmSet {
@@ -2213,15 +2238,9 @@ struct OnboardingView: View {
         )
     }
 
-    private func selectGoalAndAdvance(_ priority: OnboardingPriority) {
+    private func selectGoal(_ priority: OnboardingPriority) {
         let isReselect = selectedPriority == priority
         selectedPriority = isReselect ? nil : priority
-        guard !isReselect else { return }
-        let delay: TimeInterval = shouldAnimate ? 0.45 : 0
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            guard currentStep == .goal, selectedPriority == priority else { return }
-            goToNextStep()
-        }
     }
 
     // MARK: - Reminder rhythm (v5)
@@ -2302,7 +2321,6 @@ struct OnboardingView: View {
             } else {
                 onboardingSkippedReminders = true
             }
-            finishOnboarding()
         }
     }
 
@@ -2492,7 +2510,7 @@ struct OnboardingView: View {
     }
 
     private func onboardingLayout(for availableHeight: CGFloat) -> OnboardingCardLayout {
-        if availableHeight < 620 {
+        if availableHeight < 720 {
             return .compact
         }
         return .regular

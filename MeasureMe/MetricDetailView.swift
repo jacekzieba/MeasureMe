@@ -658,10 +658,7 @@ struct MetricDetailView: View {
                         text: text,
                         compact: false,
                         isLoading: isLoadingInsight,
-                        onRefresh: { Task { await refreshInsight() } },
-                        onExpandToggle: { expanded in
-                            Analytics.shared.track(AnalyticsEvents.aiInsightExpanded(kind: .metric, metric: kind.englishTitle, expanded: expanded))
-                        }
+                        onRefresh: { Task { await refreshInsight() } }
                     )
                     .contentShape(Rectangle())
                     .onTapGesture { showInsightConversation = true }
@@ -685,7 +682,7 @@ struct MetricDetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 sectionHeader(AppLocalization.string("Insight"))
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(AppLocalization.aiString("AI Insights aren’t available right now."))
+                    Text(AppLocalization.aiString("AI Insights aren't available right now."))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColorRoles.textSecondary)
                     NavigationLink {

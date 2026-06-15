@@ -112,7 +112,7 @@ struct InsightConversationView: View {
                 .font(AppTypography.body)
                 .foregroundStyle(AppColorRoles.textPrimary)
                 .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
+                .appUntruncatedText()
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(AppSpacing.sm)
@@ -132,7 +132,7 @@ struct InsightConversationView: View {
             .font(AppTypography.body)
             .foregroundStyle(.white)
             .multilineTextAlignment(.leading)
-            .fixedSize(horizontal: false, vertical: true)
+            .appUntruncatedText()
             .padding(AppSpacing.sm)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
