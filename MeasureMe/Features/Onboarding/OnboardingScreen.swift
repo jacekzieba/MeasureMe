@@ -65,7 +65,7 @@ struct OnboardingView: View {
     @State private var showMoreMetrics = false
     @State var slideAppeared = false
     @FocusState private var isNameFieldFocused: Bool
-    @FocusState private var isWeightFieldFocused: Bool
+    @FocusState private var focusedMeasurementKind: MetricKind?
 
     private let isUITestOnboardingMode = UITestArgument.isPresent(.onboardingMode)
 
@@ -338,7 +338,6 @@ struct OnboardingView: View {
                     )
             }
         }
-        .ignoresSafeArea(.keyboard, edges: .bottom)
         .onAppear(perform: handleAppear)
         .onChange(of: currentStep) { _, _ in
             triggerSlideAppearance()
@@ -423,7 +422,7 @@ struct OnboardingView: View {
 
     private func dismissKeyboardFocus() {
         isNameFieldFocused = false
-        isWeightFieldFocused = false
+        focusedMeasurementKind = nil
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
@@ -629,7 +628,7 @@ struct OnboardingView: View {
                 }
                 let delay: TimeInterval = shouldAnimate ? 0.4 : 0.05
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                    if currentStep == .startingPoint { isWeightFieldFocused = true }
+                    if currentStep == .startingPoint { focusedMeasurementKind = .weight }
                 }
             }
         }
@@ -654,10 +653,11 @@ struct OnboardingView: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 TextField(isImperial ? "165" : "75", text: binding)
                     .keyboardType(.decimalPad)
-                    .focused($isWeightFieldFocused)
+                    .focused($focusedMeasurementKind, equals: .weight)
                     .font(.system(size: 56, weight: .bold, design: .rounded).monospacedDigit())
                     .foregroundStyle(AppColorRoles.textPrimary)
                     .fixedSize()
+                    .id(measurementFieldID(.weight))
                     .accessibilityIdentifier("onboarding.measurement.weight")
                 Text(MetricKind.weight.unitSymbol(unitsSystem: unitsSystem))
                     .font(.system(size: 24, weight: .bold, design: .rounded))
@@ -792,10 +792,12 @@ struct OnboardingView: View {
 
             TextField(placeholder, text: binding)
                 .keyboardType(.decimalPad)
+                .focused($focusedMeasurementKind, equals: kind)
                 .multilineTextAlignment(.trailing)
                 .font(.system(size: 18, weight: .semibold, design: .rounded).monospacedDigit())
                 .foregroundStyle(AppColorRoles.textPrimary)
                 .frame(width: 64)
+                .id(measurementFieldID(kind))
                 .accessibilityIdentifier("onboarding.measurement.\(kind.rawValue)")
 
             Text(kind.unitSymbol(unitsSystem: unitsSystem))
@@ -1704,22 +1706,42 @@ struct OnboardingView: View {
     @State var healthCardsAppeared = false
     @State var shieldGlowPhase = false
 
-    private func onboardingInputCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    private func onboardingInputCard<Content: View>(@ViewBuilder content: @escaping () -> Content) -> some View {
         AppGlassCard(depth: .elevated, cornerRadius: 28, tint: Color.appAccent, contentPadding: 16) {
-            if dynamicTypeSize.isAccessibilitySize {
+            ScrollViewReader { scrollProxy in
                 ScrollView(showsIndicators: false) {
                     content()
                         .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .padding(.bottom, AppSpacing.md)
+                        .padding(.bottom, dynamicTypeSize.isAccessibilitySize ? AppSpacing.md : AppSpacing.xl)
                 }
                 .scrollBounceBehavior(.basedOnSize)
-            } else {
-                content()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .scrollDismissesKeyboard(.interactively)
+                .onChange(of: focusedMeasurementKind) { _, kind in
+                    guard let kind else { return }
+                    scrollFocusedMeasurement(kind, with: scrollProxy)
+                }
             }
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .padding(.top, 6)
+    }
+
+    private func measurementFieldID(_ kind: MetricKind) -> String {
+        "onboarding.measurement.field.\(kind.rawValue)"
+    }
+
+    private func scrollFocusedMeasurement(_ kind: MetricKind, with proxy: ScrollViewProxy) {
+        let delay: TimeInterval = shouldAnimate ? 0.12 : 0.02
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            guard focusedMeasurementKind == kind else { return }
+            if shouldAnimate {
+                withAnimation(AppMotion.standard) {
+                    proxy.scrollTo(measurementFieldID(kind), anchor: .center)
+                }
+            } else {
+                proxy.scrollTo(measurementFieldID(kind), anchor: .center)
+            }
+        }
     }
 
     private func safeProgressWidth(containerWidth: CGFloat, progress: CGFloat, minimum: CGFloat) -> CGFloat {
@@ -2213,6 +2235,7 @@ struct OnboardingView: View {
 
     private func animateToInputStep(_ step: InputStep) {
         isNameFieldFocused = false
+        focusedMeasurementKind = nil
         if isUITestOnboardingMode {
             currentStep = step
         } else if shouldAnimate {

@@ -154,7 +154,7 @@ struct OnboardingEffects {
         for kind in kinds {
             settings.set(true, forKey: enabledKey(for: kind))
         }
-        let keyMetrics = Array(kinds.prefix(3)).map(\.rawValue)
+        let keyMetrics = Array(kinds.prefix(5)).map(\.rawValue)
         settings.set(keyMetrics, forKey: "home_key_metrics")
     }
 

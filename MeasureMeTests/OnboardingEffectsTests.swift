@@ -119,4 +119,21 @@ final class OnboardingEffectsTests: XCTestCase {
 
         XCTAssertEqual(store.integer(forKey: "onboarding_goal_selection_stat_loseWeight"), 2)
     }
+
+    func testApplyMetricPackMarksAllBuildMuscleMetricsAsHomeKeyMetrics() {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+        let effects = OnboardingEffects(
+            healthKit: OnboardingHealthKitMock(),
+            notifications: OnboardingNotificationManagerMock(),
+            settings: store
+        )
+
+        effects.applyMetricPack(GoalMetricPack.trackedKinds(for: .buildMuscle))
+
+        XCTAssertEqual(
+            store.stringArray(forKey: "home_key_metrics"),
+            ["weight", "bodyFat", "chest", "leftBicep", "rightBicep"]
+        )
+    }
 }
