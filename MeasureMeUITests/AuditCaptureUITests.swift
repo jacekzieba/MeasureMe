@@ -173,10 +173,13 @@ final class AuditCaptureUITests: XCTestCase {
         let saveButton = app.buttons["quickadd.save"]
         XCTAssertTrue(saveButton.waitForExistence(timeout: 8))
 
-        let anyInput = app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH 'quickadd.input.'")).firstMatch
+        let anyInput = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'quickadd.input.'")).firstMatch
         if anyInput.waitForExistence(timeout: 4) {
             anyInput.tap()
-            anyInput.typeText("9999")
+            let nineKey = app.buttons["quickadd.keypad.digit.9"]
+            XCTAssertTrue(nineKey.waitForExistence(timeout: 4))
+            XCTAssertEqual(app.keyboards.count, 0)
+            for _ in 0..<4 { nineKey.tap() }
             saveScreenshot(screen: "quickadd_form_keyboard")
 
             _ = app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'quickadd.error.'")).firstMatch.waitForExistence(timeout: 2)
@@ -345,14 +348,24 @@ final class AuditCaptureUITests: XCTestCase {
         XCTAssertTrue(app.buttons["quickadd.save"].waitForExistence(timeout: 6))
         XCTAssertTrue(app.staticTexts["quickadd.validation.hint"].waitForExistence(timeout: 6))
 
-        let firstInput = app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH 'quickadd.input.'")).firstMatch
+        let firstInput = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'quickadd.input.'")).firstMatch
         if firstInput.waitForExistence(timeout: 4) {
             firstInput.tap()
-            firstInput.typeText("9999")
+            let keypad = app.otherElements["quickadd.keypad"]
+            let nineKey = app.buttons["quickadd.keypad.digit.9"]
+            XCTAssertTrue(keypad.waitForExistence(timeout: 4))
+            XCTAssertTrue(nineKey.waitForExistence(timeout: 4))
+            XCTAssertEqual(app.keyboards.count, 0)
+            for _ in 0..<4 { nineKey.tap() }
 
             let validationBanner = app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'quickadd.error.'")).firstMatch
             XCTAssertTrue(validationBanner.waitForExistence(timeout: 6))
             XCTAssertTrue(validationBanner.isHittable)
+
+            let done = app.buttons["quickadd.keypad.done"]
+            XCTAssertTrue(done.waitForExistence(timeout: 2))
+            done.tap()
+            XCTAssertTrue(app.buttons["quickadd.save"].waitForExistence(timeout: 4))
         }
 
     }
@@ -497,10 +510,10 @@ final class AuditCaptureUITests: XCTestCase {
     private func advanceOnboardingToHealthStep(in app: XCUIApplication) {
         let priority = app.buttons["onboarding.priority.improveHealth"].firstMatch
         for _ in 0..<2 where !priority.exists {
-            let next = onboardingNextButton(in: app)
-            XCTAssertTrue(next.waitForExistence(timeout: 8))
-            scrollToRevealHittable(next, in: app)
-            tapWithoutAXScroll(next)
+            let skip = onboardingSkipButton(in: app)
+            XCTAssertTrue(skip.waitForExistence(timeout: 8))
+            scrollToRevealHittable(skip, in: app)
+            tapWithoutAXScroll(skip)
             _ = priority.waitForExistence(timeout: 4)
         }
         XCTAssertTrue(priority.exists, "Expected onboarding goal choices after leaving welcome")

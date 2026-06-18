@@ -81,6 +81,37 @@ final class AccessibilityQualityUITests: XCTestCase {
     }
 
     @MainActor
+    func testQuickAddNumericKeypadMeetsAccessibilityRequirements() throws {
+        let collector = AuditIssueCollector()
+        app.launchArguments = ["-uiTestMode"]
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10), "App should launch")
+
+        let addButton = app.tabBars.buttons["tab.add"].firstMatch
+        XCTAssertTrue(addButton.waitForExistence(timeout: 10), "Quick Add entry point should exist")
+        addButton.tap()
+
+        let firstInput = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH 'quickadd.input.'")
+        ).firstMatch
+        XCTAssertTrue(firstInput.waitForExistence(timeout: 8), "Quick Add input should exist")
+        firstInput.tap()
+        XCTAssertTrue(
+            app.otherElements["quickadd.keypad"].waitForExistence(timeout: 5),
+            "Numeric keypad should exist"
+        )
+
+        try auditCurrentScreen(
+            context: "QuickAdd.NumericKeypad",
+            types: [.contrast, .hitRegion, .sufficientElementDescription, .trait],
+            swipes: 0,
+            collector: collector
+        )
+
+        assertNoAuditIssues(collector, category: "Quick Add numeric keypad")
+    }
+
+    @MainActor
     func testAdaptiveLayoutKeepsCoreContentInsideTheWindow() {
         launchSeededApp()
 

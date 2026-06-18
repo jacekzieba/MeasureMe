@@ -14,6 +14,7 @@ struct QuickAddSheetView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.locale) private var locale
     @EnvironmentObject private var router: AppRouter
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.health.isSyncEnabled) private var isSyncEnabled: Bool = false
@@ -35,8 +36,9 @@ struct QuickAddSheetView: View {
     @State private var showSanityWarning = false
     @State private var suspiciousEntries: [SanityChecker.SuspiciousEntry] = []
     @State private var pendingSaveEntries: [QuickAddSaveService.Entry]? = nil
-    @FocusState private var focusedKind: MetricKind?
-    @FocusState private var focusedCustomId: String?
+    @State private var activeField: QuickAddFieldID?
+    @State private var inputBuffer = NumericInputBuffer(value: nil)
+    @FocusState private var hardwareInputFocused: Bool
     @State private var rulerBaseValues: [MetricKind: Double] = [:]
     private let isUITestMode = UITestArgument.isPresent(.mode)
     private let cardTint = Color.appAccent.opacity(0.10)
@@ -121,10 +123,17 @@ struct QuickAddSheetView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .accessibilityIdentifier("quickadd.sheet")
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if shouldShowBottomSaveBar {
+                if let activeField {
+                    numericKeypad(for: activeField)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else if shouldShowBottomSaveBar {
                     saveBar
                 }
             }
+            .animation(
+                AppMotion.animation(AppMotion.standard, enabled: shouldAnimate),
+                value: activeField
+            )
             .alert(AppLocalization.string("Nothing to save"), isPresented: $showNoChangesAlert) {
                 Button(AppLocalization.string("OK"), role: .cancel) { }
             } message: {
@@ -162,13 +171,11 @@ struct QuickAddSheetView: View {
                     Button(AppLocalization.string("Cancel")) { dismiss() }
                         .disabled(isSaving)
                 }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(AppLocalization.string("Done")) {
-                        focusedKind = nil
-                        focusedCustomId = nil
-                    }
-                }
+            }
+            .focusable()
+            .focused($hardwareInputFocused)
+            .onKeyPress { press in
+                handleKeyPress(press)
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
                 clearFocus()
@@ -234,12 +241,7 @@ struct QuickAddSheetView: View {
             }
 
             valueInputField(for: kind, showRuler: showRuler)
-                .appInputContainer(focused: focusedKind == kind)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    focusedKind = kind
-                }
-                .accessibilityIdentifier("quickadd.input.container.\(kind.rawValue)")
+                .appInputContainer(focused: activeField == .metric(kind))
 
             if let validationMessage = validationMessage(for: kind) {
                 InlineErrorBanner(message: validationMessage, accessibilityIdentifier: "quickadd.error.banner.\(kind.rawValue)")
@@ -302,12 +304,7 @@ struct QuickAddSheetView: View {
             }
 
             customValueInputField(for: definition)
-                .appInputContainer(focused: focusedCustomId == id)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    focusedCustomId = id
-                }
-                .accessibilityIdentifier("quickadd.input.container.custom.\(id)")
+                .appInputContainer(focused: activeField == .custom(id))
         }
         .padding(AppSpacing.sm)
         .background(cardBackground(cornerRadius: AppRadius.md))
@@ -323,70 +320,64 @@ struct QuickAddSheetView: View {
 
     private func customInputRowHorizontal(for definition: CustomMetricDefinition) -> some View {
         let id = definition.identifier
-        return HStack(spacing: 8) {
-            Text(AppLocalization.string("Enter value"))
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(AppColorRoles.textSecondary)
-                .lineLimit(2)
+        return Button {
+            activateField(.custom(id))
+        } label: {
+            HStack(spacing: 8) {
+                Text(AppLocalization.string("Enter value"))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .lineLimit(2)
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
 
-            TextField(
-                "0.0",
-                value: Binding(
-                    get: { customInputs[id] ?? nil },
-                    set: { newVal in
-                        customInputs[id] = newVal
-                        editedCustomIds.insert(id)
-                    }
-                ),
-                format: .number.precision(.fractionLength(2))
-            )
-            .focused($focusedCustomId, equals: id)
-            .keyboardType(.decimalPad)
-            .multilineTextAlignment(.trailing)
-            .font(.title3.monospacedDigit().weight(.semibold))
-            .frame(minWidth: 88)
-            .accessibilityIdentifier("quickadd.input.custom.\(id)")
-
-            Text(definition.unitLabel)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(AppColorRoles.textTertiary)
-        }
-    }
-
-    private func customInputRowVertical(for definition: CustomMetricDefinition) -> some View {
-        let id = definition.identifier
-        return VStack(alignment: .leading, spacing: 8) {
-            Text(AppLocalization.string("Enter value"))
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(AppColorRoles.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                TextField(
-                    "0.0",
-                    value: Binding(
-                        get: { customInputs[id] ?? nil },
-                        set: { newVal in
-                            customInputs[id] = newVal
-                            editedCustomIds.insert(id)
-                        }
-                    ),
-                    format: .number.precision(.fractionLength(2))
-                )
-                .focused($focusedCustomId, equals: id)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.leading)
-                .font(.title3.monospacedDigit().weight(.semibold))
-                .accessibilityIdentifier("quickadd.input.custom.\(id)")
+                numericDisplayText(for: .custom(id), value: customInputs[id] ?? nil)
+                    .font(.title3.monospacedDigit().weight(.semibold))
+                    .frame(minWidth: 88, alignment: .trailing)
 
                 Text(definition.unitLabel)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(AppColorRoles.textTertiary)
-                Spacer(minLength: 0)
             }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("quickadd.input.custom.\(id)")
+        .accessibilityLabel(AppLocalization.string("accessibility.value", definition.name))
+        .accessibilityValue(accessibilityValue(for: .custom(id), value: customInputs[id] ?? nil, unit: definition.unitLabel))
+        .accessibilityHint(AppLocalization.string("quickadd.keypad.open.hint"))
+    }
+
+    private func customInputRowVertical(for definition: CustomMetricDefinition) -> some View {
+        let id = definition.identifier
+        return Button {
+            activateField(.custom(id))
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(AppLocalization.string("Enter value"))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    numericDisplayText(for: .custom(id), value: customInputs[id] ?? nil)
+                        .font(.title3.monospacedDigit().weight(.semibold))
+
+                    Text(definition.unitLabel)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(AppColorRoles.textTertiary)
+                    Spacer(minLength: 0)
+                }
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("quickadd.input.custom.\(id)")
+        .accessibilityLabel(AppLocalization.string("accessibility.value", definition.name))
+        .accessibilityValue(accessibilityValue(for: .custom(id), value: customInputs[id] ?? nil, unit: definition.unitLabel))
+        .accessibilityHint(AppLocalization.string("quickadd.keypad.open.hint"))
     }
 
     private func customLastSummary(value: Double, unit: String, date: Date) -> String {
@@ -442,7 +433,7 @@ struct QuickAddSheetView: View {
     }
 
     private var isEditingAnyField: Bool {
-        focusedKind != nil || focusedCustomId != nil
+        activeField != nil
     }
 
     private var shouldShowBottomSaveBar: Bool {
@@ -550,36 +541,42 @@ struct QuickAddSheetView: View {
 
     @ViewBuilder
     private func valueInputField(for kind: MetricKind, showRuler: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(AppLocalization.string(
-                showRuler ? "Enter value" : "quickadd.first.value.hint"
-            ))
-            .font(showRuler ? AppTypography.caption : .subheadline.weight(.medium))
-            .foregroundStyle(AppColorRoles.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
+        Button {
+            activateField(.metric(kind))
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(AppLocalization.string(
+                    showRuler ? "Enter value" : "quickadd.first.value.hint"
+                ))
+                .font(showRuler ? AppTypography.caption : .subheadline.weight(.medium))
+                .foregroundStyle(AppColorRoles.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                TextField(
-                    "0.0",
-                    value: binding(for: kind),
-                    format: .number.precision(.fractionLength(2))
-                )
-                .focused($focusedKind, equals: kind)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.leading)
-                .font(showRuler
-                    ? .title3.monospacedDigit().weight(.semibold)
-                    : .title.monospacedDigit().weight(.bold))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityIdentifier("quickadd.input.\(kind.rawValue)")
-                .accessibilityLabel(AppLocalization.string("accessibility.value", kind.title))
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    numericDisplayText(for: .metric(kind), value: inputs[kind] ?? nil)
+                        .font(showRuler
+                            ? .title3.monospacedDigit().weight(.semibold)
+                            : .title.monospacedDigit().weight(.bold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text(kind.unitSymbol(unitsSystem: unitsSystem))
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(AppColorRoles.textTertiary)
-                Spacer(minLength: 0)
+                    Text(kind.unitSymbol(unitsSystem: unitsSystem))
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(AppColorRoles.textTertiary)
+                    Spacer(minLength: 0)
+                }
             }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("quickadd.input.\(kind.rawValue)")
+        .accessibilityLabel(AppLocalization.string("accessibility.value", kind.title))
+        .accessibilityValue(accessibilityValue(
+            for: .metric(kind),
+            value: inputs[kind] ?? nil,
+            unit: kind.unitSymbol(unitsSystem: unitsSystem)
+        ))
+        .accessibilityHint(AppLocalization.string("quickadd.keypad.open.hint"))
     }
 
     /// Returns `true` when we have a sensible base value for the ruler —
@@ -601,25 +598,19 @@ struct QuickAddSheetView: View {
         )
     }
 
-    private func binding(for kind: MetricKind) -> Binding<Double?> {
-        Binding<Double?>(
-            get: { inputs[kind] ?? nil },
-            set: {
-                inputs[kind] = $0
-                editedKinds.insert(kind)
-                if let value = $0 {
-                    rulerBaseValues[kind] = value
-                }
-            }
-        )
-    }
-
     private func valueBinding(for kind: MetricKind) -> Binding<Double> {
         Binding<Double>(
             get: { (inputs[kind] ?? nil) ?? baseValue(for: kind) },
             set: {
                 inputs[kind] = $0
                 editedKinds.insert(kind)
+                if activeField == .metric(kind) {
+                    inputBuffer = NumericInputBuffer(
+                        value: $0,
+                        locale: locale,
+                        replaceOnFirstInput: false
+                    )
+                }
             }
         )
     }
@@ -653,6 +644,138 @@ struct QuickAddSheetView: View {
 
     private func formatted(_ value: Double, for kind: MetricKind) -> String {
         QuickAddMetricLogic.formatted(value, for: kind, unitsSystem: unitsSystem)
+    }
+
+    @ViewBuilder
+    private func numericDisplayText(for field: QuickAddFieldID, value: Double?) -> some View {
+        let text = activeField == field
+            ? inputBuffer.text
+            : NumericInputBuffer(value: value, locale: locale, replaceOnFirstInput: false).text
+
+        Text(text.isEmpty ? "0\(NumericInputBuffer(value: nil, locale: locale).decimalSeparator)0" : text)
+            .foregroundStyle(text.isEmpty ? AppColorRoles.textTertiary : AppColorRoles.textPrimary)
+            .contentTransition(.numericText())
+    }
+
+    private func accessibilityValue(for field: QuickAddFieldID, value: Double?, unit: String) -> String {
+        let shown = activeField == field
+            ? inputBuffer.text
+            : NumericInputBuffer(value: value, locale: locale, replaceOnFirstInput: false).text
+        guard !shown.isEmpty else { return AppLocalization.string("quickadd.keypad.no.value") }
+        return "\(shown) \(unit)"
+    }
+
+    @ViewBuilder
+    private func numericKeypad(for field: QuickAddFieldID) -> some View {
+        let metadata = keypadMetadata(for: field)
+        QuickAddNumericKeypad(
+            title: metadata.title,
+            unit: metadata.unit,
+            valueText: inputBuffer.text,
+            decimalSeparator: inputBuffer.decimalSeparator,
+            onDigit: appendDigit,
+            onDecimalSeparator: appendDecimalSeparator,
+            onDelete: deleteBackward,
+            onClear: clearInput,
+            onDone: clearFocus
+        )
+    }
+
+    private func keypadMetadata(for field: QuickAddFieldID) -> (title: String, unit: String) {
+        switch field {
+        case .metric(let kind):
+            return (kind.title, kind.unitSymbol(unitsSystem: unitsSystem))
+        case .custom(let id):
+            guard let definition = customDefinitions.first(where: { $0.identifier == id }) else {
+                return (AppLocalization.string("Enter value"), "")
+            }
+            return (definition.name, definition.unitLabel)
+        }
+    }
+
+    private func activateField(_ field: QuickAddFieldID) {
+        guard activeField != field else { return }
+
+        let value = field.value(metricInputs: inputs, customInputs: customInputs)
+        let shouldReplace = value != nil && !field.wasEdited(
+            metricKinds: editedKinds,
+            customIDs: editedCustomIds
+        )
+
+        inputBuffer = NumericInputBuffer(
+            value: value,
+            locale: locale,
+            replaceOnFirstInput: shouldReplace
+        )
+        activeField = field
+        DispatchQueue.main.async {
+            hardwareInputFocused = true
+        }
+    }
+
+    private func appendDigit(_ digit: Int) {
+        inputBuffer.appendDigit(digit)
+        commitInputBuffer()
+    }
+
+    private func appendDecimalSeparator() {
+        inputBuffer.appendDecimalSeparator()
+        commitInputBuffer()
+    }
+
+    private func deleteBackward() {
+        inputBuffer.deleteBackward()
+        commitInputBuffer()
+    }
+
+    private func clearInput() {
+        inputBuffer.clear()
+        commitInputBuffer()
+    }
+
+    private func commitInputBuffer() {
+        guard let activeField else { return }
+        activeField.markEdited(metricKinds: &editedKinds, customIDs: &editedCustomIds)
+        switch activeField {
+        case .metric(let kind):
+            inputs[kind] = inputBuffer.value
+            if let value = inputBuffer.value {
+                rulerBaseValues[kind] = value
+            }
+        case .custom(let id):
+            customInputs[id] = inputBuffer.value
+        }
+    }
+
+    private func handleKeyPress(_ press: KeyPress) -> KeyPress.Result {
+        guard activeField != nil else { return .ignored }
+
+        switch press.key {
+        case .delete:
+            deleteBackward()
+            return .handled
+        case .return, .escape:
+            clearFocus()
+            return .handled
+        default:
+            break
+        }
+
+        if press.characters == "." || press.characters == "," {
+            appendDecimalSeparator()
+            Haptics.selection()
+            return .handled
+        }
+
+        if press.characters.count == 1,
+           let character = press.characters.first,
+           let digit = character.wholeNumberValue {
+            appendDigit(digit)
+            Haptics.selection()
+            return .handled
+        }
+
+        return .ignored
     }
 
     private var cannotSave: Bool {
@@ -827,8 +950,8 @@ struct QuickAddSheetView: View {
     }
 
     private func clearFocus() {
-        focusedKind = nil
-        focusedCustomId = nil
+        activeField = nil
+        hardwareInputFocused = false
     }
 }
 

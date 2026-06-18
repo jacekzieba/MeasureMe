@@ -67,11 +67,12 @@ struct RootContentLayer: View {
             }
 
             if showsOnboardingUITestStepMarker {
-                Text(verbatim: "step:\(onboardingUITestBridge.currentStepIndex)")
-                    .font(.system(size: 1))
-                    .foregroundStyle(.clear)
-                    .frame(width: 1, height: 1)
-                    .accessibilityIdentifier("root.onboarding.test.step")
+                OnboardingUITestControlHooks(
+                    bridge: onboardingUITestBridge,
+                    onNext: postOnboardingUITestNext,
+                    onBack: postOnboardingUITestBack,
+                    onSkip: postOnboardingUITestSkip
+                )
                     .zIndex(3)
             }
 
@@ -88,6 +89,43 @@ struct RootContentLayer: View {
                 RootReadyMarker()
             }
         }
+    }
+}
+
+private struct OnboardingUITestControlHooks: View {
+    @ObservedObject var bridge: OnboardingUITestBridge
+    let onNext: () -> Void
+    let onBack: () -> Void
+    let onSkip: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            testButton(label: "UITest Next", identifier: "onboarding.test.next", action: onNext)
+            testButton(label: "UITest Back", identifier: "onboarding.test.back", action: onBack)
+            testButton(label: "UITest Skip", identifier: "onboarding.test.skip", action: onSkip)
+
+            Text(verbatim: "step:\(bridge.currentStepIndex)")
+                .font(.system(size: 1))
+                .foregroundStyle(.clear)
+                .frame(width: 1, height: 1)
+                .accessibilityIdentifier("root.onboarding.test.step")
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+    }
+
+    private func testButton(
+        label: String,
+        identifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Color.clear
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityIdentifier(identifier)
     }
 }
 

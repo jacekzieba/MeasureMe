@@ -569,6 +569,10 @@ struct MeasureMeApp: App {
         } else if args.contains(UITestArgument.genderFemale.rawValue) {
             defaults.set(\.profile.userGender, "female")
         }
+
+        // Clearing only UserDefaults leaves the settings store's in-memory layout intact,
+        // allowing a later typed write to restore state from the previous UI-test launch.
+        defaults.setHomeLayoutSnapshot(HomeLayoutSnapshot.defaultV1(using: defaults.snapshot))
         #endif
     }
 

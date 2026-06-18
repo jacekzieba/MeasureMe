@@ -101,12 +101,13 @@ extension HomeView {
 
     var homeSecondaryMetricUITestKinds: [MetricKind] {
         let visibleBuiltInSecondary = dashboardKeyIdentifiers.dropFirst().compactMap(MetricKind.init(rawValue:))
-        if !visibleBuiltInSecondary.isEmpty {
-            return visibleBuiltInSecondary
-        }
-
         let fallbackKinds: [MetricKind] = [.bodyFat, .leanBodyMass, .waist]
         let activeFallbackKinds = fallbackKinds.filter { metricsStore.activeKinds.contains($0) }
-        return activeFallbackKinds.isEmpty ? fallbackKinds : activeFallbackKinds
+        let fallback = activeFallbackKinds.isEmpty ? fallbackKinds : activeFallbackKinds
+        return (visibleBuiltInSecondary + fallback).reduce(into: []) { result, kind in
+            if !result.contains(kind) {
+                result.append(kind)
+            }
+        }
     }
 }

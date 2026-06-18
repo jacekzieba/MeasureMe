@@ -1,18 +1,18 @@
 /* Localizable.strings */
 
-"notification.log.title" = "Zeit, deine %@ einzutragen";
+"notification.log.title" = "%@Messungen eintragen";
 "notification.log.body" = "Ein kurzer Eintrag hält deinen Fortschritt auf Kurs.";
 "notification.smart.title" = "%@Zeit für einen kurzen Eintrag";
 "notification.smart.body" = "Seit deinem letzten Eintrag sind %d Tage vergangen. Füge eine Messung hinzu, um am Ball zu bleiben.";
 "notification.photo.title" = "%@Zeit für ein Fortschrittsfoto";
 "notification.photo.body" = "Seit deinem letzten Foto sind %d Tage vergangen – Bilder zeigen oft Veränderungen, die die Waage übersieht.";
-"notification.import.title" = "Neue %@ aus Health";
+"notification.import.title" = "Neue Health-Daten: %@";
 "notification.import.body" = "Automatisch zu MeasureMe hinzugefügt.";
 "notification.import.summary.title" = "Neue Gesundheitsdaten";
 "notification.import.summary.body.single" = "Importiert: %@.";
 "notification.import.summary.body.double" = "Importiert: %@ und %@.";
 "notification.import.summary.body.multiple" = "Importiert: %@, %@ und andere Metriken.";
-"notification.goal.title" = "Ziel erreicht %@";
+"notification.goal.title" = "%@Ziel erreicht";
 "notification.goal.body" = "Du hast dein %@-Ziel erreicht. Stark gemacht.";
 "notification.smart.after.days" = "Nach %d Tagen Inaktivität";
 "validation.metric.range" = "Gib einen Wert zwischen %.2f und %.2f %@ ein.";
@@ -117,6 +117,15 @@
 "goal.start.help.default" = "Der Fortschritt wird ab diesem Wert berechnet. Standardmäßig verwenden wir deine letzte Messung.";
 "goal.start.help.first" = "Noch keine Messungen – dieser Wert wird als deine erste Eingabe gespeichert.";
 "quickadd.first.value.hint" = "Gib deinen ersten Wert ein";
+"quickadd.keypad.title" = "Ziffernblock";
+"quickadd.keypad.decimal" = "Dezimaltrennzeichen";
+"quickadd.keypad.clear" = "Wert löschen";
+"quickadd.keypad.open.hint" = "Öffnet den Ziffernblock";
+"quickadd.keypad.no.value" = "Kein Wert";
+"quickadd.keypad.digit.hint" = "Fügt diese Ziffer ein";
+"quickadd.keypad.decimal.hint" = "Fügt das Dezimaltrennzeichen ein";
+"quickadd.keypad.delete.hint" = "Löscht die vorherige Ziffer. Gedrückt halten, um fortlaufend zu löschen";
+"quickadd.keypad.done.hint" = "Schließt den Ziffernblock";
 "metric.add.title" = "%@ hinzufügen";
 "metric.edit.title" = "Bearbeiten %@";
 "home.greeting.morning" = "Guten Morgen";
@@ -291,7 +300,7 @@
 "home.discovery.premium.title" = "Premium entdecken";
 "home.discovery.premium.detail" = "Tiefere Einblicke und Fotovergleich nebeneinander.";
 "home.module.setup.eyebrow" = "Nächste Schritte";
-"home.module.setup.subtitle" = "%d offene Einrichtungsaufgaben lohnen sich noch.";
+"home.module.setup.subtitle" = "%d Einrichtungsaufgaben sind noch offen.";
 "home.module.setup.pill" = "%d übrig";
 "home.card.open" = "Öffnen";
 "Key metrics" = "Wichtige Messwerte";
@@ -1816,9 +1825,9 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "compare.days.apart.one" = "%d Tage auseinander";
 "compare.days.apart.few" = "%d Tage auseinander";
 "compare.days.apart.many" = "%d Tage auseinander";
-"home.module.setup.subtitle.one" = "Es lohnt sich immer noch, die %d-Einrichtungsaufgabe abzuschließen.";
-"home.module.setup.subtitle.few" = "%d Einrichtungsaufgaben sind es immer noch wert, erledigt zu werden.";
-"home.module.setup.subtitle.many" = "%d Einrichtungsaufgaben sind es immer noch wert, erledigt zu werden.";
+"home.module.setup.subtitle.one" = "%d Einrichtungsaufgabe ist noch offen.";
+"home.module.setup.subtitle.few" = "%d Einrichtungsaufgaben sind noch offen.";
+"home.module.setup.subtitle.many" = "%d Einrichtungsaufgaben sind noch offen.";
 "import.photos.count.one" = "%d Foto";
 "import.photos.count.few" = "%d Fotos";
 "import.photos.count.many" = "%d Fotos";

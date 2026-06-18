@@ -189,7 +189,9 @@ final class TextTruncationUITests: XCTestCase {
             )
 
             guard step < 5 else { continue }
-            let advanceButton = step == 0 ? onboardingNextButton() : onboardingSkipButton()
+            // This traversal only needs to visit every screen. Skip is deliberately used for
+            // every intermediate step because it is unconditional and remains stable at AX sizes.
+            let advanceButton = onboardingSkipButton()
             XCTAssertTrue(
                 advanceButton.waitForExistence(timeout: 3),
                 "Onboarding advance button should exist for step \(step + 1)"

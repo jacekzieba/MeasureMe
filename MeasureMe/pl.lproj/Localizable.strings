@@ -1,7 +1,7 @@
 /* Localizable.strings */
 
 "notification.log.title" = "%@Zapisz pomiary";
-"notification.log.body" = "Szybki wpis teraz utrzymuje Twoje postępy na właściwej ścieżce.";
+"notification.log.body" = "Krótki wpis pomaga utrzymać postępy na właściwym torze.";
 "notification.smart.title" = "%@Czas na szybki wpis";
 "notification.smart.body" = "Minęło %d dni od ostatniego wpisu — dodaj pomiar, by utrzymać rytm.";
 "notification.smart.body.one" = "Minął %d dzień od ostatniego wpisu — dodaj pomiar, by utrzymać rytm.";
@@ -12,13 +12,13 @@
 "notification.photo.body.one" = "Minął %d dzień od ostatniego zdjęcia — zdjęcia pokazują zmiany, których nie widać na wadze.";
 "notification.photo.body.few" = "Minęły %d dni od ostatniego zdjęcia — zdjęcia pokazują zmiany, których nie widać na wadze.";
 "notification.photo.body.many" = "Minęło %d dni od ostatniego zdjęcia — zdjęcia pokazują zmiany, których nie widać na wadze.";
-"notification.import.title" = "Nowe %@ z Zdrowia";
+"notification.import.title" = "Nowe dane z aplikacji Zdrowie: %@";
 "notification.import.body" = "Dodano automatycznie do MeasureMe.";
 "notification.import.summary.title" = "Nowe dane ze Zdrowia";
 "notification.import.summary.body.single" = "Zaimportowano: %@.";
 "notification.import.summary.body.double" = "Zaimportowano: %@ i %@.";
 "notification.import.summary.body.multiple" = "Zaimportowano: %@, %@ i inne metryki.";
-"notification.goal.title" = "Powiadomienie o osiągnięciu celu%@";
+"notification.goal.title" = "%@Cel osiągnięty";
 "notification.goal.body" = "Udało Ci się osiągnąć cel dla %@. Świetna robota.";
 "notification.smart.after.days.one" = "Po %d dniu braku aktywności";
 "notification.smart.after.days.few" = "Po %d dniach braku aktywności";
@@ -137,6 +137,15 @@
 "prediction.collapse" = "Zwiń";
 
 "quickadd.first.value.hint" = "Wpisz swoją pierwszą wartość";
+"quickadd.keypad.title" = "Klawiatura numeryczna";
+"quickadd.keypad.decimal" = "Separator dziesiętny";
+"quickadd.keypad.clear" = "Wyczyść wartość";
+"quickadd.keypad.open.hint" = "Otwiera klawiaturę numeryczną";
+"quickadd.keypad.no.value" = "Brak wartości";
+"quickadd.keypad.digit.hint" = "Wstawia tę cyfrę";
+"quickadd.keypad.decimal.hint" = "Wstawia separator dziesiętny";
+"quickadd.keypad.delete.hint" = "Usuwa poprzednią cyfrę. Przytrzymaj, aby usuwać kolejne";
+"quickadd.keypad.done.hint" = "Zamyka klawiaturę numeryczną";
 "metric.add.title" = "Dodaj %@";
 "metric.edit.title" = "Edytuj %@";
 "home.greeting.morning" = "Dzień dobry";
@@ -147,8 +156,8 @@
 "home.greeting.evening.named" = "Dobry wieczór, %@";
 "home.encouragement" = "Budujesz dziś stabilny rytm.";
 "home.thisweek.empty" = "Brak wpisów";
-"home.thisweek.single" = "Aktywne dni: 1";
-"home.thisweek.multiple" = "Aktywne dni: %d";
+"home.thisweek.single" = "1 wpis";
+"home.thisweek.multiple" = "%d wpisów";
 "home.thisweek.multiple.one" = "%d wpis";
 "home.thisweek.multiple.few" = "%d wpisy";
 "home.thisweek.multiple.many" = "%d wpisów";
@@ -184,13 +193,13 @@
 "home.hero.fresh.title" = "Zacznij od pierwszego kroku";
 "home.hero.fresh.detail" = "Jeden pomiar albo zdjęcie wystarczy, aby zacząć.";
 "home.hero.fresh.cta" = "Zacznij teraz";
-"home.nextfocus.label" = "Progres";
+"home.nextfocus.label" = "Sygnał postępu";
 "home.nextfocus.cta" = "Zrób to teraz";
 "home.nextfocus.cta.metric" = "Zobacz metrykę";
 "home.nextfocus.cta.goal" = "Ustaw cel";
 "home.nextfocus.uitest.long.primary" = "-4.5 cm";
 "home.nextfocus.uitest.long.supporting" = "30 dni";
-"home.nextfocus.uitest.long.summary" = "Talia spada w ostatnich 30 dniach. To mocny sygnał progresu.";
+"home.nextfocus.uitest.long.summary" = "Obwód talii zmniejszył się w ostatnich 30 dniach. To mocny sygnał postępu.";
 "home.nextfocus.insight.goal.title" = "Tylko %@ do celu %@";
 "home.nextfocus.insight.goal.detail" = "Jesteś już wyraźnie bliżej niż na starcie.";
 "home.nextfocus.insight.goal.summary" = "Tylko %@ do celu %@.";
@@ -203,7 +212,7 @@
 "home.nextfocus.period.30d" = "ostatnich 30 dni";
 "home.nextfocus.periodchip.7d" = "7 dni";
 "home.nextfocus.periodchip.30d" = "30 dni";
-"home.nextfocus.fallback.summary" = "Ustaw cel, aby widzieć tutaj sygnały progresu.";
+"home.nextfocus.fallback.summary" = "Ustaw cel, aby widzieć tutaj sygnały postępu.";
 "home.thisweek.momentum.start" = "Dobry tydzień zaczyna się od jednego sygnału.";
 "home.thisweek.momentum.keep" = "Masz już jeden wpis. Utrzymaj rytm.";
 "home.thisweek.momentum.strong" = "Budujesz solidny rytm w tym tygodniu.";
@@ -217,7 +226,7 @@
 "home.keymetrics.empty.selection.detail" = "Utrzymaj Stronę główną skupioną na pomiarach, które najlepiej odzwierciedlają Twój cel.";
 "home.keymetrics.action.addValue" = "Dodaj pierwszy wpis";
 "home.keymetrics.action.setTarget" = "Ustaw cel";
-"home.keymetrics.ready.subtitle" = "%d metryki prowadzą ten ekran.";
+"home.keymetrics.ready.subtitle" = "Kluczowe pomiary w tym widoku: %d.";
 "home.focus.firstcheckin.title" = "Dodaj pierwszy wpis";
 "home.focus.firstcheckin.detail" = "Zacznij od wagi albo talii, aby uruchomić trendy.";
 "home.focus.choosemetrics.title" = "Wybierz kluczowe metryki";
@@ -259,12 +268,12 @@
 "home.nextfocus.finishSetup.title" = "Zadania startowe";
 "home.nextfocus.finishSetup.detail" = "Wróć do pozostałych zadań.";
 "home.nextfocus.finishSetup.detail.done" = "Konfiguracja jest zakończona.";
-"home.health.synced" = "Synchronizacja";
-"home.health.snapshot" = "Zdrowie w skrócie";
+"home.health.synced" = "Zsynchronizowano";
+"home.health.snapshot" = "Ciało w skrócie";
 "home.health.latestreadings" = "Ostatnie zsynchronizowane odczyty";
 "home.health.incomplete.title" = "Dane zdrowotne są jeszcze niepełne";
 "home.health.incomplete.detail" = "Zsynchronizuj wagę, talię albo skład ciała, aby ten moduł był użyteczny.";
-"home.health.subtitle.setup" = "Połącz aplikację Zdrowie, aby zamienić to w użyteczną migawkę.";
+"home.health.subtitle.setup" = "Połącz aplikację Zdrowie, aby zobaczyć użyteczne podsumowanie.";
 "home.health.subtitle.waiting" = "Synchronizacja działa. Dodaj więcej danych o ciele.";
 "home.health.subtitle.preview" = "Na Stronie głównej widzisz jeden zsynchronizowany sygnał. Pełne podsumowanie zdrowia i sylwetki jest w Premium.";
 "home.health.subtitle.ready" = "Szybki odczyt najważniejszych sygnałów zdrowotnych, które synchronizujesz.";
@@ -272,7 +281,7 @@
 "home.health.pill.preview" = "Podgląd";
 "home.health.pill.ready" = "Gotowe";
 "home.health.empty.disconnected.title" = "Połącz aplikację Zdrowie, jeśli chcesz mniej ręcznej pracy";
-"home.health.empty.disconnected.detail" = "Połącz MeasureMe z aplikacją Zdrowie, aby widzieć metryki.";
+"home.health.empty.disconnected.detail" = "Pobierz wagę, talię lub skład ciała, aby Strona główna pokazywała wzorce zamiast pustych pól.";
 "home.health.empty.disconnected.detail.preview" = "Pobierz dane z aplikacji Zdrowie, aby podejrzeć metryki na Stronie głównej. Pełne podsumowanie jest dostępne w Premium.";
 "home.health.empty.synced.title" = "Dane z aplikacji Zdrowie są pobierane, ale brakuje nam kilku danych.";
 "home.health.empty.synced.detail" = "Dodaj kilka pomiarów, aby ta karta stała się użyteczna.";
@@ -311,10 +320,10 @@
 "home.discovery.premium.title" = "Odkryj Premium";
 "home.discovery.premium.detail" = "Głębsze analizy i porównywanie zdjęć obok siebie.";
 "home.module.setup.eyebrow" = "Rytm";
-"home.module.setup.subtitle.one" = "Dokończ %d zadanie testowe";
-"home.module.setup.subtitle.few" = "Dokończ %d zadania testowe";
-"home.module.setup.subtitle.many" = "Dokończ %d zadań testowych";
-"home.module.setup.subtitle" = "Dokończ %d zadań testowych";
+"home.module.setup.subtitle.one" = "Warto dokończyć jeszcze %d zadanie konfiguracji.";
+"home.module.setup.subtitle.few" = "Warto dokończyć jeszcze %d zadania konfiguracji.";
+"home.module.setup.subtitle.many" = "Warto dokończyć jeszcze %d zadań konfiguracji.";
+"home.module.setup.subtitle" = "Warto dokończyć jeszcze %d zadań konfiguracji.";
 "home.module.setup.pill" = "Zostało %d";
 "home.card.open" = "Otwórz";
 "Key metrics" = "Kluczowe metryki";
@@ -464,11 +473,11 @@
 "High fat level" = "Wysoki poziom tłuszczu";
 "Underweight" = "Niedowaga";
 "Overweight" = "Nadwaga";
-"Obese" = "Znaczna nadwaga";
+"Obese" = "Otyłość";
 "Low risk" = "Niskie ryzyko";
 "Increased risk" = "Podwyższone ryzyko";
 "Moderate risk" = "Umiarkowane ryzyko";
-"High risk" = "Podwyższone ryzyko";
+"High risk" = "Wysokie ryzyko";
 "Child/Adolescent" = "Dziecko/Nastolatek";
 "Adult" = "Dorosły";
 "Senior" = "Senior";
@@ -503,7 +512,7 @@
 "All tags" = "Wszystkie tagi";
 "Allow notifications" = "Zezwól na powiadomienia";
 "Animations" = "Animacje";
-"Apple Intelligence isn’t available on this device." = "Analizy AI nie są dostępne na tym urządzeniu.";
+"Apple Intelligence isn’t available on this device." = "Apple Intelligence nie jest dostępne na tym urządzeniu.";
 "Apply" = "Zastosuj";
 "Auto-renewable subscription. You can cancel anytime in your App Store account settings. Payment is charged to your Apple ID at confirmation. The subscription renews unless canceled at least 24 hours before the end of the current period." = "Subskrypcja odnawialna automatycznie. Możesz anulować w dowolnym momencie w ustawieniach konta App Store. Płatność zostanie pobrana z Twojego Apple ID przy potwierdzeniu. Subskrypcja odnawia się, jeśli nie zostanie anulowana co najmniej 24 godziny przed końcem bieżącego okresu.";
 "Back" = "Wstecz";
@@ -547,7 +556,7 @@
 "Drag to compare" = "Przesuń, aby porównać";
 "Edit" = "Edytuj";
 "Edit measurement" = "Edytuj pomiar";
-"Enable Apple Intelligence" = "Włącz Analizy AI";
+"Enable Apple Intelligence" = "Włącz Apple Intelligence";
 "Enable health indicators in Settings to generate your summary." = "Włącz wskaźniki zdrowia w Ustawieniach, aby wygenerować podsumowanie.";
 "Enable health indicators in Settings to see results here." = "Włącz wskaźniki zdrowia w Ustawieniach, aby zobaczyć wyniki tutaj.";
 "Enable metrics below to pick key metrics for Home." = "Włącz metryki poniżej, aby wybrać kluczowe metryki na Stronie głównej.";
@@ -573,12 +582,12 @@
 "Go to Settings" = "Przejdź do Ustawień";
 "Goal" = "Cel";
 "Goal & Trend" = "Cel i trend";
-"Goal achieved" = "Powiadomienie o osiągnięciu celu";
+"Goal achieved" = "Cel osiągnięty";
 "Goal type" = "Typ celu";
 "Haptics" = "Haptyka";
 "Health Metrics" = "Wskaźniki zdrowia";
 "Health import notifications" = "Powiadomienia o imporcie z aplikacji Zdrowie";
-"Health Note" = "Notatka zdrowotna";
+"Health Note" = "Ważna informacja zdrowotna";
 "Height" = "Wzrost";
 "Height (cm)" = "Wzrost (cm)";
 "Height is stored in Settings and used to calculate health indicators like WHtR and BMI." = "Wzrost jest przechowywany w Ustawieniach i używany do obliczeń wskaźników zdrowia, takich jak WHtR i BMI.";
@@ -1018,7 +1027,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "Step %d of %d" = "Krok %d z %d";
 "See trends that matter" = "Zobacz trendy, które mają znaczenie";
 "Track weight, waist, and body composition with clear signals - not noise." = "Śledź wagę, talię i skład ciała - bez szumu, tylko jasne sygnały.";
-"Stay consistent" = "Bądź konsekwentny/a";
+"Stay consistent" = "Utrzymaj regularność";
 "Gentle check-ins help habits stick for diet, training, or health goals." = "Regularne wpisy pomagają utrzymać nawyki związane z dietą, treningiem i zdrowiem.";
 "Understand your body" = "Zrozum swoje ciało";
 "Smart metrics like WHtR and BMI give context to the numbers." = "Inteligentne metryki jak WHtR i BMI dają kontekst liczbom.";
@@ -1037,7 +1046,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "Add your first measurement" = "Dodaj pierwszy pomiar";
 "Charts show momentum" = "Wykresy pokazują momentum";
 "Focus on trends" = "Skup się na trendach";
-"We highlight 30-day changes so you can see what’s working." = "Podkreślamy zmiany z 30 dni, abyś widział/a, co działa.";
+"We highlight 30-day changes so you can see what’s working." = "Pokazujemy zmiany z ostatnich 30 dni, żeby łatwiej ocenić, co działa.";
 "Capture the visual wins" = "Uchwyć wizualne zmiany";
 "You’ll soon see changes with MeasureMe — capture them in photos." = "Zobaczysz, jak z pomocą MeasureMe już niedługo pojawią się zmiany. Uwiecznij je na zdjęciach.";
 "Add your first photo" = "Dodaj pierwsze zdjęcie";
@@ -1053,8 +1062,8 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "Continue" = "Dalej";
 "Requesting Health access..." = "Prośba o dostęp do aplikacji Zdrowie...";
 "Health sync enabled." = "Synchronizacja z aplikacją Zdrowie jest włączona.";
-"Health access denied. You can enable it later in Settings." = "Dostęp do Zdrowie odrzucony. Możesz go włączyć później w Ustawieniach.";
-"Health access denied. Go to iOS Settings → MeasureMe → Health and allow access." = "Dostęp do Zdrowie odrzucony. Wejdź w Ustawienia iOS → MeasureMe → Zdrowie i włącz dostęp.";
+"Health access denied. You can enable it later in Settings." = "Odmówiono dostępu do aplikacji Zdrowie. Możesz włączyć go później w Ustawieniach.";
+"Health access denied. Go to iOS Settings → MeasureMe → Health and allow access." = "Odmówiono dostępu do aplikacji Zdrowie. Wejdź w Ustawienia iOS → MeasureMe → Zdrowie i zezwól na dostęp.";
 "Open iOS Settings now?" = "Otworzyć teraz Ustawienia iOS?";
 "To enable Apple Health sync, go to iOS Settings → MeasureMe → Health." = "Aby włączyć synchronizację z aplikacją Zdrowie, przejdź do Ustawienia iOS → MeasureMe → Zdrowie.";
 "Requesting notification permission..." = "Prośba o dostęp do powiadomień...";
@@ -1068,8 +1077,8 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "Apple Intelligence isn’t available right now." = "Analizy AI są teraz niedostępne.";
 "Learn more in FAQ" = "Dowiedz się więcej w FAQ";
 "measure.instructions.weight" = "Waż się o tej samej porze dnia, najlepiej rano. Używaj tej samej wagi na twardym, równym podłożu. Zapisz wynik po skorzystaniu z toalety i przed jedzeniem lub piciem.";
-"measure.instructions.waist" = "Stań rozluźniony/a i mierz na wysokości pępka po normalnym wydechu. Taśma ma przylegać, ale nie uciskać i być równoległa do podłogi. Mierz zawsze w tym samym miejscu.";
-"measure.instructions.bodyFat" = "Używaj tego samego urządzenia i podobnych warunków. Mierz się, gdy jesteś nawodniony/a i o stałej porze dnia. Unikaj pomiaru tuż po treningu lub dużym posiłku.";
+"measure.instructions.waist" = "Stań w rozluźnionej pozycji i mierz na wysokości pępka po normalnym wydechu. Taśma ma przylegać, ale nie uciskać i być równoległa do podłogi. Mierz zawsze w tym samym miejscu.";
+"measure.instructions.bodyFat" = "Używaj tego samego urządzenia i podobnych warunków. Wykonuj pomiar przy podobnym poziomie nawodnienia i o stałej porze dnia. Unikaj pomiaru tuż po treningu lub dużym posiłku.";
 "measure.instructions.leanBodyMass" = "Korzystaj z tego samego urządzenia i podobnych warunków. Mierz o tej samej porze i przy podobnym nawodnieniu. Śledź trendy, a nie pojedyncze odczyty.";
 "measure.instructions.height" = "Mierz się boso na płaskim podłożu, plecami przy ścianie. Głowa prosto, barki rozluźnione, pięty razem. Dla spójności mierz o tej samej porze dnia.";
 "measure.instructions.circumference" = "Używaj miękkiej taśmy krawieckiej na gołej skórze lub cienkiej odzieży. Taśma ma być poziomo i przylegać bez uciskania. Mierz zawsze w tych samych punktach.";
@@ -1252,7 +1261,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "Preparing data export..." = "Przygotowywanie eksportu danych...";
 "Privacy" = "Prywatność";
 "Privacy Policy" = "Polityka prywatności";
-"Restart required after changing language." = "Uruchom ponownie aplikację.";
+"Restart required after changing language." = "Po zmianie języka wymagane jest ponowne uruchomienie aplikacji.";
 "Send diagnostics to ziebajacek@pm.me" = "Wyślij diagnostykę na ziebajacek@pm.me";
 "Terms" = "Warunki";
 "Terms of Use" = "Warunki użytkowania";
@@ -1392,7 +1401,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "All checklist items are completed." = "Wszystkie pozycje checklisty są ukończone.";
 "14 days free" = "14 dni za darmo";
 "Beyond the scale" = "Ponad samą wagą";
-"See clearer weekly direction with deeper analysis." = "Wykorzystaj lokalne AI do analizy wielu danych naraz i otrzymaj spersonalizowane porady";
+"See clearer weekly direction with deeper analysis." = "Zobacz wyraźniejszy kierunek tygodniowych zmian dzięki głębszej analizie.";
 "Reminder schedule" = "Harmonogram przypomnienia";
 "Reminder day" = "Dzień przypomnienia";
 "Reminder time" = "Godzina przypomnienia";
@@ -1451,7 +1460,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "Synced data" = "Synchronizowane dane";
 "Report a bug" = "Zgłoś błąd";
 "settings.app.subscription.active" = "Aktywna subskrypcja Premium";
-"settings.app.subscription.view.benefits" = "Zobacz dostępne benefity";
+"settings.app.subscription.view.benefits" = "Zobacz dostępne korzyści";
 "settings.app.subscription.active.detail" = "Twoja subskrypcja jest aktywna. Masz pełny dostęp do funkcji Premium.";
 "Yes. In Settings → Animations and haptics you can turn off animations and haptics." = "Tak. W Ustawienia → Animacje i haptyka możesz wyłączyć animacje i haptykę.";
 "Name, gender, age, height" = "Imię, płeć, wiek, wzrost";
@@ -2002,10 +2011,10 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 
 "premium.plan.lifetime" = "Dożywotnio";
 "premium.plan.billing.lifetime" = "Jednorazowa płatność";
-"premium.cta.lifetime" = "Odblokuj dostęp dożywotni";
+"premium.cta.lifetime" = "Odblokuj dożywotni dostęp";
 "premium.cta.billed.lifetime" = "Jednorazowy zakup. Bez subskrypcji.";
 "premium.lifetime.more.options" = "Więcej opcji";
-"premium.lifetime.tagline" = "Zapłać raz, twoje na zawsze";
+"premium.lifetime.tagline" = "Zapłać raz. Korzystaj na zawsze.";
 
 "premium.plan.flexible" = "Elastycznie";
 "premium.plan.one.time" = "Jednorazowy zakup";

@@ -70,19 +70,6 @@ final class QuickAddUITests: XCTestCase {
                       "Arkusz QuickAdd powinien sie pojawic z przyciskiem zapisu")
     }
 
-    private func tapKeyboardDone() {
-        let doneCandidates = ["Done", "Gotowe"]
-        for label in doneCandidates {
-            let button = app.buttons[label].firstMatch
-            if button.waitForExistence(timeout: 2) {
-                button.tap()
-                return
-            }
-        }
-
-        XCTFail("Expected keyboard Done button to exist.")
-    }
-
     private func quickAddLaunchStateSummary() -> String {
         let states = [
             ("pendingAddPhoto.active", app.otherElements["uitest.debug.pendingAddPhoto.active"].exists),
@@ -212,13 +199,19 @@ final class QuickAddUITests: XCTestCase {
         launchWithActiveMetrics()
         openQuickAdd()
 
-        let firstHint = app.staticTexts["Enter your first value"].firstMatch
-        XCTAssertTrue(firstHint.waitForExistence(timeout: 5), "Hint first-time inputu powinien byc widoczny")
+        let firstInput = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH 'quickadd.input.'")
+        ).firstMatch
+        XCTAssertTrue(firstInput.waitForExistence(timeout: 5), "Pierwsze pole Quick Add powinno byc dostepne")
+        firstInput.tap()
 
-        firstHint.tap()
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5), "Klawiatura powinna sie pojawic po rozpoczeciu edycji")
-
-        app.typeText("66")
+        let keypad = app.otherElements["quickadd.keypad"]
+        let sixKey = app.buttons["quickadd.keypad.digit.6"]
+        XCTAssertTrue(keypad.waitForExistence(timeout: 5), "Customowa klawiatura powinna sie pojawic")
+        XCTAssertFalse(app.keyboards.firstMatch.exists, "Klawiatura systemowa nie powinna sie pojawic")
+        XCTAssertTrue(sixKey.isHittable, "Klawisz cyfry powinien byc dostepny")
+        sixKey.tap()
+        sixKey.tap()
 
         XCTAssertFalse(app.buttons["quickadd.save"].exists, "Save bar powinien byc ukryty podczas edycji")
         XCTAssertTrue(
@@ -226,7 +219,7 @@ final class QuickAddUITests: XCTestCase {
             "Quick Add powinien zachowac obie cyfry wpisanej pierwszej wartosci"
         )
 
-        tapKeyboardDone()
+        app.buttons["quickadd.keypad.done"].tap()
 
         let saveButton = app.buttons["quickadd.save"]
         XCTAssertTrue(saveButton.waitForExistence(timeout: 5), "Save bar powinien wrocic po zakonczeniu edycji")

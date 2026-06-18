@@ -1,7 +1,7 @@
 import Foundation
 
 extension String {
-    func capitalizingNotificationStart() -> String {
+    nonisolated func capitalizingNotificationStart() -> String {
         var index = startIndex
 
         while index < endIndex {
