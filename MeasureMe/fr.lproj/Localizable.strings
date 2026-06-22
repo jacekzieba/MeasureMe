@@ -63,7 +63,12 @@
 "transformation.card.ratio.story" = "Histoire 9:16";
 "transformation.card.ratio.square" = "Carré 1:1";
 "trend.vs.relative" = "contre %@";
+"trend.summary.delta.vs.relative" = "%@ contre %@";
+"trend.relative.7d" = "il y a 7 jours";
 "trend.relative.30d" = "il y a 30 jours";
+"trend.relative.90d" = "il y a 90 jours";
+"trend.relative.1y" = "il y a 1 an";
+"trend.relative.all" = "première mesure";
 "accessibility.opens.details" = "Ouvre les détails de %@";
 "accessibility.metric.summary.trend" = "%@, %@, %@ contre %@";
 "accessibility.metric.summary.value" = "%@, %@";

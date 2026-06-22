@@ -12,6 +12,16 @@ enum Timeframe: String, CaseIterable, Identifiable {
     case all = "All"
     var id: String { rawValue }
 
+    var relativeTrendLocalizationKey: String {
+        switch self {
+        case .week: return "trend.relative.7d"
+        case .month: return "trend.relative.30d"
+        case .threeMonths: return "trend.relative.90d"
+        case .year: return "trend.relative.1y"
+        case .all: return "trend.relative.all"
+        }
+    }
+
     /// Calculates the start date for a given time range
     /// - Parameter now: Reference date (defaults to now)
     /// - Returns: Start date or nil for "All"

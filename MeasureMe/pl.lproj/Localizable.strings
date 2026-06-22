@@ -83,7 +83,12 @@
 "transformation.card.ratio.story" = "Story 9:16";
 "transformation.card.ratio.square" = "Kwadrat 1:1";
 "trend.vs.relative" = "względem %@";
+"trend.summary.delta.vs.relative" = "%@ vs %@";
+"trend.relative.7d" = "7 dni temu";
 "trend.relative.30d" = "30 dni temu";
+"trend.relative.90d" = "90 dni temu";
+"trend.relative.1y" = "rok temu";
+"trend.relative.all" = "pierwszy pomiar";
 "accessibility.opens.details" = "Otwiera szczegóły: %@";
 "accessibility.metric.summary.trend" = "%@, %@, %@ względem %@";
 "accessibility.metric.summary.value" = "%@, %@";

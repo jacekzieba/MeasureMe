@@ -610,23 +610,34 @@ struct MetricDetailView: View {
     }
 
     var currentValueTrendSummary: (text: String, color: Color, icon: String)? {
-        guard let start = Calendar.current.date(byAdding: .day, value: -30, to: AppClock.now) else { return nil }
-        let window = sortedSamplesAscending.filter { $0.date >= start }
-        guard let newest = window.max(by: { $0.date < $1.date }),
-              let oldest = window.min(by: { $0.date < $1.date }),
-              newest.persistentModelID != oldest.persistentModelID,
-              let deltaText = window.deltaText(days: 30, kind: kind, unitsSystem: unitsSystem) else {
+        guard let trend = chartSamples.trendDelta(
+            days: nil,
+            kind: kind,
+            unitsSystem: unitsSystem
+        ) else {
             return nil
         }
 
-        let delta = newest.value - oldest.value
-        let outcome = kind.trendOutcome(from: oldest.value, to: newest.value, goal: currentGoal)
-        let relativeLabel = AppLocalization.string("trend.relative.30d")
-        let trendText = "\(deltaText) vs \(relativeLabel)"
+        let deltaText = kind.formattedDisplayValue(
+            trend.displayDelta,
+            unitsSystem: unitsSystem,
+            alwaysShowSign: true
+        )
+        let outcome = kind.trendOutcome(
+            from: trend.oldestValue,
+            to: trend.newestValue,
+            goal: currentGoal
+        )
+        let relativeLabel = AppLocalization.string(timeframe.relativeTrendLocalizationKey)
+        let trendText = String(
+            format: AppLocalization.string("trend.summary.delta.vs.relative"),
+            deltaText,
+            relativeLabel
+        )
         let icon: String
-        if delta > 0 {
+        if trend.displayDelta > 0 {
             icon = "arrow.up.right"
-        } else if delta < 0 {
+        } else if trend.displayDelta < 0 {
             icon = "arrow.down.right"
         } else {
             icon = "arrow.left.and.right"

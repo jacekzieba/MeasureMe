@@ -9,6 +9,14 @@ final class MetricSampleDeltaTests: XCTestCase {
 
     private let fixedNow = Date(timeIntervalSince1970: 1_770_000_000)
 
+    func testTimeframeTrendLabelsMatchSelectedChartRange() {
+        XCTAssertEqual(Timeframe.week.relativeTrendLocalizationKey, "trend.relative.7d")
+        XCTAssertEqual(Timeframe.month.relativeTrendLocalizationKey, "trend.relative.30d")
+        XCTAssertEqual(Timeframe.threeMonths.relativeTrendLocalizationKey, "trend.relative.90d")
+        XCTAssertEqual(Timeframe.year.relativeTrendLocalizationKey, "trend.relative.1y")
+        XCTAssertEqual(Timeframe.all.relativeTrendLocalizationKey, "trend.relative.all")
+    }
+
     // MARK: - Nil cases
 
     func testDeltaText_EmptyArray_ReturnsNil() {
