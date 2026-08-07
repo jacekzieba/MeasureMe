@@ -135,6 +135,8 @@ enum AppSettingsKeys {
         static let lastLogDate = "measurement_last_log_date"
         static let lastPhotoDate = "photo_last_log_date"
         static let photoRemindersEnabled = "measurement_photo_reminders_enabled"
+        static let photoReminderStreak = "photo_reminder_streak"
+        static let photoReminderNextFireDate = "photo_reminder_next_fire_date"
         static let goalAchievedEnabled = "measurement_goal_achieved_enabled"
         static let importNotificationsEnabled = "measurement_import_notifications_enabled"
         static let goalAchievementPrefix = "goal_achieved_"

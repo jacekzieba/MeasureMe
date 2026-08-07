@@ -70,6 +70,8 @@ final class NotificationManagerTests: XCTestCase {
             "measurement_last_log_date",
             "photo_last_log_date",
             "measurement_photo_reminders_enabled",
+            "photo_reminder_streak",
+            "photo_reminder_next_fire_date",
             "measurement_import_notifications_enabled",
             "measurement_goal_achieved_enabled"
         ].forEach { defaults.removeObject(forKey: $0) }
@@ -439,5 +441,190 @@ final class NotificationManagerTests: XCTestCase {
             AppNavigationRouteDispatcher.consumePendingRoute(),
             .metricDetail(kindRaw: MetricKind.weight.rawValue)
         )
+    }
+
+    // MARK: - Photo reminder cadence
+
+    /// Anchor for the whole cadence: every case sets "last photo" here and then moves the
+    /// clock forward by whole days, so thresholds read the same way as the product rule.
+    private static let photoAnchor = Date(timeIntervalSince1970: 1_780_000_000)
+
+    private func daysAfterAnchor(_ days: Double) -> Date {
+        Self.photoAnchor.addingTimeInterval(days * 86_400)
+    }
+
+    private func makePhotoReminderManager(
+        center: MockNotificationCenterClient,
+        streak: Int = 0
+    ) -> NotificationManager {
+        let manager = makeManager(center: center)
+        manager.notificationsEnabled = true
+        manager.photoRemindersEnabled = true
+        settings.set(\.notifications.lastPhotoDate, Self.photoAnchor.timeIntervalSince1970)
+        settings.set(\.notifications.photoReminderStreak, streak)
+        settings.set(\.notifications.photoReminderNextFireDate, 0)
+        return manager
+    }
+
+    /// Drives one full reminder: schedules at `day`, then jumps past the fire date so the
+    /// next call books it as delivered-and-ignored.
+    private func fireOnePhotoReminder(_ manager: NotificationManager, atDay day: Double) {
+        AppClock.overrideNowForTesting = daysAfterAnchor(day)
+        manager.schedulePhotoReminderIfNeeded()
+        AppClock.overrideNowForTesting = daysAfterAnchor(day + 2)
+    }
+
+    private func photoReminderCount(_ center: MockNotificationCenterClient) -> Int {
+        center.addedIdentifiers.filter { $0 == "photo_smart_reminder" }.count
+    }
+
+    override func tearDownWithError() throws {
+        AppClock.overrideNowForTesting = nil
+        try super.tearDownWithError()
+    }
+
+    func testPhotoReminderIsNotScheduledBeforeTheSevenDayThreshold() {
+        let center = MockNotificationCenterClient()
+        let manager = makePhotoReminderManager(center: center)
+
+        AppClock.overrideNowForTesting = daysAfterAnchor(6)
+        manager.schedulePhotoReminderIfNeeded()
+
+        XCTAssertEqual(photoReminderCount(center), 0)
+    }
+
+    func testPhotoReminderSchedulesFirstReminderAtSevenDays() {
+        let center = MockNotificationCenterClient()
+        let manager = makePhotoReminderManager(center: center)
+
+        AppClock.overrideNowForTesting = daysAfterAnchor(7)
+        manager.schedulePhotoReminderIfNeeded()
+
+        XCTAssertEqual(photoReminderCount(center), 1)
+        XCTAssertEqual(settings.snapshot.notifications.photoReminderStreak, 0)
+        XCTAssertGreaterThan(settings.snapshot.notifications.photoReminderNextFireDate, 0)
+    }
+
+    /// The daily-nagging regression: re-entering the app must not re-book a reminder that
+    /// has not fired yet.
+    func testPhotoReminderIsNotRescheduledWhilePreviousIsStillPending() {
+        let center = MockNotificationCenterClient()
+        let manager = makePhotoReminderManager(center: center)
+
+        AppClock.overrideNowForTesting = daysAfterAnchor(7)
+        manager.schedulePhotoReminderIfNeeded()
+        manager.schedulePhotoReminderIfNeeded()
+        manager.schedulePhotoReminderIfNeeded()
+
+        XCTAssertEqual(photoReminderCount(center), 1)
+    }
+
+    /// Reopening the app must not burn through the three-reminder budget. Only a reminder
+    /// that actually fired may advance the streak, otherwise a few launches on the same day
+    /// would silence the cycle for good.
+    func testReopeningTheAppWhileAReminderIsPendingDoesNotConsumeTheStreak() {
+        let center = MockNotificationCenterClient()
+        let manager = makePhotoReminderManager(center: center)
+
+        AppClock.overrideNowForTesting = daysAfterAnchor(7)
+        manager.schedulePhotoReminderIfNeeded()
+        let bookedFireDate = settings.snapshot.notifications.photoReminderNextFireDate
+
+        for _ in 0..<5 {
+            manager.schedulePhotoReminderIfNeeded()
+        }
+
+        XCTAssertEqual(settings.snapshot.notifications.photoReminderStreak, 0)
+        XCTAssertEqual(settings.snapshot.notifications.photoReminderNextFireDate, bookedFireDate)
+
+        // The budget is intact, so the remaining two reminders still arrive on schedule.
+        AppClock.overrideNowForTesting = daysAfterAnchor(17)
+        manager.schedulePhotoReminderIfNeeded()
+        XCTAssertEqual(photoReminderCount(center), 2)
+    }
+
+    func testPhotoReminderSecondReminderWaitsForTheSeventeenDayThreshold() {
+        let center = MockNotificationCenterClient()
+        let manager = makePhotoReminderManager(center: center)
+
+        fireOnePhotoReminder(manager, atDay: 7)
+
+        AppClock.overrideNowForTesting = daysAfterAnchor(12)
+        manager.schedulePhotoReminderIfNeeded()
+        XCTAssertEqual(photoReminderCount(center), 1, "Day 12 is inside the buffer after the first reminder")
+        XCTAssertEqual(settings.snapshot.notifications.photoReminderStreak, 1)
+
+        AppClock.overrideNowForTesting = daysAfterAnchor(17)
+        manager.schedulePhotoReminderIfNeeded()
+        XCTAssertEqual(photoReminderCount(center), 2)
+    }
+
+    func testPhotoReminderThirdReminderWaitsForTheThirtyOneDayThreshold() {
+        let center = MockNotificationCenterClient()
+        let manager = makePhotoReminderManager(center: center)
+
+        fireOnePhotoReminder(manager, atDay: 7)
+        fireOnePhotoReminder(manager, atDay: 17)
+
+        AppClock.overrideNowForTesting = daysAfterAnchor(25)
+        manager.schedulePhotoReminderIfNeeded()
+        XCTAssertEqual(photoReminderCount(center), 2)
+
+        AppClock.overrideNowForTesting = daysAfterAnchor(31)
+        manager.schedulePhotoReminderIfNeeded()
+        XCTAssertEqual(photoReminderCount(center), 3)
+    }
+
+    func testPhotoReminderStopsAfterThreeUnansweredReminders() {
+        let center = MockNotificationCenterClient()
+        let manager = makePhotoReminderManager(center: center)
+
+        fireOnePhotoReminder(manager, atDay: 7)
+        fireOnePhotoReminder(manager, atDay: 17)
+        fireOnePhotoReminder(manager, atDay: 31)
+
+        for day in [40.0, 60.0, 120.0, 400.0] {
+            AppClock.overrideNowForTesting = daysAfterAnchor(day)
+            manager.schedulePhotoReminderIfNeeded()
+        }
+
+        XCTAssertEqual(photoReminderCount(center), 3, "The cycle must go silent after three ignored reminders")
+        XCTAssertEqual(settings.snapshot.notifications.photoReminderStreak, 3)
+    }
+
+    func testAddingPhotoResumesTheReminderCycle() {
+        let center = MockNotificationCenterClient()
+        let manager = makePhotoReminderManager(center: center)
+
+        fireOnePhotoReminder(manager, atDay: 7)
+        fireOnePhotoReminder(manager, atDay: 17)
+        fireOnePhotoReminder(manager, atDay: 31)
+
+        AppClock.overrideNowForTesting = daysAfterAnchor(40)
+        manager.schedulePhotoReminderIfNeeded()
+        XCTAssertEqual(photoReminderCount(center), 3)
+
+        manager.recordPhotoAdded(date: daysAfterAnchor(40))
+        XCTAssertEqual(settings.snapshot.notifications.photoReminderStreak, 0)
+        XCTAssertEqual(settings.snapshot.notifications.photoReminderNextFireDate, 0)
+
+        AppClock.overrideNowForTesting = daysAfterAnchor(47)
+        manager.schedulePhotoReminderIfNeeded()
+        XCTAssertEqual(photoReminderCount(center), 4, "Seven days after the new photo the cycle starts over")
+    }
+
+    func testEnablingPhotoRemindersResetsAnExhaustedStreak() {
+        let center = MockNotificationCenterClient()
+        let manager = makePhotoReminderManager(center: center, streak: 3)
+
+        manager.photoRemindersEnabled = false
+        manager.photoRemindersEnabled = true
+
+        XCTAssertEqual(settings.snapshot.notifications.photoReminderStreak, 0)
+
+        AppClock.overrideNowForTesting = daysAfterAnchor(9)
+        manager.schedulePhotoReminderIfNeeded()
+
+        XCTAssertEqual(photoReminderCount(center), 1)
     }
 }

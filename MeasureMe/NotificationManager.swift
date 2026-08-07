@@ -162,7 +162,12 @@ final class NotificationManager: ObservableObject {
 
     var photoRemindersEnabled: Bool {
         get { settings.snapshot.notifications.photoRemindersEnabled }
-        set { settings.set(\.notifications.photoRemindersEnabled, newValue) }
+        set {
+            settings.set(\.notifications.photoRemindersEnabled, newValue)
+            // Switching reminders back on is a deliberate signal of intent, so the user gets
+            // the full run of nudges again rather than inheriting a spent counter.
+            if newValue { resetPhotoReminderCycle() }
+        }
     }
 
     var goalAchievedEnabled: Bool {
@@ -496,10 +501,21 @@ final class NotificationManager: ObservableObject {
 
     func recordPhotoAdded(date: Date = .now) {
         settings.set(\.notifications.lastPhotoDate, date.timeIntervalSince1970)
+        resetPhotoReminderCycle()
         cancelPhotoReminder()
     }
 
-    func schedulePhotoReminderIfNeeded(days: Int = 7) {
+    /// Days without a photo at which each successive reminder may fire. The gaps widen so a
+    /// nudge stays useful instead of turning into a daily nag, and the list length is the cap:
+    /// once every threshold is spent the cycle goes quiet until a new photo restarts it.
+    private static let photoReminderDayThresholds = [7, 17, 31]
+
+    private func resetPhotoReminderCycle() {
+        settings.set(\.notifications.photoReminderStreak, 0)
+        settings.set(\.notifications.photoReminderNextFireDate, 0)
+    }
+
+    func schedulePhotoReminderIfNeeded() {
         guard notificationsEnabled else {
             cancelPhotoReminder()
             return
@@ -514,8 +530,27 @@ final class NotificationManager: ObservableObject {
         }
 
         let now = AppClock.now
+
+        // A reminder we already booked either has not fired yet — leave it alone, so simply
+        // reopening the app cannot re-book it — or it fired unanswered, which counts once.
+        let pendingFireDate = settings.snapshot.notifications.photoReminderNextFireDate
+        if pendingFireDate > 0 {
+            guard now.timeIntervalSince1970 >= pendingFireDate else { return }
+            settings.set(
+                \.notifications.photoReminderStreak,
+                settings.snapshot.notifications.photoReminderStreak + 1
+            )
+            settings.set(\.notifications.photoReminderNextFireDate, 0)
+        }
+
+        let streak = settings.snapshot.notifications.photoReminderStreak
+        guard streak < Self.photoReminderDayThresholds.count else {
+            cancelPhotoReminder()
+            return
+        }
+
         let since = now.timeIntervalSince(last)
-        guard since >= TimeInterval(days) * 86400 else {
+        guard since >= TimeInterval(Self.photoReminderDayThresholds[streak]) * 86400 else {
             cancelPhotoReminder()
             return
         }
@@ -531,6 +566,8 @@ final class NotificationManager: ObservableObject {
         let nextFire = nextSmartFireDate(from: now)
         let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: nextFire)
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+
+        settings.set(\.notifications.photoReminderNextFireDate, nextFire.timeIntervalSince1970)
 
         let request = UNNotificationRequest(
             identifier: photoReminderId,
