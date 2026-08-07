@@ -33,7 +33,7 @@ struct ExperienceSettingsDetailView: View {
                             iconName: nil
                         )
                         appIconOption(
-                            title: AppLocalization.string("Current"),
+                            title: AppLocalization.string("appicon.option.current"),
                             previewAsset: "AppIconCurrentPreview",
                             iconName: "AppIconFrame1"
                         )
