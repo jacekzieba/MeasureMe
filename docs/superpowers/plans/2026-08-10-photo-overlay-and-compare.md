@@ -322,14 +322,15 @@ git commit -m "i18n: add camera overlay control strings"
 
 ## Task 3: Camera pose picker and opacity control
 
-Rewrites `GuidedCameraView`'s API and chrome. It has no unit test of its own — `GuidedCameraView` owns an `AVCaptureSession` and is skipped entirely in UI-test mode — so its gate is a clean build plus the manual device pass in Task 6. Its testable logic already lives in Task 1.
+Rewrites `GuidedCameraView`'s API and chrome, and updates its single call site so the commit builds. It has no unit test of its own — `GuidedCameraView` owns an `AVCaptureSession` and is skipped entirely in UI-test mode — so its gate is a clean build plus the manual device pass in Task 6. Its testable logic already lives in Task 1.
 
 **Files:**
 - Modify: `MeasureMe/CameraPickerView.swift:154-257`
+- Modify: `MeasureMe/PhotoView.swift` (state block ~line 29, computed properties ~line 53, camera sheet ~lines 246-263)
 
 **Interfaces:**
 - Consumes: `PhotoOverlayCandidates.mostRecentByPose(in:)` and `CameraOverlayOpacity` from Task 1; the three keys from Task 2; `PhotoTag.primaryPoseTags`, `PhotoTag.title` (`MeasureMe/PhotoTag.swift`).
-- Produces: the new `GuidedCameraView` signature consumed by Task 4:
+- Produces: the new `GuidedCameraView` signature, plus `PhotoView.cameraPickerPose` and `PhotoView.overlayCandidates`, all consumed by Task 4:
 
 ```swift
 GuidedCameraView(
@@ -526,22 +527,52 @@ struct GuidedCameraView: View {
 }
 ```
 
-- [ ] **Step 2: Build and confirm the only errors are the two stale call sites**
+- [ ] **Step 2: Update the single call site so the commit builds**
 
-```bash
-export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer && xcodebuild build -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' 2>&1 | grep -E "error:" | head -20
+`GuidedCameraView` has exactly one call site, in `MeasureMe/PhotoView.swift`. Three edits there.
+
+First, add the pose state directly after the existing `@State private var cameraPickerImage: UIImage? = nil` (line 28):
+
+```swift
+    @State private var cameraPickerPose: PhotoTag? = nil
 ```
 
-Expected: errors only in `MeasureMe/PhotoView.swift` around line 255 — missing argument `selectedPose:`, and extraneous/renamed argument `overlayImageData:`. Task 4 fixes them. Any error inside `CameraPickerView.swift` must be resolved before moving on.
+Second, add a computed property right after `canDisplayPhotos` (around line 53):
 
-- [ ] **Step 3: Commit**
+```swift
+    private var overlayCandidates: [PhotoTag: Data] {
+        PhotoOverlayCandidates.mostRecentByPose(in: allPhotos)
+    }
+```
+
+Third, replace the `GuidedCameraView(...)` call inside the camera sheet (currently lines 255-258) with:
+
+```swift
+                    GuidedCameraView(
+                        selectedImage: $cameraPickerImage,
+                        selectedPose: $cameraPickerPose,
+                        overlayCandidates: overlayCandidates
+                    )
+```
+
+Leave the sheet's `onDismiss` closure alone — Task 4 extends it to carry the pose into the form.
+
+- [ ] **Step 3: Build and confirm it is clean**
 
 ```bash
-git add MeasureMe/CameraPickerView.swift
+export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer && xcodebuild build -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' 2>&1 | grep -E "error:|BUILD" | head -20
+```
+
+Expected: `** BUILD SUCCEEDED **` and no `error:` lines.
+
+Swift will warn that `cameraPickerPose` is written but never read — that is expected at this point; Task 4 reads it. Do not silence the warning with `_ =` or by deleting the property.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add MeasureMe/CameraPickerView.swift MeasureMe/PhotoView.swift
 git commit -m "feat(camera): pose picker and opacity control for the capture overlay"
 ```
-
-Note: this commit does not build on its own; Task 4 restores a green build. That is intentional — the two changes are one API rename split across two files.
 
 ---
 
@@ -668,28 +699,17 @@ export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer && xcodebui
 
 Expected: `** TEST SUCCEEDED **`, 2 tests passing.
 
-- [ ] **Step 6: Add the pose state to PhotoView**
+- [ ] **Step 6: Add the captured-pose state to PhotoView**
 
-In `MeasureMe/PhotoView.swift`, directly after the existing `@State private var capturedImportImage: UIImage? = nil` (line 29), add:
+Task 3 already added `cameraPickerPose` and the `overlayCandidates` computed property — do not add them again. In `MeasureMe/PhotoView.swift`, add one more property directly after the existing `@State private var capturedImportImage: UIImage? = nil`:
 
 ```swift
-    @State private var cameraPickerPose: PhotoTag? = nil
     @State private var capturedImportPose: PhotoTag? = nil
 ```
 
-- [ ] **Step 7: Add the overlay candidates computed property**
+- [ ] **Step 7: Carry the pose out of the camera sheet**
 
-In `MeasureMe/PhotoView.swift`, add next to the other computed properties (right after `canDisplayPhotos`, around line 53):
-
-```swift
-    private var overlayCandidates: [PhotoTag: Data] {
-        PhotoOverlayCandidates.mostRecentByPose(in: allPhotos)
-    }
-```
-
-- [ ] **Step 8: Rewire the camera sheet**
-
-In `MeasureMe/PhotoView.swift`, replace the camera sheet block (currently lines 246-263, starting `.sheet(isPresented: $showCamera, onDismiss: {`) with:
+In `MeasureMe/PhotoView.swift`, replace the camera sheet block (starting `.sheet(isPresented: $showCamera, onDismiss: {`) with the version below. Only the `onDismiss` closure changes; the content closure is what Task 3 left:
 
 ```swift
             .sheet(isPresented: $showCamera, onDismiss: {
@@ -713,7 +733,7 @@ In `MeasureMe/PhotoView.swift`, replace the camera sheet block (currently lines 
             }
 ```
 
-- [ ] **Step 9: Pass the pose into AddPhotoView**
+- [ ] **Step 8: Pass the pose into AddPhotoView**
 
 In `MeasureMe/PhotoView.swift`, replace the captured-import sheet block (currently lines 264-271, starting `.sheet(isPresented: $showCapturedImportSheet, onDismiss: {`) with:
 
@@ -734,7 +754,7 @@ In `MeasureMe/PhotoView.swift`, replace the captured-import sheet block (current
             }
 ```
 
-- [ ] **Step 10: Build and confirm it is clean**
+- [ ] **Step 9: Build and confirm it is clean**
 
 ```bash
 export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer && xcodebuild build -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' 2>&1 | grep -E "error:|BUILD" | head -20
@@ -742,7 +762,7 @@ export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer && xcodebui
 
 Expected: `** BUILD SUCCEEDED **` and no `error:` lines.
 
-- [ ] **Step 11: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
 git add MeasureMe/Photos/AddPhotoView.swift MeasureMe/PhotoView.swift MeasureMeTests/AddPhotoPoseHandoffTests.swift
