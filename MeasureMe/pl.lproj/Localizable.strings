@@ -2059,3 +2059,8 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 
 // App icon picker
 "appicon.option.current" = "Obecna";
+
+// Camera overlay controls
+"camera.overlay.off" = "Wył.";
+"camera.overlay.noPhotoForPose" = "Brak zdjęcia dla tej pozy — to będzie pierwsze";
+"camera.overlay.opacity" = "Krycie nakładki";
