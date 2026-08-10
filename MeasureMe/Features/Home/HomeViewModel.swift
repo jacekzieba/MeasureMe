@@ -444,6 +444,7 @@ struct HomePhotoSyncCursorAccess {
         guard !didEmitHomeInitialRender else { return }
         didEmitHomeInitialRender = true
         StartupInstrumentation.event("HomeInitialRender")
+        StartupInstrumentation.endLaunchToInteractive()
     }
 
     /// Run critical phase A — minimal sync work to render an initial Home frame.

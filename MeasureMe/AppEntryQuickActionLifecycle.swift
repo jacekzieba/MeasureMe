@@ -27,6 +27,10 @@ final class MeasureMeAppDelegate: NSObject, UIApplicationDelegate, UNUserNotific
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
+        // Anchor the startup clock before anything else runs, so launch offsets
+        // are measured from here rather than from the first signpost event.
+        StartupInstrumentation.markLaunchStart()
+
         // Become the notification center delegate so we receive foreground
         // taps and action responses while the app is running.
         UNUserNotificationCenter.current().delegate = self

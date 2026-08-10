@@ -270,3 +270,29 @@ struct RootReadyMarker: View {
             .accessibilityIdentifier("app.root.ready")
     }
 }
+
+/// Publishes the measured launch-to-interactive duration to the UI test runner,
+/// which cannot read the app's own signposts or defaults. Mounted only in UI test mode.
+struct StartupDurationMarker: View {
+    @State private var milliseconds: Int?
+
+    var body: some View {
+        Color.clear
+            .frame(width: 1, height: 1)
+            .clipped()
+            .accessibilityIdentifier("startup.duration.ms")
+            .accessibilityLabel(milliseconds.map(String.init) ?? "")
+            .task {
+                // The value lands when Home renders its first frame, after this
+                // marker has already mounted; poll briefly rather than wire an
+                // observable through the whole root hierarchy.
+                for _ in 0..<200 {
+                    if let measured = StartupInstrumentation.launchToInteractiveMs {
+                        milliseconds = measured
+                        return
+                    }
+                    try? await Task.sleep(for: .milliseconds(50))
+                }
+            }
+    }
+}
