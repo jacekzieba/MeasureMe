@@ -249,6 +249,10 @@ struct QuickAddSheetView: View {
             }
         }
         .padding(AppSpacing.sm)
+        // `.contain` keeps this a container element. Without it the row identifier
+        // propagates onto the value button inside and shadows its own
+        // `quickadd.input.<kind>` identifier, making the field unreachable.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("quickadd.row.\(kind.rawValue)")
         .background(cardBackground(cornerRadius: AppRadius.md))
         .animation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate), value: showRuler)
