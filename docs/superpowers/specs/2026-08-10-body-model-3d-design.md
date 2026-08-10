@@ -44,11 +44,17 @@ klatki niesie tę samą informację.
 
 ### Definicja `shoulders`
 
-`MetricKind.insightMeasurementContext` klasyfikuje `shoulders` jako
-*body circumference*. Solver przyjmuje tę interpretację. Przed implementacją
-należy potwierdzić, że instrukcja pomiaru w onboardingu również mówi o obwodzie,
-a nie o szerokości barków — rozbieżność systematycznie zniekształci górną partię
-sylwetki.
+**Rozstrzygnięte: `shoulders` to obwód.** Zgodne z
+`MetricKind.insightMeasurementContext`, które klasyfikuje tę metrykę jako
+*body circumference*, oraz z istniejącymi wskaźnikami `Shoulder-to-Waist Ratio`
+i `Shoulder-to-Hip Ratio`, które konwencjonalnie operują na obwodach po obu
+stronach ułamka.
+
+Aplikacja nie zawiera dziś żadnej instrukcji pomiaru barków — tylko etykiety.
+Użytkownicy mierzą więc po swojemu i część z nich niemal na pewno wprowadza
+szerokość. Rekomendacja: dodać krótką podpowiedź przy wprowadzaniu tej metryki.
+Poza zakresem MVP modelu 3D, ale bezpośrednio wpływa na jakość jego danych
+wejściowych.
 
 ## 4. Architektura
 
@@ -260,5 +266,5 @@ udostępnianie, dopasowanie na podstawie zdjęć z `PhotoEntry`.
 | Manekin wygląda jak figura z tokarki | Świadoma decyzja produktowa; przejście szyja–barki–tors wymaga ręcznego strojenia `BodyProportions` |
 | Bardzo niewielu użytkowników skompletuje 13 metryk | Okno ±14 dni; stan pusty jawnie wymienia braki i prowadzi do QuickAdd; przy 1 snapshocie feature już działa |
 | Wrażliwość na obraz własnego ciała | Forma bez cech osobowych, brak ocen i porównań do norm w UI |
-| Rozbieżność definicji `shoulders` | Do potwierdzenia przed implementacją (sekcja 3) |
+| Część użytkowników wprowadza szerokość barków zamiast obwodu | Brak instrukcji pomiaru w aplikacji; walidacja objętości wyłapie skrajne przypadki jako odchyłkę masy. Trwałe rozwiązanie to podpowiedź przy wprowadzaniu (sekcja 3) |
 | Percepcja dokładności | Panel jakości komunikuje przybliżenie wprost, zamiast sugerować precyzję skanu |
