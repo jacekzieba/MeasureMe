@@ -436,11 +436,38 @@ private extension AddPhotoView {
     }
 
     @MainActor
-    internal func applySuggestedPoseIfNeeded(from image: UIImage) async {
+    func applySuggestedPoseIfNeeded(from image: UIImage) async {
         guard !didUserChoosePose else { return }
         guard let suggestedPose = await PhotoPoseClassifier.suggestedPose(for: image) else { return }
-        selectedTags.subtract(Set(PhotoTag.primaryPoseTags))
-        selectedTags.insert(suggestedPose)
+        applySuggestedPose(suggestedPose)
+    }
+
+    /// Podmienia pozę tylko wtedy, gdy użytkownik nie wybrał jej sam.
+    @MainActor
+    func applySuggestedPose(_ pose: PhotoTag) {
+        guard let newTags = Self.poseApplication(
+            currentTags: selectedTags,
+            suggestedPose: pose,
+            didUserChoosePose: didUserChoosePose
+        ) else { return }
+        selectedTags = newTags
+    }
+
+    /// Widoczne dla testów (AddPhotoPoseHandoffTests) — poza tym traktuj jak prywatne.
+    /// Czysta logika decyzyjna za `applySuggestedPose`, wydzielona do statycznej funkcji: mutacje
+    /// @State poza zainstalowanym drzewem widoku SwiftUI nie są obserwowalne w testach (zweryfikowane
+    /// empirycznie), więc testujemy tę decyzję bezpośrednio, bez konstruowania i mutowania widoku.
+    /// Zwraca nil, gdy użytkownik sam wybrał pozę (decyzja nie jest nadpisywana).
+    internal static func poseApplication(
+        currentTags: Set<PhotoTag>,
+        suggestedPose: PhotoTag,
+        didUserChoosePose: Bool
+    ) -> Set<PhotoTag>? {
+        guard !didUserChoosePose else { return nil }
+        var newTags = currentTags
+        newTags.subtract(Set(PhotoTag.primaryPoseTags))
+        newTags.insert(suggestedPose)
+        return newTags
     }
 
     func milliseconds(from duration: Duration) -> Int {

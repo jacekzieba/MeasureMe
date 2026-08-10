@@ -1,8 +1,14 @@
 /// Cel testu: Weryfikuje, że poza wybrana ręcznie w aparacie nie jest nadpisywana przez klasyfikator pozy.
 /// Dlaczego to ważne: Użytkownik deklaruje pozę przed zdjęciem (steruje nią overlay); automat nie może
 /// tej decyzji cofnąć w formularzu dodawania zdjęcia.
-/// Kryteria zaliczenia: Z poseIsUserChosen == true tagi po applySuggestedPoseIfNeeded się nie zmieniają,
-/// a bez tej flagi klasyfikator może je podmienić.
+/// Kryteria zaliczenia: AddPhotoView.poseApplication zwraca nil, gdy didUserChoosePose == true (tagi się
+/// nie zmieniają), a nowy zbiór tagów z zasugerowaną pozą, gdy użytkownik jej nie wybrał. Dodatkowo
+/// konstruktor AddPhotoView poprawnie zasiewa selectedTags/didUserChoosePose z initialTags/poseIsUserChosen.
+///
+/// Uwaga: @State w SwiftUI nie utrwala mutacji dokonanych poza zainstalowanym drzewem renderowania —
+/// zweryfikowane empirycznie (nawet inkrementacja pojedynczego Int nie przetrwała odczytu na widoku
+/// skonstruowanym wprost w teście). Dlatego logikę decyzyjną z `applySuggestedPose` wydzielono do czystej,
+/// statycznej funkcji `poseApplication`, którą testujemy bezpośrednio, zamiast obserwować mutację @State.
 
 @testable import MeasureMe
 
@@ -20,22 +26,35 @@ final class AddPhotoPoseHandoffTests: XCTestCase {
         }
     }
 
-    func testUserChosenPoseSurvivesTheClassifier() async {
+    func testUserChosenPoseSurvivesTheClassifier() {
         let view = AddPhotoView(
             previewImage: makeSolidImage(),
             initialTags: [.back],
             poseIsUserChosen: true
         )
-
-        await view.applySuggestedPoseIfNeeded(from: makeSolidImage())
-
+        XCTAssertTrue(view.didUserChoosePose)
         XCTAssertEqual(view.selectedTags, [.back])
+
+        let result = AddPhotoView.poseApplication(
+            currentTags: view.selectedTags,
+            suggestedPose: .side,
+            didUserChoosePose: view.didUserChoosePose
+        )
+
+        XCTAssertNil(result)
     }
 
-    func testDefaultConstructionLeavesTheClassifierEnabled() {
+    func testSuggestedPoseReplacesTheTagWhenTheUserDidNotChoose() {
         let view = AddPhotoView(previewImage: makeSolidImage(), initialTags: [.back])
-
         XCTAssertFalse(view.didUserChoosePose)
         XCTAssertEqual(view.selectedTags, [.back])
+
+        let result = AddPhotoView.poseApplication(
+            currentTags: view.selectedTags,
+            suggestedPose: .side,
+            didUserChoosePose: view.didUserChoosePose
+        )
+
+        XCTAssertEqual(result, [.side])
     }
 }
