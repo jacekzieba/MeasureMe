@@ -152,6 +152,22 @@ final class BodySnapshotBuilderTests: XCTestCase {
             samples: samples, anchorDate: anchor, gender: .male, age: 30, fallbackHeightCm: 0
         ) else { return XCTFail("Expected missing") }
 
-        XCTAssertEqual(Set(kinds), Set([.neck, .bodyFat]))
+        XCTAssertEqual(kinds, [.bodyFat, .neck])
+    }
+
+    /// Co sprawdza: sourceDateRange obejmuje wylacznie probki faktycznie uzyte.
+    /// Dlaczego: Pole opisuje userowi, z jakiego okresu pochodzi sylwetka; nieuzyta metryka nie ma prawa go rozciagac.
+    /// Kryteria: Probki .bust (nieuzywana u mezczyzn) i .leanBodyMass na krancach okna nie zmieniaja zakresu.
+    func testSourceDateRangeCoversOnlyUsedSamples() {
+        var samples = completeMaleSamples(at: anchor)
+        samples.append(MetricSample(kind: .bust, value: 95, date: day(-14)))
+        samples.append(MetricSample(kind: .leanBodyMass, value: 65, date: day(14)))
+
+        guard case let .success(snapshot) = BodySnapshotBuilder.build(
+            samples: samples, anchorDate: anchor, gender: .male, age: 30, fallbackHeightCm: 0
+        ) else { return XCTFail("Expected success") }
+
+        XCTAssertEqual(snapshot.sourceDateRange.lowerBound, anchor)
+        XCTAssertEqual(snapshot.sourceDateRange.upperBound, anchor)
     }
 }

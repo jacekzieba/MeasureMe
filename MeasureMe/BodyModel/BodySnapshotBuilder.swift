@@ -55,8 +55,14 @@ nonisolated enum BodySnapshotBuilder {
         fallbackHeightCm: Double
     ) -> BodySnapshotBuildResult {
         let window = Double(windowDays) * 86_400
+        // Only kinds this snapshot actually reads may influence it — including
+        // its date range. A leanBodyMass or (for men) bust sample sitting in
+        // the window must not widen `sourceDateRange`, which is documented as
+        // the span of samples actually used.
+        let relevant = Set(requiredKinds(for: gender).map(\.rawValue))
         let inWindow = samples.filter {
-            abs($0.date.timeIntervalSince(anchorDate)) <= window
+            relevant.contains($0.kindRaw)
+                && abs($0.date.timeIntervalSince(anchorDate)) <= window
         }
 
         // Nearest sample to the anchor wins, per metric kind.
