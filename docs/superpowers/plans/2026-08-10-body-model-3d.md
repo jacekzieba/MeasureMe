@@ -126,14 +126,27 @@ final class SuperellipseTests: XCTestCase {
         }
     }
 
-    /// Co sprawdza: Wyzszy wykladnik daje ksztalt blizszy prostokatowi, czyli wieksze pole.
-    /// Dlaczego: Zapewnia, ze wykladnik faktycznie steruje pelnoscia przekroju.
-    /// Kryteria: Pole rosnie monotonicznie z wykladnikiem przy stalym obwodzie.
-    func testAreaGrowsWithExponentAtFixedCircumference() {
+    /// Co sprawdza: Przy stalych polosiach wyzszy wykladnik daje wieksze pole.
+    /// Dlaczego: Weryfikuje kierunek czlonu gamma — ksztalt dazy do prostokata 4ab, a nie do elipsy pi*ab.
+    /// Kryteria: Pole rosnie monotonicznie z wykladnikiem i zmierza do 4ab.
+    func testAreaGrowsWithExponentAtFixedSemiAxes() {
+        let areas = [2.0, 2.3, 2.6, 3.0, 8.0].map {
+            Superellipse(semiAxisA: 8, semiAxisB: 6, exponent: $0).area
+        }
+        XCTAssertEqual(areas, areas.sorted())
+        XCTAssertLessThan(areas.last!, 4 * 8 * 6)
+    }
+
+    /// Co sprawdza: Przy stalym obwodzie wyzszy wykladnik daje MNIEJSZE pole.
+    /// Dlaczego: To nierownosc izoperymetryczna — okrag maksymalizuje pole dla danego obwodu,
+    ///           wiec ksztalt bardziej pudelkowaty mniej go obejmuje. Solver trzyma staly obwod,
+    ///           wiec to jest kierunek, ktory realnie widzi model objetosciowy.
+    /// Kryteria: Pole maleje monotonicznie z wykladnikiem.
+    func testAreaFallsWithExponentAtFixedCircumference() {
         let areas = [2.0, 2.3, 2.6, 3.0].map {
             Superellipse.fitting(circumference: 80, aspectRatio: 0.75, exponent: $0).area
         }
-        XCTAssertEqual(areas, areas.sorted())
+        XCTAssertEqual(areas, areas.sorted(by: >))
     }
 }
 ```
@@ -231,7 +244,7 @@ nonisolated struct Superellipse: Equatable, Sendable {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Same command as Step 2. Expected: PASS, 4 tests.
+Same command as Step 2. Expected: PASS, 5 tests.
 
 - [ ] **Step 5: Commit**
 
@@ -781,7 +794,11 @@ nonisolated enum BodyProportions {
         }
     }
 
-    /// Shape exponent. 2 is an ellipse; higher is fuller, closer to a rectangle.
+    /// Shape exponent — how boxy the outline is. 2 is an ellipse; higher
+    /// approaches a rectangle. Note the direction at a *fixed* circumference:
+    /// a boxier outline encloses LESS area than an ellipse of the same
+    /// perimeter, so raising an exponent here lowers that level's contribution
+    /// to body volume.
     static func exponent(_ landmark: BodyLandmark) -> Double {
         switch landmark {
         case .neck, .crown, .knee, .ankle: return 2.0
