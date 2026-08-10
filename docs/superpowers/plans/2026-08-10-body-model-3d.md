@@ -266,8 +266,10 @@ Zamiana surowych `MetricSample` w jeden kompletny stan ciała, z oknem ±14 dni 
 - Test: `MeasureMeTests/BodySnapshotBuilderTests.swift`
 
 **Interfaces:**
-- Consumes: `MetricSample` (`kindRaw: String`, `value: Double`, `date: Date`), `MetricKind`, `Gender` (z `HealthMetricsCalculator.swift`)
-- Produces: `BodySnapshot` (pola niżej), `BodySnapshotBuilder.build(samples:anchorDate:gender:age:fallbackHeightCm:) -> BodySnapshotBuildResult`, `BodySnapshotBuilder.requiredKinds(for: Gender) -> [MetricKind]`, `BodySnapshotBuilder.windowDays = 14`
+- Consumes: `MetricSample` (`kindRaw: String`, `value: Double`, `date: Date`), `MetricKind`, `BodyGender` (tworzone w Zadaniu 3 — patrz niżej)
+- Produces: `BodySnapshot` (pola niżej), `BodySnapshotBuilder.build(samples:anchorDate:gender:age:fallbackHeightCm:) -> BodySnapshotBuildResult`, `BodySnapshotBuilder.requiredKinds(for: BodyGender) -> [MetricKind]`, `BodySnapshotBuilder.windowDays = 14`
+
+> **Uwaga o kolejności.** To zadanie zostało zaimplementowane, zanim ujawnił się problem z `Gender.notSpecified`. Pierwotnie używało `Gender` z `HealthMetricsCalculator.swift`, który ma trzy przypadki. Zadanie 3 wprowadza dwuprzypadkowy `BodyGender` i migruje ten kod. Jeśli implementujesz od zera, użyj `BodyGender` od razu.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -474,7 +476,7 @@ Expected: FAIL — `cannot find 'BodySnapshotBuilder' in scope`.
 import Foundation
 
 nonisolated struct BodySnapshot: Equatable, Sendable {
-    let gender: Gender
+    let gender: BodyGender
     let age: Int
     let heightCm: Double
     let weightKg: Double
@@ -529,7 +531,7 @@ nonisolated enum BodySnapshotBuilder {
     ]
 
     /// Metrics required as a single (non-paired) value.
-    private static func singleKinds(for gender: Gender) -> [MetricKind] {
+    private static func singleKinds(for gender: BodyGender) -> [MetricKind] {
         var kinds: [MetricKind] = [
             .height, .weight, .bodyFat, .neck, .shoulders, .chest, .waist, .hips
         ]
@@ -538,7 +540,7 @@ nonisolated enum BodySnapshotBuilder {
     }
 
     /// Every metric the user must have logged for this gender.
-    static func requiredKinds(for gender: Gender) -> [MetricKind] {
+    static func requiredKinds(for gender: BodyGender) -> [MetricKind] {
         singleKinds(for: gender) + pairs.flatMap { [$0.left, $0.right] }
     }
 
@@ -550,7 +552,7 @@ nonisolated enum BodySnapshotBuilder {
     static func build(
         samples: [MetricSample],
         anchorDate: Date,
-        gender: Gender,
+        gender: BodyGender,
         age: Int,
         fallbackHeightCm: Double
     ) -> BodySnapshotBuildResult {
@@ -653,15 +655,19 @@ Tablice antropometryczne i struktura opisująca gotową siatkę.
 Wartości poniżej są **zaczątkowe**, oparte na współczynnikach Drillisa–Continiego (pozycje landmarków jako ułamki wzrostu). Kalibruje je test okrągłości z Zadania 5 — jeśli objętość systematycznie odjeżdża, korygujemy tutaj, nie w solverze.
 
 **Files:**
-- Create: `MeasureMe/BodyModel/BodyProportions.swift`, `MeasureMe/BodyModel/BodyMeshParameters.swift`
+- Create: `MeasureMe/BodyModel/BodyGender.swift`, `MeasureMe/BodyModel/BodyProportions.swift`, `MeasureMe/BodyModel/BodyMeshParameters.swift`
+- Modify: `MeasureMe/BodyModel/BodySnapshot.swift`, `MeasureMe/BodyModel/BodySnapshotBuilder.swift`, `MeasureMeTests/BodySnapshotBuilderTests.swift` — migracja `Gender` → `BodyGender`
 - Test: `MeasureMeTests/BodyMeshParametersTests.swift`
 
+**Dlaczego `BodyGender` w ogóle istnieje.** `Gender` w `HealthMetricsCalculator.swift` ma trzy przypadki: `.male`, `.female`, `.notSpecified`. Model 3D nie ma sensownej sylwetki dla trzeciego — specyfikacja mówi wprost, że płeć jest wymagana, a przy jej braku ekran pokazuje `EmptyStateCard`. Zamiast wymuszać obsługę `.notSpecified` w każdej tablicy antropometrycznej (albo, co gorsza, cicho podstawiać wartości męskie), czynimy ten stan niereprezentowalnym: `BodyGender` ma dwa przypadki, a konwersja z `Gender` jest zawodna. Bramka „płeć wymagana" staje się typem, nie sprawdzeniem w czasie działania, które łatwo pominąć.
+
 **Interfaces:**
-- Consumes: `Gender`
+- Consumes: `Gender` (tylko w konwersji)
 - Produces:
+  - `BodyGender` — enum `.male, .female`, z `init?(_ gender: Gender)` zwracającym `nil` dla `.notSpecified`
   - `BodyLandmark` — enum: `.ankle, .knee, .crotch, .hip, .waist, .chest, .shoulder, .neck, .crown`
-  - `BodyProportions.heightFraction(_ landmark: BodyLandmark, gender: Gender) -> Double`
-  - `BodyProportions.aspectRatio(_ landmark: BodyLandmark, gender: Gender) -> Double`
+  - `BodyProportions.heightFraction(_ landmark: BodyLandmark, gender: BodyGender) -> Double`
+  - `BodyProportions.aspectRatio(_ landmark: BodyLandmark, gender: BodyGender) -> Double`
   - `BodyProportions.exponent(_ landmark: BodyLandmark) -> Double`
   - `BodyProportions.torsoShareRange: ClosedRange<Double>` — `0.94...1.06`
   - `BodyCrossSection` — `y: Double`, `circumferenceCm: Double`, `aspectRatio: Double`, `exponent: Double`
@@ -684,9 +690,18 @@ final class BodyMeshParametersTests: XCTestCase {
     /// Co sprawdza: Landmarki rosna od kostki do czubka glowy dla obu plci.
     /// Dlaczego: Odwrocona kolejnosc dalaby siatke ze skrzyzowanymi przekrojami.
     /// Kryteria: Ulamki wzrostu sa scisle rosnace.
+    /// Co sprawdza: Konwersja Gender -> BodyGender odrzuca .notSpecified.
+    /// Dlaczego: To jest bramka "plec wymagana" ze specyfikacji, wyrazona typem zamiast sprawdzeniem w runtime.
+    /// Kryteria: male i female mapuja sie, notSpecified daje nil.
+    func testBodyGenderRejectsUnspecified() {
+        XCTAssertEqual(BodyGender(.male), .male)
+        XCTAssertEqual(BodyGender(.female), .female)
+        XCTAssertNil(BodyGender(.notSpecified))
+    }
+
     func testLandmarkFractionsAreStrictlyIncreasing() {
         let order: [BodyLandmark] = [.ankle, .knee, .crotch, .hip, .waist, .chest, .shoulder, .neck, .crown]
-        for gender in [Gender.male, .female] {
+        for gender in [BodyGender.male, .female] {
             let fractions = order.map { BodyProportions.heightFraction($0, gender: gender) }
             XCTAssertEqual(fractions, fractions.sorted(), "Not increasing for \(gender)")
             XCTAssertEqual(fractions.last, 1.0, accuracy: 1e-9)
@@ -760,6 +775,41 @@ Expected: FAIL — `cannot find 'BodyLandmark' in scope`.
 - [ ] **Step 3: Write minimal implementation**
 
 ```swift
+// BodyGender.swift
+//
+// **BodyGender**
+// The two body shapes the mannequin can take.
+//
+// **Responsibilities:**
+// - Naming the resolved gender the anthropometric tables are defined for
+// - Refusing to represent an unresolved one
+//
+// **Why this is not just `Gender`:**
+// `Gender` carries a third case, `.notSpecified`, which has no meaningful
+// silhouette — there is no neutral set of landmark positions that is honest
+// rather than invented. The spec makes gender a precondition of the feature,
+// so this type makes the precondition structural: code holding a `BodyGender`
+// cannot be holding an unresolved one, and the conversion is the single place
+// the screen's "complete your profile" gate is decided.
+//
+import Foundation
+
+nonisolated enum BodyGender: String, CaseIterable, Sendable {
+    case male
+    case female
+
+    /// Returns nil when the profile has no resolved gender.
+    init?(_ gender: Gender) {
+        switch gender {
+        case .male:         self = .male
+        case .female:       self = .female
+        case .notSpecified: return nil
+        }
+    }
+}
+```
+
+```swift
 // BodyProportions.swift
 //
 // **BodyProportions**
@@ -783,7 +833,7 @@ nonisolated enum BodyLandmark: CaseIterable, Sendable {
 
 nonisolated enum BodyProportions {
     /// How far up the body a landmark sits, as a fraction of total height.
-    static func heightFraction(_ landmark: BodyLandmark, gender: Gender) -> Double {
+    static func heightFraction(_ landmark: BodyLandmark, gender: BodyGender) -> Double {
         switch (landmark, gender) {
         case (.ankle, _):        return 0.039
         case (.knee, _):         return 0.285
@@ -802,7 +852,7 @@ nonisolated enum BodyProportions {
     }
 
     /// Depth over width at a landmark. Below 1 means wider than deep.
-    static func aspectRatio(_ landmark: BodyLandmark, gender: Gender) -> Double {
+    static func aspectRatio(_ landmark: BodyLandmark, gender: BodyGender) -> Double {
         switch (landmark, gender) {
         case (.neck, _), (.crown, _):  return 1.00
         case (.shoulder, _):           return 0.55
@@ -913,14 +963,32 @@ nonisolated struct BodyMeshParameters: Equatable, Sendable {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Migrate Task 2 from `Gender` to `BodyGender`**
 
-Same command as Step 2. Expected: PASS, 4 tests.
+Zadanie 2 zostało zaimplementowane przed wprowadzeniem `BodyGender`. Zmiana jest mechaniczna, w trzech plikach:
 
-- [ ] **Step 5: Commit**
+- `MeasureMe/BodyModel/BodySnapshot.swift` — `let gender: Gender` → `let gender: BodyGender`
+- `MeasureMe/BodyModel/BodySnapshotBuilder.swift` — `singleKinds(for gender: Gender)`, `requiredKinds(for gender: Gender)` i parametr `gender: Gender` w `build(...)` → `BodyGender`
+- `MeasureMeTests/BodySnapshotBuilderTests.swift` — wywołania używają `gender: .male` / `.female`, więc wnioskowanie typu załatwia je bez zmian; popraw tylko jawne adnotacje `Gender`, jeśli jakieś są
+
+Nie zmieniaj logiki. `.notSpecified` znika z tego kodu, bo nie da się go już wyrazić — to jest cel zmiany.
+
+- [ ] **Step 5: Run both test classes to verify nothing regressed**
 
 ```bash
-git add MeasureMe/BodyModel/BodyProportions.swift MeasureMe/BodyModel/BodyMeshParameters.swift MeasureMeTests/BodyMeshParametersTests.swift
+export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer
+xcodebuild test -scheme MeasureMe \
+  -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' \
+  -only-testing:MeasureMeTests/BodyMeshParametersTests \
+  -only-testing:MeasureMeTests/BodySnapshotBuilderTests
+```
+
+Expected: PASS — 5 tests in `BodyMeshParametersTests`, 9 in `BodySnapshotBuilderTests`.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add MeasureMe/BodyModel/BodyGender.swift MeasureMe/BodyModel/BodyProportions.swift MeasureMe/BodyModel/BodyMeshParameters.swift MeasureMe/BodyModel/BodySnapshot.swift MeasureMe/BodyModel/BodySnapshotBuilder.swift MeasureMeTests/BodyMeshParametersTests.swift MeasureMeTests/BodySnapshotBuilderTests.swift
 git commit -m "feat(body-model): anthropometric tables and mesh parameter interpolation"
 ```
 
@@ -937,7 +1005,7 @@ Obwody między kotwicami wyznacza monotoniczna interpolacja Fritscha–Carlsona,
 - Test: `MeasureMeTests/BodyMeshSolverTests.swift`
 
 **Interfaces:**
-- Consumes: `BodySnapshot`, `BodyProportions`, `BodyLandmark`, `BodyCrossSection`, `BodyMeshParameters`, `Superellipse`
+- Consumes: `BodySnapshot`, `BodyProportions`, `BodyGender`, `BodyLandmark`, `BodyCrossSection`, `BodyMeshParameters`, `Superellipse`
 - Produces: `BodyMeshSolver.solve(snapshot: BodySnapshot, torsoShareScale: Double) -> BodyMeshParameters`. `torsoShareScale` domyślnie `1.0`; Zadanie 5 przesuwa je w zakresie `BodyProportions.torsoShareRange`.
 
 - [ ] **Step 1: Write the failing test**
@@ -1182,7 +1250,7 @@ nonisolated enum BodyMeshSolver {
         anchors: [BodyLandmark],
         y: (BodyLandmark) -> Double,
         circumference: (BodyLandmark) -> Double,
-        gender: Gender
+        gender: BodyGender
     ) -> [BodyCrossSection] {
         let knots = anchors.map { landmark in
             (
@@ -1870,7 +1938,7 @@ Stan ekranu: dostępne daty, wybór A i B, pozycja morfu, wynik walidacji, lista
 - Test: `MeasureMeTests/BodyModelViewModelTests.swift`
 
 **Interfaces:**
-- Consumes: `BodySnapshotBuilder`, `BodyVolumeValidator`, `BodyMeshParameters`, `MetricChange`, `MetricSample`, `Gender`
+- Consumes: `BodySnapshotBuilder`, `BodyVolumeValidator`, `BodyMeshParameters`, `MetricChange`, `MetricSample`, `BodyGender`
 - Produces:
   - `BodyModelState` — enum: `.needsProfile`, `.missingMetrics([MetricKind])`, `.single(BodyModelViewModel.Resolved)`, `.comparison(older: Resolved, newer: Resolved)`
   - `BodyModelViewModel.Resolved` — `snapshot`, `parameters`, `validation`
@@ -1908,7 +1976,7 @@ final class BodyModelViewModelTests: XCTestCase {
     /// Kryteria: Stan to .needsProfile mimo kompletnych pomiarow.
     func testMissingGenderYieldsNeedsProfile() {
         let viewModel = BodyModelViewModel()
-        viewModel.load(samples: completeSamples(at: anchor), gender: nil, age: 30, fallbackHeightCm: 180)
+        viewModel.load(samples: completeSamples(at: anchor), gender: BodyGender(.notSpecified), age: 30, fallbackHeightCm: 180)
         XCTAssertEqual(viewModel.state, .needsProfile)
     }
 
@@ -2063,7 +2131,7 @@ final class BodyModelViewModel: ObservableObject {
     /// Dates that have a complete snapshot, newest first, one per window.
     nonisolated static func availableAnchorDates(
         samples: [MetricSample],
-        gender: Gender,
+        gender: BodyGender,
         fallbackHeightCm: Double
     ) -> [Date] {
         let candidates = Set(samples.map(\.date)).sorted(by: >)
@@ -2081,7 +2149,7 @@ final class BodyModelViewModel: ObservableObject {
         return accepted
     }
 
-    func load(samples: [MetricSample], gender: Gender?, age: Int, fallbackHeightCm: Double) {
+    func load(samples: [MetricSample], gender: BodyGender?, age: Int, fallbackHeightCm: Double) {
         guard let gender else {
             state = .needsProfile
             metricChanges = []
@@ -2130,7 +2198,7 @@ final class BodyModelViewModel: ObservableObject {
     }
 
     /// Re-resolves both sides after the user picks different dates.
-    func select(olderDate: Date, newerDate: Date, samples: [MetricSample], gender: Gender, age: Int, fallbackHeightCm: Double) {
+    func select(olderDate: Date, newerDate: Date, samples: [MetricSample], gender: BodyGender, age: Int, fallbackHeightCm: Double) {
         guard let older = resolve(samples: samples, at: olderDate, gender: gender, age: age, fallbackHeightCm: fallbackHeightCm),
               let newer = resolve(samples: samples, at: newerDate, gender: gender, age: age, fallbackHeightCm: fallbackHeightCm)
         else { return }
@@ -2142,7 +2210,7 @@ final class BodyModelViewModel: ObservableObject {
 
     private func resolve(
         samples: [MetricSample], at date: Date,
-        gender: Gender, age: Int, fallbackHeightCm: Double
+        gender: BodyGender, age: Int, fallbackHeightCm: Double
     ) -> Resolved? {
         let result = BodySnapshotBuilder.build(
             samples: samples, anchorDate: date,
@@ -2619,7 +2687,7 @@ struct BodyModelScreen: View {
     private func reload() {
         viewModel.load(
             samples: samples,
-            gender: Gender(rawValue: userGender),
+            gender: BodyGender(Gender(rawValue: userGender) ?? .notSpecified),
             age: userAge,
             fallbackHeightCm: manualHeight
         )
