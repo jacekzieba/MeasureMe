@@ -13,7 +13,7 @@
 import Foundation
 
 nonisolated struct BodySnapshot: Equatable, Sendable {
-    let gender: Gender
+    let gender: BodyGender
     let age: Int
     let heightCm: Double
     let weightKg: Double

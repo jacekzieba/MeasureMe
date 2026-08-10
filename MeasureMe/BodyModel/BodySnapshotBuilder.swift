@@ -29,7 +29,7 @@ nonisolated enum BodySnapshotBuilder {
     ]
 
     /// Metrics required as a single (non-paired) value.
-    private static func singleKinds(for gender: Gender) -> [MetricKind] {
+    private static func singleKinds(for gender: BodyGender) -> [MetricKind] {
         var kinds: [MetricKind] = [
             .height, .weight, .bodyFat, .neck, .shoulders, .chest, .waist, .hips
         ]
@@ -38,7 +38,7 @@ nonisolated enum BodySnapshotBuilder {
     }
 
     /// Every metric the user must have logged for this gender.
-    static func requiredKinds(for gender: Gender) -> [MetricKind] {
+    static func requiredKinds(for gender: BodyGender) -> [MetricKind] {
         singleKinds(for: gender) + pairs.flatMap { [$0.left, $0.right] }
     }
 
@@ -50,7 +50,7 @@ nonisolated enum BodySnapshotBuilder {
     static func build(
         samples: [MetricSample],
         anchorDate: Date,
-        gender: Gender,
+        gender: BodyGender,
         age: Int,
         fallbackHeightCm: Double
     ) -> BodySnapshotBuildResult {
