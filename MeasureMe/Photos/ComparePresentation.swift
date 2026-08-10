@@ -25,6 +25,9 @@ struct ComparePresentationState {
         }
     }
 
+    /// Kontrakt: każdy sheet, którego zawartość woła `request(_:presentedFromSheet: true)`, musi wywołać
+    /// tę metodę ze swojego własnego `onDismiss`. W przeciwnym razie odłożone `pending` zostanie
+    /// "osierocone" i wypłynie dopiero przy jakimś późniejszym, niepowiązanym zamknięciu.
     mutating func sheetDismissed() {
         guard let pair = pending else { return }
         pending = nil

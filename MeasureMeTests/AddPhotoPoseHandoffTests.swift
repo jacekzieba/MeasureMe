@@ -1,10 +1,15 @@
-/// Cel testu: Weryfikuje, że poza wybrana ręcznie w aparacie nie jest nadpisywana przez klasyfikator pozy.
+/// Cel testu: Weryfikuje czystą logikę decyzyjną `AddPhotoView.poseApplication` w obu kierunkach — poza
+/// wybrana ręcznie zostaje zachowana, poza zostaje podmieniona sugestią, gdy użytkownik jej nie wybrał —
+/// oraz że konstruktor AddPhotoView poprawnie zasiewa selectedTags/didUserChoosePose z
+/// initialTags/poseIsUserChosen.
 /// Dlaczego to ważne: Użytkownik deklaruje pozę przed zdjęciem (steruje nią overlay); automat nie może
 /// tej decyzji cofnąć w formularzu dodawania zdjęcia.
 /// Kryteria zaliczenia: AddPhotoView.poseApplication zwraca nil, gdy didUserChoosePose == true (tagi się
 /// nie zmieniają), a nowy zbiór tagów z zasugerowaną pozą, gdy użytkownik jej nie wybrał. Dodatkowo
 /// konstruktor AddPhotoView poprawnie zasiewa selectedTags/didUserChoosePose z initialTags/poseIsUserChosen.
 ///
+/// Uwaga: Te testy NIE wywołują `PhotoPoseClassifier` — makeSolidImage() istnieje wyłącznie po to, by
+/// zasilić inicjalizator AddPhotoView obrazem podglądu; sama klasyfikacja obrazu nie jest tu weryfikowana.
 /// Uwaga: @State w SwiftUI nie utrwala mutacji dokonanych poza zainstalowanym drzewem renderowania —
 /// zweryfikowane empirycznie (nawet inkrementacja pojedynczego Int nie przetrwała odczytu na widoku
 /// skonstruowanym wprost w teście). Dlatego logikę decyzyjną z `applySuggestedPose` wydzielono do czystej,

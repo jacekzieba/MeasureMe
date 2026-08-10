@@ -65,7 +65,7 @@ final class ComparePresentationStateTests: XCTestCase {
         XCTAssertNil(state.pending)
     }
 
-    func testSheetDismissedDoesNotClobberAnActivePair() {
+    func testSheetDismissedWithNothingPendingLeavesActiveAlone() {
         var state = ComparePresentationState()
         let pair = makePair()
         state.request(pair, presentedFromSheet: false)
