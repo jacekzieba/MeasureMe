@@ -426,7 +426,23 @@ final class BodySnapshotBuilderTests: XCTestCase {
             samples: samples, anchorDate: anchor, gender: .male, age: 30, fallbackHeightCm: 0
         ) else { return XCTFail("Expected missing") }
 
-        XCTAssertEqual(Set(kinds), Set([.neck, .bodyFat]))
+        XCTAssertEqual(kinds, [.bodyFat, .neck])
+    }
+
+    /// Co sprawdza: sourceDateRange obejmuje wylacznie probki faktycznie uzyte.
+    /// Dlaczego: Pole opisuje userowi, z jakiego okresu pochodzi sylwetka; nieuzyta metryka nie ma prawa go rozciagac.
+    /// Kryteria: Probki .bust (nieuzywana u mezczyzn) i .leanBodyMass na krancach okna nie zmieniaja zakresu.
+    func testSourceDateRangeCoversOnlyUsedSamples() {
+        var samples = completeMaleSamples(at: anchor)
+        samples.append(MetricSample(kind: .bust, value: 95, date: day(-14)))
+        samples.append(MetricSample(kind: .leanBodyMass, value: 65, date: day(14)))
+
+        guard case let .success(snapshot) = BodySnapshotBuilder.build(
+            samples: samples, anchorDate: anchor, gender: .male, age: 30, fallbackHeightCm: 0
+        ) else { return XCTFail("Expected success") }
+
+        XCTAssertEqual(snapshot.sourceDateRange.lowerBound, anchor)
+        XCTAssertEqual(snapshot.sourceDateRange.upperBound, anchor)
     }
 }
 ```
@@ -539,8 +555,14 @@ nonisolated enum BodySnapshotBuilder {
         fallbackHeightCm: Double
     ) -> BodySnapshotBuildResult {
         let window = Double(windowDays) * 86_400
+        // Only kinds this snapshot actually reads may influence it — including
+        // its date range. A leanBodyMass or (for men) bust sample sitting in
+        // the window must not widen `sourceDateRange`, which is documented as
+        // the span of samples actually used.
+        let relevant = Set(requiredKinds(for: gender).map(\.rawValue))
         let inWindow = samples.filter {
-            abs($0.date.timeIntervalSince(anchorDate)) <= window
+            relevant.contains($0.kindRaw)
+                && abs($0.date.timeIntervalSince(anchorDate)) <= window
         }
 
         // Nearest sample to the anchor wins, per metric kind.
@@ -613,7 +635,7 @@ nonisolated enum BodySnapshotBuilder {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Same command as Step 2. Expected: PASS, 8 tests.
+Same command as Step 2. Expected: PASS, 9 tests.
 
 - [ ] **Step 5: Commit**
 
