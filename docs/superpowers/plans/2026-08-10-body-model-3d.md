@@ -704,7 +704,7 @@ final class BodyMeshParametersTests: XCTestCase {
         for gender in [BodyGender.male, .female] {
             let fractions = order.map { BodyProportions.heightFraction($0, gender: gender) }
             XCTAssertEqual(fractions, fractions.sorted(), "Not increasing for \(gender)")
-            XCTAssertEqual(fractions.last, 1.0, accuracy: 1e-9)
+            XCTAssertEqual(fractions.last!, 1.0, accuracy: 1e-9)
         }
     }
 
