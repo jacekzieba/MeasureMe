@@ -128,15 +128,53 @@ next to the existing `capturedImportImage`) and passes it on:
 
 ## Part B — Compare presentation race
 
-All changes in `MeasureMe/PhotoView.swift`.
+### B0. Extract the presentation decision so it can be tested
+
+The existing `PhotoFlowUITests.testPhotoCompareExportLoopDoesNotCrash` already opens Compare
+three times in a row and asserts the sheet appears each time — and it passes today, with the
+bug present. A UI test cannot reliably pin an intermittent presentation race, so the decision
+logic moves out of the view into a value type that can be tested directly.
+
+New file `MeasureMe/Photos/ComparePresentation.swift` holds `PhotoComparePair` (moved
+verbatim out of `PhotoView.swift`, its only consumer) plus:
+
+```swift
+struct ComparePresentationState {
+    private(set) var active: PhotoComparePair?
+    private(set) var pending: PhotoComparePair?
+
+    mutating func request(_ pair: PhotoComparePair, presentedFromSheet: Bool)
+    mutating func sheetDismissed()
+    mutating func activeDismissed()
+}
+```
+
+- `request(_:presentedFromSheet: false)` sets `active` immediately.
+- `request(_:presentedFromSheet: true)` sets `pending` and leaves `active` untouched.
+- `sheetDismissed()` promotes `pending` into `active` and clears `pending`; a no-op when
+  `pending` is `nil`.
+- `activeDismissed()` clears `active`, for the sheet-binding setter.
+
+`PhotoView` keeps one `@State private var comparePresentation = ComparePresentationState()`
+and binds the sheet to `active`.
+
+### B1–B3 (applied through B0's type)
+
+The remaining changes are in `MeasureMe/PhotoView.swift`.
 
 ### B1. Single-transaction state write
 
 `openCompare` currently writes `selectedComparePair = nil` and then sets the real value
 inside `Task { await Task.yield() }` — two state writes in two different update cycles.
-It collapses to one direct assignment. The reset was there to force re-presentation of an
-identical pair, which `PhotoComparePair.id` already handles: it embeds a fresh
-`presentationID = UUID()` per instance, so every call produces a new sheet identity.
+It collapses to a single `comparePresentation.request(...)` call. The reset was there to
+force re-presentation of an identical pair, which `PhotoComparePair.id` already handles: it
+embeds a fresh `presentationID = UUID()` per instance, so every call produces a new sheet
+identity.
+
+The `@State private var selectedComparePair: PhotoComparePair?` is replaced by
+`@State private var comparePresentation = ComparePresentationState()`, and the sheet binds
+to a computed `Binding` whose getter returns `comparePresentation.active` and whose setter
+calls `comparePresentation.activeDismissed()` when set to `nil`.
 
 ### B2. Remove the redundant reset
 
@@ -157,21 +195,12 @@ They get an explicit signal instead of a guessed delay:
 func openCompare(using older: PhotoEntry, _ newer: PhotoEntry, presentedFromSheet: Bool = false)
 ```
 
-When `presentedFromSheet` is `true`, the pair is parked in a new
-`@State private var pendingComparePair: PhotoComparePair?`. The dismissing sheet's
-`onDismiss` promotes it:
+which forwards straight to `comparePresentation.request(pair, presentedFromSheet:)`. The
+dismissing sheet's `onDismiss` calls `comparePresentation.sheetDismissed()`:
 
-```swift
-private func presentPendingComparePair() {
-    guard let pair = pendingComparePair else { return }
-    pendingComparePair = nil
-    selectedComparePair = pair
-}
-```
-
-- `.sheet(item: $compareChooserContext, onDismiss: presentPendingComparePair)`
+- `.sheet(item: $compareChooserContext, onDismiss: { comparePresentation.sheetDismissed() })`
 - the detail sheet's existing `onDismiss` calls `refreshPhotoContent()` **and**
-  `presentPendingComparePair()`
+  `comparePresentation.sheetDismissed()`
 
 `handlePhotoDetailCompareRequest` calls `openCompare(..., presentedFromSheet: true)` and
 then clears `selectedPhotoForDetail`, so dismissal drives the presentation.
@@ -187,7 +216,8 @@ The premium guard at the top of `openCompare` is untouched.
 | `PhotoOverlayCandidates` | Unit tests: empty input; single pose; several photos sharing a pose (newest wins); one photo carrying multiple pose tags; photos with no primary pose tag ignored |
 | Opacity level | Unit test: raw values `0`, `1`, `2` map to `12% / 22% / 35%`; out-of-range `-1` and `3` both fall back to `22%` |
 | Pose hand-off | Unit test: `poseIsUserChosen: true` leaves `selectedTags` untouched after `applySuggestedPoseIfNeeded` |
-| Compare | `PhotoFlowUITests`: select two → Compare → comparison screen visible on the first tap; close and repeat with the same pair to confirm re-presentation |
+| `ComparePresentationState` | Unit tests: direct request activates immediately; sheet-sourced request only parks a pending pair; `sheetDismissed` promotes it; `sheetDismissed` with nothing pending is a no-op; two requests for the same photos yield different `id`s |
+| Compare | `PhotoFlowUITests.testPhotoCompareExportLoopDoesNotCrash` stays green (regression guard only — it passes with the bug present, so it is not the proof) |
 | Regression | `ComparePhotosSnapshotTests` unchanged; full test plan green |
 | Camera | Manual pass on the physical iPhone (the simulator has no camera, and `GuidedCameraView` is skipped in UI-test mode): each pose swaps the ghost, `Off` clears it, opacity cycles, choices survive an app restart, and the chosen pose lands preselected in `AddPhotoView` |
 
