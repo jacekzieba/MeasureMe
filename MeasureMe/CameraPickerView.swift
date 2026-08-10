@@ -154,9 +154,27 @@ struct PhotoLibraryPicker: UIViewControllerRepresentable {
 struct GuidedCameraView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selectedImage: UIImage?
-    let overlayImageData: Data?
+    @Binding var selectedPose: PhotoTag?
+    let overlayCandidates: [PhotoTag: Data]
+
+    @AppStorage("photos.overlayPose") private var storedOverlayPose: String = ""
+    @AppStorage("photos.overlayOpacityLevel") private var storedOpacityLevel: Int = CameraOverlayOpacity.medium.rawValue
 
     @StateObject private var camera = GuidedCameraController()
+
+    private var activePose: PhotoTag? {
+        guard let pose = PhotoTag(rawValue: storedOverlayPose), pose.isPrimaryPose else { return nil }
+        return pose
+    }
+
+    private var overlayOpacity: CameraOverlayOpacity {
+        CameraOverlayOpacity(storedValue: storedOpacityLevel)
+    }
+
+    private var overlayImage: UIImage? {
+        guard let activePose, let data = overlayCandidates[activePose] else { return nil }
+        return UIImage(data: data)
+    }
 
     var body: some View {
         ZStack {
@@ -167,7 +185,7 @@ struct GuidedCameraView: View {
                 Image(uiImage: overlayImage)
                     .resizable()
                     .scaledToFill()
-                    .opacity(0.18)
+                    .opacity(overlayOpacity.value)
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
             }
@@ -186,21 +204,31 @@ struct GuidedCameraView: View {
                     .tint(.black.opacity(0.45))
 
                     Spacer()
+
+                    if activePose != nil {
+                        opacityButton
+                    }
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 12)
 
                 Spacer()
 
-                VStack(spacing: 18) {
-                    Text(AppLocalization.string("Match your last pose"))
-                        .font(AppTypography.bodyEmphasis)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, AppSpacing.smmd)
-                        .padding(.vertical, 8)
-                        .background(Color.black.opacity(0.45), in: Capsule())
+                VStack(spacing: 14) {
+                    if let hintText {
+                        Text(hintText)
+                            .font(AppTypography.bodyEmphasis)
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, AppSpacing.smmd)
+                            .padding(.vertical, 8)
+                            .background(Color.black.opacity(0.45), in: Capsule())
+                    }
+
+                    poseBar
 
                     Button {
+                        selectedPose = activePose
                         camera.capture()
                     } label: {
                         ZStack {
@@ -216,6 +244,7 @@ struct GuidedCameraView: View {
                     .accessibilityIdentifier("photos.guidedCamera.capture")
                     .accessibilityLabel(AppLocalization.string("Take Photo"))
                 }
+                .padding(.horizontal, 12)
                 .padding(.bottom, 32)
             }
         }
@@ -250,9 +279,56 @@ struct GuidedCameraView: View {
         }
     }
 
-    private var overlayImage: UIImage? {
-        guard let overlayImageData else { return nil }
-        return UIImage(data: overlayImageData)
+    private var hintText: String? {
+        guard let activePose else { return nil }
+        if overlayCandidates[activePose] != nil {
+            return AppLocalization.string("Match your last pose")
+        }
+        return AppLocalization.string("camera.overlay.noPhotoForPose")
+    }
+
+    private var opacityButton: some View {
+        Button {
+            storedOpacityLevel = overlayOpacity.next.rawValue
+        } label: {
+            Image(systemName: "circle.lefthalf.filled")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.white)
+                .padding(10)
+                .background(Color.black.opacity(0.45), in: Circle())
+        }
+        .accessibilityIdentifier("photos.guidedCamera.opacity")
+        .accessibilityLabel(AppLocalization.string("camera.overlay.opacity"))
+    }
+
+    private var poseBar: some View {
+        HStack(spacing: 6) {
+            poseButton(title: AppLocalization.string("camera.overlay.off"), pose: nil)
+            ForEach(PhotoTag.primaryPoseTags) { pose in
+                poseButton(title: pose.title, pose: pose)
+            }
+        }
+        .padding(4)
+        .background(Color.black.opacity(0.45), in: Capsule())
+    }
+
+    private func poseButton(title: String, pose: PhotoTag?) -> some View {
+        let isSelected = activePose == pose
+        return Button {
+            storedOverlayPose = pose?.rawValue ?? ""
+        } label: {
+            Text(title)
+                .font(AppTypography.caption)
+                .foregroundStyle(isSelected ? Color.black : Color.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(isSelected ? Color.white : Color.clear, in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("photos.guidedCamera.pose.\(pose?.rawValue ?? "off")")
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
 

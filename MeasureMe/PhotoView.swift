@@ -26,6 +26,7 @@ struct PhotoView: View {
     @State private var showSourceChooserSheet = false
     @State private var showCamera = false
     @State private var cameraPickerImage: UIImage? = nil
+    @State private var cameraPickerPose: PhotoTag? = nil
     @State private var capturedImportImage: UIImage? = nil
     @State private var showCapturedImportSheet = false
     @State private var showLibraryPicker = false   // PHPicker (1 and multiple)
@@ -50,6 +51,10 @@ struct PhotoView: View {
 
     private var canDisplayPhotos: Bool {
         photoPrivacyGate.canDisplayPhotos(requireBiometric: requireBiometricForPhotos)
+    }
+
+    private var overlayCandidates: [PhotoTag: Data] {
+        PhotoOverlayCandidates.mostRecentByPose(in: allPhotos)
     }
 
     private var shouldShowPendingLaunchSourceChooser: Bool {
@@ -254,7 +259,8 @@ struct PhotoView: View {
                 if UIImagePickerController.isSourceTypeAvailable(.camera), !uiTestModeEnabled {
                     GuidedCameraView(
                         selectedImage: $cameraPickerImage,
-                        overlayImageData: allPhotos.first?.thumbnailOrImageData
+                        selectedPose: $cameraPickerPose,
+                        overlayCandidates: overlayCandidates
                     )
                 } else {
                     CameraPickerView(selectedImage: $cameraPickerImage)
