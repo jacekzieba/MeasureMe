@@ -36,7 +36,7 @@ struct PhotoView: View {
     @State private var compareChooserContext: CompareChooserContext?
     @State private var selectedPhotos: Set<PhotoEntry> = []
     @State private var selectedPhotoForDetail: PhotoEntry?
-    @State private var selectedComparePair: PhotoComparePair?
+    @State private var comparePresentation = ComparePresentationState()
     @State private var showDeleteConfirmation = false
 
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
@@ -75,6 +75,15 @@ struct PhotoView: View {
         Binding(
             get: { showSourceChooserSheet && !uiTestModeEnabled },
             set: { showSourceChooserSheet = $0 }
+        )
+    }
+
+    private var comparePairBinding: Binding<PhotoComparePair?> {
+        Binding(
+            get: { comparePresentation.active },
+            set: { newValue in
+                if newValue == nil { comparePresentation.activeDismissed() }
+            }
         )
     }
 
@@ -323,7 +332,9 @@ struct PhotoView: View {
             .sheet(isPresented: $showFilters) {
                 PhotoFilterView(filters: filters)
             }
-            .sheet(item: $compareChooserContext) { context in
+            .sheet(item: $compareChooserContext, onDismiss: {
+                comparePresentation.sheetDismissed()
+            }) { context in
                 HomeCompareChooserSheet(
                     photos: allPhotos,
                     initialOlderPhoto: context.olderPhoto,
@@ -331,20 +342,18 @@ struct PhotoView: View {
                     preferredSlot: context.preferredSlot,
                     onSelectionChanged: handleCompareChooserSelectionChange
                 ) { olderPhoto, newerPhoto in
-                    openCompare(using: olderPhoto, newerPhoto)
+                    openCompare(using: olderPhoto, newerPhoto, presentedFromSheet: true)
                 }
             }
-            .sheet(item: $selectedComparePair) { pair in
+            .sheet(item: comparePairBinding) { pair in
                 ComparePhotosView(
                     olderPhoto: pair.olderPhoto,
                     newerPhoto: pair.newerPhoto
                 )
-                .onDisappear {
-                    selectedComparePair = nil
-                }
             }
             .sheet(item: $selectedPhotoForDetail, onDismiss: {
                 refreshPhotoContent()
+                comparePresentation.sheetDismissed()
             }) { photo in
                 PhotoDetailView(photo: photo, onCompareRequested: handlePhotoDetailCompareRequest) {
                     handlePhotoDeletedFromDetail(photo)
@@ -408,18 +417,21 @@ struct PhotoView: View {
         }
     }
 
-    func openCompare(using olderPhoto: PhotoEntry, _ newerPhoto: PhotoEntry) {
+    func openCompare(
+        using olderPhoto: PhotoEntry,
+        _ newerPhoto: PhotoEntry,
+        presentedFromSheet: Bool = false
+    ) {
         guard premiumStore.isPremium else {
             premiumStore.presentPaywall(reason: .photoComparison)
             return
         }
         let sorted = [olderPhoto, newerPhoto].sorted { $0.date < $1.date }
         guard sorted.count == 2 else { return }
-        selectedComparePair = nil
-        Task { @MainActor in
-            await Task.yield()
-            selectedComparePair = PhotoComparePair(olderPhoto: sorted[0], newerPhoto: sorted[1])
-        }
+        comparePresentation.request(
+            PhotoComparePair(olderPhoto: sorted[0], newerPhoto: sorted[1]),
+            presentedFromSheet: presentedFromSheet
+        )
     }
 
     private func refreshPhotoContent() {
@@ -485,8 +497,8 @@ struct PhotoView: View {
     }
 
     private func handlePhotoDetailCompareRequest(_ olderPhoto: PhotoEntry, _ newerPhoto: PhotoEntry) {
+        openCompare(using: olderPhoto, newerPhoto, presentedFromSheet: true)
         selectedPhotoForDetail = nil
-        openCompare(using: olderPhoto, newerPhoto)
     }
 
     private func handlePhotoDeletedFromDetail(_ photo: PhotoEntry) {
@@ -495,16 +507,6 @@ struct PhotoView: View {
         refreshPhotoContent()
     }
 
-}
-
-struct PhotoComparePair: Identifiable {
-    let presentationID = UUID()
-    let olderPhoto: PhotoEntry
-    let newerPhoto: PhotoEntry
-
-    var id: String {
-        "\(olderPhoto.persistentModelID)_\(newerPhoto.persistentModelID)_\(presentationID.uuidString)"
-    }
 }
 
 struct TemporaryHeroPairOverride: Identifiable {
