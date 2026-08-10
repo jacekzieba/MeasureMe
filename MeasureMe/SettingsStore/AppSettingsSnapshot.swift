@@ -129,6 +129,8 @@ struct AppSettingsSnapshot: Sendable {
         var lastLogDate: Double
         var lastPhotoDate: Double
         var photoRemindersEnabled: Bool
+        var photoReminderStreak: Int
+        var photoReminderNextFireDate: Double
         var goalAchievedEnabled: Bool
         var importNotificationsEnabled: Bool
         var perMetricSmartEnabled: Bool
@@ -364,6 +366,8 @@ struct AppSettingsSnapshot: Sendable {
                 lastLogDate: defaults.double(forKey: AppSettingsKeys.Notifications.lastLogDate),
                 lastPhotoDate: defaults.double(forKey: AppSettingsKeys.Notifications.lastPhotoDate),
                 photoRemindersEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.photoRemindersEnabled) as? Bool ?? true,
+                photoReminderStreak: max(defaults.integer(forKey: AppSettingsKeys.Notifications.photoReminderStreak), 0),
+                photoReminderNextFireDate: defaults.double(forKey: AppSettingsKeys.Notifications.photoReminderNextFireDate),
                 goalAchievedEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.goalAchievedEnabled) as? Bool ?? true,
                 importNotificationsEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.importNotificationsEnabled) as? Bool ?? true,
                 perMetricSmartEnabled: defaults.object(forKey: AppSettingsKeys.Notifications.perMetricSmartEnabled) as? Bool ?? true,

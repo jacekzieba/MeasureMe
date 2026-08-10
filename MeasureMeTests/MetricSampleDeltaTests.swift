@@ -17,6 +17,50 @@ final class MetricSampleDeltaTests: XCTestCase {
         XCTAssertEqual(Timeframe.all.relativeTrendLocalizationKey, "trend.relative.all")
     }
 
+    /// Guards the hero trend badge against sliding back to a fixed 30-day window: the same
+    /// samples, filtered by each chart range the way MetricDetailView builds `chartSamples`,
+    /// must produce a delta specific to that range.
+    func testTrendDeltaFollowsTheSelectedChartRange() throws {
+        // One steady kilogram lost per day for two years, so every range covers many samples
+        // and a one-day shift at a window boundary cannot flip the outcome.
+        let samples = (0...730).map { dayOffset in
+            MetricSample(
+                kind: .weight,
+                value: 800.0 - Double(dayOffset),
+                date: fixedNow.addingTimeInterval(Double(dayOffset - 730) * 86_400)
+            )
+        }
+
+        func delta(for timeframe: Timeframe) throws -> Double {
+            let windowed: [MetricSample]
+            if let start = timeframe.startDate(from: fixedNow) {
+                windowed = samples.filter { $0.date >= start }
+            } else {
+                windowed = samples
+            }
+            let trend = try XCTUnwrap(
+                windowed.trendDelta(days: nil, kind: .weight, unitsSystem: "metric", now: fixedNow),
+                "\(timeframe) must produce a trend over this dataset"
+            )
+            return trend.displayDelta
+        }
+
+        let week = try delta(for: .week)
+        let month = try delta(for: .month)
+        let threeMonths = try delta(for: .threeMonths)
+        let year = try delta(for: .year)
+
+        // A regression to a hard-coded 30-day window collapses these onto one value.
+        XCTAssertNotEqual(week, month, accuracy: 0.001)
+        XCTAssertNotEqual(month, threeMonths, accuracy: 0.001)
+        XCTAssertNotEqual(threeMonths, year, accuracy: 0.001)
+
+        // Losing weight every day means a wider range can only report a bigger drop.
+        XCTAssertLessThan(month, week)
+        XCTAssertLessThan(threeMonths, month)
+        XCTAssertLessThan(year, threeMonths)
+    }
+
     // MARK: - Nil cases
 
     func testDeltaText_EmptyArray_ReturnsNil() {

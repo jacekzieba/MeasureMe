@@ -2102,4 +2102,4 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 "Default" = "Padrão";
 
 // App icon picker
-"Current" = "Atual";
+"appicon.option.current" = "Atual";

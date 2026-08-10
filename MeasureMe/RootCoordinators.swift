@@ -87,6 +87,7 @@ struct RootContentLayer: View {
 
             if isUITestMode {
                 RootReadyMarker()
+                StartupDurationMarker()
             }
         }
     }

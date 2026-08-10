@@ -181,6 +181,8 @@ final class AppSettingsStore: ObservableObject {
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.lastLogDate)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.lastPhotoDate)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.photoRemindersEnabled)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.photoReminderStreak)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.photoReminderNextFireDate)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.goalAchievedEnabled)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.importNotificationsEnabled)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.perMetricSmartEnabled)
@@ -226,6 +228,8 @@ final class AppSettingsStore: ObservableObject {
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.reminders)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.lastLogDate)
             defaults.removeObject(forKey: AppSettingsKeys.Notifications.lastPhotoDate)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.photoReminderStreak)
+            defaults.removeObject(forKey: AppSettingsKeys.Notifications.photoReminderNextFireDate)
             defaults.removeObject(forKey: AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled)
         }
     }
@@ -426,6 +430,8 @@ final class AppSettingsStore: ObservableObject {
             defaults.set(notifications.lastLogDate, forKey: AppSettingsKeys.Notifications.lastLogDate)
             defaults.set(notifications.lastPhotoDate, forKey: AppSettingsKeys.Notifications.lastPhotoDate)
             defaults.set(notifications.photoRemindersEnabled, forKey: AppSettingsKeys.Notifications.photoRemindersEnabled)
+            defaults.set(notifications.photoReminderStreak, forKey: AppSettingsKeys.Notifications.photoReminderStreak)
+            defaults.set(notifications.photoReminderNextFireDate, forKey: AppSettingsKeys.Notifications.photoReminderNextFireDate)
             defaults.set(notifications.goalAchievedEnabled, forKey: AppSettingsKeys.Notifications.goalAchievedEnabled)
             defaults.set(notifications.importNotificationsEnabled, forKey: AppSettingsKeys.Notifications.importNotificationsEnabled)
             defaults.set(notifications.perMetricSmartEnabled, forKey: AppSettingsKeys.Notifications.perMetricSmartEnabled)

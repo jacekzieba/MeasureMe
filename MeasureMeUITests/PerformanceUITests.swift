@@ -8,7 +8,11 @@ final class PerformanceUITests: XCTestCase {
 
     private static let appBundleID = "com.jacek.measureme"
     private static let launchTrendSampleCount = 6
-    private static let launchBudgetMs: Double = 4_500
+    // Budget for the app's own launch->interactive interval, not the XCUITest wall
+    // clock. Measured median on the iOS 27.0 simulator (Debug) is ~1,600ms with a
+    // ~5% relative standard deviation; this leaves headroom for slower CI hardware
+    // while still catching a regression of a few hundred milliseconds.
+    private static let launchBudgetMs: Double = 2_500
     private static let tabSwitchTrendSampleCount = 3
     private static let tabSwitchBudgetMs: Double = 18_000
     private var app: XCUIApplication!
@@ -33,25 +37,30 @@ final class PerformanceUITests: XCTestCase {
             throw XCTSkip("XCTApplicationLaunchMetric is unstable on the iOS 26 test runner in this project.")
         }
 
-        let manualMedianMs = robustColdLaunchDurationMs(sampleCount: Self.launchTrendSampleCount)
-        logTrend(metric: "app_launch_ms", currentMs: manualMedianMs)
+        // Measures the app's own launch->interactive interval rather than the wall
+        // clock around `app.launch()`. On the iOS 27.0 simulator that wall clock is
+        // dominated by ~7s of XCUITest "Setting up automation session", which elapses
+        // before the app process executes a single instruction, so it cannot express
+        // a startup budget. See `StartupInstrumentation.markLaunchStart()`.
+        let medianMs = medianLaunchToInteractiveMs(sampleCount: Self.launchTrendSampleCount)
+        logTrend(metric: "launch_to_interactive_ms", currentMs: medianMs)
         XCTAssertLessThan(
-            manualMedianMs,
+            medianMs,
             Self.launchBudgetMs,
-            "Launch median \(String(format: "%.1f", manualMedianMs))ms exceeds budget \(String(format: "%.1f", Self.launchBudgetMs))ms."
+            "Launch-to-interactive median \(String(format: "%.1f", medianMs))ms exceeds budget \(String(format: "%.1f", Self.launchBudgetMs))ms."
         )
-        #if targetEnvironment(simulator)
+
         measure(metrics: [
-            XCTApplicationLaunchMetric()
+            XCTOSSignpostMetric(
+                subsystem: Self.appBundleID,
+                category: "Startup",
+                name: "LaunchToInteractive"
+            )
         ]) {
             app.terminate()
             app.launch()
-            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 8))
+            _ = readStartupDurationMs(timeout: 20)
         }
-        #else
-        // Physical-device fallback: rely on manual launch timings gathered above.
-        XCTAssertGreaterThan(manualMedianMs, 0)
-        #endif
     }
 
     @MainActor
@@ -267,6 +276,59 @@ final class PerformanceUITests: XCTestCase {
         let onboarding = onboardingNextButton().exists
         let homeCTA = app.buttons["home.aiInsights.openAnalysis"].firstMatch.exists
         return "state=\(app.state.rawValue), appRoot=\(appRoot), startup=\(startup), tabBar=\(tabBar), onboardingNext=\(onboarding), homeNextFocus=\(homeCTA)"
+    }
+
+    /// Reads the launch->interactive duration the app publishes once Home has
+    /// rendered. Returns `nil` if the marker never reports a value.
+    private func readStartupDurationMs(timeout: TimeInterval) -> Double? {
+        let marker = app.otherElements["startup.duration.ms"].firstMatch
+        guard marker.waitForExistence(timeout: timeout) else { return nil }
+
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if let value = Double(marker.label), value > 0 {
+                return value
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        return nil
+    }
+
+    private func medianLaunchToInteractiveMs(sampleCount: Int) -> Double {
+        guard sampleCount > 0 else { return 0 }
+
+        // Warm-up run: first UI automation launch is often an outlier.
+        app.terminate()
+        app.launch()
+        _ = readStartupDurationMs(timeout: 20)
+
+        var samples: [Double] = []
+        samples.reserveCapacity(sampleCount)
+        for _ in 0..<sampleCount {
+            app.terminate()
+            app.launch()
+            guard let measured = readStartupDurationMs(timeout: 20) else {
+                XCTFail("Expected the app to publish startup.duration.ms after launch.")
+                continue
+            }
+            samples.append(measured)
+        }
+
+        guard !samples.isEmpty else { return .greatestFiniteMagnitude }
+        let sorted = samples.sorted()
+        let middle = sorted.count / 2
+        let medianMs: Double
+        if sorted.count.isMultiple(of: 2), sorted.count > 1 {
+            medianMs = (sorted[middle - 1] + sorted[middle]) / 2
+        } else {
+            medianMs = sorted[middle]
+        }
+
+        print(
+            "📊 PERF launch_to_interactive samplesMs=\(samples.map { String(format: "%.0f", $0) }.joined(separator: ",")) " +
+            "medianMs=\(String(format: "%.1f", medianMs))"
+        )
+        return medianMs
     }
 
     private func robustColdLaunchDurationMs(sampleCount: Int) -> Double {
