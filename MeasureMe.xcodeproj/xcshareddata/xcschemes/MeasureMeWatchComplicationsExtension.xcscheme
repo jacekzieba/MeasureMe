@@ -112,7 +112,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A3E6B7E82F701C6F008A7C46"
             BuildableName = "MeasureMeWatchComplicationsExtension.appex"
-            BlueprintName = "MeasureMeWatchComplicationsExtension"
             ReferencedContainer = "container:MeasureMe.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

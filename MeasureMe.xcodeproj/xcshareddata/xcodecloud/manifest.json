@@ -1,0 +1,9 @@
+{
+  "id" : "a27bc256-f07e-47e6-a8aa-c924f2f878d8",
+  "targets" : [
+    {
+      "id" : "D0FA19FF-558E-4834-92F1-CE288EE60C3B",
+      "name" : "MeasureMe"
+    }
+  ]
+}

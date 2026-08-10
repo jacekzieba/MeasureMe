@@ -87,7 +87,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A36108522F6FE5E300DD7BF0"
             BuildableName = "MeasureMeWatch Watch App.app"
-            BlueprintName = "MeasureMeWatch Watch App"
             ReferencedContainer = "container:MeasureMe.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -104,7 +103,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A36108522F6FE5E300DD7BF0"
             BuildableName = "MeasureMeWatch Watch App.app"
-            BlueprintName = "MeasureMeWatch Watch App"
             ReferencedContainer = "container:MeasureMe.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
