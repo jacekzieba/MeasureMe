@@ -28,6 +28,7 @@ struct PhotoView: View {
     @State private var cameraPickerImage: UIImage? = nil
     @State private var cameraPickerPose: PhotoTag? = nil
     @State private var capturedImportImage: UIImage? = nil
+    @State private var capturedImportPose: PhotoTag? = nil
     @State private var showCapturedImportSheet = false
     @State private var showLibraryPicker = false   // PHPicker (1 and multiple)
     @State private var showSingleImportFlow = false
@@ -252,9 +253,11 @@ struct PhotoView: View {
             .sheet(isPresented: $showCamera, onDismiss: {
                 if let img = cameraPickerImage {
                     capturedImportImage = img
+                    capturedImportPose = cameraPickerPose
                     showCapturedImportSheet = true
                     cameraPickerImage = nil
                 }
+                cameraPickerPose = nil
             }) {
                 if UIImagePickerController.isSourceTypeAvailable(.camera), !uiTestModeEnabled {
                     GuidedCameraView(
@@ -268,9 +271,15 @@ struct PhotoView: View {
             }
             .sheet(isPresented: $showCapturedImportSheet, onDismiss: {
                 capturedImportImage = nil
+                capturedImportPose = nil
             }) {
                 NavigationStack {
-                    AddPhotoView(previewImage: capturedImportImage, telemetrySource: .photos)
+                    AddPhotoView(
+                        previewImage: capturedImportImage,
+                        initialTags: capturedImportPose.map { [$0] },
+                        poseIsUserChosen: capturedImportPose != nil,
+                        telemetrySource: .photos
+                    )
                         .environmentObject(metricsStore)
                 }
             }

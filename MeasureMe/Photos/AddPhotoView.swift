@@ -25,12 +25,14 @@ struct AddPhotoView: View {
     @State private var showCamera = false
     @State private var showPhotoLibrary = false
     @State private var date: Date = AppClock.now
-    @State private var selectedTags: Set<PhotoTag> = [.front]
+    /// Widoczne dla testów (AddPhotoPoseHandoffTests) — poza tym traktuj jak prywatne.
+    @State var selectedTags: Set<PhotoTag> = [.front]
     @State private var metricValues: [MetricKind: Double] = [:]
     @State private var isMeasurementsExpanded = false
     @State private var saveErrorMessage: String?
     @State private var isSaving = false
-    @State private var didUserChoosePose = false
+    /// Widoczne dla testów (AddPhotoPoseHandoffTests) — poza tym traktuj jak prywatne.
+    @State var didUserChoosePose = false
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
     private var shouldStartExpandedForUITests: Bool {
@@ -46,6 +48,7 @@ struct AddPhotoView: View {
         previewSource: PhotoLibraryImageSource? = nil,
         initialDate: Date? = nil,
         initialTags: Set<PhotoTag>? = nil,
+        poseIsUserChosen: Bool = false,
         initialMetricValues: [MetricKind: Double] = [:],
         telemetrySource: PhotoTelemetrySource = .photos,
         onPreparedForBatch: ((PreparedPhotoDraft) -> Void)? = nil,
@@ -60,6 +63,7 @@ struct AddPhotoView: View {
         self._isLoadingPreview = State(initialValue: previewImage == nil && previewSource != nil)
         self._date = State(initialValue: initialDate ?? AppClock.now)
         self._selectedTags = State(initialValue: initialTags ?? [.front])
+        self._didUserChoosePose = State(initialValue: poseIsUserChosen)
         self._metricValues = State(initialValue: initialMetricValues)
     }
 
@@ -432,7 +436,7 @@ private extension AddPhotoView {
     }
 
     @MainActor
-    func applySuggestedPoseIfNeeded(from image: UIImage) async {
+    internal func applySuggestedPoseIfNeeded(from image: UIImage) async {
         guard !didUserChoosePose else { return }
         guard let suggestedPose = await PhotoPoseClassifier.suggestedPose(for: image) else { return }
         selectedTags.subtract(Set(PhotoTag.primaryPoseTags))
