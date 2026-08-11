@@ -21,7 +21,7 @@ final class BodyMeshParametersTests: XCTestCase {
     /// Dlaczego: Odwrocona kolejnosc dalaby siatke ze skrzyzowanymi przekrojami.
     /// Kryteria: Ulamki wzrostu sa scisle rosnace.
     func testLandmarkFractionsAreStrictlyIncreasing() {
-        let order: [BodyLandmark] = [.ankle, .knee, .crotch, .hip, .waist, .chest, .shoulder, .neck, .crown]
+        let order: [BodyLandmark] = [.ankle, .calf, .knee, .crotch, .hip, .waist, .chest, .shoulder, .neck, .crown]
         for gender in [BodyGender.male, .female] {
             let fractions = order.map { BodyProportions.heightFraction($0, gender: gender) }
             // sorted() would accept adjacent duplicates; landmarks must be

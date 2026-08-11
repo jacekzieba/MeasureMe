@@ -66,7 +66,7 @@ final class BodyMeshSolverTests: XCTestCase {
 
     /// Co sprawdza: Miedzy talia a biodrami obwod zmienia sie monotonicznie.
     /// Dlaczego: Splajn kubiczny zrobilby tam fale; spec wymaga interpolacji monotonicznej.
-    /// Kryteria: Przy talii wezszej od bioder obwod nie maleje po drodze w gore... w dol.
+    /// Kryteria: Przy talii wezszej od bioder obwod maleje monotonicznie od bioder w gore do talii.
     func testTorsoDoesNotOscillateBetweenWaistAndHips() {
         let snapshot = Self.maleSnapshot(waist: 80, hips: 100)
         let solved = BodyMeshSolver.solve(snapshot: snapshot, torsoShareScale: 1.0)
@@ -100,6 +100,55 @@ final class BodyMeshSolverTests: XCTestCase {
         let small = BodyMeshSolver.solve(snapshot: Self.maleSnapshot(), torsoShareScale: 0.94)
         let large = BodyMeshSolver.solve(snapshot: Self.maleSnapshot(), torsoShareScale: 1.06)
         XCTAssertLessThan(large.torso.map(\.y).min() ?? 0, small.torso.map(\.y).min() ?? 0)
+    }
+
+    /// Co sprawdza: NIEZMIENNIK NOGI. Zmierzony obwod lydki trafia do siatki dokladnie.
+    /// Dlaczego: Lydka jest metryka wymagana od uzytkownika; gdyby sluzyla tylko jako mnoznik,
+    ///           kazalibysmy mierzyc cos, czego nie pokazujemy.
+    /// Kryteria: Przekroj na wysokosci lydki ma obwod rowny zmierzonemu ponizej 0.05 cm.
+    func testSolverReproducesMeasuredCalfCircumference() {
+        let snapshot = Self.maleSnapshot()
+        let solved = BodyMeshSolver.solve(snapshot: snapshot, torsoShareScale: 1.0)
+
+        let y = snapshot.heightCm * BodyProportions.heightFraction(.calf, gender: .male)
+        let found = section(of: solved.leg, nearestTo: y)
+        XCTAssertEqual(found.y, y, accuracy: 1e-6)
+        XCTAssertEqual(found.circumferenceCm, snapshot.calfCm, accuracy: 0.05)
+    }
+
+    /// Co sprawdza: Noga ma realne wybrzuszenie lydki, a nie monotoniczny stozek.
+    /// Dlaczego: To wizualny sens dodania landmarku .calf; bez tego lydka nadal by nie istniala.
+    /// Kryteria: Obwod na wysokosci lydki jest wiekszy niz na wysokosci kolana.
+    func testLegHasACalfBulgeRatherThanATaper() {
+        let snapshot = Self.maleSnapshot()
+        let solved = BodyMeshSolver.solve(snapshot: snapshot, torsoShareScale: 1.0)
+
+        let calfY = snapshot.heightCm * BodyProportions.heightFraction(.calf, gender: .male)
+        let kneeY = snapshot.heightCm * BodyProportions.heightFraction(.knee, gender: .male)
+
+        XCTAssertGreaterThan(
+            section(of: solved.leg, nearestTo: calfY).circumferenceCm,
+            section(of: solved.leg, nearestTo: kneeY).circumferenceCm
+        )
+    }
+
+    /// Co sprawdza: Niezmiennik obwodow trzyma sie takze przy skorygowanym podziale tors/nogi.
+    /// Dlaczego: Walidacja objetosciowa bedzie ta skale zmieniac; pomiar nie moze od niej zalezec.
+    /// Kryteria: Talia i biodra odtwarzaja sie dla obu krancow torsoShareRange.
+    func testAnchorCircumferencesSurviveTorsoShareCorrection() {
+        let snapshot = Self.maleSnapshot()
+        for scale in [BodyProportions.torsoShareRange.lowerBound,
+                      BodyProportions.torsoShareRange.upperBound] {
+            let solved = BodyMeshSolver.solve(snapshot: snapshot, torsoShareScale: scale)
+            XCTAssertTrue(
+                solved.torso.contains { abs($0.circumferenceCm - snapshot.waistCm) < 0.05 },
+                "Waist lost at scale \(scale)"
+            )
+            XCTAssertTrue(
+                solved.torso.contains { abs($0.circumferenceCm - snapshot.hipsCm) < 0.05 },
+                "Hips lost at scale \(scale)"
+            )
+        }
     }
 
     /// Co sprawdza: Dla kobiet obwod biustu trafia na poziom klatki.

@@ -64,7 +64,9 @@ nonisolated enum BodyMeshSolver {
             case .shoulder: return snapshot.shouldersCm
             case .neck:     return snapshot.neckCm
             case .crown:    return snapshot.neckCm * 0.55   // taper to a rounded top
-            case .knee:     return snapshot.calfCm * 1.02
+            // Knee girth sits just under maximum calf girth; the ankle well under it.
+            case .calf:     return snapshot.calfCm
+            case .knee:     return snapshot.calfCm * 0.93
             case .ankle:    return snapshot.calfCm * 0.72
             }
         }
@@ -78,7 +80,7 @@ nonisolated enum BodyMeshSolver {
 
         // Limbs are simple tapered tubes between two anchors each.
         let leg = buildStack(
-            anchors: [.ankle, .knee, .crotch],
+            anchors: [.ankle, .calf, .knee, .crotch],
             y: anchorY,
             circumference: { $0 == .crotch ? snapshot.thighCm : anchorCircumference($0) },
             gender: gender

@@ -16,7 +16,7 @@
 import Foundation
 
 nonisolated enum BodyLandmark: CaseIterable, Sendable {
-    case ankle, knee, crotch, hip, waist, chest, shoulder, neck, crown
+    case ankle, calf, knee, crotch, hip, waist, chest, shoulder, neck, crown
 }
 
 nonisolated enum BodyProportions {
@@ -24,6 +24,8 @@ nonisolated enum BodyProportions {
     static func heightFraction(_ landmark: BodyLandmark, gender: BodyGender) -> Double {
         switch (landmark, gender) {
         case (.ankle, _):        return 0.039
+        // Maximum calf girth sits roughly a third of the way from ankle to knee.
+        case (.calf, _):         return 0.200
         case (.knee, _):         return 0.285
         case (.crotch, .male):   return 0.485
         case (.crotch, .female): return 0.480
@@ -50,7 +52,7 @@ nonisolated enum BodyProportions {
         case (.waist, .female):        return 0.72
         case (.hip, _):                return 0.72
         case (.crotch, _):             return 0.80
-        case (.knee, _), (.ankle, _):  return 1.00
+        case (.knee, _), (.ankle, _), (.calf, _): return 1.00
         }
     }
 
@@ -61,7 +63,7 @@ nonisolated enum BodyProportions {
     /// to body volume.
     static func exponent(_ landmark: BodyLandmark) -> Double {
         switch landmark {
-        case .neck, .crown, .knee, .ankle: return 2.0
+        case .neck, .crown, .knee, .ankle, .calf: return 2.0
         case .hip:                         return 2.2
         case .waist:                       return 2.3
         case .crotch:                      return 2.2
