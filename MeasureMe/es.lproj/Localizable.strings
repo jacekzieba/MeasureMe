@@ -2123,6 +2123,7 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 "bodyModel.premium.action" = "Desbloquear";
 "bodyModel.quality.approximate" = "Esta silueta es una aproximación.";
 "bodyModel.quality.suspect" = "Tus medidas y tu peso no cuadran del todo. Revisa: %@.";
+"bodyModel.quality.suspectNoSite" = "Tus medidas y tu peso no cuadran del todo — el dato de peso es el culpable más probable.";
 "bodyModel.morph.label" = "Transición entre fechas";
 "bodyModel.morph.play" = "Reproducir";
 "bodyModel.dates.older" = "Desde";

@@ -84,6 +84,30 @@ final class BodyModelViewModelTests: XCTestCase {
         XCTAssertEqual(dates.count, 1)
     }
 
+    /// Co sprawdza: availableDates jest wypelniane datami kotwiczacymi z porownania.
+    /// Dlaczego: Ekran potrzebuje tej listy, by zbudowac pickery dat "From"/"To".
+    /// Kryteria: Lista zawiera obie daty kotwiczace, najnowsza pierwsza.
+    func testAvailableDatesPopulatedForComparison() {
+        let olderDate = anchor.addingTimeInterval(-90 * 86_400)
+        let older = completeSamples(at: olderDate, waist: 95)
+        let newer = completeSamples(at: anchor, waist: 85)
+
+        let viewModel = BodyModelViewModel()
+        viewModel.load(samples: older + newer, gender: .male, age: 30, fallbackHeightCm: 180)
+
+        XCTAssertEqual(viewModel.availableDates, [anchor, olderDate])
+    }
+
+    /// Co sprawdza: Brak plci czysci availableDates.
+    /// Dlaczego: Ekran nie powinien oferowac pickera dat, gdy stan to .needsProfile.
+    /// Kryteria: Lista jest pusta mimo kompletnych pomiarow.
+    func testAvailableDatesEmptyWhenGenderMissing() {
+        let viewModel = BodyModelViewModel()
+        viewModel.load(samples: completeSamples(at: anchor), gender: BodyGender(.notSpecified), age: 30, fallbackHeightCm: 180)
+
+        XCTAssertTrue(viewModel.availableDates.isEmpty)
+    }
+
     /// Co sprawdza: morphProgress steruje interpolacja parametrow.
     /// Dlaczego: To wiazanie suwaka z geometria.
     /// Kryteria: t=0 daje starszy stan, t=1 nowszy.

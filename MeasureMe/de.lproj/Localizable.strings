@@ -2121,6 +2121,7 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "bodyModel.premium.action" = "Freischalten";
 "bodyModel.quality.approximate" = "Diese Silhouette ist eine Annäherung.";
 "bodyModel.quality.suspect" = "Deine Maße und dein Gewicht passen nicht ganz zusammen. Überprüfe: %@.";
+"bodyModel.quality.suspectNoSite" = "Deine Maße und dein Gewicht passen nicht ganz zusammen — der wahrscheinlichste Grund ist der eingetragene Gewichtswert.";
 "bodyModel.morph.label" = "Übergang zwischen Daten";
 "bodyModel.morph.play" = "Abspielen";
 "bodyModel.dates.older" = "Von";

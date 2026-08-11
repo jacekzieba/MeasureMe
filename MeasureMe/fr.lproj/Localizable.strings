@@ -2121,6 +2121,7 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 "bodyModel.premium.action" = "Débloquer";
 "bodyModel.quality.approximate" = "Cette silhouette est une approximation.";
 "bodyModel.quality.suspect" = "Vos mesures et votre poids ne concordent pas tout à fait. Vérifiez : %@.";
+"bodyModel.quality.suspectNoSite" = "Vos mesures et votre poids ne concordent pas tout à fait — le poids saisi en est la cause la plus probable.";
 "bodyModel.morph.label" = "Transition entre les dates";
 "bodyModel.morph.play" = "Lecture";
 "bodyModel.dates.older" = "Du";

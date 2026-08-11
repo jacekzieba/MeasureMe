@@ -31,11 +31,13 @@ struct BodyModelScreen: View {
 
     private let theme = FeatureTheme.photos
 
-    private var uiTestModeEnabled: Bool {
-        ProcessInfo.processInfo.arguments.contains("-uiTestMode")
-    }
+    private var hasAccess: Bool { premiumStore.isPremium || UITestArgument.isPresent(.mode) }
 
-    private var hasAccess: Bool { premiumStore.isPremium || uiTestModeEnabled }
+    /// The profile's resolved gender, or nil when the user hasn't set one. Computed once so
+    /// `reload()` and date-picker selection agree on the same value.
+    private var resolvedGender: BodyGender? {
+        BodyGender(Gender(rawValue: userGender) ?? .notSpecified)
+    }
 
     var body: some View {
         NavigationStack {
@@ -91,10 +93,90 @@ struct BodyModelScreen: View {
 
         case .single, .comparison:
             mannequinCard
-            if case .comparison = viewModel.state { morphControls }
+            if case .comparison = viewModel.state {
+                datePickersCard
+                morphControls
+            }
             qualityNote
             changeList
         }
+    }
+
+    /// Lets the user pick which two anchor dates to compare. Hidden in `.single` — there is
+    /// nothing to choose between yet.
+    @ViewBuilder
+    private var datePickersCard: some View {
+        if case let .comparison(older, newer) = viewModel.state {
+            AppGlassCard(tint: theme.softTint) {
+                VStack(spacing: AppSpacing.sm) {
+                    datePickerRow(
+                        label: AppLocalization.string("bodyModel.dates.older"),
+                        selection: older.snapshot.anchorDate,
+                        otherSelection: newer.snapshot.anchorDate,
+                        isOlderPicker: true,
+                        accessibilityIdentifier: "photos.bodyModel.olderDatePicker"
+                    )
+                    datePickerRow(
+                        label: AppLocalization.string("bodyModel.dates.newer"),
+                        selection: newer.snapshot.anchorDate,
+                        otherSelection: older.snapshot.anchorDate,
+                        isOlderPicker: false,
+                        accessibilityIdentifier: "photos.bodyModel.newerDatePicker"
+                    )
+                }
+            }
+        }
+    }
+
+    private func datePickerRow(
+        label: String,
+        selection: Date,
+        otherSelection: Date,
+        isOlderPicker: Bool,
+        accessibilityIdentifier: String
+    ) -> some View {
+        let binding = Binding<Date>(
+            get: { selection },
+            set: { newDate in
+                if isOlderPicker {
+                    selectDates(olderDate: newDate, newerDate: otherSelection)
+                } else {
+                    selectDates(olderDate: otherSelection, newerDate: newDate)
+                }
+            }
+        )
+
+        return HStack {
+            Text(label)
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(AppColorRoles.textSecondary)
+            Spacer()
+            Picker(label, selection: binding) {
+                ForEach(viewModel.availableDates, id: \.self) { date in
+                    Text(date.formatted(date: .abbreviated, time: .omitted)).tag(date)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .tint(theme.accent)
+        }
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    /// Re-resolves the comparison for a newly picked pair of dates. Picking the same date
+    /// twice, or a "from" that isn't strictly earlier than the "to", is rejected outright —
+    /// the picker snaps back to the last valid selection rather than silently reordering the
+    /// user's choice into something they didn't ask for.
+    private func selectDates(olderDate: Date, newerDate: Date) {
+        guard olderDate < newerDate, let gender = resolvedGender else { return }
+        viewModel.select(
+            olderDate: olderDate,
+            newerDate: newerDate,
+            samples: samples,
+            gender: gender,
+            age: userAge,
+            fallbackHeightCm: manualHeight
+        )
     }
 
     private var mannequinCard: some View {
@@ -163,9 +245,14 @@ struct BodyModelScreen: View {
         case .approximate:
             return AppLocalization.string("bodyModel.quality.approximate")
         case .suspect:
+            guard let suspectSite = validation.suspectSite else {
+                // No single site's deviation cleared the threshold, so no one measurement
+                // explains the disagreement — the logged weight is the likelier culprit.
+                return AppLocalization.string("bodyModel.quality.suspectNoSite")
+            }
             return String(
                 format: AppLocalization.string("bodyModel.quality.suspect"),
-                AppLocalization.string(validation.suspectSite?.localizationKey ?? "")
+                AppLocalization.string(suspectSite.localizationKey)
             )
         }
     }
@@ -198,7 +285,7 @@ struct BodyModelScreen: View {
     private func reload() {
         viewModel.load(
             samples: samples,
-            gender: BodyGender(Gender(rawValue: userGender) ?? .notSpecified),
+            gender: resolvedGender,
             age: userAge,
             fallbackHeightCm: manualHeight
         )

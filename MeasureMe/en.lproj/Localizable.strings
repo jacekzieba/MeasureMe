@@ -2127,6 +2127,7 @@ The thresholds differ between males and females due to different body compositio
 "bodyModel.premium.action" = "Unlock";
 "bodyModel.quality.approximate" = "This silhouette is an approximation.";
 "bodyModel.quality.suspect" = "Your measurements and weight don't quite add up. Check your %@.";
+"bodyModel.quality.suspectNoSite" = "Your measurements and weight don't quite add up — the weight entry is the most likely culprit.";
 "bodyModel.morph.label" = "Morph between dates";
 "bodyModel.morph.play" = "Play";
 "bodyModel.dates.older" = "From";

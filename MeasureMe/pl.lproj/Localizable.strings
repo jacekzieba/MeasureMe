@@ -2079,6 +2079,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "bodyModel.premium.action" = "Odblokuj";
 "bodyModel.quality.approximate" = "Ta sylwetka jest przybliżeniem.";
 "bodyModel.quality.suspect" = "Twoje pomiary i waga nie do końca się zgadzają. Sprawdź: %@.";
+"bodyModel.quality.suspectNoSite" = "Twoje pomiary i waga nie do końca się zgadzają — najbardziej prawdopodobnym powodem jest wpisana waga.";
 "bodyModel.morph.label" = "Przejście między datami";
 "bodyModel.morph.play" = "Odtwórz";
 "bodyModel.dates.older" = "Od";

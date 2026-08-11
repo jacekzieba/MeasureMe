@@ -2123,6 +2123,7 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 "bodyModel.premium.action" = "Desbloquear";
 "bodyModel.quality.approximate" = "Esta silhueta é uma aproximação.";
 "bodyModel.quality.suspect" = "Suas medidas e seu peso não batem completamente. Verifique: %@.";
+"bodyModel.quality.suspectNoSite" = "Suas medidas e seu peso não batem completamente — o valor de peso informado é o culpado mais provável.";
 "bodyModel.morph.label" = "Transição entre datas";
 "bodyModel.morph.play" = "Reproduzir";
 "bodyModel.dates.older" = "De";
