@@ -2103,3 +2103,8 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 
 // App icon picker
 "appicon.option.current" = "Atual";
+
+// Camera overlay controls
+"camera.overlay.off" = "Desl.";
+"camera.overlay.noPhotoForPose" = "Ainda não há foto para esta pose — esta será a primeira";
+"camera.overlay.opacity" = "Opacidade da sobreposição";

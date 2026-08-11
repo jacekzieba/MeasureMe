@@ -2101,3 +2101,8 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 
 // App icon picker
 "appicon.option.current" = "Aktuell";
+
+// Camera overlay controls
+"camera.overlay.off" = "Aus";
+"camera.overlay.noPhotoForPose" = "Noch kein Foto für diese Pose – das wird dein erstes";
+"camera.overlay.opacity" = "Deckkraft der Überlagerung";

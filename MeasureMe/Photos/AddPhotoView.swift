@@ -25,12 +25,14 @@ struct AddPhotoView: View {
     @State private var showCamera = false
     @State private var showPhotoLibrary = false
     @State private var date: Date = AppClock.now
-    @State private var selectedTags: Set<PhotoTag> = [.front]
+    /// Widoczne dla testów (AddPhotoPoseHandoffTests) — poza tym traktuj jak prywatne.
+    @State var selectedTags: Set<PhotoTag> = [.front]
     @State private var metricValues: [MetricKind: Double] = [:]
     @State private var isMeasurementsExpanded = false
     @State private var saveErrorMessage: String?
     @State private var isSaving = false
-    @State private var didUserChoosePose = false
+    /// Widoczne dla testów (AddPhotoPoseHandoffTests) — poza tym traktuj jak prywatne.
+    @State var didUserChoosePose = false
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
     private var shouldStartExpandedForUITests: Bool {
@@ -46,6 +48,7 @@ struct AddPhotoView: View {
         previewSource: PhotoLibraryImageSource? = nil,
         initialDate: Date? = nil,
         initialTags: Set<PhotoTag>? = nil,
+        poseIsUserChosen: Bool = false,
         initialMetricValues: [MetricKind: Double] = [:],
         telemetrySource: PhotoTelemetrySource = .photos,
         onPreparedForBatch: ((PreparedPhotoDraft) -> Void)? = nil,
@@ -60,6 +63,7 @@ struct AddPhotoView: View {
         self._isLoadingPreview = State(initialValue: previewImage == nil && previewSource != nil)
         self._date = State(initialValue: initialDate ?? AppClock.now)
         self._selectedTags = State(initialValue: initialTags ?? [.front])
+        self._didUserChoosePose = State(initialValue: poseIsUserChosen)
         self._metricValues = State(initialValue: initialMetricValues)
     }
 
@@ -435,8 +439,35 @@ private extension AddPhotoView {
     func applySuggestedPoseIfNeeded(from image: UIImage) async {
         guard !didUserChoosePose else { return }
         guard let suggestedPose = await PhotoPoseClassifier.suggestedPose(for: image) else { return }
-        selectedTags.subtract(Set(PhotoTag.primaryPoseTags))
-        selectedTags.insert(suggestedPose)
+        applySuggestedPose(suggestedPose)
+    }
+
+    /// Podmienia pozę tylko wtedy, gdy użytkownik nie wybrał jej sam.
+    @MainActor
+    func applySuggestedPose(_ pose: PhotoTag) {
+        guard let newTags = Self.poseApplication(
+            currentTags: selectedTags,
+            suggestedPose: pose,
+            didUserChoosePose: didUserChoosePose
+        ) else { return }
+        selectedTags = newTags
+    }
+
+    /// Widoczne dla testów (AddPhotoPoseHandoffTests) — poza tym traktuj jak prywatne.
+    /// Czysta logika decyzyjna za `applySuggestedPose`, wydzielona do statycznej funkcji: mutacje
+    /// @State poza zainstalowanym drzewem widoku SwiftUI nie są obserwowalne w testach (zweryfikowane
+    /// empirycznie), więc testujemy tę decyzję bezpośrednio, bez konstruowania i mutowania widoku.
+    /// Zwraca nil, gdy użytkownik sam wybrał pozę (decyzja nie jest nadpisywana).
+    internal static func poseApplication(
+        currentTags: Set<PhotoTag>,
+        suggestedPose: PhotoTag,
+        didUserChoosePose: Bool
+    ) -> Set<PhotoTag>? {
+        guard !didUserChoosePose else { return nil }
+        var newTags = currentTags
+        newTags.subtract(Set(PhotoTag.primaryPoseTags))
+        newTags.insert(suggestedPose)
+        return newTags
     }
 
     func milliseconds(from duration: Duration) -> Int {

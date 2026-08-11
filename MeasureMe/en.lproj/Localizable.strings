@@ -2107,3 +2107,8 @@ The thresholds differ between males and females due to different body compositio
 
 // App icon picker
 "appicon.option.current" = "Current";
+
+// Camera overlay controls
+"camera.overlay.off" = "Off";
+"camera.overlay.noPhotoForPose" = "No photo for this pose yet — this will be your first";
+"camera.overlay.opacity" = "Overlay opacity";

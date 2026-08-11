@@ -2103,3 +2103,8 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 
 // App icon picker
 "appicon.option.current" = "Actual";
+
+// Camera overlay controls
+"camera.overlay.off" = "No";
+"camera.overlay.noPhotoForPose" = "Aún no hay foto para esta pose: esta será la primera";
+"camera.overlay.opacity" = "Opacidad de la superposición";

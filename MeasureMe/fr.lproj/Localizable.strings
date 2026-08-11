@@ -2101,3 +2101,8 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 
 // App icon picker
 "appicon.option.current" = "Actuelle";
+
+// Camera overlay controls
+"camera.overlay.off" = "Aucun";
+"camera.overlay.noPhotoForPose" = "Aucune photo pour cette pose — ce sera la première";
+"camera.overlay.opacity" = "Opacité du calque";

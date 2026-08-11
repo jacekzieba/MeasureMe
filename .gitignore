@@ -19,7 +19,7 @@ build/
 .opencode/
 
 # Local reference assets
-photos/
+/photos/
 measure_buddy_10_poses_transparent/
 
 # SwiftPM
