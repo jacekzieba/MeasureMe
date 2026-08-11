@@ -48,9 +48,18 @@ nonisolated struct BodyMeshParameters: Equatable, Sendable {
     ) -> BodyMeshParameters {
         let clamped = min(max(t, 0), 1)
 
+        // Return the endpoints verbatim. `first + (second - first) * 1` is not
+        // bit-identical to `second` in IEEE 754, and the morph must land exactly
+        // on the measured bodies at both ends of the slider — an approximation
+        // there would mean the silhouette never quite shows either real state.
+        if clamped <= 0 { return start }
+        if clamped >= 1 { return end }
+
         func blend(_ a: [BodyCrossSection], _ b: [BodyCrossSection]) -> [BodyCrossSection] {
-            // Both sides are solved with the same level count, so zip is safe.
-            zip(a, b).map { first, second in
+            // A length mismatch would silently truncate to the shorter side and
+            // drop levels mid-morph, so state the invariant rather than assume it.
+            precondition(a.count == b.count, "Interpolating bodies with different level counts")
+            return zip(a, b).map { first, second in
                 BodyCrossSection(
                     y: first.y + (second.y - first.y) * clamped,
                     circumferenceCm: first.circumferenceCm

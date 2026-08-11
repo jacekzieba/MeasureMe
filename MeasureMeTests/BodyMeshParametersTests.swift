@@ -24,7 +24,12 @@ final class BodyMeshParametersTests: XCTestCase {
         let order: [BodyLandmark] = [.ankle, .knee, .crotch, .hip, .waist, .chest, .shoulder, .neck, .crown]
         for gender in [BodyGender.male, .female] {
             let fractions = order.map { BodyProportions.heightFraction($0, gender: gender) }
-            XCTAssertEqual(fractions, fractions.sorted(), "Not increasing for \(gender)")
+            // sorted() would accept adjacent duplicates; landmarks must be
+            // strictly apart or two cross-sections collapse onto one height.
+            XCTAssertTrue(
+                zip(fractions, fractions.dropFirst()).allSatisfy { $0 < $1 },
+                "Not strictly increasing for \(gender): \(fractions)"
+            )
             XCTAssertEqual(fractions.last!, 1.0, accuracy: 1e-9)
         }
     }
@@ -57,6 +62,19 @@ final class BodyMeshParametersTests: XCTestCase {
                 XCTAssertLessThanOrEqual(section.circumferenceCm, high + 1e-9)
             }
         }
+    }
+
+    /// Co sprawdza: Krance sa dokladne takze dla wartosci, ktore nie sa okragle.
+    /// Dlaczego: first + (second - first) * 1 nie jest bitowo rowne second w IEEE 754.
+    ///           Fixture z okraglymi liczbami (80 -> 90) maskowal te zaleznosc, a realne
+    ///           pomiary okragle nie sa. Test pilnuje kontraktu, nie reprodukuje konkretnego bledu.
+    /// Kryteria: Dla obwodow 82.3 i 91.7 oraz wzrostu 174.7 oba krance sa identyczne z wejsciem.
+    func testInterpolationEndpointsAreExactForAwkwardValues() {
+        let a = Self.parameters(circumference: 82.3, height: 174.7)
+        let b = Self.parameters(circumference: 91.7, height: 174.7)
+
+        XCTAssertEqual(BodyMeshParameters.interpolated(from: a, to: b, t: 0), a)
+        XCTAssertEqual(BodyMeshParameters.interpolated(from: a, to: b, t: 1), b)
     }
 
     /// Co sprawdza: t poza [0,1] jest przycinane.
