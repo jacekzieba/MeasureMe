@@ -1462,7 +1462,9 @@ git commit -m "feat(body-model): solve measurements into a monotone cross-sectio
 
 Objętość analityczna, gęstość z `bodyFat`, odchyłka od `weight` i korekta podziału tors/nogi.
 
-**Testy są własnościowe, nie oparte na zewnętrznych danych.** Najmocniejszy z nich to okrągłość: budujemy ciało, liczymy jego masę, podajemy tę masę z powrotem jako `weight` i żądamy odchyłki bliskiej zeru. Nie wymaga żadnego zewnętrznego zbioru i wyłapuje każdy błąd w łańcuchu pole → objętość → gęstość.
+**Testy są własnościowe, nie oparte na zewnętrznych danych.**
+
+**Uwaga o teście okrągłości.** Pierwotny plan twierdził, że okrągłość masy „wyłapuje każdy błąd w łańcuchu pole → objętość → gęstość". To nieprawda i zostało poprawione. `solve` nigdy nie czyta `weightKg`, więc podanie wyliczonej masy z powrotem jako wagi porównuje tę samą deterministyczną funkcję z nią samą — odchyłka jest zerowa z konstrukcji, choćby mnożnik kończyn wynosił 1 zamiast 2 albo cały stos wypadł z sumy. Okrągłość zostaje jako test spójności `reconcile`, ale współczynniki i kompletność sumy przypinają dwa **bezwzględne** testy: objętość walca o znanych wymiarach i pasmo prawdopodobieństwa masy realnego ciała.
 
 **Files:**
 - Create: `MeasureMe/BodyModel/BodyVolumeValidator.swift`
