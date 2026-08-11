@@ -4,6 +4,7 @@
 
 import XCTest
 import SceneKit
+import simd
 @testable import MeasureMe
 
 final class BodyGeometryBuilderTests: XCTestCase {
