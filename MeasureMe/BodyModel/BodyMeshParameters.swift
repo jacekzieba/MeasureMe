@@ -21,9 +21,18 @@ nonisolated struct BodyCrossSection: Equatable, Sendable {
     /// Depth over width.
     let aspectRatio: Double
     let exponent: Double
+    /// Fitted once at init — `Superellipse.fitting` numerically integrates a
+    /// perimeter, and `reconcile`'s bisection reads `.shape` thousands of
+    /// times per call, so this is computed once and stored rather than
+    /// recomputed on every access.
+    let shape: Superellipse
 
-    var shape: Superellipse {
-        Superellipse.fitting(
+    init(y: Double, circumferenceCm: Double, aspectRatio: Double, exponent: Double) {
+        self.y = y
+        self.circumferenceCm = circumferenceCm
+        self.aspectRatio = aspectRatio
+        self.exponent = exponent
+        self.shape = Superellipse.fitting(
             circumference: circumferenceCm,
             aspectRatio: aspectRatio,
             exponent: exponent

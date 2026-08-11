@@ -36,8 +36,11 @@ nonisolated struct BodyValidationResult: Equatable, Sendable {
     /// Signed `(predicted - logged) / logged`.
     let deviationFraction: Double
     let band: BodyValidationBand
-    /// Metric contributing most to an unresolved disagreement; nil unless `.suspect`.
-    let suspectMetric: MetricKind?
+    /// Site contributing most to an unresolved disagreement; nil unless
+    /// `.suspect`, and nil even then when no single site's deviation clears
+    /// the threshold — meaning no one measurement explains the disagreement,
+    /// so the logged weight itself is the likelier culprit.
+    let suspectSite: BodyMeasurementSite?
     /// Where the torso/leg correction settled.
     let torsoShareScale: Double
 }
@@ -92,15 +95,27 @@ nonisolated enum BodyVolumeValidator {
         var high = BodyProportions.torsoShareRange.upperBound
         var best = 1.0
 
-        if deviation(at: low) * deviation(at: high) < 0 {
+        let lowDeviation = deviation(at: low)
+        let highDeviation = deviation(at: high)
+
+        if lowDeviation * highDeviation < 0 {
+            // `low`'s deviation only changes when `low` itself moves, so it is
+            // cached rather than recomputed (and re-solved) on every iteration.
+            var cachedLowDeviation = lowDeviation
             for _ in 0..<24 {
                 let mid = (low + high) / 2
-                if deviation(at: low) * deviation(at: mid) <= 0 { high = mid } else { low = mid }
+                let midDeviation = deviation(at: mid)
+                if cachedLowDeviation * midDeviation <= 0 {
+                    high = mid
+                } else {
+                    low = mid
+                    cachedLowDeviation = midDeviation
+                }
             }
             best = (low + high) / 2
         } else {
             // No zero crossing inside the range: take whichever end gets closest.
-            best = abs(deviation(at: low)) < abs(deviation(at: high))
+            best = abs(lowDeviation) < abs(highDeviation)
                 ? BodyProportions.torsoShareRange.lowerBound
                 : BodyProportions.torsoShareRange.upperBound
         }
@@ -114,38 +129,46 @@ nonisolated enum BodyVolumeValidator {
             BodyValidationResult(
                 deviationFraction: residual,
                 band: band,
-                suspectMetric: band == .suspect ? suspectMetric(for: snapshot, residual: residual) : nil,
+                suspectSite: band == .suspect ? suspectSite(for: snapshot, residual: residual) : nil,
                 torsoShareScale: best
             )
         )
     }
 
+    /// A site's aligned relative deviation must clear this before it is named
+    /// as the suspect — below it, every measurement looks textbook and the
+    /// disagreement is more likely a bad weight entry than a bad tape reading.
+    private static let suspectThreshold = 0.15
+
     /// Ranks measured circumferences by how far each sits from the population
-    /// norm for this height and gender, and names the worst outlier. A model
-    /// too light means an implausibly small circumference, and vice versa.
-    private static func suspectMetric(for snapshot: BodySnapshot, residual: Double) -> MetricKind? {
+    /// norm for this height and gender, and names the worst outlier if it
+    /// clears `suspectThreshold`. A model too light means an implausibly
+    /// small circumference, and vice versa.
+    private static func suspectSite(for snapshot: BodySnapshot, residual: Double) -> BodyMeasurementSite? {
         // Expected circumference as a fraction of height, from the same tables
         // that place the landmarks.
-        let expectations: [(kind: MetricKind, measured: Double, fractionOfHeight: Double)] = [
+        let expectations: [(site: BodyMeasurementSite, measured: Double, fractionOfHeight: Double)] = [
             (.neck, snapshot.neckCm, 0.211),
             (.shoulders, snapshot.shouldersCm, 0.653),
             (.chest, snapshot.bustCm ?? snapshot.chestCm, 0.556),
             (.waist, snapshot.waistCm, 0.472),
             (.hips, snapshot.hipsCm, 0.544),
-            (.leftThigh, snapshot.thighCm, 0.322),
-            (.leftCalf, snapshot.calfCm, 0.211),
-            (.leftBicep, snapshot.bicepCm, 0.189)
+            (.thigh, snapshot.thighCm, 0.322),
+            (.calf, snapshot.calfCm, 0.211),
+            (.bicep, snapshot.bicepCm, 0.189)
         ]
 
-        return expectations
-            .map { item -> (MetricKind, Double) in
+        let worst = expectations
+            .map { item -> (BodyMeasurementSite, Double) in
                 let expected = snapshot.heightCm * item.fractionOfHeight
                 let relative = (item.measured - expected) / expected
                 // Only count deviations in the direction that explains the residual.
                 let aligned = residual < 0 ? -relative : relative
-                return (item.kind, aligned)
+                return (item.site, aligned)
             }
             .max { $0.1 < $1.1 }
-            .map(\.0)
+
+        guard let worst, worst.1 > suspectThreshold else { return nil }
+        return worst.0
     }
 }

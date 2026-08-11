@@ -36,6 +36,62 @@ final class BodyVolumeValidatorTests: XCTestCase {
         XCTAssertEqual(validation.band, .good)
     }
 
+    /// Co sprawdza: Objetosc walca o znanych wymiarach zgadza sie z wartoscia analityczna.
+    /// Dlaczego: Test okraglosci nie przypina wspolczynnikow — ta sama zla formula generuje
+    ///           obie strony porownania. To jest bezwzgledna wyrocznia dla lancucha pole -> objetosc.
+    /// Kryteria: Walec o promieniu 10 cm i wysokosci 100 cm ma objetosc pi*r^2*h / 1000 litra.
+    func testVolumeOfAKnownCylinderMatchesTheAnalyticValue() {
+        let radius = 10.0
+        let circumference = 2 * Double.pi * radius
+        let cylinder = [
+            BodyCrossSection(y: 0, circumferenceCm: circumference, aspectRatio: 1, exponent: 2),
+            BodyCrossSection(y: 100, circumferenceCm: circumference, aspectRatio: 1, exponent: 2)
+        ]
+        let parameters = BodyMeshParameters(torso: cylinder, arm: [], leg: [], heightCm: 100)
+
+        let expectedLitres = Double.pi * radius * radius * 100 / 1000
+        XCTAssertEqual(BodyVolumeValidator.volumeLitres(parameters), expectedLitres, accuracy: expectedLitres * 0.001)
+    }
+
+    /// Co sprawdza: Kazda konczyna liczy sie dwukrotnie, a zaden stos nie wypada z sumy.
+    /// Dlaczego: Solver buduje jedno ramie i jedna noge, renderer je odbija. Zly mnoznik
+    ///           albo pominiety stos przechodza przez test okraglosci niezauwazone.
+    /// Kryteria: Ten sam walec jako ramie daje dwukrotnosc objetosci walca jako tors,
+    ///           i tak samo jako noga.
+    func testLimbStacksAreCountedTwice() {
+        let circumference = 2 * Double.pi * 10.0
+        let cylinder = [
+            BodyCrossSection(y: 0, circumferenceCm: circumference, aspectRatio: 1, exponent: 2),
+            BodyCrossSection(y: 100, circumferenceCm: circumference, aspectRatio: 1, exponent: 2)
+        ]
+        let single = BodyVolumeValidator.volumeLitres(
+            BodyMeshParameters(torso: cylinder, arm: [], leg: [], heightCm: 100)
+        )
+
+        let asArm = BodyVolumeValidator.volumeLitres(
+            BodyMeshParameters(torso: [], arm: cylinder, leg: [], heightCm: 100)
+        )
+        let asLeg = BodyVolumeValidator.volumeLitres(
+            BodyMeshParameters(torso: [], arm: [], leg: cylinder, heightCm: 100)
+        )
+
+        XCTAssertEqual(asArm, single * 2, accuracy: single * 0.001)
+        XCTAssertEqual(asLeg, single * 2, accuracy: single * 0.001)
+    }
+
+    /// Co sprawdza: Masa wynikajaca z realnych wymiarow miesci sie w prawdopodobnym pasmie.
+    /// Dlaczego: Lapie pominiety stos albo zly mnoznik na realnym ciele, a nie na walcu.
+    /// Kryteria: Dla mezczyzny 180 cm o typowych obwodach implikowana masa lezy w 55-105 kg.
+    func testImpliedMassOfARealisticBodyIsPlausible() {
+        let snapshot = Self.snapshot(weightKg: 80)
+        let parameters = BodyMeshSolver.solve(snapshot: snapshot, torsoShareScale: 1.0)
+        let impliedMass = BodyVolumeValidator.volumeLitres(parameters)
+            * BodyVolumeValidator.bodyDensity(bodyFatPercent: snapshot.bodyFatPercent)
+
+        XCTAssertGreaterThan(impliedMass, 55)
+        XCTAssertLessThan(impliedMass, 105)
+    }
+
     /// Co sprawdza: Objetosc skaluje sie z szescianem skali liniowej.
     /// Dlaczego: To wymiarowy niezmiennik geometrii; lamie sie przy pomyleniu jednostek.
     /// Kryteria: Podwojenie wszystkich dlugosci daje osmiokrotna objetosc.
@@ -98,13 +154,16 @@ final class BodyVolumeValidatorTests: XCTestCase {
         }
     }
 
-    /// Co sprawdza: Absurdalna waga trafia do pasma .suspect i wskazuje metryke.
-    /// Dlaczego: To funkcja produktowa — aplikacja ma wylapac bledny pomiar.
-    /// Kryteria: Pasmo to .suspect, a suspectMetric nie jest nil.
-    func testWildlyInconsistentWeightIsFlaggedWithASuspectMetric() {
+    /// Co sprawdza: Absurdalna waga trafia do pasma .suspect, ale przy podrecznikowych
+    ///           obwodach zaden pojedynczy pomiar nie tlumaczy rozjazdu.
+    /// Dlaczego: Wskazanie konkretnej strony bez przekroczonego progu kierowaloby
+    ///           uzytkownika do przemierzenia dobrej taśmy zamiast poprawienia wagi.
+    /// Kryteria: Pasmo to .suspect, a suspectSite jest nil, bo zaden obwod nie
+    ///           przekracza progu 0.15.
+    func testWildlyInconsistentWeightWithTextbookMeasurementsHasNoSuspectSite() {
         let (_, validation) = BodyVolumeValidator.reconcile(snapshot: Self.snapshot(weightKg: 200))
         XCTAssertEqual(validation.band, .suspect)
-        XCTAssertNotNil(validation.suspectMetric)
+        XCTAssertNil(validation.suspectSite)
     }
 
     /// Co sprawdza: Progi pasm odpowiadaja specyfikacji.
