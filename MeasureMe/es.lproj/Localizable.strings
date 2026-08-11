@@ -582,6 +582,7 @@ El IMC no distingue entre masa muscular y grasa, por lo que atletas o personas c
 "measure.instructions.leanBodyMass" = "Usa siempre el mismo dispositivo y mide en condiciones parecidas. Intenta hacerlo a la misma hora del día y con un nivel similar de hidratación. Fíjate en la tendencia, no en lecturas aisladas.";
 "measure.instructions.height" = "Mídete descalzo sobre una superficie plana, con la espalda pegada a la pared. Mantén la cabeza recta, los hombros relajados y los talones juntos. Intenta medirte siempre a la misma hora del día.";
 "measure.instructions.circumference" = "Usa una cinta métrica flexible sobre la piel o sobre ropa fina. Mantén la cinta nivelada y ajustada, sin comprimir la piel. Usa siempre los mismos puntos de referencia.";
+"measure.hint.shoulders" = "Mide alrededor de la parte más ancha de los hombros y los deltoides: es una circunferencia, no la anchura de hombros.";
 "premium.benefit.ai" = "Análisis con IA";
 "premium.benefit.indicators" = "Indicadores de salud e indicadores físicos";
 "premium.benefit.export" = "Exportación de datos";

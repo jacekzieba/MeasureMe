@@ -582,6 +582,7 @@ L'IMC ne distingue pas la masse musculaire de la masse grasse. Les sportifs ou l
 "measure.instructions.leanBodyMass" = "Utilisez un appareil régulier dans des conditions similaires. Visez le même moment de la journée et le même niveau d’hydratation. Suivez les tendances plutôt que les lectures uniques.";
 "measure.instructions.height" = "Mesurez pieds nus sur une surface plane, dos contre un mur. Gardez la tête au niveau, les épaules détendues, les talons joints. Mesurez à la même heure de la journée pour plus de cohérence.";
 "measure.instructions.circumference" = "Utilisez un ruban à mesurer doux sur la peau nue ou sur des vêtements fins. Gardez le ruban de niveau et bien ajusté sans comprimer la peau. Utilisez les mêmes repères à chaque fois.";
+"measure.hint.shoulders" = "Mesurez autour de la partie la plus large de vos épaules et de vos deltoïdes — c’est une circonférence, pas la largeur d’épaules.";
 "premium.benefit.ai" = "Analyses IA";
 "premium.benefit.indicators" = "Indicateurs santé et corps";
 "premium.benefit.export" = "Exportation de données";

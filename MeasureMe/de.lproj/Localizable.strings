@@ -582,6 +582,7 @@ Der BMI unterscheidet nicht zwischen Muskel- und Fettmasse. Deshalb können Spor
 "measure.instructions.leanBodyMass" = "Verwende unter ähnlichen Bedingungen ein einheitliches Gerät. Strebe nach der gleichen Tageszeit und dem gleichen Flüssigkeitsniveau. Verfolge Trends statt einzelner Messwerte.";
 "measure.instructions.height" = "Miss barfuß auf einer ebenen Fläche mit dem Rücken an einer Wand. Halte deinen Kopf gerade, die Schultern entspannt, die Fersen zusammen. Um die Konsistenz zu gewährleisten, miss zur gleichen Tageszeit.";
 "measure.instructions.circumference" = "Verwende ein weiches Maßband auf nackter Haut oder dünner Kleidung. Halte das Klebeband gerade und fest, ohne die Haut zu komprimieren. Verwende jedes Mal die gleichen Orientierungspunkte.";
+"measure.hint.shoulders" = "Miss um die breiteste Stelle deiner Schultern und Deltamuskeln herum — das ist ein Umfang, keine Schulterbreite.";
 "premium.benefit.ai" = "KI-Einblicke";
 "premium.benefit.indicators" = "Gesundheits- und Körperformindikatoren";
 "premium.benefit.export" = "Datenexport";

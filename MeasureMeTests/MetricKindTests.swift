@@ -125,4 +125,18 @@ final class MetricKindTests: XCTestCase {
 
         XCTAssertEqual(sample.source, .manual)
     }
+
+    /// Co sprawdza: Tylko `shoulders` ma podpowiedz pomiarowa i rozwiazuje sie ona do tekstu, nie do klucza.
+    /// Dlaczego: Sama etykieta nie mowi, czy wpisac obwod czy szerokosc barkow.
+    /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
+    @MainActor
+    func testOnlyShouldersExposesAMeasurementHint() {
+        for kind in MetricKind.allCases where kind != .shoulders {
+            XCTAssertNil(kind.measurementHint, "Unexpected measurement hint for \(kind.rawValue)")
+        }
+
+        let hint = MetricKind.shoulders.measurementHint
+        XCTAssertNotNil(hint)
+        XCTAssertNotEqual(hint, "measure.hint.shoulders", "Hint fell back to the raw localization key")
+    }
 }

@@ -240,6 +240,13 @@ struct QuickAddSheetView: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
+            if let hint = kind.measurementHint {
+                Text(hint)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             valueInputField(for: kind, showRuler: showRuler)
                 .appInputContainer(focused: activeField == .metric(kind))
 
