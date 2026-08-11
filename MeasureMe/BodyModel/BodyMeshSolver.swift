@@ -86,11 +86,16 @@ nonisolated enum BodyMeshSolver {
             gender: gender
         )
 
+        // The shoulder circumference is measured around the deltoids, so it
+        // already encloses the top of the arm; a separate arm stack rising
+        // into that same slab would count that tissue twice. The chest is
+        // measured with the arms hanging clear, so anchoring the arm's top
+        // there instead keeps it below the shoulder slab.
         let shoulderY = anchorY(.shoulder)
         let arm = buildLinearStack(
             from: (y: shoulderY - (shoulderY - anchorY(.waist)) * 1.55, circumference: snapshot.forearmCm * 0.78),
             mid: (y: shoulderY - (shoulderY - anchorY(.waist)) * 0.85, circumference: snapshot.forearmCm),
-            to: (y: shoulderY - (shoulderY - anchorY(.waist)) * 0.10, circumference: snapshot.bicepCm)
+            to: (y: anchorY(.chest), circumference: snapshot.bicepCm)
         )
 
         return BodyMeshParameters(torso: torso, arm: arm, leg: leg, heightCm: height)

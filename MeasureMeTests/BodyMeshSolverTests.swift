@@ -151,6 +151,28 @@ final class BodyMeshSolverTests: XCTestCase {
         }
     }
 
+    /// Co sprawdza: Stos ramienia zaczyna sie ponizej plyty barkow.
+    /// Dlaczego: Obwod barkow z definicji obejmuje juz ramiona, wiec doliczanie ich drugi raz
+    ///           w tej samej plycie liczy te sama tkanke dwukrotnie i zawyza objetosc.
+    /// Kryteria: Najwyzszy przekroj ramienia lezy nie wyzej niz poziom klatki.
+    func testArmStackStartsBelowTheShoulderSlab() {
+        let snapshot = Self.maleSnapshot()
+        for scale in [BodyProportions.torsoShareRange.lowerBound, 1.0,
+                      BodyProportions.torsoShareRange.upperBound] {
+            let solved = BodyMeshSolver.solve(snapshot: snapshot, torsoShareScale: scale)
+            let armTop = solved.arm.map(\.y).max() ?? 0
+            // torsoShareScale remaps every above-crotch height, the chest anchor
+            // included, so the comparison must use the solved chest level, not
+            // the unscaled height fraction, or it drifts at the range extremes.
+            let chestSection = solved.torso.first { abs($0.circumferenceCm - snapshot.chestCm) < 0.05 }
+            XCTAssertNotNil(chestSection, "Chest anchor missing at scale \(scale)")
+            XCTAssertLessThanOrEqual(
+                armTop, (chestSection?.y ?? .infinity) + 1e-6,
+                "Arm reaches into the shoulder slab at scale \(scale)"
+            )
+        }
+    }
+
     /// Co sprawdza: Dla kobiet obwod biustu trafia na poziom klatki.
     /// Dlaczego: U kobiet bust zastepuje chest jako obwod definiujacy gorna partie.
     /// Kryteria: Przekroj na wysokosci klatki ma obwod rowny bustowi.
