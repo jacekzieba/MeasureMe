@@ -24,7 +24,10 @@ final class BodyModelUITests: XCTestCase {
         // (`UITestArgument.isPresent(.mode)`), wiec test bramki musi biec bez niej.
         // "-uiTestForceNonPremium" dziala niezaleznie od "-uiTestMode" (PremiumStore czyta
         // je wprost z ProcessInfo), wiec status premium pozostaje deterministyczny.
-        app.launchArguments = ["-uiTestForceNonPremium"]
+        // "-uiTestForceOnboardingComplete" stwierdza wlasny warunek wstepny testu (pomin
+        // onboarding) zamiast dziedziczyc go po tym, co zostawil poprzedni test na tym
+        // symulatorze — bez tego test nie jest hermetyczny na swiezo wyczyszczonym symulatorze.
+        app.launchArguments = ["-uiTestForceNonPremium", "-uiTestForceOnboardingComplete"]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
 

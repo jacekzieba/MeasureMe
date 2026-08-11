@@ -475,6 +475,10 @@ struct MeasureMeApp: App {
             defaults.set(\.experience.hapticsEnabled, true)
         }
 
+        if args.contains(UITestArgument.forceOnboardingComplete.rawValue) {
+            defaults.set(\.onboarding.hasCompletedOnboarding, true)
+        }
+
         if shouldPrepareUITestTouchHandling {
             // SwiftUI buttons inside onboarding/home scroll views can miss XCTest taps
             // unless the default UIScrollView touch delay is disabled for UI tests.

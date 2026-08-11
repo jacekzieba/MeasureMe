@@ -8,6 +8,11 @@ enum UITestArgument: String {
     case openSingleAdd = "-uiTestOpenSingleAdd"
     case openMultiImport = "-uiTestOpenMultiImport"
     case onboardingPriority = "-uiTestOnboardingPriority"
+    /// Forces `hasCompletedOnboarding = true` and nothing else — no premium, no
+    /// seeded data, no implied `-uiTestMode`. For tests that need a launch
+    /// argument to state its own precondition (skip onboarding) rather than
+    /// depending on whatever a previous launch left in UserDefaults.
+    case forceOnboardingComplete = "-uiTestForceOnboardingComplete"
 
     // Premium / billing
     case forcePremium = "-uiTestForcePremium"
