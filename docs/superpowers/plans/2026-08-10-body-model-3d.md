@@ -703,7 +703,12 @@ final class BodyMeshParametersTests: XCTestCase {
         let order: [BodyLandmark] = [.ankle, .knee, .crotch, .hip, .waist, .chest, .shoulder, .neck, .crown]
         for gender in [BodyGender.male, .female] {
             let fractions = order.map { BodyProportions.heightFraction($0, gender: gender) }
-            XCTAssertEqual(fractions, fractions.sorted(), "Not increasing for \(gender)")
+            // sorted() would accept adjacent duplicates; landmarks must be
+            // strictly apart or two cross-sections collapse onto one height.
+            XCTAssertTrue(
+                zip(fractions, fractions.dropFirst()).allSatisfy { $0 < $1 },
+                "Not strictly increasing for \(gender): \(fractions)"
+            )
             XCTAssertEqual(fractions.last!, 1.0, accuracy: 1e-9)
         }
     }
@@ -736,6 +741,19 @@ final class BodyMeshParametersTests: XCTestCase {
                 XCTAssertLessThanOrEqual(section.circumferenceCm, high + 1e-9)
             }
         }
+    }
+
+    /// Co sprawdza: Krance sa dokladne takze dla wartosci, ktore nie sa okragle.
+    /// Dlaczego: first + (second - first) * 1 nie jest bitowo rowne second w IEEE 754.
+    ///           Fixture z okraglymi liczbami (80 -> 90) maskowal te zaleznosc, a realne
+    ///           pomiary okragle nie sa. Test pilnuje kontraktu, nie reprodukuje konkretnego bledu.
+    /// Kryteria: Dla obwodow 82.3 i 91.7 oraz wzrostu 174.7 oba krance sa identyczne z wejsciem.
+    func testInterpolationEndpointsAreExactForAwkwardValues() {
+        let a = Self.parameters(circumference: 82.3, height: 174.7)
+        let b = Self.parameters(circumference: 91.7, height: 174.7)
+
+        XCTAssertEqual(BodyMeshParameters.interpolated(from: a, to: b, t: 0), a)
+        XCTAssertEqual(BodyMeshParameters.interpolated(from: a, to: b, t: 1), b)
     }
 
     /// Co sprawdza: t poza [0,1] jest przycinane.
@@ -938,9 +956,18 @@ nonisolated struct BodyMeshParameters: Equatable, Sendable {
     ) -> BodyMeshParameters {
         let clamped = min(max(t, 0), 1)
 
+        // Return the endpoints verbatim. `first + (second - first) * 1` is not
+        // bit-identical to `second` in IEEE 754, and the morph must land exactly
+        // on the measured bodies at both ends of the slider — an approximation
+        // there would mean the silhouette never quite shows either real state.
+        if clamped <= 0 { return start }
+        if clamped >= 1 { return end }
+
         func blend(_ a: [BodyCrossSection], _ b: [BodyCrossSection]) -> [BodyCrossSection] {
-            // Both sides are solved with the same level count, so zip is safe.
-            zip(a, b).map { first, second in
+            // A length mismatch would silently truncate to the shorter side and
+            // drop levels mid-morph, so state the invariant rather than assume it.
+            precondition(a.count == b.count, "Interpolating bodies with different level counts")
+            return zip(a, b).map { first, second in
                 BodyCrossSection(
                     y: first.y + (second.y - first.y) * clamped,
                     circumferenceCm: first.circumferenceCm
@@ -983,7 +1010,7 @@ xcodebuild test -scheme MeasureMe \
   -only-testing:MeasureMeTests/BodySnapshotBuilderTests
 ```
 
-Expected: PASS — 5 tests in `BodyMeshParametersTests`, 9 in `BodySnapshotBuilderTests`.
+Expected: PASS — 6 tests in `BodyMeshParametersTests`, 9 in `BodySnapshotBuilderTests`.
 
 - [ ] **Step 6: Commit**
 
