@@ -103,4 +103,5 @@ final class BodyGeometryBuilderTests: XCTestCase {
             BodyGeometryBuilder.positions(for: parameters).count
         )
     }
+
 }
