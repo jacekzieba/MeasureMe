@@ -72,4 +72,35 @@ final class BodyGeometryBuilderTests: XCTestCase {
         XCTAssertFalse(geometry.sources.isEmpty)
         XCTAssertFalse(geometry.elements.isEmpty)
     }
+
+    /// Co sprawdza: Geometria niesie zrodlo normalnych, nie tylko pozycje.
+    /// Dlaczego: Materialy .physicallyBased licza oswietlenie z normalnych — bez nich manekin
+    ///           renderuje sie czarno, a zaden test jednostkowy tego nie widzi.
+    /// Kryteria: SCNGeometry ma zrodlo o semantyce .normal.
+    func testGeometryCarriesNormals() {
+        let geometry = BodyGeometryBuilder.geometry(for: Self.parameters(circumference: 100))
+        XCTAssertTrue(geometry.sources.contains { $0.semantic == .normal })
+    }
+
+    /// Co sprawdza: Kazda normalna jest wektorem jednostkowym.
+    /// Dlaczego: Nieznormalizowane normalne daja bledna jasnosc; zerowe daja NaN i czarne piksele.
+    /// Kryteria: Dlugosc kazdej normalnej rowna 1 z dokladnoscia 1e-4.
+    func testNormalsAreUnitLength() {
+        let normals = BodyGeometryBuilder.normals(for: Self.parameters(circumference: 100))
+        XCTAssertFalse(normals.isEmpty)
+        for normal in normals {
+            XCTAssertEqual(simd_length(normal), 1, accuracy: 1e-4)
+        }
+    }
+
+    /// Co sprawdza: Liczba normalnych zgadza sie z liczba pozycji.
+    /// Dlaczego: SceneKit paruje zrodla po indeksie; rozjazd dlugosci to ciche uszkodzenie siatki.
+    /// Kryteria: normals(for:).count == positions(for:).count.
+    func testNormalCountMatchesVertexCount() {
+        let parameters = Self.parameters(circumference: 100)
+        XCTAssertEqual(
+            BodyGeometryBuilder.normals(for: parameters).count,
+            BodyGeometryBuilder.positions(for: parameters).count
+        )
+    }
 }
