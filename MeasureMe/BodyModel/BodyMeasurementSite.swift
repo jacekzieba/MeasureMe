@@ -11,7 +11,7 @@
 import Foundation
 
 nonisolated enum BodyMeasurementSite: String, CaseIterable, Sendable {
-    case neck, shoulders, chest, waist, hips, thigh, calf, bicep
+    case neck, shoulders, chest, waist, hips, thigh, calf, bicep, forearm
 
     /// Localization key for the site's user-facing name.
     var localizationKey: String { "bodyModel.site.\(rawValue)" }
