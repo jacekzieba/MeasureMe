@@ -1328,6 +1328,14 @@ struct AddMetricSampleView: View {
                             .onTapGesture { isValueFocused = true }
                         }
 
+                        if let hint = kind.measurementHint {
+                            Text(hint)
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColorRoles.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
                         // Walidacja pod kartą
                         if !valueValidation.isValid, let message = valueValidation.message {
                             Text(message)
@@ -1456,6 +1464,14 @@ struct EditMetricSampleView: View {
                             .accessibilityIdentifier("goal.input.card")
                             .contentShape(Rectangle())
                             .onTapGesture { isValueFocused = true }
+                        }
+
+                        if let hint = kind.measurementHint {
+                            Text(hint)
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColorRoles.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
                         // Walidacja pod kartą

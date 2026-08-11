@@ -74,6 +74,15 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
         }
     }
 
+    /// Short guidance shown where the value is entered. Only `shoulders` needs it —
+    /// the label alone doesn't say whether to enter width or circumference.
+    var measurementHint: String? {
+        switch self {
+        case .shoulders: return AppLocalization.string("measure.hint.shoulders")
+        default: return nil
+        }
+    }
+
     /// Measurement context for AI prompts — avoids confusing body circumferences with height
     var insightMeasurementContext: String {
         switch self {

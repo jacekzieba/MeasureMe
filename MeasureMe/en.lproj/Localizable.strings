@@ -582,6 +582,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "measure.instructions.leanBodyMass" = "Use a consistent device under similar conditions. Aim for the same time of day and hydration level. Track trends rather than single readings.";
 "measure.instructions.height" = "Measure barefoot on a flat surface with your back against a wall. Keep your head level, shoulders relaxed, heels together. Measure at the same time of day for consistency.";
 "measure.instructions.circumference" = "Use a soft tape measure on bare skin or thin clothing. Keep the tape level and snug without compressing the skin. Use the same landmarks each time.";
+"measure.hint.shoulders" = "Measure around the widest part of your shoulders and deltoids — this is a circumference, not shoulder width.";
 "premium.benefit.ai" = "AI Insights";
 "premium.benefit.indicators" = "Health & Physique Indicators";
 "premium.benefit.export" = "Data export";

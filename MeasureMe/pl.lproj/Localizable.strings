@@ -1087,6 +1087,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "measure.instructions.leanBodyMass" = "Korzystaj z tego samego urządzenia i podobnych warunków. Mierz o tej samej porze i przy podobnym nawodnieniu. Śledź trendy, a nie pojedyncze odczyty.";
 "measure.instructions.height" = "Mierz się boso na płaskim podłożu, plecami przy ścianie. Głowa prosto, barki rozluźnione, pięty razem. Dla spójności mierz o tej samej porze dnia.";
 "measure.instructions.circumference" = "Używaj miękkiej taśmy krawieckiej na gołej skórze lub cienkiej odzieży. Taśma ma być poziomo i przylegać bez uciskania. Mierz zawsze w tych samych punktach.";
+"measure.hint.shoulders" = "Mierz w najszerszym miejscu barków i mięśni naramiennych — to obwód, a nie szerokość barków.";
 "premium.benefit.ai" = "Analizy AI";
 "premium.benefit.indicators" = "Wskaźniki zdrowia i sylwetki";
 "premium.benefit.export" = "Eksport danych";

@@ -582,6 +582,7 @@ O IMC não distingue entre massa muscular e massa gorda, portanto atletas ou pes
 "measure.instructions.leanBodyMass" = "Use um dispositivo consistente em condições semelhantes. Procure a mesma hora do dia e nível de hidratação. Acompanhe tendências em vez de leituras únicas.";
 "measure.instructions.height" = "Meça com os pés descalços em uma superfície plana e com as costas apoiadas na parede. Mantenha a cabeça nivelada, os ombros relaxados e os calcanhares juntos. Meça na mesma hora do dia para obter consistência.";
 "measure.instructions.circumference" = "Use uma fita métrica macia na pele nua ou em roupas finas. Mantenha a fita nivelada e confortável sem comprimir a pele. Use os mesmos pontos de referência todas as vezes.";
+"measure.hint.shoulders" = "Meça ao redor da parte mais larga dos ombros e deltoides — é uma circunferência, não a largura dos ombros.";
 "premium.benefit.ai" = "Informações de IA";
 "premium.benefit.indicators" = "Indicadores de saúde e físico";
 "premium.benefit.export" = "Exportação de dados";
