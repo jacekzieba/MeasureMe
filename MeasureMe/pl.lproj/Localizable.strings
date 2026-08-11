@@ -2065,3 +2065,32 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "camera.overlay.off" = "Wył.";
 "camera.overlay.noPhotoForPose" = "Brak zdjęcia dla tej pozy — to będzie pierwsze";
 "camera.overlay.opacity" = "Krycie nakładki";
+
+// Body model
+"bodyModel.title" = "Model ciała";
+"bodyModel.empty.profile.title" = "Uzupełnij profil";
+"bodyModel.empty.profile.message" = "Model ciała potrzebuje Twojego wzrostu i płci, aby poprawnie rozmieścić pomiary.";
+"bodyModel.empty.profile.action" = "Otwórz profil";
+"bodyModel.empty.metrics.title" = "Jeszcze kilka pomiarów";
+"bodyModel.empty.metrics.message" = "Dodaj te pomiary, aby zbudować swoją sylwetkę: %@";
+"bodyModel.empty.metrics.action" = "Dodaj pomiary";
+"bodyModel.premium.title" = "Zobacz swoją sylwetkę w 3D";
+"bodyModel.premium.message" = "Zamień swoje pomiary w model ciała i obserwuj, jak zmienia się między dowolnymi dwiema datami.";
+"bodyModel.premium.action" = "Odblokuj";
+"bodyModel.quality.approximate" = "Ta sylwetka jest przybliżeniem.";
+"bodyModel.quality.suspect" = "Twoje pomiary i waga nie do końca się zgadzają. Sprawdź: %@.";
+"bodyModel.morph.label" = "Przejście między datami";
+"bodyModel.morph.play" = "Odtwórz";
+"bodyModel.dates.older" = "Od";
+"bodyModel.dates.newer" = "Do";
+"bodyModel.accessibility.mannequin" = "Sylwetka ciała zbudowana na podstawie Twoich pomiarów. Zmiany są wymienione poniżej.";
+"bodyModel.sourceRange" = "Zmierzono %@ – %@";
+"bodyModel.site.neck" = "Szyja";
+"bodyModel.site.shoulders" = "Ramiona";
+"bodyModel.site.chest" = "Klatka piersiowa";
+"bodyModel.site.waist" = "Talia";
+"bodyModel.site.hips" = "Biodra";
+"bodyModel.site.thigh" = "Udo";
+"bodyModel.site.calf" = "Łydka";
+"bodyModel.site.bicep" = "Biceps";
+"bodyModel.site.forearm" = "Przedramię";

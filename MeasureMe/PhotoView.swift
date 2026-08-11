@@ -38,6 +38,7 @@ struct PhotoView: View {
     @State private var selectedPhotoForDetail: PhotoEntry?
     @State private var comparePresentation = ComparePresentationState()
     @State private var showDeleteConfirmation = false
+    @State private var showBodyModel = false
 
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.experience.photosFilterTag) private var photosFilterTag: String = ""
@@ -350,6 +351,10 @@ struct PhotoView: View {
                     olderPhoto: pair.olderPhoto,
                     newerPhoto: pair.newerPhoto
                 )
+            }
+            .sheet(isPresented: $showBodyModel) {
+                BodyModelScreen()
+                    .environmentObject(premiumStore)
             }
             .sheet(item: $selectedPhotoForDetail, onDismiss: {
                 refreshPhotoContent()
@@ -852,6 +857,15 @@ private extension PhotoView {
                 .accessibilityLabel(AppLocalization.string("Open photo filters"))
 
                 if !viewModel.isSelecting {
+                    Button {
+                        Haptics.selection()
+                        showBodyModel = true
+                    } label: {
+                        Image(systemName: "figure.stand")
+                    }
+                    .accessibilityIdentifier("photos.bodyModel.open")
+                    .accessibilityLabel(AppLocalization.string("bodyModel.title"))
+
                     Button {
                         handleAddPhotoTap()
                     } label: {

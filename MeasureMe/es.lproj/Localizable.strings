@@ -2109,3 +2109,32 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 "camera.overlay.off" = "No";
 "camera.overlay.noPhotoForPose" = "Aún no hay foto para esta pose: esta será la primera";
 "camera.overlay.opacity" = "Opacidad de la superposición";
+
+// Body model
+"bodyModel.title" = "Modelo corporal";
+"bodyModel.empty.profile.title" = "Completa tu perfil";
+"bodyModel.empty.profile.message" = "El modelo corporal necesita tu altura y sexo para ubicar tus medidas correctamente.";
+"bodyModel.empty.profile.action" = "Abrir perfil";
+"bodyModel.empty.metrics.title" = "Faltan algunas medidas";
+"bodyModel.empty.metrics.message" = "Registra estas para construir tu silueta: %@";
+"bodyModel.empty.metrics.action" = "Añadir medidas";
+"bodyModel.premium.title" = "Ve tu silueta en 3D";
+"bodyModel.premium.message" = "Convierte tus medidas en un modelo corporal y observa cómo cambia entre dos fechas cualesquiera.";
+"bodyModel.premium.action" = "Desbloquear";
+"bodyModel.quality.approximate" = "Esta silueta es una aproximación.";
+"bodyModel.quality.suspect" = "Tus medidas y tu peso no cuadran del todo. Revisa: %@.";
+"bodyModel.morph.label" = "Transición entre fechas";
+"bodyModel.morph.play" = "Reproducir";
+"bodyModel.dates.older" = "Desde";
+"bodyModel.dates.newer" = "Hasta";
+"bodyModel.accessibility.mannequin" = "Silueta corporal creada a partir de tus medidas. Los cambios se detallan abajo.";
+"bodyModel.sourceRange" = "Medido %@ – %@";
+"bodyModel.site.neck" = "Cuello";
+"bodyModel.site.shoulders" = "Hombros";
+"bodyModel.site.chest" = "Pecho";
+"bodyModel.site.waist" = "Cintura";
+"bodyModel.site.hips" = "Caderas";
+"bodyModel.site.thigh" = "Muslo";
+"bodyModel.site.calf" = "Pantorrilla";
+"bodyModel.site.bicep" = "Bíceps";
+"bodyModel.site.forearm" = "Antebrazo";
