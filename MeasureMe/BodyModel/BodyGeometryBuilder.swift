@@ -30,18 +30,20 @@ nonisolated enum BodyGeometryBuilder {
 
     /// Every ring of the body, in a fixed order: torso, both arms, both legs.
     private static func rings(for parameters: BodyMeshParameters) -> [(section: BodyCrossSection, xOffsetCm: Double)] {
-        parameters.torso.map { ($0, 0.0) }
-            + parameters.arm.map { ($0, -armOffsetCm) }
-            + parameters.arm.map { ($0, armOffsetCm) }
-            + parameters.leg.map { ($0, -legOffsetCm) }
-            + parameters.leg.map { ($0, legOffsetCm) }
+        let torsoRings: [(section: BodyCrossSection, xOffsetCm: Double)] = parameters.torso.map { ($0, 0.0) }
+        let leftArm: [(section: BodyCrossSection, xOffsetCm: Double)] = parameters.arm.map { ($0, -armOffsetCm) }
+        let rightArm: [(section: BodyCrossSection, xOffsetCm: Double)] = parameters.arm.map { ($0, armOffsetCm) }
+        let leftLeg: [(section: BodyCrossSection, xOffsetCm: Double)] = parameters.leg.map { ($0, -legOffsetCm) }
+        let rightLeg: [(section: BodyCrossSection, xOffsetCm: Double)] = parameters.leg.map { ($0, legOffsetCm) }
+        return torsoRings + leftArm + rightArm + leftLeg + rightLeg
     }
 
     static func positions(for parameters: BodyMeshParameters) -> [SIMD3<Float>] {
+        let allRings = rings(for: parameters)
         var result: [SIMD3<Float>] = []
-        result.reserveCapacity(rings(for: parameters).count * segmentsPerRing)
+        result.reserveCapacity(allRings.count * segmentsPerRing)
 
-        for ring in rings(for: parameters) {
+        for ring in allRings {
             let shape = ring.section.shape
             let power = 2 / shape.exponent
             for segment in 0..<segmentsPerRing {
