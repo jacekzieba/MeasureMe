@@ -665,7 +665,7 @@ Wartości poniżej są **zaczątkowe**, oparte na współczynnikach Drillisa–C
 - Consumes: `Gender` (tylko w konwersji)
 - Produces:
   - `BodyGender` — enum `.male, .female`, z `init?(_ gender: Gender)` zwracającym `nil` dla `.notSpecified`
-  - `BodyLandmark` — enum: `.ankle, .knee, .crotch, .hip, .waist, .chest, .shoulder, .neck, .crown`
+  - `BodyLandmark` — enum: `.ankle, .calf, .knee, .crotch, .hip, .waist, .chest, .shoulder, .neck, .crown`
   - `BodyProportions.heightFraction(_ landmark: BodyLandmark, gender: BodyGender) -> Double`
   - `BodyProportions.aspectRatio(_ landmark: BodyLandmark, gender: BodyGender) -> Double`
   - `BodyProportions.exponent(_ landmark: BodyLandmark) -> Double`
@@ -700,7 +700,7 @@ final class BodyMeshParametersTests: XCTestCase {
     }
 
     func testLandmarkFractionsAreStrictlyIncreasing() {
-        let order: [BodyLandmark] = [.ankle, .knee, .crotch, .hip, .waist, .chest, .shoulder, .neck, .crown]
+        let order: [BodyLandmark] = [.ankle, .calf, .knee, .crotch, .hip, .waist, .chest, .shoulder, .neck, .crown]
         for gender in [BodyGender.male, .female] {
             let fractions = order.map { BodyProportions.heightFraction($0, gender: gender) }
             // sorted() would accept adjacent duplicates; landmarks must be
@@ -846,7 +846,7 @@ nonisolated enum BodyGender: String, CaseIterable, Sendable {
 import Foundation
 
 nonisolated enum BodyLandmark: CaseIterable, Sendable {
-    case ankle, knee, crotch, hip, waist, chest, shoulder, neck, crown
+    case ankle, calf, knee, crotch, hip, waist, chest, shoulder, neck, crown
 }
 
 nonisolated enum BodyProportions {
@@ -854,6 +854,8 @@ nonisolated enum BodyProportions {
     static func heightFraction(_ landmark: BodyLandmark, gender: BodyGender) -> Double {
         switch (landmark, gender) {
         case (.ankle, _):        return 0.039
+        // Maximum calf girth sits roughly a third of the way from ankle to knee.
+        case (.calf, _):         return 0.200
         case (.knee, _):         return 0.285
         case (.crotch, .male):   return 0.485
         case (.crotch, .female): return 0.480
@@ -880,7 +882,7 @@ nonisolated enum BodyProportions {
         case (.waist, .female):        return 0.72
         case (.hip, _):                return 0.72
         case (.crotch, _):             return 0.80
-        case (.knee, _), (.ankle, _):  return 1.00
+        case (.knee, _), (.ankle, _), (.calf, _): return 1.00
         }
     }
 
@@ -891,7 +893,7 @@ nonisolated enum BodyProportions {
     /// to body volume.
     static func exponent(_ landmark: BodyLandmark) -> Double {
         switch landmark {
-        case .neck, .crown, .knee, .ankle: return 2.0
+        case .neck, .crown, .knee, .ankle, .calf: return 2.0
         case .hip:                         return 2.2
         case .waist:                       return 2.3
         case .crotch:                      return 2.2
@@ -1106,7 +1108,7 @@ final class BodyMeshSolverTests: XCTestCase {
 
     /// Co sprawdza: Miedzy talia a biodrami obwod zmienia sie monotonicznie.
     /// Dlaczego: Splajn kubiczny zrobilby tam fale; spec wymaga interpolacji monotonicznej.
-    /// Kryteria: Przy talii wezszej od bioder obwod nie maleje po drodze w gore... w dol.
+    /// Kryteria: Przy talii wezszej od bioder obwod maleje monotonicznie od bioder w gore do talii.
     func testTorsoDoesNotOscillateBetweenWaistAndHips() {
         let snapshot = Self.maleSnapshot(waist: 80, hips: 100)
         let solved = BodyMeshSolver.solve(snapshot: snapshot, torsoShareScale: 1.0)
@@ -1140,6 +1142,55 @@ final class BodyMeshSolverTests: XCTestCase {
         let small = BodyMeshSolver.solve(snapshot: Self.maleSnapshot(), torsoShareScale: 0.94)
         let large = BodyMeshSolver.solve(snapshot: Self.maleSnapshot(), torsoShareScale: 1.06)
         XCTAssertLessThan(large.torso.map(\.y).min() ?? 0, small.torso.map(\.y).min() ?? 0)
+    }
+
+    /// Co sprawdza: NIEZMIENNIK NOGI. Zmierzony obwod lydki trafia do siatki dokladnie.
+    /// Dlaczego: Lydka jest metryka wymagana od uzytkownika; gdyby sluzyla tylko jako mnoznik,
+    ///           kazalibysmy mierzyc cos, czego nie pokazujemy.
+    /// Kryteria: Przekroj na wysokosci lydki ma obwod rowny zmierzonemu ponizej 0.05 cm.
+    func testSolverReproducesMeasuredCalfCircumference() {
+        let snapshot = Self.maleSnapshot()
+        let solved = BodyMeshSolver.solve(snapshot: snapshot, torsoShareScale: 1.0)
+
+        let y = snapshot.heightCm * BodyProportions.heightFraction(.calf, gender: .male)
+        let found = section(of: solved.leg, nearestTo: y)
+        XCTAssertEqual(found.y, y, accuracy: 1e-6)
+        XCTAssertEqual(found.circumferenceCm, snapshot.calfCm, accuracy: 0.05)
+    }
+
+    /// Co sprawdza: Noga ma realne wybrzuszenie lydki, a nie monotoniczny stozek.
+    /// Dlaczego: To wizualny sens dodania landmarku .calf; bez tego lydka nadal by nie istniala.
+    /// Kryteria: Obwod na wysokosci lydki jest wiekszy niz na wysokosci kolana.
+    func testLegHasACalfBulgeRatherThanATaper() {
+        let snapshot = Self.maleSnapshot()
+        let solved = BodyMeshSolver.solve(snapshot: snapshot, torsoShareScale: 1.0)
+
+        let calfY = snapshot.heightCm * BodyProportions.heightFraction(.calf, gender: .male)
+        let kneeY = snapshot.heightCm * BodyProportions.heightFraction(.knee, gender: .male)
+
+        XCTAssertGreaterThan(
+            section(of: solved.leg, nearestTo: calfY).circumferenceCm,
+            section(of: solved.leg, nearestTo: kneeY).circumferenceCm
+        )
+    }
+
+    /// Co sprawdza: Niezmiennik obwodow trzyma sie takze przy skorygowanym podziale tors/nogi.
+    /// Dlaczego: Walidacja objetosciowa bedzie ta skale zmieniac; pomiar nie moze od niej zalezec.
+    /// Kryteria: Talia i biodra odtwarzaja sie dla obu krancow torsoShareRange.
+    func testAnchorCircumferencesSurviveTorsoShareCorrection() {
+        let snapshot = Self.maleSnapshot()
+        for scale in [BodyProportions.torsoShareRange.lowerBound,
+                      BodyProportions.torsoShareRange.upperBound] {
+            let solved = BodyMeshSolver.solve(snapshot: snapshot, torsoShareScale: scale)
+            XCTAssertTrue(
+                solved.torso.contains { abs($0.circumferenceCm - snapshot.waistCm) < 0.05 },
+                "Waist lost at scale \(scale)"
+            )
+            XCTAssertTrue(
+                solved.torso.contains { abs($0.circumferenceCm - snapshot.hipsCm) < 0.05 },
+                "Hips lost at scale \(scale)"
+            )
+        }
     }
 
     /// Co sprawdza: Dla kobiet obwod biustu trafia na poziom klatki.
@@ -1242,7 +1293,9 @@ nonisolated enum BodyMeshSolver {
             case .shoulder: return snapshot.shouldersCm
             case .neck:     return snapshot.neckCm
             case .crown:    return snapshot.neckCm * 0.55   // taper to a rounded top
-            case .knee:     return snapshot.calfCm * 1.02
+            // Knee girth sits just under maximum calf girth; the ankle well under it.
+            case .calf:     return snapshot.calfCm
+            case .knee:     return snapshot.calfCm * 0.93
             case .ankle:    return snapshot.calfCm * 0.72
             }
         }
@@ -1256,7 +1309,7 @@ nonisolated enum BodyMeshSolver {
 
         // Limbs are simple tapered tubes between two anchors each.
         let leg = buildStack(
-            anchors: [.ankle, .knee, .crotch],
+            anchors: [.ankle, .calf, .knee, .crotch],
             y: anchorY,
             circumference: { $0 == .crotch ? snapshot.thighCm : anchorCircumference($0) },
             gender: gender
@@ -1392,7 +1445,7 @@ nonisolated enum BodyMeshSolver {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Same command as Step 2. Expected: PASS, 6 tests.
+Same command as Step 2. Expected: PASS, 9 tests.
 
 Jeśli `testTorsoDoesNotOscillateBetweenWaistAndHips` czerwieni się, sprawdź najpierw ograniczanie nachyleń w `monotoneSlopes` — to jedyne miejsce, które może dopuścić przestrzelenie.
 
@@ -2286,7 +2339,7 @@ typealias BodyModelState = BodyModelViewModel.BodyModelState
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Same command as Step 2. Expected: PASS, 6 tests.
+Same command as Step 2. Expected: PASS, 9 tests.
 
 - [ ] **Step 5: Commit**
 
