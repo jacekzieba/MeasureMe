@@ -2811,7 +2811,7 @@ Button {
 
 ```bash
 export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer
-xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' -only-testing:MeasureMeTests/LocalizationConsistencyTests -only-testing:MeasureMeTests/ComparePhotosTests
+xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' -only-testing:MeasureMeTests/LocalizationConsistencyTests -only-testing:MeasureMeTests/MetricChangeTests
 ```
 
 Expected: PASS. `LocalizationConsistencyTests` przechodzi tylko, jeśli klucze są we wszystkich sześciu językach — to sprawdzian kompletności tłumaczeń.
