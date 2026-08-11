@@ -68,21 +68,28 @@ final class PhotoOverlayCandidatesTests: XCTestCase {
         XCTAssertEqual(PhotoOverlayCandidates.mostRecentByPose(in: [photo])[.front], Data([1]))
     }
 
-    func testOverlayOpacity_valuesAndFallback() {
-        XCTAssertEqual(CameraOverlayOpacity.light.value, 0.12, accuracy: 0.0001)
-        XCTAssertEqual(CameraOverlayOpacity.medium.value, 0.22, accuracy: 0.0001)
-        XCTAssertEqual(CameraOverlayOpacity.strong.value, 0.35, accuracy: 0.0001)
+    func testOverlayOpacity_clampsToRange() {
+        XCTAssertEqual(CameraOverlayOpacity.clamped(0.22), 0.22, accuracy: 0.0001)
+        XCTAssertEqual(CameraOverlayOpacity.clamped(0.05), 0.05, accuracy: 0.0001)
+        XCTAssertEqual(CameraOverlayOpacity.clamped(0.50), 0.50, accuracy: 0.0001)
 
-        XCTAssertEqual(CameraOverlayOpacity(storedValue: 0), .light)
-        XCTAssertEqual(CameraOverlayOpacity(storedValue: 1), .medium)
-        XCTAssertEqual(CameraOverlayOpacity(storedValue: 2), .strong)
-        XCTAssertEqual(CameraOverlayOpacity(storedValue: -1), .medium)
-        XCTAssertEqual(CameraOverlayOpacity(storedValue: 3), .medium)
+        // Poniżej i powyżej zakresu — przycięcie do krańców, nie do wartości domyślnej.
+        XCTAssertEqual(CameraOverlayOpacity.clamped(0.0), 0.05, accuracy: 0.0001)
+        XCTAssertEqual(CameraOverlayOpacity.clamped(-3.0), 0.05, accuracy: 0.0001)
+        XCTAssertEqual(CameraOverlayOpacity.clamped(1.0), 0.50, accuracy: 0.0001)
     }
 
-    func testOverlayOpacity_nextWrapsAround() {
-        XCTAssertEqual(CameraOverlayOpacity.light.next, .medium)
-        XCTAssertEqual(CameraOverlayOpacity.medium.next, .strong)
-        XCTAssertEqual(CameraOverlayOpacity.strong.next, .light)
+    func testOverlayOpacity_nonFiniteFallsBackToDefault() {
+        XCTAssertEqual(CameraOverlayOpacity.clamped(.nan), 0.22, accuracy: 0.0001)
+        XCTAssertEqual(CameraOverlayOpacity.clamped(.infinity), 0.22, accuracy: 0.0001)
+        XCTAssertEqual(CameraOverlayOpacity.clamped(-.infinity), 0.22, accuracy: 0.0001)
+    }
+
+    func testOverlayOpacity_percentLabelRoundsAndClamps() {
+        XCTAssertEqual(CameraOverlayOpacity.percentLabel(for: 0.22), "22%")
+        XCTAssertEqual(CameraOverlayOpacity.percentLabel(for: 0.05), "5%")
+        XCTAssertEqual(CameraOverlayOpacity.percentLabel(for: 0.504), "50%")
+        XCTAssertEqual(CameraOverlayOpacity.percentLabel(for: 0.2249), "22%")
+        XCTAssertEqual(CameraOverlayOpacity.percentLabel(for: .nan), "22%")
     }
 }

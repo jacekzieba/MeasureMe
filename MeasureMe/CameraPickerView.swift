@@ -158,7 +158,7 @@ struct GuidedCameraView: View {
     let overlayCandidates: [PhotoTag: Data]
 
     @AppStorage("photos.overlayPose") private var storedOverlayPose: String = ""
-    @AppStorage("photos.overlayOpacityLevel") private var storedOpacityLevel: Int = CameraOverlayOpacity.medium.rawValue
+    @AppStorage("photos.overlayOpacity") private var storedOverlayOpacity: Double = CameraOverlayOpacity.defaultValue
 
     @StateObject private var camera = GuidedCameraController()
 
@@ -167,8 +167,8 @@ struct GuidedCameraView: View {
         return pose
     }
 
-    private var overlayOpacity: CameraOverlayOpacity {
-        CameraOverlayOpacity(storedValue: storedOpacityLevel)
+    private var overlayOpacity: Double {
+        CameraOverlayOpacity.clamped(storedOverlayOpacity)
     }
 
     private var overlayImage: UIImage? {
@@ -185,7 +185,7 @@ struct GuidedCameraView: View {
                 Image(uiImage: overlayImage)
                     .resizable()
                     .scaledToFill()
-                    .opacity(overlayOpacity.value)
+                    .opacity(overlayOpacity)
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
             }
@@ -204,10 +204,6 @@ struct GuidedCameraView: View {
                     .tint(.black.opacity(0.45))
 
                     Spacer()
-
-                    if activePose != nil {
-                        opacityButton
-                    }
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 12)
@@ -223,6 +219,10 @@ struct GuidedCameraView: View {
                             .padding(.horizontal, AppSpacing.smmd)
                             .padding(.vertical, 8)
                             .background(Color.black.opacity(0.45), in: Capsule())
+                    }
+
+                    if activePose != nil {
+                        opacitySlider
                     }
 
                     poseBar
@@ -287,18 +287,31 @@ struct GuidedCameraView: View {
         return AppLocalization.string("camera.overlay.noPhotoForPose")
     }
 
-    private var opacityButton: some View {
-        Button {
-            storedOpacityLevel = overlayOpacity.next.rawValue
-        } label: {
+    private var opacitySlider: some View {
+        HStack(spacing: 10) {
             Image(systemName: "circle.lefthalf.filled")
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
-                .padding(10)
-                .background(Color.black.opacity(0.45), in: Circle())
+
+            Slider(
+                value: Binding(
+                    get: { overlayOpacity },
+                    set: { storedOverlayOpacity = CameraOverlayOpacity.clamped($0) }
+                ),
+                in: CameraOverlayOpacity.range
+            )
+            .tint(.white)
+            .accessibilityIdentifier("photos.guidedCamera.opacity")
+            .accessibilityLabel(AppLocalization.string("camera.overlay.opacity"))
+
+            Text(CameraOverlayOpacity.percentLabel(for: overlayOpacity))
+                .font(AppTypography.caption.monospacedDigit())
+                .foregroundStyle(.white)
+                .frame(width: 40, alignment: .trailing)
         }
-        .accessibilityIdentifier("photos.guidedCamera.opacity")
-        .accessibilityLabel(AppLocalization.string("camera.overlay.opacity"))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Color.black.opacity(0.45), in: Capsule())
     }
 
     private var poseBar: some View {

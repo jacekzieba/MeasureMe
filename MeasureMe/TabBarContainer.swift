@@ -39,7 +39,10 @@ struct TabBarContainer: View {
                     .accessibilityIdentifier("tab.measurements")
 
                     // COMPOSE
-                    Tab(value: AppTab.compose, role: .search) {
+                    // Bez `role: .search` — ta rola każe systemowi rysować zakładkę jako
+                    // odczepiony, pływający przycisk obok paska. Zwykła zakładka trzyma „+”
+                    // w rzędzie razem z pozostałymi.
+                    Tab(value: AppTab.compose) {
                         Color.clear
                     } label: {
                         Label(AppLocalization.string("Add"), systemImage: "plus")

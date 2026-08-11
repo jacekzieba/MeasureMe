@@ -19,25 +19,21 @@ enum PhotoOverlayCandidates {
     }
 }
 
-/// Trzy poziomy krycia ghost-overlaya w aparacie.
-enum CameraOverlayOpacity: Int, CaseIterable {
-    case light = 0
-    case medium = 1
-    case strong = 2
+/// Krycie ghost-overlaya w aparacie, regulowane suwakiem.
+enum CameraOverlayOpacity {
 
-    init(storedValue: Int) {
-        self = CameraOverlayOpacity(rawValue: storedValue) ?? .medium
+    static let range: ClosedRange<Double> = 0.05...0.50
+    static let defaultValue: Double = 0.22
+
+    /// Sprowadza zapisaną wartość do dopuszczalnego zakresu.
+    /// Wartości spoza zakresu przycina, a niepoprawne (NaN, nieskończoność) zastępuje domyślną.
+    static func clamped(_ raw: Double) -> Double {
+        guard raw.isFinite else { return defaultValue }
+        return min(max(raw, range.lowerBound), range.upperBound)
     }
 
-    var value: Double {
-        switch self {
-        case .light: return 0.12
-        case .medium: return 0.22
-        case .strong: return 0.35
-        }
-    }
-
-    var next: CameraOverlayOpacity {
-        CameraOverlayOpacity(rawValue: (rawValue + 1) % CameraOverlayOpacity.allCases.count) ?? .light
+    /// Etykieta procentowa pokazywana przy suwaku, np. `22%`.
+    static func percentLabel(for value: Double) -> String {
+        "\(Int((clamped(value) * 100).rounded()))%"
     }
 }
