@@ -2399,7 +2399,7 @@ Usuń przeniesiony fragment wraz z komentarzem `// MARK: - Metric Change Row`. N
 
 ```bash
 export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer
-xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' -only-testing:MeasureMeTests/ComparePhotosTests -only-testing:MeasureMeTests/ComparePresentationStateTests
+xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' -only-testing:MeasureMeTests/MetricChangeTests -only-testing:MeasureMeTests/ComparePresentationStateTests
 ```
 
 Expected: PASS, bez zmian względem stanu sprzed zadania.
