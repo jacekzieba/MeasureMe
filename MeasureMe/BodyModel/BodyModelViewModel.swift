@@ -51,6 +51,8 @@ final class BodyModelViewModel: ObservableObject {
     @Published private(set) var state: BodyModelState = .needsProfile
     @Published var morphProgress: Double = 1
     @Published private(set) var metricChanges: [BodyMetricChange] = []
+    /// Dates with a complete snapshot behind them, newest first.
+    @Published private(set) var availableDates: [Date] = []
 
     /// Body for the current morph position, or nil when there is nothing to show.
     var currentParameters: BodyMeshParameters? {
@@ -100,12 +102,14 @@ final class BodyModelViewModel: ObservableObject {
         guard let gender else {
             state = .needsProfile
             metricChanges = []
+            availableDates = []
             return
         }
 
         let dates = Self.availableAnchorDates(
             samples: samples, gender: gender, fallbackHeightCm: fallbackHeightCm
         )
+        availableDates = dates
 
         guard let newest = dates.first else {
             // Report what the most recent attempt was missing.

@@ -2107,3 +2107,33 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "camera.overlay.off" = "Aus";
 "camera.overlay.noPhotoForPose" = "Noch kein Foto für diese Pose – das wird dein erstes";
 "camera.overlay.opacity" = "Deckkraft der Überlagerung";
+
+// Body model
+"bodyModel.title" = "Körpermodell";
+"bodyModel.empty.profile.title" = "Vervollständige dein Profil";
+"bodyModel.empty.profile.message" = "Das Körpermodell benötigt deine Körpergröße und dein Geschlecht, um deine Maße korrekt zu platzieren.";
+"bodyModel.empty.profile.action" = "Profil öffnen";
+"bodyModel.empty.metrics.title" = "Noch ein paar Maße fehlen";
+"bodyModel.empty.metrics.message" = "Erfasse diese, um deine Silhouette zu erstellen: %@";
+"bodyModel.empty.metrics.action" = "Maße hinzufügen";
+"bodyModel.premium.title" = "Sieh deine Silhouette in 3D";
+"bodyModel.premium.message" = "Verwandle deine Maße in ein Körpermodell und sieh, wie es sich zwischen zwei beliebigen Daten verändert.";
+"bodyModel.premium.action" = "Freischalten";
+"bodyModel.quality.approximate" = "Diese Silhouette ist eine Annäherung.";
+"bodyModel.quality.suspect" = "Deine Maße und dein Gewicht passen nicht ganz zusammen. Überprüfe: %@.";
+"bodyModel.quality.suspectNoSite" = "Deine Maße und dein Gewicht passen nicht ganz zusammen — der wahrscheinlichste Grund ist der eingetragene Gewichtswert.";
+"bodyModel.morph.label" = "Übergang zwischen Daten";
+"bodyModel.morph.play" = "Abspielen";
+"bodyModel.dates.older" = "Von";
+"bodyModel.dates.newer" = "Bis";
+"bodyModel.accessibility.mannequin" = "Körpersilhouette aus deinen Maßen erstellt. Änderungen sind unten aufgelistet.";
+"bodyModel.sourceRange" = "Gemessen %@ – %@";
+"bodyModel.site.neck" = "Hals";
+"bodyModel.site.shoulders" = "Schultern";
+"bodyModel.site.chest" = "Brust";
+"bodyModel.site.waist" = "Taille";
+"bodyModel.site.hips" = "Hüfte";
+"bodyModel.site.thigh" = "Oberschenkel";
+"bodyModel.site.calf" = "Wade";
+"bodyModel.site.bicep" = "Bizeps";
+"bodyModel.site.forearm" = "Unterarm";

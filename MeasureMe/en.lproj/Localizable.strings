@@ -2113,3 +2113,33 @@ The thresholds differ between males and females due to different body compositio
 "camera.overlay.off" = "Off";
 "camera.overlay.noPhotoForPose" = "No photo for this pose yet — this will be your first";
 "camera.overlay.opacity" = "Overlay opacity";
+
+// Body model
+"bodyModel.title" = "Body model";
+"bodyModel.empty.profile.title" = "Complete your profile";
+"bodyModel.empty.profile.message" = "The body model needs your height and sex to place your measurements correctly.";
+"bodyModel.empty.profile.action" = "Open profile";
+"bodyModel.empty.metrics.title" = "A few measurements to go";
+"bodyModel.empty.metrics.message" = "Log these to build your silhouette: %@";
+"bodyModel.empty.metrics.action" = "Add measurements";
+"bodyModel.premium.title" = "See your silhouette in 3D";
+"bodyModel.premium.message" = "Turn your measurements into a body model and watch it change between any two dates.";
+"bodyModel.premium.action" = "Unlock";
+"bodyModel.quality.approximate" = "This silhouette is an approximation.";
+"bodyModel.quality.suspect" = "Your measurements and weight don't quite add up. Check your %@.";
+"bodyModel.quality.suspectNoSite" = "Your measurements and weight don't quite add up — the weight entry is the most likely culprit.";
+"bodyModel.morph.label" = "Morph between dates";
+"bodyModel.morph.play" = "Play";
+"bodyModel.dates.older" = "From";
+"bodyModel.dates.newer" = "To";
+"bodyModel.accessibility.mannequin" = "Body silhouette built from your measurements. Changes are listed below.";
+"bodyModel.sourceRange" = "Measured %@ – %@";
+"bodyModel.site.neck" = "Neck";
+"bodyModel.site.shoulders" = "Shoulders";
+"bodyModel.site.chest" = "Chest";
+"bodyModel.site.waist" = "Waist";
+"bodyModel.site.hips" = "Hips";
+"bodyModel.site.thigh" = "Thigh";
+"bodyModel.site.calf" = "Calf";
+"bodyModel.site.bicep" = "Bicep";
+"bodyModel.site.forearm" = "Forearm";

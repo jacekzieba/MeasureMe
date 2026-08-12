@@ -6,7 +6,7 @@
 // **Responsibilities:**
 // - Emitting one ring of vertices per cross-section
 // - Stitching neighbouring rings into triangle strips
-// - Producing an `SCNGeometry` with a position source and a triangle index element
+// - Producing an `SCNGeometry` with position, normal and triangle-index sources
 //
 // **Why topology is fixed:**
 // Ring count and segment count never depend on the body's dimensions, so the
@@ -17,8 +17,19 @@
 // Positions are emitted in metres (SceneKit's convention) while the model
 // works in centimetres.
 //
+// **Why normals are accumulated rather than derived analytically:**
+// SceneKit does not synthesise normals for hand-built geometry, and the
+// `.physicallyBased` material lights the mesh entirely from its normals — no
+// normal source means a black mannequin regardless of the scene's lights.
+// Summing each triangle's face normal into its three vertices and
+// normalising (standard smooth shading) handles the stack boundaries, the
+// calf's local maximum and the mirrored limb offsets uniformly, without a
+// parallel analytic formula that could drift out of sync with the triangles
+// `indices(for:)` actually draws.
+//
 import Foundation
 import SceneKit
+import simd
 
 nonisolated enum BodyGeometryBuilder {
     /// Vertices per cross-section ring.
@@ -94,16 +105,50 @@ nonisolated enum BodyGeometryBuilder {
         return result
     }
 
+    /// One smoothed normal per vertex, built by accumulating the face normal
+    /// of every triangle that touches it and normalising. Matches
+    /// `positions(for:)` exactly in count and order, as SceneKit pairs
+    /// geometry sources by index.
+    static func normals(for parameters: BodyMeshParameters) -> [SIMD3<Float>] {
+        let vertices = positions(for: parameters)
+        let triangleIndices = indices(for: parameters)
+
+        var accumulated = [SIMD3<Float>](repeating: .zero, count: vertices.count)
+        var triangle = 0
+        while triangle + 2 < triangleIndices.count {
+            let i0 = Int(triangleIndices[triangle])
+            let i1 = Int(triangleIndices[triangle + 1])
+            let i2 = Int(triangleIndices[triangle + 2])
+
+            let faceNormal = cross(vertices[i1] - vertices[i0], vertices[i2] - vertices[i0])
+            accumulated[i0] += faceNormal
+            accumulated[i1] += faceNormal
+            accumulated[i2] += faceNormal
+
+            triangle += 3
+        }
+
+        return accumulated.map { normal in
+            let length = simd_length(normal)
+            // A vertex touched only by degenerate triangles would otherwise
+            // normalise to NaN; fall back to a sane unit vector instead.
+            return length > 0 ? normal / length : SIMD3<Float>(0, 1, 0)
+        }
+    }
+
     static func geometry(for parameters: BodyMeshParameters) -> SCNGeometry {
         let vertices = positions(for: parameters)
-        let source = SCNGeometrySource(
+        let vertexSource = SCNGeometrySource(
             vertices: vertices.map { SCNVector3($0.x, $0.y, $0.z) }
+        )
+        let normalSource = SCNGeometrySource(
+            normals: normals(for: parameters).map { SCNVector3($0.x, $0.y, $0.z) }
         )
         let element = SCNGeometryElement(
             indices: indices(for: parameters),
             primitiveType: .triangles
         )
-        let geometry = SCNGeometry(sources: [source], elements: [element])
+        let geometry = SCNGeometry(sources: [vertexSource, normalSource], elements: [element])
         return geometry
     }
 }

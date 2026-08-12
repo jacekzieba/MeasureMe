@@ -140,28 +140,55 @@ nonisolated enum BodyVolumeValidator {
     /// disagreement is more likely a bad weight entry than a bad tape reading.
     private static let suspectThreshold = 0.15
 
+    /// Expected circumference as a fraction of height, from the same tables
+    /// that place the landmarks. Anchored to this validator's test fixture
+    /// (a 180 cm reference body) rather than to published population data —
+    /// e.g. `bicep` 0.189 is 34/180 and `forearm` 0.156 is 28/180. That
+    /// tradeoff was flagged in an earlier review and consciously carried, not
+    /// re-derived here.
+    private static let expectedFractionsOfHeight: [(site: BodyMeasurementSite, fractionOfHeight: Double)] = [
+        (.neck, 0.211),
+        (.shoulders, 0.653),
+        (.chest, 0.556),
+        (.waist, 0.472),
+        (.hips, 0.544),
+        (.thigh, 0.322),
+        (.calf, 0.211),
+        (.bicep, 0.189),
+        (.forearm, 0.156)
+    ]
+
+    /// Sites the suspect-site heuristic can name. Exposed only so a
+    /// structural test can assert every `BodyMeasurementSite` case is
+    /// covered; the fractions themselves stay private.
+    static var expectationSites: [BodyMeasurementSite] {
+        expectedFractionsOfHeight.map(\.site)
+    }
+
+    private static func measuredCm(for site: BodyMeasurementSite, in snapshot: BodySnapshot) -> Double {
+        switch site {
+        case .neck:      return snapshot.neckCm
+        case .shoulders: return snapshot.shouldersCm
+        case .chest:     return snapshot.bustCm ?? snapshot.chestCm
+        case .waist:     return snapshot.waistCm
+        case .hips:      return snapshot.hipsCm
+        case .thigh:     return snapshot.thighCm
+        case .calf:      return snapshot.calfCm
+        case .bicep:     return snapshot.bicepCm
+        case .forearm:   return snapshot.forearmCm
+        }
+    }
+
     /// Ranks measured circumferences by how far each sits from the population
     /// norm for this height and gender, and names the worst outlier if it
     /// clears `suspectThreshold`. A model too light means an implausibly
     /// small circumference, and vice versa.
     private static func suspectSite(for snapshot: BodySnapshot, residual: Double) -> BodyMeasurementSite? {
-        // Expected circumference as a fraction of height, from the same tables
-        // that place the landmarks.
-        let expectations: [(site: BodyMeasurementSite, measured: Double, fractionOfHeight: Double)] = [
-            (.neck, snapshot.neckCm, 0.211),
-            (.shoulders, snapshot.shouldersCm, 0.653),
-            (.chest, snapshot.bustCm ?? snapshot.chestCm, 0.556),
-            (.waist, snapshot.waistCm, 0.472),
-            (.hips, snapshot.hipsCm, 0.544),
-            (.thigh, snapshot.thighCm, 0.322),
-            (.calf, snapshot.calfCm, 0.211),
-            (.bicep, snapshot.bicepCm, 0.189)
-        ]
-
-        let worst = expectations
+        let worst = expectedFractionsOfHeight
             .map { item -> (BodyMeasurementSite, Double) in
                 let expected = snapshot.heightCm * item.fractionOfHeight
-                let relative = (item.measured - expected) / expected
+                let measured = measuredCm(for: item.site, in: snapshot)
+                let relative = (measured - expected) / expected
                 // Only count deviations in the direction that explains the residual.
                 let aligned = residual < 0 ? -relative : relative
                 return (item.site, aligned)

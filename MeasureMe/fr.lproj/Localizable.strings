@@ -2107,3 +2107,33 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 "camera.overlay.off" = "Aucun";
 "camera.overlay.noPhotoForPose" = "Aucune photo pour cette pose — ce sera la première";
 "camera.overlay.opacity" = "Opacité du calque";
+
+// Body model
+"bodyModel.title" = "Modèle corporel";
+"bodyModel.empty.profile.title" = "Complétez votre profil";
+"bodyModel.empty.profile.message" = "Le modèle corporel a besoin de votre taille et de votre sexe pour positionner vos mesures correctement.";
+"bodyModel.empty.profile.action" = "Ouvrir le profil";
+"bodyModel.empty.metrics.title" = "Encore quelques mesures";
+"bodyModel.empty.metrics.message" = "Enregistrez celles-ci pour construire votre silhouette : %@";
+"bodyModel.empty.metrics.action" = "Ajouter des mesures";
+"bodyModel.premium.title" = "Voyez votre silhouette en 3D";
+"bodyModel.premium.message" = "Transformez vos mesures en modèle corporel et regardez-le évoluer entre deux dates.";
+"bodyModel.premium.action" = "Débloquer";
+"bodyModel.quality.approximate" = "Cette silhouette est une approximation.";
+"bodyModel.quality.suspect" = "Vos mesures et votre poids ne concordent pas tout à fait. Vérifiez : %@.";
+"bodyModel.quality.suspectNoSite" = "Vos mesures et votre poids ne concordent pas tout à fait — le poids saisi en est la cause la plus probable.";
+"bodyModel.morph.label" = "Transition entre les dates";
+"bodyModel.morph.play" = "Lecture";
+"bodyModel.dates.older" = "Du";
+"bodyModel.dates.newer" = "Au";
+"bodyModel.accessibility.mannequin" = "Silhouette corporelle construite à partir de vos mesures. Les changements sont listés ci-dessous.";
+"bodyModel.sourceRange" = "Mesuré %@ – %@";
+"bodyModel.site.neck" = "Cou";
+"bodyModel.site.shoulders" = "Épaules";
+"bodyModel.site.chest" = "Poitrine";
+"bodyModel.site.waist" = "Taille";
+"bodyModel.site.hips" = "Hanches";
+"bodyModel.site.thigh" = "Cuisse";
+"bodyModel.site.calf" = "Mollet";
+"bodyModel.site.bicep" = "Biceps";
+"bodyModel.site.forearm" = "Avant-bras";
