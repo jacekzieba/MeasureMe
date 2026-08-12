@@ -2118,9 +2118,7 @@ The thresholds differ between males and females due to different body compositio
 "bodyModel.title" = "Body model";
 "bodyModel.empty.profile.title" = "Complete your profile";
 "bodyModel.empty.profile.message" = "The body model needs your height and sex to place your measurements correctly.";
-"bodyModel.empty.profile.action" = "Open profile";
 "bodyModel.empty.metrics.title" = "A few measurements to go";
-"bodyModel.empty.metrics.message" = "Log these to build your silhouette: %@";
 "bodyModel.empty.metrics.action" = "Add measurements";
 "bodyModel.empty.metrics.listTitle" = "Still to log";
 "bodyModel.empty.profile.genderLabel" = "Sex";

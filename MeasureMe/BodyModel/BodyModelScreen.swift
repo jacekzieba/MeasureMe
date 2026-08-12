@@ -17,17 +17,18 @@ import SwiftData
 
 struct BodyModelScreen: View {
     @EnvironmentObject private var premiumStore: PremiumStore
-    @EnvironmentObject private var router: AppRouter
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.profile.userGender) private var userGender: String = "notSpecified"
     @AppSetting(\.profile.userAge) private var userAge: Int = 0
     @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0
+    @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
 
     @Query(sort: \MetricSample.date, order: .reverse) private var samples: [MetricSample]
     @StateObject private var viewModel = BodyModelViewModel()
     @State private var rotationRadians: Double = 0
+    /// Non-nil while the quick-add sheet is up; carries the metrics it should offer.
+    @State private var quickAddRequest: QuickAddRequest?
 
     private let theme = FeatureTheme.photos
 
@@ -37,6 +38,17 @@ struct BodyModelScreen: View {
     /// `reload()` and date-picker selection agree on the same value.
     private var resolvedGender: BodyGender? {
         BodyGender(Gender(rawValue: userGender) ?? .notSpecified)
+    }
+
+    /// Newest sample per kind, for prefilling the quick-add sheet. `samples` is already
+    /// sorted newest-first, so the first hit for a kind wins.
+    private var latestByKind: [MetricKind: (value: Double, date: Date)] {
+        var result: [MetricKind: (value: Double, date: Date)] = [:]
+        for sample in samples {
+            guard let kind = MetricKind(rawValue: sample.kindRaw), result[kind] == nil else { continue }
+            result[kind] = (sample.value, sample.date)
+        }
+        return result
     }
 
     var body: some View {
@@ -57,38 +69,32 @@ struct BodyModelScreen: View {
         }
         .onAppear(perform: reload)
         .onChange(of: samples.count) { _, _ in reload() }
+        .onChange(of: userGender) { _, _ in reload() }
+        .sheet(item: $quickAddRequest) { request in
+            QuickAddSheetView(
+                kinds: request.kinds,
+                latest: latestByKind,
+                unitsSystem: unitsSystem,
+                telemetrySource: .bodyModel,
+                onSaved: { quickAddRequest = nil }
+            )
+        }
     }
 
     @ViewBuilder
     private var content: some View {
         switch viewModel.state {
         case .needsProfile:
-            EmptyStateCard(
-                title: AppLocalization.string("bodyModel.empty.profile.title"),
-                message: AppLocalization.string("bodyModel.empty.profile.message"),
-                systemImage: "person.crop.circle.badge.questionmark",
-                actionTitle: AppLocalization.string("bodyModel.empty.profile.action"),
-                action: {
-                    dismiss()
-                    router.selectTab(.settings)
-                },
-                accessibilityIdentifier: "photos.bodyModel.needsProfile"
-            )
+            BodyModelGenderCard(selectedGender: $userGender)
 
         case let .missingMetrics(kinds):
-            EmptyStateCard(
-                title: AppLocalization.string("bodyModel.empty.metrics.title"),
-                message: String(
-                    format: AppLocalization.string("bodyModel.empty.metrics.message"),
-                    kinds.map(\.title).joined(separator: ", ")
-                ),
-                systemImage: "ruler",
-                actionTitle: AppLocalization.string("bodyModel.empty.metrics.action"),
-                action: {
-                    dismiss()
-                    router.selectTab(.measurements)
-                },
-                accessibilityIdentifier: "photos.bodyModel.missingMetrics"
+            BodyModelMissingMetricsCard(
+                rows: BodyModelMissingMetrics.rows(for: kinds),
+                onAdd: {
+                    quickAddRequest = QuickAddRequest(
+                        kinds: BodyModelMissingMetrics.quickAddKinds(for: kinds)
+                    )
+                }
             )
 
         case .single, .comparison:
@@ -290,4 +296,12 @@ struct BodyModelScreen: View {
             fallbackHeightCm: manualHeight
         )
     }
+}
+
+/// Wrapper so the quick-add sheet can be driven by `.sheet(item:)` — the metrics
+/// it offers change per presentation, so a plain `isPresented` flag would need a
+/// second source of truth for "which ones".
+private struct QuickAddRequest: Identifiable {
+    let id = UUID()
+    let kinds: [MetricKind]
 }

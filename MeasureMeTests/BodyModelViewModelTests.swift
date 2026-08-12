@@ -127,4 +127,25 @@ final class BodyModelViewModelTests: XCTestCase {
         viewModel.morphProgress = 1
         XCTAssertEqual(viewModel.currentParameters, newerResolved.parameters)
     }
+
+    /// Co sprawdza: Dopisanie brakujacej metryki przeprowadza stan z .missingMetrics w .single.
+    /// Dlaczego: Na tym stoi uzupelnianie w miejscu — po zapisie ekran ma sam przeliczyc model,
+    ///   bez zamykania i ponownego otwierania.
+    /// Kryteria: Ten sam view model po ponownym load() z kompletem probek jest w stanie .single.
+    func testLoggingTheMissingMetricAdvancesToSingle() {
+        let incomplete = completeSamples(at: anchor).filter { $0.kindRaw != MetricKind.neck.rawValue }
+        let viewModel = BodyModelViewModel()
+        viewModel.load(samples: incomplete, gender: .male, age: 30, fallbackHeightCm: 180)
+
+        guard case .missingMetrics = viewModel.state else {
+            return XCTFail("Precondition: expected missingMetrics, got \(viewModel.state)")
+        }
+
+        let completed = incomplete + [MetricSample(kind: .neck, value: 38, date: anchor)]
+        viewModel.load(samples: completed, gender: .male, age: 30, fallbackHeightCm: 180)
+
+        guard case .single = viewModel.state else {
+            return XCTFail("Expected single after logging the missing metric, got \(viewModel.state)")
+        }
+    }
 }
