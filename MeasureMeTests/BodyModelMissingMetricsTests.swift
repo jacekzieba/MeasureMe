@@ -76,4 +76,37 @@ final class BodyModelMissingMetricsTests: XCTestCase {
 
         XCTAssertEqual(kinds, [.waist, .leftCalf, .rightCalf, .hips])
     }
+
+    /// Co sprawdza: Zaden wiersz nie zdradza strony ciala dla zadnej z plci.
+    /// Dlaczego: BodySnapshotBuilder ma wlasna, prywatna tabele par. Gdyby doszla piata para,
+    ///   karta pokazalaby "Lewy X", a arkusz zaoferowalby tylko lewa strone — i zaden test by nie padl.
+    ///   `requiredKinds(for:)` zwraca obie strony kazdej pary naraz, co `build()` nigdy nie zglasza
+    ///   jako "missing" (raportuje tylko lewa strone) — wiec test odtwarza prawdziwa sciezke przez
+    ///   `build()` z pustymi probkami zamiast karmic `rows(for:)` ksztaltem, jakiego produkcja nie da.
+    /// Kryteria: Dla listy brakujacych metryk obu plci zaden Row.id nie jest rawValue metryki
+    ///   z lewa/prawa strona.
+    func testNoRowExposesASideForEitherGender() {
+        let sidedIds = Set(
+            MetricKind.allCases
+                .filter { $0.rawValue.hasPrefix("left") || $0.rawValue.hasPrefix("right") }
+                .map(\.rawValue)
+        )
+
+        for gender in [BodyGender.male, .female] {
+            guard case let .missing(missingKinds) = BodySnapshotBuilder.build(
+                samples: [],
+                anchorDate: Date(),
+                gender: gender,
+                age: 30,
+                fallbackHeightCm: 0
+            ) else {
+                XCTFail("Expected .missing with no samples for \(gender)")
+                continue
+            }
+
+            let rows = BodyModelMissingMetrics.rows(for: missingKinds)
+            let leaked = rows.map(\.id).filter { sidedIds.contains($0) }
+            XCTAssertTrue(leaked.isEmpty, "\(gender) leaked sided rows: \(leaked)")
+        }
+    }
 }
