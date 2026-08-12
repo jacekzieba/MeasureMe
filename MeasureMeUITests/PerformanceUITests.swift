@@ -175,7 +175,7 @@ final class PerformanceUITests: XCTestCase {
     }
 
     private func tapTab(named name: String) {
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         XCTAssertTrue(ensureTabBarExists(timeout: 20), "Expected tab bar to exist.")
 
         let localizedCandidates: [String]
@@ -204,7 +204,7 @@ final class PerformanceUITests: XCTestCase {
     }
 
     private func ensureTabBarExists(timeout: TimeInterval) -> Bool {
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         if tabBar.waitForExistence(timeout: timeout) {
             return true
         }
@@ -236,7 +236,7 @@ final class PerformanceUITests: XCTestCase {
     private func waitForDeferredSyncMeasurementWindow(timeout: TimeInterval) -> Bool {
         let appRoot = app.otherElements["app.root.ready"].firstMatch
         let startupLoading = app.otherElements["startup.loading.root"].firstMatch
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         let homeNextFocus = app.buttons["home.aiInsights.openAnalysis"].firstMatch
         let weightTile = app.buttons["metric.tile.open.weight"].firstMatch
         let navBar = app.navigationBars.firstMatch
@@ -272,7 +272,7 @@ final class PerformanceUITests: XCTestCase {
     private func debugUIState() -> String {
         let appRoot = app.otherElements["app.root.ready"].firstMatch.exists
         let startup = app.otherElements["startup.loading.root"].firstMatch.exists
-        let tabBar = app.tabBars.firstMatch.exists
+        let tabBar = app.appTabBar.exists
         let onboarding = onboardingNextButton().exists
         let homeCTA = app.buttons["home.aiInsights.openAnalysis"].firstMatch.exists
         return "state=\(app.state.rawValue), appRoot=\(appRoot), startup=\(startup), tabBar=\(tabBar), onboardingNext=\(onboarding), homeNextFocus=\(homeCTA)"

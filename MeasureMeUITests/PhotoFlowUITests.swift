@@ -27,7 +27,7 @@ final class PhotoFlowUITests: XCTestCase {
     }
 
     private func tapTab(named name: String) {
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         XCTAssertTrue(tabBar.waitForExistence(timeout: 20), "Expected tab bar to exist.")
 
         let localizedCandidates: [String]

@@ -1,6 +1,15 @@
 {
-  "originHash" : "40b07896369dedafc44de068e49d8470822bf25ba13b80b822674670d11b87ed",
+  "originHash" : "f92c5f82f3670f24ff893b2fbf3e5c951b82c18fde576cb6a0a1d51c9c7a3942",
   "pins" : [
+    {
+      "identity" : "fabbar",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ryanashcraft/FabBar.git",
+      "state" : {
+        "revision" : "4f05fc7815fc676683807574fec4a826f49588da",
+        "version" : "1.1.0"
+      }
+    },
     {
       "identity" : "purchases-ios-spm",
       "kind" : "remoteSourceControl",

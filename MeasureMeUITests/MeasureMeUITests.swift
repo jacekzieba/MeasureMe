@@ -273,7 +273,7 @@ final class MeasureMeUITests: XCTestCase {
         }
 
         let likelyInteractiveElements: [XCUIElement] = [
-            app.tabBars.firstMatch,
+            app.appTabBar,
             app.buttons["metric.tile.open.weight"].firstMatch,
             app.buttons["home.aiInsights.openAnalysis"].firstMatch,
             app.navigationBars.firstMatch
@@ -284,7 +284,7 @@ final class MeasureMeUITests: XCTestCase {
     }
 
     private func tapTab(in app: XCUIApplication, identifier: String, fallbackLabels: [String]) {
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         _ = tabBar.waitForExistence(timeout: 10)
 
         for _ in 0..<6 {

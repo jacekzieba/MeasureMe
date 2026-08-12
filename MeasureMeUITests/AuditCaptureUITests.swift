@@ -120,7 +120,7 @@ final class AuditCaptureUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         XCTAssertTrue(tabBar.waitForExistence(timeout: 15))
         openTab(app, candidates: TabLabel.home)
         _ = app.otherElements["home.module.summaryHero"].waitForExistence(timeout: 5)
@@ -165,7 +165,7 @@ final class AuditCaptureUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         XCTAssertTrue(tabBar.waitForExistence(timeout: 15))
         openTab(app, candidates: TabLabel.home)
         XCTAssertTrue(openQuickAdd(app))
@@ -417,7 +417,7 @@ final class AuditCaptureUITests: XCTestCase {
     }
 
     private func openTab(_ app: XCUIApplication, candidates: [String]) {
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         XCTAssertTrue(tabBar.waitForExistence(timeout: 8), "Expected tab bar.")
         for label in candidates {
             let button = tabBar.buttons[label].firstMatch
@@ -712,7 +712,7 @@ final class AuditCaptureUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         XCTAssertTrue(tabBar.waitForExistence(timeout: 15))
 
         openTab(app, candidates: TabLabel.home)
@@ -752,13 +752,13 @@ final class AuditCaptureUITests: XCTestCase {
     }
 
     private func openQuickAdd(_ app: XCUIApplication) -> Bool {
-        let quickAddButton = app.tabBars.buttons["tab.add"].firstMatch
+        let quickAddButton = app.tabButton("tab.add").firstMatch
         if quickAddButton.waitForExistence(timeout: 4) {
             quickAddButton.tap()
             return true
         }
 
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         if tabBar.waitForExistence(timeout: 3) {
             let addCandidates = ["tab.add", "Add", "Dodaj", "+"]
             for candidate in addCandidates {

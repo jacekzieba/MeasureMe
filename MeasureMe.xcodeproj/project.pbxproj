@@ -22,6 +22,7 @@
 		A3E6B7EC2F701C6F008A7C46 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A3E6B7EB2F701C6F008A7C46 /* SwiftUI.framework */; };
 		A3E6B7FB2F701C70008A7C46 /* MeasureMeWatchComplicationsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A3E6B7E92F701C6F008A7C46 /* MeasureMeWatchComplicationsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C10000012F28000100000004 /* MeasureMeWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C10000012F28000100000001 /* MeasureMeWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FAB0000000000000000000A3 /* FabBar in Frameworks */ = {isa = PBXBuildFile; productRef = FAB0000000000000000000A2 /* FabBar */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -220,6 +221,7 @@
 				A3E6B7DE2F6FE8EA008A7C46 /* WatchConnectivity.framework in Frameworks */,
 				A31A14312F672B60004CA5F4 /* RevenueCatUI in Frameworks */,
 				A38326A02F4F7EEA00545E2C /* TelemetryDeck in Frameworks */,
+				FAB0000000000000000000A3 /* FabBar in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -400,6 +402,7 @@
 				A31A142E2F672B60004CA5F4 /* RevenueCat */,
 				A31A142F2F672B60004CA5F4 /* RevenueCatUI */,
 				A383269F2F4F7EEA00545E2C /* TelemetryDeck */,
+				FAB0000000000000000000A2 /* FabBar */,
 			);
 			productName = MeasureMe;
 			productReference = A3BAF7BC2F27B74C00269A9A /* MeasureMe.app */;
@@ -554,6 +557,7 @@
 				A3B1D5F72F45C90800DA3275 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
 				A383269E2F4F7EEA00545E2C /* XCRemoteSwiftPackageReference "SwiftSDK" */,
 				A31A142C2F672AD3004CA5F4 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
+				FAB0000000000000000000A1 /* XCRemoteSwiftPackageReference "FabBar" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A3BAF7BD2F27B74C00269A9A /* Products */;
@@ -1433,6 +1437,14 @@
 				minimumVersion = 1.18.9;
 			};
 		};
+		FAB0000000000000000000A1 /* XCRemoteSwiftPackageReference "FabBar" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ryanashcraft/FabBar.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1455,6 +1467,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A3B1D5F72F45C90800DA3275 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
 			productName = SnapshotTesting;
+		};
+		FAB0000000000000000000A2 /* FabBar */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FAB0000000000000000000A1 /* XCRemoteSwiftPackageReference "FabBar" */;
+			productName = FabBar;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -234,7 +234,7 @@ final class TextTruncationUITests: XCTestCase {
         // Swipe down first — home screen hides the tab bar while scrolling.
         app.swipeDown()
 
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         guard tabBar.waitForExistence(timeout: 8) else {
             XCTFail("Could not find tab bar when tapping tab: \(identifier)")
             return

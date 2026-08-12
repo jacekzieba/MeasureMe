@@ -29,7 +29,7 @@ final class QuickAddUITests: XCTestCase {
     }
 
     private func tapTab(named name: String) {
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         XCTAssertTrue(tabBar.waitForExistence(timeout: 20), "Expected tab bar to exist.")
 
         let localizedCandidates: [String]
@@ -59,7 +59,7 @@ final class QuickAddUITests: XCTestCase {
 
     /// Otworz arkusz QuickAdd z glownego entry pointu w tab barze i poczekaj, az bedzie gotowy.
     private func openQuickAdd() {
-        let addButton = app.tabBars.buttons["tab.add"].firstMatch
+        let addButton = app.tabButton("tab.add").firstMatch
         XCTAssertTrue(addButton.waitForExistence(timeout: 5),
                       "Przycisk dodania pomiaru powinien istniec w tab barze")
         addButton.tap()
@@ -127,7 +127,7 @@ final class QuickAddUITests: XCTestCase {
     func testQuickAddShowsEmptyStateWhenNoActiveMetrics() {
         launchWithNoMetrics()
 
-        let addButton = app.tabBars.buttons["tab.add"].firstMatch
+        let addButton = app.tabButton("tab.add").firstMatch
         XCTAssertTrue(addButton.waitForExistence(timeout: 5),
                       "Przycisk dodania pomiaru powinien istniec")
         addButton.tap()
@@ -166,7 +166,7 @@ final class QuickAddUITests: XCTestCase {
         app.launchArguments = ["-uiTestMode", "-uiTestSeedMeasurements"]
         app.launch()
 
-        let addButton = app.tabBars.buttons["tab.add"].firstMatch
+        let addButton = app.tabButton("tab.add").firstMatch
         if addButton.waitForExistence(timeout: 5) {
             addButton.tap()
 

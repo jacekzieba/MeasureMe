@@ -73,7 +73,7 @@ final class OnboardingToGoalJourneyUITests: XCTestCase {
     }
 
     private func openMeasurementsTab() {
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         XCTAssertTrue(tabBar.waitForExistence(timeout: 8), "Pasek zakladek powinien byc widoczny")
 
         let measurementCandidates = ["tab.measurements", "Measurements", "Pomiary"]

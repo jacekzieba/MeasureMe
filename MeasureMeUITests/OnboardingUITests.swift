@@ -158,7 +158,7 @@ final class OnboardingUITests: XCTestCase {
 
         nextButton.tap() // plan → dashboard
 
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8), "Finishing the plan should open the main app")
+        XCTAssertTrue(app.appTabBar.waitForExistence(timeout: 8), "Finishing the plan should open the main app")
     }
 
     func testOnboardingCanReachDashboardWithSkips() {
@@ -179,6 +179,6 @@ final class OnboardingUITests: XCTestCase {
 
         skipButton.tap()
 
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8), "Finishing onboarding should open the main app")
+        XCTAssertTrue(app.appTabBar.waitForExistence(timeout: 8), "Finishing onboarding should open the main app")
     }
 }

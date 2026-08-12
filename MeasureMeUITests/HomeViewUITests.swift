@@ -93,9 +93,9 @@ final class HomeViewUITests: XCTestCase {
             "Review action should open tracked measurements"
         )
 
-        let homeTab = app.tabBars.buttons["tab.home"].firstMatch.exists
-            ? app.tabBars.buttons["tab.home"].firstMatch
-            : app.tabBars.buttons["Home"].firstMatch
+        let homeTab = app.tabButton("tab.home").firstMatch.exists
+            ? app.tabButton("tab.home").firstMatch
+            : app.appTabBar.buttons["Home"].firstMatch
         XCTAssertTrue(homeTab.waitForExistence(timeout: 5))
         homeTab.tap()
 

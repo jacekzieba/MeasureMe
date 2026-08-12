@@ -38,23 +38,23 @@ final class MultiPhotoImportUITests: XCTestCase {
             return
         }
 
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         XCTAssertTrue(tabBar.waitForExistence(timeout: 8), "Tab bar powinien istnieć")
 
-        let identifierTab = app.tabBars.buttons["tab.photos"]
+        let identifierTab = app.tabButton("tab.photos")
         if identifierTab.waitForExistence(timeout: 3) {
             identifierTab.tap()
             return
         }
 
         // Fallback na etykiety lokalizacyjne (iOS 26 potrafi nie wystawić identifiera taba).
-        let fallbackPhotosEN = app.tabBars.buttons["Photos"]
+        let fallbackPhotosEN = app.appTabBar.buttons["Photos"]
         if fallbackPhotosEN.waitForExistence(timeout: 2) {
             fallbackPhotosEN.tap()
             return
         }
 
-        let fallbackPhotosPL = app.tabBars.buttons["Zdjęcia"]
+        let fallbackPhotosPL = app.appTabBar.buttons["Zdjęcia"]
         if fallbackPhotosPL.waitForExistence(timeout: 2) {
             fallbackPhotosPL.tap()
             return

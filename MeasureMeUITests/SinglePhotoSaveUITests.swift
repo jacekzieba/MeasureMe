@@ -193,7 +193,7 @@ private extension SinglePhotoSaveUITests {
     }
 
     func tapPhotosTab() {
-        let tab = app.tabBars.buttons["tab.photos"]
+        let tab = app.tabButton("tab.photos")
         XCTAssertTrue(tab.waitForExistence(timeout: 6), "Tab 'Photos' should exist")
         tab.tap()
     }

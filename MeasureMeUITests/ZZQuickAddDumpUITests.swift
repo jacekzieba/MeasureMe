@@ -9,7 +9,7 @@ final class ZZQuickAddDumpUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
 
-        let addButton = app.tabBars.buttons["tab.add"].firstMatch
+        let addButton = app.tabButton("tab.add").firstMatch
         XCTAssertTrue(addButton.waitForExistence(timeout: 10), "tab.add powinien istniec")
         addButton.tap()
 

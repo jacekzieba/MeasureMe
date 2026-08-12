@@ -21,22 +21,22 @@ final class MeasurementsPhysiqueUITests: XCTestCase {
     }
 
     private func openMeasurementsTab() {
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         XCTAssertTrue(tabBar.waitForExistence(timeout: 8), "Tab bar should exist")
 
-        let idTab = app.tabBars.buttons["tab.measurements"]
+        let idTab = app.tabButton("tab.measurements")
         if idTab.waitForExistence(timeout: 3) {
             idTab.tap()
             return
         }
 
-        let fallbackEN = app.tabBars.buttons["Measurements"]
+        let fallbackEN = app.appTabBar.buttons["Measurements"]
         if fallbackEN.waitForExistence(timeout: 2) {
             fallbackEN.tap()
             return
         }
 
-        let fallbackPL = app.tabBars.buttons["Pomiary"]
+        let fallbackPL = app.appTabBar.buttons["Pomiary"]
         if fallbackPL.waitForExistence(timeout: 2) {
             fallbackPL.tap()
             return

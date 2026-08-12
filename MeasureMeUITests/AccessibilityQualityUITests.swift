@@ -87,7 +87,7 @@ final class AccessibilityQualityUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10), "App should launch")
 
-        let addButton = app.tabBars.buttons["tab.add"].firstMatch
+        let addButton = app.tabButton("tab.add").firstMatch
         XCTAssertTrue(addButton.waitForExistence(timeout: 10), "Quick Add entry point should exist")
         addButton.tap()
 
@@ -221,7 +221,7 @@ final class AccessibilityQualityUITests: XCTestCase {
         ]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10), "App should launch")
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 12), "Tab bar should exist")
+        XCTAssertTrue(app.appTabBar.waitForExistence(timeout: 12), "Tab bar should exist")
     }
 
     @MainActor
@@ -253,7 +253,7 @@ final class AccessibilityQualityUITests: XCTestCase {
     @MainActor
     private func openTab(identifier: String, fallbackIndex: Int) {
         app.swipeDown()
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.appTabBar
         XCTAssertTrue(tabBar.waitForExistence(timeout: 8), "Tab bar should exist")
 
         let identifiedButton = tabBar.buttons[identifier].firstMatch

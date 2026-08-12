@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import FabBar
 
 struct TabBarContainer: View {
     let autoCheckPaywallPrompt: Bool
@@ -23,6 +24,7 @@ struct TabBarContainer: View {
                         NavigationStack {
                             HomeView(autoCheckPaywallPrompt: autoCheckPaywallPrompt)
                         }
+                        .hideSystemTabBarWhenFabBarIsUsed()
                     } label: {
                         Label(AppLocalization.string("Home"), systemImage: "house.fill")
                     }
@@ -33,16 +35,16 @@ struct TabBarContainer: View {
                         LazyMountedTab(isMounted: shouldRenderTab(.measurements)) {
                             MeasurementsTabView()
                         }
+                        .hideSystemTabBarWhenFabBarIsUsed()
                     } label: {
                         Label(AppLocalization.string("Measurements"), systemImage: "ruler")
                     }
                     .accessibilityIdentifier("tab.measurements")
 
                     // COMPOSE
-                    // `role: .search` celowo — to ta rola każe systemowi zwęzić pasek i narysować
-                    // „+” jako osobny, odczepiony przycisk po prawej. Zweryfikowane na symulatorze
-                    // iOS 26.5. (Na symulatorze iOS 27.0 24A5370g ta sama rola trzyma „+” w pasku,
-                    // na jego końcu — nie usuwaj roli, bo wtedy „+” wraca na środek.)
+                    // Zakładka zostaje dla przypadków, w których pasek rysuje system: iOS 18–25
+                    // oraz iPad (FabBar chowa się przy regular size class). Na iPhonie z iOS 26
+                    // systemowy pasek jest ukryty, więc widoczne jest „+” z FabBara.
                     Tab(value: AppTab.compose, role: .search) {
                         Color.clear
                     } label: {
@@ -55,6 +57,7 @@ struct TabBarContainer: View {
                         LazyMountedTab(isMounted: shouldRenderTab(.photos)) {
                             PhotoView()
                         }
+                        .hideSystemTabBarWhenFabBarIsUsed()
                     } label: {
                         Label(AppLocalization.string("Photos"), systemImage: "photo")
                     }
@@ -65,15 +68,22 @@ struct TabBarContainer: View {
                         LazyMountedTab(isMounted: shouldRenderTab(.settings)) {
                             SettingsView()
                         }
+                        .hideSystemTabBarWhenFabBarIsUsed()
                     } label: {
                         Label(AppLocalization.string("Settings"), systemImage: "gearshape")
                     }
                     .accessibilityIdentifier("tab.settings")
                 }
-                .tint(Color.appAccent)
                 .toolbarBackground(.visible, for: .tabBar)
                 .toolbarBackground(AppColorRoles.surfaceChrome, for: .tabBar)
                 .applyTabBarMinimizeBehaviorIfAvailable()
+                .applyFabBarIfAvailable(selection: $router.selectedTab) {
+                    router.presentComposer()
+                }
+                // `.tint` musi być NAD `.applyFabBarIfAvailable`: FabBar dokłada pasek jako
+                // rodzeństwo modyfikowanego widoku, więc tint nałożony pod spodem by go ominął
+                // i przycisk „+” zostałby systemowo niebieski.
+                .tint(Color.appAccent)
                 .onChange(of: router.selectedTab) { oldTab, newTab in
                     handleSelectedTabChange(oldTab: oldTab, newTab: newTab)
                 }
@@ -347,11 +357,66 @@ struct TabBarContainer: View {
     }
 }
 
+/// Chowa systemowy pasek tylko tam, gdzie FabBar faktycznie się rysuje.
+///
+/// FabBar wyświetla się wyłącznie przy compact horizontal size class (iPhone) — na iPadzie sam
+/// się chowa. Bez tego warunku iPad zostałby bez jakiegokolwiek paska zakładek.
+@available(iOS 26.0, *)
+private struct SystemTabBarVisibility: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    func body(content: Content) -> some View {
+        content
+            .fabBarSafeAreaPadding()
+            .toolbarVisibility(horizontalSizeClass == .compact ? .hidden : .automatic, for: .tabBar)
+    }
+}
+
 private extension View {
     @ViewBuilder
     func applyTabBarMinimizeBehaviorIfAvailable() -> some View {
         if #available(iOS 26.0, *) {
             self.tabBarMinimizeBehavior(.never)
+        } else {
+            self
+        }
+    }
+
+    /// Od iOS 26 pasek rysuje FabBar, więc systemowy trzeba schować — inaczej byłyby dwa.
+    @ViewBuilder
+    func hideSystemTabBarWhenFabBarIsUsed() -> some View {
+        if #available(iOS 26.0, *) {
+            self.modifier(SystemTabBarVisibility())
+        } else {
+            self
+        }
+    }
+
+    /// Podmienia systemowy pasek na FabBar: te same cztery zakładki plus odczepione „+” po prawej.
+    ///
+    /// Systemowy `Tab(role: .search)` rysował „+” osobno tylko do iOS 26 — na iOS 27 trzyma go
+    /// w pasku, na końcu rzędu. FabBar składa pasek z segmentowanego kontrolek i przycisku FAB
+    /// w jednym `UIGlassContainerEffect`, więc wygląd nie zależy już od wersji systemu.
+    @ViewBuilder
+    func applyFabBarIfAvailable(
+        selection: Binding<AppTab>,
+        onCompose: @escaping () -> Void
+    ) -> some View {
+        if #available(iOS 26.0, *) {
+            self.fabBar(
+                selection: selection,
+                tabs: [
+                    FabBarTab(value: AppTab.home, title: AppLocalization.string("Home"), systemImage: "house.fill"),
+                    FabBarTab(value: AppTab.measurements, title: AppLocalization.string("Measurements"), systemImage: "ruler"),
+                    FabBarTab(value: AppTab.photos, title: AppLocalization.string("Photos"), systemImage: "photo"),
+                    FabBarTab(value: AppTab.settings, title: AppLocalization.string("Settings"), systemImage: "gearshape"),
+                ],
+                action: FabBarAction(
+                    systemImage: "plus",
+                    accessibilityLabel: AppLocalization.string("Add"),
+                    action: onCompose
+                )
+            )
         } else {
             self
         }
