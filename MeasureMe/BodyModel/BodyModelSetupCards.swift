@@ -16,6 +16,27 @@ struct BodyModelGenderCard: View {
 
     private let theme = FeatureTheme.photos
 
+    /// Bridges the raw-string binding to an optional so the picker's selection always
+    /// matches a `.tag` (`"notSpecified"` and anything unrecognised map to `nil`, which
+    /// renders as no segment selected — SwiftUI-defined, not just observed behaviour).
+    private var genderSelection: Binding<String?> {
+        Binding(
+            get: {
+                switch selectedGender {
+                case Gender.female.rawValue, Gender.male.rawValue:
+                    return selectedGender
+                default:
+                    return nil
+                }
+            },
+            set: { newValue in
+                if let newValue {
+                    selectedGender = newValue
+                }
+            }
+        )
+    }
+
     var body: some View {
         AppGlassCard(depth: .elevated, cornerRadius: AppRadius.xl, tint: theme.softTint) {
             VStack(spacing: AppSpacing.sm) {
@@ -36,10 +57,10 @@ struct BodyModelGenderCard: View {
 
                 Picker(
                     AppLocalization.string("bodyModel.empty.profile.genderLabel"),
-                    selection: $selectedGender
+                    selection: genderSelection
                 ) {
-                    Text(Gender.female.displayName).tag(Gender.female.rawValue)
-                    Text(Gender.male.displayName).tag(Gender.male.rawValue)
+                    Text(Gender.female.displayName).tag(Optional(Gender.female.rawValue))
+                    Text(Gender.male.displayName).tag(Optional(Gender.male.rawValue))
                 }
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("photos.bodyModel.genderPicker")
