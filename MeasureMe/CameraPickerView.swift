@@ -163,8 +163,7 @@ struct GuidedCameraView: View {
     @StateObject private var camera = GuidedCameraController()
 
     private var activePose: PhotoTag? {
-        guard let pose = PhotoTag(rawValue: storedOverlayPose), pose.isPrimaryPose else { return nil }
-        return pose
+        CameraOverlayPose.resolve(storedValue: storedOverlayPose)
     }
 
     private var overlayOpacity: Double {
@@ -317,7 +316,7 @@ struct GuidedCameraView: View {
     private var poseBar: some View {
         HStack(spacing: 6) {
             poseButton(title: AppLocalization.string("camera.overlay.off"), pose: nil)
-            ForEach(PhotoTag.primaryPoseTags) { pose in
+            ForEach(CameraOverlayPose.selectable) { pose in
                 poseButton(title: pose.title, pose: pose)
             }
         }

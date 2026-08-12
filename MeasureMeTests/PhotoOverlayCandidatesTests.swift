@@ -68,6 +68,28 @@ final class PhotoOverlayCandidatesTests: XCTestCase {
         XCTAssertEqual(PhotoOverlayCandidates.mostRecentByPose(in: [photo])[.front], Data([1]))
     }
 
+    func testCameraOverlayPose_detailIsNotOffered() {
+        XCTAssertEqual(CameraOverlayPose.selectable, [.front, .side, .back])
+        XCTAssertFalse(CameraOverlayPose.selectable.contains(.detail))
+    }
+
+    func testCameraOverlayPose_resolvesOnlyOfferedPoses() {
+        XCTAssertEqual(CameraOverlayPose.resolve(storedValue: "front"), .front)
+        XCTAssertEqual(CameraOverlayPose.resolve(storedValue: "side"), .side)
+        XCTAssertEqual(CameraOverlayPose.resolve(storedValue: "back"), .back)
+    }
+
+    func testCameraOverlayPose_storedDetailFallsBackToOff() {
+        // Zapisane przez starszą wersję, która oferowała „Detal”.
+        XCTAssertNil(CameraOverlayPose.resolve(storedValue: "detail"))
+    }
+
+    func testCameraOverlayPose_emptyOrUnknownResolvesToOff() {
+        XCTAssertNil(CameraOverlayPose.resolve(storedValue: ""))
+        XCTAssertNil(CameraOverlayPose.resolve(storedValue: "waist"))
+        XCTAssertNil(CameraOverlayPose.resolve(storedValue: "nonsense"))
+    }
+
     func testOverlayOpacity_clampsToRange() {
         XCTAssertEqual(CameraOverlayOpacity.clamped(0.22), 0.22, accuracy: 0.0001)
         XCTAssertEqual(CameraOverlayOpacity.clamped(0.05), 0.05, accuracy: 0.0001)

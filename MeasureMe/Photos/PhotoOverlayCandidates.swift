@@ -19,6 +19,23 @@ enum PhotoOverlayCandidates {
     }
 }
 
+/// Pozy oferowane na pasku w aparacie.
+enum CameraOverlayPose {
+
+    /// `detail` celowo pominięty — zbliżenie na fragment ciała nie nadaje się na ghost
+    /// do dopasowania kadru. Tag nadal istnieje i jest wybieralny w formularzu zdjęcia.
+    static let selectable: [PhotoTag] = [.front, .side, .back]
+
+    /// Zamienia zapisaną surową wartość na pozę oferowaną w aparacie.
+    /// Zwraca nil dla pustej wartości, nieznanego tagu oraz tagu, którego już nie oferujemy —
+    /// dzięki temu `detail` zapisany przez starszą wersję cofa się do „Wył.” zamiast
+    /// zostawiać ghost bez zaznaczonej pozycji na pasku.
+    static func resolve(storedValue: String) -> PhotoTag? {
+        guard let pose = PhotoTag(rawValue: storedValue), selectable.contains(pose) else { return nil }
+        return pose
+    }
+}
+
 /// Krycie ghost-overlaya w aparacie, regulowane suwakiem.
 enum CameraOverlayOpacity {
 
