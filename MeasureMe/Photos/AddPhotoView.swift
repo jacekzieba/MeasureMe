@@ -453,12 +453,19 @@ private extension AddPhotoView {
         selectedTags = newTags
     }
 
+    func milliseconds(from duration: Duration) -> Int {
+        Int(duration.components.seconds * 1_000)
+            + Int(duration.components.attoseconds / 1_000_000_000_000_000)
+    }
+}
+
+extension AddPhotoView {
     /// Widoczne dla testów (AddPhotoPoseHandoffTests) — poza tym traktuj jak prywatne.
     /// Czysta logika decyzyjna za `applySuggestedPose`, wydzielona do statycznej funkcji: mutacje
     /// @State poza zainstalowanym drzewem widoku SwiftUI nie są obserwowalne w testach (zweryfikowane
     /// empirycznie), więc testujemy tę decyzję bezpośrednio, bez konstruowania i mutowania widoku.
     /// Zwraca nil, gdy użytkownik sam wybrał pozę (decyzja nie jest nadpisywana).
-    internal static func poseApplication(
+    static func poseApplication(
         currentTags: Set<PhotoTag>,
         suggestedPose: PhotoTag,
         didUserChoosePose: Bool
@@ -468,11 +475,6 @@ private extension AddPhotoView {
         newTags.subtract(Set(PhotoTag.primaryPoseTags))
         newTags.insert(suggestedPose)
         return newTags
-    }
-
-    func milliseconds(from duration: Duration) -> Int {
-        Int(duration.components.seconds * 1_000)
-            + Int(duration.components.attoseconds / 1_000_000_000_000_000)
     }
 }
 

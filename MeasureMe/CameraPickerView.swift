@@ -311,6 +311,7 @@ struct GuidedCameraView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(Color.black.opacity(0.45), in: Capsule())
+        .padding(.horizontal, 24)
     }
 
     private var poseBar: some View {

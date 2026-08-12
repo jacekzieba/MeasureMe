@@ -39,10 +39,11 @@ struct TabBarContainer: View {
                     .accessibilityIdentifier("tab.measurements")
 
                     // COMPOSE
-                    // Bez `role: .search` — ta rola każe systemowi rysować zakładkę jako
-                    // odczepiony, pływający przycisk obok paska. Zwykła zakładka trzyma „+”
-                    // w rzędzie razem z pozostałymi.
-                    Tab(value: AppTab.compose) {
+                    // `role: .search` celowo — to ta rola każe systemowi zwęzić pasek i narysować
+                    // „+” jako osobny, odczepiony przycisk po prawej. Zweryfikowane na symulatorze
+                    // iOS 26.5. (Na symulatorze iOS 27.0 24A5370g ta sama rola trzyma „+” w pasku,
+                    // na jego końcu — nie usuwaj roli, bo wtedy „+” wraca na środek.)
+                    Tab(value: AppTab.compose, role: .search) {
                         Color.clear
                     } label: {
                         Label(AppLocalization.string("Add"), systemImage: "plus")

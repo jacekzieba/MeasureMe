@@ -258,7 +258,10 @@ enum MetricKind: String, CaseIterable, Hashable, Identifiable, Sendable {
     // MARK: - Unit System
     
     /// Unit category for the metric — used for conversion and formatting
-    enum UnitCategory {
+    /// `nonisolated`, bo cel kompiluje się z `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`: bez tego
+    /// syntezowana zgodność z `Equatable` jest izolowana do @MainActor i nie da się jej użyć
+    /// w kodzie nonisolated (w Swift 6 to błąd, nie ostrzeżenie).
+    nonisolated enum UnitCategory {
         case weight     // kg (metric) / lb (imperial)
         case length     // cm (metric) / in (imperial)
         case percent    // % (always without conversion)
