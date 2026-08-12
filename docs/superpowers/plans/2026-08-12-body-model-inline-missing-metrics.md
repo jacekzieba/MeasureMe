@@ -499,7 +499,7 @@ Dopisz na końcu klasy w `MeasureMeTests/BodyModelViewModelTests.swift`, przed z
 export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer && xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' -only-testing:MeasureMeTests/BodyModelViewModelTests
 ```
 
-Expected: `Executed 8 tests, with 0 failures`.
+Expected: `Executed 9 tests, with 0 failures` (8 istniejących plus nowy — baseline na tej gałęzi zmierzono: 8).
 
 To jest test charakteryzujący, nie czerwony-zielony: `BodyModelViewModel.load` już umie to przejście, a ta zmiana polega na tym, że ekran je w ogóle wywoła. Test przypina zachowanie, na którym stoi cała funkcja, żeby przyszła zmiana w `load` nie rozbiła jej po cichu. Jeśli **padnie**, przerwij i zgłoś — założenie planu jest wtedy fałszywe.
 
@@ -608,7 +608,7 @@ Zostają bez zmian: `bodyModel.empty.metrics.title`, `bodyModel.empty.metrics.ac
 export DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer && xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' -only-testing:MeasureMeTests/BodyModelViewModelTests -only-testing:MeasureMeTests/BodyModelMissingMetricsTests -only-testing:MeasureMeTests/LocalizationConsistencyTests
 ```
 
-Expected: `** TEST SUCCEEDED **`, `Executed 19 tests, with 0 failures` (8 + 6 + 5).
+Expected: `** TEST SUCCEEDED **`, `Executed 20 tests, with 0 failures` (9 + 6 + 5).
 
 Potwierdź też, że żaden kod nie odwołuje się do usuniętych kluczy:
 
