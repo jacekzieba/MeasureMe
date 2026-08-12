@@ -2118,6 +2118,8 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 "bodyModel.empty.metrics.title" = "Faltam algumas medidas";
 "bodyModel.empty.metrics.message" = "Registre estas para construir sua silhueta: %@";
 "bodyModel.empty.metrics.action" = "Adicionar medidas";
+"bodyModel.empty.metrics.listTitle" = "Ainda a registrar";
+"bodyModel.empty.profile.genderLabel" = "Sexo";
 "bodyModel.premium.title" = "Veja sua silhueta em 3D";
 "bodyModel.premium.message" = "Transforme suas medidas em um modelo corporal e veja-o mudar entre duas datas quaisquer.";
 "bodyModel.premium.action" = "Desbloquear";

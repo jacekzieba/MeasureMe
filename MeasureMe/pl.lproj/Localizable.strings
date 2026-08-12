@@ -2074,6 +2074,8 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "bodyModel.empty.metrics.title" = "Jeszcze kilka pomiarów";
 "bodyModel.empty.metrics.message" = "Dodaj te pomiary, aby zbudować swoją sylwetkę: %@";
 "bodyModel.empty.metrics.action" = "Dodaj pomiary";
+"bodyModel.empty.metrics.listTitle" = "Do uzupełnienia";
+"bodyModel.empty.profile.genderLabel" = "Płeć";
 "bodyModel.premium.title" = "Zobacz swoją sylwetkę w 3D";
 "bodyModel.premium.message" = "Zamień swoje pomiary w model ciała i obserwuj, jak zmienia się między dowolnymi dwiema datami.";
 "bodyModel.premium.action" = "Odblokuj";

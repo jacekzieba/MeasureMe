@@ -2116,6 +2116,8 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 "bodyModel.empty.metrics.title" = "Encore quelques mesures";
 "bodyModel.empty.metrics.message" = "Enregistrez celles-ci pour construire votre silhouette : %@";
 "bodyModel.empty.metrics.action" = "Ajouter des mesures";
+"bodyModel.empty.metrics.listTitle" = "Encore à saisir";
+"bodyModel.empty.profile.genderLabel" = "Sexe";
 "bodyModel.premium.title" = "Voyez votre silhouette en 3D";
 "bodyModel.premium.message" = "Transformez vos mesures en modèle corporel et regardez-le évoluer entre deux dates.";
 "bodyModel.premium.action" = "Débloquer";

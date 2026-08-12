@@ -118,6 +118,7 @@ nonisolated enum MeasurementTelemetrySource: String {
     case widget
     case watch
     case intent
+    case bodyModel = "body_model"
 }
 
 nonisolated enum HealthTelemetrySource: String {

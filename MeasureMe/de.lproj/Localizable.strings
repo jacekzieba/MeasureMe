@@ -2116,6 +2116,8 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "bodyModel.empty.metrics.title" = "Noch ein paar Maße fehlen";
 "bodyModel.empty.metrics.message" = "Erfasse diese, um deine Silhouette zu erstellen: %@";
 "bodyModel.empty.metrics.action" = "Maße hinzufügen";
+"bodyModel.empty.metrics.listTitle" = "Noch zu erfassen";
+"bodyModel.empty.profile.genderLabel" = "Geschlecht";
 "bodyModel.premium.title" = "Sieh deine Silhouette in 3D";
 "bodyModel.premium.message" = "Verwandle deine Maße in ein Körpermodell und sieh, wie es sich zwischen zwei beliebigen Daten verändert.";
 "bodyModel.premium.action" = "Freischalten";
