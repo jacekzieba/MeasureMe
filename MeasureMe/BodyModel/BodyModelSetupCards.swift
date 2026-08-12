@@ -47,6 +47,7 @@ struct BodyModelGenderCard: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppSpacing.xs)
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("photos.bodyModel.needsProfile")
     }
 }
@@ -94,6 +95,7 @@ struct BodyModelMissingMetricsCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, AppSpacing.xs)
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("photos.bodyModel.missingMetrics")
     }
 }
