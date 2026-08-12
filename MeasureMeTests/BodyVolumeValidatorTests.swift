@@ -8,13 +8,13 @@ import Foundation
 
 final class BodyVolumeValidatorTests: XCTestCase {
 
-    private static func snapshot(weightKg: Double, bodyFat: Double = 18) -> BodySnapshot {
+    private static func snapshot(weightKg: Double, bodyFat: Double = 18, forearmCm: Double = 28) -> BodySnapshot {
         BodySnapshot(
             gender: .male, age: 30,
             heightCm: 180, weightKg: weightKg, bodyFatPercent: bodyFat,
             neckCm: 38, shouldersCm: 118, chestCm: 100, bustCm: nil,
             waistCm: 85, hipsCm: 98,
-            bicepCm: 34, forearmCm: 28, thighCm: 58, calfCm: 38,
+            bicepCm: 34, forearmCm: forearmCm, thighCm: 58, calfCm: 38,
             anchorDate: Date(timeIntervalSince1970: 1_760_000_000),
             sourceDateRange: Date(timeIntervalSince1970: 1_760_000_000)...Date(timeIntervalSince1970: 1_760_000_000)
         )
@@ -175,5 +175,32 @@ final class BodyVolumeValidatorTests: XCTestCase {
         XCTAssertEqual(BodyValidationBand(deviationFraction: 0.08), .approximate)
         XCTAssertEqual(BodyValidationBand(deviationFraction: 0.12), .approximate)
         XCTAssertEqual(BodyValidationBand(deviationFraction: 0.13), .suspect)
+    }
+
+    /// Co sprawdza: Nieprawdopodobnie duze przedramie, przy podrecznikowych pozostalych
+    ///           obwodach i wadze niezgodnej z wynikajaca stad objetoscia, zostaje wskazane
+    ///           jako suspectSite.
+    /// Dlaczego: `.forearm` brakowalo w tablicy oczekiwan — walidator nigdy go nie wskazywal,
+    ///           nawet gdy to on byl przyczyna rozjazdu, i obwinial nastepny w kolejnosci.
+    /// Kryteria: Pasmo to .suspect, a suspectSite to .forearm.
+    func testOutlierForearmIsNamedAsSuspectSite() {
+        let probe = Self.snapshot(weightKg: 65, forearmCm: 42)
+
+        let (_, validation) = BodyVolumeValidator.reconcile(snapshot: probe)
+
+        XCTAssertEqual(validation.band, .suspect)
+        XCTAssertEqual(validation.suspectSite, .forearm)
+    }
+
+    /// Co sprawdza: Kazda czesc ciala z BodyMeasurementSite ma wpis w tablicy oczekiwan.
+    /// Dlaczego: Brakujacy wpis oznacza, ze walidator nigdy nie wskaze tej czesci — obwini nastepna
+    ///           w kolejnosci i wysle uzytkownika do przemierzenia czegos innego.
+    /// Kryteria: Liczba wpisow rowna liczbie przypadkow enuma.
+    func testEveryMeasurementSiteHasAnExpectation() {
+        XCTAssertEqual(
+            Set(BodyVolumeValidator.expectationSites),
+            Set(BodyMeasurementSite.allCases)
+        )
+        XCTAssertEqual(BodyVolumeValidator.expectationSites.count, BodyMeasurementSite.allCases.count)
     }
 }

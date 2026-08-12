@@ -104,4 +104,32 @@ final class BodyGeometryBuilderTests: XCTestCase {
         )
     }
 
+    /// Co sprawdza: Normalne torsu wskazuja na zewnatrz, nie do wewnatrz.
+    /// Dlaczego: Ani dlugosc jednostkowa normalnej, ani zgodnosc jej liczby z liczba
+    ///           wierzcholkow tego nie wykryje — zmiana w nawijaniu trojkatow albo w
+    ///           akumulacji moze po cichu odwrocic cieniowanie do wewnatrz, tak jak
+    ///           brakujace normalne kiedys zaciemnily manekina, a wszystkie testy
+    ///           jednostkowe pozostaly zielone.
+    /// Kryteria: Dla srodkowego pierscienia torsu kazdy wierzcholek ma dodatni iloczyn
+    ///           skalarny normalnej z kierunkiem poziomym od osi pionowej ciala (x=0, z=0)
+    ///           do tego wierzcholka.
+    func testTorsoNormalsPointOutward() {
+        let parameters = Self.parameters(circumference: 100)
+        let positions = BodyGeometryBuilder.positions(for: parameters)
+        let normals = BodyGeometryBuilder.normals(for: parameters)
+
+        // Torso rings come first in vertex order; pick a mid-torso ring rather
+        // than the first or last, where the taper can make "outward" ambiguous.
+        let ringIndex = parameters.torso.count / 2
+        let ringStart = ringIndex * BodyGeometryBuilder.segmentsPerRing
+        let ringEnd = ringStart + BodyGeometryBuilder.segmentsPerRing
+
+        for vertexIndex in ringStart..<ringEnd {
+            let position = positions[vertexIndex]
+            let outward = simd_normalize(SIMD3<Float>(position.x, 0, position.z))
+            let alignment = simd_dot(normals[vertexIndex], outward)
+            XCTAssertGreaterThan(alignment, 0, "Normal at vertex \(vertexIndex) does not point outward (dot = \(alignment))")
+        }
+    }
+
 }
