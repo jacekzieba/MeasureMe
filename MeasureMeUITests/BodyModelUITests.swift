@@ -72,6 +72,26 @@ final class BodyModelUITests: XCTestCase {
         XCTAssertTrue(needsProfile.waitForExistence(timeout: 10), "Expected the real needsProfile state to render.")
     }
 
+    /// Co sprawdza: W stanie needsProfile ekran oferuje wybor plci na miejscu, zamiast odsylac do Ustawien.
+    /// Dlaczego: To jest cala zmiana — user nie ma opuszczac ekranu modelu, zeby go odblokowac.
+    /// Kryteria: Picker "photos.bodyModel.genderPicker" istnieje i jest trafialny.
+    @MainActor
+    func testNeedsProfileOffersGenderPickerInPlace() {
+        app.launchArguments = ["-uiTestMode", "-uiTestGenderNotSpecified"]
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+
+        tapTab(named: "tab.photos")
+
+        let openButton = app.descendants(matching: .any)["photos.bodyModel.open"].firstMatch
+        XCTAssertTrue(openButton.waitForExistence(timeout: 10), "Expected body model entry button on Photos tab.")
+        openButton.tap()
+
+        let picker = app.descendants(matching: .any)["photos.bodyModel.genderPicker"].firstMatch
+        XCTAssertTrue(picker.waitForExistence(timeout: 10), "Expected the sex picker inside the needsProfile card.")
+        XCTAssertTrue(picker.isHittable, "The sex picker must be reachable, not buried in a combined element.")
+    }
+
     // MARK: - Helpers
 
     private func tapTab(named name: String) {
