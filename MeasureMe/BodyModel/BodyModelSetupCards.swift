@@ -110,7 +110,6 @@ struct BodyModelMissingMetricsCard: View {
                 Button(AppLocalization.string("bodyModel.empty.metrics.action"), action: onAdd)
                     .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: AppRadius.md))
                     .appHitTarget()
-                    .frame(maxWidth: .infinity)
                     .accessibilityIdentifier("photos.bodyModel.addMissing")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
