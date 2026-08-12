@@ -27,10 +27,10 @@ final class BodyModelSnapshotTests: XCTestCase {
     //
     // Every key BodyModelScreen reads via @AppSetting, found in
     // MeasureMe/SettingsStore/AppSettingsKeys.swift (Profile / Experience enums):
-    // - userGender, userAge, manualHeight: AppSettingsKeys.Profile
+    // - userGender, userAge, manualHeight, unitsSystem: AppSettingsKeys.Profile
     // - animationsEnabled: AppSettingsKeys.Experience
-    // - unitsSystem: AppSettingsKeys.Profile (not read directly by the screen, but
-    //   read by MetricKind formatting used in the change list rows)
+    // unitsSystem is read directly by the screen (to prefill the quick-add sheet) and
+    // also by MetricKind formatting used in the change list rows.
     // appLanguage is included too, matching ComparePhotosSnapshotTests /
     // MetricDetailSnapshotTests, since the screen's strings are localized.
     private static let managedKeys: [String] = [

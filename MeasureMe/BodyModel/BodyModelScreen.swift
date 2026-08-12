@@ -71,11 +71,15 @@ struct BodyModelScreen: View {
         .onChange(of: samples.count) { _, _ in reload() }
         .onChange(of: userGender) { _, _ in reload() }
         .sheet(item: $quickAddRequest) { request in
+            // No metric this sheet offers depends on the tracked-metrics setting, and
+            // switching tabs from behind two stacked sheets would strand the user on
+            // whatever screen was left underneath — hide the footer that does that.
             QuickAddSheetView(
                 kinds: request.kinds,
                 latest: latestByKind,
                 unitsSystem: unitsSystem,
                 telemetrySource: .bodyModel,
+                showsTrackedMetricsFooter: false,
                 onSaved: { quickAddRequest = nil }
             )
         }

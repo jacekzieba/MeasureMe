@@ -6,6 +6,7 @@ struct QuickAddSheetView: View {
     let latest: [MetricKind: (value: Double, date: Date)]
     let unitsSystem: String
     let telemetrySource: MeasurementTelemetrySource
+    var showsTrackedMetricsFooter: Bool = true
     var customDefinitions: [CustomMetricDefinition] = []
     var customLatest: [String: (value: Double, date: Date)] = [:]
     var onSaved: () -> Void
@@ -48,6 +49,7 @@ struct QuickAddSheetView: View {
         latest: [MetricKind: (value: Double, date: Date)],
         unitsSystem: String,
         telemetrySource: MeasurementTelemetrySource = .quickAdd,
+        showsTrackedMetricsFooter: Bool = true,
         customDefinitions: [CustomMetricDefinition] = [],
         customLatest: [String: (value: Double, date: Date)] = [:],
         onSaved: @escaping () -> Void
@@ -56,6 +58,7 @@ struct QuickAddSheetView: View {
         self.latest = latest
         self.unitsSystem = unitsSystem
         self.telemetrySource = telemetrySource
+        self.showsTrackedMetricsFooter = showsTrackedMetricsFooter
         self.customDefinitions = customDefinitions
         self.customLatest = customLatest
         self.onSaved = onSaved
@@ -105,7 +108,9 @@ struct QuickAddSheetView: View {
                             }
 
                             dateCard
-                            trackedMetricsFooter
+                            if showsTrackedMetricsFooter {
+                                trackedMetricsFooter
+                            }
                             if useInlineSaveBar {
                                 inlineSaveSection
                             }
