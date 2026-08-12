@@ -32,8 +32,13 @@ suwak morfowania, quality note i lista zmian pozostają bez zmian.
 Czysta logika mapowania, bez SwiftUI — decyzja siedzi w funkcji, którą da się przetestować
 bez instalowania widoku.
 
+Typ **nie** jest `nonisolated`: `Row.title` rozwiązuje `AppLocalization.string` i `kind.title`,
+a oba są izolowane do `@MainActor` (projekt ustawia `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`).
+Dlatego `BodyMetricChange` w tym samym module niesie klucze, a nie gotowe napisy. Testy tej klasy
+muszą być `@MainActor`, tak jak istniejące `BodyModelViewModelTests`.
+
 ```swift
-nonisolated enum BodyModelMissingMetrics {
+enum BodyModelMissingMetrics {
     struct Row: Identifiable, Equatable {
         let id: String            // stabilny, niezlokalizowany — na nim asertują testy
         let title: String         // już zlokalizowany tytuł do wyświetlenia
@@ -178,7 +183,8 @@ Do usunięcia, bo tracą jedyne użycie: `bodyModel.empty.metrics.message`
 
 **Snapshot — `BodyModelSnapshotTests`**
 
-- jeśli pokrywa stany blokujące, baseline'y wymagają regeneracji
+- bez zmian: klasa ma tylko `testBodyModelComparison_snapshot_dark/light`, żaden baseline nie
+  pokrywa stanów blokujących, więc regeneracja nie jest potrzebna
 
 ## Poza zakresem
 
