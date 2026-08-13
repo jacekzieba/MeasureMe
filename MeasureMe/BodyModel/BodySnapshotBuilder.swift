@@ -4,9 +4,16 @@
 // Turns raw `MetricSample` rows into a complete `BodySnapshot`.
 //
 // **Responsibilities:**
-// - Picking, per metric, the sample nearest the anchor date within ±14 days
+// - Picking, per metric, the sample nearest the anchor date within the sample window
 // - Averaging left/right pairs into a single value
 // - Reporting every missing metric at once, so the empty state can list them
+//
+// **Why the window is generous:**
+// Nobody measures sixteen circumferences on one day — people work through them in
+// batches over weeks. A tight window made every one of those batches incomplete, so
+// the screen reported metrics as missing that were sitting in the database, and told
+// the user to log something they had already logged. The window's job is to bound
+// staleness, not to demand a single measuring session.
 //
 import Foundation
 
@@ -18,7 +25,12 @@ nonisolated enum BodySnapshotBuildResult: Equatable {
 
 nonisolated enum BodySnapshotBuilder {
     /// Half-width of the window, in days, that a sample may sit from the anchor.
-    static let windowDays = 14
+    ///
+    /// Not the same thing as `BodyModelViewModel.anchorCollapseDays`, and deliberately much
+    /// wider: this bounds how stale an input may be, that one decides when two dates describe
+    /// the same body. They were one constant until 2026-08-13, which is what made scattered
+    /// measurements read as missing.
+    static let sampleWindowDays = 90
 
     /// Left/right pairs collapsed into one value each.
     private static let pairs: [(left: MetricKind, right: MetricKind)] = [
@@ -54,7 +66,7 @@ nonisolated enum BodySnapshotBuilder {
         age: Int,
         fallbackHeightCm: Double
     ) -> BodySnapshotBuildResult {
-        let window = Double(windowDays) * 86_400
+        let window = Double(sampleWindowDays) * 86_400
         // Only kinds this snapshot actually reads may influence it — including
         // its date range. A leanBodyMass or (for men) bust sample sitting in
         // the window must not widen `sourceDateRange`, which is documented as

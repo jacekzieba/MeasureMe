@@ -108,6 +108,56 @@ final class BodyModelViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.availableDates.isEmpty)
     }
 
+    /// Co sprawdza: Pomiary rozrzucone po roznych dniach nadal buduja sylwetke.
+    /// Dlaczego: Zgloszenie uzytkownika — "aplikacja prosi o metryki, ktore mam dawno dodane".
+    ///   Nikt nie mierzy szesnastu obwodow jednego dnia; user robi to partiami przez tygodnie.
+    ///   Przy oknie 14 dni zadna data nie miala kompletu, wiec load() raportowal jako brakujace
+    ///   metryki lezace w bazie.
+    /// Kryteria: Komplet rozlozony co 10 dni (rozrzut 150 dni) daje sylwetke, nie liste brakow.
+    func testMeasurementsScatteredAcrossMonthsStillResolve() {
+        let kinds: [MetricKind] = [
+            .height, .weight, .bodyFat, .neck, .shoulders, .chest, .waist, .hips,
+            .leftBicep, .rightBicep, .leftForearm, .rightForearm,
+            .leftThigh, .rightThigh, .leftCalf, .rightCalf
+        ]
+        let values: [MetricKind: Double] = [
+            .height: 180, .weight: 80, .bodyFat: 18,
+            .neck: 38, .shoulders: 118, .chest: 100, .waist: 85, .hips: 98,
+            .leftBicep: 34, .rightBicep: 34, .leftForearm: 28, .rightForearm: 28,
+            .leftThigh: 58, .rightThigh: 58, .leftCalf: 38, .rightCalf: 38
+        ]
+        let samples = kinds.enumerated().map { index, kind in
+            MetricSample(
+                kind: kind,
+                value: values[kind] ?? 50,
+                date: anchor.addingTimeInterval(Double(-10 * index) * 86_400)
+            )
+        }
+
+        let viewModel = BodyModelViewModel()
+        viewModel.load(samples: samples, gender: .male, age: 30, fallbackHeightCm: 180)
+
+        if case let .missingMetrics(missing) = viewModel.state {
+            XCTFail("Scattered but complete data reported as missing: \(missing.map(\.rawValue))")
+        }
+    }
+
+    /// Co sprawdza: Daty oddalone o wiecej niz okno zwijania, ale mieszczace sie w oknie probek,
+    ///   nadal daja dwie osobne kotwice.
+    /// Dlaczego: Poszerzenie okna probek nie moze zlac wszystkich dat w jedna — to zabiloby
+    ///   porownanie dwoch stanow ciala, czyli glowny tryb feature'u.
+    /// Kryteria: Dwa komplety oddalone o 30 dni daja dwie daty kotwiczace.
+    func testWideningTheSampleWindowDoesNotCollapseDistinctAnchors() {
+        let olderDate = anchor.addingTimeInterval(-30 * 86_400)
+        let samples = completeSamples(at: olderDate, waist: 95) + completeSamples(at: anchor, waist: 85)
+
+        let dates = BodyModelViewModel.availableAnchorDates(
+            samples: samples, gender: .male, fallbackHeightCm: 180
+        )
+
+        XCTAssertEqual(dates, [anchor, olderDate])
+    }
+
     /// Co sprawdza: morphProgress steruje interpolacja parametrow.
     /// Dlaczego: To wiazanie suwaka z geometria.
     /// Kryteria: t=0 daje starszy stan, t=1 nowszy.

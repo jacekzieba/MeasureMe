@@ -54,6 +54,14 @@ final class BodyModelViewModel: ObservableObject {
     /// Dates with a complete snapshot behind them, newest first.
     @Published private(set) var availableDates: [Date] = []
 
+    /// Half-width, in days, of the window that collapses two anchor dates into one.
+    ///
+    /// Separate from `BodySnapshotBuilder.sampleWindowDays` on purpose. That one asks "is this
+    /// measurement recent enough to describe the user now?" and can afford to be generous; this
+    /// one asks "are these two dates the same body?" and must stay tight, or every resolvable
+    /// date collapses into a single anchor and there is nothing left to compare.
+    static let anchorCollapseDays = 14
+
     /// Body for the current morph position, or nil when there is nothing to show.
     var currentParameters: BodyMeshParameters? {
         switch state {
@@ -85,7 +93,7 @@ final class BodyModelViewModel: ObservableObject {
     ) -> [Date] {
         let candidates = Set(samples.map(\.date)).sorted(by: >)
         var accepted: [Date] = []
-        let window = Double(BodySnapshotBuilder.windowDays) * 86_400
+        let window = Double(anchorCollapseDays) * 86_400
 
         for candidate in candidates {
             guard !accepted.contains(where: { abs($0.timeIntervalSince(candidate)) <= window }) else { continue }

@@ -75,24 +75,43 @@ final class BodySnapshotBuilderTests: XCTestCase {
         XCTAssertEqual(snapshot.calfCm, 38, accuracy: 1e-9)
     }
 
-    /// Co sprawdza: Granice okna +/-14 dni.
-    /// Dlaczego: To rdzen definicji snapshotu ze specyfikacji.
-    /// Kryteria: 14 dni wchodzi, 15 dni nie.
-    func testWindowBoundaryAtFourteenDays() {
+    /// Co sprawdza: Granice okna zbierania probek, wyprowadzona ze stalej a nie wpisana na sztywno.
+    /// Dlaczego: To rdzen definicji snapshotu. Wpisana na sztywno liczba dni zmusza do
+    ///   przepisywania testu przy kazdej zmianie stalej i nie sprawdza tego, co ma sprawdzac:
+    ///   ze granica jest wlaczajaca po jednej stronie i wylaczajaca po drugiej.
+    /// Kryteria: Dokladnie sampleWindowDays wchodzi, jeden dzien wiecej nie.
+    func testSampleWindowBoundaryIsInclusive() {
+        let edge = BodySnapshotBuilder.sampleWindowDays
+
         var inside = completeMaleSamples(at: anchor)
             .filter { $0.kindRaw != MetricKind.waist.rawValue }
-        inside.append(MetricSample(kind: .waist, value: 85, date: day(-14)))
+        inside.append(MetricSample(kind: .waist, value: 85, date: day(-edge)))
         guard case .success = BodySnapshotBuilder.build(
             samples: inside, anchorDate: anchor, gender: .male, age: 30, fallbackHeightCm: 0
-        ) else { return XCTFail("14 days should be inside the window") }
+        ) else { return XCTFail("\(edge) days should be inside the window") }
 
         var outside = completeMaleSamples(at: anchor)
             .filter { $0.kindRaw != MetricKind.waist.rawValue }
-        outside.append(MetricSample(kind: .waist, value: 85, date: day(-15)))
+        outside.append(MetricSample(kind: .waist, value: 85, date: day(-(edge + 1))))
         guard case let .missing(kinds) = BodySnapshotBuilder.build(
             samples: outside, anchorDate: anchor, gender: .male, age: 30, fallbackHeightCm: 0
-        ) else { return XCTFail("15 days should be outside the window") }
+        ) else { return XCTFail("\(edge + 1) days should be outside the window") }
         XCTAssertEqual(kinds, [.waist])
+    }
+
+    /// Co sprawdza: Okno zbierania probek jest szersze niz okno zwijania dat kotwiczacych.
+    /// Dlaczego: Te dwie liczby byly kiedys jedna stala i to byl blad zgloszony przez uzytkownika:
+    ///   pomiary rozrzucone po roznych dniach raportowaly sie jako brakujace. Zbieranie musi byc
+    ///   pobłazliwe (user nie mierzy wszystkiego jednego dnia), a zwijanie surowe (dwie daty w tym
+    ///   samym oknie opisuja ten sam stan ciala, wiec nie ma czego porownywac).
+    /// Kryteria: sampleWindowDays jest istotnie wieksze od BodyModelViewModel.anchorCollapseDays.
+    func testSampleWindowIsWiderThanAnchorCollapseWindow() {
+        XCTAssertGreaterThan(
+            BodySnapshotBuilder.sampleWindowDays,
+            BodyModelViewModel.anchorCollapseDays,
+            "Collapsing anchors at least as widely as samples are gathered would make every "
+                + "resolvable anchor collapse into one, killing the date comparison."
+        )
     }
 
     /// Co sprawdza: Wybierana jest probka najblizsza dacie kotwiczacej.
