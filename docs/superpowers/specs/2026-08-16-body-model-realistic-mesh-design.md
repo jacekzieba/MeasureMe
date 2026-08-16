@@ -29,12 +29,34 @@ uproszczony manekin". Niniejszy dokument odwraca tę decyzję produktową.
 | Decyzja | Było (10.08) | Jest |
 |---|---|---|
 | Realizm | Uproszczony manekin | Realistyczna anatomia z siatki bazowej |
-| Głowa | Brak | Obecna, wygładzona, bez rysów twarzy |
+| Głowa | Brak | Obecna, z twarzą z siatki bazowej — patrz niżej |
 | Dłonie i stopy | Brak | Obecne, nieskalowane pomiarami |
 | Źródło siatki | Generowana w kodzie | Wypieczony asset CC0 + deformacja |
 
 Bez zmian: morf A→B między dwiema datami, wymagane wszystkie metryki, okno
 ±14 dni, uśrednianie L/P, płeć wymagana, walidacja objętości, premium.
+
+### Twarz — decyzja odwrócona po dowodach (16.08)
+
+Pierwotnie ustalono „wygładzoną głowę bez rysów", zgodnie z duchem specu z 10.08.
+**Zrealizowano, obejrzano i odrzucono.** Wygładzanie nie potrafi tego dostarczyć:
+twarz w siatce MakeHumana niesie geometrię wewnętrzną — powieki, wewnętrzne
+powierzchnie warg, nozdrza — która pod filtrem dość silnym, by spłaszczyć rysy,
+zwija się na siebie. Efektem są samoprzecięcia i odwrócone normalne, widoczne
+jako cętkowanie na żuchwie, przy wciąż czytelnych oczach i ustach. Wynik był
+gorszy od obu skrajności.
+
+Zmierzone warianty:
+
+| Podejście | Efekt na rysach | Koszt |
+|---|---|---|
+| Taubin, cała głowa, 40 it. | amplituda 0,1024 → 0,0383, rysy zostają | promień −0,0% |
+| Laplasjan, cała głowa, 200 it. | nos −33% | promień −14,5% |
+| Laplasjan, płat twarzy, 60 it. | detal −93%, ale artefakty fałd | promień −0,76% |
+
+Wniosek: czysta głowa manekina wymaga **wymiany geometrii** (elipsoida zszyta na
+obwodzie szyi), nie filtrowania. Uznane za niewarte kosztu — referencja
+dostarczona przez użytkownika (Zygote) sama ma pełną twarz. Twarz zostaje.
 
 ## 3. Asset bazowy
 
@@ -99,10 +121,9 @@ Kroki:
 3. Zapisz centroidy `joint-*` do `BodySkeleton.json`.
 4. Nałóż target płci (format: `indeks wierzchołka + delta xyz`), wypiekając
    wariant męski i damski.
-5. **Wygładź twarz**: wybierz wierzchołki czaszki poniżej czubka i powyżej
-   szyi, po przedniej stronie, i zastosuj wygładzanie laplasjanem z zakotwiczoną
-   granicą regionu. Spłaszcza nos, usta i oczodoły, zachowuje kopułę czaszki i
-   nie rusza sylwetki. Liczba iteracji dobrana wizualnie, zapisana w skrypcie.
+5. **Wygładź głowę** filtrem Taubina (40 iteracji) — usuwa szorstkość
+   wysokoczęstotliwościową bez kurczenia bryły. Rysy twarzy zostają celowo;
+   powód w sekcji 2.
 6. Zapisz `MaleBase.obj` i `FemaleBase.obj` do zasobów aplikacji.
 
 Skrypt jest deterministyczny — te same wejścia dają bit-identyczne wyjście.
@@ -242,7 +263,10 @@ już wtedy zweryfikowany i nie trzeba go debugować równolegle.
 - **Model nie ma twarzy użytkownika ani jego muskulatury.** Obwód bicepsa
   zmienia grubość ramienia, ale nie rzeźbę mięśnia. `bodyFat` wpływa wyłącznie
   przez objętość, nie przez rozkład tkanki.
-- **Wygładzanie twarzy jest krokiem wizualnym, nie liczbowym.** Nie ma na to
+- **Model zachowuje cudzą twarz.** To świadomy kompromis opisany w sekcji 2, nie
+  przeoczenie. Jeśli w testach z użytkownikami okaże się to zgrzytem przy
+  własnych pomiarach, wyjściem jest wymiana geometrii głowy, nie mocniejszy filtr.
+- **Wygładzanie głowy jest krokiem wizualnym, nie liczbowym.** Nie ma na to
   automatycznego testu poza migawką; liczbę iteracji dobiera człowiek.
 - **Rozmiar aplikacji.** Dwa OBJ-e po ~13 400 wierzchołków. Do zmierzenia po
   wypieku; jeśli przekroczą budżet, opcją jest format binarny zamiast OBJ.
