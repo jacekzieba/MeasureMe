@@ -8,6 +8,7 @@ Order matters: the gender target indexes the FULL base.obj vertex list
 (19158 entries), not the body-only subset, so the morph is applied before the
 helper and joint groups are stripped.
 """
+import json
 import math
 import struct
 
@@ -162,3 +163,80 @@ def encode_bodymesh(positions, normals, tris):
     for tri in tris:
         out += struct.pack("<III", *tri)
     return bytes(out)
+
+
+SOURCE = "tools/bodymesh/source"
+OUTPUT = "MeasureMe/BodyModel/Resources"
+
+# Measured on the real head: peak feature amplitude falls 0.1024 -> 0.0407 by
+# 20 iterations and 0.0383 by 40, then plateaus — what is left at that point is
+# the skull's own curvature, not the face. Past 40 the bounding box starts to
+# creep (Z 2.112 -> 2.147 by 80) for no further gain, so 40 is the knee of the
+# curve. The final call is still visual; this is where to change it.
+HEAD_SMOOTHING_ITERATIONS = 40
+
+
+def joint_centroids(positions, faces):
+    """Centroids of the `joint-*` marker cubes -> {joint name: (x, y, z)}."""
+    members = {}
+    for group, face in faces:
+        if group and group.startswith("joint-"):
+            members.setdefault(group[len("joint-"):], set()).update(face)
+    return {
+        name: tuple(sum(positions[i][axis] for i in idx) / len(idx) for axis in range(3))
+        for name, idx in members.items()
+    }
+
+
+def head_region(positions, body_indices, skeleton):
+    """Everything above the `joint-neck` centroid — 4 280 vertices on the real
+    mesh. Note the joint is named `neck`, not `neck-1`; `head` and `head-2` also
+    exist, and using either of those would cut the region off mid-skull.
+
+    Deliberately the whole head rather than a front-facing box. A `z > centre`
+    test sounds tighter but is not: the `joint-head` centroid sits toward the
+    back of the skull, so that test still selects 4 032 of the same 4 280
+    vertices while adding a threshold nobody can justify. Taubin does not need
+    the box — it removes features by frequency, not by position.
+
+    The eyeballs need no handling here: they live in `helper-l-eye` and
+    `helper-r-eye`, so stripping the helper groups already removed them, and the
+    face keeps only its sockets."""
+    return {i for i in body_indices if positions[i][1] > skeleton["neck"][1]}
+
+
+def bake(gender):
+    with open(f"{SOURCE}/base.obj") as handle:
+        positions, faces = parse_obj(handle.readlines())
+    with open(f"{SOURCE}/caucasian-{gender}-young.target") as handle:
+        positions = apply_target(positions, parse_target(handle.readlines()))
+
+    skeleton = joint_centroids(positions, faces)
+    body_faces = [face for group, face in faces if group == "body"]
+    body_indices = {i for face in body_faces for i in face}
+
+    region = head_region(positions, body_indices, skeleton)
+    adjacency = build_adjacency(body_faces, len(positions))
+    positions = taubin_smooth(positions, adjacency, region, HEAD_SMOOTHING_ITERATIONS)
+
+    positions, body_faces = compact(positions, body_faces)
+    positions = normalise(positions)
+    tris = triangulate(body_faces)
+
+    with open(f"{OUTPUT}/{gender.capitalize()}Base.bodymesh", "wb") as handle:
+        handle.write(encode_bodymesh(positions, compute_normals(positions, tris), tris))
+    return skeleton, len(positions), len(tris)
+
+
+def main():
+    report = {}
+    for gender in ("male", "female"):
+        skeleton, vertices, tris = bake(gender)
+        report[gender] = skeleton
+        print(f"{gender}: {vertices} vertices, {tris} triangles")
+    with open(f"{OUTPUT}/BodySkeleton.json", "w") as handle:
+        json.dump(report, handle, indent=2, sort_keys=True)
+
+
+if __name__ == "__main__":
+    main()

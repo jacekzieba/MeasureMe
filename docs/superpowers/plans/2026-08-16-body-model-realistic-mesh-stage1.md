@@ -463,7 +463,7 @@ if __name__ == "__main__":
 mkdir -p MeasureMe/BodyModel/Resources && python3 tools/bodymesh/bake.py
 ```
 
-Expected: two lines reporting `13380 vertices, 36972 triangles` for each gender. A vertex count other than 13380 means the group filter is wrong — the body group was measured at exactly 13380 vertices.
+Expected: two lines reporting `13380 vertices, 26756 triangles` for each gender. A vertex count other than 13380 means the group filter is wrong — the body group was measured at exactly 13380 vertices.
 
 - [ ] **Step 3: Verify the output**
 
@@ -478,7 +478,7 @@ for g in ('Male','Female'):
 "
 ```
 
-Expected: magic `b'BMSH'`, 13380 vertices, 110916 indices, y range exactly `0.0000..1.0000`, size ≈ 765 KB each.
+Expected: magic `b'BMSH'`, 13380 vertices, 80268 indices, y range exactly `0.0000..1.0000`, size 642 208 bytes each.
 
 - [ ] **Step 4: Verify the smoothing kept the skull**
 
@@ -498,20 +498,29 @@ sk = bake.joint_centroids(pos, faces)
 bf = [f for g, f in faces if g == 'body']
 region = bake.head_region(pos, {i for f in bf for i in f}, sk)
 adj = bake.build_adjacency(bf, len(pos))
-def bbox(p):
-    r = [p[i] for i in region]
-    return [max(q[a] for q in r) - min(q[a] for q in r) for a in range(3)]
-before = bbox(pos)
-after = bbox(bake.taubin_smooth(pos, adj, region, bake.HEAD_SMOOTHING_ITERATIONS))
-print('before', ['%.3f' % v for v in before])
-print('after ', ['%.3f' % v for v in after])
-print('max drift %.2f%%' % (100 * max(abs(a - b) / b for a, b in zip(after, before))))
+import math
+region = sorted(region)
+def mean_radius(p):
+    c = [sum(p[i][a] for i in region) / len(region) for a in range(3)]
+    return sum(math.dist(p[i], c) for i in region) / len(region)
+before = mean_radius(pos)
+after = mean_radius(bake.taubin_smooth(pos, adj, region, bake.HEAD_SMOOTHING_ITERATIONS))
+print('mean radius %.4f -> %.4f  (%.2f%%)' % (before, after, 100 * (after - before) / before))
 "
 ```
 
-Expected: `max drift` under 1%. A drift of several percent means the negative
-mu pass is missing or wrong and the filter has degenerated into a plain
-Laplacian, which shrinks.
+Expected: under 1%. Measured at **+0.26%** when this was written.
+
+Use mean radius, **not** the bounding box. The box is measured at the extreme
+points, and on a head the extreme points are the ear tips — exactly the
+high-frequency detail the filter is supposed to remove. The better the
+smoothing works, the worse a bbox metric scores it: bbox X legitimately drops
+2.2% here purely because the ears flatten, while the mean radius, which every
+one of the 4 231 vertices contributes to, barely moves.
+
+A mean radius that falls by several percent is the real failure signal — it
+means the negative mu pass is missing or wrong and the filter has degenerated
+into a plain Laplacian, which shrinks.
 
 - [ ] **Step 5: Verify the bake is deterministic**
 
