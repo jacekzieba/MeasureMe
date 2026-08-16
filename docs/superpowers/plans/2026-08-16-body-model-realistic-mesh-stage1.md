@@ -619,7 +619,7 @@ final class BodyMeshFileTests: XCTestCase {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,name=iPhone 16' -only-testing:MeasureMeTests/BodyMeshFileTests 2>&1 | tail -20`
+Run: `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' -only-testing:MeasureMeTests/BodyMeshFileTests 2>&1 | tail -20`
 Expected: FAIL — `cannot find 'BodyMeshFile' in scope`
 
 - [ ] **Step 3: Write the decoder**
@@ -709,7 +709,7 @@ nonisolated enum BodyMeshFile {
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,name=iPhone 16' -only-testing:MeasureMeTests/BodyMeshFileTests 2>&1 | tail -20`
+Run: `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' -only-testing:MeasureMeTests/BodyMeshFileTests 2>&1 | tail -20`
 Expected: PASS, 5 tests
 
 - [ ] **Step 5: Commit**
@@ -792,7 +792,7 @@ final class BodyBaseMeshProviderTests: XCTestCase {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,name=iPhone 16' -only-testing:MeasureMeTests/BodyBaseMeshProviderTests 2>&1 | tail -20`
+Run: `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' -only-testing:MeasureMeTests/BodyBaseMeshProviderTests 2>&1 | tail -20`
 Expected: FAIL — `cannot find 'BodyBaseMeshProvider' in scope`
 
 - [ ] **Step 3: Write the provider**
@@ -850,7 +850,7 @@ extension BodyBaseMesh {
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,name=iPhone 16' -only-testing:MeasureMeTests/BodyBaseMeshProviderTests 2>&1 | tail -20`
+Run: `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' -only-testing:MeasureMeTests/BodyBaseMeshProviderTests 2>&1 | tail -20`
 Expected: PASS, 6 tests
 
 If `resourceMissing` is thrown, the synchronized group did not pick the files up as bundle resources. Confirm with `find $(xcodebuild -showBuildSettings -scheme MeasureMe 2>/dev/null | awk -F' = ' '/ BUILT_PRODUCTS_DIR/{print $2}')/MeasureMe.app -name '*.bodymesh'` and, if empty, add the `Resources` folder to the target's Copy Bundle Resources phase in Xcode.
@@ -988,7 +988,7 @@ In `MeasureMe/BodyModel/BodyModelScreen.swift`, change the `mannequinCard` guard
 
 - [ ] **Step 5: Build and check it compiles**
 
-Run: `xcodebuild build -scheme MeasureMe -destination 'platform=iOS Simulator,name=iPhone 16' 2>&1 | tail -20`
+Run: `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild build -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' 2>&1 | tail -20`
 Expected: BUILD SUCCEEDED
 
 - [ ] **Step 6: Re-record the snapshots and look at them**
@@ -996,7 +996,7 @@ Expected: BUILD SUCCEEDED
 Run the snapshot tests, let them fail, then inspect the recorded images:
 
 ```bash
-xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,name=iPhone 16' -only-testing:MeasureMeTests/BodyModelSnapshotTests 2>&1 | tail -20
+DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' -only-testing:MeasureMeTests/BodyModelSnapshotTests 2>&1 | tail -20
 ```
 
 Open `MeasureMeTests/__Snapshots__/BodyModelSnapshotTests/*.png` and check, against the reference the user supplied: head present and featureless, hands and feet present, shoulders continuous with the torso, no visible seam at the neck, wrists or ankles, and shading that reads as a solid volume rather than a flat cut-out. If the face still shows a nose or lips, raise `HEAD_SMOOTHING_ITERATIONS` in `bake.py`, re-run the bake, and repeat.
@@ -1005,7 +1005,7 @@ Delete the stale baselines and re-record only once the render looks right.
 
 - [ ] **Step 7: Run the whole body-model suite**
 
-Run: `xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,name=iPhone 16' -only-testing:MeasureMeTests 2>&1 | tail -30`
+Run: `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild test -scheme MeasureMe -destination 'platform=iOS Simulator,id=423D83EE-E5BE-42DC-A5F8-0B3EB62A0182' -only-testing:MeasureMeTests 2>&1 | tail -30`
 Expected: PASS. `BodyGeometryBuilderTests` still passes — that file is untouched and stays until stage 2.
 
 - [ ] **Step 8: Commit**
