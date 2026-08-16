@@ -111,9 +111,15 @@ Skrypt jest deterministyczny — te same wejścia dają bit-identyczne wyjście.
 
 ### Nowe moduły
 
-**`BaseMeshAsset`** — ładuje OBJ przez ModelIO raz na uruchomienie, trzyma
-pozycje, normalne, indeksy i UV. SceneKit czyta OBJ natywnie, więc konwersja do
-USDZ jest niepotrzebna.
+**`BodyMeshFile`** — dekoder własnego formatu binarnego `.bodymesh`
+(nagłówek `BMSH`, wersja, liczby wierzchołków i indeksów, potem surowe
+`Float32`). Pozycje znormalizowane: stopy na `y = 0`, wysokość dokładnie 1,0,
+bounding box wyśrodkowany w X i Z — skalowanie do wzrostu to jedno mnożenie.
+
+Wybór formatu binarnego zamiast OBJ: etap 2 potrzebuje surowej tablicy pozycji
+do deformacji, a parsowanie ASCII OBJ przy starcie to ~50 000 konwersji
+tekst→float. Binarnie to `memcpy`, plik ~3× mniejszy, a dekoder krótszy niż
+obsługa ModelIO. UV nie są wysyłane — matowy materiał ich nie używa.
 
 **`BodyRegionMap`** — przypisuje każdemu wierzchołkowi region (tors, ramię L,
 ramię P, noga L, noga P, głowa, dłoń L/P, stopa L/P) oraz parametr `t` wzdłuż
@@ -154,10 +160,14 @@ każdy stan pośredni jest poprawnym ciałem.
 
 ## 6. Materiał
 
-Matcap w stylu glinianego renderu, bez tekstury skóry, bez włosów, łysa głowa.
-MakeHuman dostarcza litsphere'y na CC0. Wybór jest celowy: unika doliny
-niesamowitości, do której zaprowadziłaby półrealistyczna skóra, i trzyma model
-w rejestrze „obiekt do oglądania", a nie „awatar".
+Matowy, glinany render bez tekstury skóry, bez włosów, łysa głowa. Wybór jest
+celowy: unika doliny niesamowitości, do której zaprowadziłaby półrealistyczna
+skóra, i trzyma model w rejestrze „obiekt do oglądania", a nie „awatar".
+
+Realizacja: `.physicallyBased` z jasnym, ciepłoszarym albedo i `roughness`
+w okolicy 0,65, oświetlone trzypunktowo. Matcap z litsphere'ów MakeHumana dałby
+ten sam efekt, ale wymaga shader modifiera i dodatkowego assetu — zostaje jako
+plan B, jeśli PBR nie trafi w referencję.
 
 Oświetlenie: miękkie światło studyjne plus cień kontaktowy pod stopami, żeby
 model nie unosił się nad tłem.
@@ -202,13 +212,22 @@ obsługa `colorScheme` zostają.
 ## 9. Etapy
 
 Zakres jest na tyle duży, że dzieli się na dwa etapy z osobnymi punktami
-kontrolnymi. Etap 1 sam w sobie usuwa cały problem zgłoszony przez użytkownika
-(brak głowy, dłoni, stóp, barków, tekstury) i jest wdrażalny niezależnie.
+kontrolnymi.
+
+**Etap 1 nie jest wydaniem.** Po nim model przestaje reagować na pomiary —
+suwak morfa zmieniałby wyłącznie wzrost, co jest regresem funkcjonalnym mimo
+lepszego wyglądu. Etap 1 to punkt kontrolny na branchu; `BodyGeometryBuilder`
+zostaje na miejscu i zostanie usunięty dopiero na końcu etapu 2, żeby `main`
+nigdy nie był w stanie regresu.
 
 **Etap 1 — realna siatka na ekranie.** Wypiek offline, ładowanie assetu,
-warp osi Y do wzrostu, materiał i oświetlenie. Model wygląda jak człowiek i
-skaluje się wzrostem, ale obwody są jeszcze te z siatki bazowej.
+jednolite skalowanie do wzrostu, materiał i oświetlenie. Model wygląda jak
+człowiek, ale obwody są jeszcze te z siatki bazowej.
 Punkt kontrolny: render zgodny z referencją, migawki zaktualizowane.
+
+Piecewise-linear warp osi Y należy do etapu 2, nie 1 — służy korekcie podziału
+tors/nogi z walidatora objętości, która ma sens dopiero razem z deformacją.
+Etap 1 skaluje jednolicie.
 
 **Etap 2 — deformacja pomiarami.** Mapa regionów, osie kończyn, skalowanie
 promieniowe, wygaszanie na głowie/dłoniach/stopach, test round-trip.
