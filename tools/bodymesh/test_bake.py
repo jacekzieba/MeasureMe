@@ -82,6 +82,21 @@ class TestGeometry(unittest.TestCase):
         out = bake.normalise([(-2, 10, 4), (2, 30, 8)])
         self.assertEqual(out, [(-0.1, 0.0, -0.1), (0.1, 1.0, 0.1)])
 
+    def test_normalisation_of_reports_the_transform_normalise_applies(self):
+        cx, y0, cz, height = bake.normalisation_of([(-2, 10, 4), (2, 30, 8)])
+        self.assertEqual((cx, y0, cz, height), (0.0, 10.0, 6.0, 20.0))
+
+    def test_normalise_with_matches_normalise_on_the_same_points(self):
+        """Dlaczego: szkielet i siatka musza przejsc DOKLADNIE te sama
+        transformacje, inaczej stawy nie trafiaja w cialo."""
+        positions = [(-2, 10, 4), (2, 30, 8)]
+        transform = bake.normalisation_of(positions)
+        self.assertEqual(bake.normalise_with(positions, transform), bake.normalise(positions))
+
+    def test_normalise_with_maps_a_point_outside_the_source_set(self):
+        transform = bake.normalisation_of([(-2, 10, 4), (2, 30, 8)])
+        self.assertEqual(bake.normalise_with([(0, 20, 6)], transform), [(0.0, 0.5, 0.0)])
+
     def test_compute_normals_faces_along_positive_z_for_ccw_winding(self):
         normals = bake.compute_normals([(0, 0, 0), (1, 0, 0), (0, 1, 0)], [(0, 1, 2)])
         for normal in normals:

@@ -118,16 +118,32 @@ def taubin_smooth(positions, adjacency, region, iterations):
     return points
 
 
-def normalise(positions):
-    """Feet to y=0, height to exactly 1.0, bounding box centred in X and Z."""
+def normalisation_of(positions):
+    """-> (cx, y0, cz, height), the transform `normalise` would apply."""
     xs = [p[0] for p in positions]
     ys = [p[1] for p in positions]
     zs = [p[2] for p in positions]
-    height = max(ys) - min(ys)
-    cx = (max(xs) + min(xs)) / 2
-    cz = (max(zs) + min(zs)) / 2
-    y0 = min(ys)
+    return (
+        (max(xs) + min(xs)) / 2,
+        min(ys),
+        (max(zs) + min(zs)) / 2,
+        max(ys) - min(ys),
+    )
+
+
+def normalise_with(positions, transform):
+    """Applies a transform from `normalisation_of`.
+
+    Points outside the set the transform was derived from map consistently,
+    which is the whole reason this is separable: the skeleton has to land in the
+    same space as the mesh, and its joints are not mesh vertices."""
+    cx, y0, cz, height = transform
     return [((x - cx) / height, (y - y0) / height, (z - cz) / height) for x, y, z in positions]
+
+
+def normalise(positions):
+    """Feet to y=0, height to exactly 1.0, bounding box centred in X and Z."""
+    return normalise_with(positions, normalisation_of(positions))
 
 
 def compute_normals(positions, tris):
@@ -220,7 +236,13 @@ def bake(gender):
     positions = taubin_smooth(positions, adjacency, region, HEAD_SMOOTHING_ITERATIONS)
 
     positions, body_faces = compact(positions, body_faces)
-    positions = normalise(positions)
+    # The skeleton must ride the same transform as the mesh. Deriving it from
+    # the body and applying it to both is the whole point of the split —
+    # normalising the joints on their own would scale them by their own extent.
+    transform = normalisation_of(positions)
+    positions = normalise_with(positions, transform)
+    names = sorted(skeleton)
+    skeleton = dict(zip(names, normalise_with([skeleton[n] for n in names], transform)))
     tris = triangulate(body_faces)
 
     with open(f"{OUTPUT}/{gender.capitalize()}Base.bodymesh", "wb") as handle:
