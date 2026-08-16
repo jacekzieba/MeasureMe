@@ -5,7 +5,7 @@
 //
 // **Responsibilities:**
 // - Owning the SCNView, camera and lighting
-// - Swapping the geometry's position buffer as the morph moves
+// - Building the geometry from the baked base mesh at the measured stature
 // - Re-resolving colours when the appearance changes
 //
 // **Why the appearance handling is explicit:**
@@ -15,11 +15,17 @@
 // block. This is the only place in the feature where 3D steps outside the
 // design system, and it is deliberately contained here.
 //
+// **Stage 1 caveat:**
+// Measurements do not reach the shape yet — the mesh is the base body scaled
+// to stature. `BodyMeshSolver` still runs and still feeds the volume
+// validator; wiring its circumferences into the vertices is stage 2's job.
+//
 import SwiftUI
 import SceneKit
 
 struct MannequinView: UIViewRepresentable {
     let parameters: BodyMeshParameters
+    let gender: BodyGender
     /// Horizontal rotation applied by the drag gesture.
     var rotationRadians: Double = 0
 
@@ -32,7 +38,7 @@ struct MannequinView: UIViewRepresentable {
         view.isUserInteractionEnabled = false
         view.rendersContinuously = false
 
-        let bodyNode = SCNNode(geometry: BodyGeometryBuilder.geometry(for: parameters))
+        let bodyNode = SCNNode(geometry: geometry())
         bodyNode.name = "body"
         view.scene?.rootNode.addChildNode(bodyNode)
 
@@ -45,19 +51,46 @@ struct MannequinView: UIViewRepresentable {
         cameraNode.position = SCNVector3(0, 0.9, 3)
         view.scene?.rootNode.addChildNode(cameraNode)
 
-        let key = SCNNode()
-        key.light = SCNLight()
-        key.light?.type = .directional
-        key.light?.intensity = 700
-        key.position = SCNVector3(2, 3, 3)
-        key.look(at: SCNVector3(0, 0.9, 0))
-        view.scene?.rootNode.addChildNode(key)
+        // Three directional lights so the silhouette reads in both themes: a
+        // key, a cooler fill opposite it, and a rim from behind that separates
+        // the shoulders from the card background.
+        for (index, setup) in [(700.0, SCNVector3(2, 3, 3)),
+                               (260.0, SCNVector3(-3, 2, 1)),
+                               (180.0, SCNVector3(0, 2, -4))].enumerated() {
+            let node = SCNNode()
+            node.light = SCNLight()
+            node.light?.type = .directional
+            node.light?.intensity = setup.0
+            node.position = setup.1
+            node.look(at: SCNVector3(0, 0.9, 0))
+            // Only the key casts: three shadow-casting lights would give the
+            // body three overlapping shadows.
+            if index == 0 {
+                node.light?.castsShadow = true
+                node.light?.shadowMode = .deferred
+                node.light?.shadowRadius = 12
+                node.light?.shadowColor = UIColor.black.withAlphaComponent(0.35)
+            }
+            view.scene?.rootNode.addChildNode(node)
+        }
 
         let ambient = SCNNode()
         ambient.light = SCNLight()
         ambient.light?.type = .ambient
-        ambient.light?.intensity = 380
+        ambient.light?.intensity = 300
         view.scene?.rootNode.addChildNode(ambient)
+
+        // A shadow catcher: `.deferred` draws the shadow without lighting the
+        // plane itself, so the floor never appears — only the darkening under
+        // the feet, which is the only cue that the body is standing on
+        // something rather than hovering.
+        let floor = SCNNode(geometry: SCNPlane(width: 4, height: 4))
+        floor.eulerAngles.x = -.pi / 2
+        floor.geometry?.firstMaterial?.lightingModel = .constant
+        floor.geometry?.firstMaterial?.writesToDepthBuffer = false
+        floor.geometry?.firstMaterial?.colorBufferWriteMask = []
+        floor.castsShadow = false
+        view.scene?.rootNode.addChildNode(floor)
 
         return view
     }
@@ -65,21 +98,35 @@ struct MannequinView: UIViewRepresentable {
     func updateUIView(_ view: SCNView, context: Context) {
         guard let bodyNode = view.scene?.rootNode.childNode(withName: "body", recursively: false) else { return }
 
-        // Topology is fixed, so the geometry is rebuilt from the same layout
-        // every frame of the morph — cheap at ~1500 vertices, and it keeps the
-        // buffer handling in one place.
-        bodyNode.geometry = BodyGeometryBuilder.geometry(for: parameters)
+        bodyNode.geometry = geometry()
         bodyNode.eulerAngles.y = Float(rotationRadians)
 
+        // A matte, near-neutral clay. Deliberately not skin: a half-realistic
+        // skin tone on a body that is not actually the user's reads as uncanny,
+        // where clay reads as a model of a body, which is what this is.
         let material = SCNMaterial()
         material.lightingModel = .physicallyBased
-        material.diffuse.contents = UIColor(FeatureTheme.photos.accent)
-        material.roughness.contents = 0.85
+        material.diffuse.contents = UIColor(red: 0.78, green: 0.76, blue: 0.73, alpha: 1)
+        material.roughness.contents = 0.65
         material.metalness.contents = 0.0
-        material.isDoubleSided = true
+        // The base mesh is a closed volume, so back faces are never meant to be
+        // seen; double-siding was only ever hiding the old open-ended tubes.
+        material.isDoubleSided = false
         bodyNode.geometry?.materials = [material]
 
         view.backgroundColor = .clear
         view.scene?.background.contents = UIColor.clear
+    }
+
+    private func geometry() -> SCNGeometry? {
+        guard let mesh = try? BodyBaseMeshProvider.mesh(for: gender) else { return nil }
+        let positions = mesh.positions(forHeightCm: parameters.heightCm)
+        return SCNGeometry(
+            sources: [
+                SCNGeometrySource(vertices: positions.map { SCNVector3($0.x, $0.y, $0.z) }),
+                SCNGeometrySource(normals: mesh.normals.map { SCNVector3($0.x, $0.y, $0.z) })
+            ],
+            elements: [SCNGeometryElement(indices: mesh.indices, primitiveType: .triangles)]
+        )
     }
 }
