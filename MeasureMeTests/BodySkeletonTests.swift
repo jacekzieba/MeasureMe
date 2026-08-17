@@ -63,10 +63,16 @@ final class BodySkeletonTests: XCTestCase {
             BodyProportions.heightFraction(.hip, gender: .male),
             accuracy: 0.03
         )
-        XCTAssertEqual(
-            Double(try start(.head).y),
-            BodyProportions.heightFraction(.neck, gender: .male),
-            accuracy: 0.03
-        )
+    }
+
+    /// Dlaczego: tors konczy sie na stawie szyi, a glowa zaczyna dokladnie tam —
+    /// bez dziury. Przy probie przeniesienia kosci szyi do torsu skasowalem ja
+    /// przez pomylke i miedzy 0,8595 a 0,9146 zrobila sie luka bez kosci, przez
+    /// co przypisania w tym pasie stawaly sie przypadkowe.
+    func testTheTorsoAndHeadMeetWithoutAGap() throws {
+        let bones = try BodySkeleton.bones(for: .male)
+        let torsoTop = try XCTUnwrap(bones.filter { $0.region == .torso }.map(\.end.y).max())
+        let headStart = try XCTUnwrap(bones.filter { $0.region == .head }.map(\.start.y).min())
+        XCTAssertEqual(torsoTop, headStart, accuracy: 1e-5)
     }
 }

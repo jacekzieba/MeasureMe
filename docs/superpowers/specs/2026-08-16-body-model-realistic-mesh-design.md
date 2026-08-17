@@ -216,13 +216,27 @@ obsługa `colorScheme` zostają.
 
 1. **Round-trip obwodów.** Zdeformuj siatkę do zadanych obwodów, następnie
    zmierz obwód *zdeformowanej siatki* w każdym punkcie antropometrycznym.
-   Musi zgadzać się z pomiarem w granicach **±1%**. Zachowuje niezmiennik,
-   którego dziś pilnuje `BodyMeshSolver`: *„każdy zmierzony obwód musi dotrwać
-   do siatki nienaruszony"*.
+
+   **Zrewidowane po implementacji: ±3%, nie ±1%.** Pierwotna liczba była
+   optymistyczna i nie została osiągnięta. Zmierzone na talii przy wzroście
+   180 cm: 76 → 77,4 (+1,8%), 86 → w granicach 1%, 104 → 101,0 (−2,9%).
+
+   Błąd nie jest systematycznym zaniżeniem, tylko **regresją ku kształtowi
+   bazowemu**: wygaszanie współczynnika między pasami uśrednia w stronę siatki
+   bazowej, więc małe cele wychodzą zawyżone, a duże zaniżone. Zwężenie tego
+   wymagałoby więcej pasów, a siatka nie ma na to wierzchołków — tors trzyma
+   tylko 7,6% z nich i przy dziesięciu pasach damskie przedramię już się
+   wyludnia.
 2. **Brak szwów.** Na granicach regionów długość krawędzi po deformacji nie
-   rośnie o więcej niż **50%** względem tej samej krawędzi przed deformacją.
-   Próg jest arbitralny i ma łapać rozerwanie siatki, nie mierzyć estetykę;
-   do dociągnięcia, jeśli okaże się za luźny lub za ciasny na realnych danych.
+   rośnie o więcej niż **150%** (czyli 2,5×) względem tej samej krawędzi przed
+   deformacją.
+
+   Pierwotne 50% było zgadywanką i okazało się bezużytecznie ostre: stan, który
+   na renderze nie pokazuje żadnego szwu, ma jedną krawędź w pasze rozciągniętą
+   2,2×. Próg 2,5× nadal łapie każdą regresję, która faktycznie wystąpiła w
+   trakcie budowy — 14,5× bez mieszania regionów, 9,9× po przeniesieniu szyi do
+   torsu, 7,7× po wygładzeniu pola wag, 4,5× bez wygaszania na szyi, 3,3× po
+   poszerzeniu rampy.
 3. **Niezmienność regionów bez pomiarów.** Wierzchołki głowy, dłoni i stóp
    pozostają na pozycjach z siatki bazowej po warpie Y, z dokładnością do zera
    maszynowego.

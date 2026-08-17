@@ -119,12 +119,21 @@ struct MannequinView: UIViewRepresentable {
     }
 
     private func geometry() -> SCNGeometry? {
-        guard let mesh = try? BodyBaseMeshProvider.mesh(for: gender) else { return nil }
-        let positions = mesh.positions(forHeightCm: parameters.heightCm)
+        guard let mesh = try? BodyBaseMeshProvider.mesh(for: gender),
+              let rig = try? BodyBaseMeshProvider.rig(for: gender)
+        else { return nil }
+
+        let positions = BodyMeshDeformer.deform(
+            mesh: mesh, map: rig.map, profile: rig.profile, parameters: parameters
+        )
+        // The baked normals describe the base surface and stop matching it the
+        // moment the measurements move a vertex, so they are rebuilt here.
+        let normals = BodyMeshDeformer.normals(for: positions, indices: mesh.indices)
+
         return SCNGeometry(
             sources: [
                 SCNGeometrySource(vertices: positions.map { SCNVector3($0.x, $0.y, $0.z) }),
-                SCNGeometrySource(normals: mesh.normals.map { SCNVector3($0.x, $0.y, $0.z) })
+                SCNGeometrySource(normals: normals.map { SCNVector3($0.x, $0.y, $0.z) })
             ],
             elements: [SCNGeometryElement(indices: mesh.indices, primitiveType: .triangles)]
         )

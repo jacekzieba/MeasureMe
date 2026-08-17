@@ -22,6 +22,27 @@ enum BodyBaseMeshProvider {
     }
 
     private static var cache: [BodyGender: BodyBaseMesh] = [:]
+    private static var rigs: [BodyGender: (map: BodyRegionMap, profile: [BodyRegion: [BodyBand]])] = [:]
+
+    /// Region map and band profile, built once per gender. None of it depends
+    /// on the user's measurements, so it never has to be rebuilt as they change.
+    static func rig(
+        for gender: BodyGender
+    ) throws -> (map: BodyRegionMap, profile: [BodyRegion: [BodyBand]]) {
+        if let cached = rigs[gender] { return cached }
+        let mesh = try mesh(for: gender)
+        let bones = try BodySkeleton.bones(for: gender)
+        let map = BodyRegionMap.build(mesh: mesh, bones: bones)
+        let built = (
+            map,
+            BodyBandProfile.build(
+                mesh: mesh, map: map, bones: bones,
+                bandsPerRegion: BodyBandProfile.defaultBandCount
+            )
+        )
+        rigs[gender] = built
+        return built
+    }
 
     static func mesh(for gender: BodyGender) throws -> BodyBaseMesh {
         if let cached = cache[gender] { return cached }

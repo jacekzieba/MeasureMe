@@ -25,6 +25,16 @@ nonisolated struct BodyBand: Equatable, Sendable {
     let centroid: SIMD3<Float>
     /// Unit vector along the bone chain this band was cut perpendicular to.
     let axis: SIMD3<Float>
+    /// The centroid projected onto `axis`. This, not the along-chain distance,
+    /// is what the deformer interpolates against.
+    ///
+    /// The two are not interchangeable, and using the wrong one cost a debug
+    /// round: bands are not evenly spaced in height (0.52 → 0.60 is a 0.08 step
+    /// where 0.64 → 0.68 is 0.046), so interpolating by chain distance while
+    /// looking targets up by height gave vertices in one horizontal slice
+    /// different factors. A slice scaled non-uniformly does not have its hull
+    /// perimeter multiplied by that factor, and the waist came out 2-4% under.
+    let position: Float
     let circumference: Float
     let vertexCount: Int
 }
@@ -65,6 +75,36 @@ nonisolated enum BodyBandProfile {
             members[map.region[index]]?[slot].append(index)
         }
 
+        // Above the shoulder joint the torso's tape reading encloses the arms:
+        // `shouldersCm` is measured around the deltoids, so the cross-section it
+        // describes is the whole shoulder girdle, not the ribcage alone.
+        //
+        // Without this the target (118 cm) is divided by a ribcage-only base and
+        // yields a factor of 1.57 where the honest one is about 1.13 — which
+        // renders as a hard collar standing proud of the chest. Restricted to
+        // bands above the shoulder, because a tape around the waist very much
+        // does not enclose the forearms hanging beside it.
+        // Threshold at spine-1, the start of the torso chain's last bone — the
+        // upper thoracic vertebra, which is where a tape starts taking the
+        // shoulder in. The shoulder joint itself sits too high: using it left
+        // the band just below it dividing a 115 cm target by a ribcage-only
+        // base, so the collar simply moved down one band.
+        let shoulderY = bones.last { $0.region == .torso }?.start.y ?? .greatestFiniteMagnitude
+        let armRegions: Set<BodyRegion> = [
+            .leftUpperArm, .rightUpperArm, .leftForearm, .rightForearm
+        ]
+        if var torsoBands = members[.torso] {
+            for slot in torsoBands.indices where !torsoBands[slot].isEmpty {
+                let ys = torsoBands[slot].map { mesh.positions[$0].y }
+                guard let low = ys.min(), let high = ys.max(), low >= shoulderY else { continue }
+                torsoBands[slot] += mesh.positions.indices.filter {
+                    armRegions.contains(map.region[$0])
+                        && mesh.positions[$0].y >= low && mesh.positions[$0].y <= high
+                }
+            }
+            members[.torso] = torsoBands
+        }
+
         var profile: [BodyRegion: [BodyBand]] = [:]
         for region in BodyRegion.allCases {
             let axis = regionAxis(region, bones: bones)
@@ -73,17 +113,30 @@ nonisolated enum BodyBandProfile {
                 guard !indices.isEmpty else { return nil }
                 let centroid = indices.reduce(SIMD3<Float>.zero) { $0 + mesh.positions[$1] }
                     / Float(indices.count)
-                let flat = indices.map { index -> SIMD2<Float> in
+
+                // Hull the middle of the band, not all of it. A band is ~7 cm
+                // of a tapering limb, and the hull of that whole wedge is wider
+                // than the cross-section at its centre — which over-reads the
+                // base and leaves the deformed body systematically too thin
+                // (measured at 3-5% before this narrowing).
+                let ordered = indices.sorted { map.along[$0] < map.along[$1] }
+                let keep = max(indices.count / 2, min(indices.count, 8))
+                let drop = (ordered.count - keep) / 2
+                let core = Array(ordered[drop..<(drop + keep)])
+
+                let flat = core.map { index -> SIMD2<Float> in
                     let offset = mesh.positions[index] - centroid
                     return SIMD2(simd_dot(offset, right), simd_dot(offset, up))
                 }
                 return BodyBand(
                     centroid: centroid,
                     axis: axis,
+                    position: simd_dot(centroid, axis),
                     circumference: ConvexHull.perimeter(of: flat),
                     vertexCount: indices.count
                 )
             }
+            .sorted { $0.position < $1.position }
         }
         return profile
     }

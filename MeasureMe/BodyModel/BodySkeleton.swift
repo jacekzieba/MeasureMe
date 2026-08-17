@@ -52,6 +52,16 @@ nonisolated enum BodySkeleton {
         (.torso, "pelvis", "spine-4"), (.torso, "spine-4", "spine-3"),
         (.torso, "spine-3", "spine-2"), (.torso, "spine-2", "spine-1"),
         (.torso, "spine-1", "neck"),
+        // The neck-to-head bone stays with the head, despite `neckCm` being a
+        // real measurement that the solver places at 0.870 — inside it.
+        //
+        // Moving it to the torso was tried and is worse: the torso region then
+        // reaches the head joint at 0.914, so its top band covers the jaw and
+        // lower skull, whose base circumference has nothing to do with the
+        // target the solver interpolates there. Edge stretch went from 2.8x to
+        // 9.9x and the waist lost its measurement. The neck measurement is
+        // reached instead through the torso's own top bands, which sit just
+        // below it.
         (.head, "neck", "head"), (.head, "head", "head-2"),
         (.leftUpperArm, "l-shoulder", "l-elbow"), (.rightUpperArm, "r-shoulder", "r-elbow"),
         (.leftForearm, "l-elbow", "l-hand"), (.rightForearm, "r-elbow", "r-hand"),
