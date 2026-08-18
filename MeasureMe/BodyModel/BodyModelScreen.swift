@@ -27,6 +27,9 @@ struct BodyModelScreen: View {
     @Query(sort: \MetricSample.date, order: .reverse) private var samples: [MetricSample]
     @StateObject private var viewModel = BodyModelViewModel()
     @State private var rotationRadians: Double = 0
+    /// Where the body was left by the previous drag. Without this the angle
+    /// restarts from zero every time a finger goes down.
+    @State private var committedRotation: Double = 0
     /// Non-nil while the quick-add sheet is up; carries the metrics it should offer.
     @State private var quickAddRequest: QuickAddRequest?
 
@@ -195,9 +198,22 @@ struct BodyModelScreen: View {
                 if let parameters = viewModel.currentParameters, let gender = resolvedGender {
                     MannequinView(parameters: parameters, gender: gender, rotationRadians: rotationRadians)
                         .frame(height: 380)
-                        .gesture(
+                        // Simultaneous, not `.gesture`: the mannequin is 380 pt
+                        // tall inside a ScrollView, and a plain gesture loses
+                        // arbitration to the scroll pan — which is why dragging
+                        // did nothing. Sharing the touch keeps the page
+                        // scrollable while horizontal travel still turns the body.
+                        .simultaneousGesture(
                             DragGesture()
-                                .onChanged { rotationRadians = $0.translation.width / 90 }
+                                .onChanged {
+                                    rotationRadians = MannequinRotation.angle(
+                                        committed: committedRotation, dragWidth: $0.translation.width
+                                    )
+                                }
+                                .onEnded { _ in
+                                    committedRotation = MannequinRotation.normalised(rotationRadians)
+                                    rotationRadians = committedRotation
+                                }
                         )
                 }
             }
