@@ -92,22 +92,113 @@ nonisolated enum BodyMeshDeformer {
     }
 
     /// One `target / base` factor per band. Unmeasured regions never reach here.
+    ///
+    /// **Limbs get a single uniform factor, deliberately.** Interpolating a
+    /// target curve along a limb was the first design and it destroyed the
+    /// natural taper: the solver's anchor heights were laid out for the old
+    /// ring-stack, where the arm hung vertically, so on an A-pose mesh the
+    /// wrist sampled a mid-forearm target and inflated from 15.4 cm to 26.9 —
+    /// nearly the bicep. Scaling the whole limb by one number keeps the base
+    /// mesh's own shape exactly and only changes its girth.
     static func scaleFactors(
         parameters: BodyMeshParameters,
         profile: [BodyRegion: [BodyBand]]
     ) -> [BodyRegion: [Float]] {
         var result: [BodyRegion: [Float]] = [:]
         for (region, bands) in profile where region.isMeasured {
-            let stack = solverStack(for: region, parameters: parameters)
-            result[region] = bands.map { band in
-                let heightCm = Double(band.centroid.y) * parameters.heightCm
-                let target = Float(sample(stack, atHeightCm: heightCm) / parameters.heightCm)
-                // A band whose base measures zero cannot be scaled into
-                // anything meaningful; leaving it at 1 is the honest fallback.
-                return band.circumference > 0 ? target / band.circumference : 1
+            guard !bands.isEmpty else { continue }
+            if let limb = limbMeasurement(region, parameters: parameters) {
+                let anchor = widestBand(bands, within: limb.site)
+                let target = Float(limb.circumferenceCm / parameters.heightCm)
+                let factor = anchor.circumference > 0 ? target / anchor.circumference : 1
+                result[region] = Array(repeating: factor, count: bands.count)
+            } else {
+                result[region] = torsoFactors(bands: bands, parameters: parameters)
             }
         }
         return result
+    }
+
+    /// The one circumference a limb segment is described by, and where along
+    /// that segment a tape measure would read it. `site` runs 0 at the joint
+    /// nearest the body to 1 at the far one.
+    private static func limbMeasurement(
+        _ region: BodyRegion, parameters: BodyMeshParameters
+    ) -> (circumferenceCm: Double, site: ClosedRange<Float>)? {
+        let arm = parameters.arm, leg = parameters.leg
+        guard !arm.isEmpty, !leg.isEmpty else { return nil }
+
+        // The solver builds the arm as wrist -> forearm -> bicep and the leg
+        // bottom-up as ankle -> calf -> knee -> thigh, so the biggest value in
+        // the lower half of the leg is the calf and the top of each stack is
+        // the girth nearest the torso.
+        let bicep = arm[arm.count - 1].circumferenceCm
+        let forearm = arm[arm.count / 2].circumferenceCm
+        let thigh = leg[leg.count - 1].circumferenceCm
+        let calf = leg.prefix(max(leg.count / 2, 1)).map(\.circumferenceCm).max() ?? 0
+
+        switch region {
+        // Skips the deltoid, which shares this region but is not what a bicep
+        // measurement describes — its base reads 69.9 cm against the bicep's 29.
+        case .leftUpperArm, .rightUpperArm: return (bicep, 0.50...0.85)
+        case .leftForearm, .rightForearm:   return (forearm, 0.00...0.30)
+        case .leftThigh, .rightThigh:       return (thigh, 0.00...0.35)
+        case .leftShin, .rightShin:         return (calf, 0.00...0.50)
+        default:                            return nil
+        }
+    }
+
+    /// The thickest band inside a fractional window of the region.
+    private static func widestBand(_ bands: [BodyBand], within site: ClosedRange<Float>) -> BodyBand {
+        let candidates = bands.indices.filter {
+            let fraction = bands.count > 1 ? Float($0) / Float(bands.count - 1) : 0
+            return site.contains(fraction)
+        }
+        let pool = candidates.isEmpty ? Array(bands.indices) : candidates
+        return bands[pool.max { bands[$0].circumference < bands[$1].circumference } ?? pool[0]]
+    }
+
+    /// The torso carries several measurements at different heights, so it does
+    /// interpolate — but only between the hips and the chest. Outside that span
+    /// the end factor is held.
+    ///
+    /// **Below the hips** the solver's stack holds a synthetic `thigh * 1.9`
+    /// anchor standing in for two thighs meeting, which describes the old
+    /// ring-stack and nothing on a real mesh: the crotch cross-section is
+    /// narrow (57.5 cm) and that anchor inflated it to 92, which is what the
+    /// growths around the lower abdomen were.
+    ///
+    /// **Above the chest** the stack's next anchor is `shouldersCm`, measured
+    /// around the deltoids — a girth enclosing the arms, applied here to a
+    /// torso-only cross-section. Dividing 118 cm by a ribcage gave a factor of
+    /// 1.57 and rendered as a hard collar. Measuring the base with the arms
+    /// included fixed the collar but then shrank the torso 12%, because the
+    /// deformer only moves torso vertices. Neither is right, and neither is
+    /// needed: the arms now scale uniformly and carry the deltoid themselves,
+    /// so the shoulder girth reaches the silhouette through them.
+    ///
+    /// The cost is stated plainly: `shouldersCm` and `neckCm` do not reach the
+    /// geometry. Ten of the twelve measurements do.
+    private static func torsoFactors(
+        bands: [BodyBand], parameters: BodyMeshParameters
+    ) -> [Float] {
+        let hipHeight = Float(BodyProportions.heightFraction(.hip, gender: .male))
+        let chestHeight = Float(BodyProportions.heightFraction(.chest, gender: .male))
+
+        var factors = bands.map { band -> Float in
+            let heightCm = Double(band.centroid.y) * parameters.heightCm
+            let target = Float(sample(parameters.torso, atHeightCm: heightCm) / parameters.heightCm)
+            return band.circumference > 0 ? target / band.circumference : 1
+        }
+
+        if let hip = bands.firstIndex(where: { $0.centroid.y >= hipHeight }), hip > 0 {
+            for index in 0..<hip { factors[index] = factors[hip] }
+        }
+        if let chest = bands.lastIndex(where: { $0.centroid.y <= chestHeight }),
+           chest < bands.count - 1 {
+            for index in (chest + 1)..<bands.count { factors[index] = factors[chest] }
+        }
+        return factors
     }
 
     private static func solverStack(

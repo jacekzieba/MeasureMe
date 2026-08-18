@@ -75,36 +75,6 @@ nonisolated enum BodyBandProfile {
             members[map.region[index]]?[slot].append(index)
         }
 
-        // Above the shoulder joint the torso's tape reading encloses the arms:
-        // `shouldersCm` is measured around the deltoids, so the cross-section it
-        // describes is the whole shoulder girdle, not the ribcage alone.
-        //
-        // Without this the target (118 cm) is divided by a ribcage-only base and
-        // yields a factor of 1.57 where the honest one is about 1.13 — which
-        // renders as a hard collar standing proud of the chest. Restricted to
-        // bands above the shoulder, because a tape around the waist very much
-        // does not enclose the forearms hanging beside it.
-        // Threshold at spine-1, the start of the torso chain's last bone — the
-        // upper thoracic vertebra, which is where a tape starts taking the
-        // shoulder in. The shoulder joint itself sits too high: using it left
-        // the band just below it dividing a 115 cm target by a ribcage-only
-        // base, so the collar simply moved down one band.
-        let shoulderY = bones.last { $0.region == .torso }?.start.y ?? .greatestFiniteMagnitude
-        let armRegions: Set<BodyRegion> = [
-            .leftUpperArm, .rightUpperArm, .leftForearm, .rightForearm
-        ]
-        if var torsoBands = members[.torso] {
-            for slot in torsoBands.indices where !torsoBands[slot].isEmpty {
-                let ys = torsoBands[slot].map { mesh.positions[$0].y }
-                guard let low = ys.min(), let high = ys.max(), low >= shoulderY else { continue }
-                torsoBands[slot] += mesh.positions.indices.filter {
-                    armRegions.contains(map.region[$0])
-                        && mesh.positions[$0].y >= low && mesh.positions[$0].y <= high
-                }
-            }
-            members[.torso] = torsoBands
-        }
-
         var profile: [BodyRegion: [BodyBand]] = [:]
         for region in BodyRegion.allCases {
             let axis = regionAxis(region, bones: bones)

@@ -6,7 +6,7 @@
 // **Responsibilities:**
 // - Owning the SCNView, camera and lighting
 // - Building the geometry from the baked base mesh at the measured stature
-// - Re-resolving colours when the appearance changes
+// - Rebuilding geometry only when the measurements or gender change
 //
 // **Why the appearance handling is explicit:**
 // SCNView does not participate in SwiftUI's colour scheme propagation, so
@@ -15,10 +15,11 @@
 // block. This is the only place in the feature where 3D steps outside the
 // design system, and it is deliberately contained here.
 //
-// **Stage 1 caveat:**
-// Measurements do not reach the shape yet — the mesh is the base body scaled
-// to stature. `BodyMeshSolver` still runs and still feeds the volume
-// validator; wiring its circumferences into the vertices is stage 2's job.
+// **Why geometry is cached rather than rebuilt:**
+// A drag must not touch the mesh. Deforming 13 380 vertices and re-accumulating
+// normals over 26 756 triangles per frame is what made rotation unusable on
+// device; the coordinator holds the built geometry and rotation only sets the
+// node's euler angle.
 //
 import SwiftUI
 import SceneKit
@@ -31,6 +32,21 @@ struct MannequinView: UIViewRepresentable {
 
     @Environment(\.colorScheme) private var colorScheme
 
+    /// Caches the built geometry so a drag does not rebuild it.
+    ///
+    /// Deforming 13 380 vertices and re-accumulating normals over 26 756
+    /// triangles per frame is what made rotation unusable on device: the old
+    /// ring-stack was ~1 500 vertices, so rebuilding it every update was
+    /// tolerable, and this mesh is nine times heavier. Rotation only ever needs
+    /// the node's euler angle.
+    final class Coordinator {
+        var parameters: BodyMeshParameters?
+        var gender: BodyGender?
+        var geometry: SCNGeometry?
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
         view.scene = SCNScene()
@@ -38,7 +54,9 @@ struct MannequinView: UIViewRepresentable {
         view.isUserInteractionEnabled = false
         view.rendersContinuously = false
 
-        let bodyNode = SCNNode(geometry: geometry())
+        let initial = geometry()
+        initial?.materials = [clayMaterial()]
+        let bodyNode = SCNNode(geometry: initial)
         bodyNode.name = "body"
         view.scene?.rootNode.addChildNode(bodyNode)
 
@@ -98,12 +116,29 @@ struct MannequinView: UIViewRepresentable {
     func updateUIView(_ view: SCNView, context: Context) {
         guard let bodyNode = view.scene?.rootNode.childNode(withName: "body", recursively: false) else { return }
 
-        bodyNode.geometry = geometry()
+        let coordinator = context.coordinator
+        if coordinator.parameters != parameters || coordinator.gender != gender {
+            let built = geometry()
+            built?.materials = [clayMaterial()]
+            coordinator.parameters = parameters
+            coordinator.gender = gender
+            coordinator.geometry = built
+            bodyNode.geometry = built
+        } else if bodyNode.geometry == nil, let cached = coordinator.geometry {
+            bodyNode.geometry = cached
+        }
+
+        // The only thing a drag changes. Everything above is skipped for it.
         bodyNode.eulerAngles.y = Float(rotationRadians)
 
-        // A matte, near-neutral clay. Deliberately not skin: a half-realistic
-        // skin tone on a body that is not actually the user's reads as uncanny,
-        // where clay reads as a model of a body, which is what this is.
+        view.backgroundColor = .clear
+        view.scene?.background.contents = UIColor.clear
+    }
+
+    /// A matte, near-neutral clay. Deliberately not skin: a half-realistic skin
+    /// tone on a body that is not actually the user's reads as uncanny, where
+    /// clay reads as a model of a body, which is what this is.
+    private func clayMaterial() -> SCNMaterial {
         let material = SCNMaterial()
         material.lightingModel = .physicallyBased
         material.diffuse.contents = UIColor(red: 0.78, green: 0.76, blue: 0.73, alpha: 1)
@@ -112,10 +147,7 @@ struct MannequinView: UIViewRepresentable {
         // The base mesh is a closed volume, so back faces are never meant to be
         // seen; double-siding was only ever hiding the old open-ended tubes.
         material.isDoubleSided = false
-        bodyNode.geometry?.materials = [material]
-
-        view.backgroundColor = .clear
-        view.scene?.background.contents = UIColor.clear
+        return material
     }
 
     private func geometry() -> SCNGeometry? {
