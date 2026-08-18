@@ -192,8 +192,8 @@ struct BodyModelScreen: View {
     private var mannequinCard: some View {
         AppGlassCard(cornerRadius: AppRadius.xl, tint: theme.softTint) {
             Group {
-                if let parameters = viewModel.currentParameters {
-                    MannequinView(parameters: parameters, rotationRadians: rotationRadians)
+                if let parameters = viewModel.currentParameters, let gender = resolvedGender {
+                    MannequinView(parameters: parameters, gender: gender, rotationRadians: rotationRadians)
                         .frame(height: 380)
                         .gesture(
                             DragGesture()
