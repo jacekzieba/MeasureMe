@@ -15,6 +15,13 @@
 // block. This is the only place in the feature where 3D steps outside the
 // design system, and it is deliberately contained here.
 //
+// **Why the pan recognizer is UIKit's rather than SwiftUI's:**
+// The card sits in a ScrollView, and a SwiftUI `.gesture` loses arbitration to
+// the scroll pan. Worse, the SCNView had touches disabled, so it was invisible
+// to hit testing and the gesture never fired at all. A recognizer owned by the
+// view sidesteps both, and turns the node directly instead of routing an angle
+// back through SwiftUI state.
+//
 // **Why geometry is cached rather than rebuilt:**
 // A drag must not touch the mesh. Deforming 13 380 vertices and re-accumulating
 // normals over 26 756 triangles per frame is what made rotation unusable on
@@ -27,8 +34,6 @@ import SceneKit
 struct MannequinView: UIViewRepresentable {
     let parameters: BodyMeshParameters
     let gender: BodyGender
-    /// Horizontal rotation applied by the drag gesture.
-    var rotationRadians: Double = 0
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -39,10 +44,33 @@ struct MannequinView: UIViewRepresentable {
     /// ring-stack was ~1 500 vertices, so rebuilding it every update was
     /// tolerable, and this mesh is nine times heavier. Rotation only ever needs
     /// the node's euler angle.
-    final class Coordinator {
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         var parameters: BodyMeshParameters?
         var gender: BodyGender?
         var geometry: SCNGeometry?
+        weak var bodyNode: SCNNode?
+        /// Where the previous drag left the body.
+        var committed: Double = 0
+
+        /// Turns the node directly. Nothing round-trips through SwiftUI state,
+        /// so a drag never triggers `updateUIView` and never re-checks geometry.
+        @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
+            guard let node = bodyNode else { return }
+            let width = Double(recognizer.translation(in: recognizer.view).x)
+            let angle = MannequinRotation.angle(committed: committed, dragWidth: width)
+            node.eulerAngles.y = Float(angle)
+            if recognizer.state == .ended || recognizer.state == .cancelled {
+                committed = MannequinRotation.normalised(angle)
+            }
+        }
+
+        /// Claims only predominantly horizontal drags, so a vertical swipe still
+        /// scrolls the page this 380 pt card sits in.
+        func gestureRecognizerShouldBegin(_ recognizer: UIGestureRecognizer) -> Bool {
+            guard let pan = recognizer as? UIPanGestureRecognizer else { return true }
+            let velocity = pan.velocity(in: pan.view)
+            return abs(velocity.x) > abs(velocity.y)
+        }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -51,7 +79,10 @@ struct MannequinView: UIViewRepresentable {
         let view = SCNView()
         view.scene = SCNScene()
         view.antialiasingMode = .multisampling2X
-        view.isUserInteractionEnabled = false
+        // Must be true. With touches disabled the view is invisible to hit
+        // testing, so a SwiftUI gesture attached to it never fires — which is
+        // why two attempts at fixing rotation in SwiftUI changed nothing.
+        view.isUserInteractionEnabled = true
         view.rendersContinuously = false
 
         let initial = geometry()
@@ -59,6 +90,17 @@ struct MannequinView: UIViewRepresentable {
         let bodyNode = SCNNode(geometry: initial)
         bodyNode.name = "body"
         view.scene?.rootNode.addChildNode(bodyNode)
+        context.coordinator.bodyNode = bodyNode
+
+        // A UIKit recognizer straight on the view. SwiftUI gesture arbitration
+        // against the enclosing ScrollView is bypassed entirely rather than
+        // negotiated with.
+        let pan = UIPanGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handlePan(_:))
+        )
+        pan.delegate = context.coordinator
+        view.addGestureRecognizer(pan)
 
         // Frame the body: the model is ~1.8 m tall and centred on the floor.
         let camera = SCNCamera()
@@ -127,9 +169,7 @@ struct MannequinView: UIViewRepresentable {
         } else if bodyNode.geometry == nil, let cached = coordinator.geometry {
             bodyNode.geometry = cached
         }
-
-        // The only thing a drag changes. Everything above is skipped for it.
-        bodyNode.eulerAngles.y = Float(rotationRadians)
+        coordinator.bodyNode = bodyNode
 
         view.backgroundColor = .clear
         view.scene?.background.contents = UIColor.clear
