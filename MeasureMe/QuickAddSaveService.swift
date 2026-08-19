@@ -58,6 +58,9 @@ final class QuickAddSaveService {
         streak.recordMetricSaved(date: date)
         widgetWriter.writeAndReload(kinds: entries.map(\.kind), context: context, unitsSystem: unitsSystem)
         WatchSessionManager.shared.sendApplicationContext()
+        // New measurements invalidate the body model's solve, so redo it now
+        // rather than on the screen's critical path.
+        BodyModelPrewarm.warm(context: context)
         // Post-3rd-measurement soft prompt — coordinator handles all caps.
         let newCount = previousMetricCount + entries.count
         if previousMetricCount < 3 && newCount >= 3 {

@@ -154,9 +154,10 @@ final class BodyModelViewModel: ObservableObject {
             snapshot(samples: samples, at: $0, gender: gender, age: age, fallbackHeightCm: fallbackHeightCm)
         } : nil
 
-        let resolved = await Task.detached(priority: .userInitiated) {
-            (Self.reconcile(newerSnapshot), olderSnapshot.map(Self.reconcile))
-        }.value
+        let newerResolved = await Self.resolved(newerSnapshot)
+        var olderResolved: Resolved?
+        if let olderSnapshot { olderResolved = await Self.resolved(olderSnapshot) }
+        let resolved = (newerResolved, olderResolved)
 
         guard !Task.isCancelled else { return }
 
@@ -185,9 +186,10 @@ final class BodyModelViewModel: ObservableObject {
         return snapshot
     }
 
-    /// The expensive half, safe to run anywhere.
-    private nonisolated static func reconcile(_ snapshot: BodySnapshot) -> Resolved {
-        let reconciled = BodyVolumeValidator.reconcile(snapshot: snapshot)
+    /// The expensive half. Goes through the shared cache, so a snapshot the
+    /// prewarm already solved costs nothing here.
+    private static func resolved(_ snapshot: BodySnapshot) async -> Resolved {
+        let reconciled = await BodyReconcileCache.resolve(snapshot)
         return Resolved(
             snapshot: snapshot,
             parameters: reconciled.parameters,
@@ -205,9 +207,7 @@ final class BodyModelViewModel: ObservableObject {
               )
         else { return }
 
-        let resolved = await Task.detached(priority: .userInitiated) {
-            (Self.reconcile(olderSnapshot), Self.reconcile(newerSnapshot))
-        }.value
+        let resolved = (await Self.resolved(olderSnapshot), await Self.resolved(newerSnapshot))
 
         guard !Task.isCancelled else { return }
 

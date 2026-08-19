@@ -112,6 +112,7 @@ enum AppLifecycleCoordinator {
         scheduleDeferredHealthSetup(container: container)
         scheduleDeferredAutoRestore(container: container, onAutoRestoreCompleted: onAutoRestoreCompleted)
         scheduleDeferredWidgetRefresh(container: container, settingsStore: settingsStore)
+        scheduleBodyModelPrewarm(container: container, settingsStore: settingsStore)
         scheduleDeferredBackupMaintenance(container: container)
         scheduleDeferredWatchConnectivity(container: container)
     }
@@ -167,6 +168,17 @@ enum AppLifecycleCoordinator {
 
     /// Refreshes widgets and pushes the current snapshot to the paired Apple Watch.
     /// Priority `.background` and 600 ms delay so it runs after the rest of startup work.
+    /// Builds the body model's mesh rig and pre-solves the newest snapshot, so
+    /// the screen does not pay roughly 380 ms the first time it is opened.
+    /// Later than the widget refresh: nothing here is visible until the user
+    /// navigates to Photos.
+    private static func scheduleBodyModelPrewarm(container: ModelContainer, settingsStore: AppSettingsStore) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            BodyModelPrewarm.warm(context: container.mainContext, settingsStore: settingsStore)
+        }
+    }
+
     private static func scheduleDeferredWidgetRefresh(container: ModelContainer, settingsStore: AppSettingsStore) {
         Task(priority: .background) {
             try? await Task.sleep(for: .milliseconds(600))
