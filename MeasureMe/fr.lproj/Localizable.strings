@@ -2110,6 +2110,7 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 
 // Body model
 "bodyModel.title" = "Modèle corporel";
+"bodyModel.preparing" = "Préparation de votre modèle…";
 "bodyModel.empty.profile.title" = "Complétez votre profil";
 "bodyModel.empty.profile.message" = "Le modèle corporel a besoin de votre taille et de votre sexe pour positionner vos mesures correctement.";
 "bodyModel.empty.metrics.title" = "Encore quelques mesures";

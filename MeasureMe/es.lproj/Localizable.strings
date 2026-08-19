@@ -2112,6 +2112,7 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 
 // Body model
 "bodyModel.title" = "Modelo corporal";
+"bodyModel.preparing" = "Preparando tu modelo…";
 "bodyModel.empty.profile.title" = "Completa tu perfil";
 "bodyModel.empty.profile.message" = "El modelo corporal necesita tu altura y sexo para ubicar tus medidas correctamente.";
 "bodyModel.empty.metrics.title" = "Faltan algunas medidas";

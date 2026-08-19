@@ -2068,6 +2068,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 
 // Body model
 "bodyModel.title" = "Model ciała";
+"bodyModel.preparing" = "Przygotowuję model…";
 "bodyModel.empty.profile.title" = "Uzupełnij profil";
 "bodyModel.empty.profile.message" = "Model ciała potrzebuje Twojego wzrostu i płci, aby poprawnie rozmieścić pomiary.";
 "bodyModel.empty.metrics.title" = "Jeszcze kilka pomiarów";

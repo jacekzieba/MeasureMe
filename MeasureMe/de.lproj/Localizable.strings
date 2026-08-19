@@ -2110,6 +2110,7 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 
 // Body model
 "bodyModel.title" = "Körpermodell";
+"bodyModel.preparing" = "Dein Modell wird vorbereitet…";
 "bodyModel.empty.profile.title" = "Vervollständige dein Profil";
 "bodyModel.empty.profile.message" = "Das Körpermodell benötigt deine Körpergröße und dein Geschlecht, um deine Maße korrekt zu platzieren.";
 "bodyModel.empty.metrics.title" = "Noch ein paar Maße fehlen";

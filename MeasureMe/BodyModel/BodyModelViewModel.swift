@@ -35,7 +35,7 @@ nonisolated struct BodyMetricChange: Equatable, Identifiable, Sendable {
 @MainActor
 final class BodyModelViewModel: ObservableObject {
 
-    struct Resolved: Equatable {
+    struct Resolved: Equatable, Sendable {
         let snapshot: BodySnapshot
         let parameters: BodyMeshParameters
         let validation: BodyValidationResult
@@ -106,7 +106,14 @@ final class BodyModelViewModel: ObservableObject {
         return accepted
     }
 
-    func load(samples: [MetricSample], gender: BodyGender?, age: Int, fallbackHeightCm: Double) {
+    /// Loads the screen's state.
+    ///
+    /// Snapshot building has to stay on this actor — it reads SwiftData models,
+    /// which are not `Sendable`. Volume reconciliation does not: it is a pure
+    /// function over `Sendable` values and costs 209 ms per date, twice in a
+    /// comparison. Left on the main actor it froze the frame that draws the
+    /// loading indicator, so it runs detached and only the result comes back.
+    func load(samples: [MetricSample], gender: BodyGender?, age: Int, fallbackHeightCm: Double) async {
         guard let gender else {
             state = .needsProfile
             metricChanges = []
@@ -135,47 +142,51 @@ final class BodyModelViewModel: ObservableObject {
             return
         }
 
-        guard let newer = resolve(samples: samples, at: newest, gender: gender, age: age, fallbackHeightCm: fallbackHeightCm) else {
+        guard let newerSnapshot = snapshot(
+            samples: samples, at: newest, gender: gender, age: age, fallbackHeightCm: fallbackHeightCm
+        ) else {
             state = .missingMetrics(BodySnapshotBuilder.requiredKinds(for: gender))
             metricChanges = []
             return
         }
 
-        guard dates.count > 1,
-              let oldest = dates.last,
-              let older = resolve(samples: samples, at: oldest, gender: gender, age: age, fallbackHeightCm: fallbackHeightCm)
-        else {
-            state = .single(newer)
+        let olderSnapshot = dates.count > 1 ? dates.last.flatMap {
+            snapshot(samples: samples, at: $0, gender: gender, age: age, fallbackHeightCm: fallbackHeightCm)
+        } : nil
+
+        let resolved = await Task.detached(priority: .userInitiated) {
+            (Self.reconcile(newerSnapshot), olderSnapshot.map(Self.reconcile))
+        }.value
+
+        guard !Task.isCancelled else { return }
+
+        guard let older = resolved.1 else {
+            state = .single(resolved.0)
             metricChanges = []
             morphProgress = 1
             return
         }
 
-        state = .comparison(older: older, newer: newer)
-        metricChanges = Self.changes(from: older.snapshot, to: newer.snapshot)
+        state = .comparison(older: older, newer: resolved.0)
+        metricChanges = Self.changes(from: older.snapshot, to: resolved.0.snapshot)
         morphProgress = 1
     }
 
-    /// Re-resolves both sides after the user picks different dates.
-    func select(olderDate: Date, newerDate: Date, samples: [MetricSample], gender: BodyGender, age: Int, fallbackHeightCm: Double) {
-        guard let older = resolve(samples: samples, at: olderDate, gender: gender, age: age, fallbackHeightCm: fallbackHeightCm),
-              let newer = resolve(samples: samples, at: newerDate, gender: gender, age: age, fallbackHeightCm: fallbackHeightCm)
-        else { return }
-
-        state = .comparison(older: older, newer: newer)
-        metricChanges = Self.changes(from: older.snapshot, to: newer.snapshot)
-        morphProgress = 1
-    }
-
-    private func resolve(
+    /// The cheap half: reads samples, no reconciliation.
+    private func snapshot(
         samples: [MetricSample], at date: Date,
         gender: BodyGender, age: Int, fallbackHeightCm: Double
-    ) -> Resolved? {
+    ) -> BodySnapshot? {
         let result = BodySnapshotBuilder.build(
             samples: samples, anchorDate: date,
             gender: gender, age: age, fallbackHeightCm: fallbackHeightCm
         )
         guard case let .success(snapshot) = result else { return nil }
+        return snapshot
+    }
+
+    /// The expensive half, safe to run anywhere.
+    private nonisolated static func reconcile(_ snapshot: BodySnapshot) -> Resolved {
         let reconciled = BodyVolumeValidator.reconcile(snapshot: snapshot)
         return Resolved(
             snapshot: snapshot,
@@ -183,6 +194,28 @@ final class BodyModelViewModel: ObservableObject {
             validation: reconciled.validation
         )
     }
+
+    /// Same split as `load`: snapshots here, reconciliation detached.
+    func select(olderDate: Date, newerDate: Date, samples: [MetricSample], gender: BodyGender, age: Int, fallbackHeightCm: Double) async {
+        guard let olderSnapshot = snapshot(
+                samples: samples, at: olderDate, gender: gender, age: age, fallbackHeightCm: fallbackHeightCm
+              ),
+              let newerSnapshot = snapshot(
+                samples: samples, at: newerDate, gender: gender, age: age, fallbackHeightCm: fallbackHeightCm
+              )
+        else { return }
+
+        let resolved = await Task.detached(priority: .userInitiated) {
+            (Self.reconcile(olderSnapshot), Self.reconcile(newerSnapshot))
+        }.value
+
+        guard !Task.isCancelled else { return }
+
+        state = .comparison(older: resolved.0, newer: resolved.1)
+        metricChanges = Self.changes(from: resolved.0.snapshot, to: resolved.1.snapshot)
+        morphProgress = 1
+    }
+
 
     /// Per-metric deltas for the before/after list. Paired sites (bicep,
     /// forearm, thigh, calf) are already left/right averages by the time they

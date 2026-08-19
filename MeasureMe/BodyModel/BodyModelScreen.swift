@@ -28,6 +28,9 @@ struct BodyModelScreen: View {
     @StateObject private var viewModel = BodyModelViewModel()
     /// Non-nil while the quick-add sheet is up; carries the metrics it should offer.
     @State private var quickAddRequest: QuickAddRequest?
+    /// True while the mesh rig and the solve are still being prepared.
+    @State private var isPreparing = false
+    @State private var reloadTask: Task<Void, Never>?
 
     private let theme = FeatureTheme.photos
 
@@ -86,6 +89,36 @@ struct BodyModelScreen: View {
 
     @ViewBuilder
     private var content: some View {
+        // Replaces the whole content while preparing, rather than only the
+        // mannequin: the state defaults to `.needsProfile`, so switching on it
+        // first would flash the "complete your profile" card on every entry.
+        if isPreparing {
+            preparingCard
+        } else {
+            loadedContent
+        }
+    }
+
+    /// Matches the mannequin card's height so nothing jumps when it swaps in.
+    private var preparingCard: some View {
+        AppGlassCard(cornerRadius: AppRadius.xl, tint: theme.softTint) {
+            VStack(spacing: AppSpacing.sm) {
+                ProgressView()
+                    .tint(theme.accent)
+                Text(AppLocalization.string("bodyModel.preparing"))
+                    .font(AppTypography.captionEmphasis)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 380)
+        }
+        .accessibilityElement()
+        .accessibilityLabel(AppLocalization.string("bodyModel.preparing"))
+        .accessibilityIdentifier("photos.bodyModel.preparing")
+    }
+
+    @ViewBuilder
+    private var loadedContent: some View {
         switch viewModel.state {
         case .needsProfile:
             BodyModelGenderCard(selectedGender: $userGender)
@@ -178,14 +211,19 @@ struct BodyModelScreen: View {
     /// user's choice into something they didn't ask for.
     private func selectDates(olderDate: Date, newerDate: Date) {
         guard olderDate < newerDate, let gender = resolvedGender else { return }
-        viewModel.select(
-            olderDate: olderDate,
-            newerDate: newerDate,
-            samples: samples,
-            gender: gender,
-            age: userAge,
-            fallbackHeightCm: manualHeight
-        )
+        reloadTask?.cancel()
+        reloadTask = Task {
+            isPreparing = true
+            defer { isPreparing = false }
+            await viewModel.select(
+                olderDate: olderDate,
+                newerDate: newerDate,
+                samples: samples,
+                gender: gender,
+                age: userAge,
+                fallbackHeightCm: manualHeight
+            )
+        }
     }
 
     private var mannequinCard: some View {
@@ -287,13 +325,26 @@ struct BodyModelScreen: View {
         )
     }
 
+    /// Preparing the rig and solving both take real time — measured at roughly
+    /// 380 ms on the simulator and more on device, doubled in a comparison — so
+    /// this runs as a task and the screen says so meanwhile.
     private func reload() {
-        viewModel.load(
-            samples: samples,
-            gender: resolvedGender,
-            age: userAge,
-            fallbackHeightCm: manualHeight
-        )
+        reloadTask?.cancel()
+        reloadTask = Task {
+            isPreparing = true
+            // A stuck spinner is worse than a slow load, so the flag clears on
+            // every exit path including cancellation.
+            defer { isPreparing = false }
+            if let gender = resolvedGender {
+                await BodyBaseMeshProvider.prepare(for: gender)
+            }
+            await viewModel.load(
+                samples: samples,
+                gender: resolvedGender,
+                age: userAge,
+                fallbackHeightCm: manualHeight
+            )
+        }
     }
 }
 

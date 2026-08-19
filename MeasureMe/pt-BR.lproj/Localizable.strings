@@ -2112,6 +2112,7 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 
 // Body model
 "bodyModel.title" = "Modelo corporal";
+"bodyModel.preparing" = "Preparando seu modelo…";
 "bodyModel.empty.profile.title" = "Complete seu perfil";
 "bodyModel.empty.profile.message" = "O modelo corporal precisa da sua altura e sexo para posicionar suas medidas corretamente.";
 "bodyModel.empty.metrics.title" = "Faltam algumas medidas";

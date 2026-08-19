@@ -24,19 +24,19 @@ final class BodyModelViewModelTests: XCTestCase {
     /// Co sprawdza: Brak plci daje stan .needsProfile.
     /// Dlaczego: Bez plci nie da sie wybrac bazowej siatki.
     /// Kryteria: Stan to .needsProfile mimo kompletnych pomiarow.
-    func testMissingGenderYieldsNeedsProfile() {
+    func testMissingGenderYieldsNeedsProfile() async {
         let viewModel = BodyModelViewModel()
-        viewModel.load(samples: completeSamples(at: anchor), gender: BodyGender(.notSpecified), age: 30, fallbackHeightCm: 180)
+        await viewModel.load(samples: completeSamples(at: anchor), gender: BodyGender(.notSpecified), age: 30, fallbackHeightCm: 180)
         XCTAssertEqual(viewModel.state, .needsProfile)
     }
 
     /// Co sprawdza: Niekompletne pomiary daja liste brakow.
     /// Dlaczego: Stan pusty ma wymieniac userowi, czego brakuje.
     /// Kryteria: Stan to .missingMetrics zawierajacy usunieta metryke.
-    func testIncompleteSamplesYieldMissingMetrics() {
+    func testIncompleteSamplesYieldMissingMetrics() async {
         let samples = completeSamples(at: anchor).filter { $0.kindRaw != MetricKind.neck.rawValue }
         let viewModel = BodyModelViewModel()
-        viewModel.load(samples: samples, gender: .male, age: 30, fallbackHeightCm: 180)
+        await viewModel.load(samples: samples, gender: .male, age: 30, fallbackHeightCm: 180)
 
         guard case let .missingMetrics(kinds) = viewModel.state else {
             return XCTFail("Expected missingMetrics, got \(viewModel.state)")
@@ -47,9 +47,9 @@ final class BodyModelViewModelTests: XCTestCase {
     /// Co sprawdza: Jeden komplet daje stan .single.
     /// Dlaczego: Feature ma dzialac od pierwszego kompletnego pomiaru, bez morfu.
     /// Kryteria: Stan to .single, a lista zmian jest pusta.
-    func testSingleCompleteSnapshotYieldsSingleState() {
+    func testSingleCompleteSnapshotYieldsSingleState() async {
         let viewModel = BodyModelViewModel()
-        viewModel.load(samples: completeSamples(at: anchor), gender: .male, age: 30, fallbackHeightCm: 180)
+        await viewModel.load(samples: completeSamples(at: anchor), gender: .male, age: 30, fallbackHeightCm: 180)
 
         guard case .single = viewModel.state else {
             return XCTFail("Expected single, got \(viewModel.state)")
@@ -60,12 +60,12 @@ final class BodyModelViewModelTests: XCTestCase {
     /// Co sprawdza: Dwa komplety oddalone o wiecej niz okno daja porownanie.
     /// Dlaczego: To glowny tryb feature'u.
     /// Kryteria: Stan to .comparison, a lista zmian nie jest pusta i zawiera wiersz talii bez wskazania strony.
-    func testTwoDistinctSnapshotsYieldComparison() {
+    func testTwoDistinctSnapshotsYieldComparison() async {
         let older = completeSamples(at: anchor.addingTimeInterval(-90 * 86_400), waist: 95)
         let newer = completeSamples(at: anchor, waist: 85)
 
         let viewModel = BodyModelViewModel()
-        viewModel.load(samples: older + newer, gender: .male, age: 30, fallbackHeightCm: 180)
+        await viewModel.load(samples: older + newer, gender: .male, age: 30, fallbackHeightCm: 180)
 
         guard case .comparison = viewModel.state else {
             return XCTFail("Expected comparison, got \(viewModel.state)")
@@ -87,13 +87,13 @@ final class BodyModelViewModelTests: XCTestCase {
     /// Co sprawdza: availableDates jest wypelniane datami kotwiczacymi z porownania.
     /// Dlaczego: Ekran potrzebuje tej listy, by zbudowac pickery dat "From"/"To".
     /// Kryteria: Lista zawiera obie daty kotwiczace, najnowsza pierwsza.
-    func testAvailableDatesPopulatedForComparison() {
+    func testAvailableDatesPopulatedForComparison() async {
         let olderDate = anchor.addingTimeInterval(-90 * 86_400)
         let older = completeSamples(at: olderDate, waist: 95)
         let newer = completeSamples(at: anchor, waist: 85)
 
         let viewModel = BodyModelViewModel()
-        viewModel.load(samples: older + newer, gender: .male, age: 30, fallbackHeightCm: 180)
+        await viewModel.load(samples: older + newer, gender: .male, age: 30, fallbackHeightCm: 180)
 
         XCTAssertEqual(viewModel.availableDates, [anchor, olderDate])
     }
@@ -101,9 +101,9 @@ final class BodyModelViewModelTests: XCTestCase {
     /// Co sprawdza: Brak plci czysci availableDates.
     /// Dlaczego: Ekran nie powinien oferowac pickera dat, gdy stan to .needsProfile.
     /// Kryteria: Lista jest pusta mimo kompletnych pomiarow.
-    func testAvailableDatesEmptyWhenGenderMissing() {
+    func testAvailableDatesEmptyWhenGenderMissing() async {
         let viewModel = BodyModelViewModel()
-        viewModel.load(samples: completeSamples(at: anchor), gender: BodyGender(.notSpecified), age: 30, fallbackHeightCm: 180)
+        await viewModel.load(samples: completeSamples(at: anchor), gender: BodyGender(.notSpecified), age: 30, fallbackHeightCm: 180)
 
         XCTAssertTrue(viewModel.availableDates.isEmpty)
     }
@@ -114,7 +114,7 @@ final class BodyModelViewModelTests: XCTestCase {
     ///   Przy oknie 14 dni zadna data nie miala kompletu, wiec load() raportowal jako brakujace
     ///   metryki lezace w bazie.
     /// Kryteria: Komplet rozlozony co 10 dni (rozrzut 150 dni) daje sylwetke, nie liste brakow.
-    func testMeasurementsScatteredAcrossMonthsStillResolve() {
+    func testMeasurementsScatteredAcrossMonthsStillResolve() async {
         let kinds: [MetricKind] = [
             .height, .weight, .bodyFat, .neck, .shoulders, .chest, .waist, .hips,
             .leftBicep, .rightBicep, .leftForearm, .rightForearm,
@@ -135,7 +135,7 @@ final class BodyModelViewModelTests: XCTestCase {
         }
 
         let viewModel = BodyModelViewModel()
-        viewModel.load(samples: samples, gender: .male, age: 30, fallbackHeightCm: 180)
+        await viewModel.load(samples: samples, gender: .male, age: 30, fallbackHeightCm: 180)
 
         if case let .missingMetrics(missing) = viewModel.state {
             XCTFail("Scattered but complete data reported as missing: \(missing.map(\.rawValue))")
@@ -161,12 +161,12 @@ final class BodyModelViewModelTests: XCTestCase {
     /// Co sprawdza: morphProgress steruje interpolacja parametrow.
     /// Dlaczego: To wiazanie suwaka z geometria.
     /// Kryteria: t=0 daje starszy stan, t=1 nowszy.
-    func testMorphProgressDrivesCurrentParameters() {
+    func testMorphProgressDrivesCurrentParameters() async {
         let older = completeSamples(at: anchor.addingTimeInterval(-90 * 86_400), waist: 95)
         let newer = completeSamples(at: anchor, waist: 85)
 
         let viewModel = BodyModelViewModel()
-        viewModel.load(samples: older + newer, gender: .male, age: 30, fallbackHeightCm: 180)
+        await viewModel.load(samples: older + newer, gender: .male, age: 30, fallbackHeightCm: 180)
         guard case let .comparison(olderResolved, newerResolved) = viewModel.state else {
             return XCTFail("Expected comparison")
         }
@@ -182,17 +182,17 @@ final class BodyModelViewModelTests: XCTestCase {
     /// Dlaczego: Na tym stoi uzupelnianie w miejscu — po zapisie ekran ma sam przeliczyc model,
     ///   bez zamykania i ponownego otwierania.
     /// Kryteria: Ten sam view model po ponownym load() z kompletem probek jest w stanie .single.
-    func testLoggingTheMissingMetricAdvancesToSingle() {
+    func testLoggingTheMissingMetricAdvancesToSingle() async {
         let incomplete = completeSamples(at: anchor).filter { $0.kindRaw != MetricKind.neck.rawValue }
         let viewModel = BodyModelViewModel()
-        viewModel.load(samples: incomplete, gender: .male, age: 30, fallbackHeightCm: 180)
+        await viewModel.load(samples: incomplete, gender: .male, age: 30, fallbackHeightCm: 180)
 
         guard case .missingMetrics = viewModel.state else {
             return XCTFail("Precondition: expected missingMetrics, got \(viewModel.state)")
         }
 
         let completed = incomplete + [MetricSample(kind: .neck, value: 38, date: anchor)]
-        viewModel.load(samples: completed, gender: .male, age: 30, fallbackHeightCm: 180)
+        await viewModel.load(samples: completed, gender: .male, age: 30, fallbackHeightCm: 180)
 
         guard case .single = viewModel.state else {
             return XCTFail("Expected single after logging the missing metric, got \(viewModel.state)")

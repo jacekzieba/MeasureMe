@@ -2116,6 +2116,7 @@ The thresholds differ between males and females due to different body compositio
 
 // Body model
 "bodyModel.title" = "Body model";
+"bodyModel.preparing" = "Preparing your model…";
 "bodyModel.empty.profile.title" = "Complete your profile";
 "bodyModel.empty.profile.message" = "The body model needs your height and sex to place your measurements correctly.";
 "bodyModel.empty.metrics.title" = "A few measurements to go";

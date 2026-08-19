@@ -44,6 +44,55 @@ enum BodyBaseMeshProvider {
         return built
     }
 
+    /// Everything a render needs, built together so it can cross the actor
+    /// boundary in one hop.
+    struct Prepared: Sendable {
+        let mesh: BodyBaseMesh
+        let map: BodyRegionMap
+        let profile: [BodyRegion: [BodyBand]]
+    }
+
+    /// Decodes the asset and builds the rig **off the main actor**, then caches.
+    ///
+    /// Measured on the simulator: decoding is 15 ms, the region map 121 ms and
+    /// the band profile 18 ms. Run synchronously on the main actor — which is
+    /// where this used to happen, the module defaulting to `MainActor` — that
+    /// blocks the very thread a progress indicator needs in order to animate,
+    /// so a spinner alone would have sat frozen.
+    static func prepare(for gender: BodyGender) async {
+        guard rigs[gender] == nil else { return }
+
+        let name = gender == .male ? "MaleBase" : "FemaleBase"
+        guard let url = Bundle.main.url(forResource: name, withExtension: "bodymesh"),
+              let data = try? Data(contentsOf: url),
+              let bones = try? BodySkeleton.bones(for: gender)
+        else { return }
+
+        let built = await Task.detached(priority: .userInitiated) { () -> Prepared? in
+            guard let mesh = try? BodyMeshFile.decode(data) else { return nil }
+            let map = BodyRegionMap.build(mesh: mesh, bones: bones)
+            return Prepared(
+                mesh: mesh,
+                map: map,
+                profile: BodyBandProfile.build(
+                    mesh: mesh, map: map, bones: bones,
+                    bandsPerRegion: BodyBandProfile.defaultBandCount
+                )
+            )
+        }.value
+
+        guard let built else { return }
+        cache[gender] = built.mesh
+        rigs[gender] = (built.map, built.profile)
+    }
+
+    /// The prepared rig, or nil while `prepare` has not finished. Callers render
+    /// nothing rather than blocking to build it.
+    static func prepared(for gender: BodyGender) -> Prepared? {
+        guard let mesh = cache[gender], let rig = rigs[gender] else { return nil }
+        return Prepared(mesh: mesh, map: rig.map, profile: rig.profile)
+    }
+
     static func mesh(for gender: BodyGender) throws -> BodyBaseMesh {
         if let cached = cache[gender] { return cached }
 

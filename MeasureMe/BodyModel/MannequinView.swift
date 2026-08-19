@@ -191,12 +191,14 @@ struct MannequinView: UIViewRepresentable {
     }
 
     private func geometry() -> SCNGeometry? {
-        guard let mesh = try? BodyBaseMeshProvider.mesh(for: gender),
-              let rig = try? BodyBaseMeshProvider.rig(for: gender)
-        else { return nil }
+        // Never builds the rig here. If it is not prepared yet the screen is
+        // showing its loading state, and blocking to build it would freeze the
+        // very frame that draws the indicator.
+        guard let prepared = BodyBaseMeshProvider.prepared(for: gender) else { return nil }
+        let mesh = prepared.mesh
 
         let positions = BodyMeshDeformer.deform(
-            mesh: mesh, map: rig.map, profile: rig.profile, parameters: parameters
+            mesh: mesh, map: prepared.map, profile: prepared.profile, parameters: parameters
         )
         // The baked normals describe the base surface and stop matching it the
         // moment the measurements move a vertex, so they are rebuilt here.
