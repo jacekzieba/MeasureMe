@@ -6,6 +6,17 @@ import simd
 /// Dlaczego to wazne: round-trip zanizal obwod i zgadywanie przyczyny kosztowalo
 /// juz jedna runde. Ten plik pokazuje, gdzie dokladnie rozjezdza sie baza.
 final class BodyDeformerDiagnosticTests: XCTestCase {
+
+    /// Pomijane domyslnie: te testy drukuja liczby, nie asertuja, wiec w
+    /// zwyklym przebiegu sa szumem. Uruchom przez BODY_DIAGNOSTICS=1 —
+    /// kazda trudna decyzja w tej funkcji zapadla na podstawie ich wydruku,
+    /// wiec kasowanie ich byloby strata.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["BODY_DIAGNOSTICS"] == "1",
+            "diagnostyka — ustaw BODY_DIAGNOSTICS=1"
+        )
+    }
     func testReportWorstEdges() throws {
         let mesh = try BodyBaseMeshProvider.mesh(for: .male)
         let bones = try BodySkeleton.bones(for: .male)

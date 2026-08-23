@@ -6,6 +6,17 @@ import SceneKit
 /// Cel testow: gdzie idzie czas przy wejsciu na ekran modelu 3D.
 /// Drukuje pomiary, nie asertuje.
 final class BodyModelStartupBenchmarkTests: XCTestCase {
+
+    /// Pomijane domyslnie: te testy drukuja liczby, nie asertuja, wiec w
+    /// zwyklym przebiegu sa szumem. Uruchom przez BODY_DIAGNOSTICS=1 —
+    /// kazda trudna decyzja w tej funkcji zapadla na podstawie ich wydruku,
+    /// wiec kasowanie ich byloby strata.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["BODY_DIAGNOSTICS"] == "1",
+            "diagnostyka — ustaw BODY_DIAGNOSTICS=1"
+        )
+    }
     private func time(_ label: String, _ work: () -> Void) {
         let start = Date()
         work()

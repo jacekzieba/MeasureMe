@@ -4,6 +4,17 @@ import simd
 
 /// Cel testow: diagnostyka konczyn — drukuje obwody, nie asertuje.
 final class BodyLimbDiagnosticTests: XCTestCase {
+
+    /// Pomijane domyslnie: te testy drukuja liczby, nie asertuja, wiec w
+    /// zwyklym przebiegu sa szumem. Uruchom przez BODY_DIAGNOSTICS=1 —
+    /// kazda trudna decyzja w tej funkcji zapadla na podstawie ich wydruku,
+    /// wiec kasowanie ich byloby strata.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["BODY_DIAGNOSTICS"] == "1",
+            "diagnostyka — ustaw BODY_DIAGNOSTICS=1"
+        )
+    }
     func testReportFemaleHipRegion() throws {
         let mesh = try BodyBaseMeshProvider.mesh(for: .female)
         let rig = try BodyBaseMeshProvider.rig(for: .female)
