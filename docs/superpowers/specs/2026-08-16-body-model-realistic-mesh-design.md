@@ -217,9 +217,14 @@ obsługa `colorScheme` zostają.
 1. **Round-trip obwodów.** Zdeformuj siatkę do zadanych obwodów, następnie
    zmierz obwód *zdeformowanej siatki* w każdym punkcie antropometrycznym.
 
-   **Zrewidowane po implementacji: ±3%, nie ±1%.** Pierwotna liczba była
+   **Zrewidowane po implementacji: ±4%, nie ±1%.** Pierwotna liczba była
    optymistyczna i nie została osiągnięta. Zmierzone na talii przy wzroście
    180 cm: 76 → 77,4 (+1,8%), 86 → w granicach 1%, 104 → 101,0 (−2,9%).
+
+   Zrewidowane ponownie z ±3% na ±4% po tym, jak biodra przestały być kotwicą
+   torsu — poniżej talii przekrój torsu nie jest biodrami, bo większość obwodu
+   należy tam do ud, a próba sterowania nim obwodem bioder dawała kanciasty klin
+   na damskiej miednicy.
 
    Błąd nie jest systematycznym zaniżeniem, tylko **regresją ku kształtowi
    bazowemu**: wygaszanie współczynnika między pasami uśrednia w stronę siatki

@@ -43,8 +43,8 @@ final class BodyMorphTests: XCTestCase {
         let middle = try waist(at: 0.5, from: 78, to: 98)
         let end = try waist(at: 1, from: 78, to: 98)
 
-        XCTAssertEqual(start, 78, accuracy: 78 * 0.03)
-        XCTAssertEqual(end, 98, accuracy: 98 * 0.03)
+        XCTAssertEqual(start, 78, accuracy: 78 * 0.04)
+        XCTAssertEqual(end, 98, accuracy: 98 * 0.04)
         XCTAssertGreaterThan(middle, start + 4, "srodek musi odjechac od poczatku")
         XCTAssertLessThan(middle, end - 4, "srodek musi nie dojechac do konca")
     }

@@ -4,6 +4,29 @@ import simd
 
 /// Cel testow: diagnostyka konczyn — drukuje obwody, nie asertuje.
 final class BodyLimbDiagnosticTests: XCTestCase {
+    func testReportFemaleHipRegion() throws {
+        let mesh = try BodyBaseMeshProvider.mesh(for: .female)
+        let rig = try BodyBaseMeshProvider.rig(for: .female)
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        let snapshot = BodySnapshot(
+            gender: .female, age: 31, heightCm: 180, weightKg: 80, bodyFatPercent: 18,
+            neckCm: 38, shouldersCm: 118, chestCm: 100, bustCm: 96,
+            waistCm: 85, hipsCm: 98, bicepCm: 34, forearmCm: 28,
+            thighCm: 58, calfCm: 38, anchorDate: date, sourceDateRange: date...date
+        )
+        let parameters = BodyVolumeValidator.reconcile(snapshot: snapshot).parameters
+        let factors = BodyMeshDeformer.scaleFactors(parameters: parameters, profile: rig.profile)
+        for region: BodyRegion in [.torso, .leftThigh] {
+            guard let bands = rig.profile[region], let f = factors[region] else { continue }
+            print("=== K \(region) ===")
+            for (i, band) in bands.enumerated() {
+                print(String(format: "  pas %d y=%.3f baza=%5.1f wspolczynnik=%.3f n=%d",
+                             i, band.centroid.y, band.circumference * 180, f[i], band.vertexCount))
+            }
+        }
+        _ = mesh
+    }
+
     func testReportRenderedLimbGirths() throws {
         let mesh = try BodyBaseMeshProvider.mesh(for: .male)
         let rig = try BodyBaseMeshProvider.rig(for: .male)

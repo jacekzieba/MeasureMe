@@ -158,47 +158,59 @@ nonisolated enum BodyMeshDeformer {
         return bands[pool.max { bands[$0].circumference < bands[$1].circumference } ?? pool[0]]
     }
 
-    /// The torso carries several measurements at different heights, so it does
-    /// interpolate — but only between the hips and the chest. Outside that span
-    /// the end factor is held.
+    /// The torso interpolates between two anchors — waist and chest — located
+    /// by height, and holds the end factor outside that span.
     ///
-    /// **Below the hips** the solver's stack holds a synthetic `thigh * 1.9`
-    /// anchor standing in for two thighs meeting, which describes the old
-    /// ring-stack and nothing on a real mesh: the crotch cross-section is
-    /// narrow (57.5 cm) and that anchor inflated it to 92, which is what the
-    /// growths around the lower abdomen were.
+    /// **Why the hips are not an anchor.** Below the waist the legs take a
+    /// growing share of the body's girth, so the torso region's own section
+    /// stops being a hip measurement: on the female bake it narrows to 48.7 cm,
+    /// less than the band beneath it. Anchoring 98 cm there gave a factor of
+    /// 1.85 against the neighbouring thigh's 0.90, and that step rendered as a
+    /// hard wedge over the pelvis. Two repairs were tried and both failed —
+    /// locating the waist by narrowness picks the crotch, and putting the hip
+    /// anchor on the widest sub-waist band let 98 cm overwrite the waist, so a
+    /// 78 cm waist rendered as 98. Holding the waist factor downward is what
+    /// works.
     ///
-    /// **Above the chest** the stack's next anchor is `shouldersCm`, measured
-    /// around the deltoids — a girth enclosing the arms, applied here to a
-    /// torso-only cross-section. Dividing 118 cm by a ribcage gave a factor of
-    /// 1.57 and rendered as a hard collar. Measuring the base with the arms
-    /// included fixed the collar but then shrank the torso 12%, because the
-    /// deformer only moves torso vertices. Neither is right, and neither is
-    /// needed: the arms now scale uniformly and carry the deltoid themselves,
-    /// so the shoulder girth reaches the silhouette through them.
+    /// **Why the curve stops at the chest.** The next anchor up is
+    /// `shouldersCm`, a girth measured around the deltoids; the arms carry that
+    /// now, and dividing it by a ribcage rendered a collar.
     ///
-    /// The cost is stated plainly: `shouldersCm` and `neckCm` do not reach the
-    /// geometry. Ten of the twelve measurements do.
+    /// The cost, stated plainly: `hipsCm`, `shouldersCm` and `neckCm` do not
+    /// shape the mesh. They still reach it through volume reconciliation, which
+    /// moves it by millimetres. Nine of the twelve measurements shape it.
     private static func torsoFactors(
         bands: [BodyBand], parameters: BodyMeshParameters
     ) -> [Float] {
-        let hipHeight = Float(BodyProportions.heightFraction(.hip, gender: .male))
-        let chestHeight = Float(BodyProportions.heightFraction(.chest, gender: .male))
-
-        var factors = bands.map { band -> Float in
-            let heightCm = Double(band.centroid.y) * parameters.heightCm
-            let target = Float(sample(parameters.torso, atHeightCm: heightCm) / parameters.heightCm)
-            return band.circumference > 0 ? target / band.circumference : 1
+        func target(_ landmark: BodyLandmark) -> Float {
+            // Gendered fractions differ by at most 1.5% of stature and only
+            // pick which value to read; the position comes from the mesh.
+            let height = BodyProportions.heightFraction(landmark, gender: .male)
+            return Float(sample(parameters.torso, atHeightCm: height * parameters.heightCm)
+                / parameters.heightCm)
+        }
+        func nearest(_ landmark: BodyLandmark) -> Int {
+            let height = Float(BodyProportions.heightFraction(landmark, gender: .male))
+            return bands.indices.min {
+                abs(bands[$0].centroid.y - height) < abs(bands[$1].centroid.y - height)
+            } ?? 0
+        }
+        func factor(_ index: Int, _ landmark: BodyLandmark) -> Float {
+            bands[index].circumference > 0 ? target(landmark) / bands[index].circumference : 1
         }
 
-        if let hip = bands.firstIndex(where: { $0.centroid.y >= hipHeight }), hip > 0 {
-            for index in 0..<hip { factors[index] = factors[hip] }
+        let waist = nearest(.waist)
+        let chest = max(nearest(.chest), waist)
+        let waistFactor = factor(waist, .waist)
+        guard chest > waist else { return Array(repeating: waistFactor, count: bands.count) }
+        let chestFactor = factor(chest, .chest)
+
+        return bands.indices.map { index in
+            if index <= waist { return waistFactor }
+            if index >= chest { return chestFactor }
+            let step = Float(index - waist) / Float(chest - waist)
+            return waistFactor + (chestFactor - waistFactor) * step
         }
-        if let chest = bands.lastIndex(where: { $0.centroid.y <= chestHeight }),
-           chest < bands.count - 1 {
-            for index in (chest + 1)..<bands.count { factors[index] = factors[chest] }
-        }
-        return factors
     }
 
     private static func solverStack(
