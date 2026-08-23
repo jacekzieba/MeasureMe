@@ -78,7 +78,7 @@ struct MannequinView: UIViewRepresentable {
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
         view.scene = SCNScene()
-        view.antialiasingMode = .multisampling2X
+        view.antialiasingMode = .multisampling4X
         // Must be true. With touches disabled the view is invisible to hit
         // testing, so a SwiftUI gesture attached to it never fires — which is
         // why two attempts at fixing rotation in SwiftUI changed nothing.
@@ -108,12 +108,24 @@ struct MannequinView: UIViewRepresentable {
         camera.orthographicScale = 1.15
         let cameraNode = SCNNode()
         cameraNode.camera = camera
+        // Ambient occlusion. Without it the clay reads flat: there is nothing
+        // darkening the crease behind a knee or between the legs, so the form
+        // has no depth cue beyond its outline.
+        camera.screenSpaceAmbientOcclusionIntensity = 1.4
+        camera.screenSpaceAmbientOcclusionRadius = 0.12
+        camera.screenSpaceAmbientOcclusionBias = 0.03
         cameraNode.position = SCNVector3(0, 0.9, 3)
         view.scene?.rootNode.addChildNode(cameraNode)
 
         // Three directional lights so the silhouette reads in both themes: a
         // key, a cooler fill opposite it, and a rim from behind that separates
         // the shoulders from the card background.
+        //
+        // None of them casts. The camera is orthographic and looks horizontally,
+        // so a ground plane is seen exactly edge-on — a contact shadow under the
+        // feet is geometrically invisible from here, whether cast by SceneKit or
+        // painted onto a quad. Both were tried. Giving the body one means tilting
+        // the camera down a few degrees, which changes how the proportions read.
         for (index, setup) in [(700.0, SCNVector3(2, 3, 3)),
                                (260.0, SCNVector3(-3, 2, 1)),
                                (180.0, SCNVector3(0, 2, -4))].enumerated() {
@@ -123,14 +135,6 @@ struct MannequinView: UIViewRepresentable {
             node.light?.intensity = setup.0
             node.position = setup.1
             node.look(at: SCNVector3(0, 0.9, 0))
-            // Only the key casts: three shadow-casting lights would give the
-            // body three overlapping shadows.
-            if index == 0 {
-                node.light?.castsShadow = true
-                node.light?.shadowMode = .deferred
-                node.light?.shadowRadius = 12
-                node.light?.shadowColor = UIColor.black.withAlphaComponent(0.35)
-            }
             view.scene?.rootNode.addChildNode(node)
         }
 
@@ -139,18 +143,6 @@ struct MannequinView: UIViewRepresentable {
         ambient.light?.type = .ambient
         ambient.light?.intensity = 300
         view.scene?.rootNode.addChildNode(ambient)
-
-        // A shadow catcher: `.deferred` draws the shadow without lighting the
-        // plane itself, so the floor never appears — only the darkening under
-        // the feet, which is the only cue that the body is standing on
-        // something rather than hovering.
-        let floor = SCNNode(geometry: SCNPlane(width: 4, height: 4))
-        floor.eulerAngles.x = -.pi / 2
-        floor.geometry?.firstMaterial?.lightingModel = .constant
-        floor.geometry?.firstMaterial?.writesToDepthBuffer = false
-        floor.geometry?.firstMaterial?.colorBufferWriteMask = []
-        floor.castsShadow = false
-        view.scene?.rootNode.addChildNode(floor)
 
         return view
     }
@@ -204,12 +196,16 @@ struct MannequinView: UIViewRepresentable {
         // moment the measurements move a vertex, so they are rebuilt here.
         let normals = BodyMeshDeformer.normals(for: positions, indices: mesh.indices)
 
-        return SCNGeometry(
+        let geometry = SCNGeometry(
             sources: [
                 SCNGeometrySource(vertices: positions.map { SCNVector3($0.x, $0.y, $0.z) }),
                 SCNGeometrySource(normals: normals.map { SCNVector3($0.x, $0.y, $0.z) })
             ],
             elements: [SCNGeometryElement(indices: mesh.indices, primitiveType: .triangles)]
         )
+        // Smooths the silhouette on the GPU. The deformer still works on 13 380
+        // vertices, so nothing on the CPU gets more expensive.
+        geometry.subdivisionLevel = 1
+        return geometry
     }
 }
