@@ -97,7 +97,10 @@ final class BodyModelSnapshotTests: XCTestCase {
                 .height: 180, .weight: 80, .bodyFat: 18,
                 .neck: 38, .shoulders: 118, .chest: 100, .waist: waist, .hips: 98,
                 .leftBicep: 34, .rightBicep: 34, .leftForearm: 28, .rightForearm: 28,
-                .leftThigh: 58, .rightThigh: 58, .leftCalf: 38, .rightCalf: 38
+                .leftThigh: 58, .rightThigh: 58, .leftCalf: 38, .rightCalf: 38,
+                // Required for `.female` only, harmless for `.male` — the male
+                // solver reads `chest` and ignores it.
+                .bust: 96
             ]
             for (kind, value) in values {
                 context.insert(MetricSample(kind: kind, value: value, date: date))
@@ -179,6 +182,38 @@ final class BodyModelSnapshotTests: XCTestCase {
         }
 
         configureDefaults()
+        UIView.setAnimationsEnabled(false)
+
+        let container = try makeContainer()
+        let vc = makeHostingController(colorScheme: .light, container: container)
+
+        let window = UIWindow(frame: vc.view.frame)
+        window.rootViewController = vc
+        window.makeKeyAndVisible()
+        vc.view.setNeedsLayout()
+        vc.view.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(1800))
+
+        let shouldRecord = ProcessInfo.processInfo.environment["RECORD_SNAPSHOTS"] == "1"
+        assertSnapshot(of: vc, as: .image(precision: 0.99, perceptualPrecision: 0.98), record: shouldRecord)
+    }
+    /// Co sprawdza: Sylwetka damska — druga wypieczona siatka.
+    /// Dlaczego: caly rozwoj tej funkcji byl ogladany na modelu meskim. Damska
+    /// siatka przechodzila testy liczbowo, ale nikt na nia nie spojrzal, a w tej
+    /// funkcji liczby juz trzy razy mowily "dobrze" tam, gdzie obraz mowil "zle".
+    /// Kryteria: Render zgadza sie z zarejestrowanym baseline'em.
+    func testBodyModelComparison_snapshot_female() async throws {
+        try requireSimulatorSnapshotEnvironment()
+
+        let baseline = backupDefaults()
+        let wereAnimationsEnabled = UIView.areAnimationsEnabled
+        defer {
+            restoreDefaults(baseline)
+            UIView.setAnimationsEnabled(wereAnimationsEnabled)
+        }
+
+        configureDefaults()
+        UserDefaults.standard.set("female", forKey: "userGender")
         UIView.setAnimationsEnabled(false)
 
         let container = try makeContainer()
