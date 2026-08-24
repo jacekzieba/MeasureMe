@@ -181,11 +181,24 @@ struct AppGlassBackground: View {
     /// sitting on a strongly-shadowed parent and would otherwise look "doubled").
     var showsShadow: Bool = true
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    /// Reduce Transparency removes the material and every gradient overlay, leaving the same
+    /// flat fill + border the light appearance already uses. Shadows are unaffected — the
+    /// setting is about translucency, not depth.
+    nonisolated static func usesOpaqueFill(colorScheme: ColorScheme, reduceTransparency: Bool) -> Bool {
+        colorScheme != .dark || reduceTransparency
+    }
+
+    private var isOpaque: Bool {
+        Self.usesOpaqueFill(colorScheme: colorScheme, reduceTransparency: reduceTransparency)
+    }
 
     /// Base fill — `.ultraThinMaterial` in dark mode (so the wallpaper shows
-    /// through subtly), a flat semantic surface in light mode.
+    /// through subtly), a flat semantic surface in light mode or under
+    /// Reduce Transparency.
     private var backgroundFill: AnyShapeStyle {
-        colorScheme == .dark
+        !isOpaque
             ? AnyShapeStyle(.ultraThinMaterial)
             : AnyShapeStyle(AppColorRoles.surfacePrimary)
     }
@@ -194,7 +207,7 @@ struct AppGlassBackground: View {
     /// top-lit appearance. In light mode the gradient is fully transparent.
     private var fillOverlayGradient: LinearGradient {
         LinearGradient(
-            colors: colorScheme == .dark
+            colors: !isOpaque
                 ? [
                     Color.white.opacity(0.48),
                     Color.white.opacity(0.20)
@@ -212,7 +225,7 @@ struct AppGlassBackground: View {
     /// a subtle border in light mode.
     private var highlightStrokeGradient: LinearGradient {
         LinearGradient(
-            colors: colorScheme == .dark
+            colors: !isOpaque
                 ? [
                     Color.white.opacity(0.68),
                     AppColorRoles.borderStrong.opacity(0.50)
@@ -229,7 +242,7 @@ struct AppGlassBackground: View {
     /// Inner black stroke (dark mode only) — sits just inside the border
     /// to give the surface an "etched" feel.
     private var innerStrokeColor: Color {
-        colorScheme == .dark
+        !isOpaque
             ? Color.black.opacity(depth.innerEdgeOpacity)
             : .clear
     }
@@ -250,7 +263,7 @@ struct AppGlassBackground: View {
     private var tintedOverlay: some View {
         shape.fill(
             LinearGradient(
-                colors: colorScheme == .dark
+                colors: !isOpaque
                     ? [
                         tint.opacity(depth.tintStrength),
                         tint.opacity(depth.tintStrength * 0.42),
@@ -271,7 +284,7 @@ struct AppGlassBackground: View {
     /// gradient overlays.
     @ViewBuilder
     private var fillOverlay: some View {
-        if colorScheme == .dark {
+        if !isOpaque {
             shape.fill(Color.black.opacity(depth.darkness))
         }
     }
@@ -279,7 +292,7 @@ struct AppGlassBackground: View {
     /// Top-edge highlight stroke.
     @ViewBuilder
     private var highlightStroke: some View {
-        if colorScheme == .dark {
+        if !isOpaque {
             shape.stroke(Color.white.opacity(depth.highlightOpacity), lineWidth: 1)
         } else {
             shape.stroke(AppColorRoles.borderSubtle, lineWidth: 1)
@@ -289,7 +302,7 @@ struct AppGlassBackground: View {
     /// Strong border stroke applied to every glass surface.
     private var borderStroke: some View {
         shape.stroke(
-            colorScheme == .dark
+            !isOpaque
                 ? AppColorRoles.borderStrong.opacity(0.66)
                 : AppColorRoles.borderStrong.opacity(0.90),
             lineWidth: 1
@@ -307,7 +320,7 @@ struct AppGlassBackground: View {
     /// 1. background fill, 2. tint, 3. darkness, 4. border, 5. highlight, 6. inner edge.
     private var baseBackground: some View {
         Group {
-            if colorScheme == .dark {
+            if !isOpaque {
                 shape
                     .fill(backgroundFill)
                     .overlay(tintedOverlay)
@@ -316,8 +329,8 @@ struct AppGlassBackground: View {
                     .overlay(highlightStroke)
                     .overlay(innerStroke)
             } else {
-                // Light mode keeps only the fill + border — no gradients or
-                // darkness overlay, for legibility.
+                // Light mode and Reduce Transparency keep only the fill + border — no
+                // gradients or darkness overlay, for legibility.
                 shape
                     .fill(backgroundFill)
                     .overlay(borderStroke)
