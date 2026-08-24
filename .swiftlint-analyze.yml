@@ -1,0 +1,12 @@
+# Analyzer rules only. These need a compiler log (`swiftlint analyze --compiler-log-path`),
+# which is why they cannot live in `.swiftlint.yml` alongside the lint rules.
+#
+# `unused_declaration` is the rule that would have caught the ~1,900 lines of dead views this
+# repo accumulated while `only_rules` had the default rule set switched off.
+only_rules:
+  - unused_declaration
+  - unused_import
+
+excluded:
+  - .derivedData
+  - .derivedData-analyze

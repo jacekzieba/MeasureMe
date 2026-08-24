@@ -11,9 +11,11 @@
 # Not included, deliberately:
 #   - static_over_final_class / nslocalizedstring_key — both fire on correct code here
 #     (an `override class var` cannot be static; widgetLocalized takes its key as a parameter).
-#   - redundant_nil_coalescing — 17 hits, all in QuickAddSheetView / NumericInputBuffer,
-#     i.e. the central save flow. Mechanical to fix but not worth the regression surface in
-#     the same change as everything else; worth its own pass.
+#   - redundant_nil_coalescing — false positive here, do not "clean these up". All 17 hits
+#     read `inputs[kind] ?? nil` where `inputs` is `[MetricKind: Double?]`, so the subscript
+#     yields `Double??` and the `?? nil` *flattens* it. The rule is syntactic and cannot see
+#     the type. Dropping the operator would turn `if let current = inputs[kind] ?? nil` into a
+#     binding of `Double?` rather than `Double`, silently changing behaviour.
 #   - unused_declaration / unused_import — analyzer rules. They need a compiler log and
 #     `swiftlint analyze`, so they belong in their own CI lane rather than this file. They are
 #     the pair that would have caught the dead views.
