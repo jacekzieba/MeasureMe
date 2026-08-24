@@ -89,8 +89,13 @@ enum AppRuntimeConfigurator {
     }
 
     private static func configureGlobalAppearance() {
-        let navTitleBase = UIFont.systemFont(ofSize: 17, weight: .semibold)
-        let navLargeBase = UIFont.systemFont(ofSize: 34, weight: .bold)
+        // UIKit fonts set through an appearance proxy are fixed unless run through
+        // UIFontMetrics — SwiftUI scales its own, so without this the bars stayed put while
+        // the content grew at accessibility text sizes.
+        let navTitleBase = UIFontMetrics(forTextStyle: .headline)
+            .scaledFont(for: UIFont.systemFont(ofSize: 17, weight: .semibold))
+        let navLargeBase = UIFontMetrics(forTextStyle: .largeTitle)
+            .scaledFont(for: UIFont.systemFont(ofSize: 34, weight: .bold))
         let navTitleFont = navTitleBase.fontDescriptor.withDesign(.rounded)
             .map { UIFont(descriptor: $0, size: navTitleBase.pointSize) } ?? navTitleBase
         let navLargeFont = navLargeBase.fontDescriptor.withDesign(.rounded)
@@ -104,7 +109,8 @@ enum AppRuntimeConfigurator {
     }
 
     private static func configureGlobalUIKitAppearance() {
-        let segmentedFont = UIFont.systemFont(ofSize: 13, weight: .semibold).withMonospacedDigits()
+        let segmentedFont = UIFontMetrics(forTextStyle: .footnote)
+            .scaledFont(for: UIFont.systemFont(ofSize: 13, weight: .semibold).withMonospacedDigits())
         let segmented = UISegmentedControl.appearance()
         segmented.backgroundColor = UIColor(AppColorRoles.surfaceInteractive)
         segmented.setTitleTextAttributes(

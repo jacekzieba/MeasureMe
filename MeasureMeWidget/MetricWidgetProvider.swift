@@ -1,6 +1,18 @@
 import WidgetKit
 import AppIntents
 
+/// The app reloads all three widget kinds explicitly after every save and on startup, so the
+/// timeline only has to survive until the copy that talks in days becomes stale. Refreshing
+/// hourly just spent the system's per-widget budget re-rendering identical entries.
+private func nextLocalMidnight(after date: Date = .now) -> Date {
+    let calendar = Calendar.current
+    return calendar.nextDate(
+        after: date,
+        matching: DateComponents(hour: 0, minute: 0, second: 0),
+        matchingPolicy: .nextTime
+    ) ?? calendar.date(byAdding: .hour, value: 6, to: date) ?? date
+}
+
 struct MetricWidgetProvider: AppIntentTimelineProvider {
     typealias Entry = MetricEntry
     typealias Intent = MetricIntent
@@ -28,7 +40,7 @@ struct MetricWidgetProvider: AppIntentTimelineProvider {
             data2: WidgetMetricData.load(for: configuration.metric2),
             data3: WidgetMetricData.load(for: configuration.metric3)
         )
-        let nextUpdate = Calendar.current.date(byAdding: .hour, value: 1, to: .now) ?? .now
+        let nextUpdate = nextLocalMidnight()
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
 }
@@ -61,7 +73,7 @@ struct SmartMetricWidgetProvider: AppIntentTimelineProvider {
 
     func timeline(for configuration: SmartMetricIntent, in context: Context) async -> Timeline<SmartMetricEntry> {
         let entry = makeEntry(configuration: configuration)
-        let nextUpdate = Calendar.current.date(byAdding: .hour, value: 1, to: .now) ?? .now
+        let nextUpdate = nextLocalMidnight()
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
 
@@ -138,7 +150,7 @@ struct StreakWidgetProvider: AppIntentTimelineProvider {
             streak: widgetStreakPayload(),
             premiumEnabled: widgetPremiumEnabled()
         )
-        let nextUpdate = Calendar.current.date(byAdding: .hour, value: 1, to: .now) ?? .now
+        let nextUpdate = nextLocalMidnight()
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
 }

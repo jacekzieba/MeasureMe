@@ -1,4 +1,5 @@
 import SwiftUI
+import ImageIO
 
 /// Section with photo preview and full-screen display option
 struct PhotoPreviewSection: View {
@@ -6,9 +7,21 @@ struct PhotoPreviewSection: View {
     var cacheID: String? = nil
     let onTapFullScreen: () -> Void
     
+    /// Reads the header rather than decoding the frame: this runs on every body evaluation,
+    /// and `UIImage(data:)` was decompressing a full-resolution progress photo just to ask
+    /// how tall it is.
     private var imageAspectRatio: CGFloat {
-        let size = UIImage(data: imageData)?.size ?? CGSize(width: 4, height: 3)
+        let size = Self.pixelSize(of: imageData) ?? CGSize(width: 4, height: 3)
         return size.width / max(size.height, 1)
+    }
+
+    private static func pixelSize(of data: Data) -> CGSize? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
+              let height = properties[kCGImagePropertyPixelHeight] as? CGFloat,
+              width > 0, height > 0 else { return nil }
+        return CGSize(width: width, height: height)
     }
     
     var body: some View {

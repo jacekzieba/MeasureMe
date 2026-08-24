@@ -81,8 +81,17 @@ enum UITestArgument: String {
 extension UITestArgument {
 
     /// `true` when this argument was passed at launch.
+    ///
+    /// Always `false` in release. These flags reach into premium entitlement, the photo
+    /// privacy lock and seeded data, and there is no reason for any of that to be reachable in
+    /// a shipping binary — gating here neutralises every call site at once and lets the
+    /// optimiser strip the branches behind them.
     nonisolated static func isPresent(_ arg: UITestArgument) -> Bool {
-        ProcessInfo.processInfo.arguments.contains(arg.rawValue)
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains(arg.rawValue)
+        #else
+        return false
+        #endif
     }
 
     /// `true` when either `.mode` or `.onboardingMode` was passed.
@@ -90,19 +99,39 @@ extension UITestArgument {
         isPresent(.mode) || isPresent(.onboardingMode)
     }
 
+    /// Launch arguments as far as this type is concerned — empty in release, so no flag can
+    /// be observed in a shipping binary.
+    private nonisolated static var processArguments: [String] {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments
+        #else
+        return []
+        #endif
+    }
+
+    private nonisolated static func environmentFlag(_ name: String) -> Bool {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment[name] == "1"
+        #else
+        return false
+        #endif
+    }
+
     nonisolated static var shouldShowSettingsPaywall: Bool {
-        isPresent(.showSettingsPaywall)
-            || ProcessInfo.processInfo.environment["UI_TEST_SHOW_SETTINGS_PAYWALL"] == "1"
+        isPresent(.showSettingsPaywall) || environmentFlag("UI_TEST_SHOW_SETTINGS_PAYWALL")
     }
 
     nonisolated static var shouldSimulateTrialActivation: Bool {
-        isPresent(.simulateTrialActivation)
-            || ProcessInfo.processInfo.environment["UI_TEST_SIMULATE_TRIAL_ACTIVATION"] == "1"
+        isPresent(.simulateTrialActivation) || environmentFlag("UI_TEST_SIMULATE_TRIAL_ACTIVATION")
     }
 
     /// Returns the string value following the given flag, e.g. `-uiTestSeedPhotos 24` → `"24"`.
+    ///
+    /// Several call sites read this without an `isPresent` guard first, so the implicit
+    /// process-arguments read has to be gated as well; an explicit `args` array is honoured in
+    /// every configuration because that is how the unit tests drive it.
     nonisolated static func value(for arg: UITestArgument, in args: [String]? = nil) -> String? {
-        let arguments = args ?? ProcessInfo.processInfo.arguments
+        let arguments = args ?? processArguments
         guard let index = arguments.firstIndex(of: arg.rawValue),
               arguments.index(after: index) < arguments.endIndex else { return nil }
         return arguments[arguments.index(after: index)]

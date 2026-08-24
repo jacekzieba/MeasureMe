@@ -13,6 +13,11 @@ actor DiskImageCache {
     private let directoryURL: URL
     private let memoryDataCache = NSCache<NSString, NSData>()
 
+    /// The directory grew for the lifetime of an install: there was no byte budget, no age
+    /// limit and no sweep, only per-key removal that needed a caller who knew the key.
+    private static let maxTotalBytes = 128 * 1024 * 1024
+    private static let maxAge: TimeInterval = 30 * 24 * 60 * 60
+
     private init() {
         let base = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
@@ -72,6 +77,45 @@ actor DiskImageCache {
     func removeImages(forKeys keys: [String]) {
         for key in keys {
             removeImage(forKey: key)
+        }
+    }
+
+    /// Drops entries older than `maxAge`, then oldest-first until the directory fits
+    /// `maxTotalBytes`. Cheap enough to run once per launch.
+    func trim() {
+        let keys: Set<URLResourceKey> = [.contentModificationDateKey, .fileSizeKey]
+        guard let urls = try? fileManager.contentsOfDirectory(
+            at: directoryURL,
+            includingPropertiesForKeys: Array(keys),
+            options: [.skipsHiddenFiles]
+        ) else { return }
+
+        struct Entry {
+            let url: URL
+            let modified: Date
+            let size: Int
+        }
+
+        let now = Date()
+        var entries: [Entry] = []
+        for url in urls {
+            let values = try? url.resourceValues(forKeys: keys)
+            let modified = values?.contentModificationDate ?? .distantPast
+            let size = values?.fileSize ?? 0
+            if now.timeIntervalSince(modified) > Self.maxAge {
+                try? fileManager.removeItem(at: url)
+                continue
+            }
+            entries.append(Entry(url: url, modified: modified, size: size))
+        }
+
+        var total = entries.reduce(0) { $0 + $1.size }
+        guard total > Self.maxTotalBytes else { return }
+
+        for entry in entries.sorted(by: { $0.modified < $1.modified }) {
+            try? fileManager.removeItem(at: entry.url)
+            total -= entry.size
+            if total <= Self.maxTotalBytes { break }
         }
     }
 

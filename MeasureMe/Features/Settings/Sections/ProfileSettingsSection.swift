@@ -272,10 +272,14 @@ private struct ProfileAvatarPreview: View {
     let profilePhotoData: Data?
     let fallbackText: String
 
+    /// Decoded once per data change instead of on every body evaluation — this sits on a
+    /// screen that re-renders constantly.
+    @State private var decodedImage: UIImage?
+
     var body: some View {
         ZStack {
-            if let profilePhotoData, let image = UIImage(data: profilePhotoData) {
-                Image(uiImage: image)
+            if let decodedImage {
+                Image(uiImage: decodedImage)
                     .resizable()
                     .scaledToFill()
             } else {
@@ -296,6 +300,9 @@ private struct ProfileAvatarPreview: View {
         )
         .contentShape(Circle())
         .accessibilityLabel(AppLocalization.string("Profile photo"))
+        .task(id: profilePhotoData) {
+            decodedImage = profilePhotoData.flatMap(UIImage.init(data:))
+        }
     }
 }
 

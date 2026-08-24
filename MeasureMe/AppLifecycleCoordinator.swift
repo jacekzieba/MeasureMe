@@ -110,6 +110,7 @@ enum AppLifecycleCoordinator {
 
         scheduleDeferredStorageProtection()
         scheduleLegacyInsightCachePurge()
+        scheduleDiskImageCacheTrim()
         scheduleDeferredHealthSetup(container: container)
         scheduleDeferredAutoRestore(container: container, onAutoRestoreCompleted: onAutoRestoreCompleted)
         scheduleDeferredWidgetRefresh(container: container, settingsStore: settingsStore)
@@ -124,6 +125,14 @@ enum AppLifecycleCoordinator {
     private static func scheduleLegacyInsightCachePurge() {
         Task(priority: .utility) {
             InsightDiskCache.purgeLegacyAppGroupCache()
+        }
+    }
+
+    /// Keeps the on-disk thumbnail cache within its byte and age budget.
+    /// Priority: `.utility` — a directory scan, nothing waits on it.
+    private static func scheduleDiskImageCacheTrim() {
+        Task(priority: .utility) {
+            await DiskImageCache.shared.trim()
         }
     }
 
