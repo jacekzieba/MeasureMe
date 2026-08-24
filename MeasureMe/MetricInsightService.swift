@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import os.log
 
 #if canImport(FoundationModels)
@@ -122,12 +123,17 @@ enum AppleIntelligenceSupport {
 // MARK: - Persistent Cache
 
 nonisolated struct InsightDiskCache {
+    /// Deliberately **not** the App Group: nothing outside the app reads this cache, and the
+    /// shared container is the one place `DatabaseEncryption` never covers.
+    private static let defaultSuiteName = "com.jacek.measureme.insights"
+    private static let legacyAppGroupSuiteName = "group.com.jacek.measureme"
+
     #if DEBUG
-    nonisolated(unsafe) static var suiteName = "group.com.jacek.measureme"
+    nonisolated(unsafe) static var suiteName = defaultSuiteName
     nonisolated(unsafe) static var ttl: TimeInterval = 24 * 60 * 60
     nonisolated(unsafe) static var maxEntries = 80
     #else
-    static let suiteName = "group.com.jacek.measureme"
+    static let suiteName = defaultSuiteName
     static let ttl: TimeInterval = 24 * 60 * 60
     static let maxEntries = 80
     #endif
@@ -139,13 +145,24 @@ nonisolated struct InsightDiskCache {
         let timestamp: Date
     }
 
+    /// Local calendar day. `ISO8601DateFormatter` is UTC, which rolled the "daily" cache over
+    /// mid-morning for anyone east of Greenwich.
+    static func dayComponent(for date: Date, calendar: Calendar = .current) -> String {
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+
     /// Stable cache key that survives app restarts.
-    /// Includes today's date so the cache naturally expires daily,
-    /// the latest value so it regenerates when new data arrives,
-    /// and the prompt version so bumping the prompt auto-invalidates old entries.
+    ///
+    /// The metric title and the latest value are hashed rather than interpolated: the key ends
+    /// up as a plaintext dictionary key in a plist on disk, and the value is a measurement.
+    /// The day component still expires the cache daily and the prompt version still
+    /// invalidates old entries when the prompt changes.
     static func stableKey(metricTitle: String, latestValueText: String, promptVersion: String) -> String {
-        let today = ISO8601DateFormatter().string(from: Date()).prefix(10) // YYYY-MM-DD
-        return "v\(promptVersion)_\(metricTitle)_\(latestValueText)_\(today)"
+        let material = "\(metricTitle)|\(latestValueText)|\(dayComponent(for: Date()))"
+        let digest = SHA256.hash(data: Data(material.utf8))
+        let hex = digest.map { String(format: "%02x", $0) }.joined()
+        return "v\(promptVersion)_\(hex)"
     }
 
     static func read(forKey key: String) -> MetricInsightPair? {
@@ -185,14 +202,18 @@ nonisolated struct InsightDiskCache {
         }
     }
 
+    /// Hashed keys cannot be matched by metric, and the store is capped at `maxEntries`, so
+    /// invalidating one metric clears the cache rather than scanning it. The entries
+    /// regenerate the next time each insight is shown.
     static func removeEntries(matching metricTitle: String) {
-        guard let defaults = UserDefaults(suiteName: suiteName),
-              let data = defaults.data(forKey: storeKey),
-              var store = try? JSONDecoder().decode([String: Entry].self, from: data) else { return }
-        store = store.filter { !$0.key.contains(metricTitle) }
-        if let encoded = try? JSONEncoder().encode(store) {
-            defaults.set(encoded, forKey: storeKey)
-        }
+        guard let defaults = UserDefaults(suiteName: suiteName) else { return }
+        defaults.removeObject(forKey: storeKey)
+    }
+
+    /// One-time cleanup of the pre-move cache, whose keys held measurement values.
+    static func purgeLegacyAppGroupCache() {
+        guard let legacy = UserDefaults(suiteName: legacyAppGroupSuiteName) else { return }
+        legacy.removeObject(forKey: storeKey)
     }
 }
 

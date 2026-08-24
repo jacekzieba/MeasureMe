@@ -71,10 +71,11 @@ final class InsightDiskCacheTests: XCTestCase {
         XCTAssertNotNil(InsightDiskCache.read(forKey: "key_3"))
     }
 
-    /// Co sprawdza: removeEntries usuwa wpisy pasujace do tytulu metryki
-    /// Dlaczego: Invalidacja cache po zapisie nowego pomiaru
-    /// Kryteria: Pasujace wpisy usuniete, inne zachowane
-    func testRemoveEntries_matchingTitle() {
+    /// Co sprawdza: removeEntries czysci cache przy invalidacji metryki
+    /// Dlaczego: Klucze sa hashowane, wiec nie da sie ich dopasowac po tytule metryki;
+    ///   cache jest ograniczony do maxEntries, wiec czyszczenie calosci jest tanie.
+    /// Kryteria: Po invalidacji zaden wpis nie zostaje.
+    func testRemoveEntries_clearsTheStore() {
         InsightDiskCache.write(
             MetricInsightPair(shortText: "W", detailedText: "W"),
             forKey: "Weight_123"
@@ -87,7 +88,52 @@ final class InsightDiskCacheTests: XCTestCase {
         InsightDiskCache.removeEntries(matching: "Weight")
 
         XCTAssertNil(InsightDiskCache.read(forKey: "Weight_123"))
-        XCTAssertNotNil(InsightDiskCache.read(forKey: "BodyFat_456"))
+        XCTAssertNil(InsightDiskCache.read(forKey: "BodyFat_456"))
+    }
+
+    /// Co sprawdza: Klucz cache nie zawiera wartosci pomiaru
+    /// Dlaczego: Klucz laduje jako jawny klucz slownika w plist na dysku
+    /// Kryteria: Ani wartosc, ani jednostka nie pojawiaja sie w kluczu
+    func testStableKeyDoesNotContainTheMeasurementValue() {
+        let key = InsightDiskCache.stableKey(
+            metricTitle: "Weight",
+            latestValueText: "82.4 kg",
+            promptVersion: "7"
+        )
+
+        XCTAssertFalse(key.contains("82.4"))
+        XCTAssertFalse(key.contains("kg"))
+        XCTAssertFalse(key.contains("Weight"))
+        XCTAssertTrue(key.hasPrefix("v7_"))
+    }
+
+    /// Co sprawdza: Nowy pomiar nadal uniewaznia zapisany insight
+    /// Dlaczego: Hashowanie nie moze zepsuc regeneracji po zmianie danych
+    /// Kryteria: Inna wartosc daje inny klucz
+    func testStableKeyChangesWhenTheValueChanges() {
+        let a = InsightDiskCache.stableKey(metricTitle: "Weight", latestValueText: "82.4 kg", promptVersion: "7")
+        let b = InsightDiskCache.stableKey(metricTitle: "Weight", latestValueText: "82.5 kg", promptVersion: "7")
+
+        XCTAssertNotEqual(a, b)
+    }
+
+    /// Co sprawdza: Doba cache liczy sie wedlug kalendarza lokalnego, nie UTC
+    /// Dlaczego: ISO8601DateFormatter jest w UTC, wiec "dzienny" cache resetowal sie
+    ///   przed poludniem dla stref na wschod od Greenwich.
+    /// Kryteria: 23:30 i 01:30 czasu lokalnego to dwie rozne doby
+    func testStableKeyRollsOverOnTheLocalDayNotUTC() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Warsaw")!
+
+        let lateEvening = calendar.date(from: DateComponents(year: 2026, month: 8, day: 24, hour: 23, minute: 30))!
+        let afterMidnight = calendar.date(from: DateComponents(year: 2026, month: 8, day: 25, hour: 1, minute: 30))!
+
+        let a = InsightDiskCache.dayComponent(for: lateEvening, calendar: calendar)
+        let b = InsightDiskCache.dayComponent(for: afterMidnight, calendar: calendar)
+
+        XCTAssertEqual(a, "2026-08-24")
+        XCTAssertEqual(b, "2026-08-25")
+        XCTAssertNotEqual(a, b)
     }
 
     /// Co sprawdza: Odczyt z brakujacych danych zwraca nil

@@ -109,12 +109,22 @@ enum AppLifecycleCoordinator {
         guard !isRunningXCTest else { return }
 
         scheduleDeferredStorageProtection()
+        scheduleLegacyInsightCachePurge()
         scheduleDeferredHealthSetup(container: container)
         scheduleDeferredAutoRestore(container: container, onAutoRestoreCompleted: onAutoRestoreCompleted)
         scheduleDeferredWidgetRefresh(container: container, settingsStore: settingsStore)
         scheduleBodyModelPrewarm(container: container, settingsStore: settingsStore)
         scheduleDeferredBackupMaintenance(container: container)
         scheduleDeferredWatchConnectivity(container: container)
+    }
+
+    /// Drops the insight cache that older builds wrote into the App Group container, where its
+    /// keys held the person's measurements in plain text.
+    /// Priority: `.utility` — a single key removal, nothing waits on it.
+    private static func scheduleLegacyInsightCachePurge() {
+        Task(priority: .utility) {
+            InsightDiskCache.purgeLegacyAppGroupCache()
+        }
     }
 
     /// Applies recommended file protection to the on-disk database.
