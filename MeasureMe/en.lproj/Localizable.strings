@@ -2015,6 +2015,7 @@ The thresholds differ between males and females due to different body compositio
 "Could not create MeasureMe album." = "Could not create MeasureMe album.";
 "Could not prepare photo. Please try again." = "Could not prepare photo. Please try again.";
 "Could not unlock photos." = "Could not unlock photos.";
+"Set a device passcode to unlock photos." = "Set a device passcode to unlock photos.";
 "Detail" = "Detail";
 "Details" = "Details";
 "Front" = "Front";

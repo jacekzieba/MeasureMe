@@ -69,6 +69,11 @@ extension OnboardingView {
             .allowsTightening(true)
             .fixedSize(horizontal: false, vertical: true)
             .layoutPriority(1)
+
+            Divider()
+                .overlay(AppColorRoles.borderSubtle)
+
+            analyticsConsentRow(compact: compact)
         }
         .padding(compact ? AppSpacing.sm : AppSpacing.smmd)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -81,5 +86,56 @@ extension OnboardingView {
                 )
         )
         .accessibilityIdentifier("onboarding.privacy.card")
+    }
+
+    /// Explicit, opt-in analytics consent. Defaults to off, and no signal is sent until
+    /// onboarding completes — see `analyticsConsentDecided`.
+    @ViewBuilder
+    func analyticsConsentRow(compact: Bool) -> some View {
+        let title = FlowLocalization.app(
+            "Share anonymous usage stats",
+            "Udostępniaj anonimowe statystyki użycia",
+            "Compartir estadísticas de uso anónimas",
+            "Anonyme Nutzungsstatistiken teilen",
+            "Partager des statistiques d'usage anonymes",
+            "Compartilhar estatísticas de uso anônimas"
+        )
+        let subtitle = FlowLocalization.app(
+            "Off by default. Never your measurements or photos — you can change this any time in Settings.",
+            "Domyślnie wyłączone. Nigdy Twoje pomiary ani zdjęcia — możesz to zmienić w Ustawieniach.",
+            "Desactivado por defecto. Nunca tus medidas ni fotos: puedes cambiarlo en Ajustes.",
+            "Standardmäßig aus. Nie deine Messwerte oder Fotos – jederzeit in den Einstellungen änderbar.",
+            "Désactivé par défaut. Jamais vos mesures ni vos photos — modifiable à tout moment dans Réglages.",
+            "Desativado por padrão. Nunca suas medições ou fotos — dá para mudar nos Ajustes."
+        )
+
+        HStack(alignment: .top, spacing: compact ? 8 : 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(AppTypography.bodyEmphasis)
+                    .foregroundStyle(AppColorRoles.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+                    .allowsTightening(true)
+
+                Text(subtitle)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .minimumScaleFactor(compact ? 0.8 : 0.9)
+                    .allowsTightening(true)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .layoutPriority(1)
+
+            Spacer(minLength: 8)
+
+            Toggle("", isOn: $analyticsEnabled)
+                .labelsHidden()
+                .frame(width: 52, alignment: .trailing)
+                .tint(Color.appAccent)
+                .accessibilityLabel(title)
+                .accessibilityValue(analyticsEnabled ? AppLocalization.string("Enabled") : AppLocalization.string("Disabled"))
+        }
+        .accessibilityIdentifier("onboarding.privacy.analyticsToggle")
     }
 }

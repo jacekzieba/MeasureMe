@@ -48,11 +48,27 @@ final class PhotoPrivacyGate: ObservableObject {
     @Published private(set) var isUnlocked = false
     @Published private(set) var lastErrorMessage: String?
 
+    /// Biometrics with the device passcode as fallback.
+    ///
+    /// `.deviceOwnerAuthenticationWithBiometrics` has no second way in: a Face ID lockout after
+    /// repeated failures, an unenrolled device, or biometry the user disabled all leave the
+    /// photos permanently unreachable.
+    static let authenticationPolicy: LAPolicy = .deviceOwnerAuthentication
+
+    /// `false` only when the device has no passcode at all — nothing can satisfy the lock then,
+    /// so the setting must not be offered.
+    static func isAuthenticationAvailable(context: LAContext = LAContext()) -> Bool {
+        var error: NSError?
+        return context.canEvaluatePolicy(authenticationPolicy, error: &error)
+    }
+
     private init() {}
 
     func canDisplayPhotos(requireBiometric: Bool) -> Bool {
         guard requireBiometric else { return true }
+        #if DEBUG
         if UITestArgument.isPresent(.mode) { return true }
+        #endif
         return isUnlocked
     }
 
@@ -61,16 +77,20 @@ final class PhotoPrivacyGate: ObservableObject {
     }
 
     func unlock(reason: String? = nil) async {
+        #if DEBUG
         guard !UITestArgument.isPresent(.mode) else {
             isUnlocked = true
             return
         }
+        #endif
 
         let context = LAContext()
+        let policy = Self.authenticationPolicy
         var error: NSError?
-        let policy: LAPolicy = .deviceOwnerAuthenticationWithBiometrics
         guard context.canEvaluatePolicy(policy, error: &error) else {
-            lastErrorMessage = error?.localizedDescription
+            // The only realistic failure for this policy is a device with no passcode set,
+            // so point at the fix instead of surfacing the LAError text.
+            lastErrorMessage = AppLocalization.string("Set a device passcode to unlock photos.")
             return
         }
 

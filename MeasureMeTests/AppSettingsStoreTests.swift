@@ -2,6 +2,22 @@ import XCTest
 import Combine
 @testable import MeasureMe
 
+/// Records which keys were actually written, so a test can assert on write volume rather than
+/// on the resulting values.
+private final class CountingUserDefaults: UserDefaults {
+    var writtenKeys: [String] = []
+
+    override func set(_ value: Any?, forKey defaultName: String) {
+        writtenKeys.append(defaultName)
+        super.set(value, forKey: defaultName)
+    }
+
+    override func removeObject(forKey defaultName: String) {
+        writtenKeys.append(defaultName)
+        super.removeObject(forKey: defaultName)
+    }
+}
+
 @MainActor
 final class AppSettingsStoreTests: XCTestCase {
     private var cancellables: Set<AnyCancellable> = []
@@ -93,6 +109,90 @@ final class AppSettingsStoreTests: XCTestCase {
         store.set(true, forKey: AppSettingsKeys.Health.isSyncEnabled)
 
         wait(for: [expectation], timeout: 1.0)
+    }
+
+    func testChangingOneSettingWritesOnlyThatKey() {
+        let suite = "AppSettingsStoreTests.singleKey.\(UUID().uuidString)"
+        let defaults = CountingUserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let store = AppSettingsStore(defaults: defaults)
+
+        // The first persist materialises keys that were never written before; steady state is
+        // what matters, so measure the change after that.
+        store.set(\.experience.hapticsEnabled, false)
+        defaults.writtenKeys.removeAll()
+
+        store.set(\.experience.hapticsEnabled, true)
+
+        // Persisting the whole snapshot on every change put ~120 writes behind one toggle,
+        // including the profile photo blob, on the main thread.
+        XCTAssertEqual(defaults.writtenKeys, [AppSettingsKeys.Experience.hapticsEnabled])
+
+        defaults.removePersistentDomain(forName: suite)
+    }
+
+    func testRepeatingTheSameValueWritesNothing() {
+        let suite = "AppSettingsStoreTests.noop.\(UUID().uuidString)"
+        let defaults = CountingUserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let store = AppSettingsStore(defaults: defaults)
+
+        store.set(\.experience.hapticsEnabled, false)
+        defaults.writtenKeys.removeAll()
+
+        store.set(\.experience.hapticsEnabled, false)
+
+        XCTAssertTrue(defaults.writtenKeys.isEmpty, "Re-setting an unchanged value must not touch defaults.")
+
+        defaults.removePersistentDomain(forName: suite)
+    }
+
+    func testUnrelatedKeyStillReadsItsRegisteredDefaultAfterAPartialWrite() {
+        let suite = "AppSettingsStoreTests.partial.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let store = AppSettingsStore(defaults: defaults)
+
+        store.set(\.experience.hapticsEnabled, false)
+        store.forceReloadSnapshot()
+
+        XCTAssertFalse(store.snapshot.experience.hapticsEnabled)
+        XCTAssertTrue(store.snapshot.experience.animationsEnabled)
+        XCTAssertEqual(store.snapshot.profile.unitsSystem, "metric")
+        XCTAssertEqual(store.snapshot.notifications.aiDigestWeekday, 1)
+
+        defaults.removePersistentDomain(forName: suite)
+    }
+
+    func testFreshInstallStartsWithAnalyticsOffAndUndecided() {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+
+        XCTAssertFalse(store.snapshot.analytics.analyticsEnabled)
+        XCTAssertFalse(store.snapshot.analytics.analyticsConsentDecided)
+    }
+
+    func testExistingInstallKeepsItsAnalyticsPreferenceAsTheDecision() {
+        let defaults = makeDefaults()
+        // Someone who finished the old onboarding and never touched the Settings switch:
+        // analytics was on by default back then, and that stays their answer.
+        defaults.set(true, forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding)
+
+        let store = AppSettingsStore(defaults: defaults)
+
+        XCTAssertTrue(store.snapshot.analytics.analyticsEnabled)
+        XCTAssertTrue(store.snapshot.analytics.analyticsConsentDecided)
+    }
+
+    func testExistingInstallThatOptedOutStaysOptedOut() {
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding)
+        defaults.set(false, forKey: AppSettingsKeys.Analytics.analyticsEnabled)
+
+        let store = AppSettingsStore(defaults: defaults)
+
+        XCTAssertFalse(store.snapshot.analytics.analyticsEnabled)
+        XCTAssertTrue(store.snapshot.analytics.analyticsConsentDecided)
     }
 
     func testMigratesLegacyUnitsSystemKey() {

@@ -1977,6 +1977,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "Could not create MeasureMe album." = "Nie udało się utworzyć albumu MeasureMe.";
 "Could not prepare photo. Please try again." = "Nie udało się przygotować zdjęcia. Spróbuj ponownie.";
 "Could not unlock photos." = "Nie udało się odblokować zdjęć.";
+"Set a device passcode to unlock photos." = "Ustaw kod dostępu urządzenia, aby odblokowywać zdjęcia.";
 "Detail" = "Detal";
 "Details" = "Szczegóły";
 "Front" = "Przód";

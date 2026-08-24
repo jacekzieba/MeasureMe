@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct DataSettingsDetailView: View {
-    @AppSetting(\.analytics.analyticsEnabled) private var analyticsEnabled: Bool = true
+    @AppSetting(\.analytics.analyticsEnabled) private var analyticsEnabled: Bool = false
+    @AppSetting(\.analytics.analyticsConsentDecided) private var analyticsConsentDecided: Bool = false
     @AppSetting(\.privacy.requireBiometricForPhotos) private var requireBiometricForPhotos: Bool = false
     @AppSetting(\.iCloudBackup.lastBackupSizeBytes) private var lastBackupSizeBytes: Int64 = 0
     @Binding var iCloudBackupEnabled: Bool
@@ -22,6 +23,10 @@ struct DataSettingsDetailView: View {
     private var isICloudAvailable: Bool {
         FileManager.default.ubiquityIdentityToken != nil
     }
+
+    /// Resolved once when the screen appears — `canEvaluatePolicy` builds an `LAContext` and
+    /// talks to the platform, which has no business running on every body evaluation.
+    @State private var isDeviceAuthenticationAvailable = true
 
     var body: some View {
         SettingsDetailScaffold(title: AppLocalization.string("Data"), theme: .settings) {
@@ -181,6 +186,9 @@ struct DataSettingsDetailView: View {
                     .tint(theme.accent)
                     .onChange(of: analyticsEnabled) { _, _ in
                         Haptics.selection()
+                        // Touching the switch is itself an answer, so a person who never saw
+                        // the onboarding question can still opt in from here.
+                        analyticsConsentDecided = true
                     }
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     .accessibilityIdentifier("settings.data.analytics.toggle")
@@ -195,7 +203,9 @@ struct DataSettingsDetailView: View {
                             Text(AppLocalization.string("Require Face ID to view photos"))
                                 .font(AppTypography.body)
                                 .foregroundStyle(AppColorRoles.textPrimary)
-                            Text(AppLocalization.string("Blurs progress photos until you unlock them."))
+                            Text(isDeviceAuthenticationAvailable
+                                 ? AppLocalization.string("Blurs progress photos until you unlock them.")
+                                 : AppLocalization.string("Set a device passcode to unlock photos."))
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppColorRoles.textSecondary)
                         }
@@ -205,6 +215,7 @@ struct DataSettingsDetailView: View {
                         Toggle("", isOn: $requireBiometricForPhotos)
                             .labelsHidden()
                             .frame(width: 52, alignment: .trailing)
+                            .disabled(!isDeviceAuthenticationAvailable)
                             .accessibilityLabel(AppLocalization.string("Require Face ID to view photos"))
                             .accessibilityValue(requireBiometricForPhotos ? AppLocalization.string("Enabled") : AppLocalization.string("Disabled"))
                     }
@@ -212,6 +223,15 @@ struct DataSettingsDetailView: View {
                     .onChange(of: requireBiometricForPhotos) { _, _ in
                         Haptics.selection()
                         PhotoPrivacyGate.shared.lock()
+                    }
+                    .onAppear {
+                        isDeviceAuthenticationAvailable = PhotoPrivacyGate.isAuthenticationAvailable()
+                        // A lock nobody can open is worse than no lock: if the passcode was
+                        // removed after the setting was switched on, clear it.
+                        if !isDeviceAuthenticationAvailable, requireBiometricForPhotos {
+                            requireBiometricForPhotos = false
+                            PhotoPrivacyGate.shared.lock()
+                        }
                     }
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     .accessibilityIdentifier("settings.data.photosPrivacy.toggle")

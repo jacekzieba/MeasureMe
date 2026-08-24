@@ -603,11 +603,16 @@ struct HomeView: View {
     func handleHomeScrollOffsetChange(_ value: CGFloat) {
         viewModel.scrollOffset = value
         let normalizedOffset = Double(value)
-        // Defer AppSetting write to avoid publishing during the view-update pass.
-        if abs(homeTabScrollOffset - normalizedOffset) > 8 {
-            Task { @MainActor in
-                homeTabScrollOffset = normalizedOffset
-            }
+        guard abs(homeTabScrollOffset - normalizedOffset) > 8 else { return }
+
+        // Persist once the scroll settles rather than on every callback: each write goes
+        // through AppSettingsStore and republishes the snapshot to every @AppSetting in the
+        // tree, which is far too much work to do mid-gesture.
+        viewModel.scrollOffsetPersistTask?.cancel()
+        viewModel.scrollOffsetPersistTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled else { return }
+            homeTabScrollOffset = normalizedOffset
         }
     }
 

@@ -2021,6 +2021,7 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 "Could not create MeasureMe album." = "Não foi possível criar o álbum MeasureMe.";
 "Could not prepare photo. Please try again." = "Não foi possível preparar a foto. Tente novamente.";
 "Could not unlock photos." = "Não foi possível desbloquear as fotos.";
+"Set a device passcode to unlock photos." = "Defina uma senha no dispositivo para desbloquear as fotos.";
 "Detail" = "Detalhe";
 "Details" = "Detalhes";
 "Front" = "Frente";

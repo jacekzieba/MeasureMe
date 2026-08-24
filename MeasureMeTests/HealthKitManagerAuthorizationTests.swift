@@ -36,8 +36,11 @@ private final class MockHealthStore: HealthStore {
         }
     }
 
+    /// `.notDetermined` matches HealthKit's own default for a type the user was never asked
+    /// about. `.sharingDenied` means the sheet *was* answered with write declined — which is
+    /// also what a read-only grant looks like, so the two must not share a default.
     func authorizationStatus(for identifier: HKQuantityTypeIdentifier) throws -> HKAuthorizationStatus {
-        quantityStatuses[identifier] ?? .sharingDenied
+        quantityStatuses[identifier] ?? .notDetermined
     }
 
     func latestQuantity(for identifier: HKQuantityTypeIdentifier, unit: HKUnit) async throws -> (value: Double, date: Date)? {
@@ -222,5 +225,50 @@ final class HealthKitManagerAuthorizationTests: XCTestCase {
 
         XCTAssertEqual(result, .denied)
         XCTAssertFalse(settings.snapshot.health.isSyncEnabled)
+    }
+
+    /// Co sprawdza: Zgoda tylko na odczyt nie wyłącza synchronizacji.
+    /// Dlaczego: iOS raportuje wyłącznie status zapisu, więc odczyt-only wygląda jak `.sharingDenied`
+    ///   i wcześniej po cichu gasił przełącznik użytkownikowi, który dostęp faktycznie nadał.
+    /// Kryteria: reconcileStoredSyncState nie zwraca błędu i zostawia isSyncEnabled włączone.
+    func testReconcileStoredSyncStateKeepsSyncWhenOnlyReadAccessWasGranted() async {
+        let store = MockHealthStore()
+        store.quantityStatuses = Dictionary(
+            uniqueKeysWithValues: MockHealthStore.supportedIdentifiers.map { ($0, .sharingDenied) }
+        )
+        let manager = HealthKitManager(store: store, settings: settings)
+        settings.set(\.health.isSyncEnabled, true)
+        await waitUntil(settings.snapshot.health.isSyncEnabled)
+
+        let result = manager.reconcileStoredSyncState()
+
+        XCTAssertNil(result, "Write-denied is indistinguishable from a read-only grant and must not disable sync.")
+        XCTAssertTrue(settings.snapshot.health.isSyncEnabled)
+    }
+
+    /// Co sprawdza: Włączenie synchronizacji kończy się powodzeniem przy zgodzie tylko na odczyt.
+    /// Dlaczego: Użytkownik, który pozwolił czytać a odmówił zapisu, dostawał komunikat o odmowie.
+    /// Kryteria: requestAuthorization nie rzuca, gdy po arkuszu wszystkie typy są `.sharingDenied`.
+    func testRequestAuthorizationSucceedsWhenOnlyReadAccessWasGranted() async throws {
+        let store = MockHealthStore()
+        store.statusesAfterRequest = Dictionary(
+            uniqueKeysWithValues: MockHealthStore.supportedIdentifiers.map { ($0, .sharingDenied) }
+        )
+        let manager = HealthKitManager(store: store, settings: settings)
+
+        try await manager.requestAuthorization()
+
+        XCTAssertEqual(store.requestAuthorizationCallCount, 1)
+    }
+
+    /// Co sprawdza: Rozróżnienie "nie pytano" od "pytano i odmówiono zapisu".
+    /// Dlaczego: To jedyny stan, w którym wolno uznać brak dostępu — reszta jest nierozstrzygalna.
+    /// Kryteria: Wyłącznie komplet `.notDetermined` liczy się jako brak odpowiedzi.
+    func testAuthorizationRequestUnansweredOnlyForNotDetermined() {
+        XCTAssertTrue(HealthKitManager.isAuthorizationRequestUnanswered([.notDetermined, .notDetermined]))
+        XCTAssertFalse(HealthKitManager.isAuthorizationRequestUnanswered([.notDetermined, .sharingDenied]))
+        XCTAssertFalse(HealthKitManager.isAuthorizationRequestUnanswered([.sharingDenied, .sharingDenied]))
+        XCTAssertFalse(HealthKitManager.isAuthorizationRequestUnanswered([.sharingAuthorized]))
+        XCTAssertTrue(HealthKitManager.isAuthorizationRequestUnanswered([]))
     }
 }

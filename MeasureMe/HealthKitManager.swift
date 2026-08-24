@@ -365,8 +365,7 @@ final class HealthKitManager {
         }
 
         let statuses = try supportedQuantityIdentifiers.map { try store.authorizationStatus(for: $0) }
-        let hasAnyAuthorizedType = statuses.contains(.sharingAuthorized)
-        if !hasAnyAuthorizedType {
+        if Self.isAuthorizationRequestUnanswered(statuses) {
             throw HealthKitAuthorizationError.denied
         }
 
@@ -499,6 +498,17 @@ final class HealthKitManager {
         ]
     }
 
+    /// `true` only when the permission sheet has never been answered for any supported type.
+    ///
+    /// `authorizationStatus(for:)` reports the **share** (write) decision and nothing else —
+    /// iOS deliberately never exposes read authorization, so a user who allowed reading but
+    /// declined writing looks identical to one who declined everything: `.sharingDenied`.
+    /// Treating that as a denial disabled sync for read-only users, so the only state that may
+    /// stand in for "no access" is `.notDetermined` across the board.
+    static func isAuthorizationRequestUnanswered(_ statuses: [HKAuthorizationStatus]) -> Bool {
+        statuses.allSatisfy { $0 == .notDetermined }
+    }
+
     private func currentSyncAuthorizationError() -> HealthKitAuthorizationError? {
         guard store.isHealthDataAvailable() else {
             return .notAvailable
@@ -506,10 +516,7 @@ final class HealthKitManager {
 
         do {
             let statuses = try supportedQuantityIdentifiers.map { try store.authorizationStatus(for: $0) }
-            if statuses.contains(.sharingAuthorized) {
-                return nil
-            }
-            return .denied
+            return Self.isAuthorizationRequestUnanswered(statuses) ? .denied : nil
         } catch let error as HealthKitAuthorizationError {
             return error
         } catch {

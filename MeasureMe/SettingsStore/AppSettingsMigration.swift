@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppSettingsMigration {
-    private static let currentSchemaVersion = 6
+    private static let currentSchemaVersion = 7
 
     static func applyIfNeeded(defaults: UserDefaults) {
         let schemaVersion = defaults.integer(forKey: AppSettingsKeys.settingsSchemaVersion)
@@ -13,7 +13,25 @@ enum AppSettingsMigration {
         migrateActivationCompletedIfNeeded(defaults: defaults)
         migrateOnboardingFlowVersionIfNeeded(defaults: defaults)
         migrateActivationStateIfNeeded(defaults: defaults)
+        migrateAnalyticsConsentIfNeeded(defaults: defaults)
         defaults.set(currentSchemaVersion, forKey: AppSettingsKeys.settingsSchemaVersion)
+    }
+
+    /// Analytics used to default to on, with the choice living only in Settings. New installs
+    /// now start off and are asked during onboarding, but people who already finished
+    /// onboarding have no onboarding left to answer — so their existing preference is carried
+    /// over as their decision instead of being silently flipped either way.
+    /// Neither analytics key may appear in `AppSettingsSnapshot.registeredDefaults`: the
+    /// registration domain is process-wide and `object(forKey:)` reads through it, which would
+    /// make the "never set" check below always false.
+    private static func migrateAnalyticsConsentIfNeeded(defaults: UserDefaults) {
+        let decidedKey = AppSettingsKeys.Analytics.analyticsConsentDecided
+        guard defaults.object(forKey: decidedKey) == nil else { return }
+        guard defaults.bool(forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding) else { return }
+
+        let previousPreference = defaults.object(forKey: AppSettingsKeys.Analytics.analyticsEnabled) as? Bool ?? true
+        defaults.set(previousPreference, forKey: AppSettingsKeys.Analytics.analyticsEnabled)
+        defaults.set(true, forKey: decidedKey)
     }
 
     private static func migrateUnitsSystemIfNeeded(defaults: UserDefaults) {

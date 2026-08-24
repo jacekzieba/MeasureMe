@@ -44,6 +44,11 @@ struct HomePhotoSyncCursorAccess {
     /// Scroll offset of the home scroll view.
     var scrollOffset: CGFloat = 0
 
+    /// Debounces persisting `scrollOffset`. Writing it straight from the scroll callback put a
+    /// UserDefaults write on every frame of a flick; the value only has to survive relaunch,
+    /// so it is stored once the scroll settles.
+    @ObservationIgnored var scrollOffsetPersistTask: Task<Void, Never>?
+
     /// Checklist / activation state flags.
     var isRequestingActivationReminder: Bool = false
     var pendingActivationMetricCompletion: Bool = false

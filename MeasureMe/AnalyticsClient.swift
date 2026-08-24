@@ -41,7 +41,8 @@ extension AppTab {
 }
 
 enum AnalyticsPolicy {
-    static let analyticsEnabledKey = "analytics_enabled"
+    static let analyticsEnabledKey = AppSettingsKeys.Analytics.analyticsEnabled
+    static let analyticsConsentDecidedKey = AppSettingsKeys.Analytics.analyticsConsentDecided
 
     static func isEnabled(
         auditConfig: AuditConfig = .current,
@@ -53,11 +54,6 @@ enum AnalyticsPolicy {
             return false
         }
 
-        if userDefaults.object(forKey: analyticsEnabledKey) != nil,
-           !userDefaults.bool(forKey: analyticsEnabledKey) {
-            return false
-        }
-
         if isDebugBuild {
             return false
         }
@@ -66,7 +62,14 @@ enum AnalyticsPolicy {
             return false
         }
 
-        return true
+        // Nothing leaves the device until the person has actually answered the question.
+        // "Not asked yet" and "asked and declined" both read as off here, which is why the
+        // decision is stored separately from the preference itself.
+        guard userDefaults.bool(forKey: analyticsConsentDecidedKey) else {
+            return false
+        }
+
+        return userDefaults.bool(forKey: analyticsEnabledKey)
     }
 
     static func isEnabled(

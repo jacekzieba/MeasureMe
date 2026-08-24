@@ -168,6 +168,9 @@ enum AppSettingsKeys {
 
     enum Analytics {
         static let analyticsEnabled = "analytics_enabled"
+        /// Whether the person has actually answered the analytics question. Without it,
+        /// "off" cannot be told apart from "never asked", and the SDK would start on launch.
+        static let analyticsConsentDecided = "analytics_consent_decided"
         static let firstMetricAddedTracked = "analytics_first_metric_added_tracked"
         static let firstPhotoAddedTracked = "analytics_first_photo_added_tracked"
         static let secondMetricAddedTracked = "analytics_second_metric_added_tracked"

@@ -898,6 +898,7 @@ enum ICloudBackupService {
         AppSettingsKeys.Notifications.goalAchievedEnabled,
         AppSettingsKeys.Notifications.importNotificationsEnabled,
         AppSettingsKeys.Analytics.analyticsEnabled,
+        AppSettingsKeys.Analytics.analyticsConsentDecided,
         AppSettingsKeys.Analytics.appleIntelligenceEnabled,
         AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled,
     ] + AppSettingsKeys.Metrics.allEnabledKeys

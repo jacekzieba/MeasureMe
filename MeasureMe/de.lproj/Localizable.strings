@@ -2019,6 +2019,7 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "Could not create MeasureMe album." = "Das MeasureMe-Album konnte nicht erstellt werden.";
 "Could not prepare photo. Please try again." = "Das Foto konnte nicht vorbereitet werden. Bitte versuch es erneut.";
 "Could not unlock photos." = "Fotos konnten nicht entsperrt werden.";
+"Set a device passcode to unlock photos." = "Lege einen Gerätecode fest, um Fotos zu entsperren.";
 "Detail" = "Detail";
 "Details" = "Details";
 "Front" = "Vorne";

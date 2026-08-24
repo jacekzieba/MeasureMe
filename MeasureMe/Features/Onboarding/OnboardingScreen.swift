@@ -35,6 +35,8 @@ struct OnboardingView: View {
     @AppSetting(\.profile.manualHeight) private var manualHeight: Double = 0
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
     @AppSetting(\.health.isSyncEnabled) private var isSyncEnabled: Bool = false
+    @AppSetting(\.analytics.analyticsEnabled) var analyticsEnabled: Bool = false
+    @AppSetting(\.analytics.analyticsConsentDecided) private var analyticsConsentDecided: Bool = false
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
 
     @Environment(\.modelContext) private var modelContext
@@ -2472,6 +2474,10 @@ struct OnboardingView: View {
         }
         activationSkippedTaskIDsRaw = ""
         onboardingFlowVersion = Int(AnalyticsEvents.onboardingFlowVersion) ?? 5
+
+        // The analytics switch on the boosters step only counts once onboarding is finished —
+        // abandoning the flow halfway must not be read as an answer.
+        analyticsConsentDecided = true
 
         if shouldAnimate {
             withAnimation(AppMotion.quick) {

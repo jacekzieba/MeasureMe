@@ -148,6 +148,7 @@ struct AppSettingsSnapshot: Sendable {
 
     struct Analytics: Sendable {
         var analyticsEnabled: Bool
+        var analyticsConsentDecided: Bool
         var firstMetricAddedTracked: Bool
         var firstPhotoAddedTracked: Bool
         var secondMetricAddedTracked: Bool
@@ -223,7 +224,6 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.Home.settingsOpenReminders: false,
         AppSettingsKeys.Home.homeLayoutSchemaVersion: HomeLayoutSnapshot.currentSchemaVersion,
         AppSettingsKeys.Experience.appLanguage: "system",
-        AppSettingsKeys.Analytics.analyticsEnabled: true,
         AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled: true,
         AppSettingsKeys.Health.healthkitSyncWeight: true,
         AppSettingsKeys.Health.healthkitSyncBodyFat: true,
@@ -383,7 +383,8 @@ struct AppSettingsSnapshot: Sendable {
                 aiMutedTypes: defaults.data(forKey: AppSettingsKeys.Notifications.aiMutedTypes)
             ),
             analytics: .init(
-                analyticsEnabled: defaults.object(forKey: AppSettingsKeys.Analytics.analyticsEnabled) as? Bool ?? true,
+                analyticsEnabled: defaults.object(forKey: AppSettingsKeys.Analytics.analyticsEnabled) as? Bool ?? false,
+                analyticsConsentDecided: defaults.bool(forKey: AppSettingsKeys.Analytics.analyticsConsentDecided),
                 firstMetricAddedTracked: defaults.bool(forKey: AppSettingsKeys.Analytics.firstMetricAddedTracked),
                 firstPhotoAddedTracked: defaults.bool(forKey: AppSettingsKeys.Analytics.firstPhotoAddedTracked),
                 secondMetricAddedTracked: defaults.bool(forKey: AppSettingsKeys.Analytics.secondMetricAddedTracked),

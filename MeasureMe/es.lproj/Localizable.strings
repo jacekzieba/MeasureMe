@@ -2021,6 +2021,7 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 "Could not create MeasureMe album." = "No se pudo crear el álbum de MeasureMe.";
 "Could not prepare photo. Please try again." = "No se pudo preparar la foto. Inténtalo de nuevo.";
 "Could not unlock photos." = "No se pudieron desbloquear las fotos.";
+"Set a device passcode to unlock photos." = "Configura un código en el dispositivo para desbloquear las fotos.";
 "Detail" = "Detalle";
 "Details" = "Detalles";
 "Front" = "Frente";

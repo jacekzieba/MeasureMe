@@ -312,160 +312,178 @@ final class AppSettingsStore: ObservableObject {
     private func persistSnapshot(_ snapshot: AppSettingsSnapshot) {
         performDefaultsWrite(scheduleSnapshotRefreshAfterWrite: false) {
             let profile = snapshot.profile
-            defaults.set(profile.userName, forKey: AppSettingsKeys.Profile.userName)
-            defaults.set(profile.userAge, forKey: AppSettingsKeys.Profile.userAge)
-            defaults.set(profile.userGender, forKey: AppSettingsKeys.Profile.userGender)
-            defaults.set(profile.manualHeight, forKey: AppSettingsKeys.Profile.manualHeight)
-            defaults.set(profile.unitsSystem, forKey: AppSettingsKeys.Profile.unitsSystem)
-            if let profilePhotoData = profile.profilePhotoData {
-                defaults.set(profilePhotoData, forKey: AppSettingsKeys.Profile.profilePhotoData)
-            } else {
-                defaults.removeObject(forKey: AppSettingsKeys.Profile.profilePhotoData)
-            }
+            write(profile.userName, forKey: AppSettingsKeys.Profile.userName)
+            write(profile.userAge, forKey: AppSettingsKeys.Profile.userAge)
+            write(profile.userGender, forKey: AppSettingsKeys.Profile.userGender)
+            write(profile.manualHeight, forKey: AppSettingsKeys.Profile.manualHeight)
+            write(profile.unitsSystem, forKey: AppSettingsKeys.Profile.unitsSystem)
+            writeOptional(profile.profilePhotoData, forKey: AppSettingsKeys.Profile.profilePhotoData)
 
             let home = snapshot.home
-            defaults.set(home.showLastPhotosOnHome, forKey: AppSettingsKeys.Home.showLastPhotosOnHome)
-            defaults.set(home.showMeasurementsOnHome, forKey: AppSettingsKeys.Home.showMeasurementsOnHome)
-            defaults.set(home.showHealthMetricsOnHome, forKey: AppSettingsKeys.Home.showHealthMetricsOnHome)
-            defaults.set(home.showStreakOnHome, forKey: AppSettingsKeys.Home.showStreakOnHome)
-            defaults.set(home.homePinnedActionRaw, forKey: AppSettingsKeys.Home.homePinnedAction)
-            defaults.set(home.homeTabScrollOffset, forKey: AppSettingsKeys.Home.homeTabScrollOffset)
-            defaults.set(home.homePhotoMetricSyncLastDate, forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastDate)
-            defaults.set(home.homePhotoMetricSyncLastID, forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastID)
-            defaults.set(home.hasReviewedTrackedMetrics, forKey: AppSettingsKeys.Home.hasReviewedTrackedMetrics)
-            defaults.set(home.settingsOpenTrackedMeasurements, forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements)
-            defaults.set(home.settingsOpenReminders, forKey: AppSettingsKeys.Home.settingsOpenReminders)
-            defaults.set(home.settingsOpenHomeSettings, forKey: AppSettingsKeys.Home.settingsOpenHomeSettings)
-            defaults.set(home.settingsOpenProfile, forKey: AppSettingsKeys.Home.settingsOpenProfile)
-            defaults.set(home.settingsOpenHealth, forKey: AppSettingsKeys.Home.settingsOpenHealth)
+            write(home.showLastPhotosOnHome, forKey: AppSettingsKeys.Home.showLastPhotosOnHome)
+            write(home.showMeasurementsOnHome, forKey: AppSettingsKeys.Home.showMeasurementsOnHome)
+            write(home.showHealthMetricsOnHome, forKey: AppSettingsKeys.Home.showHealthMetricsOnHome)
+            write(home.showStreakOnHome, forKey: AppSettingsKeys.Home.showStreakOnHome)
+            write(home.homePinnedActionRaw, forKey: AppSettingsKeys.Home.homePinnedAction)
+            write(home.homeTabScrollOffset, forKey: AppSettingsKeys.Home.homeTabScrollOffset)
+            write(home.homePhotoMetricSyncLastDate, forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastDate)
+            write(home.homePhotoMetricSyncLastID, forKey: AppSettingsKeys.Home.homePhotoMetricSyncLastID)
+            write(home.hasReviewedTrackedMetrics, forKey: AppSettingsKeys.Home.hasReviewedTrackedMetrics)
+            write(home.settingsOpenTrackedMeasurements, forKey: AppSettingsKeys.Home.settingsOpenTrackedMeasurements)
+            write(home.settingsOpenReminders, forKey: AppSettingsKeys.Home.settingsOpenReminders)
+            write(home.settingsOpenHomeSettings, forKey: AppSettingsKeys.Home.settingsOpenHomeSettings)
+            write(home.settingsOpenProfile, forKey: AppSettingsKeys.Home.settingsOpenProfile)
+            write(home.settingsOpenHealth, forKey: AppSettingsKeys.Home.settingsOpenHealth)
 
             let homeLayout = snapshot.homeLayout
-            defaults.set(homeLayout.layoutSchemaVersion, forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion)
-            defaults.set(homeLayout.layoutData, forKey: AppSettingsKeys.Home.homeLayoutData)
+            write(homeLayout.layoutSchemaVersion, forKey: AppSettingsKeys.Home.homeLayoutSchemaVersion)
+            writeOptional(homeLayout.layoutData, forKey: AppSettingsKeys.Home.homeLayoutData)
 
             let onboarding = snapshot.onboarding
-            defaults.set(onboarding.hasCompletedOnboarding, forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding)
-            defaults.set(onboarding.onboardingFlowVersion, forKey: AppSettingsKeys.Onboarding.onboardingFlowVersion)
-            defaults.set(onboarding.onboardingSkippedHealthKit, forKey: AppSettingsKeys.Onboarding.onboardingSkippedHealthKit)
-            defaults.set(onboarding.onboardingSkippedReminders, forKey: AppSettingsKeys.Onboarding.onboardingSkippedReminders)
-            defaults.set(onboarding.onboardingViewedICloudBackupOffer, forKey: AppSettingsKeys.Onboarding.onboardingViewedICloudBackupOffer)
-            defaults.set(onboarding.onboardingSkippedICloudBackup, forKey: AppSettingsKeys.Onboarding.onboardingSkippedICloudBackup)
-            defaults.set(onboarding.onboardingChecklistShow, forKey: AppSettingsKeys.Onboarding.onboardingChecklistShow)
-            defaults.set(onboarding.onboardingChecklistCollapsed, forKey: AppSettingsKeys.Onboarding.onboardingChecklistCollapsed)
-            defaults.set(onboarding.onboardingChecklistHideCompleted, forKey: AppSettingsKeys.Onboarding.onboardingChecklistHideCompleted)
-            defaults.set(onboarding.onboardingChecklistMetricsCompleted, forKey: AppSettingsKeys.Onboarding.onboardingChecklistMetricsCompleted)
-            defaults.set(onboarding.onboardingChecklistMetricsExplored, forKey: AppSettingsKeys.Onboarding.onboardingChecklistMetricsExplored)
-            defaults.set(onboarding.onboardingChecklistPremiumExplored, forKey: AppSettingsKeys.Onboarding.onboardingChecklistPremiumExplored)
-            defaults.set(onboarding.onboardingPrimaryGoal, forKey: AppSettingsKeys.Onboarding.onboardingPrimaryGoal)
-            defaults.set(onboarding.onboardingActivationCompleted, forKey: AppSettingsKeys.Onboarding.onboardingActivationCompleted)
-            defaults.set(onboarding.activationTriggerQuickAdd, forKey: AppSettingsKeys.Onboarding.activationTriggerQuickAdd)
-            defaults.set(onboarding.activationCurrentTaskID, forKey: AppSettingsKeys.Onboarding.activationCurrentTaskID)
-            defaults.set(onboarding.activationCompletedTaskIDs, forKey: AppSettingsKeys.Onboarding.activationCompletedTaskIDs)
-            defaults.set(onboarding.activationSkippedTaskIDs, forKey: AppSettingsKeys.Onboarding.activationSkippedTaskIDs)
-            defaults.set(onboarding.activationIsDismissed, forKey: AppSettingsKeys.Onboarding.activationIsDismissed)
+            write(onboarding.hasCompletedOnboarding, forKey: AppSettingsKeys.Onboarding.hasCompletedOnboarding)
+            write(onboarding.onboardingFlowVersion, forKey: AppSettingsKeys.Onboarding.onboardingFlowVersion)
+            write(onboarding.onboardingSkippedHealthKit, forKey: AppSettingsKeys.Onboarding.onboardingSkippedHealthKit)
+            write(onboarding.onboardingSkippedReminders, forKey: AppSettingsKeys.Onboarding.onboardingSkippedReminders)
+            write(onboarding.onboardingViewedICloudBackupOffer, forKey: AppSettingsKeys.Onboarding.onboardingViewedICloudBackupOffer)
+            write(onboarding.onboardingSkippedICloudBackup, forKey: AppSettingsKeys.Onboarding.onboardingSkippedICloudBackup)
+            write(onboarding.onboardingChecklistShow, forKey: AppSettingsKeys.Onboarding.onboardingChecklistShow)
+            write(onboarding.onboardingChecklistCollapsed, forKey: AppSettingsKeys.Onboarding.onboardingChecklistCollapsed)
+            write(onboarding.onboardingChecklistHideCompleted, forKey: AppSettingsKeys.Onboarding.onboardingChecklistHideCompleted)
+            write(onboarding.onboardingChecklistMetricsCompleted, forKey: AppSettingsKeys.Onboarding.onboardingChecklistMetricsCompleted)
+            write(onboarding.onboardingChecklistMetricsExplored, forKey: AppSettingsKeys.Onboarding.onboardingChecklistMetricsExplored)
+            write(onboarding.onboardingChecklistPremiumExplored, forKey: AppSettingsKeys.Onboarding.onboardingChecklistPremiumExplored)
+            write(onboarding.onboardingPrimaryGoal, forKey: AppSettingsKeys.Onboarding.onboardingPrimaryGoal)
+            write(onboarding.onboardingActivationCompleted, forKey: AppSettingsKeys.Onboarding.onboardingActivationCompleted)
+            write(onboarding.activationTriggerQuickAdd, forKey: AppSettingsKeys.Onboarding.activationTriggerQuickAdd)
+            write(onboarding.activationCurrentTaskID, forKey: AppSettingsKeys.Onboarding.activationCurrentTaskID)
+            write(onboarding.activationCompletedTaskIDs, forKey: AppSettingsKeys.Onboarding.activationCompletedTaskIDs)
+            write(onboarding.activationSkippedTaskIDs, forKey: AppSettingsKeys.Onboarding.activationSkippedTaskIDs)
+            write(onboarding.activationIsDismissed, forKey: AppSettingsKeys.Onboarding.activationIsDismissed)
 
             let health = snapshot.health
-            defaults.set(health.isSyncEnabled, forKey: AppSettingsKeys.Health.isSyncEnabled)
-            defaults.set(health.healthkitLastImport, forKey: AppSettingsKeys.Health.healthkitLastImport)
-            defaults.set(health.healthkitSyncWeight, forKey: AppSettingsKeys.Health.healthkitSyncWeight)
-            defaults.set(health.healthkitSyncBodyFat, forKey: AppSettingsKeys.Health.healthkitSyncBodyFat)
-            defaults.set(health.healthkitSyncHeight, forKey: AppSettingsKeys.Health.healthkitSyncHeight)
-            defaults.set(health.healthkitSyncLeanBodyMass, forKey: AppSettingsKeys.Health.healthkitSyncLeanBodyMass)
-            defaults.set(health.healthkitSyncWaist, forKey: AppSettingsKeys.Health.healthkitSyncWaist)
-            defaults.set(health.healthkitInitialHistoricalImport, forKey: AppSettingsKeys.Health.healthkitInitialHistoricalImport)
-            defaults.set(health.healthIndicatorsV2Migrated, forKey: AppSettingsKeys.Health.healthIndicatorsV2Migrated)
+            write(health.isSyncEnabled, forKey: AppSettingsKeys.Health.isSyncEnabled)
+            write(health.healthkitLastImport, forKey: AppSettingsKeys.Health.healthkitLastImport)
+            write(health.healthkitSyncWeight, forKey: AppSettingsKeys.Health.healthkitSyncWeight)
+            write(health.healthkitSyncBodyFat, forKey: AppSettingsKeys.Health.healthkitSyncBodyFat)
+            write(health.healthkitSyncHeight, forKey: AppSettingsKeys.Health.healthkitSyncHeight)
+            write(health.healthkitSyncLeanBodyMass, forKey: AppSettingsKeys.Health.healthkitSyncLeanBodyMass)
+            write(health.healthkitSyncWaist, forKey: AppSettingsKeys.Health.healthkitSyncWaist)
+            write(health.healthkitInitialHistoricalImport, forKey: AppSettingsKeys.Health.healthkitInitialHistoricalImport)
+            write(health.healthIndicatorsV2Migrated, forKey: AppSettingsKeys.Health.healthIndicatorsV2Migrated)
 
             let indicators = snapshot.indicators
-            defaults.set(indicators.showWHtROnHome, forKey: AppSettingsKeys.Indicators.showWHtROnHome)
-            defaults.set(indicators.showRFMOnHome, forKey: AppSettingsKeys.Indicators.showRFMOnHome)
-            defaults.set(indicators.showBMIOnHome, forKey: AppSettingsKeys.Indicators.showBMIOnHome)
-            defaults.set(indicators.showBodyFatOnHome, forKey: AppSettingsKeys.Indicators.showBodyFatOnHome)
-            defaults.set(indicators.showLeanMassOnHome, forKey: AppSettingsKeys.Indicators.showLeanMassOnHome)
-            defaults.set(indicators.showWHROnHome, forKey: AppSettingsKeys.Indicators.showWHROnHome)
-            defaults.set(indicators.showWaistRiskOnHome, forKey: AppSettingsKeys.Indicators.showWaistRiskOnHome)
-            defaults.set(indicators.showABSIOnHome, forKey: AppSettingsKeys.Indicators.showABSIOnHome)
-            defaults.set(indicators.showBodyShapeScoreOnHome, forKey: AppSettingsKeys.Indicators.showBodyShapeScoreOnHome)
-            defaults.set(indicators.showCentralFatRiskOnHome, forKey: AppSettingsKeys.Indicators.showCentralFatRiskOnHome)
-            defaults.set(indicators.showConicityOnHome, forKey: AppSettingsKeys.Indicators.showConicityOnHome)
-            defaults.set(indicators.showPhysiqueSWR, forKey: AppSettingsKeys.Indicators.showPhysiqueSWR)
-            defaults.set(indicators.showPhysiqueCWR, forKey: AppSettingsKeys.Indicators.showPhysiqueCWR)
-            defaults.set(indicators.showPhysiqueSHR, forKey: AppSettingsKeys.Indicators.showPhysiqueSHR)
-            defaults.set(indicators.showPhysiqueHWR, forKey: AppSettingsKeys.Indicators.showPhysiqueHWR)
-            defaults.set(indicators.showPhysiqueBWR, forKey: AppSettingsKeys.Indicators.showPhysiqueBWR)
-            defaults.set(indicators.showPhysiqueWHtR, forKey: AppSettingsKeys.Indicators.showPhysiqueWHtR)
-            defaults.set(indicators.showPhysiqueBodyFat, forKey: AppSettingsKeys.Indicators.showPhysiqueBodyFat)
-            defaults.set(indicators.showPhysiqueRFM, forKey: AppSettingsKeys.Indicators.showPhysiqueRFM)
+            write(indicators.showWHtROnHome, forKey: AppSettingsKeys.Indicators.showWHtROnHome)
+            write(indicators.showRFMOnHome, forKey: AppSettingsKeys.Indicators.showRFMOnHome)
+            write(indicators.showBMIOnHome, forKey: AppSettingsKeys.Indicators.showBMIOnHome)
+            write(indicators.showBodyFatOnHome, forKey: AppSettingsKeys.Indicators.showBodyFatOnHome)
+            write(indicators.showLeanMassOnHome, forKey: AppSettingsKeys.Indicators.showLeanMassOnHome)
+            write(indicators.showWHROnHome, forKey: AppSettingsKeys.Indicators.showWHROnHome)
+            write(indicators.showWaistRiskOnHome, forKey: AppSettingsKeys.Indicators.showWaistRiskOnHome)
+            write(indicators.showABSIOnHome, forKey: AppSettingsKeys.Indicators.showABSIOnHome)
+            write(indicators.showBodyShapeScoreOnHome, forKey: AppSettingsKeys.Indicators.showBodyShapeScoreOnHome)
+            write(indicators.showCentralFatRiskOnHome, forKey: AppSettingsKeys.Indicators.showCentralFatRiskOnHome)
+            write(indicators.showConicityOnHome, forKey: AppSettingsKeys.Indicators.showConicityOnHome)
+            write(indicators.showPhysiqueSWR, forKey: AppSettingsKeys.Indicators.showPhysiqueSWR)
+            write(indicators.showPhysiqueCWR, forKey: AppSettingsKeys.Indicators.showPhysiqueCWR)
+            write(indicators.showPhysiqueSHR, forKey: AppSettingsKeys.Indicators.showPhysiqueSHR)
+            write(indicators.showPhysiqueHWR, forKey: AppSettingsKeys.Indicators.showPhysiqueHWR)
+            write(indicators.showPhysiqueBWR, forKey: AppSettingsKeys.Indicators.showPhysiqueBWR)
+            write(indicators.showPhysiqueWHtR, forKey: AppSettingsKeys.Indicators.showPhysiqueWHtR)
+            write(indicators.showPhysiqueBodyFat, forKey: AppSettingsKeys.Indicators.showPhysiqueBodyFat)
+            write(indicators.showPhysiqueRFM, forKey: AppSettingsKeys.Indicators.showPhysiqueRFM)
 
             let experience = snapshot.experience
-            defaults.set(experience.appAppearance, forKey: AppSettingsKeys.Experience.appAppearance)
-            defaults.set(experience.animationsEnabled, forKey: AppSettingsKeys.Experience.animationsEnabled)
-            defaults.set(experience.hapticsEnabled, forKey: AppSettingsKeys.Experience.hapticsEnabled)
-            defaults.set(experience.appLanguage, forKey: AppSettingsKeys.Experience.appLanguage)
-            defaults.set(experience.quickAddHintDismissed, forKey: AppSettingsKeys.Experience.quickAddHintDismissed)
-            defaults.set(experience.photosFilterTag, forKey: AppSettingsKeys.Experience.photosFilterTag)
-            defaults.set(experience.saveUnchangedQuickAdd, forKey: AppSettingsKeys.Experience.saveUnchangedQuickAdd)
-            defaults.set(experience.hasCustomizedMetrics, forKey: AppSettingsKeys.Experience.hasCustomizedMetrics)
+            write(experience.appAppearance, forKey: AppSettingsKeys.Experience.appAppearance)
+            write(experience.animationsEnabled, forKey: AppSettingsKeys.Experience.animationsEnabled)
+            write(experience.hapticsEnabled, forKey: AppSettingsKeys.Experience.hapticsEnabled)
+            write(experience.appLanguage, forKey: AppSettingsKeys.Experience.appLanguage)
+            write(experience.quickAddHintDismissed, forKey: AppSettingsKeys.Experience.quickAddHintDismissed)
+            write(experience.photosFilterTag, forKey: AppSettingsKeys.Experience.photosFilterTag)
+            write(experience.saveUnchangedQuickAdd, forKey: AppSettingsKeys.Experience.saveUnchangedQuickAdd)
+            write(experience.hasCustomizedMetrics, forKey: AppSettingsKeys.Experience.hasCustomizedMetrics)
 
             let premium = snapshot.premium
-            defaults.set(premium.premiumEntitlement, forKey: AppSettingsKeys.Premium.entitlement)
-            defaults.set(premium.premiumFirstLaunchDate, forKey: AppSettingsKeys.Premium.firstLaunchDate)
-            defaults.set(premium.premiumLastNagDate, forKey: AppSettingsKeys.Premium.lastNagDate)
-            defaults.set(premium.lastAutomaticPromptDate, forKey: AppSettingsKeys.Premium.lastAutomaticPromptDate)
-            defaults.set(premium.lastAutomaticPromptKind, forKey: AppSettingsKeys.Premium.lastAutomaticPromptKind)
+            write(premium.premiumEntitlement, forKey: AppSettingsKeys.Premium.entitlement)
+            write(premium.premiumFirstLaunchDate, forKey: AppSettingsKeys.Premium.firstLaunchDate)
+            write(premium.premiumLastNagDate, forKey: AppSettingsKeys.Premium.lastNagDate)
+            write(premium.lastAutomaticPromptDate, forKey: AppSettingsKeys.Premium.lastAutomaticPromptDate)
+            write(premium.lastAutomaticPromptKind, forKey: AppSettingsKeys.Premium.lastAutomaticPromptKind)
 
             let privacy = snapshot.privacy
-            defaults.set(privacy.requireBiometricForPhotos, forKey: AppSettingsKeys.Privacy.requireBiometricForPhotos)
+            write(privacy.requireBiometricForPhotos, forKey: AppSettingsKeys.Privacy.requireBiometricForPhotos)
 
             let diagnostics = snapshot.diagnostics
-            defaults.set(diagnostics.diagnosticsLoggingEnabled, forKey: AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled)
-            defaults.set(diagnostics.crashReporterHasUnreported, forKey: AppSettingsKeys.Diagnostics.crashReporterHasUnreported)
-            defaults.set(diagnostics.databaseEncryptionProtectionVersion, forKey: AppSettingsKeys.Diagnostics.databaseEncryptionProtectionVersion)
+            write(diagnostics.diagnosticsLoggingEnabled, forKey: AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled)
+            write(diagnostics.crashReporterHasUnreported, forKey: AppSettingsKeys.Diagnostics.crashReporterHasUnreported)
+            writeOptional(diagnostics.databaseEncryptionProtectionVersion, forKey: AppSettingsKeys.Diagnostics.databaseEncryptionProtectionVersion)
 
             let notifications = snapshot.notifications
-            defaults.set(notifications.measurementRemindersData, forKey: AppSettingsKeys.Notifications.reminders)
-            defaults.set(notifications.notificationsEnabled, forKey: AppSettingsKeys.Notifications.notificationsEnabled)
-            defaults.set(notifications.smartEnabled, forKey: AppSettingsKeys.Notifications.smartEnabled)
-            defaults.set(notifications.smartDays, forKey: AppSettingsKeys.Notifications.smartDays)
-            defaults.set(notifications.smartTime, forKey: AppSettingsKeys.Notifications.smartTime)
-            defaults.set(notifications.lastLogDate, forKey: AppSettingsKeys.Notifications.lastLogDate)
-            defaults.set(notifications.lastPhotoDate, forKey: AppSettingsKeys.Notifications.lastPhotoDate)
-            defaults.set(notifications.photoRemindersEnabled, forKey: AppSettingsKeys.Notifications.photoRemindersEnabled)
-            defaults.set(notifications.photoReminderStreak, forKey: AppSettingsKeys.Notifications.photoReminderStreak)
-            defaults.set(notifications.photoReminderNextFireDate, forKey: AppSettingsKeys.Notifications.photoReminderNextFireDate)
-            defaults.set(notifications.goalAchievedEnabled, forKey: AppSettingsKeys.Notifications.goalAchievedEnabled)
-            defaults.set(notifications.importNotificationsEnabled, forKey: AppSettingsKeys.Notifications.importNotificationsEnabled)
-            defaults.set(notifications.perMetricSmartEnabled, forKey: AppSettingsKeys.Notifications.perMetricSmartEnabled)
-            defaults.set(notifications.aiNotificationsEnabled, forKey: AppSettingsKeys.Notifications.aiNotificationsEnabled)
-            defaults.set(notifications.aiWeeklyDigestEnabled, forKey: AppSettingsKeys.Notifications.aiWeeklyDigestEnabled)
-            defaults.set(notifications.aiTrendShiftEnabled, forKey: AppSettingsKeys.Notifications.aiTrendShiftEnabled)
-            defaults.set(notifications.aiGoalMilestonesEnabled, forKey: AppSettingsKeys.Notifications.aiGoalMilestonesEnabled)
-            defaults.set(notifications.aiRoundNumbersEnabled, forKey: AppSettingsKeys.Notifications.aiRoundNumbersEnabled)
-            defaults.set(notifications.aiConsistencyEnabled, forKey: AppSettingsKeys.Notifications.aiConsistencyEnabled)
-            defaults.set(notifications.aiDigestWeekday, forKey: AppSettingsKeys.Notifications.aiDigestWeekday)
-            defaults.set(notifications.aiDigestTime, forKey: AppSettingsKeys.Notifications.aiDigestTime)
-            defaults.set(notifications.aiLastSentTimestamps, forKey: AppSettingsKeys.Notifications.aiLastSentTimestamps)
-            defaults.set(notifications.aiMutedTypes, forKey: AppSettingsKeys.Notifications.aiMutedTypes)
+            writeOptional(notifications.measurementRemindersData, forKey: AppSettingsKeys.Notifications.reminders)
+            write(notifications.notificationsEnabled, forKey: AppSettingsKeys.Notifications.notificationsEnabled)
+            write(notifications.smartEnabled, forKey: AppSettingsKeys.Notifications.smartEnabled)
+            write(notifications.smartDays, forKey: AppSettingsKeys.Notifications.smartDays)
+            write(notifications.smartTime, forKey: AppSettingsKeys.Notifications.smartTime)
+            write(notifications.lastLogDate, forKey: AppSettingsKeys.Notifications.lastLogDate)
+            write(notifications.lastPhotoDate, forKey: AppSettingsKeys.Notifications.lastPhotoDate)
+            write(notifications.photoRemindersEnabled, forKey: AppSettingsKeys.Notifications.photoRemindersEnabled)
+            write(notifications.photoReminderStreak, forKey: AppSettingsKeys.Notifications.photoReminderStreak)
+            write(notifications.photoReminderNextFireDate, forKey: AppSettingsKeys.Notifications.photoReminderNextFireDate)
+            write(notifications.goalAchievedEnabled, forKey: AppSettingsKeys.Notifications.goalAchievedEnabled)
+            write(notifications.importNotificationsEnabled, forKey: AppSettingsKeys.Notifications.importNotificationsEnabled)
+            write(notifications.perMetricSmartEnabled, forKey: AppSettingsKeys.Notifications.perMetricSmartEnabled)
+            write(notifications.aiNotificationsEnabled, forKey: AppSettingsKeys.Notifications.aiNotificationsEnabled)
+            write(notifications.aiWeeklyDigestEnabled, forKey: AppSettingsKeys.Notifications.aiWeeklyDigestEnabled)
+            write(notifications.aiTrendShiftEnabled, forKey: AppSettingsKeys.Notifications.aiTrendShiftEnabled)
+            write(notifications.aiGoalMilestonesEnabled, forKey: AppSettingsKeys.Notifications.aiGoalMilestonesEnabled)
+            write(notifications.aiRoundNumbersEnabled, forKey: AppSettingsKeys.Notifications.aiRoundNumbersEnabled)
+            write(notifications.aiConsistencyEnabled, forKey: AppSettingsKeys.Notifications.aiConsistencyEnabled)
+            write(notifications.aiDigestWeekday, forKey: AppSettingsKeys.Notifications.aiDigestWeekday)
+            write(notifications.aiDigestTime, forKey: AppSettingsKeys.Notifications.aiDigestTime)
+            writeOptional(notifications.aiLastSentTimestamps, forKey: AppSettingsKeys.Notifications.aiLastSentTimestamps)
+            writeOptional(notifications.aiMutedTypes, forKey: AppSettingsKeys.Notifications.aiMutedTypes)
 
             let analytics = snapshot.analytics
-            defaults.set(analytics.analyticsEnabled, forKey: AppSettingsKeys.Analytics.analyticsEnabled)
-            defaults.set(analytics.firstMetricAddedTracked, forKey: AppSettingsKeys.Analytics.firstMetricAddedTracked)
-            defaults.set(analytics.firstPhotoAddedTracked, forKey: AppSettingsKeys.Analytics.firstPhotoAddedTracked)
-            defaults.set(analytics.secondMetricAddedTracked, forKey: AppSettingsKeys.Analytics.secondMetricAddedTracked)
-            defaults.set(analytics.secondPhotoAddedTracked, forKey: AppSettingsKeys.Analytics.secondPhotoAddedTracked)
-            defaults.set(analytics.firstCompareSessionTracked, forKey: AppSettingsKeys.Analytics.firstCompareSessionTracked)
-            defaults.set(analytics.appleIntelligenceEnabled, forKey: AppSettingsKeys.Analytics.appleIntelligenceEnabled)
+            write(analytics.analyticsEnabled, forKey: AppSettingsKeys.Analytics.analyticsEnabled)
+            write(analytics.analyticsConsentDecided, forKey: AppSettingsKeys.Analytics.analyticsConsentDecided)
+            write(analytics.firstMetricAddedTracked, forKey: AppSettingsKeys.Analytics.firstMetricAddedTracked)
+            write(analytics.firstPhotoAddedTracked, forKey: AppSettingsKeys.Analytics.firstPhotoAddedTracked)
+            write(analytics.secondMetricAddedTracked, forKey: AppSettingsKeys.Analytics.secondMetricAddedTracked)
+            write(analytics.secondPhotoAddedTracked, forKey: AppSettingsKeys.Analytics.secondPhotoAddedTracked)
+            write(analytics.firstCompareSessionTracked, forKey: AppSettingsKeys.Analytics.firstCompareSessionTracked)
+            write(analytics.appleIntelligenceEnabled, forKey: AppSettingsKeys.Analytics.appleIntelligenceEnabled)
 
             let iCloudBackup = snapshot.iCloudBackup
-            defaults.set(iCloudBackup.isEnabled, forKey: AppSettingsKeys.ICloudBackup.isEnabled)
-            defaults.set(iCloudBackup.lastSuccessTimestamp, forKey: AppSettingsKeys.ICloudBackup.lastSuccessTimestamp)
-            defaults.set(iCloudBackup.lastErrorMessage, forKey: AppSettingsKeys.ICloudBackup.lastErrorMessage)
-            defaults.set(iCloudBackup.autoRestoreCompleted, forKey: AppSettingsKeys.ICloudBackup.autoRestoreCompleted)
-            defaults.set(Int(iCloudBackup.lastBackupSizeBytes), forKey: AppSettingsKeys.ICloudBackup.lastBackupSizeBytes)
+            write(iCloudBackup.isEnabled, forKey: AppSettingsKeys.ICloudBackup.isEnabled)
+            write(iCloudBackup.lastSuccessTimestamp, forKey: AppSettingsKeys.ICloudBackup.lastSuccessTimestamp)
+            write(iCloudBackup.lastErrorMessage, forKey: AppSettingsKeys.ICloudBackup.lastErrorMessage)
+            write(iCloudBackup.autoRestoreCompleted, forKey: AppSettingsKeys.ICloudBackup.autoRestoreCompleted)
+            write(Int(iCloudBackup.lastBackupSizeBytes), forKey: AppSettingsKeys.ICloudBackup.lastBackupSizeBytes)
 
-            defaults.set(snapshot.internalState.settingsSchemaVersion, forKey: AppSettingsKeys.settingsSchemaVersion)
+            write(snapshot.internalState.settingsSchemaVersion, forKey: AppSettingsKeys.settingsSchemaVersion)
 
             // Mirror intent-relevant keys to App Group suite for out-of-process access
             Self.syncIntentSettings(snapshot, defaults: defaults)
+        }
+    }
+
+    /// Writes only when the value differs from what `defaults` already holds.
+    ///
+    /// Persisting the whole snapshot on every change meant ~120 writes — and ~120
+    /// `didChange` notifications' worth of churn — behind a single toggle. Comparing against
+    /// `defaults` rather than a cached copy keeps this correct even when something writes a
+    /// key directly, without going through the store.
+    private func write<Value: Equatable>(_ value: Value, forKey key: String) {
+        if let existing = defaults.object(forKey: key) as? Value, existing == value { return }
+        defaults.set(value, forKey: key)
+    }
+
+    private func writeOptional<Value: Equatable>(_ value: Value?, forKey key: String) {
+        let existing = defaults.object(forKey: key) as? Value
+        guard existing != value else { return }
+        if let value {
+            defaults.set(value, forKey: key)
+        } else {
+            defaults.removeObject(forKey: key)
         }
     }
 
@@ -500,7 +518,7 @@ final class AppSettingsStore: ObservableObject {
             guard let self else { return }
             self.isSnapshotRefreshScheduled = false
             self.snapshot = AppSettingsSnapshot.load(from: self.defaults)
-        }
+            }
     }
 
     private func performDefaultsWrite(

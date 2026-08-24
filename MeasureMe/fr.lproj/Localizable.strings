@@ -2019,6 +2019,7 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 "Could not create MeasureMe album." = "Impossible de créer l'album MeasureMe.";
 "Could not prepare photo. Please try again." = "Impossible de préparer la photo. Veuillez réessayer.";
 "Could not unlock photos." = "Impossible de déverrouiller les photos.";
+"Set a device passcode to unlock photos." = "Définissez un code d’accès sur l’appareil pour déverrouiller les photos.";
 "Detail" = "Détail";
 "Details" = "Détails";
 "Front" = "Face";

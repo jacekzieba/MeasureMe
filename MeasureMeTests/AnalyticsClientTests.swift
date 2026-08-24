@@ -110,10 +110,46 @@ final class AnalyticsClientTests: XCTestCase {
         XCTAssertFalse(onboardingDisabled)
     }
 
+    func testPolicyDisabledUntilConsentHasBeenAnswered() {
+        let defaults = UserDefaults(suiteName: "AnalyticsClientTests.undecided")!
+        defaults.removePersistentDomain(forName: "AnalyticsClientTests.undecided")
+        // Preference says yes, but nobody was ever asked — this is the first-launch state.
+        defaults.set(true, forKey: AnalyticsPolicy.analyticsEnabledKey)
+        let settings = AppSettingsStore(defaults: defaults)
+
+        let config = AuditConfig(
+            isEnabled: false,
+            useMockData: false,
+            disableAnalytics: false,
+            disablePaywallNetwork: false,
+            fixedDate: nil,
+            route: nil
+        )
+
+        let enabled = AnalyticsPolicy.isEnabled(
+            auditConfig: config,
+            arguments: ["MeasureMe"],
+            userDefaults: settings,
+            isDebugBuild: false
+        )
+
+        XCTAssertFalse(enabled, "No signal may be sent before the analytics question is answered.")
+    }
+
+    func testPolicyDefaultsToDisabledOnAFreshInstall() {
+        let defaults = UserDefaults(suiteName: "AnalyticsClientTests.fresh")!
+        defaults.removePersistentDomain(forName: "AnalyticsClientTests.fresh")
+        let settings = AppSettingsStore(defaults: defaults)
+
+        XCTAssertFalse(settings.snapshot.analytics.analyticsEnabled)
+        XCTAssertFalse(settings.snapshot.analytics.analyticsConsentDecided)
+    }
+
     func testPolicyEnabledOnlyWhenAllConditionsPass() {
         let defaults = UserDefaults(suiteName: "AnalyticsClientTests.enabled")!
         defaults.removePersistentDomain(forName: "AnalyticsClientTests.enabled")
         defaults.set(true, forKey: AnalyticsPolicy.analyticsEnabledKey)
+        defaults.set(true, forKey: AnalyticsPolicy.analyticsConsentDecidedKey)
         let settings = AppSettingsStore(defaults: defaults)
 
         let config = AuditConfig(
