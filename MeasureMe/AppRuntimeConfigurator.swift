@@ -63,6 +63,17 @@ enum AppRuntimeConfigurator {
         Purchases.configure(withAPIKey: RevenueCatConfig.apiKey)
     }
 
+    /// Tap-and-overwrite is right for measurement entry and wrong everywhere else: on a text
+    /// field, selecting all on focus means the next keystroke discards what the person typed.
+    nonisolated static func shouldSelectAllOnFocus(keyboardType: UIKeyboardType) -> Bool {
+        switch keyboardType {
+        case .decimalPad, .numberPad:
+            return true
+        default:
+            return false
+        }
+    }
+
     private static func installTextFieldSelectionBehaviorIfNeeded(isUnitTestHostMode: Bool) {
         guard !isUnitTestHostMode else { return }
 
@@ -71,9 +82,9 @@ enum AppRuntimeConfigurator {
             object: nil,
             queue: .main
         ) { notification in
-            if let textField = notification.object as? UITextField {
-                DispatchQueue.main.async { textField.selectAll(nil) }
-            }
+            guard let textField = notification.object as? UITextField,
+                  shouldSelectAllOnFocus(keyboardType: textField.keyboardType) else { return }
+            DispatchQueue.main.async { textField.selectAll(nil) }
         }
     }
 
