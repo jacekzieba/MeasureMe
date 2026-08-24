@@ -43,3 +43,7 @@
 "Left Calf" = "Left Calf";
 "Right Calf" = "Right Calf";
 "widget.period.30d" = "30d";
+"Smart Metric" = "Smart Metric";
+"Automatically picks the metric that needs your attention." = "Automatically picks the metric that needs your attention.";
+"Streak" = "Streak";
+"Shows your current streak and logging status." = "Shows your current streak and logging status.";

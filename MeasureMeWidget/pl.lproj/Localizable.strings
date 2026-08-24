@@ -43,3 +43,7 @@
 "Left Calf" = "Lewa łydka";
 "Right Calf" = "Prawa łydka";
 "widget.period.30d" = "30 dni";
+"Smart Metric" = "Inteligentna metryka";
+"Automatically picks the metric that needs your attention." = "Automatycznie wybiera metrykę, która wymaga uwagi.";
+"Streak" = "Seria";
+"Shows your current streak and logging status." = "Pokazuje aktualną serię i status zapisów.";

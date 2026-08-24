@@ -43,3 +43,7 @@
 "Left Calf" = "Linke Wade";
 "Right Calf" = "Rechte Wade";
 "widget.period.30d" = "30d";
+"Smart Metric" = "Intelligente Messgröße";
+"Automatically picks the metric that needs your attention." = "Wählt automatisch die Messgröße, die Aufmerksamkeit braucht.";
+"Streak" = "Serie";
+"Shows your current streak and logging status." = "Zeigt deine aktuelle Serie und den Eintragsstatus.";

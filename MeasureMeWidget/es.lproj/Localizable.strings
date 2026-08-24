@@ -43,3 +43,7 @@
 "Left Calf" = "Pantorrilla Izquierda";
 "Right Calf" = "pantorrilla derecha";
 "widget.period.30d" = "30d";
+"Smart Metric" = "Métrica inteligente";
+"Automatically picks the metric that needs your attention." = "Elige automáticamente la métrica que necesita tu atención.";
+"Streak" = "Racha";
+"Shows your current streak and logging status." = "Muestra tu racha actual y el estado de registro.";

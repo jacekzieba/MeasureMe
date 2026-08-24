@@ -123,6 +123,43 @@ final class LocalizationConsistencyTests: XCTestCase {
         }
     }
 
+    /// `configurationDisplayName` / `description` take a literal that WidgetKit localizes
+    /// through the extension's own bundle. Parity testing cannot see a key that is missing
+    /// from every locale at once, so check the source literals against the catalog directly.
+    func testWidgetGalleryLiteralsExistInEveryLocalization() throws {
+        let bundleSource = try String(
+            contentsOf: repositoryRoot().appendingPathComponent("MeasureMeWidget/MeasureMeWidgetBundle.swift"),
+            encoding: .utf8
+        )
+
+        let pattern = #"\.(?:configurationDisplayName|description)\("([^"]+)"\)"#
+        let regex = try NSRegularExpression(pattern: pattern)
+        let range = NSRange(bundleSource.startIndex..., in: bundleSource)
+        let literals = regex.matches(in: bundleSource, range: range).compactMap { match -> String? in
+            guard let r = Range(match.range(at: 1), in: bundleSource) else { return nil }
+            return String(bundleSource[r])
+        }
+
+        XCTAssertEqual(literals.count, 6, "Expected three widgets \u{00D7} (name + description).")
+
+        for languageCode in supportedLanguages {
+            let catalog = try parseStringsFile(named: languageCode, table: "widget.localizable")
+            let missing = literals.filter { catalog.values[$0] == nil }.sorted()
+            XCTAssertTrue(
+                missing.isEmpty,
+                "Widget gallery strings missing from \(languageCode): \(missing.joined(separator: " | "))"
+            )
+        }
+    }
+
+    private func repositoryRoot() -> URL {
+        // .../MeasureMeTests/LocalizationConsistencyTests.swift -> repository root
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+    }
+
+
     private func parseStringsFile(named languageCode: String, table: String) throws -> ParsedStrings {
         if let sourceURL = sourceStringsFileURL(for: languageCode, table: table),
            let sourceContents = try? String(contentsOf: sourceURL, encoding: .utf8) {

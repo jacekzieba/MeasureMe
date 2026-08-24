@@ -43,3 +43,7 @@
 "Left Calf" = "Mollet gauche";
 "Right Calf" = "Mollet droit";
 "widget.period.30d" = "30j";
+"Smart Metric" = "Mesure intelligente";
+"Automatically picks the metric that needs your attention." = "Choisit automatiquement la mesure qui demande votre attention.";
+"Streak" = "Série";
+"Shows your current streak and logging status." = "Affiche votre série en cours et l'état des saisies.";
