@@ -1,6 +1,6 @@
 import Foundation
 
-enum AppSettingsKeys {
+nonisolated enum AppSettingsKeys {
     static let settingsSchemaVersion = "settings_schema_version"
 
     enum Entry {

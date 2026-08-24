@@ -15,14 +15,13 @@ import UIKit
 /// nothing here may touch a `@MainActor` type — the settings store included. All mutable state
 /// is guarded by `lock`; the two preferences it needs are read straight from `UserDefaults`.
 nonisolated final class CrashReporter: @unchecked Sendable {
-    static let shared = CrashReporter(settings: .shared)
+    static let shared = CrashReporter()
 
     // MARK: - Configuration
 
     private let maxLogEntries = 200
     private let reportsDirectoryName = "CrashReports"
     private let latestLogFileName = "latest_log.txt"
-    private let settings: AppSettingsStore
 
     // MARK: - State
 
@@ -30,15 +29,22 @@ nonisolated final class CrashReporter: @unchecked Sendable {
     private let lock = NSLock()
     private var currentScreen: String = "Unknown"
     private var isInstalled = false
+    private var deviceDescription = "Unknown"
 
-    private init(settings: AppSettingsStore) {
-        self.settings = settings
-    }
+    private init() {}
 
     // MARK: - Setup
 
     /// Zainstaluj handlery crash i signal. Wywołaj raz przy starcie app.
+    @MainActor
     func install() {
+        // UIDevice is main-actor only, and the exception handler runs on the crashing thread —
+        // so read the device facts now and keep them.
+        let device = UIDevice.current
+        lock.lock()
+        deviceDescription = "\(device.model) / \(device.systemName) \(device.systemVersion)"
+        lock.unlock()
+
         lock.lock()
         if isInstalled {
             lock.unlock()
@@ -128,7 +134,9 @@ nonisolated final class CrashReporter: @unchecked Sendable {
     // MARK: - Report Building
 
     private func buildReport(crashInfo: String, logs: [(timestamp: Date, message: String)], screen: String) -> String {
-        let device = UIDevice.current
+        lock.lock()
+        let deviceSnapshot = deviceDescription
+        lock.unlock()
         let bundle = Bundle.main
         let appVersion = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         let buildNumber = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
@@ -152,8 +160,7 @@ nonisolated final class CrashReporter: @unchecked Sendable {
         Date: \(AppClock.now.formatted(.iso8601))
 
         [Device Info]
-        Model: \(device.model)
-        System: \(device.systemName) \(device.systemVersion)
+        Device: \(deviceSnapshot)
         Locale: \(Locale.current.identifier)
         RAM: \(memoryGB) GB
 

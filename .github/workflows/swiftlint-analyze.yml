@@ -1,0 +1,66 @@
+# SwiftLint analyzer rules (`unused_declaration`, `unused_import`).
+#
+# Deliberately NOT part of `ios-ci.yml`. Two reasons:
+#
+#   1. It needs a full compiler log, so it has to build the whole project first, and the
+#      analysis pass itself took ~45 minutes locally on an M-series Mac. Putting that on the
+#      PR path would roughly triple the feedback loop and risks the job timeout.
+#   2. `unused_declaration` has a real false-positive rate on this codebase — anything used
+#      only from the test targets shows up as unused, because the log below is an app build.
+#      The output is a list to triage, not a list to act on blindly.
+#
+# This is the rule pair that would have caught the ~1,900 lines of dead views the audit found
+# while `.swiftlint.yml` had the default rule set switched off.
+name: SwiftLint Analyze
+
+on:
+  schedule:
+    # Mondays 04:00 UTC — a weekly nudge, out of everyone's way.
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Unused declarations and imports
+    runs-on: macos-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Select Xcode 26.2
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.2"
+
+      - name: Build and capture the compiler log
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project MeasureMe.xcodeproj \
+            -scheme MeasureMe \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build > build.log 2>&1
+          tail -3 build.log
+
+      - name: Analyze
+        continue-on-error: true
+        run: |
+          swiftlint analyze \
+            --config .swiftlint-analyze.yml \
+            --compiler-log-path build.log \
+            --reporter github-actions-logging
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftlint-analyze
+          path: build.log
+          retention-days: 7
