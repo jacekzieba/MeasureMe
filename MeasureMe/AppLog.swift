@@ -7,11 +7,9 @@ enum AppLog {
         #if DEBUG
         return true
         #else
-        let defaults = UserDefaults.standard
-        if defaults.object(forKey: diagnosticsLoggingEnabledKey) == nil {
-            return true
-        }
-        return defaults.bool(forKey: diagnosticsLoggingEnabledKey)
+        // Opt-in: the buffer ends up in a file the person can mail out, so an absent
+        // preference means "no", not "yes".
+        return UserDefaults.standard.bool(forKey: diagnosticsLoggingEnabledKey)
         #endif
     }
 

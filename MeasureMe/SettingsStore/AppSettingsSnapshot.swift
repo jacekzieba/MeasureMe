@@ -224,7 +224,7 @@ struct AppSettingsSnapshot: Sendable {
         AppSettingsKeys.Home.settingsOpenReminders: false,
         AppSettingsKeys.Home.homeLayoutSchemaVersion: HomeLayoutSnapshot.currentSchemaVersion,
         AppSettingsKeys.Experience.appLanguage: "system",
-        AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled: true,
+        AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled: false,
         AppSettingsKeys.Health.healthkitSyncWeight: true,
         AppSettingsKeys.Health.healthkitSyncBodyFat: true,
         AppSettingsKeys.Health.healthkitSyncHeight: true,
@@ -353,7 +353,7 @@ struct AppSettingsSnapshot: Sendable {
                 requireBiometricForPhotos: defaults.object(forKey: AppSettingsKeys.Privacy.requireBiometricForPhotos) as? Bool ?? false
             ),
             diagnostics: .init(
-                diagnosticsLoggingEnabled: defaults.object(forKey: AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled) as? Bool ?? true,
+                diagnosticsLoggingEnabled: defaults.object(forKey: AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled) as? Bool ?? false,
                 crashReporterHasUnreported: defaults.bool(forKey: AppSettingsKeys.Diagnostics.crashReporterHasUnreported),
                 databaseEncryptionProtectionVersion: defaults.string(forKey: AppSettingsKeys.Diagnostics.databaseEncryptionProtectionVersion)
             ),

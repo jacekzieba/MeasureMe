@@ -788,7 +788,7 @@ final class HealthKitManager {
             )
             context.insert(sample)
             try context.save()
-            AppLog.debug("✅ Imported height from HealthKit: \(latest.value) cm")
+            AppLog.debug("✅ Imported height from HealthKit")
         } else {
             AppLog.debug("ℹ️ Height sample already exists for this date")
         }

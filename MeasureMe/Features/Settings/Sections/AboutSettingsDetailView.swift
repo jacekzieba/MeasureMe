@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AboutSettingsDetailView: View {
-    @AppSetting(\.diagnostics.diagnosticsLoggingEnabled) private var diagnosticsLoggingEnabled: Bool = true
+    @AppSetting(\.diagnostics.diagnosticsLoggingEnabled) private var diagnosticsLoggingEnabled: Bool = false
     @Environment(\.openURL) private var openURL
     private let theme = FeatureTheme.settings
     let onReportBug: () -> Void

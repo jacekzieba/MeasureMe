@@ -164,6 +164,15 @@ final class AppSettingsStoreTests: XCTestCase {
         defaults.removePersistentDomain(forName: suite)
     }
 
+    func testDiagnosticsLoggingIsOffUntilTheUserAsksForIt() {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+
+        // The buffer this flag drives is written to disk and offered as a shareable report,
+        // so it must not fill up before anyone asked for it.
+        XCTAssertFalse(store.snapshot.diagnostics.diagnosticsLoggingEnabled)
+    }
+
     func testFreshInstallStartsWithAnalyticsOffAndUndecided() {
         let defaults = makeDefaults()
         let store = AppSettingsStore(defaults: defaults)
@@ -417,6 +426,7 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertNil(store.snapshot.notifications.measurementRemindersData)
         XCTAssertEqual(store.snapshot.notifications.lastLogDate, 0)
         XCTAssertEqual(store.snapshot.notifications.lastPhotoDate, 0)
-        XCTAssertTrue(store.snapshot.diagnostics.diagnosticsLoggingEnabled)
+        // Clearing user data returns the flag to its default, which is now off.
+        XCTAssertFalse(store.snapshot.diagnostics.diagnosticsLoggingEnabled)
     }
 }
