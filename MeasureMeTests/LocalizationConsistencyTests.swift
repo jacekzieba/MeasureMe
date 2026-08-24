@@ -160,6 +160,47 @@ final class LocalizationConsistencyTests: XCTestCase {
     }
 
 
+    /// Every key the app asks for as a literal must exist in the catalog. Without this,
+    /// deleting an orphaned key — or renaming one — silently ships the raw key text as UI.
+    func testEveryLiteralKeyRequestedByTheAppExistsInEnglish() throws {
+        // Format fragments and interpolated keys, which are resolved elsewhere or by design.
+        let expectedMisses: Set<String> = [
+            "%", "%@ (%@)", "0", "\u{2014}",
+            "streak.detail.motivational.\\(motivationalTier).title",
+            "streak.detail.motivational.\\(motivationalTier).body",
+            "Send diagnostics to measureme.approve254@passmail.net"
+        ]
+
+        let sourceRoots = ["MeasureMe", "MeasureMeWidget", "MeasureMeWatch Watch App", "MeasureMeWatchComplications"]
+        var requested = Set<String>()
+        let callPattern = try NSRegularExpression(
+            pattern: #"AppLocalization\.(?:string|plural)\(\s*"((?:[^"\\]|\\.)*)""#
+        )
+
+        for root in sourceRoots {
+            let rootURL = repositoryRoot().appendingPathComponent(root)
+            guard let walker = FileManager.default.enumerator(at: rootURL, includingPropertiesForKeys: nil) else { continue }
+            for case let url as URL in walker where url.pathExtension == "swift" {
+                guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
+                let range = NSRange(text.startIndex..., in: text)
+                for match in callPattern.matches(in: text, range: range) {
+                    if let r = Range(match.range(at: 1), in: text) {
+                        // The catalog parser folds typographic punctuation, so the requested
+                        // keys have to go through the same normalisation to compare.
+                        requested.insert(normalizedLocalizationKey(String(text[r])))
+                    }
+                }
+            }
+        }
+
+        XCTAssertGreaterThan(requested.count, 900, "Key extraction looks broken, not the catalog.")
+
+        let english = try parseStringsFile(named: "en", table: "app.localizable")
+        let missing = requested.subtracting(english.values.keys).subtracting(expectedMisses).sorted()
+
+        XCTAssertTrue(missing.isEmpty, "Keys requested in code but absent from en.lproj: \(missing.joined(separator: " | "))")
+    }
+
     private func parseStringsFile(named languageCode: String, table: String) throws -> ParsedStrings {
         if let sourceURL = sourceStringsFileURL(for: languageCode, table: table),
            let sourceContents = try? String(contentsOf: sourceURL, encoding: .utf8) {
