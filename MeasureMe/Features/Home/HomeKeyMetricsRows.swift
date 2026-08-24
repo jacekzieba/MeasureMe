@@ -79,7 +79,7 @@ struct HomeSecondaryMetricToggleRow<ExpandedContent: View>: View {
 
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .fill(
-                            ClaudeLightStyle.directionalGradient(
+                            AppSurfaceStyle.directionalGradient(
                                 colors: [
                                     accent.opacity(0.10),
                                     accent.opacity(0.03),

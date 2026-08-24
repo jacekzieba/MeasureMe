@@ -127,10 +127,8 @@ struct QuickAddView: View {
     }
 
     private func initializeValues() {
-        for kind in activeMetrics {
-            if values[kind] == nil {
-                values[kind] = defaultDisplayValue(for: kind)
-            }
+        for kind in activeMetrics where values[kind] == nil {
+            values[kind] = defaultDisplayValue(for: kind)
         }
     }
 

@@ -57,19 +57,23 @@ final class DatabaseEncryptionTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: shmURL.path))
     }
 
-    func testApplyRecommendedProtectionIfNeeded_PersistsVersionFingerprint() {
+    /// Co sprawdza: Ochrona plikow jest stosowana przy kazdym uruchomieniu.
+    /// Dlaczego: Wczesniej pass wykonywal sie raz na wersje builda, wiec store utworzony
+    ///   pozniej — czyli typowo na swiezej instalacji — zostawal bez ochrony do nastepnej
+    ///   aktualizacji aplikacji.
+    /// Kryteria: Wywolanie nie zapisuje juz odcisku wersji, wiec nic go nie zablokuje.
+    func testApplyRecommendedProtectionIfNeeded_DoesNotGateOnBuildVersion() {
         let suiteName = "DatabaseEncryptionTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         let settings = AppSettingsStore(defaults: defaults)
 
         DatabaseEncryption.applyRecommendedProtectionIfNeeded(settings: settings)
-        let first = settings.string(forKey: AppSettingsKeys.Diagnostics.databaseEncryptionProtectionVersion)
-        XCTAssertNotNil(first)
 
-        DatabaseEncryption.applyRecommendedProtectionIfNeeded(settings: settings)
-        let second = settings.string(forKey: AppSettingsKeys.Diagnostics.databaseEncryptionProtectionVersion)
-        XCTAssertEqual(first, second)
+        XCTAssertNil(
+            defaults.persistentDomain(forName: suiteName)?[AppSettingsKeys.Diagnostics.databaseEncryptionProtectionVersion],
+            "The build-version gate is gone; recording a fingerprint would reintroduce it."
+        )
 
         defaults.removePersistentDomain(forName: suiteName)
     }

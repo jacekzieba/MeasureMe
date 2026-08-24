@@ -28,7 +28,7 @@ extension MetricDetailView {
                     yEnd: .value("Value", displayValue(s.value))
                 )
                 .interpolationMethod(.monotone)
-                .foregroundStyle(ClaudeLightStyle.areaFill(accent: measurementsTheme.accent, colorScheme: colorScheme))
+                .foregroundStyle(AppSurfaceStyle.areaFill(accent: measurementsTheme.accent, colorScheme: colorScheme))
 
                 LineMark(
                     x: .value("Date", s.date),

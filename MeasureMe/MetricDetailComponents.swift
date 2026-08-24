@@ -1122,7 +1122,7 @@ struct ProgressViewCard: View {
 
                     RoundedRectangle(cornerRadius: 4)
                         .fill(
-                            ClaudeLightStyle.directionalGradient(
+                            AppSurfaceStyle.directionalGradient(
                                 colors: isAchieved ? [
                                     AppColorRoles.stateSuccess,
                                     AppColorRoles.stateSuccess.opacity(0.8)

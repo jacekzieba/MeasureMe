@@ -513,7 +513,7 @@ struct PhysiqueIndicatorsSection: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                         .fill(
-                            ClaudeLightStyle.directionalGradient(
+                            AppSurfaceStyle.directionalGradient(
                                 colors: [AppColorRoles.accentPhysique.opacity(0.16), .clear],
                                 colorScheme: colorScheme,
                                 lightColor: AppColorRoles.accentPhysique.opacity(0.08),
@@ -557,7 +557,7 @@ private struct PhysiqueSectionCard<Content: View>: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(
-                            ClaudeLightStyle.directionalGradient(
+                            AppSurfaceStyle.directionalGradient(
                                 colors: [physiqueAccent.opacity(0.16), .clear],
                                 colorScheme: colorScheme,
                                 lightColor: physiqueAccent.opacity(0.08),

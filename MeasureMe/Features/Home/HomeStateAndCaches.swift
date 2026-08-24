@@ -123,7 +123,7 @@ struct HomeKeyMetricRow: View {
 
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .fill(
-                            ClaudeLightStyle.directionalGradient(
+                            AppSurfaceStyle.directionalGradient(
                                 colors: [
                                     accent.opacity(0.10),
                                     accent.opacity(0.03),
@@ -290,7 +290,7 @@ struct CustomMiniSparklineChart: View {
                         path.closeSubpath()
                     }
                     .fill(
-                        ClaudeLightStyle.directionalGradient(
+                        AppSurfaceStyle.directionalGradient(
                             colors: [trendColor.opacity(0.15), trendColor.opacity(0.0)],
                             colorScheme: colorScheme,
                             lightColor: trendColor.opacity(0.10),
@@ -429,7 +429,7 @@ struct HomeCustomKeyMetricRow: View {
 
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(
-                        ClaudeLightStyle.directionalGradient(
+                        AppSurfaceStyle.directionalGradient(
                             colors: [
                                 accent.opacity(0.10),
                                 accent.opacity(0.03),

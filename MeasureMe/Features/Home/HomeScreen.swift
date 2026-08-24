@@ -1545,10 +1545,9 @@ struct HomeView: View {
 
     var nextFocusInsightMetricKinds: [MetricKind] {
         var ordered: [MetricKind] = []
-        for kind in dashboardVisibleMetrics + Array(cachedGoalsByKind.keys) + Array(cachedLatestByKind.keys) {
-            if !ordered.contains(kind) {
-                ordered.append(kind)
-            }
+        for kind in dashboardVisibleMetrics + Array(cachedGoalsByKind.keys) + Array(cachedLatestByKind.keys)
+        where !ordered.contains(kind) {
+            ordered.append(kind)
         }
         return ordered
     }
@@ -2719,7 +2718,7 @@ struct HomeView: View {
             return
         }
         switch nextFocusInsight.action {
-        case .metric(_):
+        case .metric:
             router.selectedTab = .measurements
         case .measurements:
             router.selectedTab = .measurements

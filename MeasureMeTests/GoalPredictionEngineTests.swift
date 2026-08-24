@@ -140,7 +140,7 @@ final class GoalPredictionEngineTests: XCTestCase {
     func testIrregularIntervals_StillPredicts() {
         // Samples with gaps: day 0, 1, 3, 5, 8, 12, 15, 20
         let days = [0, 1, 3, 5, 8, 12, 15, 20]
-        let samples = days.enumerated().map { _, day in
+        let samples = days.map { day in
             MetricSample(
                 kind: .weight,
                 value: 80 - Double(day) * 0.5,

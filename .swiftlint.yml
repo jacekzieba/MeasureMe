@@ -1,8 +1,59 @@
+# `only_rules` is exclusive: it disables SwiftLint's entire default rule set. With four rules
+# listed, the linter was effectively catching nothing, which is how ~1,900 lines of dead views
+# and 583 orphaned localization keys accumulated unnoticed.
+#
+# Switching to `disabled_rules` (defaults on) currently reports 1,906 violations — 764
+# line_length, 525 trailing_whitespace, 202 identifier_name. That is a formatting project with
+# its own review, not an audit fix, and CI lints changed files as a *blocking* step. So the
+# list below is the correctness-oriented subset that this codebase already satisfies: it fails
+# a PR only for a genuinely new problem.
+#
+# Not included, deliberately:
+#   - static_over_final_class / nslocalizedstring_key — both fire on correct code here
+#     (an `override class var` cannot be static; widgetLocalized takes its key as a parameter).
+#   - redundant_nil_coalescing — 17 hits, all in QuickAddSheetView / NumericInputBuffer,
+#     i.e. the central save flow. Mechanical to fix but not worth the regression surface in
+#     the same change as everything else; worth its own pass.
+#   - unused_declaration / unused_import — analyzer rules. They need a compiler log and
+#     `swiftlint analyze`, so they belong in their own CI lane rather than this file. They are
+#     the pair that would have caught the dead views.
 only_rules:
+  # Crash-prone constructs
   - force_cast
   - force_try
   - force_unwrapping
+
+  # Correctness / likely-mistake
+  - identical_operands
+  - discarded_notification_center_observer
+  - notification_center_detachment
+  - unhandled_throwing_task
+  - unowned_variable_capture
+  - weak_delegate
+  - self_in_property_initialization
+  - override_in_extension
+  - empty_enum_arguments
+
+  # Dead or redundant code
   - duplicate_imports
+  - unused_optional_binding
+  - unused_closure_parameter
+  - unused_control_flow_label
+  - unused_enumerated
+  - unused_setter_value
+  - redundant_string_enum_value
+
+  # Idiom — cheap to keep clean, and each one has bitten a real codebase
+  - contains_over_filter_count
+  - contains_over_first_not_nil
+  - first_where
+  - last_where
+  - for_where
+  - empty_count
+  - empty_string
+  - toggle_bool
+  - discouraged_direct_init
+  - legacy_swiftui_aspect_ratio
 
 excluded:
   - .derivedData

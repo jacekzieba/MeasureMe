@@ -27,9 +27,9 @@ import Darwin
 // MARK: - Gender
 
 enum Gender: String, CaseIterable {
-    case male = "male"
-    case female = "female"
-    case notSpecified = "notSpecified"
+    case male
+    case female
+    case notSpecified
     
     var displayName: String {
         switch self {

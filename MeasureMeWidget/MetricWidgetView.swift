@@ -116,7 +116,7 @@ private struct MetricMainCard: View {
                 .foregroundStyle(palette.textSubtle)
         }
 
-        Text(data?.trendStatusText(for: kind, recentSamples: recent) ?? widgetLocalized("Not enough data", "Brak danych"))
+        Text(data?.trendStatusText(for: kind, recentSamples: recent) ?? widgetLocalized("Not enough data"))
             .font(.caption2)
             .foregroundStyle(palette.textSubtle)
 
@@ -129,7 +129,7 @@ private struct MetricMainCard: View {
     private var goalBlock: some View {
         if let progress = data?.goalProgress(for: kind) {
             Gauge(value: progress) {
-                Text(widgetLocalized("Goal", "Cel"))
+                Text(widgetLocalized("Goal"))
             } currentValueLabel: {
                 Text("\(Int(progress * 100))%")
             }
@@ -143,7 +143,7 @@ private struct MetricMainCard: View {
                     .lineLimit(1)
             }
         } else {
-            Text(widgetLocalized("No goal set", "Brak ustawionego celu"))
+            Text(widgetLocalized("No goal set"))
                 .font(.caption2)
                 .foregroundStyle(palette.textSubtle)
         }
@@ -160,7 +160,7 @@ private struct MetricMainCard: View {
 
     private var accessibilityValue: String {
         let trend = data?.accessibilityTrendDescription(for: kind, recentSamples: recent)
-            ?? widgetLocalized("Not enough data for trend", "Za mało danych, aby ocenić trend")
+            ?? widgetLocalized("Not enough data for trend")
         return "\(valueText). \(trend)"
     }
 }
@@ -306,7 +306,7 @@ struct MetricWidgetView: View {
             }
             if entry.configuration.interactionTarget == .quickAdd {
                 Button(intent: OpenQuickAddFromWidgetIntent(metric: kind)) {
-                    Text(widgetLocalized("Quick Add", "Szybkie dodawanie"))
+                    Text(widgetLocalized("Quick Add"))
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.widgetAccent)
@@ -342,14 +342,14 @@ struct SmartMetricWidgetView: View {
 
     private var premiumLockedView: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(widgetLocalized("Smart Widget", "Smart Widget"))
+            Text(widgetLocalized("Smart Widget"))
                 .font(.headline)
-            Text(widgetLocalized("Premium required", "Wymaga Premium"))
+            Text(widgetLocalized("Premium required"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if family == .systemSmall || family == .systemMedium {
                 Button(intent: OpenQuickAddFromWidgetIntent(metric: nil)) {
-                    Text(widgetLocalized("Open app", "Otwórz aplikację"))
+                    Text(widgetLocalized("Open app"))
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.widgetAccent)
@@ -377,7 +377,7 @@ struct StreakWidgetView: View {
     private var content: some View {
         let streak = entry.streak
         return VStack(alignment: .leading, spacing: 6) {
-            Text(widgetLocalized("Streak", "Seria"))
+            Text(widgetLocalized("Streak"))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
             Text("\(streak?.currentStreak ?? 0)")
@@ -385,13 +385,13 @@ struct StreakWidgetView: View {
                 .monospacedDigit()
                 .foregroundStyle(.white)
             Text((streak?.loggedToday ?? false)
-                 ? widgetLocalized("Logged this week", "Zalogowano w tym tygodniu")
-                 : widgetLocalized("Not logged yet", "Jeszcze nie zalogowano"))
+                 ? widgetLocalized("Logged this week")
+                 : widgetLocalized("Not logged yet"))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
 
             Button(intent: OpenQuickAddFromWidgetIntent(metric: nil)) {
-                Text(widgetLocalized("Quick Add", "Szybkie dodawanie"))
+                Text(widgetLocalized("Quick Add"))
             }
             .buttonStyle(.plain)
             .foregroundStyle(Color.widgetAccent)
@@ -401,9 +401,9 @@ struct StreakWidgetView: View {
 
     private var locked: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(widgetLocalized("Streak", "Seria"))
+            Text(widgetLocalized("Streak"))
                 .font(.headline)
-            Text(widgetLocalized("Premium required", "Wymaga Premium"))
+            Text(widgetLocalized("Premium required"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

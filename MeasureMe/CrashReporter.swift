@@ -9,7 +9,12 @@ import UIKit
 /// - Brak własnych signal handlerów (unikanie niebezpiecznych operacji async-signal-unsafe)
 /// - Zapis raportów do pliku .crash w Application Support/CrashReports/
 /// - Sprawdzanie niezgłoszonych raportów przy starcie app
-final class CrashReporter {
+///
+/// **Isolation:** deliberately `nonisolated` and `@unchecked Sendable`. `install()` hands
+/// `NSSetUncaughtExceptionHandler` a closure that runs on whichever thread is crashing, so
+/// nothing here may touch a `@MainActor` type — the settings store included. All mutable state
+/// is guarded by `lock`; the two preferences it needs are read straight from `UserDefaults`.
+nonisolated final class CrashReporter: @unchecked Sendable {
     static let shared = CrashReporter(settings: .shared)
 
     // MARK: - Configuration
@@ -34,8 +39,13 @@ final class CrashReporter {
 
     /// Zainstaluj handlery crash i signal. Wywołaj raz przy starcie app.
     func install() {
-        guard !isInstalled else { return }
+        lock.lock()
+        if isInstalled {
+            lock.unlock()
+            return
+        }
         isInstalled = true
+        lock.unlock()
 
         // NSException handler
         NSSetUncaughtExceptionHandler { exception in
@@ -109,7 +119,7 @@ final class CrashReporter {
             let dir = try reportsDirectory()
             let url = dir.appendingPathComponent(filename)
             try data.write(to: url, options: .atomic)
-            settings.set(\.diagnostics.crashReporterHasUnreported, true)
+            UserDefaults.standard.set(true, forKey: AppSettingsKeys.Diagnostics.crashReporterHasUnreported)
         } catch {
             // Nie możemy logować — app crashuje
         }
@@ -126,8 +136,11 @@ final class CrashReporter {
         let memoryInfo = ProcessInfo.processInfo.physicalMemory
         let memoryGB = String(format: "%.1f", Double(memoryInfo) / 1_073_741_824)
 
-        let unitsSystem = settings.snapshot.profile.unitsSystem
-        let language = settings.snapshot.experience.appLanguage
+        // Read directly: this runs on the crashing thread, where the MainActor store is
+        // unreachable.
+        let defaults = UserDefaults.standard
+        let unitsSystem = defaults.string(forKey: AppSettingsKeys.Profile.unitsSystem) ?? "metric"
+        let language = defaults.string(forKey: AppSettingsKeys.Experience.appLanguage) ?? "system"
 
         return """
         ============================
@@ -171,12 +184,12 @@ final class CrashReporter {
 
     /// Czy jest niezgłoszony crash report?
     var hasUnreportedCrash: Bool {
-        settings.snapshot.diagnostics.crashReporterHasUnreported
+        UserDefaults.standard.bool(forKey: AppSettingsKeys.Diagnostics.crashReporterHasUnreported)
     }
 
     /// Oznacz crash jako zgłoszony
     func markCrashReported() {
-        settings.set(\.diagnostics.crashReporterHasUnreported, false)
+        UserDefaults.standard.set(false, forKey: AppSettingsKeys.Diagnostics.crashReporterHasUnreported)
     }
 
     /// Zwróć listę wszystkich raportów (najnowsze pierwsze)

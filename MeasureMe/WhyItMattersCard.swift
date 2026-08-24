@@ -70,7 +70,7 @@ struct HealthInsightHeroCard<Content: View>: View {
                     .fill(AppColorRoles.surfaceElevated)
                     .overlay(
                         shape.fill(
-                            ClaudeLightStyle.directionalGradient(
+                            AppSurfaceStyle.directionalGradient(
                                 colors: [
                                     accent.opacity(0.20),
                                     Color.appAmber.opacity(0.10),
@@ -118,7 +118,7 @@ struct HealthInsightCard<Content: View>: View {
                     .fill(AppColorRoles.surfacePrimary)
                     .overlay(
                         shape.fill(
-                            ClaudeLightStyle.directionalGradient(
+                            AppSurfaceStyle.directionalGradient(
                                 colors: [
                                     tint.opacity(0.24),
                                     .clear
@@ -162,7 +162,7 @@ struct HealthInsightNoteCard<Content: View>: View {
                     .fill(AppColorRoles.surfaceInteractive)
                     .overlay(
                         shape.fill(
-                            ClaudeLightStyle.directionalGradient(
+                            AppSurfaceStyle.directionalGradient(
                                 colors: [
                                     accent.opacity(0.20),
                                     Color.appAmber.opacity(0.10),

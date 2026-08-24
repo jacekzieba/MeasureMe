@@ -79,16 +79,16 @@ struct WidgetMetricData: Codable {
         let recent = recentSamples ?? last30DaySamples
         guard let oldest = recent.first, let newest = recent.last,
               oldest.date != newest.date else {
-            return widgetLocalized("Not enough data", "Brak danych")
+            return widgetLocalized("Not enough data")
         }
 
         switch trendOutcome(for: kind, recentSamples: recent) {
         case .positive:
-            return widgetLocalized("Improving", "Poprawa")
+            return widgetLocalized("Improving")
         case .negative:
-            return widgetLocalized("Worsening", "Pogorszenie")
+            return widgetLocalized("Worsening")
         case .neutral:
-            return widgetLocalized("Stable", "Stabilnie")
+            return widgetLocalized("Stable")
         }
     }
 
@@ -96,7 +96,7 @@ struct WidgetMetricData: Codable {
         let recent = recentSamples ?? last30DaySamples
         guard let oldest = recent.first, let newest = recent.last,
               oldest.date != newest.date else {
-            return widgetLocalized("Not enough data for trend", "Za mało danych, aby ocenić trend")
+            return widgetLocalized("Not enough data for trend")
         }
 
         let newVal = kind.valueForDisplay(fromMetric: newest.value, isMetric: isMetric)
@@ -105,29 +105,29 @@ struct WidgetMetricData: Codable {
         let magnitude = kind.formattedDisplayValue(abs(delta), isMetric: isMetric, alwaysShowSign: false)
         let direction: String
         if delta > 0 {
-            direction = widgetLocalized("up", "w górę")
+            direction = widgetLocalized("up")
         } else if delta < 0 {
-            direction = widgetLocalized("down", "w dół")
+            direction = widgetLocalized("down")
         } else {
-            direction = widgetLocalized("unchanged", "bez zmian")
+            direction = widgetLocalized("unchanged")
         }
 
         switch trendOutcome(for: kind, recentSamples: recent) {
         case .positive:
             if delta == 0 {
-                return widgetLocalized("Improving, stable over 30 days", "Poprawa, stabilnie w ostatnich 30 dniach")
+                return widgetLocalized("Improving, stable over 30 days")
             }
-            return String(format: widgetLocalized("Improving, %@ %@ over 30 days", "Poprawa, %@ %@ w ostatnich 30 dniach"), direction, magnitude)
+            return String(format: widgetLocalized("Improving, %@ %@ over 30 days"), direction, magnitude)
         case .negative:
             if delta == 0 {
-                return widgetLocalized("Worsening, stable over 30 days", "Pogorszenie, stabilnie w ostatnich 30 dniach")
+                return widgetLocalized("Worsening, stable over 30 days")
             }
-            return String(format: widgetLocalized("Worsening, %@ %@ over 30 days", "Pogorszenie, %@ %@ w ostatnich 30 dniach"), direction, magnitude)
+            return String(format: widgetLocalized("Worsening, %@ %@ over 30 days"), direction, magnitude)
         case .neutral:
             if delta == 0 {
-                return widgetLocalized("Stable over 30 days", "Stabilnie w ostatnich 30 dniach")
+                return widgetLocalized("Stable over 30 days")
             }
-            return String(format: widgetLocalized("Stable, %@ %@ over 30 days", "Stabilnie, %@ %@ w ostatnich 30 dniach"), direction, magnitude)
+            return String(format: widgetLocalized("Stable, %@ %@ over 30 days"), direction, magnitude)
         }
     }
 
@@ -135,7 +135,7 @@ struct WidgetMetricData: Codable {
         guard let goal else { return nil }
         let targetDisplay = kind.valueForDisplay(fromMetric: goal.targetValue, isMetric: isMetric)
         let targetText = kind.formattedDisplayValue(targetDisplay, isMetric: isMetric)
-        return String(format: widgetLocalized("Goal %@", "Cel %@"), targetText)
+        return String(format: widgetLocalized("Goal %@"), targetText)
     }
 
     // MARK: - App Group I/O
@@ -175,6 +175,11 @@ func widgetStreakPayload() -> WidgetStreakPayload? {
     return try? JSONDecoder().decode(WidgetStreakPayload.self, from: data)
 }
 
-func widgetLocalized(_ english: String, _ polish: String) -> String {
+/// Resolves through the widget extension's own `Localizable.strings`.
+///
+/// This used to take a second, hardcoded Polish string that was silently discarded — it read
+/// like the source of truth for Polish while the catalog was doing the actual work, and for a
+/// long time the catalog had none of these keys at all.
+func widgetLocalized(_ english: String) -> String {
     NSLocalizedString(english, bundle: .main, comment: "")
 }

@@ -266,13 +266,13 @@ struct HomeCompareChooserSheet: View {
                             .background(
                                 Group {
                                     if selectedRange == range {
-                                        ClaudeLightStyle.directionalGradient(
+                                        AppSurfaceStyle.directionalGradient(
                                             colors: [photosTheme.accent.opacity(0.92), Color.appAmber.opacity(0.72)],
                                             colorScheme: colorScheme,
                                             lightColor: Color.appAccent
                                         )
                                     } else {
-                                        ClaudeLightStyle.directionalGradient(
+                                        AppSurfaceStyle.directionalGradient(
                                             colors: [AppColorRoles.surfaceInteractive, AppColorRoles.surfacePrimary],
                                             colorScheme: colorScheme,
                                             lightColor: AppColorRoles.surfacePrimary
@@ -353,13 +353,13 @@ struct HomeCompareChooserSheet: View {
                                     .background(
                                         Group {
                                             if selectedTags.contains(tag) {
-                                                ClaudeLightStyle.directionalGradient(
+                                                AppSurfaceStyle.directionalGradient(
                                                     colors: [photosTheme.accent.opacity(0.92), Color.appAmber.opacity(0.72)],
                                                     colorScheme: colorScheme,
                                                     lightColor: Color.appAccent
                                                 )
                                             } else {
-                                                ClaudeLightStyle.directionalGradient(
+                                                AppSurfaceStyle.directionalGradient(
                                                     colors: [AppColorRoles.surfaceInteractive, AppColorRoles.surfacePrimary],
                                                     colorScheme: colorScheme,
                                                     lightColor: AppColorRoles.surfacePrimary
@@ -400,7 +400,7 @@ struct HomeCompareChooserSheet: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                             .fill(
-                                ClaudeLightStyle.directionalGradient(
+                                AppSurfaceStyle.directionalGradient(
                                     colors: [photosTheme.softTint, .clear],
                                     colorScheme: colorScheme,
                                     lightColor: photosTheme.softTint.opacity(0.08)

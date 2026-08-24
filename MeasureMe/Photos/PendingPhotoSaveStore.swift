@@ -798,16 +798,14 @@ final class PendingPhotoSaveStore: ObservableObject {
             removeFromProcessingOrder(id: item.id)
         }
         var insertionIndex = pendingItems.endIndex
-        for (index, existing) in pendingItems.enumerated() {
-            if compareQueuePriority(
-                lhsID: item.id,
-                lhsCreatedAt: item.createdAt,
-                rhsID: existing.id,
-                rhsCreatedAt: existing.createdAt
-            ) {
-                insertionIndex = index
-                break
-            }
+        for (index, existing) in pendingItems.enumerated() where compareQueuePriority(
+            lhsID: item.id,
+            lhsCreatedAt: item.createdAt,
+            rhsID: existing.id,
+            rhsCreatedAt: existing.createdAt
+        ) {
+            insertionIndex = index
+            break
         }
         pendingItems.insert(item, at: insertionIndex)
     }

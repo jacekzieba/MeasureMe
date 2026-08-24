@@ -41,7 +41,6 @@ enum AppTypography {
     static let metricTitle = dataLabel
     static let displayLarge = dataHero
     static let displayMedium = dataPrimary
-    static let displaySmall = dataCompact
 
     // MARK: - Icons (Dynamic Type–friendly sizes for SF Symbols)
     static let iconSmall = Font.system(.caption, design: .default).weight(.semibold)

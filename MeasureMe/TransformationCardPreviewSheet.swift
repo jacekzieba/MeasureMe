@@ -49,7 +49,7 @@ struct TransformationCardPreviewSheet: View {
                             Image(uiImage: image)
                                 .resizable()
                                 .interpolation(.high)
-                                .aspectRatio(contentMode: .fit)
+                                .scaledToFit()
                                 .frame(width: fitW, height: fitH)
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                                 .shadow(color: AppColorRoles.shadowSoft, radius: 14, x: 0, y: 8)

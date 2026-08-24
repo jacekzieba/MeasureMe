@@ -132,7 +132,7 @@ struct StreakDetailView: View {
                 Image("FlameIcon")
                     .resizable()
                     .renderingMode(.original)
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFit()
                     .frame(width: 200, height: 200)
                     .scaleEffect(viewModel.flameScale * 1.30)
                     .blur(radius: 22)
@@ -142,7 +142,7 @@ struct StreakDetailView: View {
                 Image("FlameIcon")
                     .resizable()
                     .renderingMode(.original)
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFit()
                     .frame(width: 160, height: 160)
                     .scaleEffect(viewModel.flameScale)
                     .shadow(color: Color(red: 1.0, green: 0.55, blue: 0.05).opacity(0.78), radius: viewModel.glowRadius)
@@ -304,7 +304,7 @@ struct StreakDetailView: View {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(
-                        ClaudeLightStyle.directionalGradient(
+                        AppSurfaceStyle.directionalGradient(
                             colors: day.isToday
                                 ? [Color.yellow, Color.orange]
                                 : [Color.orange.opacity(0.9), Color.red.opacity(0.7)],
@@ -393,7 +393,7 @@ struct StreakDetailView: View {
 
                                 Capsule()
                                     .fill(
-                                        ClaudeLightStyle.directionalGradient(
+                                        AppSurfaceStyle.directionalGradient(
                                             colors: [Color.yellow, Color.orange],
                                             colorScheme: colorScheme,
                                             lightColor: Color.appAccent,
@@ -430,14 +430,14 @@ struct StreakDetailView: View {
                     .font(.system(size: 24, weight: .semibold))
                     .foregroundStyle(
                         isActive
-                        ? ClaudeLightStyle.directionalGradient(
+                        ? AppSurfaceStyle.directionalGradient(
                             colors: [.yellow, .orange],
                             colorScheme: colorScheme,
                             lightColor: Color.appAccent,
                             startPoint: .top,
                             endPoint: .bottom
                         )
-                        : ClaudeLightStyle.directionalGradient(
+                        : AppSurfaceStyle.directionalGradient(
                             colors: [streakSubtle, streakSubtle.opacity(0.5)],
                             colorScheme: colorScheme,
                             lightColor: streakSubtle,

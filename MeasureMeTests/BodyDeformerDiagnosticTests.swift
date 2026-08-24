@@ -61,7 +61,7 @@ final class BodyDeformerDiagnosticTests: XCTestCase {
             ))
         }
         let counts = Dictionary(grouping: worst.prefix(400)) {
-            "\($0.i == $0.i ? map.region[$0.i] : map.region[$0.i])-\(map.region[$0.j])"
+            "\(map.region[$0.i])-\(map.region[$0.j])"
         }.mapValues(\.count).sorted { $0.value > $1.value }
         print("=== PARY REGIONOW W 400 NAJGORSZYCH ===")
         for (pair, count) in counts.prefix(8) { print("  \(pair): \(count)") }

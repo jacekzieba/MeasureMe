@@ -307,6 +307,7 @@ final class MeasureMeUITests: XCTestCase {
                 default: xOffset = 0.50
                 }
                 tabBar.coordinate(withNormalizedOffset: CGVector(dx: xOffset, dy: 0.5)).tap()
+                // swiftlint:disable:next empty_count - XCUIElementQuery has no isEmpty
                 if app.buttons[identifier].exists || app.buttons.matching(NSPredicate(format: "identifier == %@", identifier)).count > 0 {
                     return
                 }

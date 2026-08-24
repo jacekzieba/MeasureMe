@@ -258,10 +258,9 @@ enum HomeLayoutCompactor {
         guard origin.column + size.columnSpan <= columns else { return false }
 
         for row in origin.row..<(origin.row + size.rowSpan) {
-            for column in origin.column..<(origin.column + size.columnSpan) {
-                if occupied.contains(GridCell(row: row, column: column)) {
-                    return false
-                }
+            for column in origin.column..<(origin.column + size.columnSpan)
+            where occupied.contains(GridCell(row: row, column: column)) {
+                return false
             }
         }
         return true

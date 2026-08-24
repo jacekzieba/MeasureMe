@@ -509,7 +509,7 @@ struct PremiumPaywallView: View {
                 .background(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .fill(
-                            ClaudeLightStyle.directionalGradient(
+                            AppSurfaceStyle.directionalGradient(
                                 colors: slide.gradient,
                                 colorScheme: colorScheme,
                                 lightColor: AppColorRoles.surfacePrimary

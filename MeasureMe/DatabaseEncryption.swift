@@ -7,13 +7,16 @@ import Foundation
 /// a jednoczesnie pozwala na prace w tle po pierwszym odblokowaniu (lepszy UX/stabilnosc dla aktualizacji HealthKit).
 enum DatabaseEncryption {
     static let protection: FileProtectionType = .completeUntilFirstUserAuthentication
-    private static let protectionVersionKey = "database_encryption_protection_applied_version"
+    private static let appGroupIdentifier = "group.com.jacek.measureme"
 
     static func applyRecommendedProtection() {
         let fm = FileManager.default
         let roots: [URL] = [
             fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first,
-            fm.urls(for: .documentDirectory, in: .userDomainMask).first
+            fm.urls(for: .documentDirectory, in: .userDomainMask).first,
+            // The shared container holds the widget payloads and the insight cache; it was
+            // the one place this pass never reached.
+            fm.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)
         ].compactMap { $0 }
 
         for root in roots {
@@ -45,18 +48,15 @@ enum DatabaseEncryption {
         }
     }
 
+    /// Runs on every launch.
+    ///
+    /// This used to skip after the first launch of a given build, which meant a store created
+    /// *after* that first pass — the common case on a fresh install — stayed uncovered until
+    /// the next app update. The pass is a directory enumeration over two folders and already
+    /// runs off the first frame, so the version gate bought very little.
     static func applyRecommendedProtectionIfNeeded(settings: AppSettingsStore) {
-        let defaults = settings
-        let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
-        let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
-        let versionFingerprint = "\(shortVersion)-\(buildVersion)"
-
-        if defaults.string(forKey: protectionVersionKey) == versionFingerprint {
-            return
-        }
-
+        _ = settings
         applyRecommendedProtection()
-        defaults.set(versionFingerprint, forKey: protectionVersionKey)
     }
 
     static func applyRecommendedProtectionIfNeeded() {

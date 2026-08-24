@@ -104,7 +104,7 @@ extension OnboardingView {
     private func welcomeProofHalf(assetName: String, badge: String, accent: Bool, alignment: Alignment, height: CGFloat) -> some View {
         Image(assetName)
             .resizable()
-            .aspectRatio(contentMode: .fill)
+            .scaledToFill()
             .frame(maxWidth: .infinity)
             .frame(height: height)
             .clipped()

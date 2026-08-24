@@ -415,7 +415,7 @@ final class AppSettingsStoreTests: XCTestCase {
 
         store.clearUserDataDefaults()
 
-        for _ in 0..<50 where store.snapshot.profile.userName != "" {
+        for _ in 0..<50 where !store.snapshot.profile.userName.isEmpty {
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
 

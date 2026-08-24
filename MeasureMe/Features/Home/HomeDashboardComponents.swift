@@ -242,7 +242,7 @@ struct HomeQuickActionButton: View {
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(
-                                ClaudeLightStyle.directionalGradient(
+                                AppSurfaceStyle.directionalGradient(
                                     colors: colorScheme == .dark
                                         ? [
                                             tint.opacity(0.24),

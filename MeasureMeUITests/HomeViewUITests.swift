@@ -299,10 +299,8 @@ final class HomeViewUITests: XCTestCase {
         identifiers: [String],
         query: XCUIElementQuery
     ) -> String {
-        for identifier in identifiers {
-            if query[identifier].firstMatch.exists {
-                return identifier
-            }
+        for identifier in identifiers where query[identifier].firstMatch.exists {
+            return identifier
         }
         return identifiers[0]
     }

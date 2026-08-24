@@ -24,7 +24,7 @@ extension MetricDetailView {
 
         return shape
             .fill(
-                ClaudeLightStyle.directionalGradient(
+                AppSurfaceStyle.directionalGradient(
                     colors: colorScheme == .dark
                         ? [
                             AppColorRoles.surfaceChrome.opacity(0.98),
@@ -40,7 +40,7 @@ extension MetricDetailView {
             )
             .overlay(
                 shape.fill(
-                    ClaudeLightStyle.directionalGradient(
+                    AppSurfaceStyle.directionalGradient(
                         colors: [
                             measurementsTheme.strongTint.opacity(colorScheme == .dark ? 0.18 : 0.08),
                             .clear
@@ -52,7 +52,7 @@ extension MetricDetailView {
             )
             .overlay(
                 shape.stroke(
-                    ClaudeLightStyle.directionalGradient(
+                    AppSurfaceStyle.directionalGradient(
                         colors: [
                             Color.white.opacity(colorScheme == .dark ? 0.12 : 0.88),
                             AppColorRoles.borderStrong.opacity(colorScheme == .dark ? 0.72 : 0.54)

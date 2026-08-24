@@ -183,7 +183,7 @@ struct ComparePhotosView: View {
                 .overlay(
                     Capsule(style: .continuous)
                         .fill(
-                            ClaudeLightStyle.directionalGradient(
+                            AppSurfaceStyle.directionalGradient(
                                 colors: [
                                     photosTheme.softTint.opacity(colorScheme == .dark ? 0.40 : 0.60),
                                     measurementsTheme.softTint.opacity(colorScheme == .dark ? 0.18 : 0.12),
@@ -248,7 +248,7 @@ struct ComparePhotosView: View {
                     .fill(
                         isSelected
                             ? AnyShapeStyle(
-                                ClaudeLightStyle.directionalGradient(
+                                AppSurfaceStyle.directionalGradient(
                                     colors: [
                                         photosTheme.accent.opacity(0.96),
                                         photosTheme.accent.opacity(0.78)

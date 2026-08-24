@@ -13,7 +13,7 @@ struct MeasurementsCategoryTabs: View {
     private func selectedGradient(for tab: MeasurementsTabView.MeasurementsTab) -> LinearGradient {
         switch tab {
         case .metrics:
-            return ClaudeLightStyle.directionalGradient(
+            return AppSurfaceStyle.directionalGradient(
                 colors: [
                     Color.dynamic(light: Color(hex: "#5B7CFF"), dark: Color(hex: "#7DB5FF")),
                     Color.dynamic(light: Color(hex: "#2F56D9"), dark: Color(hex: "#3B82F6"))
@@ -22,7 +22,7 @@ struct MeasurementsCategoryTabs: View {
                 lightColor: AppColorRoles.surfaceInteractive
             )
         case .health:
-            return ClaudeLightStyle.directionalGradient(
+            return AppSurfaceStyle.directionalGradient(
                 colors: [
                     Color.dynamic(light: Color(hex: "#1FAF9F"), dark: Color(hex: "#7BF0DA")),
                     Color.dynamic(light: Color(hex: "#0F766E"), dark: Color(hex: "#27B7A7"))
@@ -31,7 +31,7 @@ struct MeasurementsCategoryTabs: View {
                 lightColor: AppColorRoles.surfaceInteractive
             )
         case .physique:
-            return ClaudeLightStyle.directionalGradient(
+            return AppSurfaceStyle.directionalGradient(
                 colors: [
                     Color.dynamic(light: Color(hex: "#7667FF"), dark: Color(hex: "#C1B6FF")),
                     Color.dynamic(light: Color(hex: "#4F46E5"), dark: Color(hex: "#7C6DFF"))
@@ -89,7 +89,7 @@ struct MeasurementsCategoryTabs: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .fill(
-                            ClaudeLightStyle.directionalGradient(
+                            AppSurfaceStyle.directionalGradient(
                                 colors: [
                                     activeTint.opacity(colorScheme == .dark ? 0.10 : 0.08),
                                     .clear

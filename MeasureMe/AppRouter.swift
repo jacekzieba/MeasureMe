@@ -99,5 +99,5 @@ enum PresentedSheet: Identifiable {
 }
 
 enum ComposerMode: String {
-    case newPost = "newPost"
+    case newPost
 }

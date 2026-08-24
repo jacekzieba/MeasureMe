@@ -29,7 +29,7 @@ import SwiftUI
 /// "glass" look become noise that hurts readability. These helpers collapse
 /// gradients to a flat fill and soften tints so the same component reads well
 /// in both appearances.
-enum ClaudeLightStyle {
+enum AppSurfaceStyle {
     /// Returns a directional gradient in dark mode, a flat color in light mode.
     /// - Parameters:
     ///   - colors: Colors to use in dark mode (the first color is reused

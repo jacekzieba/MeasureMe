@@ -74,10 +74,14 @@ enum AppRuntimeConfigurator {
         }
     }
 
-    private static func installTextFieldSelectionBehaviorIfNeeded(isUnitTestHostMode: Bool) {
-        guard !isUnitTestHostMode else { return }
+    /// Held for the lifetime of the process — the hook is installed once at launch and never
+    /// torn down, so keep the token rather than discarding it.
+    @MainActor private static var textFieldSelectionObserver: NSObjectProtocol?
 
-        NotificationCenter.default.addObserver(
+    private static func installTextFieldSelectionBehaviorIfNeeded(isUnitTestHostMode: Bool) {
+        guard !isUnitTestHostMode, textFieldSelectionObserver == nil else { return }
+
+        textFieldSelectionObserver = NotificationCenter.default.addObserver(
             forName: UITextField.textDidBeginEditingNotification,
             object: nil,
             queue: .main
