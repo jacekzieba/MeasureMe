@@ -35,6 +35,9 @@ struct LanguageSettingsDetailView: View {
         Button {
             appLanguage = value
             AppLocalization.reloadLanguage()
+            // Notification copy is baked when the request is scheduled, so pending recurring
+            // reminders would otherwise stay in the previous language forever.
+            NotificationManager.shared.rescheduleLocalizedNotifications()
             Haptics.selection()
         } label: {
             HStack(spacing: 12) {

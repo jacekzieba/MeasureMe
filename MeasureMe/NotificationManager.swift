@@ -294,6 +294,24 @@ final class NotificationManager: ObservableObject {
             scheduleReminder(reminder)
         }
     }
+
+    /// Rebuilds the recurring notifications whose copy is frozen at scheduling time.
+    ///
+    /// Call after the in-app language changes. Deliberately excludes the trial-ending reminder
+    /// (a one-shot whose trigger date would reset, turning a language change into an extended
+    /// trial) and the AI notifications (event-driven, and they need a ModelContext) — both pick
+    /// the new language up on their next natural scheduling pass.
+    func rescheduleLocalizedNotifications() {
+        let reminders = loadReminders()
+        cancelAllReminders()
+        scheduleAllReminders(reminders)
+
+        cancelSmartNotification()
+        scheduleSmartIfNeeded()
+
+        cancelPhotoReminder()
+        schedulePhotoReminderIfNeeded()
+    }
     
     func scheduleReminder(_ reminder: MeasurementReminder) {
         guard notificationsEnabled else { return }

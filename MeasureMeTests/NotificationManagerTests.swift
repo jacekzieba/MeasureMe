@@ -13,6 +13,7 @@ private final class MockNotificationCenterClient: NotificationCenterClient {
     var completionAddError: Error?
     var asyncAddError: Error?
     private(set) var addedIdentifiers: [String] = []
+    private(set) var addedRequests: [UNNotificationRequest] = []
     private(set) var removedIdentifiers: [String] = []
     var pendingIdentifiers: [String] = []
 
@@ -33,11 +34,13 @@ private final class MockNotificationCenterClient: NotificationCenterClient {
 
     func add(_ request: UNNotificationRequest, completion: @escaping (Error?) -> Void) {
         addedIdentifiers.append(request.identifier)
+        addedRequests.append(request)
         completion(completionAddError)
     }
 
     func add(_ request: UNNotificationRequest) async throws {
         addedIdentifiers.append(request.identifier)
+        addedRequests.append(request)
         if let asyncAddError {
             throw asyncAddError
         }
@@ -110,6 +113,48 @@ final class NotificationManagerTests: XCTestCase {
         while !condition() && DispatchTime.now().uptimeNanoseconds < deadline {
             try? await Task.sleep(nanoseconds: pollNanoseconds)
         }
+    }
+
+    /// Co sprawdza: Zmiana jezyka przebudowuje zaplanowane powiadomienia cykliczne.
+    /// Dlaczego: Tresc jest zamrazana w chwili planowania, wiec bez tego uzytkownik dostaje
+    ///   przypomnienia w poprzednim jezyku az do nastepnej edycji.
+    /// Kryteria: Po przelaczeniu jezyka tytul dodanego zadania jest inny.
+    func testRescheduleLocalizedNotificationsRebuildsReminderCopy() async {
+        let center = MockNotificationCenterClient()
+        let manager = makeManager(center: center)
+        manager.notificationsEnabled = true
+        await waitUntil(manager.notificationsEnabled)
+
+        // AppLocalization resolves against AppSettingsStore.shared, not the injected store.
+        let sharedStore = AppSettingsStore.shared
+        let previousLanguage = sharedStore.snapshot.experience.appLanguage
+        let previousName = sharedStore.snapshot.profile.userName
+        sharedStore.set(\.profile.userName, "")
+        sharedStore.set(\.experience.appLanguage, "en")
+        AppLocalization.reloadLanguage()
+
+        let reminder = MeasurementReminder(date: .now.addingTimeInterval(3_600), repeatRule: .daily)
+        manager.saveReminders([reminder])
+        manager.scheduleAllReminders([reminder])
+        await waitUntil(!center.addedRequests.isEmpty)
+        let englishTitle = center.addedRequests.last?.content.title
+
+        sharedStore.set(\.experience.appLanguage, "pl")
+        AppLocalization.reloadLanguage()
+        let countBefore = center.addedRequests.count
+        manager.rescheduleLocalizedNotifications()
+        await waitUntil(center.addedRequests.count > countBefore)
+        let polishTitle = center.addedRequests.last?.content.title
+
+        XCTAssertNotNil(englishTitle)
+        XCTAssertNotNil(polishTitle)
+        XCTAssertNotEqual(englishTitle, polishTitle, "Recurring reminders must be rebuilt in the new language.")
+
+        manager.cancelAllReminders()
+        manager.saveReminders([])
+        sharedStore.set(\.profile.userName, previousName)
+        sharedStore.set(\.experience.appLanguage, previousLanguage)
+        AppLocalization.reloadLanguage()
     }
 
     /// Co sprawdza: Sprawdza scenariusz: ScheduleReminderReportsAddError.
