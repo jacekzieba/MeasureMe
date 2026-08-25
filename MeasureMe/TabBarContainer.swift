@@ -17,128 +17,74 @@ struct TabBarContainer: View {
             AppColorRoles.surfaceCanvas
                 .ignoresSafeArea()
 
-            if #available(iOS 18.0, *) {
-                TabView(selection: $router.selectedTab) {
-                    // HOME
-                    Tab(value: AppTab.home) {
-                        NavigationStack {
-                            HomeView(autoCheckPaywallPrompt: autoCheckPaywallPrompt)
-                        }
-                        .hideSystemTabBarWhenFabBarIsUsed()
-                    } label: {
-                        Label(AppLocalization.string("Home"), systemImage: "house.fill")
-                    }
-                    .accessibilityIdentifier("tab.home")
-
-                    // MEASUREMENTS
-                    Tab(value: AppTab.measurements) {
-                        LazyMountedTab(isMounted: shouldRenderTab(.measurements)) {
-                            MeasurementsTabView()
-                        }
-                        .hideSystemTabBarWhenFabBarIsUsed()
-                    } label: {
-                        Label(AppLocalization.string("Measurements"), systemImage: "ruler")
-                    }
-                    .accessibilityIdentifier("tab.measurements")
-
-                    // COMPOSE
-                    // Zakładka zostaje dla przypadków, w których pasek rysuje system: iOS 18–25
-                    // oraz iPad (FabBar chowa się przy regular size class). Na iPhonie z iOS 26
-                    // systemowy pasek jest ukryty, więc widoczne jest „+” z FabBara.
-                    Tab(value: AppTab.compose, role: .search) {
-                        Color.clear
-                    } label: {
-                        Label(AppLocalization.string("Add"), systemImage: "plus")
-                    }
-                    .accessibilityIdentifier("tab.add")
-
-                    // PHOTOS
-                    Tab(value: AppTab.photos) {
-                        LazyMountedTab(isMounted: shouldRenderTab(.photos)) {
-                            PhotoView()
-                        }
-                        .hideSystemTabBarWhenFabBarIsUsed()
-                    } label: {
-                        Label(AppLocalization.string("Photos"), systemImage: "photo")
-                    }
-                    .accessibilityIdentifier("tab.photos")
-
-                    // SETTINGS
-                    Tab(value: AppTab.settings) {
-                        LazyMountedTab(isMounted: shouldRenderTab(.settings)) {
-                            SettingsView()
-                        }
-                        .hideSystemTabBarWhenFabBarIsUsed()
-                    } label: {
-                        Label(AppLocalization.string("Settings"), systemImage: "gearshape")
-                    }
-                    .accessibilityIdentifier("tab.settings")
-                }
-                .toolbarBackground(.visible, for: .tabBar)
-                .toolbarBackground(AppColorRoles.surfaceChrome, for: .tabBar)
-                .applyTabBarMinimizeBehaviorIfAvailable()
-                .applyFabBarIfAvailable(selection: $router.selectedTab) {
-                    router.presentComposer()
-                }
-                // `.tint` musi być NAD `.applyFabBarIfAvailable`: FabBar dokłada pasek jako
-                // rodzeństwo modyfikowanego widoku, więc tint nałożony pod spodem by go ominął
-                // i przycisk „+” zostałby systemowo niebieski.
-                .tint(Color.appAccent)
-                .onChange(of: router.selectedTab) { oldTab, newTab in
-                    handleSelectedTabChange(oldTab: oldTab, newTab: newTab)
-                }
-            } else {
-                TabView(selection: $router.selectedTab) {
+            TabView(selection: $router.selectedTab) {
+                // HOME
+                Tab(value: AppTab.home) {
                     NavigationStack {
                         HomeView(autoCheckPaywallPrompt: autoCheckPaywallPrompt)
                     }
-                    .tabItem {
-                        Label(AppLocalization.string("Home"), systemImage: "house.fill")
-                    }
-                    .tag(AppTab.home)
-                    .accessibilityIdentifier("tab.home")
+                    .hideSystemTabBarWhenFabBarIsUsed()
+                } label: {
+                    Label(AppLocalization.string("Home"), systemImage: "house.fill")
+                }
+                .accessibilityIdentifier("tab.home")
 
+                // MEASUREMENTS
+                Tab(value: AppTab.measurements) {
                     LazyMountedTab(isMounted: shouldRenderTab(.measurements)) {
                         MeasurementsTabView()
                     }
-                        .tabItem {
-                            Label(AppLocalization.string("Measurements"), systemImage: "ruler")
-                        }
-                        .tag(AppTab.measurements)
-                        .accessibilityIdentifier("tab.measurements")
+                    .hideSystemTabBarWhenFabBarIsUsed()
+                } label: {
+                    Label(AppLocalization.string("Measurements"), systemImage: "ruler")
+                }
+                .accessibilityIdentifier("tab.measurements")
 
+                // COMPOSE
+                // Zakładka zostaje dla przypadków, w których pasek rysuje system: iOS 18–25
+                // oraz iPad (FabBar chowa się przy regular size class). Na iPhonie z iOS 26
+                // systemowy pasek jest ukryty, więc widoczne jest „+” z FabBara.
+                Tab(value: AppTab.compose, role: .search) {
                     Color.clear
-                        .tabItem {
-                            Label(AppLocalization.string("Add"), systemImage: "plus")
-                        }
-                        .tag(AppTab.compose)
-                        .accessibilityIdentifier("tab.add")
+                } label: {
+                    Label(AppLocalization.string("Add"), systemImage: "plus")
+                }
+                .accessibilityIdentifier("tab.add")
 
+                // PHOTOS
+                Tab(value: AppTab.photos) {
                     LazyMountedTab(isMounted: shouldRenderTab(.photos)) {
                         PhotoView()
                     }
-                        .tabItem {
-                            Label(AppLocalization.string("Photos"), systemImage: "photo")
-                        }
-                        .tag(AppTab.photos)
-                        .accessibilityIdentifier("tab.photos")
+                    .hideSystemTabBarWhenFabBarIsUsed()
+                } label: {
+                    Label(AppLocalization.string("Photos"), systemImage: "photo")
+                }
+                .accessibilityIdentifier("tab.photos")
 
+                // SETTINGS
+                Tab(value: AppTab.settings) {
                     LazyMountedTab(isMounted: shouldRenderTab(.settings)) {
                         SettingsView()
                     }
-                        .tabItem {
-                            Label(AppLocalization.string("Settings"), systemImage: "gearshape")
-                        }
-                        .tag(AppTab.settings)
-                        .accessibilityIdentifier("tab.settings")
+                    .hideSystemTabBarWhenFabBarIsUsed()
+                } label: {
+                    Label(AppLocalization.string("Settings"), systemImage: "gearshape")
                 }
-                .tint(Color.appAccent)
-                .toolbarBackground(.visible, for: .tabBar)
-                .toolbarBackground(AppColorRoles.surfaceChrome, for: .tabBar)
-                .applyTabBarMinimizeBehaviorIfAvailable()
-                .onChange(of: router.selectedTab) { oldTab, newTab in
-                    handleSelectedTabChange(oldTab: oldTab, newTab: newTab)
-                }
+                .accessibilityIdentifier("tab.settings")
+            }
+            .toolbarBackground(.visible, for: .tabBar)
+            .toolbarBackground(AppColorRoles.surfaceChrome, for: .tabBar)
+            .applyTabBarMinimizeBehaviorIfAvailable()
+            .applyFabBarIfAvailable(selection: $router.selectedTab) {
+                router.presentComposer()
+            }
+            // `.tint` musi być NAD `.applyFabBarIfAvailable`: FabBar dokłada pasek jako
+            // rodzeństwo modyfikowanego widoku, więc tint nałożony pod spodem by go ominął
+            // i przycisk „+” zostałby systemowo niebieski.
+            .tint(Color.appAccent)
+            .onChange(of: router.selectedTab) { oldTab, newTab in
+                handleSelectedTabChange(oldTab: oldTab, newTab: newTab)
             }
         }
         .overlay(alignment: .bottom) {

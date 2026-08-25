@@ -27,7 +27,7 @@ The app is built around fast daily or weekly check-ins, long-term progress revie
 
 ## Platform
 
-- iOS deployment target: `17.2`
+- iOS deployment target: `18.0`
 - watchOS deployment target: `26.2`
 - CI Xcode version: `26.2`
 - CI simulator lanes: iOS `18.0` and `26.1` with runtime fallback/skip handling

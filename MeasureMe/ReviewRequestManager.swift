@@ -68,11 +68,7 @@ enum ReviewRequestManager {
         if let scene = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .first(where: { $0.activationState == .foregroundActive }) {
-            if #available(iOS 18.0, *) {
-                AppStore.requestReview(in: scene)
-            } else {
-                SKStoreReviewController.requestReview(in: scene)
-            }
+            AppStore.requestReview(in: scene)
             settings.set(AppClock.now, forKey: lastPromptKey)
             settings.set(0, forKey: countKey)
         }

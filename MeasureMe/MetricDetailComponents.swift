@@ -25,7 +25,6 @@ import Foundation
 
 // MARK: - 1. MetricDetailView+Components (extension)
 
-@available(iOS 16.0, *)
 extension MetricDetailView {
     var chartDescriptor: AXChartDescriptor {
         let unit = kind.unitSymbol(unitsSystem: self.unitsSystem)
@@ -368,7 +367,6 @@ private extension Array where Element == MetricSample {
 
 // MARK: - 3. MetricChartAXDescriptor
 
-@available(iOS 16.0, *)
 struct MetricChartAXDescriptor: AXChartDescriptorRepresentable {
     let descriptor: AXChartDescriptor
 
