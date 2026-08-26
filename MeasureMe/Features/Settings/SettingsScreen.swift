@@ -431,6 +431,7 @@ struct SettingsView: View {
             }
             .tint(settingsTheme.accent)
             .scrollContentBackground(.hidden) // Hide default List background
+            .fabBarBottomInsetIfNeeded()
             .onAppear {
                 schedulePendingDeepLinksHandling()
                 refreshHomeModuleSummary()

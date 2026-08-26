@@ -29,7 +29,13 @@ struct BodyModelScreen: View {
     /// Non-nil while the quick-add sheet is up; carries the metrics it should offer.
     @State private var quickAddRequest: QuickAddRequest?
     /// True while the mesh rig and the solve are still being prepared.
-    @State private var isPreparing = false
+    ///
+    /// Starts `true`: `reload()` only raises it inside a `Task`, so with a `false` initial value
+    /// the first frame fell through to `loadedContent`, whose default state is `.needsProfile` —
+    /// the "complete your profile" card flashed on every entry, which is exactly what the guard
+    /// in `content` exists to prevent. `reload()` runs from `.onAppear` and always clears the
+    /// flag via `defer`, so nothing can strand it raised.
+    @State private var isPreparing = true
     @State private var reloadTask: Task<Void, Never>?
 
     private let theme = FeatureTheme.photos
@@ -68,6 +74,10 @@ struct BodyModelScreen: View {
             .background(AppScreenBackground(tint: theme.softTint))
             .navigationTitle(AppLocalization.string("bodyModel.title"))
             .navigationBarTitleDisplayMode(.inline)
+            // Without an opaque bar the first card sits under the translucent chrome on entry.
+            // Matches SettingsDetailScaffold, which is the app's convention everywhere else.
+            .toolbarBackground(AppColorRoles.surfaceChrome, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
         .onAppear(perform: reload)
         .onChange(of: samples.count) { _, _ in reload() }

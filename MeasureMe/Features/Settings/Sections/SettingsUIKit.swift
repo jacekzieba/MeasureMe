@@ -1,4 +1,5 @@
 import SwiftUI
+import FabBar
 
 private let settingsDetailTheme = FeatureTheme.settings
 private let settingsDetailTopInset: CGFloat = 12
@@ -231,6 +232,7 @@ struct SettingsDetailScaffold<Content: View>: View {
             .listRowSeparator(.hidden)
             .listSectionSeparator(.hidden)
             .scrollDismissesKeyboard(.interactively)
+            .fabBarBottomInsetIfNeeded()
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
@@ -271,11 +273,28 @@ struct SettingsScrollDetailScaffold<Content: View>: View {
                     .frame(height: settingsDetailTopInset)
                     .accessibilityHidden(true)
             }
+            .fabBarBottomInsetIfNeeded()
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(AppColorRoles.surfaceChrome, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+    }
+}
+
+/// Clears the FabBar for scrollable content inside a pushed navigation destination.
+///
+/// `TabBarContainer` already applies `fabBarSafeAreaPadding()` to each tab's root, but that
+/// inset does not reach views pushed onto a `NavigationStack` nested inside the tab — the last
+/// row of a settings list ended up under the bar with no way to scroll it clear.
+extension View {
+    @ViewBuilder
+    func fabBarBottomInsetIfNeeded() -> some View {
+        if #available(iOS 26.0, *) {
+            self.fabBarSafeAreaPadding()
+        } else {
+            self
+        }
     }
 }
 
