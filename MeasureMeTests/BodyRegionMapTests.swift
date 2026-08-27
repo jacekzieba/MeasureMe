@@ -53,19 +53,29 @@ final class BodyRegionMapTests: XCTestCase {
         }
     }
 
-    /// Dlaczego: tors musi byc najliczniejszym z MIERZONYCH regionow. Gdyby
-    /// ramiona przejely klatke piersiowa, obwod klatki skalowalby reke.
+    /// Dlaczego: zaden CZLONEK nie moze przejac torsu. Gdyby ramiona przejely
+    /// klatke piersiowa, obwod klatki skalowalby reke.
     ///
-    /// Uwaga: tors NIE jest najliczniejszy w ogole. 71% siatki siedzi w glowie,
-    /// dloniach i stopach, bo tam siatka postaci ma detal — glowa sama ma 4253
-    /// wierzcholki wobec 1015 torsu. Liczba wierzcholkow mierzy gestosc
-    /// modelowania, nie powierzchnie ciala.
-    func testTheTorsoIsTheLargestMeasuredRegion() throws {
+    /// Nie pyta juz o najliczniejszy region w ogole, bo `.neck` bije tors —
+    /// 1547 wierzcholkow wobec 1015 — i nie jest to bledem: szyja graniczy z
+    /// gesto modelowana zuchwa i zabiera jej dolna czesc. Liczba wierzcholkow
+    /// mierzy gestosc modelowania, nie powierzchnie ciala; sama glowa ma ich
+    /// ponad cztery tysiace. Skalowanie zuchwy blokuje wygaszanie w
+    /// `neckFactors`, nie podzial regionow.
+    func testNoLimbTakesMoreOfTheMeshThanTheTorso() throws {
         let (_, map) = try makeMap()
         var counts: [BodyRegion: Int] = [:]
-        for region in map.region where region.isMeasured { counts[region, default: 0] += 1 }
-        let largest = try XCTUnwrap(counts.max { $0.value < $1.value })
-        XCTAssertEqual(largest.key, .torso)
+        for region in map.region { counts[region, default: 0] += 1 }
+        let torso = counts[.torso] ?? 0
+        XCTAssertGreaterThan(torso, 0)
+        // Tylko MIERZONE segmenty konczyn. Dlonie i stopy sa niemierzone i
+        // modelowane bardzo gesto — sama dlon ma 1599 wierzcholkow — wiec
+        // porownywanie ich z torsem nie mowi nic o przypisaniu.
+        for (region, count) in counts
+        where region.isMeasured && (region.isArmChain || region == .leftThigh
+            || region == .rightThigh || region == .leftShin || region == .rightShin) {
+            XCTAssertLessThan(count, torso, "\(region) przejal wiecej siatki niz tors")
+        }
     }
 
     /// Dlaczego: `along` musi biec wzdluz CALEGO lancucha regionu, nie jednej

@@ -19,7 +19,7 @@ import Foundation
 import simd
 
 nonisolated enum BodyRegion: CaseIterable, Sendable {
-    case torso, head
+    case torso, neck, head
     case leftUpperArm, rightUpperArm, leftForearm, rightForearm, leftHand, rightHand
     case leftThigh, rightThigh, leftShin, rightShin, leftFoot, rightFoot
 
@@ -65,17 +65,22 @@ nonisolated enum BodySkeleton {
         (.torso, "pelvis", "spine-4"), (.torso, "spine-4", "spine-3"),
         (.torso, "spine-3", "spine-2"), (.torso, "spine-2", "spine-1"),
         (.torso, "spine-1", "neck"),
-        // The neck-to-head bone stays with the head, despite `neckCm` being a
-        // real measurement that the solver places at 0.870 — inside it.
+        // The neck is its own region, not part of the head.
         //
-        // Moving it to the torso was tried and is worse: the torso region then
+        // Giving this bone to the TORSO was tried and is worse: the torso then
         // reaches the head joint at 0.914, so its top band covers the jaw and
         // lower skull, whose base circumference has nothing to do with the
-        // target the solver interpolates there. Edge stretch went from 2.8x to
-        // 9.9x and the waist lost its measurement. The neck measurement is
-        // reached instead through the torso's own top bands, which sit just
-        // below it.
-        (.head, "neck", "head"), (.head, "head", "head-2"),
+        // target the solver interpolates there — edge stretch went from 2.8x to
+        // 9.9x and the waist lost its measurement.
+        //
+        // Leaving it with the HEAD, which is what happened next, made `neckCm`
+        // dead: an unmeasured region is never scaled, so a 35 cm neck and a
+        // 45 cm neck both rendered at 49.3 cm. On a heavy body that put a fixed
+        // thin neck on top of a shoulder girdle scaled up by a third, and the
+        // hollow between them read as a shirt collar. A region of its own is
+        // the only arrangement where the measurement reaches the mesh and the
+        // skull still does not move.
+        (.neck, "neck", "head"), (.head, "head", "head-2"),
         (.leftUpperArm, "l-shoulder", "l-elbow"), (.rightUpperArm, "r-shoulder", "r-elbow"),
         (.leftForearm, "l-elbow", "l-hand"), (.rightForearm, "r-elbow", "r-hand"),
         (.leftHand, "l-hand", "l-hand-2"), (.rightHand, "r-hand", "r-hand-2"),

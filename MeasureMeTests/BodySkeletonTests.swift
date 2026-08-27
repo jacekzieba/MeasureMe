@@ -65,14 +65,25 @@ final class BodySkeletonTests: XCTestCase {
         )
     }
 
-    /// Dlaczego: tors konczy sie na stawie szyi, a glowa zaczyna dokladnie tam —
-    /// bez dziury. Przy probie przeniesienia kosci szyi do torsu skasowalem ja
-    /// przez pomylke i miedzy 0,8595 a 0,9146 zrobila sie luka bez kosci, przez
-    /// co przypisania w tym pasie stawaly sie przypadkowe.
-    func testTheTorsoAndHeadMeetWithoutAGap() throws {
-        let bones = try BodySkeleton.bones(for: .male)
-        let torsoTop = try XCTUnwrap(bones.filter { $0.region == .torso }.map(\.end.y).max())
-        let headStart = try XCTUnwrap(bones.filter { $0.region == .head }.map(\.start.y).min())
-        XCTAssertEqual(torsoTop, headStart, accuracy: 1e-5)
+    /// Dlaczego: lancuch tors -> szyja -> glowa nie moze miec dziury. Przy
+    /// probie przeniesienia kosci szyi do torsu skasowalem ja przez pomylke i
+    /// miedzy 0,8595 a 0,9146 zrobila sie luka bez kosci, przez co przypisania
+    /// w tym pasie stawaly sie przypadkowe.
+    ///
+    /// Miedzy torsem a glowa stoi teraz `.neck` — wlasny, mierzony region, bez
+    /// ktorego `neckCm` nie dotykal siatki. Test pyta wiec o oba styki, nie o
+    /// jeden.
+    func testTheTorsoNeckAndHeadMeetWithoutAGap() throws {
+        for gender in BodyGender.allCases {
+            let bones = try BodySkeleton.bones(for: gender)
+            func top(_ region: BodyRegion) throws -> Float {
+                try XCTUnwrap(bones.filter { $0.region == region }.map(\.end.y).max())
+            }
+            func bottom(_ region: BodyRegion) throws -> Float {
+                try XCTUnwrap(bones.filter { $0.region == region }.map(\.start.y).min())
+            }
+            XCTAssertEqual(try top(.torso), try bottom(.neck), accuracy: 1e-5, "\(gender) tors/szyja")
+            XCTAssertEqual(try top(.neck), try bottom(.head), accuracy: 1e-5, "\(gender) szyja/glowa")
+        }
     }
 }

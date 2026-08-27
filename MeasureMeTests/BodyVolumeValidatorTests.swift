@@ -47,7 +47,7 @@ final class BodyVolumeValidatorTests: XCTestCase {
             BodyCrossSection(y: 0, circumferenceCm: circumference, aspectRatio: 1, exponent: 2),
             BodyCrossSection(y: 100, circumferenceCm: circumference, aspectRatio: 1, exponent: 2)
         ]
-        let parameters = BodyMeshParameters(torso: cylinder, arm: [], leg: [], heightCm: 100, gender: .male, chestProjection: 0.35)
+        let parameters = BodyMeshParameters(torso: cylinder, arm: [], leg: [], heightCm: 100, gender: .male, chestProjection: 0.35, bellyProjection: 0.35, fatness: 0)
 
         let expectedLitres = Double.pi * radius * radius * 100 / 1000
         XCTAssertEqual(BodyVolumeValidator.volumeLitres(parameters), expectedLitres, accuracy: expectedLitres * 0.001)
@@ -65,14 +65,14 @@ final class BodyVolumeValidatorTests: XCTestCase {
             BodyCrossSection(y: 100, circumferenceCm: circumference, aspectRatio: 1, exponent: 2)
         ]
         let single = BodyVolumeValidator.volumeLitres(
-            BodyMeshParameters(torso: cylinder, arm: [], leg: [], heightCm: 100, gender: .male, chestProjection: 0.35)
+            BodyMeshParameters(torso: cylinder, arm: [], leg: [], heightCm: 100, gender: .male, chestProjection: 0.35, bellyProjection: 0.35, fatness: 0)
         )
 
         let asArm = BodyVolumeValidator.volumeLitres(
-            BodyMeshParameters(torso: [], arm: cylinder, leg: [], heightCm: 100, gender: .male, chestProjection: 0.35)
+            BodyMeshParameters(torso: [], arm: cylinder, leg: [], heightCm: 100, gender: .male, chestProjection: 0.35, bellyProjection: 0.35, fatness: 0)
         )
         let asLeg = BodyVolumeValidator.volumeLitres(
-            BodyMeshParameters(torso: [], arm: [], leg: cylinder, heightCm: 100, gender: .male, chestProjection: 0.35)
+            BodyMeshParameters(torso: [], arm: [], leg: cylinder, heightCm: 100, gender: .male, chestProjection: 0.35, bellyProjection: 0.35, fatness: 0)
         )
 
         XCTAssertEqual(asArm, single * 2, accuracy: single * 0.001)
@@ -103,7 +103,9 @@ final class BodyVolumeValidatorTests: XCTestCase {
             leg: base.leg.map { BodyCrossSection(y: $0.y * 2, circumferenceCm: $0.circumferenceCm * 2, aspectRatio: $0.aspectRatio, exponent: $0.exponent) },
             heightCm: base.heightCm * 2,
             gender: base.gender,
-            chestProjection: base.chestProjection
+            chestProjection: base.chestProjection,
+            bellyProjection: base.bellyProjection,
+            fatness: base.fatness
         )
         XCTAssertEqual(
             BodyVolumeValidator.volumeLitres(doubled),

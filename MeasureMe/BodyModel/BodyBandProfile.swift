@@ -107,6 +107,7 @@ nonisolated enum BodyBandProfile {
                 )
             }
             .sorted { $0.position < $1.position }
+            .smoothedCentres(about: axis)
         }
         return profile
     }
@@ -114,7 +115,24 @@ nonisolated enum BodyBandProfile {
     /// Mean direction of the bones making up a region, weighted by nothing —
     /// the chain within a region is close to straight, so a plain mean is
     /// enough and avoids inventing a curve the anatomy does not have.
+    ///
+    /// **The torso and neck are pinned upright instead, and that matters.**
+    /// Their spines lean 2.6 and 1.9 degrees back, which sounds ignorable and
+    /// is not: a band is located by projecting onto this axis, so a *horizontal*
+    /// ring round a leaning torso spans 0.0127 of that projection against a band
+    /// spacing of 0.046. The front and the back of one cross-section therefore
+    /// read factors up to a third of a band apart, and where consecutive bands
+    /// differ — the waist-to-chest ramp of a heavy body — that difference is a
+    /// horizontal stripe. Several of them, evenly spaced, clearest across a
+    /// back. Every torso measurement is a horizontal tape reading anyway, so an
+    /// upright axis is not an approximation here; it is the right frame.
+    ///
+    /// Limbs keep their bones: the A-pose arm is 39.6 degrees off vertical and
+    /// slicing it horizontally over-reads its girth by about 30%. They also
+    /// carry one uniform factor, so a band boundary is not a factor step for
+    /// them and the same tilt costs them nothing.
     static func regionAxis(_ region: BodyRegion, bones: [BodyBone]) -> SIMD3<Float> {
+        if region == .torso || region == .neck { return SIMD3(0, 1, 0) }
         let directions = bones.filter { $0.region == region }
             .map { simd_normalize($0.end - $0.start) }
         guard !directions.isEmpty else { return SIMD3(0, 1, 0) }
@@ -130,5 +148,52 @@ nonisolated enum BodyBandProfile {
         let seed = abs(axis.y) < 0.9 ? SIMD3<Float>(0, 1, 0) : SIMD3<Float>(1, 0, 0)
         let right = simd_normalize(simd_cross(seed, axis))
         return (right, simd_normalize(simd_cross(axis, right)))
+    }
+}
+
+private nonisolated extension Array where Element == BodyBand {
+    /// Takes the side-to-side wobble out of the band centres.
+    ///
+    /// **Why it is there at all.** A band's centre is the mean of its member
+    /// vertices, and the mesh does not distribute those evenly: consecutive
+    /// torso bands hold 72 and 236 vertices, so their means sit 7.8 cm apart in
+    /// depth on a body whose sections are barely 23 cm deep. The deformer scales
+    /// each section about that centre, so a centre that swings back and forth
+    /// pushes one band's surface one way and the next band's the other — which
+    /// renders as horizontal ridges round the torso, worst on a heavy back where
+    /// the factor multiplies the swing. Pre-existing, and invisible until the
+    /// factors got large.
+    ///
+    /// Only the component across the axis is touched. The along-axis component
+    /// is what `position` is derived from and moving it would relocate the band.
+    ///
+    /// Four passes. One was chosen first, when the girth bands still scaled
+    /// about the origin and every extra pass cost half a point of waist
+    /// round-trip; once they turned about the section's own centre instead that
+    /// cost went away — six passes measured no worse than one on both the waist
+    /// and the hips — and the residual banding across a heavy back needed more
+    /// than one pass to disappear.
+    func smoothedCentres(about axis: SIMD3<Float>, passes: Int = 4) -> [BodyBand] {
+        guard count > 2 else { return self }
+        var centres = map { $0.centroid }
+        for _ in 0..<passes {
+            var next = centres
+            for index in 1..<(centres.count - 1) {
+                let blended = (centres[index - 1] + centres[index] * 2 + centres[index + 1]) / 4
+                // Keep this band exactly where it was along the axis.
+                let along = simd_dot(centres[index], axis) - simd_dot(blended, axis)
+                next[index] = blended + axis * along
+            }
+            centres = next
+        }
+        return indices.map { index in
+            BodyBand(
+                centroid: centres[index],
+                axis: self[index].axis,
+                position: self[index].position,
+                circumference: self[index].circumference,
+                vertexCount: self[index].vertexCount
+            )
+        }
     }
 }

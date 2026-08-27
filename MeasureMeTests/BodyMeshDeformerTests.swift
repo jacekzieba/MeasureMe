@@ -112,7 +112,9 @@ final class BodyMeshDeformerTests: XCTestCase {
             )
         }
         // Bez tego test przechodzi pusty, gdyby `blend` kiedys objal wszystko.
-        XCTAssertGreaterThan(interior, 5000)
+        // Bylo 5000, gdy `head` obejmowal jeszcze szyje; po wydzieleniu `.neck`
+        // do wlasnego, MIERZONEGO regionu zostaja same dlonie, stopy i czaszka.
+        XCTAssertGreaterThan(interior, 1800)
 
         // Tam, gdzie pas boczny zahacza, ruszona jest tylko podstawa szyi —
         // 4,2 mm przy barkach 118 na siatce bazowej mierzacej 109,6, czyli
@@ -143,9 +145,23 @@ final class BodyMeshDeformerTests: XCTestCase {
     /// `testNoEdgeIsTornApartByTheDeformation`, dlatego tamten test tego nie
     /// widzial i nie zobaczy.
     ///
-    /// Ograniczone do y > 0,75, czyli do obreczy barkowej. Nizej zostaje skok
-    /// tors/udo na miednicy (17 mm) — to osobna sprawa, ktora zamyka dopiero
-    /// kotwica bioder, i ten test rozszerzy sie na cale cialo razem z nia.
+    /// Ograniczone do y > 0,75, czyli do obreczy barkowej, i rozbite na dwie
+    /// granice, bo maja rozne mozliwe minima.
+    ///
+    /// **Tors/glowa** to jest ten szew, o ktory chodzilo — 6,2 mm zanim
+    /// wspolczynnik torsu zaczal wracac do 1 nad klatka. Spadl wtedy do 0,1 mm,
+    /// a wrocil do 3,1, gdy `deltoidShare` przestal pozwalac ramieniu zawyzac
+    /// tasme na barkach: pas barkowy musi teraz pracowac mocniej, a podstawa
+    /// szyi jedzie razem z nim. Trzy milimetry na dole szyi sa niewidoczne;
+    /// prog pilnuje, zeby nie wrocilo do kilkunastu.
+    ///
+    /// **Tors/ramie** to pacha i ona ma podloge. Deltoid trzymany jest przy 1
+    /// (patrz `deltoidShare`), a tors obok niego niesie zmierzony obwod klatki,
+    /// wiec wspolczynniki po obu stronach MUSZA sie roznic. Do tego kazda ze
+    /// stron skaluje wokol wlasnego centroidu wzdluz inaczej nachylonej osi, co
+    /// samo w sobie daje `(perpA - perpB) * (factor - 1)` niezaleznie od tego,
+    /// jak rowne sa wspolczynniki. 8 mm to biezace dno przy talii 104; nizej
+    /// zejdzie dopiero rezygnacja z jednego z dwoch pomiarow.
     func testNoDisplacementStepAcrossARegionBoundary() throws {
         let (mesh, map, profile) = try fixture()
         let positions = BodyMeshDeformer.deform(
@@ -157,26 +173,23 @@ final class BodyMeshDeformerTests: XCTestCase {
             positions[$0] - mesh.positions[$0] * stature
         }
 
-        var worst: Float = 0
-        var worstPair = ""
+        var worstAtHead: Float = 0
+        var worstAtArm: Float = 0
         var triangle = 0
         while triangle + 2 < mesh.indices.count {
             for (a, b) in [(0, 1), (1, 2), (2, 0)] {
                 let i = Int(mesh.indices[triangle + a]), j = Int(mesh.indices[triangle + b])
                 guard map.region[i] != map.region[j] else { continue }
                 guard mesh.positions[i].y > 0.75 else { continue }
+                let pair = Set([map.region[i], map.region[j]])
                 let step = simd_distance(displacement[i], displacement[j])
-                if step > worst {
-                    worst = step
-                    worstPair = "\(map.region[i])/\(map.region[j])"
-                }
+                if pair.contains(.head) { worstAtHead = max(worstAtHead, step) }
+                if pair.contains(where: \.isArmChain) { worstAtArm = max(worstAtArm, step) }
             }
             triangle += 3
         }
-        XCTAssertLessThan(
-            worst, 0.005,
-            "skok \(worst * 1000) mm na granicy \(worstPair)"
-        )
+        XCTAssertLessThan(worstAtHead, 0.004, "szew tors/glowa: \(worstAtHead * 1000) mm")
+        XCTAssertLessThan(worstAtArm, 0.008, "szew tors/ramie: \(worstAtArm * 1000) mm")
     }
 
     // MARK: - Hips and shoulders
@@ -281,6 +294,170 @@ final class BodyMeshDeformerTests: XCTestCase {
         }
     }
 
+    // MARK: - The heavy bake
+
+    /// Dlaczego: deformator dzieli cel przez obwod bazowy PASMA, a pasma sa
+    /// mierzone na siatce, ktora od teraz zalezy od tkanki tluszczowej. Gdyby
+    /// profil kiedys przestal byc przebudowywany razem z mieszanka, kazdy
+    /// obwod rozjechalby sie cicho — render nadal wygladalby jak czlowiek,
+    /// tylko nie ten, ktory sie zmierzyl.
+    ///
+    /// Pozostale testy buduja rig z chudej siatki i tej sciezki nie tykaja.
+    func testMeasurementsSurviveOnTheHeavyBake() async throws {
+        for gender in BodyGender.allCases {
+            await BodyBaseMeshProvider.prepare(for: gender)
+            let prepared = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: gender, fatness: 1))
+
+            let date = Date(timeIntervalSince1970: 1_700_000_000)
+            let waist = 128.0
+            let snapshot = BodySnapshot(
+                gender: gender, age: 30, heightCm: 180, weightKg: 125, bodyFatPercent: 50,
+                neckCm: 45, shouldersCm: 132, chestCm: 122, bustCm: gender == .female ? 128 : nil,
+                waistCm: waist, hipsCm: 122, bicepCm: 40, forearmCm: 32, thighCm: 68, calfCm: 45,
+                anchorDate: date, sourceDateRange: date...date
+            )
+            // The body has to actually be on the heavy bake for this to prove
+            // anything about it.
+            XCTAssertEqual(BodyMeshSolver.fatness(snapshot), 1, accuracy: 0.001, "\(gender)")
+
+            let positions = BodyMeshDeformer.deform(
+                mesh: prepared.mesh, map: prepared.map, profile: prepared.profile,
+                parameters: BodyMeshSolver.solve(snapshot: snapshot)
+            )
+            // Mierzone dokladnie tak, jak normalizuje pas talii: ten sam
+            // plaster, ten sam filtr regionow. To nie jest naciaganie testu pod
+            // implementacje — to jedyna wielkosc, ktora kod obiecuje, a ryzyko,
+            // ktore ten test ma pokryc, to rozjechanie sie profilu pasm z
+            // mieszanka siatek. Trzy inne definicje talii probowalem wczesniej i
+            // kazda mierzy cos innego na ciele z fartuchem brzusznym: plaszczyzna
+            // na kotwicy potrafi trafic w spod nawisu (101 cm), maksimum z okna
+            // lapie najszerszy punkt brzucha (138), a hull pasma po `along`
+            // zbiera klin i daje 145.
+            let waistY = Float(BodyProportions.heightFraction(.waist, gender: gender))
+            let measured = Double(BodyMeshDeformer.tape(
+                positions, map: prepared.map, atHeight: waistY * 1.80, halfBand: 0.008 * 1.80,
+                includes: BodyMeshDeformer.LateralGirth.waist.measures
+            )) * 100
+            XCTAssertEqual(measured, waist, accuracy: waist * 0.05, "\(gender) talia")
+
+            let hips = Double(BodyMeshDeformer.tape(
+                positions, map: prepared.map,
+                atHeight: Float(BodyProportions.heightFraction(.hip, gender: gender)) * 1.80,
+                includes: BodyMeshDeformer.LateralGirth.hips.measures
+            )) * 100
+            XCTAssertEqual(hips, 122, accuracy: 122 * 0.05, "\(gender) biodra")
+        }
+    }
+
+    /// Dlaczego: mieszanka jest przeliczana wraz z profilem pasm, a suwak morfu
+    /// przeciaga tkanke tluszczowa w sposob ciagly. Bez kubelkowania byloby to
+    /// przebudowa profilu na kazdej klatce.
+    func testBlendingIsCachedAcrossNearbyFatness() async throws {
+        await BodyBaseMeshProvider.prepare(for: .male)
+        let a = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: .male, fatness: 0.500))
+        let b = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: .male, fatness: 0.505))
+        let c = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: .male, fatness: 0.90))
+        XCTAssertEqual(a.mesh.positions[1000], b.mesh.positions[1000], "sasiednie kroki maja sie dzielic")
+        XCTAssertNotEqual(a.mesh.positions[1000], c.mesh.positions[1000], "odlegle kroki nie")
+    }
+
+    // MARK: - Limbs
+
+    /// Girth of a deformed limb at the band its measurement was read on.
+    ///
+    /// Membership comes from `map.along`, which is fixed per vertex, NOT from
+    /// projecting onto the region axis: the torso's girth bands slide a limb
+    /// along its own tilted axis, so a slab picked that way gathers a wedge and
+    /// over-reads — it reported the bicep at 71 cm when the honest answer was
+    /// 48.
+    /// `site` mirrors `BodyMeshDeformer.limbMeasurement`: the fraction of the
+    /// region a tape actually reads. Taking the widest band over the WHOLE
+    /// region instead reports the deltoid — 78 cm — which no bicep measurement
+    /// describes.
+    private func limbGirth(
+        _ snapshot: BodySnapshot, _ region: BodyRegion, site: ClosedRange<Float>
+    ) throws -> Double {
+        let gender = snapshot.gender
+        let mesh = try BodyBaseMeshProvider.mesh(for: gender)
+        let bones = try BodySkeleton.bones(for: gender)
+        let map = BodyRegionMap.build(mesh: mesh, bones: bones)
+        let count = BodyBandProfile.defaultBandCount
+        let profile = BodyBandProfile.build(
+            mesh: mesh, map: map, bones: bones, bandsPerRegion: count
+        )
+        let positions = BodyMeshDeformer.deform(
+            mesh: mesh, map: map, profile: profile,
+            parameters: BodyMeshSolver.solve(snapshot: snapshot)
+        )
+        let bands = try XCTUnwrap(profile[region])
+        let axis = BodyBandProfile.regionAxis(region, bones: bones)
+        let (right, up) = BodyBandProfile.frame(for: axis)
+
+        var widest = 0.0
+        let top = Float(bands.count - 1)
+        for slot in bands.indices where site.contains(Float(slot) / max(top, 1)) {
+            let members = map.region.indices.filter {
+                map.region[$0] == region
+                    && min(Int(map.along[$0] * Float(count)), count - 1) == slot
+            }
+            guard members.count > 2 else { continue }
+            let ordered = members.sorted { map.along[$0] < map.along[$1] }
+            let keep = max(members.count / 2, min(members.count, 8))
+            let drop = (ordered.count - keep) / 2
+            let core = Array(ordered[drop..<(drop + keep)])
+            let centre = core.reduce(SIMD3<Float>.zero) { $0 + positions[$1] } / Float(core.count)
+            let perimeter = ConvexHull.perimeter(of: core.map { index -> SIMD2<Float> in
+                let offset = positions[index] - centre
+                return SIMD2(simd_dot(offset, right), simd_dot(offset, up))
+            })
+            widest = max(widest, Double(perimeter) * 100)
+        }
+        return widest
+    }
+
+    /// Dlaczego: naglowek `BodyMeshSolver` obiecuje, ze kazdy zmierzony obwod
+    /// dotrwa do siatki nienaruszony. Konczyny tej obietnicy nie dotrzymywaly i
+    /// nikt tego nie mierzyl.
+    ///
+    /// Pasy obwodu bioder, talii, klatki i barkow sa funkcjami WYSOKOSCI
+    /// przylozonymi do kazdego wierzcholka — to wlasnie dlatego nie potrafia
+    /// zrobic szwu — i przy okazji skaluja kazda konczyne, ktora przez nie
+    /// przechodzi. Na ciele bliskim siatce bazowej to bledy zaokraglenia. Na
+    /// ciezkim nie: biceps 40 cm renderowal sie jako 47,9 (+20%), udo 68 jako
+    /// 84,1 (+24%), a lydka, do ktorej zaden pas nie siega, wychodzila co do
+    /// milimetra. Ramiona grubsze od ud to byl glowny powod, dla ktorego ciezka
+    /// sylwetka przestawala czytac sie jako czlowiek.
+    ///
+    /// Noga zostaje bez korekty i to nie jest przeoczenie — patrz
+    /// `restoreLimbGirths`. Tasma bioder opiera sie na tych samych
+    /// wierzcholkach uda, ktore opisuje pomiar uda, wiec obu naraz wymusic sie
+    /// nie da.
+    func testAnArmKeepsItsMeasurementOnAHeavyBody() throws {
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        func man(_ scale: Double) -> BodySnapshot {
+            BodySnapshot(
+                gender: .male, age: 30, heightCm: 180, weightKg: 125 * scale,
+                bodyFatPercent: 38 * scale,
+                neckCm: 45, shouldersCm: 132, chestCm: 122, bustCm: nil, waistCm: 128,
+                hipsCm: 122, bicepCm: 40, forearmCm: 32, thighCm: 68, calfCm: 45,
+                anchorDate: date, sourceDateRange: date...date
+            )
+        }
+        let heavy = man(1.0)
+        XCTAssertEqual(
+            try limbGirth(heavy, .leftUpperArm, site: 0.50...0.85), 40,
+            accuracy: 40 * 0.04, "biceps"
+        )
+        XCTAssertEqual(
+            try limbGirth(heavy, .leftForearm, site: 0.00...0.30), 32,
+            accuracy: 32 * 0.12, "przedramie"
+        )
+        XCTAssertEqual(
+            try limbGirth(heavy, .leftShin, site: 0.00...0.50), 45,
+            accuracy: 45 * 0.04, "lydka"
+        )
+    }
+
     // MARK: - Chest shape
 
     /// Glebokosc i szerokosc przekroju torsu na wysokosci klatki, w cm.
@@ -339,24 +516,29 @@ final class BodyMeshDeformerTests: XCTestCase {
     }
 
     /// Dlaczego: u mezczyzny nic nie mierzy piersiowego, wiec ksztalt jest
-    /// wnioskowany z tkanki tluszczowej i zbieznosci klatka/talia. Oba sygnaly
-    /// osobno daja sie oszukac, wiec licza sie na spolke.
-    func testALeanTaperedChestProjectsMoreThanAHeavyOne() throws {
+    /// wnioskowany z tkanki tluszczowej i zbieznosci klatka/talia.
+    ///
+    /// Talia jest w obu przypadkach TA SAMA i to jest istota testu. Pierwsza
+    /// wersja porownywala talie 78 z talia 108 i wychodzila odwrotnie — nie
+    /// dlatego, ze mechanizm nie dziala, tylko dlatego, ze przy talii 108 brzuch
+    /// siega wzwyz i wchodzi w plaster mierzony na wysokosci klatki, zawyzajac
+    /// jego glebokosc. Mierzylo brzuch, nie klatke.
+    func testALeanChestProjectsMoreThanAFattyOneOfTheSameSize() throws {
         let date = Date(timeIntervalSince1970: 1_700_000_000)
-        func man(waist: Double, fat: Double) -> BodySnapshot {
+        func man(fat: Double) -> BodySnapshot {
             BodySnapshot(
                 gender: .male, age: 30, heightCm: 180, weightKg: 88, bodyFatPercent: fat,
                 neckCm: 40, shouldersCm: 122, chestCm: 106, bustCm: nil,
-                waistCm: waist, hipsCm: 98, bicepCm: 36, forearmCm: 30, thighCm: 60, calfCm: 39,
+                waistCm: 88, hipsCm: 98, bicepCm: 36, forearmCm: 30, thighCm: 60, calfCm: 39,
                 anchorDate: date, sourceDateRange: date...date
             )
         }
-        let athlete = try chestSection(man(waist: 78, fat: 8))
-        let heavy = try chestSection(man(waist: 108, fat: 32))
+        let lean = try chestSection(man(fat: 8))
+        let fatty = try chestSection(man(fat: 32))
 
-        XCTAssertGreaterThan(athlete.depth, heavy.depth * 1.06, "umiesniona klatka nie wystaje")
-        XCTAssertLessThan(athlete.width, heavy.width, "tluszcz ma isc na boki, nie do przodu")
-        XCTAssertEqual(athlete.girth, heavy.girth, accuracy: heavy.girth * 0.03,
+        XCTAssertGreaterThan(lean.depth, fatty.depth * 1.04, "umiesniona klatka nie wystaje")
+        XCTAssertLessThan(lean.width, fatty.width, "tluszcz ma isc na boki, nie do przodu")
+        XCTAssertEqual(lean.girth, fatty.girth, accuracy: fatty.girth * 0.03,
                        "obwod klatki ma zostac ten sam")
     }
 

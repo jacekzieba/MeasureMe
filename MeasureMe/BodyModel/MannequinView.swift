@@ -186,7 +186,9 @@ struct MannequinView: UIViewRepresentable {
         // Never builds the rig here. If it is not prepared yet the screen is
         // showing its loading state, and blocking to build it would freeze the
         // very frame that draws the indicator.
-        guard let prepared = BodyBaseMeshProvider.prepared(for: gender) else { return nil }
+        guard let prepared = BodyBaseMeshProvider.prepared(
+            for: gender, fatness: parameters.fatness
+        ) else { return nil }
         let mesh = prepared.mesh
 
         let positions = BodyMeshDeformer.deform(

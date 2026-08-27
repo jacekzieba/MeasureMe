@@ -100,7 +100,9 @@ nonisolated enum BodyMeshSolver {
 
         return BodyMeshParameters(
             torso: torso, arm: arm, leg: leg, heightCm: height, gender: gender,
-            chestProjection: chestProjection(snapshot)
+            chestProjection: chestProjection(snapshot),
+            bellyProjection: bellyProjection(snapshot),
+            fatness: fatness(snapshot)
         )
     }
 
@@ -123,6 +125,37 @@ nonisolated enum BodyMeshSolver {
     /// fooled — a heavy powerlifter has both a high body fat and a real chest,
     /// a skinny man has a low body fat and no chest at all — so they are
     /// averaged rather than gated on each other.
+    /// Which of the two bakes this body is, 0 lean and 1 heavy.
+    ///
+    /// **Why body fat and not BMI.** The bakes differ in softness, not in size,
+    /// and the girth pass handles size. A heavy powerlifter and a heavy sedentary
+    /// man can share a BMI and must not share a shape; their body fat does not.
+    ///
+    /// The neutral points are where each lean bake stops being a fair likeness —
+    /// MakeHuman's unmodified weight axis is a normally-built adult, not an
+    /// athlete — and the far end is where the fat target stops adding.
+    static func fatness(_ snapshot: BodySnapshot) -> Double {
+        let (neutral, full) = snapshot.gender == .male ? (15.0, 38.0) : (24.0, 48.0)
+        return min(max((snapshot.bodyFatPercent - neutral) / (full - neutral), 0), 1)
+    }
+
+    /// How much of the waist girth is carried in front of the spine rather than
+    /// wrapped evenly around it. Same scale as `chestProjection`, same neutral.
+    ///
+    /// Fat above the waist threshold goes to the abdomen, and a waist that has
+    /// caught up with the hips says it went to the front rather than the seat.
+    /// Neither signal alone is enough: a lean pear-shaped body scores low on
+    /// fat and high on nothing, and a heavy body can still carry it low.
+    static func bellyProjection(_ snapshot: BodySnapshot) -> Double {
+        func clamped(_ value: Double) -> Double { min(max(value, 0), 1) }
+        let neutralFat = snapshot.gender == .male ? 18.0 : 28.0
+        let fat = clamped((snapshot.bodyFatPercent - neutralFat) / 18)
+        let apple = snapshot.hipsCm > 0
+            ? clamped((snapshot.waistCm / snapshot.hipsCm - 0.85) / 0.25)
+            : 0
+        return clamped(0.35 + 0.55 * (0.65 * fat + 0.35 * apple))
+    }
+
     static func chestProjection(_ snapshot: BodySnapshot) -> Double {
         func clamped(_ value: Double) -> Double { min(max(value, 0), 1) }
 

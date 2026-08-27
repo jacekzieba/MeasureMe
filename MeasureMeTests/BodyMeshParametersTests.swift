@@ -97,6 +97,6 @@ final class BodyMeshParametersTests: XCTestCase {
                 exponent: 2.3
             )
         }
-        return BodyMeshParameters(torso: sections, arm: sections, leg: sections, heightCm: height, gender: .male, chestProjection: 0.35)
+        return BodyMeshParameters(torso: sections, arm: sections, leg: sections, heightCm: height, gender: .male, chestProjection: 0.35, bellyProjection: 0.35, fatness: 0)
     }
 }

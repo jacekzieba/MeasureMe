@@ -65,6 +65,17 @@ final class BodyModelStartupBenchmarkTests: XCTestCase {
             )
         }
         time("normalne") { _ = BodyMeshDeformer.normals(for: positions, indices: mesh.indices) }
+
+        // The blend the fatness axis added: one mesh interpolation plus the band
+        // profile that has to be rebuilt for it, per bucket. Measured on the
+        // simulator at 18-20 ms cold and 0 warm; a full sweep of all 32 buckets
+        // is 499 ms, which is what a morph slider dragged from a lean snapshot
+        // to a heavy one pays once.
+        for fatness in [0.25, 0.5, 0.75] {
+            time("mieszanka + profil @ \(fatness)") {
+                _ = BodyBaseMeshProvider.prepared(for: .male, fatness: fatness)
+            }
+        }
         time("zrodla SCNGeometry") {
             _ = positions.map { SCNVector3($0.x, $0.y, $0.z) }
         }

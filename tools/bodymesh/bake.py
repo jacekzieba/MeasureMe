@@ -222,10 +222,37 @@ def head_region(positions, body_indices, skeleton):
 
 
 def bake(gender):
+    """Writes the lean bake and the heavy one, in that order.
+
+    **Both come out of one call on purpose.** The app blends them vertex for
+    vertex, which only means anything if the two share a coordinate frame — and
+    `normalisation_of` derives that frame from the body's own bounding box. Bake
+    the heavy variant separately and it gets its own centre and its own height
+    divisor, so the "same" vertex sits somewhere else in each file and the blend
+    shears the body. The transform is taken from the LEAN body and applied to
+    both, exactly as it already is for the skeleton.
+
+    The skeleton likewise stays the lean one. Weight targets move flesh, not
+    joints; a heavier body has the same bones in the same places."""
     with open(f"{SOURCE}/base.obj") as handle:
         positions, faces = parse_obj(handle.readlines())
     with open(f"{SOURCE}/caucasian-{gender}-young.target") as handle:
         positions = apply_target(positions, parse_target(handle.readlines()))
+
+    # Applied on top of the gender target, which is what MakeHuman's macro
+    # system does: `universal-*-averagemuscle-averageweight.target` is an empty
+    # file, so the mesh as baked above IS the neutral state of the muscle and
+    # weight axes, and this target is a pure delta away from it.
+    #
+    # **Minimum muscle, maximum weight**, not average muscle. The averagemuscle
+    # variant moves a vertex by at most 2.8 cm, 1.6 at the 95th percentile —
+    # nothing, next to the 14.3 cm the gender target moves — because it is a
+    # heavy body that kept its muscle. This one reaches 12.5 cm and 8.4, a
+    # change of the same order as sex, and it is the right end of the axis: a
+    # body carrying 38% fat is soft, and softness is exactly what a girth
+    # deformer cannot invent by scaling a lean bake.
+    with open(f"{SOURCE}/universal-{gender}-young-minmuscle-maxweight.target") as handle:
+        heavy = apply_target(positions, parse_target(handle.readlines()))
 
     skeleton = joint_centroids(positions, faces)
     body_faces = [face for group, face in faces if group == "body"]
@@ -234,28 +261,43 @@ def bake(gender):
     region = head_region(positions, body_indices, skeleton)
     adjacency = build_adjacency(body_faces, len(positions))
     positions = taubin_smooth(positions, adjacency, region, HEAD_SMOOTHING_ITERATIONS)
+    heavy = taubin_smooth(heavy, adjacency, region, HEAD_SMOOTHING_ITERATIONS)
 
-    positions, body_faces = compact(positions, body_faces)
+    positions, tri_faces = compact(positions, body_faces)
+    # Same faces in, same mapping out, so the two vertex arrays stay aligned.
+    heavy, _ = compact(heavy, body_faces)
     # The skeleton must ride the same transform as the mesh. Deriving it from
     # the body and applying it to both is the whole point of the split —
     # normalising the joints on their own would scale them by their own extent.
     transform = normalisation_of(positions)
     positions = normalise_with(positions, transform)
+    heavy = normalise_with(heavy, transform)
     names = sorted(skeleton)
     skeleton = dict(zip(names, normalise_with([skeleton[n] for n in names], transform)))
-    tris = triangulate(body_faces)
+    tris = triangulate(tri_faces)
 
-    with open(f"{OUTPUT}/{gender.capitalize()}Base.bodymesh", "wb") as handle:
-        handle.write(encode_bodymesh(positions, compute_normals(positions, tris), tris))
-    return skeleton, len(positions), len(tris)
+    for name, verts in ((f"{gender.capitalize()}Base", positions),
+                        (f"{gender.capitalize()}Heavy", heavy)):
+        with open(f"{OUTPUT}/{name}.bodymesh", "wb") as handle:
+            handle.write(encode_bodymesh(verts, compute_normals(verts, tris), tris))
+    return skeleton, len(positions), len(tris), height_of(heavy)
+
+
+def height_of(positions):
+    ys = [p[1] for p in positions]
+    return max(ys) - min(ys)
 
 
 def main():
     report = {}
     for gender in ("male", "female"):
-        skeleton, vertices, tris = bake(gender)
+        skeleton, vertices, tris, heavy_height = bake(gender)
         report[gender] = skeleton
-        print(f"{gender}: {vertices} vertices, {tris} triangles")
+        # The heavy bake is NOT renormalised, so this is not 1.0 and must not
+        # be: a body that gains weight does not gain height, and rescaling it to
+        # unit height would quietly shorten it once the app scales to stature.
+        print(f"{gender}: {vertices} vertices, {tris} triangles, "
+              f"heavy height {heavy_height:.4f} of lean")
     with open(f"{OUTPUT}/BodySkeleton.json", "w") as handle:
         json.dump(report, handle, indent=2, sort_keys=True)
 
