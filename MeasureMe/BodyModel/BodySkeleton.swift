@@ -31,6 +31,19 @@ nonisolated enum BodyRegion: CaseIterable, Sendable {
         default: return true
         }
     }
+
+    /// Everything hanging off a shoulder. In the A-pose these regions cross
+    /// most of the body's height, so a band of heights that means one thing for
+    /// the torso rarely means the same thing for them.
+    var isArmChain: Bool {
+        switch self {
+        case .leftUpperArm, .rightUpperArm, .leftForearm, .rightForearm,
+             .leftHand, .rightHand:
+            return true
+        default:
+            return false
+        }
+    }
 }
 
 nonisolated struct BodyBone: Equatable, Sendable {

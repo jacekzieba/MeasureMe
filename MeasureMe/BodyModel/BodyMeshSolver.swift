@@ -98,7 +98,46 @@ nonisolated enum BodyMeshSolver {
             to: (y: anchorY(.chest), circumference: snapshot.bicepCm)
         )
 
-        return BodyMeshParameters(torso: torso, arm: arm, leg: leg, heightCm: height)
+        return BodyMeshParameters(
+            torso: torso, arm: arm, leg: leg, heightCm: height, gender: gender,
+            chestProjection: chestProjection(snapshot)
+        )
+    }
+
+    /// How much of the chest girth is carried in front of the ribcage rather
+    /// than spread evenly round it. 0 is a barrel, 1 projects hard forward, and
+    /// **0.35 is the baked mesh's own shape** — a body scoring 0.35 is left
+    /// exactly as the deformer's girth pass left it.
+    ///
+    /// **Women: measured, not inferred.** The model already requires a woman to
+    /// log both `.chest` and `.bust`, which is the bra-fitting pair, so their
+    /// difference is breast projection read straight off the tape. Until now
+    /// `chestCm` was collected from women and then thrown away — the solver
+    /// took `bustCm ?? chestCm` and never looked at it.
+    ///
+    /// **Men: inferred, because nothing measures a pectoral.** Two signals
+    /// agree on the answer often enough to use: body fat, and the chest-to-waist
+    /// taper. A lean man whose chest is a third wider than his waist carries
+    /// that girth as muscle in front; a heavy man whose chest and waist are
+    /// close carries it as fat all the way round. Either signal alone is
+    /// fooled — a heavy powerlifter has both a high body fat and a real chest,
+    /// a skinny man has a low body fat and no chest at all — so they are
+    /// averaged rather than gated on each other.
+    static func chestProjection(_ snapshot: BodySnapshot) -> Double {
+        func clamped(_ value: Double) -> Double { min(max(value, 0), 1) }
+
+        switch snapshot.gender {
+        case .female:
+            guard let bust = snapshot.bustCm, snapshot.chestCm > 0 else { return 0.35 }
+            // Bra sizing runs about 2.5 cm of difference per cup. Zero apart is
+            // a flat chest; 16 cm is a very full one.
+            return clamped(0.08 + 0.85 * (bust - snapshot.chestCm) / 16)
+        case .male:
+            guard snapshot.waistCm > 0 else { return 0.35 }
+            let leanness = clamped((25 - snapshot.bodyFatPercent) / 13)
+            let taper = clamped((snapshot.chestCm / snapshot.waistCm - 1.05) / 0.25)
+            return clamped(0.08 + 0.62 * (leanness + taper) / 2)
+        }
     }
 
     /// Builds a level stack in which every anchor is itself a level.
