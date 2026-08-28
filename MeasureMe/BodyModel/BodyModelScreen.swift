@@ -80,6 +80,12 @@ struct BodyModelScreen: View {
             .toolbarBackground(.visible, for: .navigationBar)
         }
         .onAppear(perform: reload)
+        // The blended meshes are only worth their megabyte while this screen is
+        // up; the decoded bakes behind them stay, so coming back is still cheap.
+        .onDisappear {
+            reloadTask?.cancel()
+            BodyBaseMeshProvider.releaseBlends()
+        }
         .onChange(of: samples.count) { _, _ in reload() }
         .onChange(of: userGender) { _, _ in reload() }
         .sheet(item: $quickAddRequest) { request in
@@ -233,21 +239,51 @@ struct BodyModelScreen: View {
                 age: userAge,
                 fallbackHeightCm: manualHeight
             )
+            await warmMorphRange(gender: gender)
         }
     }
 
     private var mannequinCard: some View {
         AppGlassCard(cornerRadius: AppRadius.xl, tint: theme.softTint) {
-            Group {
-                if let parameters = viewModel.currentParameters, let gender = resolvedGender {
-                    MannequinView(parameters: parameters, gender: gender)
-                        .frame(height: 380)
+            VStack(spacing: AppSpacing.xs) {
+                ZStack(alignment: .topTrailing) {
+                    Group {
+                        if let parameters = viewModel.currentParameters, let gender = resolvedGender {
+                            MannequinView(parameters: parameters, gender: gender)
+                                .frame(height: 380)
+                        }
+                    }
+                    .accessibilityElement()
+                    .accessibilityLabel(AppLocalization.string("bodyModel.accessibility.mannequin"))
+                    .accessibilityIdentifier("photos.bodyModel.mannequin")
+
+                    betaBadge
                 }
+                betaNote
             }
-            .accessibilityElement()
-            .accessibilityLabel(AppLocalization.string("bodyModel.accessibility.mannequin"))
-            .accessibilityIdentifier("photos.bodyModel.mannequin")
         }
+    }
+
+    /// The mannequin is a solved approximation, not a scan. The badge marks it at a glance;
+    /// `betaNote` carries the sentence VoiceOver reads, so the badge itself stays decorative.
+    private var betaBadge: some View {
+        Text(AppLocalization.string("bodyModel.beta.badge"))
+            .font(AppTypography.badge)
+            .foregroundStyle(AppColorRoles.textOnAccent)
+            .padding(.horizontal, AppSpacing.xs)
+            .padding(.vertical, AppSpacing.xxs)
+            .background(Capsule(style: .continuous).fill(theme.accent))
+            .accessibilityHidden(true)
+    }
+
+    private var betaNote: some View {
+        Text(AppLocalization.string("bodyModel.beta.note"))
+            .font(AppTypography.micro)
+            .foregroundStyle(AppColorRoles.textSecondary)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
+            .accessibilityIdentifier("photos.bodyModel.betaNote")
     }
 
     private var morphControls: some View {
@@ -354,7 +390,22 @@ struct BodyModelScreen: View {
                 age: userAge,
                 fallbackHeightCm: manualHeight
             )
+            if let gender = resolvedGender {
+                await warmMorphRange(gender: gender)
+            }
         }
+    }
+
+    /// Builds the blended meshes the slider will land on before the spinner
+    /// drops, so the first drag does not stop at every grid node to build one.
+    ///
+    /// Deliberately inside the same task as the load: it adds up to five 18 ms
+    /// builds to a preparation that already costs a few hundred, and doing it
+    /// behind an already-drawn mannequin would mean hitching the first drag
+    /// instead.
+    private func warmMorphRange(gender: BodyGender) async {
+        guard let bounds = viewModel.morphFatnessBounds else { return }
+        await BodyBaseMeshProvider.warm(gender: gender, between: bounds.0, and: bounds.1)
     }
 }
 

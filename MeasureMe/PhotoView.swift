@@ -234,6 +234,9 @@ struct PhotoView: View {
             .onChange(of: router.photoComposerRequestID) { _, _ in
                 handlePhotoComposerRequestChange()
             }
+            .onChange(of: router.bodyModelRequestID) { _, _ in
+                consumePendingBodyModelRequestIfNeeded()
+            }
             .task(id: viewModel.heroCompareOverride?.id) {
                 await scheduleHeroCompareOverrideReset()
             }
@@ -377,6 +380,14 @@ struct PhotoView: View {
         }
     }
 
+    /// Opens the body model sheet for a router request. Runs on appear too, so a request
+    /// raised while the Photos tab was not yet on screen is not dropped.
+    private func consumePendingBodyModelRequestIfNeeded() {
+        guard let requestID = router.bodyModelRequestID else { return }
+        showBodyModel = true
+        router.consumeBodyModelRequest(requestID)
+    }
+
     private func consumePendingPhotoComposerRequestIfNeeded() {
         guard let requestID = router.photoComposerRequestID else { return }
         Task { @MainActor in
@@ -446,6 +457,7 @@ struct PhotoView: View {
     private func handlePhotoViewAppear() {
         applyExternalFilterIfNeeded()
         consumePendingPhotoComposerRequestIfNeeded()
+        consumePendingBodyModelRequestIfNeeded()
         #if DEBUG
         openUITestImportHookIfNeeded()
         #endif

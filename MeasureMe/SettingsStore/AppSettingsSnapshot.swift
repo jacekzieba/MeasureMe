@@ -100,6 +100,7 @@ struct AppSettingsSnapshot: Sendable {
         var photosFilterTag: String
         var saveUnchangedQuickAdd: Bool
         var hasCustomizedMetrics: Bool
+        var lastSeenWhatsNewVersion: String = ""
     }
 
     struct Premium: Sendable {
@@ -340,7 +341,8 @@ struct AppSettingsSnapshot: Sendable {
                 quickAddHintDismissed: defaults.bool(forKey: AppSettingsKeys.Experience.quickAddHintDismissed),
                 photosFilterTag: defaults.string(forKey: AppSettingsKeys.Experience.photosFilterTag) ?? "",
                 saveUnchangedQuickAdd: defaults.bool(forKey: AppSettingsKeys.Experience.saveUnchangedQuickAdd),
-                hasCustomizedMetrics: defaults.bool(forKey: AppSettingsKeys.Experience.hasCustomizedMetrics)
+                hasCustomizedMetrics: defaults.bool(forKey: AppSettingsKeys.Experience.hasCustomizedMetrics),
+                lastSeenWhatsNewVersion: defaults.string(forKey: AppSettingsKeys.Experience.lastSeenWhatsNewVersion) ?? ""
             ),
             premium: .init(
                 premiumEntitlement: defaults.bool(forKey: AppSettingsKeys.Premium.entitlement),

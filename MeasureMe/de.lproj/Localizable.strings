@@ -1552,9 +1552,23 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "bodyModel.dates.older" = "Von";
 "bodyModel.dates.newer" = "Bis";
 "bodyModel.accessibility.mannequin" = "Körpersilhouette aus deinen Maßen erstellt. Änderungen sind unten aufgelistet.";
+"bodyModel.beta.badge" = "BETA";
+"bodyModel.beta.note" = "Schematische Darstellung in der Beta — sie kann von deiner echten Silhouette abweichen.";
 "bodyModel.site.thigh" = "Oberschenkel";
 "bodyModel.site.calf" = "Wade";
 "bodyModel.site.bicep" = "Bizeps";
 "bodyModel.site.forearm" = "Unterarm";
 "You can choose up to 3 key metrics for Home." = "Für den Start-Bildschirm kannst du bis zu 3 Kennzahlen wählen.";
 "No photo" = "Kein Foto";
+
+/* What's New — release notes shown once after an update */
+"whatsNew.title" = "Neu in dieser Version";
+"whatsNew.subtitle" = "Version %@";
+"whatsNew.action.open" = "Zeig es mir";
+"whatsNew.action.dismiss" = "Später";
+"whatsNew.1_5_4.bodyModel.title" = "Dein Körpermodell in 3D";
+"whatsNew.1_5_4.bodyModel.message" = "Aus deinen Maßen entsteht jetzt eine Silhouette, die du drehen und ansehen kannst. Noch in der Beta — eine schematische Darstellung, kein Scan.";
+"whatsNew.1_5_4.compare.title" = "Zwei Daten vergleichen";
+"whatsNew.1_5_4.compare.message" = "Wähle zwei beliebige Daten und blende dazwischen über, um zu sehen, wie sich deine Form verändert hat.";
+"whatsNew.1_5_4.accuracy.title" = "Eine genauere Silhouette";
+"whatsNew.1_5_4.accuracy.message" = "Hüfte, Schultern und Brust folgen deinen Maßen jetzt deutlich genauer.";

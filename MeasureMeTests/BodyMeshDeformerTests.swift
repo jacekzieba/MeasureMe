@@ -349,16 +349,68 @@ final class BodyMeshDeformerTests: XCTestCase {
         }
     }
 
-    /// Dlaczego: mieszanka jest przeliczana wraz z profilem pasm, a suwak morfu
-    /// przeciaga tkanke tluszczowa w sposob ciagly. Bez kubelkowania byloby to
-    /// przebudowa profilu na kazdej klatce.
-    func testBlendingIsCachedAcrossNearbyFatness() async throws {
+    /// Dlaczego: profil pasm kosztuje 18 ms, wiec mieszanki musza siedziec w
+    /// siatce wezlow — ale suwak morfu przeciaga tkanke tluszczowa w sposob
+    /// ciagly, wiec ZAOKRAGLENIE do wezla widac. Zmierzone: 3-6 mm skoku na
+    /// 1800 wierzcholkach na kazdej granicy, glownie w talii, tyle samo zmiany
+    /// pikseli co poltorej klatki animacji Play — w zerowym czasie.
+    ///
+    /// Dlatego `prepared` INTERPOLUJE miedzy dwoma sasiednimi wezlami. Mieszanka
+    /// pozycji jest liniowa w `fatness`, wiec wynik jest dokladnie taki, jaki
+    /// dalaby mieszanka policzona wprost; przyblizony jest tylko profil pasm.
+    func testFatnessBetweenGridNodesInterpolatesRatherThanRounding() async throws {
         await BodyBaseMeshProvider.prepare(for: .male)
         let a = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: .male, fatness: 0.500))
         let b = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: .male, fatness: 0.505))
         let c = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: .male, fatness: 0.90))
-        XCTAssertEqual(a.mesh.positions[1000], b.mesh.positions[1000], "sasiednie kroki maja sie dzielic")
-        XCTAssertNotEqual(a.mesh.positions[1000], c.mesh.positions[1000], "odlegle kroki nie")
+        XCTAssertNotEqual(a.mesh.positions[1000], b.mesh.positions[1000], "bliskie wartosci maja sie roznic")
+        XCTAssertNotEqual(a.mesh.positions[1000], c.mesh.positions[1000], "odlegle tym bardziej")
+
+        // Blisko siebie znaczy blisko siebie: 0,5% zakresu tluszczu to ulamek
+        // milimetra, a nie skok.
+        let step = simd_length(b.mesh.positions[1000] - a.mesh.positions[1000])
+        let span = simd_length(c.mesh.positions[1000] - a.mesh.positions[1000])
+        XCTAssertLessThan(step, span / 50, "0,005 zakresu nie moze ruszac tyle co 0,4")
+    }
+
+    /// Dlaczego: siatka wezlow jest po to, zeby profilu nie budowac na kazdej
+    /// klatce. Wartosc trafiajaca dokladnie w wezel ma oddac wpis z cache'u.
+    func testGridNodesThemselvesAreCached() async throws {
+        await BodyBaseMeshProvider.prepare(for: .male)
+        let first = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: .male, fatness: 0.25))
+        let again = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: .male, fatness: 0.25))
+        XCTAssertEqual(first.mesh.positions[1000], again.mesh.positions[1000])
+        XCTAssertEqual(first.profile[.torso]?.first?.circumference,
+                       again.profile[.torso]?.first?.circumference)
+    }
+
+    /// Dlaczego: bez limitu slownik mieszanek rosl do 11 MB i nic go nie
+    /// zwalnialo. `releaseBlends` zostawia zdekodowane wypieki i mape regionow —
+    /// to one kosztuja 121 ms na plec — a oddaje same mieszanki.
+    func testReleasingBlendsKeepsTheBakes() async throws {
+        await BodyBaseMeshProvider.prepare(for: .male)
+        let before = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: .male, fatness: 0.5))
+        BodyBaseMeshProvider.releaseBlends()
+        let after = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: .male, fatness: 0.5))
+        XCTAssertEqual(before.mesh.positions[1000], after.mesh.positions[1000])
+    }
+
+    /// Dlaczego: rozgrzewka ma pokryc caly odcinek, po ktorym jezdzi suwak, i to
+    /// poza glownym aktorem — inaczej pierwszy przeciag placi 18 ms na kazdej
+    /// granicy wezla.
+    func testWarmingCoversTheWholeSliderSpan() async throws {
+        await BodyBaseMeshProvider.prepare(for: .male)
+        BodyBaseMeshProvider.releaseBlends()
+        await BodyBaseMeshProvider.warm(gender: .male, between: 0.2, and: 0.8)
+
+        // Po rozgrzewce kazda wartosc z tego zakresu ma byc gotowa bez
+        // budowania czegokolwiek — mierzone czasem, bo to jedyny obserwowalny
+        // skutek trafienia w cache.
+        let started = Date()
+        for step in 0...20 {
+            _ = BodyBaseMeshProvider.prepared(for: .male, fatness: 0.2 + 0.6 * Double(step) / 20)
+        }
+        XCTAssertLessThan(Date().timeIntervalSince(started), 0.5, "budowa profilu to 18 ms na wezel")
     }
 
     // MARK: - Limbs

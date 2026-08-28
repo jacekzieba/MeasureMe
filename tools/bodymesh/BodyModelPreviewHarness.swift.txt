@@ -1,0 +1,454 @@
+/// TEMPORARY visual harness — not a regression test.
+/// Renders the mannequin for a matrix of dummy bodies (gender x build x stature)
+/// and writes contact sheets so the silhouettes can actually be looked at.
+/// Delete once the review is done.
+
+@testable import MeasureMe
+
+import XCTest
+import SwiftUI
+import SceneKit
+import simd
+
+@MainActor
+final class BodyModelDummyPreviewTests: XCTestCase {
+
+    private struct Profile {
+        let name: String
+        let gender: BodyGender
+        let heightCm: Double
+        let weightKg: Double
+        let bodyFat: Double
+        let neck: Double
+        let shoulders: Double
+        /// Men: chest. Women: underbust.
+        let chest: Double
+        let bust: Double?
+        let waist: Double
+        let hips: Double
+        let bicep: Double
+        let forearm: Double
+        let thigh: Double
+        let calf: Double
+
+        var snapshot: BodySnapshot {
+            BodySnapshot(
+                gender: gender, age: 30,
+                heightCm: heightCm, weightKg: weightKg, bodyFatPercent: bodyFat,
+                neckCm: neck, shouldersCm: shoulders, chestCm: chest, bustCm: bust,
+                waistCm: waist, hipsCm: hips,
+                bicepCm: bicep, forearmCm: forearm, thighCm: thigh, calfCm: calf,
+                anchorDate: Date(timeIntervalSince1970: 1_700_000_000),
+                sourceDateRange: Date(timeIntervalSince1970: 1_700_000_000)...Date(timeIntervalSince1970: 1_700_000_000)
+            )
+        }
+    }
+
+    // Anthropometrically plausible sets; circumferences in cm.
+    private static let males: [Profile] = [
+        Profile(name: "M · szczupły\n180 cm · 65 kg · 9%", gender: .male,
+                heightCm: 180, weightKg: 65, bodyFat: 9,
+                neck: 35, shoulders: 108, chest: 90, bust: nil, waist: 72, hips: 88,
+                bicep: 28, forearm: 25, thigh: 50, calf: 34),
+        Profile(name: "M · przeciętny\n180 cm · 82 kg · 16%", gender: .male,
+                heightCm: 180, weightKg: 82, bodyFat: 16,
+                neck: 39, shoulders: 120, chest: 102, bust: nil, waist: 84, hips: 98,
+                bicep: 34, forearm: 29, thigh: 58, calf: 38),
+        Profile(name: "M · otyły\n180 cm · 125 kg · 38%", gender: .male,
+                heightCm: 180, weightKg: 125, bodyFat: 38,
+                neck: 45, shoulders: 132, chest: 122, bust: nil, waist: 128, hips: 122,
+                bicep: 40, forearm: 32, thigh: 68, calf: 45),
+        Profile(name: "M · niski\n162 cm · 68 kg · 20%", gender: .male,
+                heightCm: 162, weightKg: 68, bodyFat: 20,
+                neck: 38, shoulders: 110, chest: 98, bust: nil, waist: 88, hips: 96,
+                bicep: 31, forearm: 27, thigh: 53, calf: 36),
+        Profile(name: "M · wysoki\n198 cm · 92 kg · 15%", gender: .male,
+                heightCm: 198, weightKg: 92, bodyFat: 15,
+                neck: 41, shoulders: 126, chest: 106, bust: nil, waist: 86, hips: 100,
+                bicep: 36, forearm: 30, thigh: 60, calf: 40),
+    ]
+
+    private static let females: [Profile] = [
+        Profile(name: "K · szczupła\n168 cm · 52 kg · 18%", gender: .female,
+                heightCm: 168, weightKg: 52, bodyFat: 18,
+                neck: 30, shoulders: 96, chest: 74, bust: 82, waist: 62, hips: 88,
+                bicep: 24, forearm: 21, thigh: 48, calf: 32),
+        Profile(name: "K · przeciętna\n168 cm · 65 kg · 28%", gender: .female,
+                heightCm: 168, weightKg: 65, bodyFat: 28,
+                neck: 33, shoulders: 102, chest: 80, bust: 92, waist: 74, hips: 100,
+                bicep: 28, forearm: 23, thigh: 55, calf: 35),
+        Profile(name: "K · otyła\n168 cm · 105 kg · 45%", gender: .female,
+                heightCm: 168, weightKg: 105, bodyFat: 45,
+                neck: 38, shoulders: 114, chest: 104, bust: 118, waist: 112, hips: 128,
+                bicep: 36, forearm: 28, thigh: 68, calf: 44),
+        Profile(name: "K · niska\n152 cm · 50 kg · 25%", gender: .female,
+                heightCm: 152, weightKg: 50, bodyFat: 25,
+                neck: 30, shoulders: 92, chest: 74, bust: 84, waist: 68, hips: 90,
+                bicep: 25, forearm: 21, thigh: 48, calf: 31),
+        Profile(name: "K · wysoka\n183 cm · 70 kg · 22%", gender: .female,
+                heightCm: 183, weightKg: 70, bodyFat: 22,
+                neck: 33, shoulders: 108, chest: 80, bust: 92, waist: 72, hips: 100,
+                bicep: 27, forearm: 23, thigh: 55, calf: 36),
+    ]
+
+    // MARK: - Output
+
+    private static let cell = CGSize(width: 560, height: 900)
+
+    private func outputDirectory() -> URL {
+        let preferred = URL(fileURLWithPath: "/Users/jacek/Desktop/MeasureMe/build/body-previews")
+        if (try? FileManager.default.createDirectory(at: preferred, withIntermediateDirectories: true)) != nil {
+            return preferred
+        }
+        let fallback = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("body-previews")
+        try? FileManager.default.createDirectory(at: fallback, withIntermediateDirectories: true)
+        return fallback
+    }
+
+    // MARK: - Rendering
+
+    /// Renders one body at the given yaw. Reuses one hosting controller per
+    /// profile so the 13 380-vertex deform happens once, not once per angle.
+    private func render(profile: Profile, yaws: [Double]) async throws -> [UIImage] {
+        let parameters = BodyMeshSolver.solve(snapshot: profile.snapshot)
+
+        let view = ZStack {
+            Color(white: 0.97)
+            MannequinView(parameters: parameters, gender: profile.gender)
+        }
+        .frame(width: Self.cell.width, height: Self.cell.height)
+
+        let vc = UIHostingController(rootView: view)
+        vc.overrideUserInterfaceStyle = .light
+        vc.view.frame = CGRect(origin: .zero, size: Self.cell)
+        let window = UIWindow(frame: vc.view.frame)
+        window.rootViewController = vc
+        window.makeKeyAndVisible()
+        vc.view.setNeedsLayout()
+        vc.view.layoutIfNeeded()
+        try await Task.sleep(for: .milliseconds(900))
+
+        guard let scnView = Self.findSCNView(in: vc.view) else {
+            XCTFail("No SCNView for \(profile.name)")
+            return []
+        }
+        guard let bodyNode = scnView.scene?.rootNode.childNode(withName: "body", recursively: false),
+              bodyNode.geometry != nil else {
+            XCTFail("No geometry for \(profile.name) — base mesh not prepared?")
+            return []
+        }
+        scnView.backgroundColor = UIColor(white: 0.97, alpha: 1)
+        scnView.scene?.background.contents = UIColor(white: 0.97, alpha: 1)
+
+        var images: [UIImage] = []
+        for yaw in yaws {
+            bodyNode.eulerAngles.y = Float(yaw)
+            try await Task.sleep(for: .milliseconds(120))
+            images.append(scnView.snapshot())
+        }
+        window.isHidden = true
+        return images
+    }
+
+    private static func findSCNView(in view: UIView) -> SCNView? {
+        if let scn = view as? SCNView { return scn }
+        for sub in view.subviews {
+            if let found = findSCNView(in: sub) { return found }
+        }
+        return nil
+    }
+
+    /// Columns = profiles, rows = viewing angles, plus a caption strip on top.
+    private func contactSheet(title: String, columns: [(String, [UIImage])]) -> UIImage {
+        let header: CGFloat = 56
+        let caption: CGFloat = 44
+        let rows = columns.first?.1.count ?? 1
+        let size = CGSize(
+            width: Self.cell.width * CGFloat(columns.count),
+            height: header + caption + Self.cell.height * CGFloat(rows)
+        )
+        return UIGraphicsImageRenderer(size: size).image { ctx in
+            UIColor.white.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+
+            (title as NSString).draw(
+                at: CGPoint(x: 20, y: 16),
+                withAttributes: [
+                    .font: UIFont.systemFont(ofSize: 26, weight: .bold),
+                    .foregroundColor: UIColor.black
+                ]
+            )
+
+            let style = NSMutableParagraphStyle()
+            style.alignment = .center
+            for (index, column) in columns.enumerated() {
+                let x = Self.cell.width * CGFloat(index)
+                (column.0 as NSString).draw(
+                    in: CGRect(x: x, y: header, width: Self.cell.width, height: caption),
+                    withAttributes: [
+                        .font: UIFont.systemFont(ofSize: 14, weight: .semibold),
+                        .foregroundColor: UIColor.darkGray,
+                        .paragraphStyle: style
+                    ]
+                )
+                for (row, image) in column.1.enumerated() {
+                    image.draw(in: CGRect(
+                        x: x,
+                        y: header + caption + Self.cell.height * CGFloat(row),
+                        width: Self.cell.width,
+                        height: Self.cell.height
+                    ))
+                }
+                UIColor(white: 0.85, alpha: 1).setStroke()
+                let separator = UIBezierPath()
+                separator.move(to: CGPoint(x: x, y: header))
+                separator.addLine(to: CGPoint(x: x, y: size.height))
+                separator.stroke()
+            }
+        }
+    }
+
+    // MARK: - Test
+
+    func testRenderDummyBodyMatrix() async throws {
+        await BodyBaseMeshProvider.prepare(for: .male)
+        await BodyBaseMeshProvider.prepare(for: .female)
+
+        let directory = outputDirectory()
+        let yaws: [Double] = [0, .pi / 4, .pi / 2, 3 * .pi / 4]
+
+        for (title, profiles) in [("Mezczyzna", Self.males), ("Kobieta", Self.females)] {
+            var columns: [(String, [UIImage])] = []
+            for profile in profiles {
+                let images = try await render(profile: profile, yaws: yaws)
+                XCTAssertEqual(images.count, yaws.count)
+                columns.append((profile.name.replacingOccurrences(of: "\n", with: " — "), images))
+            }
+            let sheet = contactSheet(title: "\(title) — 0 / 45 / 90 / 135 st.", columns: columns)
+            let url = directory.appendingPathComponent(
+                title == "Mezczyzna" ? "male-matrix.png" : "female-matrix.png"
+            )
+            try XCTUnwrap(sheet.pngData()).write(to: url)
+            print("📸 WROTE \(url.path)")
+        }
+    }
+
+    /// Isolates one measurement at a time: everything else held fixed, so the
+    /// question "does the mesh actually respond to this number" has a picture.
+    func testRenderSingleMetricSweeps() async throws {
+        await BodyBaseMeshProvider.prepare(for: .male)
+        await BodyBaseMeshProvider.prepare(for: .female)
+
+        let f = Self.females[1]   // 168 cm, 65 kg
+        let m = Self.males[1]     // 180 cm, 82 kg
+
+        func male(_ name: String, shoulders: Double? = nil, hips: Double? = nil,
+                  waist: Double? = nil) -> Profile {
+            Profile(name: name, gender: .male, heightCm: m.heightCm, weightKg: m.weightKg,
+                    bodyFat: m.bodyFat, neck: m.neck, shoulders: shoulders ?? m.shoulders,
+                    chest: m.chest, bust: nil, waist: waist ?? m.waist, hips: hips ?? m.hips,
+                    bicep: m.bicep, forearm: m.forearm, thigh: m.thigh, calf: m.calf)
+        }
+        func female(_ name: String, hips: Double? = nil, bust: Double? = nil) -> Profile {
+            Profile(name: name, gender: .female, heightCm: f.heightCm, weightKg: f.weightKg,
+                    bodyFat: f.bodyFat, neck: f.neck, shoulders: f.shoulders,
+                    chest: f.chest, bust: bust ?? f.bust, waist: f.waist, hips: hips ?? f.hips,
+                    bicep: f.bicep, forearm: f.forearm, thigh: f.thigh, calf: f.calf)
+        }
+
+        func maleChest(_ name: String, waist: Double, fat: Double) -> Profile {
+            Profile(name: name, gender: .male, heightCm: 180, weightKg: 88, bodyFat: fat,
+                    neck: 40, shoulders: 122, chest: 106, bust: nil, waist: waist, hips: 98,
+                    bicep: 36, forearm: 30, thigh: 60, calf: 39)
+        }
+        func femaleBust(_ name: String, underbust: Double) -> Profile {
+            Profile(name: name, gender: .female, heightCm: 168, weightKg: 62, bodyFat: 26,
+                    neck: 32, shoulders: 100, chest: underbust, bust: 96, waist: 72, hips: 98,
+                    bicep: 27, forearm: 22, thigh: 54, calf: 34)
+        }
+
+        let sweeps: [(slug: String, title: String, profiles: [Profile])] = [
+            ("sweep-chest-m", "Klatka 106 cm u kazdego — masa vs tluszcz (M)", [
+                maleChest("talia 78 · 8% tk.tl.", waist: 78, fat: 8),
+                maleChest("talia 88 · 16%", waist: 88, fat: 16),
+                maleChest("talia 98 · 24%", waist: 98, fat: 24),
+                maleChest("talia 108 · 32%", waist: 108, fat: 32),
+            ]),
+            ("sweep-bust-f", "Biust 96 cm u kazdej — rozny obwod pod biustem (K)", [
+                femaleBust("pod biustem 94 (roznica 2)", underbust: 94),
+                femaleBust("pod biustem 88 (roznica 8)", underbust: 88),
+                femaleBust("pod biustem 82 (roznica 14)", underbust: 82),
+                femaleBust("pod biustem 76 (roznica 20)", underbust: 76),
+            ]),
+            ("sweep-shoulders", "Barki (M) — reszta bez zmian",
+             [100.0, 114.0, 128.0, 142.0].map { male("barki \(Int($0)) cm", shoulders: $0) }),
+            ("sweep-hips-m", "Biodra (M) — reszta bez zmian",
+             [84.0, 98.0, 114.0, 130.0].map { male("biodra \(Int($0)) cm", hips: $0) }),
+            ("sweep-hips-f", "Biodra (K) — reszta bez zmian",
+             [84.0, 100.0, 116.0, 132.0].map { female("biodra \(Int($0)) cm", hips: $0) }),
+            ("sweep-waist", "Talia (M) — reszta bez zmian",
+             [70.0, 88.0, 106.0, 124.0].map { male("talia \(Int($0)) cm", waist: $0) }),
+            ("sweep-bust", "Biust (K) — reszta bez zmian",
+             [78.0, 92.0, 106.0, 120.0].map { female("biust \(Int($0)) cm", bust: $0) }),
+        ]
+
+        let directory = outputDirectory()
+        for sweep in sweeps {
+            var columns: [(String, [UIImage])] = []
+            for profile in sweep.profiles {
+                let images = try await render(profile: profile, yaws: [0, .pi / 2])
+                columns.append((profile.name, images))
+            }
+            let sheet = contactSheet(title: sweep.title, columns: columns)
+            let url = directory.appendingPathComponent("\(sweep.slug).png")
+            try XCTUnwrap(sheet.pngData()).write(to: url)
+            print("📸 WROTE \(url.path)")
+        }
+    }
+
+    /// Renders the base mesh with NO deformation at all — positions are the
+    /// baked ones times stature, normals recomputed the same way the renderer
+    /// does. If a crease shows up here it belongs to the asset or the lighting,
+    /// not to the deformer.
+    func testRenderUndeformedBaseMesh() async throws {
+        await BodyBaseMeshProvider.prepare(for: .male)
+        await BodyBaseMeshProvider.prepare(for: .female)
+
+        var columns: [(String, [UIImage])] = []
+        for gender in BodyGender.allCases {
+            let prepared = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: gender, fatness: 0))
+            let positions = prepared.mesh.positions.map { $0 * Float(1.80) }
+            let normals = BodyMeshDeformer.normals(for: positions, indices: prepared.mesh.indices)
+            let geometry = SCNGeometry(
+                sources: [
+                    SCNGeometrySource(vertices: positions.map { SCNVector3($0.x, $0.y, $0.z) }),
+                    SCNGeometrySource(normals: normals.map { SCNVector3($0.x, $0.y, $0.z) })
+                ],
+                elements: [SCNGeometryElement(indices: prepared.mesh.indices, primitiveType: .triangles)]
+            )
+            geometry.subdivisionLevel = 1
+
+            // How many vertices share a position with another? A split seam is
+            // exactly what stops `normals(for:indices:)` from averaging across it.
+            var buckets: [SIMD3<Int32>: [Int]] = [:]
+            for (index, p) in prepared.mesh.positions.enumerated() {
+                let key = SIMD3<Int32>(Int32((p.x * 100_000).rounded()),
+                                       Int32((p.y * 100_000).rounded()),
+                                       Int32((p.z * 100_000).rounded()))
+                buckets[key, default: []].append(index)
+            }
+            let split = buckets.values.filter { $0.count > 1 }
+            print("\(gender): \(prepared.mesh.positions.count) wierzcholkow, "
+                  + "\(split.count) pozycji wspoldzielonych, "
+                  + "\(split.reduce(0) { $0 + $1.count }) wierzcholkow w szwach")
+            let clavicle = split.filter {
+                let y = prepared.mesh.positions[$0[0]].y
+                return y > 0.78 && y < 0.88
+            }
+            print("  w pasie obojczyka (y 0.78...0.88): \(clavicle.count) pozycji")
+
+            // Welded normals: accumulate across coincident positions, then share.
+            let welded = weldedNormals(positions: positions, indices: prepared.mesh.indices)
+
+            for (label, useWelded) in [("obecne normalne", false), ("normalne zespawane", true)] {
+                let copy = try XCTUnwrap(geometry.copy() as? SCNGeometry)
+                let n = useWelded ? welded : normals
+                let rebuilt = SCNGeometry(
+                    sources: [
+                        SCNGeometrySource(vertices: positions.map { SCNVector3($0.x, $0.y, $0.z) }),
+                        SCNGeometrySource(normals: n.map { SCNVector3($0.x, $0.y, $0.z) })
+                    ],
+                    elements: [SCNGeometryElement(indices: prepared.mesh.indices, primitiveType: .triangles)]
+                )
+                rebuilt.subdivisionLevel = 1
+                let material = SCNMaterial()
+                material.lightingModel = .physicallyBased
+                material.diffuse.contents = UIColor(red: 0.78, green: 0.76, blue: 0.73, alpha: 1)
+                material.roughness.contents = 0.65
+                material.metalness.contents = 0.0
+                material.isDoubleSided = false
+                rebuilt.materials = [material]
+                _ = copy
+                columns.append(("\(gender) — \(label)", renderRaw(geometry: rebuilt, yaws: [0, .pi / 2])))
+            }
+        }
+
+        let sheet = contactSheet(title: "Siatka bazowa, zero deformacji", columns: columns)
+        let url = outputDirectory().appendingPathComponent("base-mesh.png")
+        try XCTUnwrap(sheet.pngData()).write(to: url)
+        print("📸 WROTE \(url.path)")
+    }
+
+    /// Same scene MannequinView builds, but driven by a geometry handed in.
+    private func renderRaw(geometry: SCNGeometry, yaws: [Double],
+                           key: Double = 700, fill: Double = 260,
+                           rim: Double = 180, ambientIntensity: Double = 300) -> [UIImage] {
+        let view = SCNView(frame: CGRect(origin: .zero, size: Self.cell))
+        view.scene = SCNScene()
+        view.antialiasingMode = .multisampling4X
+        view.backgroundColor = UIColor(white: 0.97, alpha: 1)
+        view.scene?.background.contents = UIColor(white: 0.97, alpha: 1)
+
+        let node = SCNNode(geometry: geometry)
+        view.scene?.rootNode.addChildNode(node)
+
+        let camera = SCNCamera()
+        camera.usesOrthographicProjection = true
+        camera.orthographicScale = 1.15
+        camera.screenSpaceAmbientOcclusionIntensity = 1.4
+        camera.screenSpaceAmbientOcclusionRadius = 0.12
+        camera.screenSpaceAmbientOcclusionBias = 0.03
+        let cameraNode = SCNNode()
+        cameraNode.camera = camera
+        cameraNode.position = SCNVector3(0, 0.9, 3)
+        view.scene?.rootNode.addChildNode(cameraNode)
+
+        for setup in [(key, SCNVector3(2, 3, 3)), (fill, SCNVector3(-3, 2, 1)), (rim, SCNVector3(0, 2, -4))] {
+            let light = SCNNode()
+            light.light = SCNLight()
+            light.light?.type = .directional
+            light.light?.intensity = setup.0
+            light.position = setup.1
+            light.look(at: SCNVector3(0, 0.9, 0))
+            view.scene?.rootNode.addChildNode(light)
+        }
+        let ambient = SCNNode()
+        ambient.light = SCNLight()
+        ambient.light?.type = .ambient
+        ambient.light?.intensity = CGFloat(ambientIntensity)
+        view.scene?.rootNode.addChildNode(ambient)
+
+        return yaws.map { yaw in
+            node.eulerAngles.y = Float(yaw)
+            return view.snapshot()
+        }
+    }
+
+    /// Same accumulation as `BodyMeshDeformer.normals`, but coincident
+    /// positions pool their faces and end up sharing one normal.
+    private func weldedNormals(positions: [SIMD3<Float>], indices: [Int32]) -> [SIMD3<Float>] {
+        var canonical = [Int](repeating: 0, count: positions.count)
+        var seen: [SIMD3<Int32>: Int] = [:]
+        for (index, p) in positions.enumerated() {
+            let key = SIMD3<Int32>(Int32((p.x * 100_000).rounded()),
+                                   Int32((p.y * 100_000).rounded()),
+                                   Int32((p.z * 100_000).rounded()))
+            if let first = seen[key] { canonical[index] = first } else {
+                seen[key] = index
+                canonical[index] = index
+            }
+        }
+        var accumulated = [SIMD3<Float>](repeating: .zero, count: positions.count)
+        var triangle = 0
+        while triangle + 2 < indices.count {
+            let i = Int(indices[triangle]), j = Int(indices[triangle + 1]), k = Int(indices[triangle + 2])
+            let face = simd_cross(positions[j] - positions[i], positions[k] - positions[i])
+            for v in [i, j, k] { accumulated[canonical[v]] += face }
+            triangle += 3
+        }
+        return positions.indices.map {
+            let n = accumulated[canonical[$0]]
+            return simd_length(n) > 1e-12 ? simd_normalize(n) : SIMD3<Float>(0, 1, 0)
+        }
+    }
+}

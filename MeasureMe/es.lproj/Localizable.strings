@@ -1554,9 +1554,23 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 "bodyModel.dates.older" = "Desde";
 "bodyModel.dates.newer" = "Hasta";
 "bodyModel.accessibility.mannequin" = "Silueta corporal creada a partir de tus medidas. Los cambios se detallan abajo.";
+"bodyModel.beta.badge" = "BETA";
+"bodyModel.beta.note" = "Dibujo orientativo en versión beta: puede diferir de tu silueta real.";
 "bodyModel.site.thigh" = "Muslo";
 "bodyModel.site.calf" = "Pantorrilla";
 "bodyModel.site.bicep" = "Bíceps";
 "bodyModel.site.forearm" = "Antebrazo";
 "You can choose up to 3 key metrics for Home." = "Puedes elegir hasta 3 métricas clave para Inicio.";
 "No photo" = "Sin foto";
+
+/* What's New — release notes shown once after an update */
+"whatsNew.title" = "Novedades";
+"whatsNew.subtitle" = "Versión %@";
+"whatsNew.action.open" = "Muéstramelo";
+"whatsNew.action.dismiss" = "Ahora no";
+"whatsNew.1_5_4.bodyModel.title" = "Tu modelo corporal en 3D";
+"whatsNew.1_5_4.bodyModel.message" = "Tus medidas ahora crean una silueta que puedes girar y observar. Está en beta: es un dibujo orientativo, no un escaneo.";
+"whatsNew.1_5_4.compare.title" = "Compara dos fechas";
+"whatsNew.1_5_4.compare.message" = "Elige dos fechas cualesquiera y transiciona entre ellas para ver cómo cambió tu figura.";
+"whatsNew.1_5_4.accuracy.title" = "Una silueta más precisa";
+"whatsNew.1_5_4.accuracy.message" = "Las caderas, los hombros y el pecho siguen tus medidas con mucha más fidelidad.";

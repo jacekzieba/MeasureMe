@@ -105,6 +105,9 @@ nonisolated enum AppSettingsKeys {
         static let photosFilterTag = "photos_filter_tag"
         static let saveUnchangedQuickAdd = "save_unchanged_quick_add"
         static let hasCustomizedMetrics = "has_customized_metrics"
+        /// Marketing version whose release notes the user has already seen.
+        /// Deliberately unregistered — `WhatsNewGate` needs "" to mean "never seen".
+        static let lastSeenWhatsNewVersion = "last_seen_whats_new_version"
     }
 
     enum Premium {

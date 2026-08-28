@@ -11,6 +11,11 @@ struct TabBarContainer: View {
     @State private var mountedTabs: Set<AppTab> = TabBarContainer.initialMountedTabs()
     @State private var didSchedulePendingEntryRetry = false
     @State private var didConsumeUITestPendingEntryFallback = false
+    /// Non-nil while the release-notes sheet is up. Lives here rather than in `RootView`
+    /// because `AppRouter` — which the sheet's "open it" button drives — is created here.
+    @State private var whatsNewRelease: WhatsNewRelease?
+    @AppSetting(\.onboarding.hasCompletedOnboarding) private var hasCompletedOnboarding: Bool = false
+    @AppSetting(\.experience.lastSeenWhatsNewVersion) private var lastSeenWhatsNewVersion: String = ""
 
     var body: some View {
         ZStack {
@@ -168,10 +173,17 @@ struct TabBarContainer: View {
                 }
             }
         }
+        .sheet(item: $whatsNewRelease) { release in
+            WhatsNewSheet(release: release) {
+                router.openBodyModel()
+            }
+            .presentationDragIndicator(.visible)
+        }
         .environmentObject(premiumStore)
         .environmentObject(router)
         .task { @MainActor in
             applyAuditRouteIfNeeded()
+            resolveWhatsNew()
             mountTabIfNeeded(router.selectedTab)
             consumePendingNavigationRouteIfNeeded()
             consumePendingAppEntryActionIfNeeded()
@@ -190,6 +202,27 @@ struct TabBarContainer: View {
                 let effectiveAction = AppEntryActionDispatcher.consumePendingAction() ?? action
                 handleAppEntryAction(effectiveAction)
             }
+        }
+    }
+
+    /// Opens the release notes once per version, and stamps the version either way so the
+    /// sheet cannot come back on the next launch.
+    private func resolveWhatsNew() {
+        // Same suppression every other startup prompt uses: a sheet nobody asked for
+        // ruins an audit capture and derails a UI test.
+        guard !UITestArgument.isAnyTestMode, !AuditConfig.current.isEnabled else { return }
+        switch WhatsNewGate.decide(
+            currentVersion: WhatsNewGate.currentVersion,
+            lastSeenVersion: lastSeenWhatsNewVersion,
+            hasCompletedOnboarding: hasCompletedOnboarding
+        ) {
+        case let .present(release):
+            lastSeenWhatsNewVersion = release.version
+            whatsNewRelease = release
+        case let .stampOnly(version):
+            lastSeenWhatsNewVersion = version
+        case .none:
+            break
         }
     }
 

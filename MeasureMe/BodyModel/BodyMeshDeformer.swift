@@ -117,6 +117,37 @@ nonisolated enum BodyMeshDeformer {
 
     // MARK: - Hips and shoulders
 
+    /// A band of heights that ramps in, holds and ramps out — the shape every
+    /// pass here is confined to.
+    ///
+    /// The plateau has to contain whatever slab the pass measures on, or the
+    /// motion is not uniform across it and the target is undershot; that alone
+    /// cost the shoulders 5%. The fades have to be long enough that no two
+    /// neighbouring vertices land on very different weights, because that
+    /// difference is a ledge: a 4 cm ramp under the buttocks put a 69 mm shelf
+    /// on a 132 cm hip, and a 4 cm ramp at the navel cut a step clean across
+    /// the abdomen.
+    struct HeightEnvelope: Sendable {
+        let fadeIn: ClosedRange<Float>
+        let plateau: ClosedRange<Float>
+        let fadeOut: ClosedRange<Float>
+
+        /// 0 outside the fades, 1 on the plateau, smoothstepped between.
+        func weight(atHeight y: Float) -> Float {
+            func smooth(_ range: ClosedRange<Float>, _ value: Float) -> Float {
+                let span = range.upperBound - range.lowerBound
+                guard span > 0 else { return value < range.lowerBound ? 0 : 1 }
+                let t = min(max((value - range.lowerBound) / span, 0), 1)
+                return t * t * (3 - 2 * t)
+            }
+            if y <= fadeIn.lowerBound || y >= fadeOut.upperBound { return 0 }
+            if y < plateau.lowerBound { return smooth(fadeIn, y) }
+            if y <= plateau.upperBound { return 1 }
+            return 1 - smooth(fadeOut, y)
+        }
+    }
+
+
     /// A girth the region pass cannot carry, applied afterwards as a plain
     /// horizontal scale over a band of heights.
     ///
@@ -159,10 +190,7 @@ nonisolated enum BodyMeshDeformer {
     /// the skull when it ran to 0.885.
     struct LateralGirth {
         let landmark: BodyLandmark
-        /// Heights over which the scale ramps in, holds, and ramps out.
-        let fadeIn: ClosedRange<Float>
-        let plateau: ClosedRange<Float>
-        let fadeOut: ClosedRange<Float>
+        let envelope: HeightEnvelope
         /// How the arm chain takes part.
         ///
         /// The shoulders need it whole — the deltoids are what the tape reads.
@@ -181,41 +209,37 @@ nonisolated enum BodyMeshDeformer {
         }
         let arms: Arms
 
-        /// How the band moves what it touches. Only radial survives.
-        ///
-        /// A sideways-only slide was tried for the shoulders, to stop the band
-        /// cutting the upper arm in half horizontally. It cannot hit a girth:
-        /// moving x alone adds very little perimeter, so the solver asked for a
-        /// strength of about 0.5 and the chest came out 36% wider than the
-        /// measurement. The arm was never the band's fault anyway — see
-        /// `deltoidShare`.
-        enum Motion {
-            case radial
-        }
-        let motion: Motion
 
         static let hips = LateralGirth(
             landmark: .hip,
-            fadeIn: 0.380...0.500, plateau: 0.500...0.565, fadeOut: 0.565...0.615,
-            arms: .ignored, motion: .radial
+            envelope: HeightEnvelope(
+                fadeIn: 0.380...0.500, plateau: 0.500...0.565, fadeOut: 0.565...0.615
+            ),
+            arms: .ignored
         )
         /// Wedged between the hip band below and the chest band above, which is
         /// all the room there is: the plateau has to hold the measuring slab
         /// and both neighbours have to see zero weight at their own landmarks.
         static let waist = LateralGirth(
             landmark: .waist,
-            fadeIn: 0.598...0.620, plateau: 0.620...0.648, fadeOut: 0.648...0.668,
-            arms: .ignored, motion: .radial
+            envelope: HeightEnvelope(
+                fadeIn: 0.598...0.620, plateau: 0.620...0.648, fadeOut: 0.648...0.668
+            ),
+            arms: .ignored
         )
         static let chest = LateralGirth(
             landmark: .chest,
-            fadeIn: 0.655...0.700, plateau: 0.700...0.745, fadeOut: 0.745...0.800,
-            arms: .carried, motion: .radial
+            envelope: HeightEnvelope(
+                fadeIn: 0.655...0.700, plateau: 0.700...0.745, fadeOut: 0.745...0.800
+            ),
+            arms: .carried
         )
         static let shoulders = LateralGirth(
             landmark: .shoulder,
-            fadeIn: 0.715...0.805, plateau: 0.805...0.840, fadeOut: 0.840...0.858,
-            arms: .included, motion: .radial
+            envelope: HeightEnvelope(
+                fadeIn: 0.715...0.805, plateau: 0.805...0.840, fadeOut: 0.840...0.858
+            ),
+            arms: .included
         )
         /// Bottom-up, so each band normalises against a body the one below it
         /// has already settled.
@@ -231,19 +255,7 @@ nonisolated enum BodyMeshDeformer {
             arms.moved || !region.isArmChain
         }
 
-        /// 0 outside the fades, 1 on the plateau, smoothstepped between.
-        func weight(atHeight y: Float) -> Float {
-            func smooth(_ range: ClosedRange<Float>, _ value: Float) -> Float {
-                let span = range.upperBound - range.lowerBound
-                guard span > 0 else { return value < range.lowerBound ? 0 : 1 }
-                let t = min(max((value - range.lowerBound) / span, 0), 1)
-                return t * t * (3 - 2 * t)
-            }
-            if y <= fadeIn.lowerBound || y >= fadeOut.upperBound { return 0 }
-            if y < plateau.lowerBound { return smooth(fadeIn, y) }
-            if y <= plateau.upperBound { return 1 }
-            return 1 - smooth(fadeOut, y)
-        }
+        func weight(atHeight y: Float) -> Float { envelope.weight(atHeight: y) }
     }
 
     /// Scales `positions` horizontally so the tape reading at the landmark
@@ -437,7 +449,7 @@ nonisolated enum BodyMeshDeformer {
     /// shoulder or the elbow would undo the two fixes that closed the seams
     /// there.
     private static func jointWeight(_ region: BodyRegion, band: Int, of count: Int) -> Float {
-        let joints = jointHandover(region, uniform: [:])
+        let joints = jointHandover(region)
         let top = count - 1
         var weight: Float = 1
         if joints.proximalBands > 0 {
@@ -463,9 +475,7 @@ nonisolated enum BodyMeshDeformer {
     /// all the girth bands after also means each girth lands on its measurement
     /// whatever the shaping did.
     struct ForwardProjection {
-        let fadeIn: ClosedRange<Float>
-        let plateau: ClosedRange<Float>
-        let fadeOut: ClosedRange<Float>
+        let envelope: HeightEnvelope
         /// Where the "how far forward does this body already reach" reference
         /// is taken, and where the girth it belongs to is measured.
         let landmark: BodyLandmark
@@ -481,21 +491,20 @@ nonisolated enum BodyMeshDeformer {
         let movesArms: Bool
 
         static let belly = ForwardProjection(
-            fadeIn: 0.470...0.560, plateau: 0.560...0.635, fadeOut: 0.635...0.672,
+            envelope: HeightEnvelope(
+                fadeIn: 0.470...0.560, plateau: 0.560...0.635, fadeOut: 0.635...0.672
+            ),
             landmark: .waist, amount: { $0.bellyProjection }, movesArms: false
         )
         static let chest = ForwardProjection(
-            fadeIn: 0.660...0.705, plateau: 0.705...0.760, fadeOut: 0.760...0.820,
+            envelope: HeightEnvelope(
+                fadeIn: 0.660...0.705, plateau: 0.705...0.760, fadeOut: 0.760...0.820
+            ),
             landmark: .chest, amount: { $0.chestProjection }, movesArms: true
         )
         static let all = [belly, chest]
 
-        func weight(atHeight y: Float) -> Float {
-            LateralGirth(
-                landmark: landmark, fadeIn: fadeIn, plateau: plateau, fadeOut: fadeOut,
-                arms: .ignored, motion: .radial
-            ).weight(atHeight: y)
-        }
+        func weight(atHeight y: Float) -> Float { envelope.weight(atHeight: y) }
     }
 
     /// Moves the front of a section out (or lets it fall back), leaving the
@@ -623,7 +632,7 @@ nonisolated enum BodyMeshDeformer {
                 result[region] = torsoFactors(bands: bands, parameters: parameters)
                 continue
             }
-            let joints = jointHandover(region, uniform: uniform)
+            let joints = jointHandover(region)
             let anchor = limbMeasurement(region, parameters: parameters)
                 .map { widestBand(bands, within: $0.site) }
             let raw = bands.indices.map { index -> Float in
@@ -755,10 +764,7 @@ nonisolated enum BodyMeshDeformer {
         }
     }
 
-    private static func jointHandover(
-        _ region: BodyRegion, uniform: [BodyRegion: Float]
-    ) -> JointHandover {
-        _ = uniform
+    private static func jointHandover(_ region: BodyRegion) -> JointHandover {
         // Both sides of the elbow go to 1, not to their average. Matching the
         // two factors is not enough and was tried: with the upper arm and the
         // forearm both handed 1.30 the step stayed at 17.0 mm, because the two

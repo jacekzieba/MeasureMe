@@ -121,6 +121,15 @@ struct MannequinView: UIViewRepresentable {
         // key, a cooler fill opposite it, and a rim from behind that separates
         // the shoulders from the card background.
         //
+        // **The rim is 60, not 180, and that number is the whole fix for the
+        // white gash along the top of the shoulder.** It was diagnosed as a
+        // fold baked into the mesh and it is not: the line survives every
+        // subdivision level, roughness and key intensity — none of which touch
+        // a rim highlight on a surface curving away from the camera — and the
+        // mesh has zero split vertices. Rendered with the rim at 0 it is simply
+        // gone. Sixty keeps the separation the rim is here for and leaves only
+        // a trace of the highlight.
+        //
         // None of them casts. The camera is orthographic and looks horizontally,
         // so a ground plane is seen exactly edge-on — a contact shadow under the
         // feet is geometrically invisible from here, whether cast by SceneKit or
@@ -128,7 +137,7 @@ struct MannequinView: UIViewRepresentable {
         // the camera down a few degrees, which changes how the proportions read.
         for (index, setup) in [(700.0, SCNVector3(2, 3, 3)),
                                (260.0, SCNVector3(-3, 2, 1)),
-                               (180.0, SCNVector3(0, 2, -4))].enumerated() {
+                               (60.0, SCNVector3(0, 2, -4))].enumerated() {
             let node = SCNNode()
             node.light = SCNLight()
             node.light?.type = .directional

@@ -1558,9 +1558,23 @@ The thresholds differ between males and females due to different body compositio
 "bodyModel.dates.older" = "From";
 "bodyModel.dates.newer" = "To";
 "bodyModel.accessibility.mannequin" = "Body silhouette built from your measurements. Changes are listed below.";
+"bodyModel.beta.badge" = "BETA";
+"bodyModel.beta.note" = "Illustrative sketch in beta — it may differ from your real silhouette.";
 "bodyModel.site.thigh" = "Thigh";
 "bodyModel.site.calf" = "Calf";
 "bodyModel.site.bicep" = "Bicep";
 "bodyModel.site.forearm" = "Forearm";
 "You can choose up to 3 key metrics for Home." = "You can choose up to 3 key metrics for Home.";
 "No photo" = "No photo";
+
+/* What's New — release notes shown once after an update */
+"whatsNew.title" = "What's new";
+"whatsNew.subtitle" = "Version %@";
+"whatsNew.action.open" = "Show me";
+"whatsNew.action.dismiss" = "Not now";
+"whatsNew.1_5_4.bodyModel.title" = "Your body model in 3D";
+"whatsNew.1_5_4.bodyModel.message" = "Your measurements now build a silhouette you can turn and look at. It's in beta — an illustrative sketch, not a scan.";
+"whatsNew.1_5_4.compare.title" = "Compare two dates";
+"whatsNew.1_5_4.compare.message" = "Pick any two dates and morph between them to see how your shape changed.";
+"whatsNew.1_5_4.accuracy.title" = "A sharper silhouette";
+"whatsNew.1_5_4.accuracy.message" = "Hips, shoulders and chest now follow your measurements far more closely.";

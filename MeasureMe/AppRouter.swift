@@ -6,6 +6,7 @@ final class AppRouter: ObservableObject {
     @Published var selectedTab: AppTab
     @Published var presentedSheet: PresentedSheet? = nil
     @Published private(set) var photoComposerRequestID: UUID?
+    @Published private(set) var bodyModelRequestID: UUID?
     @Published private(set) var metricDetailRequestID: UUID?
     @Published private(set) var requestedMetricDetailKind: MetricKind?
     @Published private(set) var measurementsSectionRequestID: UUID?
@@ -64,6 +65,18 @@ final class AppRouter: ObservableObject {
         selectTab(.measurements)
         requestedMeasurementsSection = section
         measurementsSectionRequestID = UUID()
+    }
+
+    /// Sends the user to the body model from anywhere — used by the What's New sheet,
+    /// which is worth little if reaching the feature it announces means hunting for it.
+    func openBodyModel() {
+        selectTab(.photos)
+        bodyModelRequestID = UUID()
+    }
+
+    func consumeBodyModelRequest(_ requestID: UUID) {
+        guard bodyModelRequestID == requestID else { return }
+        bodyModelRequestID = nil
     }
 
     func consumePhotoComposerRequest(_ requestID: UUID) {

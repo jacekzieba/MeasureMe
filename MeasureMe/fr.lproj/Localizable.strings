@@ -1552,9 +1552,23 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 "bodyModel.dates.older" = "Du";
 "bodyModel.dates.newer" = "Au";
 "bodyModel.accessibility.mannequin" = "Silhouette corporelle construite à partir de vos mesures. Les changements sont listés ci-dessous.";
+"bodyModel.beta.badge" = "BÊTA";
+"bodyModel.beta.note" = "Illustration indicative en version bêta — elle peut différer de votre silhouette réelle.";
 "bodyModel.site.thigh" = "Cuisse";
 "bodyModel.site.calf" = "Mollet";
 "bodyModel.site.bicep" = "Biceps";
 "bodyModel.site.forearm" = "Avant-bras";
 "You can choose up to 3 key metrics for Home." = "Vous pouvez choisir jusqu'à 3 mesures clés pour l'accueil.";
 "No photo" = "Aucune photo";
+
+/* What's New — release notes shown once after an update */
+"whatsNew.title" = "Nouveautés";
+"whatsNew.subtitle" = "Version %@";
+"whatsNew.action.open" = "Montrez-moi";
+"whatsNew.action.dismiss" = "Plus tard";
+"whatsNew.1_5_4.bodyModel.title" = "Votre modèle corporel en 3D";
+"whatsNew.1_5_4.bodyModel.message" = "Vos mesures créent désormais une silhouette que vous pouvez faire pivoter et observer. En version bêta : une illustration indicative, pas un scan.";
+"whatsNew.1_5_4.compare.title" = "Comparez deux dates";
+"whatsNew.1_5_4.compare.message" = "Choisissez deux dates et passez de l'une à l'autre pour voir comment votre silhouette a évolué.";
+"whatsNew.1_5_4.accuracy.title" = "Une silhouette plus fidèle";
+"whatsNew.1_5_4.accuracy.message" = "Les hanches, les épaules et la poitrine suivent vos mesures bien plus fidèlement.";

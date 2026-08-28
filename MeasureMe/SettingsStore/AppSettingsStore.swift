@@ -401,6 +401,7 @@ final class AppSettingsStore: ObservableObject {
             write(experience.photosFilterTag, forKey: AppSettingsKeys.Experience.photosFilterTag)
             write(experience.saveUnchangedQuickAdd, forKey: AppSettingsKeys.Experience.saveUnchangedQuickAdd)
             write(experience.hasCustomizedMetrics, forKey: AppSettingsKeys.Experience.hasCustomizedMetrics)
+            write(experience.lastSeenWhatsNewVersion, forKey: AppSettingsKeys.Experience.lastSeenWhatsNewVersion)
 
             let premium = snapshot.premium
             write(premium.premiumEntitlement, forKey: AppSettingsKeys.Premium.entitlement)

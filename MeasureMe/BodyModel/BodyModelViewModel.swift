@@ -76,6 +76,22 @@ final class BodyModelViewModel: ObservableObject {
         }
     }
 
+    /// The fatness values the mannequin will be asked to render: one body, or
+    /// the two ends the morph slider runs between.
+    ///
+    /// Exists so the screen can warm exactly the grid nodes a drag will land
+    /// on. See `BodyBaseMeshProvider.warm`.
+    var morphFatnessBounds: (Double, Double)? {
+        switch state {
+        case .needsProfile, .missingMetrics:
+            return nil
+        case let .single(resolved):
+            return (resolved.parameters.fatness, resolved.parameters.fatness)
+        case let .comparison(older, newer):
+            return (older.parameters.fatness, newer.parameters.fatness)
+        }
+    }
+
     /// Validation to display — the newer body in a comparison.
     var displayedValidation: BodyValidationResult? {
         switch state {

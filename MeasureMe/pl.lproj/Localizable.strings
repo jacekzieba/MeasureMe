@@ -1510,9 +1510,23 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "bodyModel.dates.older" = "Od";
 "bodyModel.dates.newer" = "Do";
 "bodyModel.accessibility.mannequin" = "Sylwetka ciała zbudowana na podstawie Twoich pomiarów. Zmiany są wymienione poniżej.";
+"bodyModel.beta.badge" = "BETA";
+"bodyModel.beta.note" = "Rysunek poglądowy w wersji beta — może różnić się od Twojej prawdziwej sylwetki.";
 "bodyModel.site.thigh" = "Udo";
 "bodyModel.site.calf" = "Łydka";
 "bodyModel.site.bicep" = "Biceps";
 "bodyModel.site.forearm" = "Przedramię";
 "You can choose up to 3 key metrics for Home." = "Na ekran główny możesz wybrać maksymalnie 3 kluczowe metryki.";
 "No photo" = "Brak zdjęcia";
+
+/* What's New — release notes shown once after an update */
+"whatsNew.title" = "Co nowego";
+"whatsNew.subtitle" = "Wersja %@";
+"whatsNew.action.open" = "Pokaż mi";
+"whatsNew.action.dismiss" = "Nie teraz";
+"whatsNew.1_5_4.bodyModel.title" = "Twój model ciała w 3D";
+"whatsNew.1_5_4.bodyModel.message" = "Twoje pomiary tworzą teraz sylwetkę, którą możesz obracać i oglądać. To wersja beta — rysunek poglądowy, nie skan.";
+"whatsNew.1_5_4.compare.title" = "Porównaj dwie daty";
+"whatsNew.1_5_4.compare.message" = "Wybierz dowolne dwie daty i płynnie przechodź między nimi, aby zobaczyć, jak zmieniła się Twoja sylwetka.";
+"whatsNew.1_5_4.accuracy.title" = "Dokładniejsza sylwetka";
+"whatsNew.1_5_4.accuracy.message" = "Biodra, barki i klatka piersiowa dużo wierniej podążają za Twoimi pomiarami.";

@@ -1554,9 +1554,23 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 "bodyModel.dates.older" = "De";
 "bodyModel.dates.newer" = "Até";
 "bodyModel.accessibility.mannequin" = "Silhueta corporal construída a partir das suas medidas. As alterações estão listadas abaixo.";
+"bodyModel.beta.badge" = "BETA";
+"bodyModel.beta.note" = "Desenho ilustrativo em versão beta — pode diferir da sua silhueta real.";
 "bodyModel.site.thigh" = "Coxa";
 "bodyModel.site.calf" = "Panturrilha";
 "bodyModel.site.bicep" = "Bíceps";
 "bodyModel.site.forearm" = "Antebraço";
 "You can choose up to 3 key metrics for Home." = "Você pode escolher até 3 métricas principais para a Início.";
 "No photo" = "Sem foto";
+
+/* What's New — release notes shown once after an update */
+"whatsNew.title" = "Novidades";
+"whatsNew.subtitle" = "Versão %@";
+"whatsNew.action.open" = "Quero ver";
+"whatsNew.action.dismiss" = "Agora não";
+"whatsNew.1_5_4.bodyModel.title" = "Seu modelo corporal em 3D";
+"whatsNew.1_5_4.bodyModel.message" = "Suas medidas agora formam uma silhueta que você pode girar e observar. Está em beta: é um desenho ilustrativo, não um escaneamento.";
+"whatsNew.1_5_4.compare.title" = "Compare duas datas";
+"whatsNew.1_5_4.compare.message" = "Escolha duas datas quaisquer e faça a transição entre elas para ver como seu corpo mudou.";
+"whatsNew.1_5_4.accuracy.title" = "Uma silhueta mais precisa";
+"whatsNew.1_5_4.accuracy.message" = "Quadris, ombros e peito seguem suas medidas com muito mais fidelidade.";
