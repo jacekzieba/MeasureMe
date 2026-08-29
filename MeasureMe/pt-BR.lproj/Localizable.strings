@@ -1574,3 +1574,7 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 "whatsNew.1_5_4.compare.message" = "Escolha duas datas quaisquer e faça a transição entre elas para ver como seu corpo mudou.";
 "whatsNew.1_5_4.accuracy.title" = "Uma silhueta mais precisa";
 "whatsNew.1_5_4.accuracy.message" = "Quadris, ombros e peito seguem suas medidas com muito mais fidelidade.";
+
+/* Home — body model discovery card */
+"home.bodyModel.title" = "Modelo corporal";
+"home.bodyModel.subtitle" = "Transforme suas medidas em uma silhueta 3D e compare duas datas quaisquer.";

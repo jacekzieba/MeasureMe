@@ -370,6 +370,11 @@ struct HomeView: View {
             nextFocusComputer: { computeNextFocusInsight() }
         )
         refreshActivationProgress()
+        // `hasAnyMeasurements` is set by the call above and gates the body model module,
+        // so the dashboard cache has to be rebuilt here too. Every other module gates on
+        // a setting or a photo count, each of which already has its own observer — this is
+        // the first one whose input lands in this function.
+        rebuildDashboardItemsCache()
     }
 
     func metricDeltaTextFromCache(kind: MetricKind, days: Int) -> String? {
@@ -648,6 +653,10 @@ struct HomeView: View {
             return false
         case .activationHub:
             return showActivationHub
+        case .bodyModel:
+            // Hidden until there is something to model. On a blank Home it would be
+            // an advert, not a feature.
+            return hasAnyMeasurements
         }
     }
 
@@ -666,6 +675,15 @@ struct HomeView: View {
             healthSummaryModule
         case .activationHub:
             activationHubModule
+        case .bodyModel:
+            bodyModelModule
+        }
+    }
+
+    var bodyModelModule: some View {
+        HomeBodyModelCard(isPremium: premiumStore.isPremium) {
+            Haptics.selection()
+            router.openBodyModel()
         }
     }
 

@@ -9,7 +9,10 @@
 //
 import Foundation
 
-enum WhatsNewGate {
+/// `nonisolated` on purpose: the target defaults to `@MainActor`, which would give `Decision`
+/// a main-actor-isolated `Equatable` conformance — unusable from a nonisolated context and a
+/// hard error under the Swift 6 language mode. Nothing here touches the main actor anyway.
+nonisolated enum WhatsNewGate {
     enum Decision: Equatable {
         /// Open the sheet for this release, then stamp `version` as seen.
         case present(WhatsNewRelease)

@@ -9,7 +9,10 @@
 //
 import Foundation
 
-struct WhatsNewRelease: Equatable, Sendable, Identifiable {
+/// `nonisolated` for the same reason as `WhatsNewGate`: the target defaults to `@MainActor`,
+/// which would isolate the `Equatable` conformance and make it unusable off the main actor —
+/// a hard error under the Swift 6 language mode.
+nonisolated struct WhatsNewRelease: Equatable, Sendable, Identifiable {
     var id: String { version }
     /// Marketing version this entry describes, matching `CFBundleShortVersionString`.
     let version: String

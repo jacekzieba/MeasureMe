@@ -41,7 +41,17 @@ struct WhatsNewSheet: View {
                     .padding(.bottom, AppSpacing.xl)
             }
         }
-        .accessibilityIdentifier("whatsNew.sheet")
+        // The identifier goes on a zero-size marker, not on the ZStack: applied to a
+        // container it propagates down and overwrites every child's identifier, so the
+        // buttons below came out as "whatsNew.sheet" and nothing could address them.
+        // Same trick HomeWidgetCard uses.
+        .overlay(alignment: .topLeading) {
+            Color.clear
+                .frame(width: 1, height: 1)
+                .accessibilityElement()
+                .accessibilityIdentifier("whatsNew.sheet")
+                .allowsHitTesting(false)
+        }
     }
 
     private var header: some View {

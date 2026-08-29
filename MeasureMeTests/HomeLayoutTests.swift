@@ -46,6 +46,39 @@ final class HomeLayoutTests: XCTestCase {
         XCTAssertNotNil(normalized.item(for: .healthSummary))
     }
 
+    /// Co sprawdza: Zapisany uklad z aktualna schema, ale bez modulu modelu ciala, dostaje go
+    ///   jako widoczny.
+    /// Dlaczego: To sciezka kazdego istniejacego uzytkownika po tej aktualizacji. Normalizator
+    ///   dosypuje brakujace rodzaje tylko z domyslnego ukladu, wiec gdyby wpis w defaultV1
+    ///   wypadl, kafelek nie pokazalby sie nikomu poza swiezymi instalacjami — i nikt by tego
+    ///   nie zauwazyl, bo schema by sie zgadzala.
+    /// Kryteria: Modul .bodyModel istnieje i jest widoczny.
+    func testExistingLayoutGainsVisibleBodyModelModule() {
+        let snapshot = makeSnapshot()
+        let saved = HomeLayoutSnapshot(
+            schemaVersion: HomeLayoutSnapshot.currentSchemaVersion,
+            items: HomeLayoutSnapshot.defaultV1(using: snapshot).items.filter { $0.kind != .bodyModel }
+        )
+
+        let normalized = HomeLayoutNormalizer.normalize(saved, using: snapshot)
+
+        XCTAssertEqual(normalized.item(for: .bodyModel)?.isVisible, true)
+    }
+
+    /// Co sprawdza: Uzytkownik, ktory sam ukryl kafelek, nie dostaje go z powrotem.
+    /// Dlaczego: Normalizator biegnie przy kazdym odczycie ukladu; nadpisanie decyzji
+    ///   uzytkownika przy starcie byloby bledem, ktorego nikt nie zglosi — po prostu wylaczy apke.
+    /// Kryteria: Ukryty .bodyModel zostaje ukryty.
+    func testHiddenBodyModelModuleStaysHidden() {
+        let snapshot = makeSnapshot()
+        var saved = HomeLayoutSnapshot.defaultV1(using: snapshot)
+        saved.setVisibility(false, for: .bodyModel)
+
+        let normalized = HomeLayoutNormalizer.normalize(saved, using: snapshot)
+
+        XCTAssertEqual(normalized.item(for: .bodyModel)?.isVisible, false)
+    }
+
     func testCompactorProducesTopDownLayoutWithoutGaps() {
         let items = [
             HomeModuleLayoutItem(kind: .summaryHero, isVisible: true, size: .large, row: 0, column: 0),

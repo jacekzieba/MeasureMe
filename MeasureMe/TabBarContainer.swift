@@ -208,9 +208,17 @@ struct TabBarContainer: View {
     /// Opens the release notes once per version, and stamps the version either way so the
     /// sheet cannot come back on the next launch.
     private func resolveWhatsNew() {
-        // Same suppression every other startup prompt uses: a sheet nobody asked for
-        // ruins an audit capture and derails a UI test.
-        guard !UITestArgument.isAnyTestMode, !AuditConfig.current.isEnabled else { return }
+        guard !AuditConfig.current.isEnabled else { return }
+
+        // A sheet nobody asked for derails every other UI test, so test mode suppresses it —
+        // but then nothing could ever exercise it, so one flag opts back in explicitly.
+        // Same shape as `-uiTestShowTrialReminderPrompt`.
+        if UITestArgument.isPresent(.showWhatsNew) {
+            whatsNewRelease = WhatsNewRelease.catalogue.first
+            return
+        }
+        guard !UITestArgument.isAnyTestMode else { return }
+
         switch WhatsNewGate.decide(
             currentVersion: WhatsNewGate.currentVersion,
             lastSeenVersion: lastSeenWhatsNewVersion,

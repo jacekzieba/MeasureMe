@@ -1530,3 +1530,7 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "whatsNew.1_5_4.compare.message" = "Wybierz dowolne dwie daty i płynnie przechodź między nimi, aby zobaczyć, jak zmieniła się Twoja sylwetka.";
 "whatsNew.1_5_4.accuracy.title" = "Dokładniejsza sylwetka";
 "whatsNew.1_5_4.accuracy.message" = "Biodra, barki i klatka piersiowa dużo wierniej podążają za Twoimi pomiarami.";
+
+/* Home — body model discovery card */
+"home.bodyModel.title" = "Model ciała";
+"home.bodyModel.subtitle" = "Zamień pomiary w sylwetkę 3D i porównaj dowolne dwie daty.";

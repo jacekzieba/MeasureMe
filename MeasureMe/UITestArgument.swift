@@ -21,6 +21,9 @@ enum UITestArgument: String {
     case showTrialReminderPrompt = "-uiTestShowTrialReminderPrompt"
     case showSettingsPaywall = "-uiTestShowSettingsPaywall"
 
+    // Release notes
+    case showWhatsNew = "-uiTestShowWhatsNew"
+
     // Seeding
     case seedMeasurements = "-uiTestSeedMeasurements"
     case seedPhotos = "-uiTestSeedPhotos"

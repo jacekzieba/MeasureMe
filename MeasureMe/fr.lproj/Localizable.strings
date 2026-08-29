@@ -1572,3 +1572,7 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 "whatsNew.1_5_4.compare.message" = "Choisissez deux dates et passez de l'une à l'autre pour voir comment votre silhouette a évolué.";
 "whatsNew.1_5_4.accuracy.title" = "Une silhouette plus fidèle";
 "whatsNew.1_5_4.accuracy.message" = "Les hanches, les épaules et la poitrine suivent vos mesures bien plus fidèlement.";
+
+/* Home — body model discovery card */
+"home.bodyModel.title" = "Modèle corporel";
+"home.bodyModel.subtitle" = "Transformez vos mesures en silhouette 3D et comparez deux dates.";

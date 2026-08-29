@@ -1578,3 +1578,7 @@ The thresholds differ between males and females due to different body compositio
 "whatsNew.1_5_4.compare.message" = "Pick any two dates and morph between them to see how your shape changed.";
 "whatsNew.1_5_4.accuracy.title" = "A sharper silhouette";
 "whatsNew.1_5_4.accuracy.message" = "Hips, shoulders and chest now follow your measurements far more closely.";
+
+/* Home — body model discovery card */
+"home.bodyModel.title" = "Body model";
+"home.bodyModel.subtitle" = "Turn your measurements into a 3D silhouette and compare any two dates.";

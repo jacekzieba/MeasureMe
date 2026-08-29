@@ -156,6 +156,9 @@ private struct HomeDashboardBoardLayout: Layout {
             return max(nominalHeight, columns > 2 ? 168 : 180)
         case .activationHub:
             return max(nominalHeight, columns > 2 ? 190 : 210)
+        case .bodyModel:
+            // One row of icon + two lines of text; the nominal wide height already fits it.
+            return nominalHeight
         }
     }
 

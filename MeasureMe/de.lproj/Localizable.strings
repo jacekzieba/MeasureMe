@@ -1572,3 +1572,7 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "whatsNew.1_5_4.compare.message" = "Wähle zwei beliebige Daten und blende dazwischen über, um zu sehen, wie sich deine Form verändert hat.";
 "whatsNew.1_5_4.accuracy.title" = "Eine genauere Silhouette";
 "whatsNew.1_5_4.accuracy.message" = "Hüfte, Schultern und Brust folgen deinen Maßen jetzt deutlich genauer.";
+
+/* Home — body model discovery card */
+"home.bodyModel.title" = "Körpermodell";
+"home.bodyModel.subtitle" = "Mach aus deinen Maßen eine 3D-Silhouette und vergleiche zwei beliebige Daten.";
