@@ -1566,12 +1566,12 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "whatsNew.subtitle" = "Version %@";
 "whatsNew.action.open" = "Zeig es mir";
 "whatsNew.action.dismiss" = "Später";
-"whatsNew.1_5_4.bodyModel.title" = "Dein Körpermodell in 3D";
-"whatsNew.1_5_4.bodyModel.message" = "Aus deinen Maßen entsteht jetzt eine Silhouette, die du drehen und ansehen kannst. Noch in der Beta — eine schematische Darstellung, kein Scan.";
-"whatsNew.1_5_4.compare.title" = "Zwei Daten vergleichen";
-"whatsNew.1_5_4.compare.message" = "Wähle zwei beliebige Daten und blende dazwischen über, um zu sehen, wie sich deine Form verändert hat.";
-"whatsNew.1_5_4.accuracy.title" = "Eine genauere Silhouette";
-"whatsNew.1_5_4.accuracy.message" = "Hüfte, Schultern und Brust folgen deinen Maßen jetzt deutlich genauer.";
+"whatsNew.1_6.bodyModel.title" = "Dein Körpermodell in 3D";
+"whatsNew.1_6.bodyModel.message" = "Aus deinen Maßen entsteht jetzt eine Silhouette, die du drehen und ansehen kannst. Noch in der Beta — eine schematische Darstellung, kein Scan.";
+"whatsNew.1_6.compare.title" = "Zwei Daten vergleichen";
+"whatsNew.1_6.compare.message" = "Wähle zwei beliebige Daten und blende dazwischen über, um zu sehen, wie sich deine Form verändert hat.";
+"whatsNew.1_6.accuracy.title" = "Eine genauere Silhouette";
+"whatsNew.1_6.accuracy.message" = "Hüfte, Schultern und Brust folgen deinen Maßen jetzt deutlich genauer.";
 
 /* Home — body model discovery card */
 "home.bodyModel.title" = "Körpermodell";

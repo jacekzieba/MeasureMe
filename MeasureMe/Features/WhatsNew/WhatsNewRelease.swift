@@ -29,22 +29,22 @@ nonisolated struct WhatsNewRelease: Equatable, Sendable, Identifiable {
     /// Newest first. Only the entry matching the running version is ever presented.
     static let catalogue: [WhatsNewRelease] = [
         WhatsNewRelease(
-            version: "1.5.4",
+            version: "1.6",
             highlights: [
                 Highlight(
                     systemImage: "figure.stand",
-                    titleKey: "whatsNew.1_5_4.bodyModel.title",
-                    messageKey: "whatsNew.1_5_4.bodyModel.message"
+                    titleKey: "whatsNew.1_6.bodyModel.title",
+                    messageKey: "whatsNew.1_6.bodyModel.message"
                 ),
                 Highlight(
                     systemImage: "arrow.left.and.right",
-                    titleKey: "whatsNew.1_5_4.compare.title",
-                    messageKey: "whatsNew.1_5_4.compare.message"
+                    titleKey: "whatsNew.1_6.compare.title",
+                    messageKey: "whatsNew.1_6.compare.message"
                 ),
                 Highlight(
                     systemImage: "checkmark.seal",
-                    titleKey: "whatsNew.1_5_4.accuracy.title",
-                    messageKey: "whatsNew.1_5_4.accuracy.message"
+                    titleKey: "whatsNew.1_6.accuracy.title",
+                    messageKey: "whatsNew.1_6.accuracy.message"
                 )
             ]
         )

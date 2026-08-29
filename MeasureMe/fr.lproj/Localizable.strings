@@ -1566,12 +1566,12 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 "whatsNew.subtitle" = "Version %@";
 "whatsNew.action.open" = "Montrez-moi";
 "whatsNew.action.dismiss" = "Plus tard";
-"whatsNew.1_5_4.bodyModel.title" = "Votre modèle corporel en 3D";
-"whatsNew.1_5_4.bodyModel.message" = "Vos mesures créent désormais une silhouette que vous pouvez faire pivoter et observer. En version bêta : une illustration indicative, pas un scan.";
-"whatsNew.1_5_4.compare.title" = "Comparez deux dates";
-"whatsNew.1_5_4.compare.message" = "Choisissez deux dates et passez de l'une à l'autre pour voir comment votre silhouette a évolué.";
-"whatsNew.1_5_4.accuracy.title" = "Une silhouette plus fidèle";
-"whatsNew.1_5_4.accuracy.message" = "Les hanches, les épaules et la poitrine suivent vos mesures bien plus fidèlement.";
+"whatsNew.1_6.bodyModel.title" = "Votre modèle corporel en 3D";
+"whatsNew.1_6.bodyModel.message" = "Vos mesures créent désormais une silhouette que vous pouvez faire pivoter et observer. En version bêta : une illustration indicative, pas un scan.";
+"whatsNew.1_6.compare.title" = "Comparez deux dates";
+"whatsNew.1_6.compare.message" = "Choisissez deux dates et passez de l'une à l'autre pour voir comment votre silhouette a évolué.";
+"whatsNew.1_6.accuracy.title" = "Une silhouette plus fidèle";
+"whatsNew.1_6.accuracy.message" = "Les hanches, les épaules et la poitrine suivent vos mesures bien plus fidèlement.";
 
 /* Home — body model discovery card */
 "home.bodyModel.title" = "Modèle corporel";

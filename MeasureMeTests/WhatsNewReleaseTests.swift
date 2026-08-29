@@ -56,6 +56,28 @@ final class WhatsNewReleaseTests: XCTestCase {
         XCTAssertTrue(missing.isEmpty, "Brak tlumaczen: \(missing.joined(separator: " | "))")
     }
 
+    /// Co sprawdza: Wersja, z ktora aplikacja faktycznie sie buduje, ma wpis w katalogu.
+    /// Dlaczego: To jedyny test, ktory laczy katalog z `CFBundleShortVersionString`. Bez niego
+    ///   podbicie MARKETING_VERSION po cichu wylacza arkusz — bramka uznaje wydanie za "bez
+    ///   wpisu", tylko stempluje wersje i nikt sie nie dowiaduje. Dokladnie to stalo sie przy
+    ///   przejsciu 1.5.4 -> 1.6.
+    /// Kryteria: `WhatsNewRelease.release(for:)` zwraca wpis dla biezacej wersji bundla.
+    ///   Jesli swiadomie wydajesz wersje bez notatek, dopisz ja do `versionsWithoutNotes`.
+    func testRunningBundleVersionHasCatalogueEntry() throws {
+        /// Wydania, ktore celowo nie pokazuja arkusza (same poprawki).
+        let versionsWithoutNotes: Set<String> = []
+
+        let current = WhatsNewGate.currentVersion
+        try XCTSkipIf(current.isEmpty, "Bundle hosta testow nie ma CFBundleShortVersionString.")
+        try XCTSkipIf(versionsWithoutNotes.contains(current), "Wydanie \(current) celowo bez notatek.")
+
+        XCTAssertNotNil(
+            WhatsNewRelease.release(for: current),
+            "Brak wpisu w WhatsNewRelease.catalogue dla wersji \(current). Dopisz go razem z "
+                + "kluczami whatsNew.* we wszystkich jezykach, albo dodaj \(current) do versionsWithoutNotes."
+        )
+    }
+
     /// Co sprawdza: Numery wersji w katalogu sa unikalne.
     /// Dlaczego: `release(for:)` bierze pierwszy pasujacy wpis, wiec duplikat po cichu
     ///   przykrylby ten drugi przy nastepnym wydaniu.

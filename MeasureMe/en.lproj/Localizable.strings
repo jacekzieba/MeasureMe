@@ -1572,12 +1572,12 @@ The thresholds differ between males and females due to different body compositio
 "whatsNew.subtitle" = "Version %@";
 "whatsNew.action.open" = "Show me";
 "whatsNew.action.dismiss" = "Not now";
-"whatsNew.1_5_4.bodyModel.title" = "Your body model in 3D";
-"whatsNew.1_5_4.bodyModel.message" = "Your measurements now build a silhouette you can turn and look at. It's in beta — an illustrative sketch, not a scan.";
-"whatsNew.1_5_4.compare.title" = "Compare two dates";
-"whatsNew.1_5_4.compare.message" = "Pick any two dates and morph between them to see how your shape changed.";
-"whatsNew.1_5_4.accuracy.title" = "A sharper silhouette";
-"whatsNew.1_5_4.accuracy.message" = "Hips, shoulders and chest now follow your measurements far more closely.";
+"whatsNew.1_6.bodyModel.title" = "Your body model in 3D";
+"whatsNew.1_6.bodyModel.message" = "Your measurements now build a silhouette you can turn and look at. It's in beta — an illustrative sketch, not a scan.";
+"whatsNew.1_6.compare.title" = "Compare two dates";
+"whatsNew.1_6.compare.message" = "Pick any two dates and morph between them to see how your shape changed.";
+"whatsNew.1_6.accuracy.title" = "A sharper silhouette";
+"whatsNew.1_6.accuracy.message" = "Hips, shoulders and chest now follow your measurements far more closely.";
 
 /* Home — body model discovery card */
 "home.bodyModel.title" = "Body model";

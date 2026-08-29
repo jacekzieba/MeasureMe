@@ -1524,12 +1524,12 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "whatsNew.subtitle" = "Wersja %@";
 "whatsNew.action.open" = "Pokaż mi";
 "whatsNew.action.dismiss" = "Nie teraz";
-"whatsNew.1_5_4.bodyModel.title" = "Twój model ciała w 3D";
-"whatsNew.1_5_4.bodyModel.message" = "Twoje pomiary tworzą teraz sylwetkę, którą możesz obracać i oglądać. To wersja beta — rysunek poglądowy, nie skan.";
-"whatsNew.1_5_4.compare.title" = "Porównaj dwie daty";
-"whatsNew.1_5_4.compare.message" = "Wybierz dowolne dwie daty i płynnie przechodź między nimi, aby zobaczyć, jak zmieniła się Twoja sylwetka.";
-"whatsNew.1_5_4.accuracy.title" = "Dokładniejsza sylwetka";
-"whatsNew.1_5_4.accuracy.message" = "Biodra, barki i klatka piersiowa dużo wierniej podążają za Twoimi pomiarami.";
+"whatsNew.1_6.bodyModel.title" = "Twój model ciała w 3D";
+"whatsNew.1_6.bodyModel.message" = "Twoje pomiary tworzą teraz sylwetkę, którą możesz obracać i oglądać. To wersja beta — rysunek poglądowy, nie skan.";
+"whatsNew.1_6.compare.title" = "Porównaj dwie daty";
+"whatsNew.1_6.compare.message" = "Wybierz dowolne dwie daty i płynnie przechodź między nimi, aby zobaczyć, jak zmieniła się Twoja sylwetka.";
+"whatsNew.1_6.accuracy.title" = "Dokładniejsza sylwetka";
+"whatsNew.1_6.accuracy.message" = "Biodra, barki i klatka piersiowa dużo wierniej podążają za Twoimi pomiarami.";
 
 /* Home — body model discovery card */
 "home.bodyModel.title" = "Model ciała";

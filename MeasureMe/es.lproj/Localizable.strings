@@ -1568,12 +1568,12 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 "whatsNew.subtitle" = "Versión %@";
 "whatsNew.action.open" = "Muéstramelo";
 "whatsNew.action.dismiss" = "Ahora no";
-"whatsNew.1_5_4.bodyModel.title" = "Tu modelo corporal en 3D";
-"whatsNew.1_5_4.bodyModel.message" = "Tus medidas ahora crean una silueta que puedes girar y observar. Está en beta: es un dibujo orientativo, no un escaneo.";
-"whatsNew.1_5_4.compare.title" = "Compara dos fechas";
-"whatsNew.1_5_4.compare.message" = "Elige dos fechas cualesquiera y transiciona entre ellas para ver cómo cambió tu figura.";
-"whatsNew.1_5_4.accuracy.title" = "Una silueta más precisa";
-"whatsNew.1_5_4.accuracy.message" = "Las caderas, los hombros y el pecho siguen tus medidas con mucha más fidelidad.";
+"whatsNew.1_6.bodyModel.title" = "Tu modelo corporal en 3D";
+"whatsNew.1_6.bodyModel.message" = "Tus medidas ahora crean una silueta que puedes girar y observar. Está en beta: es un dibujo orientativo, no un escaneo.";
+"whatsNew.1_6.compare.title" = "Compara dos fechas";
+"whatsNew.1_6.compare.message" = "Elige dos fechas cualesquiera y transiciona entre ellas para ver cómo cambió tu figura.";
+"whatsNew.1_6.accuracy.title" = "Una silueta más precisa";
+"whatsNew.1_6.accuracy.message" = "Las caderas, los hombros y el pecho siguen tus medidas con mucha más fidelidad.";
 
 /* Home — body model discovery card */
 "home.bodyModel.title" = "Modelo corporal";
