@@ -128,7 +128,7 @@ final class LocalizationConsistencyTests: XCTestCase {
     /// from every locale at once, so check the source literals against the catalog directly.
     func testWidgetGalleryLiteralsExistInEveryLocalization() throws {
         let bundleSource = try String(
-            contentsOf: repositoryRoot().appendingPathComponent("MeasureMeWidget/MeasureMeWidgetBundle.swift"),
+            contentsOf: try sourceTreeRootOrSkip().appendingPathComponent("MeasureMeWidget/MeasureMeWidgetBundle.swift"),
             encoding: .utf8
         )
 
@@ -152,11 +152,28 @@ final class LocalizationConsistencyTests: XCTestCase {
         }
     }
 
-    private func repositoryRoot() -> URL {
+    /// The two source-scanning tests read the checked-out tree, which only exists when the
+    /// test host can see the Mac filesystem. On a physical device those paths are absent, so
+    /// resolve the root defensively and let the caller skip instead of failing.
+    /// Returns nil rather than unwrapping: `XCTUnwrap` records a failure before it throws,
+    /// which would defeat the skip below.
+    private func repositoryRoot() -> URL? {
         // .../MeasureMeTests/LocalizationConsistencyTests.swift -> repository root
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let fm = FileManager.default
+        let candidates = [
+            URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent()
+                .deletingLastPathComponent(),
+            URL(fileURLWithPath: fm.currentDirectoryPath, isDirectory: true)
+        ]
+        return candidates.first { fm.fileExists(atPath: $0.appendingPathComponent("MeasureMeTests").path) }
+    }
+
+    private func sourceTreeRootOrSkip() throws -> URL {
+        guard let root = repositoryRoot() else {
+            throw XCTSkip("Repository sources are not reachable from this test host.")
+        }
+        return root
     }
 
 
@@ -171,6 +188,7 @@ final class LocalizationConsistencyTests: XCTestCase {
             "Send diagnostics to measureme.approve254@passmail.net"
         ]
 
+        let sourceRoot = try sourceTreeRootOrSkip()
         let sourceRoots = ["MeasureMe", "MeasureMeWidget", "MeasureMeWatch Watch App", "MeasureMeWatchComplications"]
         var requested = Set<String>()
         let callPattern = try NSRegularExpression(
@@ -178,7 +196,7 @@ final class LocalizationConsistencyTests: XCTestCase {
         )
 
         for root in sourceRoots {
-            let rootURL = repositoryRoot().appendingPathComponent(root)
+            let rootURL = sourceRoot.appendingPathComponent(root)
             guard let walker = FileManager.default.enumerator(at: rootURL, includingPropertiesForKeys: nil) else { continue }
             for case let url as URL in walker where url.pathExtension == "swift" {
                 guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }

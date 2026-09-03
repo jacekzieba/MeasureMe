@@ -874,6 +874,10 @@ private extension PhotoView {
                         showBodyModel = true
                     } label: {
                         Image(systemName: "figure.stand")
+                            // The standing-figure glyph is narrower than the other two, which
+                            // left the tap target under the 44pt minimum.
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
                     }
                     .accessibilityIdentifier("photos.bodyModel.open")
                     .accessibilityLabel(AppLocalization.string("bodyModel.title"))

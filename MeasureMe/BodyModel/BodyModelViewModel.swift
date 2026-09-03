@@ -60,7 +60,7 @@ final class BodyModelViewModel: ObservableObject {
     /// measurement recent enough to describe the user now?" and can afford to be generous; this
     /// one asks "are these two dates the same body?" and must stay tight, or every resolvable
     /// date collapses into a single anchor and there is nothing left to compare.
-    static let anchorCollapseDays = 14
+    nonisolated static let anchorCollapseDays = 14
 
     /// Body for the current morph position, or nil when there is nothing to show.
     var currentParameters: BodyMeshParameters? {

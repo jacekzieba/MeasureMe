@@ -135,9 +135,9 @@ struct MannequinView: UIViewRepresentable {
         // feet is geometrically invisible from here, whether cast by SceneKit or
         // painted onto a quad. Both were tried. Giving the body one means tilting
         // the camera down a few degrees, which changes how the proportions read.
-        for (index, setup) in [(700.0, SCNVector3(2, 3, 3)),
-                               (260.0, SCNVector3(-3, 2, 1)),
-                               (60.0, SCNVector3(0, 2, -4))].enumerated() {
+        for setup in [(700.0, SCNVector3(2, 3, 3)),
+                      (260.0, SCNVector3(-3, 2, 1)),
+                      (60.0, SCNVector3(0, 2, -4))] {
             let node = SCNNode()
             node.light = SCNLight()
             node.light?.type = .directional

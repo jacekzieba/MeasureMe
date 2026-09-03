@@ -303,6 +303,7 @@ final class BodyMeshDeformerTests: XCTestCase {
     /// tylko nie ten, ktory sie zmierzyl.
     ///
     /// Pozostale testy buduja rig z chudej siatki i tej sciezki nie tykaja.
+    @MainActor
     func testMeasurementsSurviveOnTheHeavyBake() async throws {
         for gender in BodyGender.allCases {
             await BodyBaseMeshProvider.prepare(for: gender)
@@ -358,6 +359,7 @@ final class BodyMeshDeformerTests: XCTestCase {
     /// Dlatego `prepared` INTERPOLUJE miedzy dwoma sasiednimi wezlami. Mieszanka
     /// pozycji jest liniowa w `fatness`, wiec wynik jest dokladnie taki, jaki
     /// dalaby mieszanka policzona wprost; przyblizony jest tylko profil pasm.
+    @MainActor
     func testFatnessBetweenGridNodesInterpolatesRatherThanRounding() async throws {
         await BodyBaseMeshProvider.prepare(for: .male)
         let a = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: .male, fatness: 0.500))
@@ -375,6 +377,7 @@ final class BodyMeshDeformerTests: XCTestCase {
 
     /// Dlaczego: siatka wezlow jest po to, zeby profilu nie budowac na kazdej
     /// klatce. Wartosc trafiajaca dokladnie w wezel ma oddac wpis z cache'u.
+    @MainActor
     func testGridNodesThemselvesAreCached() async throws {
         await BodyBaseMeshProvider.prepare(for: .male)
         let first = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: .male, fatness: 0.25))
@@ -387,6 +390,7 @@ final class BodyMeshDeformerTests: XCTestCase {
     /// Dlaczego: bez limitu slownik mieszanek rosl do 11 MB i nic go nie
     /// zwalnialo. `releaseBlends` zostawia zdekodowane wypieki i mape regionow —
     /// to one kosztuja 121 ms na plec — a oddaje same mieszanki.
+    @MainActor
     func testReleasingBlendsKeepsTheBakes() async throws {
         await BodyBaseMeshProvider.prepare(for: .male)
         let before = try XCTUnwrap(BodyBaseMeshProvider.prepared(for: .male, fatness: 0.5))
@@ -398,6 +402,7 @@ final class BodyMeshDeformerTests: XCTestCase {
     /// Dlaczego: rozgrzewka ma pokryc caly odcinek, po ktorym jezdzi suwak, i to
     /// poza glownym aktorem — inaczej pierwszy przeciag placi 18 ms na kazdej
     /// granicy wezla.
+    @MainActor
     func testWarmingCoversTheWholeSliderSpan() async throws {
         await BodyBaseMeshProvider.prepare(for: .male)
         BodyBaseMeshProvider.releaseBlends()

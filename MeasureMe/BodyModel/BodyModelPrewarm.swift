@@ -58,7 +58,11 @@ enum BodyModelPrewarm {
     /// Called after launch and after every measurement save, so opening the
     /// body model finds both already done. Cheap to call repeatedly: the rig
     /// build returns immediately once cached, and so does the reconcile.
-    static func warm(context: ModelContext, settingsStore: AppSettingsStore = .shared) {
+    /// `settingsStore` defaults to `.shared`, resolved inside the body: a default argument
+    /// expression is evaluated in a nonisolated context, which cannot touch the main
+    /// actor-isolated singleton.
+    static func warm(context: ModelContext, settingsStore: AppSettingsStore? = nil) {
+        let settingsStore = settingsStore ?? .shared
         task?.cancel()
         // Inherits the main actor deliberately: ModelContext is not Sendable, so
         // the fetch stays here. Only reconciliation goes detached, and that is

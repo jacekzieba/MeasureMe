@@ -1,11 +1,18 @@
 import XCTest
 
 final class AuditCaptureUITests: XCTestCase {
+    /// The tab bar renders as a segmented control whose buttons carry **no accessibility
+    /// identifier** — only a localized label — so `tab.*` never matches and every language
+    /// the screenshots cover has to be listed here. Missing a language silently sent the
+    /// lookup to the index fallback, which opened the wrong tab.
     private enum TabLabel {
-        static let home = ["tab.home", "Home", "Start", "Dom", "Strona główna"]
-        static let measurements = ["tab.measurements", "Measurements", "Pomiary"]
-        static let photos = ["tab.photos", "Photos", "Zdjęcia", "Zdjecia"]
-        static let settings = ["tab.settings", "Settings", "Ustawienia"]
+        static let home = ["tab.home", "Home", "Start", "Dom", "Strona główna",
+                           "Inicio", "Accueil", "Início"]
+        static let measurements = ["tab.measurements", "Measurements", "Pomiary",
+                                   "Medidas", "Messungen", "Mesures", "Medições"]
+        static let photos = ["tab.photos", "Photos", "Zdjęcia", "Zdjecia", "Fotos"]
+        static let settings = ["tab.settings", "Settings", "Ustawienia",
+                               "Ajustes", "Einstellungen", "Paramètres", "Configurações"]
     }
 
     private enum ScreenshotLocale: CaseIterable {
@@ -558,20 +565,22 @@ final class AuditCaptureUITests: XCTestCase {
             return 1
         }
         if candidates.contains(where: { $0.caseInsensitiveCompare("Photos") == .orderedSame || $0.caseInsensitiveCompare("Zdjęcia") == .orderedSame || $0.caseInsensitiveCompare("Zdjecia") == .orderedSame }) {
-            return 3
+            return 2
         }
         if candidates.contains(where: { $0.caseInsensitiveCompare("Settings") == .orderedSame || $0.caseInsensitiveCompare("Ustawienia") == .orderedSame }) {
-            return 4
+            return 3
         }
         return nil
     }
 
+    /// Four segments, evenly spaced. The "+" button is a sibling *outside* the segmented
+    /// control, so it takes up no slot here.
     private func fallbackTabNormalizedX(for tabIndex: Int) -> CGFloat? {
         switch tabIndex {
-        case 0: return 0.10 // Home
-        case 1: return 0.30 // Measurements
-        case 3: return 0.70 // Photos
-        case 4: return 0.90 // Settings
+        case 0: return 0.125 // Home
+        case 1: return 0.375 // Measurements
+        case 2: return 0.625 // Photos
+        case 3: return 0.875 // Settings
         default: return nil
         }
     }
