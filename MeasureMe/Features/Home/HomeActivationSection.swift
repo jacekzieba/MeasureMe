@@ -8,6 +8,19 @@ struct HomeActivationSnapshot {
     let primaryCTA: String
     let skipCTA: String
     let dismissCTA: String
+
+    /// Fraction of the activation sequence completed, always finite and within 0...1.
+    ///
+    /// `totalSteps` comes from a filtered sequence that empties once every task is done,
+    /// skipped or already satisfied — which seeded UI-test runs reach routinely. Dividing
+    /// by it directly yields 0/0 = NaN, and multiplying a `GeometryReader` width by NaN is
+    /// what CoreGraphics reports as "Invalid frame dimension (negative or non-finite)".
+    var progressFraction: Double {
+        guard totalSteps > 0 else { return 0 }
+        let fraction = Double(stepIndex) / Double(totalSteps)
+        guard fraction.isFinite else { return 0 }
+        return min(max(fraction, 0), 1)
+    }
 }
 
 struct HomeActivationCard: View {
@@ -63,7 +76,7 @@ struct HomeActivationCard: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: geo.size.width * (Double(snapshot.stepIndex) / Double(snapshot.totalSteps)))
+                            .frame(width: geo.size.width * snapshot.progressFraction)
                     }
                 }
                 .frame(height: 4)
