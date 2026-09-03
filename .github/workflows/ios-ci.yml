@@ -69,7 +69,9 @@ jobs:
           while IFS= read -r file; do
             [ -n "$file" ] || continue
             echo "Linting $file"
-            swiftlint lint --config .swiftlint.yml --strict --path "$file"
+            # Paths are positional; SwiftLint dropped the `--path` option and now
+            # exits 64 ("Unknown option '--path'") before any file is inspected.
+            swiftlint lint --config .swiftlint.yml --strict "$file"
           done <<< "$FILES"
 
       - name: SwiftLint full report (non-blocking)
