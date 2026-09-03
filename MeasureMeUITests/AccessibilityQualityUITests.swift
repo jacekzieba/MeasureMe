@@ -49,7 +49,7 @@ final class AccessibilityQualityUITests: XCTestCase {
             collector: collector
         )
 
-        openTab(identifier: "tab.photos", fallbackIndex: 3)
+        openTab(identifier: "tab.photos", fallbackIndex: 2)
         try auditCurrentScreen(
             context: "Photos",
             types: [.hitRegion, .sufficientElementDescription, .trait],
@@ -57,7 +57,7 @@ final class AccessibilityQualityUITests: XCTestCase {
             collector: collector
         )
 
-        openTab(identifier: "tab.settings", fallbackIndex: 4)
+        openTab(identifier: "tab.settings", fallbackIndex: 3)
         try auditCurrentScreen(
             context: "Settings",
             types: [.hitRegion, .sufficientElementDescription, .trait],
@@ -148,14 +148,14 @@ final class AccessibilityQualityUITests: XCTestCase {
             assertContainedHorizontally(categoryTabs, in: window, name: "measurements.tab.segmented")
         }
 
-        openTab(identifier: "tab.photos", fallbackIndex: 3)
+        openTab(identifier: "tab.photos", fallbackIndex: 2)
         let photosContent = app.scrollViews.firstMatch.exists
             ? app.scrollViews.firstMatch
             : app.collectionViews.firstMatch
         XCTAssertTrue(photosContent.waitForExistence(timeout: 8), "Photos content should exist")
         assertContainedHorizontally(photosContent, in: window, name: "photos.content")
 
-        openTab(identifier: "tab.settings", fallbackIndex: 4)
+        openTab(identifier: "tab.settings", fallbackIndex: 3)
         let settingsRoot = app.descendants(matching: .any)["settings.root"].firstMatch
         XCTAssertTrue(settingsRoot.waitForExistence(timeout: 8), "Settings root should exist")
         assertContainedHorizontally(settingsRoot, in: window, name: "settings.root")
@@ -179,6 +179,10 @@ final class AccessibilityQualityUITests: XCTestCase {
             "\(appearance) appearance option should exist"
         )
         appearanceButton.tap()
+        // The scheme switch cross-fades. Auditing straight after the tap samples
+        // blended colours mid-transition, which reports contrast failures on
+        // whichever row happens to be caught — a flake, not a real regression.
+        usleep(800_000)
 
         try auditCurrentScreen(
             context: "AppearanceSettings.\(appearance)",
@@ -246,6 +250,11 @@ final class AccessibilityQualityUITests: XCTestCase {
 
             if index < swipes {
                 app.swipeUp()
+                // Scroll deceleration keeps repainting for a few hundred ms. Auditing straight
+                // after the swipe samples pixels mid-scroll, where a row caught under the
+                // translucent bar blends with it and reports a contrast failure that is gone
+                // once the scroll settles. Same reason the appearance tap below settles.
+                usleep(800_000)
             }
         }
     }
@@ -268,7 +277,8 @@ final class AccessibilityQualityUITests: XCTestCase {
             return
         }
 
-        let normalizedX = (CGFloat(fallbackIndex) * 0.2) + 0.1
+        // Four segments — the "+" sits outside the control and takes no slot.
+        let normalizedX = (CGFloat(fallbackIndex) + 0.5) / 4
         tabBar.coordinate(withNormalizedOffset: CGVector(dx: normalizedX, dy: 0.5)).tap()
     }
 
