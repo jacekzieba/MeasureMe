@@ -61,7 +61,12 @@ enum PhotoUtilities {
             return image
         }
         
-        let renderer = UIGraphicsImageRenderer(size: newSize)
+        // Pin the scale, as `thumbnail(from:size:)` below already does. Without a format the
+        // renderer uses the screen scale, so `newSize` becomes points and the bitmap comes out
+        // 2x/3x larger in pixels than the source we were asked to shrink.
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
         return renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: newSize))
         }

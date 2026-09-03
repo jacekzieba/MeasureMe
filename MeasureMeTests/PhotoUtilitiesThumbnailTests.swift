@@ -4,6 +4,43 @@ import UIKit
 
 final class PhotoUtilitiesThumbnailTests: XCTestCase {
 
+    /// `resize` used to render with `UIGraphicsImageRenderer(size:)` and no format, so the
+    /// bitmap came out at the *screen* scale: a 1800x2400 px import targeted at 2048 became
+    /// 4608x6144 px — an upscale, not a downsample. `encodeForStorage` then binary-searched
+    /// HEIC/JPEG quality over 28 megapixels, which is what pushed a single pending save past
+    /// 25 seconds. The sibling `thumbnail(from:size:)` in the same file already pins scale 1.
+    func testResizeProducesPixelDimensionsAtOrBelowMaxDimension() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let source = UIGraphicsImageRenderer(size: CGSize(width: 1800, height: 2400), format: format).image { context in
+            UIColor.magenta.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 1800, height: 2400))
+        }
+        XCTAssertEqual(source.scale, 1)
+
+        let resized = PhotoUtilities.resize(source, maxDimension: 2048)
+        let cgImage = try XCTUnwrap(resized.cgImage)
+
+        XCTAssertEqual(cgImage.width, 1536)
+        XCTAssertEqual(cgImage.height, 2048)
+        XCTAssertLessThanOrEqual(max(cgImage.width, cgImage.height), 2048)
+    }
+
+    func testResizeDoesNotEnlargeImagesAlreadyWithinBudget() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let source = UIGraphicsImageRenderer(size: CGSize(width: 800, height: 600), format: format).image { context in
+            UIColor.cyan.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 800, height: 600))
+        }
+
+        let resized = PhotoUtilities.resize(source, maxDimension: 2048)
+        let cgImage = try XCTUnwrap(resized.cgImage)
+
+        XCTAssertEqual(cgImage.width, 800)
+        XCTAssertEqual(cgImage.height, 600)
+    }
+
     func testThumbnailUsesAspectFillCropInsteadOfStretching() throws {
         let sourceSize = CGSize(width: 400, height: 200)
         let image = UIGraphicsImageRenderer(size: sourceSize).image { context in
