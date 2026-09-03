@@ -50,9 +50,37 @@ final class OnboardingUITests: XCTestCase {
         return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
     }
 
+    /// Tap a control hook and confirm the step actually changed, re-tapping if it did not.
+    ///
+    /// The hooks in `OnboardingUITestControlHooks` are `Color.clear` content buttons, and
+    /// XCUITest occasionally drops a synthesized tap on them. Observed on a physical iPhone:
+    /// `testHealthPromptAppearsOnBoostersStep` tapped past welcome, the app stayed on step:0,
+    /// and the caller then burned its whole 5s timeout looking for a goal card that only
+    /// exists on step:1 — reported as a bare "XCTAssertTrue failed" pointing at the goal card
+    /// rather than at the lost tap. Every other onboarding test passed on that same device in
+    /// that same run, so the flow itself works; only the tap was dropped.
+    ///
+    /// Re-tapping is safe because the step is re-checked first: another tap is only sent while
+    /// the flow is still sitting on the previous step.
+    @discardableResult
+    private func advance(
+        _ control: @autoclosure () -> XCUIElement,
+        to expected: String,
+        attempts: Int = 3,
+        timeout: TimeInterval = 4
+    ) -> Bool {
+        for _ in 0..<attempts {
+            control().tap()
+            if waitForOnboardingStep(expected, timeout: timeout) {
+                return true
+            }
+        }
+        return false
+    }
+
     private func advancePastWelcome() {
         XCTAssertTrue(waitForOnboardingStep("step:0"), "Expected to start on welcome step")
-        nextButton.tap()
+        XCTAssertTrue(advance(nextButton, to: "step:1"), "Welcome step should advance to the goal step")
     }
 
     /// Goal cards don't receive synthesized XCUITest taps, so the goal is chosen via a launch
@@ -63,7 +91,7 @@ final class OnboardingUITests: XCTestCase {
         advancePastWelcome()
         XCTAssertTrue(app.buttons[identifier].waitForExistence(timeout: 5))
         XCTAssertTrue(waitForOnboardingStep("step:1"))
-        nextButton.tap()
+        XCTAssertTrue(advance(nextButton, to: "step:2"), "Goal step should advance to starting point")
     }
 
     private func assertWeightHeroFieldVisible() {
@@ -79,12 +107,11 @@ final class OnboardingUITests: XCTestCase {
         assertWeightHeroFieldVisible()
         XCTAssertFalse(app.buttons["onboarding.health.allow"].exists, "Health prompt should not appear on the starting point step")
 
-        nextButton.tap() // starting point → rhythm
-        XCTAssertTrue(waitForOnboardingStep("step:3"))
+        XCTAssertTrue(advance(nextButton, to: "step:3"), "Starting point should advance to rhythm")
         XCTAssertFalse(app.buttons["onboarding.health.allow"].exists, "Health prompt should not appear on the rhythm step")
 
-        skipButton.tap() // rhythm → boosters (skip avoids the notification permission prompt)
-        XCTAssertTrue(waitForOnboardingStep("step:4"))
+        // Skip rather than continue, so the notification permission prompt is never triggered.
+        XCTAssertTrue(advance(skipButton, to: "step:4"), "Rhythm step should skip to boosters")
         XCTAssertTrue(app.buttons["onboarding.health.allow"].waitForExistence(timeout: 5))
     }
 
@@ -115,9 +142,7 @@ final class OnboardingUITests: XCTestCase {
 
         XCTAssertTrue(waitForOnboardingStep("step:2"))
 
-        backButton.tap()
-
-        XCTAssertTrue(waitForOnboardingStep("step:1"))
+        XCTAssertTrue(advance(backButton, to: "step:1"), "Back should return to the goal step")
         XCTAssertTrue(app.buttons["onboarding.priority.loseWeight"].exists)
     }
 
@@ -153,8 +178,7 @@ final class OnboardingUITests: XCTestCase {
     func testOnboardingFinishesFromPlan() {
         advanceToBoostersStep()
 
-        nextButton.tap() // boosters → plan
-        XCTAssertTrue(waitForOnboardingStep("step:5"))
+        XCTAssertTrue(advance(nextButton, to: "step:5"), "Boosters step should advance to the plan")
 
         nextButton.tap() // plan → dashboard
 
@@ -162,20 +186,15 @@ final class OnboardingUITests: XCTestCase {
     }
 
     func testOnboardingCanReachDashboardWithSkips() {
-        skipButton.tap()
-        XCTAssertTrue(waitForOnboardingStep("step:1"))
+        XCTAssertTrue(advance(skipButton, to: "step:1"), "Skip should reach step:1")
 
-        skipButton.tap()
-        XCTAssertTrue(waitForOnboardingStep("step:2"))
+        XCTAssertTrue(advance(skipButton, to: "step:2"), "Skip should reach step:2")
 
-        skipButton.tap()
-        XCTAssertTrue(waitForOnboardingStep("step:3"))
+        XCTAssertTrue(advance(skipButton, to: "step:3"), "Skip should reach step:3")
 
-        skipButton.tap()
-        XCTAssertTrue(waitForOnboardingStep("step:4"))
+        XCTAssertTrue(advance(skipButton, to: "step:4"), "Skip should reach step:4")
 
-        skipButton.tap()
-        XCTAssertTrue(waitForOnboardingStep("step:5"))
+        XCTAssertTrue(advance(skipButton, to: "step:5"), "Skip should reach step:5")
 
         skipButton.tap()
 
