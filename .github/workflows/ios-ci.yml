@@ -16,9 +16,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # macos-latest ships Xcode 26.2 and only iOS 26.x simulator runtimes. Requesting
+        # 18.0 matched nothing and the lane reported success while building and testing
+        # nothing at all — a false green. Add older runtimes back only alongside a step
+        # that installs them, so a missing runtime can never masquerade as a pass.
         ios_runtime:
-          - "18.0"
-          - "26.1"
+          - "26.2"
 
     steps:
       - name: Checkout
@@ -91,48 +94,46 @@ jobs:
           set -euo pipefail
 
           SHOW_DESTINATIONS="$(xcodebuild -project MeasureMe.xcodeproj -scheme MeasureMe -showdestinations)"
+          echo "$SHOW_DESTINATIONS"
 
-          DESTINATION="$(printf '%s\n' "$SHOW_DESTINATIONS" | awk -F'[{}]' -v requested="$REQUESTED_IOS" '
-            /platform:iOS Simulator/ {
-              line = $2
-              gsub(/, /, ",", line)
-              gsub(/^ +| +$/, "", line)
-              if (line ~ ("OS:" requested "(,|$)")) {
-                print line
-                exit
-              }
-            }
-          ')"
+          # `-showdestinations` prints a human-readable form using `key:value`, but
+          # `-destination` requires `key=value` and rejects a specifier carrying both
+          # `id` and `name` ("option 'Destination' requires at least one parameter of
+          # the form 'key=value'"). So pull out the udid alone and build the specifier.
+          #
+          # iPhone is required, not cosmetic: the tab bar uses FabBar, which hides at a
+          # regular size class, so a great many UI tests cannot pass on an iPad.
+          find_udid() {
+            printf '%s\n' "$SHOW_DESTINATIONS" \
+              | grep 'platform:iOS Simulator' \
+              | grep "OS:$1" \
+              | grep "$2" \
+              | sed -n 's/.*id:\([0-9A-Fa-f-]\{36\}\).*/\1/p' \
+              | head -1
+          }
 
-          # Fallback: exact patch may be unavailable on the runner (e.g. 18.0 vs 18.6).
-          if [ -z "$DESTINATION" ]; then
-            REQUESTED_MAJOR="${REQUESTED_IOS%%.*}"
-            DESTINATION="$(printf '%s\n' "$SHOW_DESTINATIONS" | awk -F'[{}]' -v major="$REQUESTED_MAJOR" '
-              /platform:iOS Simulator/ {
-                line = $2
-                gsub(/, /, ",", line)
-                gsub(/^ +| +$/, "", line)
-                if (line ~ ("OS:" major "\\.")) {
-                  print line
-                  exit
-                }
-              }
-            ')"
+          REQUESTED_MAJOR="${REQUESTED_IOS%%.*}"
+          UDID=""
+          for os_pattern in "$REQUESTED_IOS," "$REQUESTED_MAJOR\."; do
+            for name_pattern in "name:iPhone" "name:"; do
+              UDID="$(find_udid "$os_pattern" "$name_pattern")"
+              [ -n "$UDID" ] && break 2
+            done
+          done
+
+          if [ -z "$UDID" ]; then
+            echo "::error::No iOS Simulator runtime matching $REQUESTED_IOS on this runner."
+            echo "Refusing to report success for a lane that would build and test nothing."
+            exit 1
           fi
 
-          if [ -z "$DESTINATION" ]; then
-            echo "No compatible iOS Simulator runtime found for requested iOS $REQUESTED_IOS."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "skip=false" >> "$GITHUB_OUTPUT"
+          DESTINATION="platform=iOS Simulator,id=$UDID"
           echo "destination=$DESTINATION" >> "$GITHUB_OUTPUT"
           echo "Requested iOS: $REQUESTED_IOS"
           echo "Using destination: $DESTINATION"
+          printf '%s\n' "$SHOW_DESTINATIONS" | grep "$UDID" || true
 
       - name: Build
-        if: steps.destination.outputs.skip != 'true'
         run: |
           xcodebuild \
             -project MeasureMe.xcodeproj \
@@ -143,7 +144,6 @@ jobs:
             build
 
       - name: Static Analyze (non-blocking)
-        if: steps.destination.outputs.skip != 'true'
         continue-on-error: true
         run: |
           xcodebuild \
@@ -155,7 +155,6 @@ jobs:
             analyze
 
       - name: Test
-        if: steps.destination.outputs.skip != 'true'
         run: |
           xcodebuild \
             -project MeasureMe.xcodeproj \
@@ -164,8 +163,3 @@ jobs:
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             test
-
-      - name: Skip note
-        if: steps.destination.outputs.skip == 'true'
-        run: |
-          echo "Skipped iOS ${{ matrix.ios_runtime }} lane: simulator runtime unavailable on this runner."
