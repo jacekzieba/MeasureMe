@@ -162,6 +162,11 @@ jobs:
       # 54 minutes before the job's cap killed it — the UI suite alone is 60-70
       # minutes. Splitting keeps push/PR feedback to the unit suite, which is the
       # part that gates a merge.
+      # Test timeouts are not a nicety here. On the first run of this lane
+      # PendingPhotoSaveStoreTests.testCompletion_RemovesSpoolAndEmitsCompletedEvent
+      # hung inside enqueueSingle and sat dead for 1h45m until the job cap killed it,
+      # producing no failure and no name. Bounded, a hang fails in two minutes and
+      # says which test it was.
       - name: Unit tests
         run: |
           xcodebuild \
@@ -170,6 +175,9 @@ jobs:
             -destination "${{ steps.destination.outputs.destination }}" \
             -configuration Debug \
             -only-testing:MeasureMeTests \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 120 \
+            -maximum-test-execution-time-allowance 600 \
             CODE_SIGNING_ALLOWED=NO \
             test
 
