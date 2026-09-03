@@ -1,0 +1,183 @@
+name: iOS Release
+
+# Manual on purpose: every successful run uploads a build to App Store Connect,
+# which is visible to Apple and cannot be undone (a build can be removed from a
+# group, but the build number is burned forever). Trigger it deliberately.
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: "CFBundleVersion to stamp. Must be higher than the last build uploaded for this marketing version. Defaults to the workflow run number."
+        required: false
+        type: string
+      upload:
+        description: "Upload to App Store Connect. Leave off to archive and export only, and download the IPA from the run artifacts."
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: ios-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Archive & Upload
+    runs-on: macos-latest
+    timeout-minutes: 90
+
+    env:
+      SCHEME: MeasureMe
+      PROJECT: MeasureMe.xcodeproj
+      TEAM_ID: K447N5AR8W
+      ARCHIVE_PATH: ${{ github.workspace }}/build/MeasureMe.xcarchive
+      EXPORT_PATH: ${{ github.workspace }}/build/export
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26.2
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.2"
+
+      - name: Verify signing secrets are present
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -n "${KEY_ID:-}" ]      || missing="$missing APP_STORE_CONNECT_KEY_ID"
+          [ -n "${ISSUER_ID:-}" ]   || missing="$missing APP_STORE_CONNECT_ISSUER_ID"
+          [ -n "${PRIVATE_KEY:-}" ] || missing="$missing APP_STORE_CONNECT_PRIVATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "Missing repository secrets:$missing"
+            echo "Add them under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "All signing secrets present."
+
+      - name: Install App Store Connect API key
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          # altool and xcodebuild both look here by convention.
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s\n' "$PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+
+      - name: Resolve build number
+        id: build_number
+        env:
+          REQUESTED: ${{ inputs.build_number }}
+        run: |
+          set -euo pipefail
+          VALUE="${REQUESTED:-}"
+          if [ -z "$VALUE" ]; then
+            VALUE="${GITHUB_RUN_NUMBER}"
+          fi
+          case "$VALUE" in
+            ''|*[!0-9]*)
+              echo "build_number must be a positive integer, got '$VALUE'."
+              exit 1
+              ;;
+          esac
+          echo "value=$VALUE" >> "$GITHUB_OUTPUT"
+          echo "Stamping CFBundleVersion $VALUE"
+
+      - name: Archive
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          # -allowProvisioningUpdates lets Xcode fetch or create the distribution
+          # certificate and profiles using the API key, so no .p12 or .mobileprovision
+          # has to be stored as a secret.
+          xcodebuild archive \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8 \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            CURRENT_PROJECT_VERSION=${{ steps.build_number.outputs.value }} \
+            DEVELOPMENT_TEAM="$TEAM_ID"
+
+      - name: Write ExportOptions.plist
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          cat > build/ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>teamID</key>
+            <string>${TEAM_ID}</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Export IPA
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist build/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8 \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID"
+          ls -la "$EXPORT_PATH"
+
+      - name: Upload IPA as run artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MeasureMe-ipa-build-${{ steps.build_number.outputs.value }}
+          path: ${{ env.EXPORT_PATH }}/*.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Validate with App Store Connect
+        if: ${{ inputs.upload }}
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          IPA="$(find "$EXPORT_PATH" -name '*.ipa' -maxdepth 1 | head -1)"
+          xcrun altool --validate-app -f "$IPA" -t ios \
+            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
+
+      - name: Upload to App Store Connect
+        if: ${{ inputs.upload }}
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          IPA="$(find "$EXPORT_PATH" -name '*.ipa' -maxdepth 1 | head -1)"
+          xcrun altool --upload-app -f "$IPA" -t ios \
+            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
+          echo "Uploaded. Processing on App Store Connect takes a few minutes."
