@@ -192,7 +192,17 @@ final class PerformanceUITests: XCTestCase {
             localizedCandidates = [name]
         }
 
-        for candidate in localizedCandidates {
+        // Probe cheaply first. The `tab.*` entry is always the head of the candidate list, but
+        // the FabBar segments carry no accessibility identifier — only a localized label — so it
+        // can never match. Waiting 3s on it burned ~12s per sample across the four taps, which
+        // is what pushed the measured median past the budget; the tabs themselves are fine.
+        for candidate in localizedCandidates where tabBar.buttons[candidate].firstMatch.exists {
+            tabBar.buttons[candidate].firstMatch.tap()
+            return
+        }
+
+        // Nothing on screen yet — fall back to a single wait on the localized labels.
+        for candidate in localizedCandidates.dropFirst() {
             let button = tabBar.buttons[candidate].firstMatch
             if button.waitForExistence(timeout: 3) {
                 button.tap()
