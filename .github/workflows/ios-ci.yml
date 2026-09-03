@@ -7,12 +7,16 @@ on:
       - master
       - 'codex/**'
   pull_request:
+  # The UI suite runs only here and on demand — see the "UI tests" step below.
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
 
 jobs:
   build-and-test:
     name: Build & Test (iOS ${{ matrix.ios_runtime }})
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -154,12 +158,34 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             analyze
 
-      - name: Test
+      # The scheme's test action holds both test targets, and running it whole took
+      # 54 minutes before the job's cap killed it — the UI suite alone is 60-70
+      # minutes. Splitting keeps push/PR feedback to the unit suite, which is the
+      # part that gates a merge.
+      - name: Unit tests
         run: |
           xcodebuild \
             -project MeasureMe.xcodeproj \
             -scheme MeasureMe \
             -destination "${{ steps.destination.outputs.destination }}" \
             -configuration Debug \
+            -only-testing:MeasureMeTests \
+            CODE_SIGNING_ALLOWED=NO \
+            test
+
+      # Nightly and on demand only. `-retry-tests-on-failure` is not papering over
+      # breakage: a UI run on a cold simulator reports failures that vanish once the
+      # simulator is warm, and every CI runner is cold by construction.
+      - name: UI tests
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+        run: |
+          xcodebuild \
+            -project MeasureMe.xcodeproj \
+            -scheme MeasureMe \
+            -destination "${{ steps.destination.outputs.destination }}" \
+            -configuration Debug \
+            -only-testing:MeasureMeUITests \
+            -retry-tests-on-failure \
+            -test-iterations 2 \
             CODE_SIGNING_ALLOWED=NO \
             test
