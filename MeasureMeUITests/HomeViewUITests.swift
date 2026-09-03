@@ -215,7 +215,12 @@ final class HomeViewUITests: XCTestCase {
     func testSecondaryMetricExpandsInlineWithoutOverlappingRecentPhotos() {
         launchApp()
 
-        let secondaryMetricToggle = firstExistingElement(
+        // Resolve *which* metric we act on before tapping, then derive the panel identifier
+        // from it. Asking `firstExistingElement` for the expanded panel straight after the tap
+        // snapshots existence before the panel has rendered, so it falls back to the first
+        // identifier in the list (bodyFat) — and the assertion then fails whenever the row that
+        // happened to be available was one of the others.
+        let toggleIdentifier = firstExistingIdentifier(
             identifiers: [
                 "home.keyMetrics.secondary.bodyFat.toggle",
                 "home.keyMetrics.secondary.leanBodyMass.toggle",
@@ -223,18 +228,16 @@ final class HomeViewUITests: XCTestCase {
             ],
             query: app.buttons
         )
+        let secondaryMetricToggle = app.buttons[toggleIdentifier].firstMatch
         XCTAssertTrue(secondaryMetricToggle.waitForExistence(timeout: 5), "A secondary key metric row should exist")
         secondaryMetricToggle.tap()
 
-        let expandedPanel = firstExistingElement(
-            identifiers: [
-                "home.keyMetrics.secondary.bodyFat.expanded",
-                "home.keyMetrics.secondary.leanBodyMass.expanded",
-                "home.keyMetrics.secondary.waist.expanded"
-            ],
-            query: app.otherElements
+        let expandedIdentifier = toggleIdentifier.replacingOccurrences(of: ".toggle", with: ".expanded")
+        let expandedPanel = app.otherElements[expandedIdentifier].firstMatch
+        XCTAssertTrue(
+            expandedPanel.waitForExistence(timeout: 5),
+            "Secondary metric should expand inline (expected \(expandedIdentifier))"
         )
-        XCTAssertTrue(expandedPanel.waitForExistence(timeout: 5), "Secondary metric should expand inline")
 
         let keyMetrics = app.otherElements["home.module.keyMetrics"].firstMatch
         let recentPhotos = app.otherElements["home.module.recentPhotos"].firstMatch
