@@ -97,7 +97,21 @@ jobs:
         run: |
           set -euo pipefail
 
-          SHOW_DESTINATIONS="$(xcodebuild -project MeasureMe.xcodeproj -scheme MeasureMe -showdestinations)"
+          # `-showdestinations` has come back holding nothing but the two placeholder
+          # entries, which fails the guard below and wastes the whole job. It happens
+          # when CoreSimulator has not finished enumerating devices after setup-xcode
+          # switched toolchains. Touching simctl first forces that enumeration, and a
+          # retry covers the case where it is merely slow.
+          SHOW_DESTINATIONS=""
+          for attempt in 1 2 3; do
+            xcrun simctl list devices available >/dev/null 2>&1 || true
+            SHOW_DESTINATIONS="$(xcodebuild -project MeasureMe.xcodeproj -scheme MeasureMe -showdestinations)"
+            if printf '%s\n' "$SHOW_DESTINATIONS" | grep -q 'platform:iOS Simulator, id:[0-9A-Fa-f-]\{36\}'; then
+              break
+            fi
+            echo "Attempt $attempt: no concrete iOS Simulator destination yet."
+            sleep 15
+          done
           echo "$SHOW_DESTINATIONS"
 
           # `-showdestinations` prints a human-readable form using `key:value`, but
@@ -128,6 +142,10 @@ jobs:
           if [ -z "$UDID" ]; then
             echo "::error::No iOS Simulator runtime matching $REQUESTED_IOS on this runner."
             echo "Refusing to report success for a lane that would build and test nothing."
+            echo "--- installed runtimes ---"
+            xcrun simctl list runtimes || true
+            echo "--- available devices ---"
+            xcrun simctl list devices available || true
             exit 1
           fi
 
