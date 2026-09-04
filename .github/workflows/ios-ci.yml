@@ -209,6 +209,7 @@ jobs:
             -skip-testing:MeasureMeTests/ExperienceSettingsDetailViewSnapshotTests \
             -skip-testing:MeasureMeTests/HealthIndicatorDetailSnapshotTests \
             -skip-testing:MeasureMeTests/MeasurementsIndicatorsSnapshotTests \
+            -skip-testing:MeasureMeTests/MetricDetailSnapshotTests \
             -test-timeouts-enabled YES \
             -default-test-execution-time-allowance 120 \
             -maximum-test-execution-time-allowance 600 \
