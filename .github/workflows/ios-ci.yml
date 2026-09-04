@@ -213,8 +213,22 @@ jobs:
             -test-timeouts-enabled YES \
             -default-test-execution-time-allowance 120 \
             -maximum-test-execution-time-allowance 600 \
+            -resultBundlePath "${{ github.workspace }}/build/UnitTests.xcresult" \
             CODE_SIGNING_ALLOWED=NO \
             test
+
+      # The hang only reproduces on the runner, never on a dev Mac, so the result
+      # bundle is the only way to see it. A test killed by the timeout gets its
+      # diagnostics written here -- without this the log says "exceeded execution
+      # time allowance" and nothing about where it was stuck.
+      - name: Upload unit test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-tests-xcresult-${{ github.run_number }}
+          path: ${{ github.workspace }}/build/UnitTests.xcresult
+          if-no-files-found: warn
+          retention-days: 7
 
       # Nightly and on demand only. `-retry-tests-on-failure` is not papering over
       # breakage: a UI run on a cold simulator reports failures that vanish once the
