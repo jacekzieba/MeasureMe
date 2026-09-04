@@ -65,7 +65,10 @@ final class StreakManager: ObservableObject {
         self.calendar = calendar
         _currentStreak = Published(wrappedValue: defaults.integer(forKey: Keys.currentCount))
         _maxStreak = Published(wrappedValue: defaults.integer(forKey: Keys.maxCount))
-        refreshVacationState()
+        let vacation = computeVacationState()
+        _isVacationModeActive = Published(wrappedValue: vacation.isActive)
+        _vacationWeeksRemaining = Published(wrappedValue: vacation.weeksRemaining)
+        _vacationEndDate = Published(wrappedValue: vacation.endDate)
     }
 
     convenience init(
@@ -479,42 +482,56 @@ final class StreakManager: ObservableObject {
         return selectedMonday >= minimumMonday ? selectedWeek : minimumWeek
     }
 
-    private func refreshVacationState() {
+    private struct VacationState {
+        let isActive: Bool
+        let weeksRemaining: Int
+        let endDate: Date?
+
+        static let inactive = VacationState(isActive: false, weeksRemaining: 0, endDate: nil)
+    }
+
+    /// Computed rather than assigned, so `init` can seed the published properties through
+    /// their wrappers instead of their setters. A `@Published` setter routes through
+    /// Combine's `withMutation`, which performs a dynamic cast; the first one in a process
+    /// pays for a cold protocol-conformance lookup behind a global runtime lock. Paid on the
+    /// main actor from the photo-save loop on a busy machine, that stalls every other
+    /// main-actor job -- it was 156 of 323 main-thread samples in a hang captured on
+    /// 2026-09-03.
+    private func computeVacationState() -> VacationState {
         let currentWeek = clock().isoWeekIdentifier(calendar: calendar)
         let vacationWeeks = loadWeekSet(forKey: Keys.vacationWeeks)
 
         guard let endWeek = defaults.string(forKey: Keys.vacationEndWeek),
               let endMonday = Self.mondayOfWeek(endWeek, calendar: calendar) else {
-            isVacationModeActive = false
-            vacationWeeksRemaining = 0
-            vacationEndDate = nil
-            return
+            return .inactive
         }
 
         guard let currentMonday = Self.mondayOfWeek(currentWeek, calendar: calendar) else {
-            isVacationModeActive = false
-            vacationWeeksRemaining = 0
-            vacationEndDate = nil
-            return
+            return .inactive
         }
 
         if currentMonday > endMonday {
             defaults.removeObject(forKey: Keys.vacationStartWeek)
             defaults.removeObject(forKey: Keys.vacationEndWeek)
-            isVacationModeActive = false
-            vacationWeeksRemaining = 0
-            vacationEndDate = nil
-            return
+            return .inactive
         }
 
-        isVacationModeActive = vacationWeeks.contains(currentWeek)
-        if isVacationModeActive {
-            let weeksDiff = calendar.dateComponents([.weekOfYear], from: currentMonday, to: endMonday).weekOfYear ?? 0
-            vacationWeeksRemaining = max(weeksDiff + 1, 1)
-            vacationEndDate = calendar.date(byAdding: .day, value: 6, to: endMonday)
-        } else {
-            vacationWeeksRemaining = 0
-            vacationEndDate = nil
+        guard vacationWeeks.contains(currentWeek) else {
+            return .inactive
         }
+
+        let weeksDiff = calendar.dateComponents([.weekOfYear], from: currentMonday, to: endMonday).weekOfYear ?? 0
+        return VacationState(
+            isActive: true,
+            weeksRemaining: max(weeksDiff + 1, 1),
+            endDate: calendar.date(byAdding: .day, value: 6, to: endMonday)
+        )
+    }
+
+    private func refreshVacationState() {
+        let state = computeVacationState()
+        isVacationModeActive = state.isActive
+        vacationWeeksRemaining = state.weeksRemaining
+        vacationEndDate = state.endDate
     }
 }
