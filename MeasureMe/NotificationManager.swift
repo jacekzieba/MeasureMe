@@ -380,10 +380,8 @@ final class NotificationManager: ObservableObject {
     private func updatePerMetricLastDates(kinds: [MetricKind], date: Date) {
         var dates = loadPerMetricLastDates()
         for kind in kinds {
-            let existing = dates[kind.rawValue]
-            if existing == nil || date > existing! {
-                dates[kind.rawValue] = date
-            }
+            if let existing = dates[kind.rawValue], date <= existing { continue }
+            dates[kind.rawValue] = date
         }
         savePerMetricLastDates(dates)
     }
