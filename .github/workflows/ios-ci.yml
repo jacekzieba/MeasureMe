@@ -24,8 +24,18 @@ jobs:
         # 18.0 matched nothing and the lane reported success while building and testing
         # nothing at all — a false green. Add older runtimes back only alongside a step
         # that installs them, so a missing runtime can never masquerade as a pass.
+        # Pinned to 26.4.1, not 26.2, and the exact patch version matters: find_udid
+        # greps for "OS:<value>," so "26.4" would miss "OS:26.4.1," and fall through
+        # to the loose "26\." pattern, which can silently land back on 26.2.
+        #
+        # Why not 26.2: on that runtime 10 tests die with
+        # "malloc: *** error for object 0x262552740: pointer being freed was not
+        # allocated" -- the same address in every process, in tests that mount Home --
+        # and 2 more hang. The project contains no unsafe memory API at all, and the
+        # same tests pass on a 26.4 simulator locally. Treated as a runtime-specific
+        # fault until something shows otherwise.
         ios_runtime:
-          - "26.2"
+          - "26.4.1"
 
     steps:
       - name: Checkout
