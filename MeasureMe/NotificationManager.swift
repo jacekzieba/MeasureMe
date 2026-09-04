@@ -43,7 +43,15 @@ struct RealNotificationCenterClient: NotificationCenterClient {
     }
 
     func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
-        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        // UNUserNotificationCenter answers this one over a synchronous XPC round trip, so
+        // calling it from the main actor blocks that actor until usernotificationsd replies.
+        // A photo save does exactly that, which freezes the UI on a loaded device and hung
+        // the PendingPhotoSaveStore tests on CI. Nothing reads a result here, so let it run
+        // off the main actor.
+        let center = center
+        Task.detached(priority: .utility) {
+            center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        }
     }
 }
 
