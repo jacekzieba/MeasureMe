@@ -79,7 +79,11 @@ final class OnboardingUITests: XCTestCase {
     }
 
     private func advancePastWelcome() {
-        XCTAssertTrue(waitForOnboardingStep("step:0"), "Expected to start on welcome step")
+        // This is the first wait after `launchApp`, so it inherits the full launch-to-interactive
+        // cost. That's ~1.6s in isolation, but measured at 20s+ when the whole local suite runs
+        // at once and competes for the same CPU -- the default 5s timeout only covers the
+        // isolated case.
+        XCTAssertTrue(waitForOnboardingStep("step:0", timeout: 15), "Expected to start on welcome step")
         XCTAssertTrue(advance(nextButton, to: "step:1"), "Welcome step should advance to the goal step")
     }
 
