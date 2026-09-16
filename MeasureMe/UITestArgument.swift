@@ -102,6 +102,18 @@ extension UITestArgument {
         isPresent(.mode) || isPresent(.onboardingMode)
     }
 
+    /// `true` when any `-uiTest*` launch argument was passed, regardless of which one.
+    /// Broader than `isAnyTestMode`: some tests (e.g. the premium-gate teaser test) deliberately
+    /// launch without `.mode`/`.onboardingMode` but still need unsolicited overlays like the
+    /// What's New sheet suppressed, since those depend only on being a UI test run at all.
+    nonisolated static var isAnyUITestLaunch: Bool {
+        #if DEBUG
+        return processArguments.contains { $0.hasPrefix("-uiTest") }
+        #else
+        return false
+        #endif
+    }
+
     /// Launch arguments as far as this type is concerned — empty in release, so no flag can
     /// be observed in a shipping binary.
     private nonisolated static var processArguments: [String] {

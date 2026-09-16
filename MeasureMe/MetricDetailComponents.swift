@@ -1702,7 +1702,6 @@ struct SetGoalView: View {
                                         .fixedSize()
                                         .focused($isValueFocused)
                                         .accessibilityLabel(AppLocalization.string("Goal value"))
-                                        .accessibilityIdentifier("goal.input.value")
 
                                     Text(kind.unitSymbol(unitsSystem: unitsSystem))
                                         .font(.title.weight(.medium))

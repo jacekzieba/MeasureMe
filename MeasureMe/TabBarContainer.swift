@@ -210,14 +210,14 @@ struct TabBarContainer: View {
     private func resolveWhatsNew() {
         guard !AuditConfig.current.isEnabled else { return }
 
-        // A sheet nobody asked for derails every other UI test, so test mode suppresses it —
-        // but then nothing could ever exercise it, so one flag opts back in explicitly.
-        // Same shape as `-uiTestShowTrialReminderPrompt`.
+        // A sheet nobody asked for derails every other UI test, so any UI test launch
+        // suppresses it — but then nothing could ever exercise it, so one flag opts back in
+        // explicitly. Same shape as `-uiTestShowTrialReminderPrompt`.
         if UITestArgument.isPresent(.showWhatsNew) {
             whatsNewRelease = WhatsNewRelease.catalogue.first
             return
         }
-        guard !UITestArgument.isAnyTestMode else { return }
+        guard !UITestArgument.isAnyUITestLaunch else { return }
 
         switch WhatsNewGate.decide(
             currentVersion: WhatsNewGate.currentVersion,

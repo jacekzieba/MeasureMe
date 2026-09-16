@@ -183,6 +183,22 @@ private extension SinglePhotoSaveUITests {
             content.exists || metricField.exists,
             "Measurements section should expand and expose content"
         )
+
+        // The section's `.move(edge: .top)` transition can still be animating in when the
+        // content node first appears in the accessibility tree; tapping mid-transition can hit
+        // a frame XCUITest reports as degenerate ("Invalid frame dimension"). Wait for the
+        // element to be hittable -- meaning its frame is finalized -- not just present.
+        waitUntilHittable(metricField.exists ? metricField : content, timeout: 3)
+    }
+
+    /// Waits for `element`'s frame to settle, not just for it to exist. `isHittable` only
+    /// reports `true` once layout/animation has finished, so polling it is the condition-based
+    /// alternative to guessing a fixed post-animation delay.
+    @discardableResult
+    func waitUntilHittable(_ element: XCUIElement, timeout: TimeInterval) -> Bool {
+        let predicate = NSPredicate(format: "isHittable == true")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
     }
 
     func launchWithSingleAdd(extraLaunchArguments: [String] = []) {

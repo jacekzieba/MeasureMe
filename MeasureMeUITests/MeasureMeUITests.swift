@@ -173,6 +173,14 @@ final class MeasureMeUITests: XCTestCase {
                 : app.textFields.firstMatch
             )
         XCTAssertTrue(goalInput.waitForExistence(timeout: 5), "Goal input should be visible after tapping hero goal segment")
+        if !goalInput.isHittable {
+            // The sheet's presentation transition can still be settling when the field first
+            // appears in the accessibility tree; wait for a stable, hittable frame instead of
+            // immediately computing a tap coordinate against one that might still be
+            // mid-animation (that produced "Invalid frame dimension" crashes under load).
+            let hittable = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: goalInput)
+            _ = XCTWaiter.wait(for: [hittable], timeout: 5)
+        }
         if goalInput.isHittable {
             goalInput.tap()
         } else {
