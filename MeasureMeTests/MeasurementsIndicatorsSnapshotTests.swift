@@ -9,7 +9,7 @@ import SwiftUI
 import SnapshotTesting
 import SwiftData
 
-final class MeasurementsIndicatorsSnapshotTests: XCTestCase {
+final class MeasurementsIndicatorsSnapshotTests: IsolatedPreferencesSnapshotTestCase {
     private func requireSimulatorSnapshotEnvironment() throws {
         guard ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] != nil else {
             throw XCTSkip("Snapshot baseline is simulator-only")

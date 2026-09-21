@@ -14,7 +14,7 @@ import SwiftData
 // Set RECORD_SNAPSHOTS=1 in the scheme environment variables to record new reference snapshots.
 
 @MainActor
-final class MetricDetailSnapshotTests: XCTestCase {
+final class MetricDetailSnapshotTests: IsolatedPreferencesSnapshotTestCase {
 
     // MARK: - Environment guard
 

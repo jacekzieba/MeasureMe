@@ -8,7 +8,7 @@ import XCTest
 import SwiftUI
 import SnapshotTesting
 
-final class ExperienceSettingsDetailViewSnapshotTests: XCTestCase {
+final class ExperienceSettingsDetailViewSnapshotTests: IsolatedPreferencesSnapshotTestCase {
     private func requireSimulatorSnapshotEnvironment() throws {
         guard ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] != nil else {
             throw XCTSkip("Snapshot baseline is simulator-only")

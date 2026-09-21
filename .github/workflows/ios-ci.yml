@@ -11,6 +11,11 @@ on:
   schedule:
     - cron: "0 3 * * *"
   workflow_dispatch:
+    inputs:
+      record_snapshots:
+        description: "Record the snapshot baselines on this runner (uploads them as an artifact) instead of running the tests"
+        type: boolean
+        default: false
 
 jobs:
   build-and-test:
@@ -194,11 +199,11 @@ jobs:
       # 54 minutes before the job's cap killed it — the UI suite alone is 60-70
       # minutes. Splitting keeps push/PR feedback to the unit suite, which is the
       # part that gates a merge.
-      # The skipped suites are snapshot tests whose baselines are tied to the
-      # simulator runtime they were recorded on. Every one of them failed here, in
-      # full (passed=0), while the snapshot suites that do pass on 26.2 keep running
-      # -- so this excludes the runtime mismatch, not snapshot testing as such.
-      # Re-recording baselines against the runner's runtime would let these come back.
+      # The snapshot suites run here and nowhere else by default: their baselines are
+      # recorded on this runner's toolchain, and the same iOS runtime under a newer
+      # Xcode draws controls differently. MEASUREME_SNAPSHOT_TESTS=1 switches them on
+      # (they skip themselves without it). To re-record after a toolchain or UI change,
+      # run this workflow by hand with "record_snapshots" and commit the artifact.
       #
       # Test timeouts are not a nicety here. On the first run of this lane
       # PendingPhotoSaveStoreTests.testCompletion_RemovesSpoolAndEmitsCompletedEvent
@@ -206,6 +211,9 @@ jobs:
       # producing no failure and no name. Bounded, a hang fails in two minutes and
       # says which test it was.
       - name: Unit tests
+        if: ${{ !inputs.record_snapshots }}
+        env:
+          TEST_RUNNER_MEASUREME_SNAPSHOT_TESTS: "1"
         run: |
           xcodebuild \
             -project MeasureMe.xcodeproj \
@@ -213,20 +221,47 @@ jobs:
             -destination "${{ steps.destination.outputs.destination }}" \
             -configuration Debug \
             -only-testing:MeasureMeTests \
-            -skip-testing:MeasureMeTests/BodyModelSnapshotTests \
-            -skip-testing:MeasureMeTests/ComparePhotosSnapshotTests \
-            -skip-testing:MeasureMeTests/DataSettingsDetailViewSnapshotTests \
-            -skip-testing:MeasureMeTests/ExperienceSettingsDetailViewSnapshotTests \
-            -skip-testing:MeasureMeTests/HealthIndicatorDetailSnapshotTests \
-            -skip-testing:MeasureMeTests/MeasurementsIndicatorsSnapshotTests \
-            -skip-testing:MeasureMeTests/MetricDetailSnapshotTests \
-            -skip-testing:MeasureMeTests/OnboardingSnapshotTests \
             -test-timeouts-enabled YES \
             -default-test-execution-time-allowance 120 \
             -maximum-test-execution-time-allowance 600 \
             -resultBundlePath "${{ github.workspace }}/build/UnitTests.xcresult" \
             CODE_SIGNING_ALLOWED=NO \
             test
+
+      # Manual runs only. Recording marks each test as failed ("record mode is on"), so the
+      # exit code is ignored and the step checks that images were actually written.
+      - name: Record snapshot baselines
+        if: ${{ inputs.record_snapshots }}
+        env:
+          TEST_RUNNER_MEASUREME_SNAPSHOT_TESTS: "1"
+          TEST_RUNNER_RECORD_SNAPSHOTS: "1"
+        run: |
+          xcodebuild \
+            -project MeasureMe.xcodeproj \
+            -scheme MeasureMe \
+            -destination "${{ steps.destination.outputs.destination }}" \
+            -configuration Debug \
+            -only-testing:MeasureMeTests/BodyModelSnapshotTests \
+            -only-testing:MeasureMeTests/ComparePhotosSnapshotTests \
+            -only-testing:MeasureMeTests/DataSettingsDetailViewSnapshotTests \
+            -only-testing:MeasureMeTests/ExperienceSettingsDetailViewSnapshotTests \
+            -only-testing:MeasureMeTests/HealthIndicatorDetailSnapshotTests \
+            -only-testing:MeasureMeTests/MeasurementsIndicatorsSnapshotTests \
+            -only-testing:MeasureMeTests/MetricDetailSnapshotTests \
+            -only-testing:MeasureMeTests/OnboardingSnapshotTests \
+            CODE_SIGNING_ALLOWED=NO \
+            test || true
+          git status --short MeasureMeTests/__Snapshots__ | head -50
+          test -n "$(git status --porcelain MeasureMeTests/__Snapshots__)" || { echo "::error::No snapshot images were recorded"; exit 1; }
+
+      - name: Upload recorded snapshots
+        if: ${{ inputs.record_snapshots }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: recorded-snapshots
+          path: MeasureMeTests/__Snapshots__
+          if-no-files-found: error
+          retention-days: 7
 
       # The hang only reproduces on the runner, never on a dev Mac, so the result
       # bundle is the only way to see it. A test killed by the timeout gets its
@@ -245,7 +280,7 @@ jobs:
       # breakage: a UI run on a cold simulator reports failures that vanish once the
       # simulator is warm, and every CI runner is cold by construction.
       - name: UI tests
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+        if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && !inputs.record_snapshots }}
         run: |
           xcodebuild \
             -project MeasureMe.xcodeproj \

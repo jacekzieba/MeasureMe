@@ -13,7 +13,7 @@ import SwiftData
 // Set RECORD_SNAPSHOTS=1 in the scheme environment variables to record new reference snapshots.
 
 @MainActor
-final class BodyModelSnapshotTests: XCTestCase {
+final class BodyModelSnapshotTests: IsolatedPreferencesSnapshotTestCase {
 
     // MARK: - Environment guard
 
@@ -214,6 +214,9 @@ final class BodyModelSnapshotTests: XCTestCase {
 
         configureDefaults()
         UserDefaults.standard.set("female", forKey: "userGender")
+        // Without this the snapshot store picks the change up from an async debounce, so which
+        // gender got drawn depended on timing.
+        AppSettingsStore.shared.forceReloadSnapshot()
         UIView.setAnimationsEnabled(false)
 
         let container = try makeContainer()

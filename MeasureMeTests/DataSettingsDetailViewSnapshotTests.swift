@@ -8,7 +8,7 @@ import XCTest
 import SwiftUI
 import SnapshotTesting
 
-final class DataSettingsDetailViewSnapshotTests: XCTestCase {
+final class DataSettingsDetailViewSnapshotTests: IsolatedPreferencesSnapshotTestCase {
 
     // MARK: - UserDefaults keys to backup/restore
 
