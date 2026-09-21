@@ -147,7 +147,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
 
     func testCompletion_RemovesSpoolAndEmitsCompletedEvent() async throws {
         let container = try makeContainer()
-        let store = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory)
+        let store = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, onPhotoSaved: { _ in })
         store.configure(container: container)
 
         let id = try await store.enqueueSingle(
@@ -209,6 +209,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
         let container = try makeContainer()
         let store = PendingPhotoSaveStore(
             baseDirectoryURL: tempDirectory,
+            onPhotoSaved: { _ in },
             encodeSourceData: { sourceData in
                 Thread.sleep(forTimeInterval: 0.9)
                 guard let image = UIImage(data: sourceData) else { return nil }
@@ -278,7 +279,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
             unitsSystem: "metric"
         )
 
-        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory)
+        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, onPhotoSaved: { _ in })
         processor.configure(container: container)
         processor.restoreAndResume()
 
@@ -322,7 +323,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
         queuer.cancelPending(batchIDs: [batchToCancel])
         XCTAssertEqual(queuer.pendingItems.count, keptIDs.count)
 
-        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory)
+        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, onPhotoSaved: { _ in })
         processor.configure(container: container)
         processor.restoreAndResume()
 
@@ -430,7 +431,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
         )
 
         // Stage 3: a fresh store restores the queued item from disk and starts processing.
-        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory)
+        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, onPhotoSaved: { _ in })
         processor.configure(container: container)
         processor.restoreAndResume()
 
@@ -447,6 +448,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
     func testFailure_RemovesPendingAndSetsFailureMessage() async throws {
         let store = PendingPhotoSaveStore(
             baseDirectoryURL: tempDirectory,
+            onPhotoSaved: { _ in },
             encodeSourceData: { _ in nil }
         )
         store.configure(container: try makeContainer())
@@ -470,6 +472,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
     func testProgress_IsMonotonicAndCompletes() async throws {
         let store = PendingPhotoSaveStore(
             baseDirectoryURL: tempDirectory,
+            onPhotoSaved: { _ in },
             encodeSourceData: { sourceData in
                 Thread.sleep(forTimeInterval: 0.35)
                 guard let image = UIImage(data: sourceData) else { return nil }
