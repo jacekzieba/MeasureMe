@@ -113,6 +113,7 @@ struct SettingsOverviewSections: View {
     let onAccessibility: () -> Void
     let onExplorePremium: () -> Void
     let onManageSubscription: () -> Void
+    let onRateApp: () -> Void
 
     private let settingsTheme = FeatureTheme.settings
     private let healthTheme = FeatureTheme.health
@@ -185,6 +186,19 @@ struct SettingsOverviewSections: View {
                         onExplorePremium()
                     })
                     .accessibilityIdentifier("settings.action.explorePremium")
+                }
+
+                SettingsRowDivider()
+
+                SettingsActionRow(
+                    title: AppLocalization.string("Rate MeasureMe"),
+                    subtitle: AppLocalization.string("settings.summary.rate"),
+                    systemImage: "star.fill",
+                    trailingText: nil,
+                    trailingSymbol: "arrow.up.right.square",
+                    accessibilityIdentifier: "settings.row.rateApp"
+                ) {
+                    onRateApp()
                 }
             }
             .accessibilityIdentifier("settings.section.account")

@@ -1537,3 +1537,5 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "Importing data..." = "Importowanie danych...";
 "Checking iCloud backup..." = "Sprawdzanie kopii zapasowej iCloud...";
 "Restoring from iCloud backup..." = "Przywracanie z kopii zapasowej iCloud...";
+"Rate MeasureMe" = "Oceń MeasureMe";
+"settings.summary.rate" = "Zajmie chwilę i pomoże innym znaleźć aplikację";

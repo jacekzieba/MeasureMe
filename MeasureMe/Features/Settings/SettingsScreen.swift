@@ -424,7 +424,8 @@ struct SettingsView: View {
                         onPrivacy: { openURL(LegalLinks.privacyPolicy) },
                         onAccessibility: { openURL(LegalLinks.accessibility) },
                         onExplorePremium: { premiumStore.presentPaywall(reason: .settings) },
-                        onManageSubscription: { premiumStore.openManageSubscriptions() }
+                        onManageSubscription: { premiumStore.openManageSubscriptions() },
+                        onRateApp: { openURL(LegalLinks.writeReview) }
                     )
                 }
             }

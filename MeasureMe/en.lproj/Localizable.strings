@@ -1585,3 +1585,5 @@ The thresholds differ between males and females due to different body compositio
 "Importing data..." = "Importing data...";
 "Checking iCloud backup..." = "Checking iCloud backup...";
 "Restoring from iCloud backup..." = "Restoring from iCloud backup...";
+"Rate MeasureMe" = "Rate MeasureMe";
+"settings.summary.rate" = "It takes a moment and helps others find the app";
