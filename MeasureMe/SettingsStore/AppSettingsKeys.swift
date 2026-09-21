@@ -27,6 +27,7 @@ nonisolated enum AppSettingsKeys {
         static let homeLayoutSchemaVersion = "home_layout_schema_version"
         static let homeLayoutData = "home_layout_data"
         static let homePinnedAction = "home_pinned_action"
+        static let keyMetrics = "home_key_metrics"
         static let homeTabScrollOffset = "home_tab_scroll_offset"
         static let homePhotoMetricSyncLastDate = "home_photo_metric_sync_last_date"
         static let homePhotoMetricSyncLastID = "home_photo_metric_sync_last_id"
@@ -108,6 +109,12 @@ nonisolated enum AppSettingsKeys {
         /// Marketing version whose release notes the user has already seen.
         /// Deliberately unregistered — `WhatsNewGate` needs "" to mean "never seen".
         static let lastSeenWhatsNewVersion = "last_seen_whats_new_version"
+    }
+
+    enum Photos {
+        static let gridLayoutMode = "photos.gridLayoutMode"
+        static let overlayPose = "photos.overlayPose"
+        static let overlayOpacity = "photos.overlayOpacity"
     }
 
     enum Premium {
@@ -202,6 +209,14 @@ nonisolated enum AppSettingsKeys {
         static let rightThighEnabled = "metric_rightThigh_enabled"
         static let leftCalfEnabled = "metric_leftCalf_enabled"
         static let rightCalfEnabled = "metric_rightCalf_enabled"
+        static let activeOrder = "metrics_active_order"
+        static let customOrder = "custom_metrics_order"
+        /// Per custom metric: `customEnabledPrefix + identifier + "_enabled"`.
+        static let customEnabledPrefix = "custom_metric_"
+
+        static func customEnabled(_ identifier: String) -> String {
+            customEnabledPrefix + identifier + "_enabled"
+        }
 
         static let allEnabledKeys: [String] = [
             weightEnabled,

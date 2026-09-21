@@ -63,11 +63,13 @@ enum ICloudBackupService {
     nonisolated(unsafe) static var testBackupRootURLOverride: URL?
     nonisolated(unsafe) static var testNowOverride: (() -> Date)?
     nonisolated(unsafe) static var testEncryptionKeyOverride: SymmetricKey?
+    nonisolated(unsafe) static var testNotificationManagerOverride: NotificationManager?
 
     static func resetTestOverrides() {
         testBackupRootURLOverride = nil
         testNowOverride = nil
         testEncryptionKeyOverride = nil
+        testNotificationManagerOverride = nil
     }
 #endif
 
@@ -114,9 +116,11 @@ enum ICloudBackupService {
                     directionRaw: $0.directionRaw,
                     createdDate: $0.createdDate,
                     startValue: $0.startValue,
-                    startDate: $0.startDate
+                    startDate: $0.startDate,
+                    commitmentWeeklyRate: $0.commitmentWeeklyRate
                 )
             }
+            let codableCustomMetrics = try context.fetch(FetchDescriptor<CustomMetricDefinition>()).map(CodableCustomMetric.init)
 
             // Stream-write photos to a temp directory one at a time to avoid OOM.
             // Only one photo's imageData is in memory at any point.
@@ -154,7 +158,8 @@ enum ICloudBackupService {
                 photosCount += photosBatch.count
                 photosOffset += photosBatch.count
             }
-            let settingsEntries = await MainActor.run { captureSettings() }
+            let customMetricIDs = codableCustomMetrics.map(\.identifier)
+            let settingsEntries = await MainActor.run { captureSettings(customMetricIDs: customMetricIDs) }
             let manifest = ICloudBackupManifest(
                 schemaVersion: currentSchemaVersion,
                 createdAt: now(),
@@ -192,7 +197,17 @@ enum ICloudBackupService {
                 try Self.writeEncrypted(codableMetrics, to: packageURL.appendingPathComponent("metrics.json"), key: key)
                 try Self.writeEncrypted(codableGoals, to: packageURL.appendingPathComponent("goals.json"), key: key)
                 try Self.writeEncrypted(codablePhotos, to: packageURL.appendingPathComponent("photos_index.json"), key: key)
-                try Self.writeEncrypted(settingsEntries, to: packageURL.appendingPathComponent("settings.json"), key: key)
+                // Older builds fail the whole restore on an entry type they do not know, so list-valued
+                // settings live in their own file and settings.json keeps to the original scalar types.
+                try Self.writeEncrypted(
+                    settingsEntries.filter { $0.type != .stringArray },
+                    to: packageURL.appendingPathComponent("settings.json"), key: key
+                )
+                try Self.writeEncrypted(
+                    settingsEntries.filter { $0.type == .stringArray },
+                    to: packageURL.appendingPathComponent(Self.settingsListsFileName), key: key
+                )
+                try Self.writeEncrypted(codableCustomMetrics, to: packageURL.appendingPathComponent(Self.customMetricsFileName), key: key)
 
                 try manifestData.write(to: packageURL.appendingPathComponent("manifest.json"))
 
@@ -365,22 +380,27 @@ enum ICloudBackupService {
                 let photoEntries: [CodablePhotoEntry] = try Self.readEncrypted(
                     from: packageURL.appendingPathComponent("photos_index.json"), key: key
                 )
-                let settingsEntries: [SettingsEntry] = try Self.readEncrypted(
-                    from: packageURL.appendingPathComponent("settings.json"), key: key
-                )
+                let settingsEntries = try Self.readSettingsEntries(in: packageURL, key: key)
+                // Backups from before custom metrics were saved have no such file: nil means
+                // "leave the local definitions alone", an empty list means "the backup had none".
+                let customMetricsURL = packageURL.appendingPathComponent(Self.customMetricsFileName)
+                let customMetrics: [CodableCustomMetric]? = FileManager.default.fileExists(atPath: customMetricsURL.path)
+                    ? try Self.readEncrypted(from: customMetricsURL, key: key)
+                    : nil
 
                 return RestorePayload(
                     metrics: metrics,
                     goals: goals,
                     photoEntries: photoEntries,
-                    settingsEntries: settingsEntries
+                    settingsEntries: settingsEntries,
+                    customMetrics: customMetrics
                 )
             }.value
 
             // Validate payload before deleting existing data — reject fully corrupt backups
-            let validMetricCount = payload.metrics.filter { MetricKind(rawValue: $0.kindRaw) != nil }.count
+            let validMetricCount = payload.metrics.filter { Self.isRestorableKind($0.kindRaw) }.count
             let validGoalCount = payload.goals.filter {
-                MetricKind(rawValue: $0.kindRaw) != nil && MetricGoal.Direction(rawValue: $0.directionRaw) != nil
+                Self.isRestorableKind($0.kindRaw) && MetricGoal.Direction(rawValue: $0.directionRaw) != nil
             }.count
             let totalRestorableItems = validMetricCount + validGoalCount + payload.photoEntries.count
             let totalPayloadItems = payload.metrics.count + payload.goals.count + payload.photoEntries.count
@@ -392,6 +412,7 @@ enum ICloudBackupService {
             // Snapshot existing metrics & goals for rollback (lightweight — no image data)
             let existingMetrics = try context.fetch(FetchDescriptor<MetricSample>())
             let existingGoals = try context.fetch(FetchDescriptor<MetricGoal>())
+            let existingCustomMetrics = try context.fetch(FetchDescriptor<CustomMetricDefinition>()).map(CodableCustomMetric.init)
 
             let snapshotMetrics = existingMetrics.map {
                 CodableMetricSample(kindRaw: $0.kindRaw, value: $0.value, date: $0.date, sourceRaw: $0.sourceRaw)
@@ -403,7 +424,8 @@ enum ICloudBackupService {
                     directionRaw: $0.directionRaw,
                     createdDate: $0.createdDate,
                     startValue: $0.startValue,
-                    startDate: $0.startDate
+                    startDate: $0.startDate,
+                    commitmentWeeklyRate: $0.commitmentWeeklyRate
                 )
             }
 
@@ -411,23 +433,31 @@ enum ICloudBackupService {
             try deleteAll(MetricSample.self, from: context)
             try deleteAll(MetricGoal.self, from: context)
             try deleteAll(PhotoEntry.self, from: context)
+            if payload.customMetrics != nil {
+                try deleteAll(CustomMetricDefinition.self, from: context)
+            }
+
+            for definition in payload.customMetrics ?? [] {
+                context.insert(definition.makeModel())
+            }
 
             for m in payload.metrics {
-                guard let kind = MetricKind(rawValue: m.kindRaw) else { continue }
+                guard Self.isRestorableKind(m.kindRaw) else { continue }
                 let source = MetricSampleSource(rawValue: m.sourceRaw ?? "") ?? .manual
-                context.insert(MetricSample(kind: kind, value: m.value, date: m.date, source: source))
+                context.insert(MetricSample(kindRaw: m.kindRaw, value: m.value, date: m.date, source: source))
             }
 
             for g in payload.goals {
-                guard let kind = MetricKind(rawValue: g.kindRaw) else { continue }
+                guard Self.isRestorableKind(g.kindRaw) else { continue }
                 guard let direction = MetricGoal.Direction(rawValue: g.directionRaw) else { continue }
                 context.insert(MetricGoal(
-                    kind: kind,
+                    kindRaw: g.kindRaw,
                     targetValue: g.targetValue,
                     direction: direction,
                     createdDate: g.createdDate,
                     startValue: g.startValue,
-                    startDate: g.startDate
+                    startDate: g.startDate,
+                    commitmentWeeklyRate: g.commitmentWeeklyRate
                 ))
             }
 
@@ -437,22 +467,27 @@ enum ICloudBackupService {
                 // Rollback metrics & goals only
                 try? deleteAll(MetricSample.self, from: context)
                 try? deleteAll(MetricGoal.self, from: context)
-                for m in snapshotMetrics {
-                    if let kind = MetricKind(rawValue: m.kindRaw) {
-                        let source = MetricSampleSource(rawValue: m.sourceRaw ?? "") ?? .manual
-                        context.insert(MetricSample(kind: kind, value: m.value, date: m.date, source: source))
+                if payload.customMetrics != nil {
+                    try? deleteAll(CustomMetricDefinition.self, from: context)
+                    for definition in existingCustomMetrics {
+                        context.insert(definition.makeModel())
                     }
                 }
+                for m in snapshotMetrics where Self.isRestorableKind(m.kindRaw) {
+                    let source = MetricSampleSource(rawValue: m.sourceRaw ?? "") ?? .manual
+                    context.insert(MetricSample(kindRaw: m.kindRaw, value: m.value, date: m.date, source: source))
+                }
                 for g in snapshotGoals {
-                    if let kind = MetricKind(rawValue: g.kindRaw),
+                    if Self.isRestorableKind(g.kindRaw),
                        let dir = MetricGoal.Direction(rawValue: g.directionRaw) {
                         context.insert(MetricGoal(
-                            kind: kind,
+                            kindRaw: g.kindRaw,
                             targetValue: g.targetValue,
                             direction: dir,
                             createdDate: g.createdDate,
                             startValue: g.startValue,
-                            startDate: g.startDate
+                            startDate: g.startDate,
+                            commitmentWeeklyRate: g.commitmentWeeklyRate
                         ))
                     }
                 }
@@ -505,6 +540,10 @@ enum ICloudBackupService {
             }
 
             await MainActor.run { restoreSettings(payload.settingsEntries) }
+            // The restored reminder list and notification switches are only data until the system is
+            // told about them; this asks for permission if it is still open, then schedules from them.
+            let notifications = await MainActor.run { Self.notificationManagerForRestore }
+            await notifications.rescheduleAfterRestore()
             await MainActor.run {
                 AppSettingsStore.shared.set(\.iCloudBackup.lastErrorMessage, "")
             }
@@ -545,9 +584,7 @@ enum ICloudBackupService {
             let photos: [CodablePhotoEntry] = try Self.readEncrypted(
                 from: packageURL.appendingPathComponent("photos_index.json"), key: key
             )
-            let settings: [SettingsEntry] = try Self.readEncrypted(
-                from: packageURL.appendingPathComponent("settings.json"), key: key
-            )
+            let settings = try Self.readSettingsEntries(in: packageURL, key: key)
 
             return ICloudBackupManifest(
                 schemaVersion: storedManifest.schemaVersion,
@@ -717,11 +754,29 @@ enum ICloudBackupService {
 
     // MARK: - Settings backup
 
-    @MainActor private static func captureSettings() -> [SettingsEntry] {
+    @MainActor private static var notificationManagerForRestore: NotificationManager {
+        #if DEBUG
+        if let testNotificationManagerOverride { return testNotificationManagerOverride }
+        #endif
+        return .shared
+    }
+
+    @MainActor private static func captureSettings(customMetricIDs: [String]) -> [SettingsEntry] {
         let store = AppSettingsStore.shared
         var entries: [SettingsEntry] = []
 
-        for key in backupSettingsKeys {
+        // Written explicitly for every definition (false included), so restoring never inherits a
+        // stale "enabled" from a definition that happens to share an identifier on this device.
+        for identifier in customMetricIDs {
+            entries.append(SettingsEntry(
+                key: AppSettingsKeys.Metrics.customEnabled(identifier),
+                type: .bool, stringValue: nil, numberValue: nil,
+                boolValue: store.bool(forKey: AppSettingsKeys.Metrics.customEnabled(identifier)),
+                dataValue: nil
+            ))
+        }
+
+        for key in AppSettingsBackupCatalog.includedKeys {
             guard let value = store.object(forKey: key) else { continue }
 
             if let s = value as? String {
@@ -734,6 +789,8 @@ enum ICloudBackupService {
                 entries.append(SettingsEntry(key: key, type: .double, stringValue: nil, numberValue: d, boolValue: nil, dataValue: nil))
             } else if let data = value as? Data {
                 entries.append(SettingsEntry(key: key, type: .data, stringValue: nil, numberValue: nil, boolValue: nil, dataValue: data))
+            } else if let strings = value as? [String] {
+                entries.append(SettingsEntry(key: key, type: .stringArray, stringValue: nil, numberValue: nil, boolValue: nil, dataValue: nil, stringArrayValue: strings))
             }
         }
 
@@ -774,6 +831,12 @@ enum ICloudBackupService {
                 } else {
                     store.removeObject(forKey: entry.key)
                 }
+            case .stringArray:
+                if let value = entry.stringArrayValue {
+                    store.set(value, forKey: entry.key)
+                } else {
+                    store.removeObject(forKey: entry.key)
+                }
             }
         }
         store.reload()
@@ -807,6 +870,8 @@ enum ICloudBackupService {
         let createdDate: Date
         let startValue: Double?
         let startDate: Date?
+        /// Optional so backups written before the weekly rate was saved still decode.
+        let commitmentWeeklyRate: Double?
     }
 
     private struct CodablePhotoEntry: Codable, Sendable {
@@ -836,6 +901,67 @@ enum ICloudBackupService {
         let goals: [CodableMetricGoal]
         let photoEntries: [CodablePhotoEntry]
         let settingsEntries: [SettingsEntry]
+        let customMetrics: [CodableCustomMetric]?
+    }
+
+    private struct CodableCustomMetric: Codable, Sendable {
+        let identifier: String
+        let name: String
+        let unitLabel: String
+        let sfSymbolName: String
+        let minValue: Double?
+        let maxValue: Double?
+        let favorsDecrease: Bool
+        let createdDate: Date
+        let sortOrder: Int
+
+        init(_ model: CustomMetricDefinition) {
+            identifier = model.identifier
+            name = model.name
+            unitLabel = model.unitLabel
+            sfSymbolName = model.sfSymbolName
+            minValue = model.minValue
+            maxValue = model.maxValue
+            favorsDecrease = model.favorsDecrease
+            createdDate = model.createdDate
+            sortOrder = model.sortOrder
+        }
+
+        func makeModel() -> CustomMetricDefinition {
+            let model = CustomMetricDefinition(
+                name: name,
+                unitLabel: unitLabel,
+                sfSymbolName: sfSymbolName,
+                minValue: minValue,
+                maxValue: maxValue,
+                favorsDecrease: favorsDecrease,
+                sortOrder: sortOrder
+            )
+            model.identifier = identifier
+            model.createdDate = createdDate
+            return model
+        }
+    }
+
+    private nonisolated static let customMetricsFileName = "custom_metrics.json"
+    private nonisolated static let settingsListsFileName = "settings_lists.json"
+
+    /// Scalar settings plus, when the backup has one, the list-valued settings kept in their own file.
+    private nonisolated static func readSettingsEntries(in packageURL: URL, key: SymmetricKey) throws -> [SettingsEntry] {
+        var entries: [SettingsEntry] = try readEncrypted(
+            from: packageURL.appendingPathComponent("settings.json"), key: key
+        )
+        let listsURL = packageURL.appendingPathComponent(settingsListsFileName)
+        if FileManager.default.fileExists(atPath: listsURL.path) {
+            entries += try readEncrypted(from: listsURL, key: key) as [SettingsEntry]
+        }
+        return entries
+    }
+
+    /// Built-in metrics are validated against `MetricKind`; user-defined ones by their `custom_` prefix
+    /// (their definitions travel in the same backup).
+    private nonisolated static func isRestorableKind(_ kindRaw: String) -> Bool {
+        MetricKind(rawValue: kindRaw) != nil || kindRaw.hasPrefix("custom_")
     }
 
     struct SettingsEntry: Codable, Sendable {
@@ -845,61 +971,11 @@ enum ICloudBackupService {
         let numberValue: Double?
         let boolValue: Bool?
         let dataValue: Data?
+        /// Optional so backups written before arrays were supported still decode.
+        var stringArrayValue: [String]? = nil
 
         enum ValueType: String, Codable, Sendable {
-            case string, int, double, bool, data
+            case string, int, double, bool, data, stringArray
         }
     }
-
-    private static let backupSettingsKeys: [String] = [
-        AppSettingsKeys.Profile.userName,
-        AppSettingsKeys.Profile.userAge,
-        AppSettingsKeys.Profile.userGender,
-        AppSettingsKeys.Profile.manualHeight,
-        AppSettingsKeys.Profile.unitsSystem,
-        AppSettingsKeys.Profile.profilePhotoData,
-        AppSettingsKeys.Home.showLastPhotosOnHome,
-        AppSettingsKeys.Home.showMeasurementsOnHome,
-        AppSettingsKeys.Home.showHealthMetricsOnHome,
-        AppSettingsKeys.Home.showStreakOnHome,
-        AppSettingsKeys.Home.homePinnedAction,
-        AppSettingsKeys.Home.homeLayoutSchemaVersion,
-        AppSettingsKeys.Home.homeLayoutData,
-        AppSettingsKeys.Onboarding.hasCompletedOnboarding,
-        AppSettingsKeys.Experience.animationsEnabled,
-        AppSettingsKeys.Experience.hapticsEnabled,
-        AppSettingsKeys.Experience.appLanguage,
-        AppSettingsKeys.Experience.saveUnchangedQuickAdd,
-        AppSettingsKeys.Indicators.showWHtROnHome,
-        AppSettingsKeys.Indicators.showRFMOnHome,
-        AppSettingsKeys.Indicators.showBMIOnHome,
-        AppSettingsKeys.Indicators.showBodyFatOnHome,
-        AppSettingsKeys.Indicators.showLeanMassOnHome,
-        AppSettingsKeys.Indicators.showWHROnHome,
-        AppSettingsKeys.Indicators.showWaistRiskOnHome,
-        AppSettingsKeys.Indicators.showABSIOnHome,
-        AppSettingsKeys.Indicators.showBodyShapeScoreOnHome,
-        AppSettingsKeys.Indicators.showCentralFatRiskOnHome,
-        AppSettingsKeys.Indicators.showConicityOnHome,
-        AppSettingsKeys.Indicators.showPhysiqueSWR,
-        AppSettingsKeys.Indicators.showPhysiqueCWR,
-        AppSettingsKeys.Indicators.showPhysiqueSHR,
-        AppSettingsKeys.Indicators.showPhysiqueHWR,
-        AppSettingsKeys.Indicators.showPhysiqueBWR,
-        AppSettingsKeys.Indicators.showPhysiqueWHtR,
-        AppSettingsKeys.Indicators.showPhysiqueBodyFat,
-        AppSettingsKeys.Indicators.showPhysiqueRFM,
-        AppSettingsKeys.Notifications.reminders,
-        AppSettingsKeys.Notifications.notificationsEnabled,
-        AppSettingsKeys.Notifications.smartEnabled,
-        AppSettingsKeys.Notifications.smartDays,
-        AppSettingsKeys.Notifications.smartTime,
-        AppSettingsKeys.Notifications.photoRemindersEnabled,
-        AppSettingsKeys.Notifications.goalAchievedEnabled,
-        AppSettingsKeys.Notifications.importNotificationsEnabled,
-        AppSettingsKeys.Analytics.analyticsEnabled,
-        AppSettingsKeys.Analytics.analyticsConsentDecided,
-        AppSettingsKeys.Analytics.appleIntelligenceEnabled,
-        AppSettingsKeys.Diagnostics.diagnosticsLoggingEnabled,
-    ] + AppSettingsKeys.Metrics.allEnabledKeys
 }

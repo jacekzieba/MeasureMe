@@ -1,12 +1,36 @@
 import XCTest
 import SwiftData
 import CryptoKit
+import UserNotifications
 @testable import MeasureMe
 
 @MainActor
 final class ICloudBackupServiceTests: XCTestCase {
     private var backupRootURL: URL!
     private var originalPremiumEntitlement: Any?
+    /// Explicitly stored values (not registered defaults) of every key a backup or restore can touch.
+    /// A restore writes ~80 settings into the real defaults, so without putting them back the next
+    /// test - or the next launch on this simulator - inherits "Backup User", imperial units and so on.
+    private var originalStoredSettings: [String: Any] = [:]
+    private static let extraTouchedKeys = [
+        AppSettingsKeys.Premium.entitlement,
+        AppSettingsKeys.ICloudBackup.isEnabled,
+        AppSettingsKeys.ICloudBackup.lastSuccessTimestamp,
+        AppSettingsKeys.ICloudBackup.lastErrorMessage,
+        AppSettingsKeys.ICloudBackup.autoRestoreCompleted,
+        AppSettingsKeys.ICloudBackup.lastBackupSizeBytes,
+        AppSettingsKeys.Onboarding.onboardingViewedICloudBackupOffer,
+        AppSettingsKeys.Onboarding.onboardingSkippedICloudBackup
+    ]
+
+    private static var touchedKeys: [String] {
+        AppSettingsBackupCatalog.includedKeys + extraTouchedKeys
+    }
+
+    /// The fixed keys above plus the per-custom-metric flags, whose names depend on the test's metric id.
+    private static func isTouchedKey(_ key: String) -> Bool {
+        touchedKeys.contains(key) || key.hasPrefix(AppSettingsKeys.Metrics.customEnabledPrefix)
+    }
 
     override func setUpWithError() throws {
         backupRootURL = FileManager.default.temporaryDirectory
@@ -16,6 +40,8 @@ final class ICloudBackupServiceTests: XCTestCase {
         ICloudBackupService.testNowOverride = nil
         ICloudBackupService.testEncryptionKeyOverride = SymmetricKey(size: .bits256)
         originalPremiumEntitlement = UserDefaults.standard.object(forKey: AppSettingsKeys.Premium.entitlement)
+        let stored = Bundle.main.bundleIdentifier.flatMap { UserDefaults.standard.persistentDomain(forName: $0) } ?? [:]
+        originalStoredSettings = stored.filter { Self.isTouchedKey($0.key) }
         AppSettingsStore.shared.set(\.premium.premiumEntitlement, true)
         AppSettingsStore.shared.set(\.iCloudBackup.isEnabled, true)
         AppSettingsStore.shared.set(\.iCloudBackup.lastSuccessTimestamp, 0)
@@ -34,6 +60,16 @@ final class ICloudBackupServiceTests: XCTestCase {
         } else {
             UserDefaults.standard.removeObject(forKey: AppSettingsKeys.Premium.entitlement)
         }
+        let storedNow = Bundle.main.bundleIdentifier.flatMap { UserDefaults.standard.persistentDomain(forName: $0) } ?? [:]
+        let keysToPutBack = Set(Self.touchedKeys).union(storedNow.keys.filter(Self.isTouchedKey))
+        for key in keysToPutBack {
+            if let original = originalStoredSettings[key] {
+                UserDefaults.standard.set(original, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        AppSettingsStore.shared.reload()
         if let backupRootURL {
             try? FileManager.default.removeItem(at: backupRootURL)
         }
@@ -160,6 +196,327 @@ final class ICloudBackupServiceTests: XCTestCase {
         XCTAssertEqual(AppSettingsStore.shared.snapshot.profile.userName, "Backup User")
         XCTAssertEqual(AppSettingsStore.shared.snapshot.profile.unitsSystem, "imperial")
         XCTAssertEqual(AppSettingsStore.shared.snapshot.profile.profilePhotoData, profilePhotoData)
+    }
+
+    /// Co sprawdza: Ustawienia uzytkownika spoza profilu (wyglad, HealthKit, AI, Face ID, kolejnosc metryk, uklad zdjec) wracaja po restore.
+    /// Dlaczego: Backup gubil czesc ustawien, bo lista kluczy byla utrzymywana recznie i byla niepelna.
+    /// Kryteria: Kazda wartosc po restore jest rowna tej z chwili backupu, nie tej ustawionej pozniej.
+    func testRestoreBringsBackUserPreferencesOutsideProfile() async throws {
+        let store = AppSettingsStore.shared
+        let atBackup: [String: Any] = [
+            AppSettingsKeys.Experience.appAppearance: AppAppearance.light.rawValue,
+            AppSettingsKeys.Privacy.requireBiometricForPhotos: true,
+            AppSettingsKeys.Health.isSyncEnabled: true,
+            AppSettingsKeys.Health.healthkitSyncWeight: false,
+            AppSettingsKeys.Notifications.aiWeeklyDigestEnabled: false,
+            AppSettingsKeys.Notifications.aiDigestWeekday: 5,
+            AppSettingsKeys.Notifications.perMetricSmartEnabled: false,
+            AppSettingsKeys.Experience.hasCustomizedMetrics: true,
+            "metrics_active_order": ["waist", "weight"],
+            "home_key_metrics": ["waist"],
+            "photos.gridLayoutMode": PhotoGridLayoutMode.compact.rawValue,
+            "photos.overlayPose": "front",
+            "photos.overlayOpacity": 0.65
+        ]
+        let afterBackup: [String: Any] = [
+            AppSettingsKeys.Experience.appAppearance: AppAppearance.dark.rawValue,
+            AppSettingsKeys.Privacy.requireBiometricForPhotos: false,
+            AppSettingsKeys.Health.isSyncEnabled: false,
+            AppSettingsKeys.Health.healthkitSyncWeight: true,
+            AppSettingsKeys.Notifications.aiWeeklyDigestEnabled: true,
+            AppSettingsKeys.Notifications.aiDigestWeekday: 2,
+            AppSettingsKeys.Notifications.perMetricSmartEnabled: true,
+            AppSettingsKeys.Experience.hasCustomizedMetrics: false,
+            "metrics_active_order": ["weight"],
+            "home_key_metrics": ["weight"],
+            "photos.gridLayoutMode": PhotoGridLayoutMode.review.rawValue,
+            "photos.overlayPose": "side",
+            "photos.overlayOpacity": 0.2
+        ]
+        let originals = Dictionary(uniqueKeysWithValues: atBackup.keys.map { ($0, store.object(forKey: $0)) })
+        addTeardownBlock { @MainActor in
+            for (key, value) in originals { store.set(value, forKey: key) }
+            store.reload()
+        }
+
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+        for (key, value) in atBackup { store.set(value, forKey: key) }
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_000_200) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        for (key, value) in afterBackup { store.set(value, forKey: key) }
+
+        let targetContext = ModelContext(try makeContainer())
+        let restoreResult = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: true)
+        guard case .success = restoreResult else {
+            return XCTFail("Expected successful restore result")
+        }
+
+        for (key, expected) in atBackup {
+            XCTAssertEqual(
+                store.object(forKey: key) as? NSObject,
+                expected as? NSObject,
+                "Setting \(key) was not restored from the backup"
+            )
+        }
+    }
+
+    /// Co sprawdza: Niestandardowe metryki (definicja, pomiary, cel, wlaczenie i kolejnosc) wracaja po restore.
+    /// Dlaczego: Restore filtrowal wpisy przez MetricKind, wiec pomiary i cele custom byly po cichu gubione, a definicji nie bylo w backupie.
+    /// Kryteria: Po restore w kontenerze docelowym jest dokladnie definicja z backupu, jej pomiar i cel, a ustawienia custom pasuja do backupu.
+    func testRestoreBringsBackCustomMetricsWithDataAndSettings() async throws {
+        let store = AppSettingsStore.shared
+        let customID = "custom_TEST-WRIST"
+        let enabledKey = "custom_metric_\(customID)_enabled"
+        let orderKey = "custom_metrics_order"
+        let originals = [enabledKey, orderKey, "custom_metric_custom_LOCAL_enabled"].map { ($0, store.object(forKey: $0)) }
+        addTeardownBlock { @MainActor in
+            for (key, value) in originals { store.set(value, forKey: key) }
+            store.reload()
+        }
+
+        let sourceContext = ModelContext(try makeContainer())
+        let definition = CustomMetricDefinition(
+            name: "Wrist", unitLabel: "cm", sfSymbolName: "figure.wave",
+            minValue: 10, maxValue: 30, favorsDecrease: true, sortOrder: 3
+        )
+        definition.identifier = customID
+        definition.createdDate = Date(timeIntervalSince1970: 1_700_000_050)
+        sourceContext.insert(definition)
+        sourceContext.insert(MetricSample(kindRaw: customID, value: 16.5, date: Date(timeIntervalSince1970: 1_700_000_060)))
+        sourceContext.insert(MetricGoal(kindRaw: customID, targetValue: 15, direction: .decrease, createdDate: Date(timeIntervalSince1970: 1_700_000_070)))
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+        store.set(true, forKey: enabledKey)
+        store.set([customID], forKey: orderKey)
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_000_300) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        let targetContext = ModelContext(try makeContainer())
+        let local = CustomMetricDefinition(name: "Local only", unitLabel: "kg")
+        local.identifier = "custom_LOCAL"
+        targetContext.insert(local)
+        try targetContext.save()
+        store.set(false, forKey: enabledKey)
+        store.set(true, forKey: "custom_metric_custom_LOCAL_enabled")
+        store.set(["custom_LOCAL"], forKey: orderKey)
+
+        let restoreResult = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: true)
+        guard case .success = restoreResult else {
+            return XCTFail("Expected successful restore result")
+        }
+
+        let definitions = try targetContext.fetch(FetchDescriptor<CustomMetricDefinition>())
+        XCTAssertEqual(definitions.map(\.identifier), [customID], "Backup definitions replace the local ones")
+        let restored = try XCTUnwrap(definitions.first)
+        XCTAssertEqual(restored.name, "Wrist")
+        XCTAssertEqual(restored.unitLabel, "cm")
+        XCTAssertEqual(restored.sfSymbolName, "figure.wave")
+        XCTAssertEqual(restored.minValue, 10)
+        XCTAssertEqual(restored.maxValue, 30)
+        XCTAssertTrue(restored.favorsDecrease)
+        XCTAssertEqual(restored.sortOrder, 3)
+        XCTAssertEqual(restored.createdDate, Date(timeIntervalSince1970: 1_700_000_050))
+
+        let customSamples = try targetContext.fetch(FetchDescriptor<MetricSample>()).filter { $0.kindRaw == customID }
+        XCTAssertEqual(customSamples.map(\.value), [16.5])
+        let customGoals = try targetContext.fetch(FetchDescriptor<MetricGoal>()).filter { $0.kindRaw == customID }
+        XCTAssertEqual(customGoals.map(\.targetValue), [15])
+        XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<MetricSample>()), 2, "Built-in sample restored next to the custom one")
+
+        XCTAssertEqual(store.object(forKey: enabledKey) as? Bool, true)
+        XCTAssertEqual(store.stringArray(forKey: orderKey), [customID])
+    }
+
+    /// Co sprawdza: Backup utworzony przed wprowadzeniem custom metryk (bez pliku definicji) nadal sie przywraca i nie kasuje lokalnych definicji.
+    /// Dlaczego: Zmiana formatu backupu nie moze psuc starszych kopii.
+    /// Kryteria: Restore konczy sie sukcesem, a lokalna definicja zostaje.
+    func testRestoreFromBackupWithoutCustomMetricsFileKeepsLocalDefinitions() async throws {
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_000_310) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        // Simulate a backup written by an older build: no custom-metrics file in the package.
+        let package = try XCTUnwrap(try backupPackages().first)
+        try? FileManager.default.removeItem(at: package.appendingPathComponent("custom_metrics.json"))
+
+        let targetContext = ModelContext(try makeContainer())
+        let local = CustomMetricDefinition(name: "Local only", unitLabel: "kg")
+        local.identifier = "custom_LOCAL"
+        targetContext.insert(local)
+        try targetContext.save()
+
+        let restoreResult = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: true)
+        guard case .success = restoreResult else {
+            return XCTFail("Old backups without custom metrics must still restore")
+        }
+
+        XCTAssertEqual(try targetContext.fetch(FetchDescriptor<CustomMetricDefinition>()).map(\.identifier), ["custom_LOCAL"])
+        XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<MetricSample>()), 1)
+    }
+
+    /// Co sprawdza: Backup zawierajacy wylacznie pomiary custom nie jest odrzucany jako uszkodzony.
+    /// Dlaczego: Walidacja liczyla tylko wpisy z MetricKind, wiec taka kopia wygladala na pusta i konczyla sie invalidBackupSchema.
+    /// Kryteria: Restore konczy sie sukcesem i przywraca pomiar.
+    func testRestoreAcceptsBackupThatContainsOnlyCustomMetricSamples() async throws {
+        let customID = "custom_TEST-ONLY"
+        let sourceContext = ModelContext(try makeContainer())
+        let definition = CustomMetricDefinition(name: "Steps", unitLabel: "steps")
+        definition.identifier = customID
+        sourceContext.insert(definition)
+        sourceContext.insert(MetricSample(kindRaw: customID, value: 8000, date: Date(timeIntervalSince1970: 1_700_000_080)))
+        try sourceContext.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_000_320) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        let targetContext = ModelContext(try makeContainer())
+        let restoreResult = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: true)
+
+        guard case .success = restoreResult else {
+            return XCTFail("A backup of only custom samples is valid, got \(restoreResult)")
+        }
+        XCTAssertEqual(try targetContext.fetch(FetchDescriptor<MetricSample>()).map(\.value), [8000])
+    }
+
+    /// Co sprawdza: Tygodniowe tempo celu (commitmentWeeklyRate) wraca po restore, dla metryki wbudowanej i custom.
+    /// Dlaczego: Pole nie bylo zapisywane w backupie, wiec po przywroceniu cel tracil zadeklarowane tempo.
+    /// Kryteria: Po restore oba cele maja to samo tempo co w backupie; cel bez tempa nadal je ma nil.
+    func testRestoreKeepsGoalWeeklyRate() async throws {
+        let customID = "custom_TEST-RATE"
+        let sourceContext = ModelContext(try makeContainer())
+        let definition = CustomMetricDefinition(name: "Reps", unitLabel: "reps")
+        definition.identifier = customID
+        sourceContext.insert(definition)
+        sourceContext.insert(MetricGoal(kind: .weight, targetValue: 75, direction: .decrease, commitmentWeeklyRate: 0.5))
+        sourceContext.insert(MetricGoal(kind: .waist, targetValue: 80, direction: .decrease))
+        sourceContext.insert(MetricGoal(kindRaw: customID, targetValue: 40, direction: .increase, commitmentWeeklyRate: 2.5))
+        try sourceContext.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_000_330) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        let targetContext = ModelContext(try makeContainer())
+        let restoreResult = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: true)
+        guard case .success = restoreResult else {
+            return XCTFail("Expected successful restore result")
+        }
+
+        let rates = Dictionary(
+            uniqueKeysWithValues: try targetContext.fetch(FetchDescriptor<MetricGoal>()).map { ($0.kindRaw, $0.commitmentWeeklyRate) }
+        )
+        XCTAssertEqual(rates[MetricKind.weight.rawValue] ?? nil, 0.5)
+        XCTAssertEqual(rates[customID] ?? nil, 2.5)
+        XCTAssertNil(rates[MetricKind.waist.rawValue] ?? nil, "A goal without a weekly rate must stay without one")
+        XCTAssertEqual(rates.count, 3)
+    }
+
+    /// Co sprawdza: settings.json z nowego backupu dekoduje sie w starszym formacie, ktory zna tylko typy skalarne.
+    /// Dlaczego: Starsza wersja aplikacji (np. na drugim urzadzeniu z tym samym iCloud) odrzuca caly plik, gdy trafi na nieznany typ wpisu, i restore sie nie udaje.
+    /// Kryteria: Dekoder znajacy tylko string/int/double/bool/data czyta plik bez bledu, a tablice wracaja po restore z osobnego pliku.
+    func testSettingsFileStaysReadableByBuildsThatKnowOnlyScalarTypes() async throws {
+        let store = AppSettingsStore.shared
+        store.set(["waist", "weight"], forKey: AppSettingsKeys.Metrics.activeOrder)
+        let context = ModelContext(try makeContainer())
+        seedSampleData(in: context)
+        try context.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_000_340) }
+        _ = await ICloudBackupService.createBackupNow(context: context, isPremium: true)
+
+        let package = try XCTUnwrap(try backupPackages().first)
+        let key = try XCTUnwrap(ICloudBackupService.testEncryptionKeyOverride)
+        let sealed = try ChaChaPoly.SealedBox(combined: Data(contentsOf: package.appendingPathComponent("settings.json")))
+        let plain = try ChaChaPoly.open(sealed, using: key)
+
+        XCTAssertNoThrow(try JSONDecoder().decode([LegacySettingsEntry].self, from: plain))
+    }
+
+    /// Co sprawdza: Po restore przypomnienia z backupu sa faktycznie planowane w systemie powiadomien.
+    /// Dlaczego: Restore odtwarzal liste przypomnien, ale nikt nie tworzyl z niej powiadomien, wiec nie dzialaly az do edycji w ustawieniach.
+    /// Kryteria: Centrum powiadomien dostaje zadanie dla przypomnienia z backupu, mimo ze przed restore powiadomienia byly wylaczone.
+    func testRestoreSchedulesTheRestoredReminders() async throws {
+        let store = AppSettingsStore.shared
+        let reminder = MeasurementReminder(id: "restored-1", date: Date(timeIntervalSince1970: 1_700_000_500), repeatRule: .daily)
+        store.set(try JSONEncoder().encode([reminder]), forKey: AppSettingsKeys.Notifications.reminders)
+        store.set(true, forKey: AppSettingsKeys.Notifications.notificationsEnabled)
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_000_350) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        // A fresh device: no reminders, notifications off.
+        store.removeObject(forKey: AppSettingsKeys.Notifications.reminders)
+        store.set(false, forKey: AppSettingsKeys.Notifications.notificationsEnabled)
+        let center = RecordingNotificationCenter()
+        ICloudBackupService.testNotificationManagerOverride = NotificationManager(center: center, settings: store)
+
+        let restoreResult = await ICloudBackupService.restoreLatestBackupManually(
+            context: ModelContext(try makeContainer()), isPremium: true
+        )
+        guard case .success = restoreResult else {
+            return XCTFail("Expected successful restore result")
+        }
+
+        XCTAssertTrue(
+            center.addedIdentifiers.contains("measurement_reminder_restored-1"),
+            "Restored reminders must be scheduled, got \(center.addedIdentifiers)"
+        )
+    }
+
+    /// Backs up with the notification switch set to `enabledInBackup`, then restores onto a device whose
+    /// notification permission is `status`. Returns the fake center so the test can see what was asked of it.
+    private func restoreOntoDevice(
+        notificationsEnabledInBackup: Bool,
+        permission status: UNAuthorizationStatus
+    ) async throws -> RecordingNotificationCenter {
+        let store = AppSettingsStore.shared
+        store.set(notificationsEnabledInBackup, forKey: AppSettingsKeys.Notifications.notificationsEnabled)
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_000_360) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        store.set(false, forKey: AppSettingsKeys.Notifications.notificationsEnabled)
+        let center = RecordingNotificationCenter()
+        center.status = status
+        ICloudBackupService.testNotificationManagerOverride = NotificationManager(center: center, settings: store)
+        let result = await ICloudBackupService.restoreLatestBackupManually(
+            context: ModelContext(try makeContainer()), isPremium: true
+        )
+        guard case .success = result else {
+            XCTFail("Expected successful restore result")
+            return center
+        }
+        return center
+    }
+
+    /// Co sprawdza: Po restore na urzadzeniu, ktore nigdy nie pytalo o zgode, aplikacja prosi o zgode na powiadomienia.
+    /// Dlaczego: Zgoda jest osobna dla kazdego urzadzenia; bez niej przywrocone przypomnienia sa zaplanowane, ale nigdy nie zadzwonia.
+    /// Kryteria: Dokladnie jedna prosba, gdy backup mial powiadomienia wlaczone, a status to notDetermined.
+    func testRestoreAsksForNotificationPermissionWhenItHasNeverBeenAsked() async throws {
+        let center = try await restoreOntoDevice(notificationsEnabledInBackup: true, permission: .notDetermined)
+
+        XCTAssertEqual(center.authorizationRequests, 1)
+    }
+
+    /// Co sprawdza: Restore nie pyta o zgode, gdy powiadomienia byly w backupie wylaczone albo odpowiedz jest juz znana.
+    /// Dlaczego: Okno systemowe pojawia sie tylko tam, gdzie ma sens; odmowy nie wolno ponawiac.
+    /// Kryteria: Zero prosb w trzech przypadkach.
+    func testRestoreDoesNotAskForPermissionWhenItWouldNotHelp() async throws {
+        let switchedOff = try await restoreOntoDevice(notificationsEnabledInBackup: false, permission: .notDetermined)
+        XCTAssertEqual(switchedOff.authorizationRequests, 0, "Notifications were off in the backup")
+
+        let denied = try await restoreOntoDevice(notificationsEnabledInBackup: true, permission: .denied)
+        XCTAssertEqual(denied.authorizationRequests, 0, "A denial is not asked again")
+
+        let granted = try await restoreOntoDevice(notificationsEnabledInBackup: true, permission: .authorized)
+        XCTAssertEqual(granted.authorizationRequests, 0, "Already granted")
     }
 
     func testRestoreLatestBackupManuallyFailsForNonPremiumUser() async throws {
@@ -587,7 +944,7 @@ final class ICloudBackupServiceTests: XCTestCase {
     // MARK: - Helpers
 
     private func makeContainer() throws -> ModelContainer {
-        let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self])
+        let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self, CustomMetricDefinition.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         return try ModelContainer(for: schema, configurations: [config])
     }
@@ -636,6 +993,38 @@ final class ICloudBackupServiceTests: XCTestCase {
 }
 
 // MARK: - Test-only stubs matching the Codable shape used by ICloudBackupService
+
+/// Records what would be handed to the system notification center.
+private final class RecordingNotificationCenter: NotificationCenterClient {
+    private(set) var addedIdentifiers: [String] = []
+    var status: UNAuthorizationStatus = .authorized
+    private(set) var authorizationRequests = 0
+
+    func requestAuthorization() async throws -> Bool {
+        authorizationRequests += 1
+        return true
+    }
+    func authorizationStatus() async -> UNAuthorizationStatus { status }
+    func pendingRequestIdentifiers() async -> [String] { [] }
+    func add(_ request: UNNotificationRequest, completion: @escaping (Error?) -> Void) {
+        addedIdentifiers.append(request.identifier)
+        completion(nil)
+    }
+    func add(_ request: UNNotificationRequest) async throws { addedIdentifiers.append(request.identifier) }
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {}
+}
+
+/// The settings entry as older builds decode it: no `stringArray` case.
+private struct LegacySettingsEntry: Decodable {
+    enum ValueType: String, Decodable { case string, int, double, bool, data }
+
+    let key: String
+    let type: ValueType
+    let stringValue: String?
+    let numberValue: Double?
+    let boolValue: Bool?
+    let dataValue: Data?
+}
 
 private struct CodableMetricSampleStub: Encodable {
     let kindRaw: String
