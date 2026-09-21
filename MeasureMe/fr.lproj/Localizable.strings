@@ -1576,3 +1576,6 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 /* Home — body model discovery card */
 "home.bodyModel.title" = "Modèle corporel";
 "home.bodyModel.subtitle" = "Transformez vos mesures en silhouette 3D et comparez deux dates.";
+"Importing data..." = "Importation des données...";
+"Checking iCloud backup..." = "Vérification de la sauvegarde iCloud...";
+"Restoring from iCloud backup..." = "Restauration depuis la sauvegarde iCloud...";

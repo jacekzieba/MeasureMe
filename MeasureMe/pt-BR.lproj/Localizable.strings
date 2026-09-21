@@ -1578,3 +1578,6 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 /* Home — body model discovery card */
 "home.bodyModel.title" = "Modelo corporal";
 "home.bodyModel.subtitle" = "Transforme suas medidas em uma silhueta 3D e compare duas datas quaisquer.";
+"Importing data..." = "Importando dados...";
+"Checking iCloud backup..." = "Verificando o backup do iCloud...";
+"Restoring from iCloud backup..." = "Restaurando do backup do iCloud...";

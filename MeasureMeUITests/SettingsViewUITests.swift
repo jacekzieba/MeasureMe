@@ -68,6 +68,28 @@ final class SettingsViewUITests: XCTestCase {
         XCTAssertTrue(restoreLatestButton.exists, "Expected restore-latest control")
     }
 
+    /// Alerts are owned by SettingsView but triggered on the pushed Data screen (delete, backup, restore,
+    /// import results). They must show right away, not only after the person navigates back.
+    @MainActor
+    func testAlertTriggeredFromDataSettingsAppearsWithoutGoingBack() {
+        app.launch()
+        waitForAppShell()
+        openDataSettings()
+        XCTAssertTrue(app.navigationBars.staticTexts["Data"].firstMatch.waitForExistence(timeout: 5), "Data detail should open")
+
+        let deleteAll = app.buttons["Delete all data"].firstMatch
+        scrollToReveal(deleteAll)
+        XCTAssertTrue(deleteAll.waitForExistence(timeout: 5), "Data screen should offer Delete all data")
+        deleteAll.tap()
+
+        XCTAssertTrue(
+            app.alerts.firstMatch.waitForExistence(timeout: 3),
+            "Confirmation alert should appear while the Data screen is still visible"
+        )
+        XCTAssertTrue(app.navigationBars.staticTexts["Data"].firstMatch.exists, "Person should still be on the Data screen")
+        app.alerts.buttons["Cancel"].firstMatch.tap()
+    }
+
     @MainActor
     func testICloudBackupActionsArePremiumGated() {
         app.launchArguments = ["-uiTestMode", "-uiTestForceNonPremium"]

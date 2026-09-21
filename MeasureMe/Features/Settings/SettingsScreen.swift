@@ -118,12 +118,11 @@ struct SettingsView: View {
     @State private var isPresentingMailComposer = false
     @State private var mailAttachmentData: Data? = nil
     @State private var mailAttachmentFileName: String = ""
-    @State private var isExporting = false
-    @State private var exportMessage: String = ""
+    @State private var isBusy = false
+    @State private var busyMessage: String = ""
     @State private var showImportPicker = false
     @State private var showImportStrategyAlert = false
     @State private var pendingImportURLs: [URL] = []
-    @State private var isImporting = false
     @State private var activeAlert: SettingsAlert?
     @State private var settingsSearchQuery: String = ""
     @State private var selectedSettingsRoute: SettingsSearchRoute?
@@ -474,40 +473,9 @@ struct SettingsView: View {
                 // Keep the navigation bar chrome stable during push transitions.
                 .toolbarBackground(.hidden, for: .navigationBar)
                 .accessibilityIdentifier("settings.root")
-            .sheet(isPresented: $isPresentingShareSheet) {
-                ShareSheet(items: shareItems, subject: shareSubject)
-            }
-            .sheet(isPresented: $isPresentingMailComposer) {
-                MailComposerSheet(
-                    toRecipient: "measureme.approve254@passmail.net",
-                    subject: AppLocalization.string("MeasureMe diagnostics"),
-                    body: "",
-                    attachmentData: mailAttachmentData,
-                    attachmentFileName: mailAttachmentFileName
-                )
-            }
-            .alert(
-                settingsAlertTitle,
-                isPresented: Binding(get: { activeAlert != nil }, set: { if !$0 { activeAlert = nil } }),
-                presenting: activeAlert,
-                actions: settingsAlertActions,
-                message: settingsAlertMessage
-            )
-            .modifier(
-                SettingsImportFlowModifier(
-                    showImportPicker: $showImportPicker,
-                    showImportStrategyAlert: $showImportStrategyAlert,
-                    pendingImportURLs: $pendingImportURLs,
-                    activeAlert: $activeAlert,
-                    onImport: performImport
-                )
-            )
-            if isExporting {
-                exportOverlay
-            }
             }
             .navigationDestination(item: $selectedSettingsRoute) { route in
-                SettingsRouteDestinationView(
+                presentingDataFlows(SettingsRouteDestinationView(
                     route: route,
                     userName: $userName,
                     userGender: $userGender,
@@ -558,9 +526,50 @@ struct SettingsView: View {
                     onSeedDummyData: { activeAlert = .seedDummyDataConfirm },
                     onDeleteAll: { activeAlert = .deleteAllDataConfirm },
                     onReportBug: exportDiagnosticsJSON
-                )
+                ))
             }
         }
+        // Sheets: shared by the overview (Share app) and pushed screens (export, diagnostics).
+        .sheet(isPresented: $isPresentingShareSheet) {
+            ShareSheet(items: shareItems, subject: shareSubject)
+        }
+        .sheet(isPresented: $isPresentingMailComposer) {
+            MailComposerSheet(
+                toRecipient: "measureme.approve254@passmail.net",
+                subject: AppLocalization.string("MeasureMe diagnostics"),
+                body: "",
+                attachmentData: mailAttachmentData,
+                attachmentFileName: mailAttachmentFileName
+            )
+        }
+    }
+
+    /// Alerts, the import picker and the busy overlay are triggered from pushed screens (Data). SwiftUI
+    /// only presents from the view that is on screen, so attached to the covered overview they surfaced
+    /// only after the person went back. Attach them to the pushed destination instead.
+    private func presentingDataFlows<Content: View>(_ content: Content) -> some View {
+        content
+            .alert(
+                settingsAlertTitle,
+                isPresented: Binding(get: { activeAlert != nil }, set: { if !$0 { activeAlert = nil } }),
+                presenting: activeAlert,
+                actions: settingsAlertActions,
+                message: settingsAlertMessage
+            )
+            .modifier(
+                SettingsImportFlowModifier(
+                    showImportPicker: $showImportPicker,
+                    showImportStrategyAlert: $showImportStrategyAlert,
+                    pendingImportURLs: $pendingImportURLs,
+                    activeAlert: $activeAlert,
+                    onImport: performImport
+                )
+            )
+            .overlay {
+                if isBusy {
+                    busyOverlay
+                }
+            }
     }
 
     // MARK: - Exports
@@ -574,8 +583,8 @@ struct SettingsView: View {
             format: format,
             context: modelContext,
             unitsSystem: unitsSystem,
-            setExportMessage: { exportMessage = $0 },
-            setIsExporting: { isExporting = $0 },
+            setExportMessage: { busyMessage = $0 },
+            setIsExporting: { isBusy = $0 },
             setShareItems: { shareItems = $0 },
             setShareSubject: { shareSubject = $0 },
             setIsPresentingShareSheet: { isPresentingShareSheet = $0 },
@@ -584,15 +593,15 @@ struct SettingsView: View {
     }
 
     private func exportDiagnosticsJSON() {
-        exportMessage = AppLocalization.string("Generating diagnostics...")
-        isExporting = true
+        busyMessage = AppLocalization.string("Generating diagnostics...")
+        isBusy = true
         Task {
             let output = await SettingsExporter.exportDiagnostics(
                 context: modelContext,
                 isSyncEnabled: isSyncEnabled,
                 lastHealthImportTimestamp: lastHealthImportTimestamp
             )
-            isExporting = false
+            isBusy = false
             guard !output.items.isEmpty, let url = output.items.first as? URL else { return }
             if MFMailComposeViewController.canSendMail(),
                let data = try? Data(contentsOf: url) {
@@ -697,10 +706,14 @@ struct SettingsView: View {
                 premiumStore.presentPaywall(reason: .iCloudSync)
                 return
             }
-            switch await SettingsBackupCoordinator.preflightRestore(
+            busyMessage = AppLocalization.string("Checking iCloud backup...")
+            isBusy = true
+            let preflight = await SettingsBackupCoordinator.preflightRestore(
                 context: modelContext,
                 isPremium: premiumStore.isPremium
-            ) {
+            )
+            isBusy = false
+            switch preflight {
             case .readyToRestoreImmediately:
                 performRestore()
             case .needsConflictConfirmation(let message):
@@ -719,10 +732,13 @@ struct SettingsView: View {
                 premiumStore.presentPaywall(reason: .iCloudSync)
                 return
             }
+            busyMessage = AppLocalization.string("Restoring from iCloud backup...")
+            isBusy = true
             let result = await SettingsBackupCoordinator.performRestore(
                 context: modelContext,
                 isPremium: premiumStore.isPremium
             )
+            isBusy = false
             if result.isSuccess {
                 Haptics.success()
             } else {
@@ -951,14 +967,14 @@ struct SettingsView: View {
         AppSettingsStore.shared.clearUserDataDefaults()
     }
 
-    private var exportOverlay: some View {
+    private var busyOverlay: some View {
         ZStack {
             Color.black.opacity(0.35)
                 .ignoresSafeArea()
             VStack(spacing: 12) {
                 ProgressView()
                     .tint(settingsTheme.accent)
-                Text(exportMessage)
+                Text(busyMessage)
                     .font(AppTypography.captionEmphasis)
                     .foregroundStyle(.white)
             }
@@ -981,7 +997,10 @@ struct SettingsView: View {
             urls: urls,
             strategy: strategy,
             context: modelContext,
-            setIsImporting: { isImporting = $0 },
+            setIsImporting: { importing in
+                if importing { busyMessage = AppLocalization.string("Importing data...") }
+                isBusy = importing
+            },
             clearPendingImportURLs: { pendingImportURLs = [] },
             setActiveAlert: { activeAlert = $0 }
         )
