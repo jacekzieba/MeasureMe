@@ -10,6 +10,8 @@ protocol PremiumBillingClient {
     func purchase(_ package: Package) async throws -> PurchaseResultData
     func restorePurchases() async throws -> CustomerInfo
     func customerInfo() async throws -> CustomerInfo
+    /// Bypasses the SDK cache and asks the server for the current entitlement state.
+    func refreshCustomerInfo() async throws -> CustomerInfo
     var customerInfoStream: AsyncStream<CustomerInfo> { get }
 }
 
@@ -77,6 +79,10 @@ struct RevenueCatBillingClient: PremiumBillingClient {
 
     func customerInfo() async throws -> CustomerInfo {
         try await Purchases.shared.customerInfo()
+    }
+
+    func refreshCustomerInfo() async throws -> CustomerInfo {
+        try await Purchases.shared.customerInfo(fetchPolicy: .fetchCurrent)
     }
 
     var customerInfoStream: AsyncStream<CustomerInfo> {
@@ -187,6 +193,7 @@ final class PremiumStore: ObservableObject {
     private let notificationManager: PremiumNotificationManaging
     private let settings: AppSettingsStore
     private let analytics: AnalyticsClient
+    private let entitlementRecheckDelays: [Duration]
     #if DEBUG
     private let forcePremiumForUITests: Bool
     private let forceNonPremiumForUITests: Bool
@@ -199,7 +206,12 @@ final class PremiumStore: ObservableObject {
     private var updateListenerTask: Task<Void, Never>?
     private var foregroundObserver: NSObjectProtocol?
     private var trackedPurchaseKeys: Set<String> = []
+    /// Server time of the newest entitlement snapshot applied so far. Fetches overlap (startup,
+    /// paywall open, foreground, purchase); an answer that arrives late must not undo a newer one.
+    private var latestCustomerInfoDate: Date?
     private var shouldPresentPostPurchaseSetupAfterPaywallDismissal = false
+    /// The trial reminder question is owed once the post-purchase sheet has gone away.
+    private var isTrialReminderPromptPending = false
     private(set) lazy var promptCoordinator: PremiumPromptCoordinator = PremiumPromptCoordinator(
         settings: settings,
         isPremium: { [weak self] in self?.isPremium ?? false }
@@ -210,12 +222,14 @@ final class PremiumStore: ObservableObject {
         notificationManager: PremiumNotificationManaging? = nil,
         settings: AppSettingsStore,
         analytics: AnalyticsClient? = nil,
-        startListener: Bool = true
+        startListener: Bool = true,
+        entitlementRecheckDelays: [Duration] = [.seconds(1), .seconds(3), .seconds(6)]
     ) {
         self.billingClient = billingClient ?? RevenueCatBillingClient()
         self.notificationManager = notificationManager ?? NotificationManager.shared
         self.settings = settings
         self.analytics = analytics ?? Analytics.shared
+        self.entitlementRecheckDelays = entitlementRecheckDelays
         self.isPremium = settings.snapshot.premium.premiumEntitlement
         #if DEBUG
         self.forcePremiumForUITests = UITestArgument.isPresent(.forcePremium)
@@ -258,14 +272,16 @@ final class PremiumStore: ObservableObject {
         billingClient: PremiumBillingClient? = nil,
         notificationManager: PremiumNotificationManaging? = nil,
         analytics: AnalyticsClient? = nil,
-        startListener: Bool = true
+        startListener: Bool = true,
+        entitlementRecheckDelays: [Duration] = [.seconds(1), .seconds(3), .seconds(6)]
     ) {
         self.init(
             billingClient: billingClient,
             notificationManager: notificationManager,
             settings: .shared,
             analytics: analytics,
-            startListener: startListener
+            startListener: startListener,
+            entitlementRecheckDelays: entitlementRecheckDelays
         )
     }
 
@@ -495,8 +511,16 @@ final class PremiumStore: ObservableObject {
             return
         }
         #endif
-        showTrialReminderOptInPrompt = true
+        // Raised here, the prompt would land while the paywall is closing and the setup sheet is
+        // opening, and SwiftUI drops it. It follows the sheet instead (`handlePostPurchaseSetupDismissed`).
+        isTrialReminderPromptPending = true
         showPostPurchaseSetup = true
+    }
+
+    func handlePostPurchaseSetupDismissed() {
+        guard isTrialReminderPromptPending else { return }
+        isTrialReminderPromptPending = false
+        showTrialReminderOptInPrompt = true
     }
 
     func confirmTrialReminderOptIn() async {
@@ -654,6 +678,7 @@ final class PremiumStore: ObservableObject {
     }
 
     private func handlePurchaseResult(_ result: PurchaseResultData, purchasedProduct: PremiumProduct) async {
+        AppLog.debug("[Premium] purchase finished product=\(purchasedProduct.productIdentifier) userCancelled=\(result.userCancelled)")
         if result.userCancelled {
             await refreshEntitlements()
             if isPremium {
@@ -673,6 +698,9 @@ final class PremiumStore: ObservableObject {
         }
 
         applyCustomerInfo(result.customerInfo)
+        if !isPremium {
+            await recheckEntitlementAfterPurchase()
+        }
         if isPremium {
             var analyticsParameters = paywallReason.analyticsParameters
             analyticsParameters["measureme.purchase_source"] = "direct_purchase"
@@ -682,7 +710,7 @@ final class PremiumStore: ObservableObject {
                 parameters: analyticsParameters
             )
 
-            let startedIntroTrial = result.customerInfo.entitlements[PremiumConstants.entitlementID]?.periodType == .trial
+            let startedIntroTrial = customerInfo?.entitlements[PremiumConstants.entitlementID]?.periodType == .trial
             if startedIntroTrial {
                 await handleTrialActivated()
             } else {
@@ -699,6 +727,20 @@ final class PremiumStore: ObservableObject {
             )
             actionMessage = AppLocalization.string("premium.purchase.pending")
             actionMessageIsError = false
+        }
+    }
+
+    /// The store has taken the payment, but the entitlement can trail it by a moment. Ask the server for
+    /// a fresh snapshot a few times before calling the purchase pending; without this the app stayed
+    /// locked until the next launch.
+    private func recheckEntitlementAfterPurchase() async {
+        for (index, delay) in entitlementRecheckDelays.enumerated() {
+            AppLog.debug("[Premium] entitlement missing after purchase, recheck \(index + 1)/\(entitlementRecheckDelays.count)")
+            try? await Task.sleep(for: delay)
+            if let info = try? await billingClient.refreshCustomerInfo() {
+                applyCustomerInfo(info)
+            }
+            if isPremium { return }
         }
     }
 
@@ -723,13 +765,34 @@ final class PremiumStore: ObservableObject {
     }
 
     private func applyCustomerInfo(_ info: CustomerInfo) {
+        if let latestCustomerInfoDate, info.requestDate < latestCustomerInfoDate {
+            AppLog.debug("[Premium] ignored older customer info, requestDate=\(info.requestDate.timeIntervalSince1970) newest=\(latestCustomerInfoDate.timeIntervalSince1970)")
+            return
+        }
+        latestCustomerInfoDate = info.requestDate
         customerInfo = info
         let isEntitled = info.entitlements
             .activeInCurrentEnvironment
             .keys
             .contains(PremiumConstants.entitlementID)
+        AppLog.debug("[Premium] customer info applied: \(Self.entitlementDiagnostics(for: info)) premium=\(isEntitled)")
         isPremium = isEntitled
         applyPremiumEntitlement(isEntitled)
+    }
+
+    /// One line describing the entitlement for the diagnostics log. The flags that matter when a purchase
+    /// went through but premium stayed off: an entitlement active only in the other environment
+    /// (sandbox vs production) does not unlock the app.
+    nonisolated static func entitlementDiagnostics(for info: CustomerInfo) -> String {
+        let id = PremiumConstants.entitlementID
+        let requestDate = info.requestDate.timeIntervalSince1970
+        guard let entitlement = info.entitlements.all[id] else {
+            return "entitlement=\(id) present=false known=\(info.entitlements.all.keys.sorted()) requestDate=\(requestDate)"
+        }
+        return "entitlement=\(id) present=true "
+            + "activeAnyEnvironment=\(entitlement.isActiveInAnyEnvironment) "
+            + "activeThisEnvironment=\(entitlement.isActiveInCurrentEnvironment) "
+            + "sandbox=\(entitlement.isSandbox) period=\(entitlement.periodType) requestDate=\(requestDate)"
     }
 
     private func applyPremiumEntitlement(_ isEntitled: Bool) {
