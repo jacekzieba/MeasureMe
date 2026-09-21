@@ -51,7 +51,7 @@ final class ComparePhotosSnapshotTests: IsolatedPreferencesSnapshotTestCase {
 
         let olderPhoto = PhotoEntry(
             imageData: makeTestImageData(color: (0.8, 0.2, 0.2)),
-            date: Calendar.current.date(from: DateComponents(year: 2025, month: 6, day: 1))!,
+            date: try XCTUnwrap(Calendar.current.date(from: DateComponents(year: 2025, month: 6, day: 1))),
             tags: [.wholeBody],
             linkedMetrics: [
                 MetricValueSnapshot(kind: .weight, value: 90.0, unit: "kg"),
@@ -60,7 +60,7 @@ final class ComparePhotosSnapshotTests: IsolatedPreferencesSnapshotTestCase {
         )
         let newerPhoto = PhotoEntry(
             imageData: makeTestImageData(color: (0.2, 0.6, 0.8)),
-            date: Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 1))!,
+            date: try XCTUnwrap(Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 1))),
             tags: [.wholeBody],
             linkedMetrics: [
                 MetricValueSnapshot(kind: .weight, value: 82.0, unit: "kg"),

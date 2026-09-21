@@ -754,7 +754,9 @@ final class PremiumStoreTests: XCTestCase {
 
     private func makeIsolatedDefaults() -> UserDefaults {
         let suiteName = "PremiumStoreTests-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            preconditionFailure("Could not create the isolated defaults suite \(suiteName)")
+        }
         defaults.removePersistentDomain(forName: suiteName)
         return defaults
     }

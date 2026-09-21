@@ -96,7 +96,7 @@ final class MetricDetailSnapshotTests: IsolatedPreferencesSnapshotTestCase {
             let cal = Calendar.current
             // 30 days of weight samples descending from 90 kg
             for offset in 0..<30 {
-                let date = cal.date(byAdding: .day, value: -offset, to: today)!
+                let date = try XCTUnwrap(cal.date(byAdding: .day, value: -offset, to: today))
                 let sample = MetricSample(kind: .weight, value: 90.0 - Double(offset) * 0.15, date: date)
                 context.insert(sample)
             }
@@ -238,7 +238,7 @@ final class MetricDetailSnapshotTests: IsolatedPreferencesSnapshotTestCase {
         let today = AppClock.now
         let cal = Calendar.current
         for offset in 0..<20 {
-            let date = cal.date(byAdding: .day, value: -offset * 2, to: today)!
+            let date = try XCTUnwrap(cal.date(byAdding: .day, value: -offset * 2, to: today))
             let sample = MetricSample(kind: .waist, value: 88.0 - Double(offset) * 0.2, date: date)
             context.insert(sample)
         }
