@@ -204,6 +204,10 @@ jobs:
       # Xcode draws controls differently. MEASUREME_SNAPSHOT_TESTS=1 switches them on
       # (they skip themselves without it). To re-record after a toolchain or UI change,
       # run this workflow by hand with "record_snapshots" and commit the artifact.
+      # BodyModelSnapshotTests stays out of the automatic run: it renders a 3D mesh after a
+      # fixed 1.8 s wait, and on this runner its dark variant differed from an image this
+      # same runner had recorded. It needs a "render finished" signal from the screen, not a
+      # looser tolerance, before it can gate a merge. It still records with record_snapshots.
       #
       # Test timeouts are not a nicety here. On the first run of this lane
       # PendingPhotoSaveStoreTests.testCompletion_RemovesSpoolAndEmitsCompletedEvent
@@ -221,6 +225,7 @@ jobs:
             -destination "${{ steps.destination.outputs.destination }}" \
             -configuration Debug \
             -only-testing:MeasureMeTests \
+            -skip-testing:MeasureMeTests/BodyModelSnapshotTests \
             -test-timeouts-enabled YES \
             -default-test-execution-time-allowance 120 \
             -maximum-test-execution-time-allowance 600 \
