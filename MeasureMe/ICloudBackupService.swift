@@ -3,7 +3,7 @@ import SwiftData
 import CryptoKit
 
 enum ICloudBackupService {
-    private struct StoredBackupManifest: Codable, Sendable {
+    private nonisolated struct StoredBackupManifest: Codable, Sendable {
         let schemaVersion: Int
         let createdAt: Date
         let isEncrypted: Bool
@@ -31,6 +31,8 @@ enum ICloudBackupService {
         case noBackupFound
         case invalidBackupSchema
         case encryptionError
+        case encryptionKeyUnavailable
+        case nothingToBackUp
         case fileSystemError(String)
 
         var localizedMessage: String {
@@ -45,6 +47,10 @@ enum ICloudBackupService {
                 return AppLocalization.string("The backup is incompatible with this app version.")
             case .encryptionError:
                 return AppLocalization.string("Could not access iCloud backup right now.")
+            case .nothingToBackUp:
+                return AppLocalization.string("There is nothing to back up yet, so your existing iCloud backups were left as they are.")
+            case .encryptionKeyUnavailable:
+                return AppLocalization.string("The key that unlocks your backups has not reached this device yet. Make sure iCloud Keychain is on, wait a few minutes and try again.")
             case .fileSystemError(let detail):
                 if detail.contains("iCloud container unavailable") {
                     return AppLocalization.string("iCloud Drive is unavailable on this device.")
@@ -64,12 +70,14 @@ enum ICloudBackupService {
     nonisolated(unsafe) static var testNowOverride: (() -> Date)?
     nonisolated(unsafe) static var testEncryptionKeyOverride: SymmetricKey?
     nonisolated(unsafe) static var testNotificationManagerOverride: NotificationManager?
+    nonisolated(unsafe) static var testKeyStoreOverride: BackupKeyStore?
 
     static func resetTestOverrides() {
         testBackupRootURLOverride = nil
         testNowOverride = nil
         testEncryptionKeyOverride = nil
         testNotificationManagerOverride = nil
+        testKeyStoreOverride = nil
     }
 #endif
 
@@ -80,11 +88,19 @@ enum ICloudBackupService {
     private nonisolated static let scheduledBackupInterval: TimeInterval = 86_400 // 24 hours
     private nonisolated static let backupExtension = "measuremebackup"
     private nonisolated static let photoBackupBatchSize = 100
+    private nonisolated static let staleWorkInProgressAge: TimeInterval = 3_600
     private static let restoreCoordinator = RestoreCoordinator()
 
     // MARK: - Public API
 
     static func createBackupNow(
+        context: ModelContext,
+        isPremium: Bool
+    ) async -> Result<ICloudBackupManifest, BackupError> {
+        await serialized { await performBackup(context: context, isPremium: isPremium) }
+    }
+
+    private static func performBackup(
         context: ModelContext,
         isPremium: Bool
     ) async -> Result<ICloudBackupManifest, BackupError> {
@@ -96,7 +112,13 @@ enum ICloudBackupService {
             return .failure(.fileSystemError("iCloud container unavailable"))
         }
 
-        guard let key = encryptionKey() else {
+        // A device that was never restored has an empty store; backing it up would make an empty backup
+        // the latest — the one the next restore picks. The first backup may be empty: it hides nothing.
+        if isStoreEmpty(context: context), !allBackupPackages(in: rootURL).isEmpty {
+            return .failure(.nothingToBackUp)
+        }
+
+        guard let key = encryptionKeyCreatingIfNeeded() else {
             return .failure(.encryptionError)
         }
 
@@ -140,6 +162,8 @@ enum ICloudBackupService {
                 guard !photosBatch.isEmpty else { break }
 
                 for photo in photosBatch {
+                    // The background-task expiration handler cancels a backup that ran out of time.
+                    try Task.checkCancellation()
                     let fileID = UUID().uuidString
                     codablePhotos.append(CodablePhotoEntry(
                         fileID: fileID,
@@ -181,9 +205,11 @@ enum ICloudBackupService {
                 )
             )
 
+            try Task.checkCancellation()
             let backupSize = try await Task.detached(priority: .utility) { () -> Int64 in
                 let fm = FileManager.default
                 try fm.createDirectory(at: rootURL, withIntermediateDirectories: true)
+                Self.removeStaleWorkInProgress(in: rootURL, now: timestamp)
 
                 let stamp = Int(timestamp.timeIntervalSince1970)
                 let wipName = "backup-\(stamp).\(backupFileExtension)-wip"
@@ -216,7 +242,8 @@ enum ICloudBackupService {
                 let finalURL = rootURL.appendingPathComponent(finalName, isDirectory: true)
                 try fm.moveItem(at: packageURL, to: finalURL)
 
-                try Self.enforceRetention(in: rootURL)
+                // The backup is complete at this point; failing to prune older ones must not report it as failed.
+                Self.enforceRetention(in: rootURL)
                 return Self.directorySize(finalURL)
             }.value
 
@@ -241,6 +268,10 @@ enum ICloudBackupService {
         } catch {
             // Clean up temp photos dir if it was created but backup failed
             try? FileManager.default.removeItem(at: tempPhotosDir)
+            if error is CancellationError {
+                // Not something the person needs to see; the next run tries again.
+                return .failure(.fileSystemError("cancelled"))
+            }
             let message = userFacingErrorMessage(for: error)
             await MainActor.run {
                 AppSettingsStore.shared.set(\.iCloudBackup.lastErrorMessage, message)
@@ -259,12 +290,12 @@ enum ICloudBackupService {
             return .failure(.fileSystemError("iCloud container unavailable"))
         }
 
-        guard let key = encryptionKey() else {
-            return .failure(.encryptionError)
-        }
-
         guard let latestPackage = latestBackupPackage(in: rootURL) else {
             return .failure(.noBackupFound)
+        }
+
+        guard let key = existingEncryptionKey() else {
+            return .failure(.encryptionKeyUnavailable)
         }
 
         return await restoreFromPackage(latestPackage, context: context, key: key)
@@ -288,8 +319,8 @@ enum ICloudBackupService {
         }
 
         guard let rootURL = backupRootURL(),
-              let key = encryptionKey(),
-              let latestPackage = latestBackupPackage(in: rootURL) else {
+              let latestPackage = latestBackupPackage(in: rootURL),
+              let key = existingEncryptionKey() else {
             await restoreCoordinator.endRestore()
             return false
         }
@@ -306,6 +337,11 @@ enum ICloudBackupService {
     }
 
     static func runScheduledBackupIfNeeded(context: ModelContext, isPremium: Bool) async {
+        // Checked and run under one lock, so two triggers arriving together make one backup, not two.
+        await serialized { await performScheduledBackupIfNeeded(context: context, isPremium: isPremium) }
+    }
+
+    private static func performScheduledBackupIfNeeded(context: ModelContext, isPremium: Bool) async {
         let (isEnabled, lastSuccessTimestamp): (Bool, Double) = await MainActor.run {
             let s = AppSettingsStore.shared.snapshot.iCloudBackup
             return (s.isEnabled, s.lastSuccessTimestamp)
@@ -317,7 +353,7 @@ enum ICloudBackupService {
         let elapsed = now().timeIntervalSince(lastSuccess)
         guard elapsed >= scheduledBackupInterval else { return }
 
-        _ = await createBackupNow(context: context, isPremium: isPremium)
+        _ = await performBackup(context: context, isPremium: isPremium)
     }
 
     /// Returns the manifest of the latest backup without performing a restore.
@@ -332,23 +368,16 @@ enum ICloudBackupService {
             return .failure(.fileSystemError("iCloud container unavailable"))
         }
 
-        guard let key = encryptionKey() else {
-            return .failure(.encryptionError)
-        }
-
         guard let latestPackage = latestBackupPackage(in: rootURL) else {
             return .failure(.noBackupFound)
         }
 
+        guard let key = existingEncryptionKey() else {
+            return .failure(.encryptionKeyUnavailable)
+        }
+
         do {
-            let manifestURL = latestPackage.appendingPathComponent("manifest.json")
-            let manifestData = try Data(contentsOf: manifestURL)
-            let manifest = try decodeStoredManifest(from: manifestData)
-            let summary = try await loadManifestSummary(
-                packageURL: latestPackage,
-                key: key,
-                storedManifest: manifest
-            )
+            let summary = try await loadManifestSummary(packageURL: latestPackage, key: key)
             return .success(summary)
         } catch {
             return .failure(.fileSystemError(userFacingErrorMessage(for: error)))
@@ -362,10 +391,23 @@ enum ICloudBackupService {
         context: ModelContext,
         key: SymmetricKey
     ) async -> Result<Void, BackupError> {
+        await serialized { await performRestore(from: packageURL, context: context, key: key) }
+    }
+
+    private static func performRestore(
+        from packageURL: URL,
+        context: ModelContext,
+        key: SymmetricKey
+    ) async -> Result<Void, BackupError> {
         do {
-            let manifestURL = packageURL.appendingPathComponent("manifest.json")
-            let manifestData = try Data(contentsOf: manifestURL)
-            let manifest = try decodeStoredManifest(from: manifestData)
+            // Every read below goes through a coordinated read, which waits for iCloud to download the
+            // file; asking for the whole package up front lets those downloads run side by side.
+            try? FileManager.default.startDownloadingUbiquitousItem(at: packageURL)
+            let manifest = try await Task.detached(priority: .utility) {
+                try Self.decodeStoredManifest(
+                    from: Self.readUbiquitousData(at: packageURL.appendingPathComponent("manifest.json"))
+                )
+            }.value
             guard manifest.schemaVersion == currentSchemaVersion else {
                 return .failure(.invalidBackupSchema)
             }
@@ -384,9 +426,21 @@ enum ICloudBackupService {
                 // Backups from before custom metrics were saved have no such file: nil means
                 // "leave the local definitions alone", an empty list means "the backup had none".
                 let customMetricsURL = packageURL.appendingPathComponent(Self.customMetricsFileName)
-                let customMetrics: [CodableCustomMetric]? = FileManager.default.fileExists(atPath: customMetricsURL.path)
+                let customMetrics: [CodableCustomMetric]? = Self.ubiquitousItemExists(at: customMetricsURL)
                     ? try Self.readEncrypted(from: customMetricsURL, key: key)
                     : nil
+
+                // Everything local is deleted below, so every photo must be known readable first — one
+                // missing file used to surface only after the local photos were already gone.
+                let photosDir = packageURL.appendingPathComponent("photos", isDirectory: true)
+                for entry in photoEntries {
+                    try autoreleasepool {
+                        _ = try Self.readEncryptedData(from: photosDir.appendingPathComponent("\(entry.fileID).dat"), key: key)
+                        if entry.hasThumbnail {
+                            _ = try Self.readEncryptedData(from: photosDir.appendingPathComponent("\(entry.fileID)_thumb.dat"), key: key)
+                        }
+                    }
+                }
 
                 return RestorePayload(
                     metrics: metrics,
@@ -432,7 +486,6 @@ enum ICloudBackupService {
             // Phase 1: Restore metrics & goals (small data, supports rollback)
             try deleteAll(MetricSample.self, from: context)
             try deleteAll(MetricGoal.self, from: context)
-            try deleteAll(PhotoEntry.self, from: context)
             if payload.customMetrics != nil {
                 try deleteAll(CustomMetricDefinition.self, from: context)
             }
@@ -494,6 +547,11 @@ enum ICloudBackupService {
                 try? context.save()
                 throw error
             }
+
+            // Photos are only replaced once the measurements are safely in; the rollback above has no
+            // copy of them to put back.
+            try deleteAll(PhotoEntry.self, from: context)
+            try context.save()
 
             // Phase 2: Restore photos in batches to limit memory usage
             let photosDir = packageURL.appendingPathComponent("photos", isDirectory: true)
@@ -563,7 +621,7 @@ enum ICloudBackupService {
         return try encoder.encode(manifest)
     }
 
-    private static func decodeStoredManifest(from data: Data) throws -> StoredBackupManifest {
+    private nonisolated static func decodeStoredManifest(from data: Data) throws -> StoredBackupManifest {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode(StoredBackupManifest.self, from: data)
@@ -571,10 +629,13 @@ enum ICloudBackupService {
 
     private static func loadManifestSummary(
         packageURL: URL,
-        key: SymmetricKey,
-        storedManifest: StoredBackupManifest
+        key: SymmetricKey
     ) async throws -> ICloudBackupManifest {
-        try await Task.detached(priority: .utility) {
+        try? FileManager.default.startDownloadingUbiquitousItem(at: packageURL)
+        return try await Task.detached(priority: .utility) {
+            let storedManifest = try Self.decodeStoredManifest(
+                from: Self.readUbiquitousData(at: packageURL.appendingPathComponent("manifest.json"))
+            )
             let metrics: [CodableMetricSample] = try Self.readEncrypted(
                 from: packageURL.appendingPathComponent("metrics.json"), key: key
             )
@@ -619,68 +680,111 @@ enum ICloudBackupService {
     }
 
     private nonisolated static func readEncryptedData(from url: URL, key: SymmetricKey) throws -> Data {
-        let combined = try Data(contentsOf: url)
+        let combined = try readUbiquitousData(at: url)
         let sealedBox = try ChaChaPoly.SealedBox(combined: combined)
         return try ChaChaPoly.open(sealedBox, using: key)
     }
 
+    // MARK: - iCloud file access
+
+    /// A coordinated read: for a file iCloud has not downloaded yet, it waits for the download instead of
+    /// failing. Blocks while it waits, so call it off the main actor.
+    private nonisolated static func readUbiquitousData(at url: URL) throws -> Data {
+        var coordinationError: NSError?
+        var result: Result<Data, Error> = .failure(CocoaError(.fileReadUnknown))
+        NSFileCoordinator(filePresenter: nil).coordinate(readingItemAt: url, options: [], error: &coordinationError) { readURL in
+            result = Result { try Data(contentsOf: readURL) }
+        }
+        if let coordinationError { throw coordinationError }
+        return try result.get()
+    }
+
+    /// iCloud keeps an item it has not downloaded yet as a hidden `.<name>.icloud` placeholder.
+    private nonisolated static func placeholderURL(for url: URL) -> URL {
+        url.deletingLastPathComponent().appendingPathComponent(".\(url.lastPathComponent).icloud")
+    }
+
+    /// The item a placeholder stands for; any other URL is returned unchanged.
+    private nonisolated static func logicalURL(for url: URL) -> URL {
+        let name = url.lastPathComponent
+        guard name.hasPrefix("."), name.hasSuffix(".icloud") else { return url }
+        return url.deletingLastPathComponent().appendingPathComponent(String(name.dropFirst().dropLast(".icloud".count)))
+    }
+
+    private nonisolated static func ubiquitousItemExists(at url: URL) -> Bool {
+        let fm = FileManager.default
+        return fm.fileExists(atPath: url.path) || fm.fileExists(atPath: placeholderURL(for: url).path)
+    }
+
     // MARK: - Encryption key management
 
-    private static func encryptionKey() -> SymmetricKey? {
+    /// For writing a backup: creates the key the first time there is none.
+    private static func encryptionKeyCreatingIfNeeded() -> SymmetricKey? {
 #if DEBUG
         if let override = testEncryptionKeyOverride { return override }
 #endif
         return loadOrCreateKeychainKey()
     }
 
+    /// For reading a backup: never creates a key. On a new device the key may not have arrived through
+    /// iCloud Keychain yet; a key made here would sync over the real one and lock every backup for good.
+    private static func existingEncryptionKey() -> SymmetricKey? {
+#if DEBUG
+        if let override = testEncryptionKeyOverride { return override }
+#endif
+        keychainLock.lock()
+        defer { keychainLock.unlock() }
+        return keyStore.readKey().map { SymmetricKey(data: $0) }
+    }
+
     private static let keychainLock = NSLock()
+
+    private static var keyStore: BackupKeyStore {
+#if DEBUG
+        if let testKeyStoreOverride { return testKeyStoreOverride }
+#endif
+        return KeychainBackupKeyStore()
+    }
 
     private static func loadOrCreateKeychainKey() -> SymmetricKey? {
         keychainLock.lock()
         defer { keychainLock.unlock() }
 
-        // Try to read existing key
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "com.jacek.measureme.icloud-backup",
-            kSecAttrAccount as String: "encryption-key",
-            kSecReturnData as String: true,
-            kSecAttrSynchronizable as String: true
-        ]
-
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        if status == errSecSuccess, let data = result as? Data {
+        let store = keyStore
+        if let data = store.readKey() {
             return SymmetricKey(data: data)
         }
 
         // Generate and store new key
         let newKey = SymmetricKey(size: .bits256)
-        let keyData = newKey.withUnsafeBytes { Data($0) }
-
-        let addQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "com.jacek.measureme.icloud-backup",
-            kSecAttrAccount as String: "encryption-key",
-            kSecValueData as String: keyData,
-            kSecAttrSynchronizable as String: true,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
-        ]
-
-        let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
-        if addStatus == errSecSuccess {
+        if store.addKey(newKey.withUnsafeBytes { Data($0) }) {
             return newKey
-        } else if addStatus == errSecDuplicateItem {
-            // Key was synced via iCloud Keychain between read and add — retry read
-            var retryResult: AnyObject?
-            let retryStatus = SecItemCopyMatching(query as CFDictionary, &retryResult)
-            if retryStatus == errSecSuccess, let data = retryResult as? Data {
-                return SymmetricKey(data: data)
+        }
+        // Key was synced via iCloud Keychain between read and add — retry read
+        return store.readKey().map { SymmetricKey(data: $0) }
+    }
+
+    private static var isOperationRunning = false
+    private static var waitingOperations: [CheckedContinuation<Void, Never>] = []
+
+    /// Runs backup and restore work one operation at a time. Launch, backgrounding, the scheduler and
+    /// Settings all start them, and a backup running beside a restore could capture a half-restored store.
+    /// Main-actor isolated, so checking and taking the turn cannot interleave.
+    static func serialized<T>(_ operation: () async -> T) async -> T {
+        if isOperationRunning {
+            await withCheckedContinuation { waitingOperations.append($0) }
+        } else {
+            isOperationRunning = true
+        }
+        defer {
+            if waitingOperations.isEmpty {
+                isOperationRunning = false
+            } else {
+                // The turn passes straight to the next operation; the flag stays set.
+                waitingOperations.removeFirst().resume()
             }
         }
-
-        return nil
+        return await operation()
     }
 
     // MARK: - Backup discovery & retention
@@ -702,14 +806,17 @@ enum ICloudBackupService {
 
     private nonisolated static func allBackupPackages(in rootURL: URL) -> [URL] {
         let fm = FileManager.default
+        // Hidden files are listed on purpose: a backup not downloaded yet is a hidden placeholder.
         guard let contents = try? fm.contentsOfDirectory(
             at: rootURL,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
+            includingPropertiesForKeys: [.isDirectoryKey]
         ) else { return [] }
 
-        return contents
+        let packages = contents
+            .map(logicalURL(for:))
             .filter { $0.pathExtension == backupExtension }
+        return Dictionary(packages.map { ($0.lastPathComponent, $0) }, uniquingKeysWith: { first, _ in first })
+            .values
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
@@ -724,13 +831,34 @@ enum ICloudBackupService {
         return sampleCount == 0 && goalCount == 0 && photoCount == 0
     }
 
-    private nonisolated static func enforceRetention(in rootURL: URL) throws {
+    private nonisolated static func enforceRetention(in rootURL: URL) {
         let packages = allBackupPackages(in: rootURL)
         guard packages.count > maxRetainedBackups else { return }
 
         let toDelete = packages.prefix(packages.count - maxRetainedBackups)
         for url in toDelete {
-            try FileManager.default.removeItem(at: url)
+            removeUbiquitousItem(at: url)
+        }
+    }
+
+    /// A backup that died partway leaves a `-wip` folder that retention does not see. Only old ones go:
+    /// another device on the same account may be writing one right now.
+    private nonisolated static func removeStaleWorkInProgress(in rootURL: URL, now: Date) {
+        let suffix = ".\(backupExtension)-wip"
+        guard let contents = try? FileManager.default.contentsOfDirectory(at: rootURL, includingPropertiesForKeys: nil) else { return }
+        for url in contents.map(logicalURL(for:)) {
+            let name = url.lastPathComponent
+            guard name.hasPrefix("backup-"), name.hasSuffix(suffix),
+                  let stamp = TimeInterval(name.dropFirst("backup-".count).dropLast(suffix.count)),
+                  now.timeIntervalSince1970 - stamp > staleWorkInProgressAge else { continue }
+            removeUbiquitousItem(at: url)
+        }
+    }
+
+    private nonisolated static func removeUbiquitousItem(at url: URL) {
+        let fm = FileManager.default
+        if (try? fm.removeItem(at: url)) == nil {
+            try? fm.removeItem(at: placeholderURL(for: url))
         }
     }
 
@@ -952,7 +1080,7 @@ enum ICloudBackupService {
             from: packageURL.appendingPathComponent("settings.json"), key: key
         )
         let listsURL = packageURL.appendingPathComponent(settingsListsFileName)
-        if FileManager.default.fileExists(atPath: listsURL.path) {
+        if ubiquitousItemExists(at: listsURL) {
             entries += try readEncrypted(from: listsURL, key: key) as [SettingsEntry]
         }
         return entries
@@ -977,5 +1105,42 @@ enum ICloudBackupService {
         enum ValueType: String, Codable, Sendable {
             case string, int, double, bool, data, stringArray
         }
+    }
+}
+
+/// Where the backup encryption key lives: the synchronizable keychain in the app, an in-memory stand-in in tests.
+protocol BackupKeyStore {
+    func readKey() -> Data?
+    /// `false` when the key could not be stored, including when one already exists.
+    func addKey(_ data: Data) -> Bool
+}
+
+struct KeychainBackupKeyStore: BackupKeyStore {
+    private let service = "com.jacek.measureme.icloud-backup"
+    private let account = "encryption-key"
+
+    func readKey() -> Data? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecAttrSynchronizable as String: true
+        ]
+        var result: AnyObject?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess else { return nil }
+        return result as? Data
+    }
+
+    func addKey(_ data: Data) -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecValueData as String: data,
+            kSecAttrSynchronizable as String: true,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+        ]
+        return SecItemAdd(query as CFDictionary, nil) == errSecSuccess
     }
 }

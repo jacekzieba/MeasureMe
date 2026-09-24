@@ -102,6 +102,11 @@ struct HomeCompareChooserSheet: View {
     }
 
     var body: some View {
+        unguardedBody.photoPrivacyGuard()
+    }
+
+    @ViewBuilder
+    private var unguardedBody: some View {
         NavigationStack {
             ZStack(alignment: .top) {
                 AppScreenBackground(topHeight: 320, tint: photosTheme.strongTint, showsSpotlight: true)

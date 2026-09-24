@@ -141,19 +141,21 @@ enum SettingsImporter {
         }
 
         do {
-            if strategy == .replace {
-                let sampleDescriptor = FetchDescriptor<MetricSample>()
-                let goalDescriptor = FetchDescriptor<MetricGoal>()
-                let existingSamples = try context.fetch(sampleDescriptor)
-                let existingGoals = try context.fetch(goalDescriptor)
-                existingSamples.forEach { context.delete($0) }
-                existingGoals.forEach { context.delete($0) }
+            // Replace only what the import actually brings: a goals-only file, or a metrics file whose
+            // rows were all rejected, must not wipe the measurement history.
+            if strategy == .replace, !parsedSampleRows.isEmpty {
+                try context.fetch(FetchDescriptor<MetricSample>()).forEach { context.delete($0) }
+            }
+            if strategy == .replace, !parsedGoalRows.isEmpty {
+                try context.fetch(FetchDescriptor<MetricGoal>()).forEach { context.delete($0) }
             }
 
             insertSamples(parsedSampleRows, strategy: strategy, context: context, result: &result)
             insertGoals(parsedGoalRows, strategy: strategy, context: context, result: &result)
             try context.save()
         } catch {
+            // Otherwise the pending deletions stay in the context and a later autosave commits them.
+            context.rollback()
             AppLog.debug("⚠️ SettingsImporter persistence failed: \(error)")
             throw ImportError.persistenceFailed
         }

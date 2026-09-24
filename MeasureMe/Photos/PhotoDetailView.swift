@@ -41,6 +41,11 @@ struct PhotoDetailView: View {
     }
     
     var body: some View {
+        unguardedBody.photoPrivacyGuard()
+    }
+
+    @ViewBuilder
+    private var unguardedBody: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
@@ -289,8 +294,7 @@ private func makePhotoDetailPreviewContainer() -> (ModelContainer, PhotoEntry) {
         let container = try ModelContainer(for: PhotoEntry.self, configurations: config)
         let context = container.mainContext
 
-        let sampleImage = UIImage(systemName: "photo")!
-        let imageData = sampleImage.pngData()!
+        let imageData = UIImage(systemName: "photo")?.pngData() ?? Data()
 
         let samplePhoto = PhotoEntry(
             imageData: imageData,

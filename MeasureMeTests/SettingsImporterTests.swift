@@ -167,8 +167,8 @@ final class ImporterParseMetricsCSVTests: XCTestCase {
     }
 
     /// Co sprawdza: Data jest poprawnie parsowana (epoch round-trip z dokładnością 1 sekundy).
-    func testDateParsedCorrectly() {
-        let expectedDate = ISO8601DateFormatter().date(from: "2025-06-15T10:00:00Z")!
+    func testDateParsedCorrectly() throws {
+        let expectedDate = try XCTUnwrap(ISO8601DateFormatter().date(from: "2025-06-15T10:00:00Z"))
         let csv = "\(header)\nweight,Weight,80.0,kg,80.0,kg,2025-06-15T10:00:00.000Z"
         let url = makeTempFile(name: "imp-metrics-date-\(UUID()).csv", content: csv)
         let result = SettingsImporter.parseMetricsCSV(url: url)
@@ -662,5 +662,34 @@ final class ImportDataEndToEndTests: XCTestCase {
 
         let msg = try await SettingsImporter.importData(urls: [url], strategy: .merge, context: context)
         XCTAssertTrue(msg.contains("1"), "Komunikat powinien informować o pominiętych wierszach")
+    }
+
+    /// Co sprawdza: Replace z samym plikiem celów nie kasuje pomiarów — plik ich nie zastępuje.
+    func testReplaceWithOnlyGoalsFileKeepsExistingMeasurements() async throws {
+        let context = ModelContext(try makeContainer())
+        context.insert(MetricSample(kind: .weight, value: 90.0, date: .now))
+        try context.save()
+
+        let csv = "\(goalsHeader)\nweight,Weight,decrease,75.0000,kg,75.00,kg,,,,2025-01-01T08:00:00.000Z"
+        let url = makeTempFile(name: "measureme-goals-replace-\(UUID()).csv", content: csv)
+
+        _ = try await SettingsImporter.importData(urls: [url], strategy: .replace, context: context)
+
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<MetricSample>()), 1, "Pomiary nie były w pliku, więc zostają")
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<MetricGoal>()), 1)
+    }
+
+    /// Co sprawdza: Replace z plikiem pomiarów, w którym żaden wiersz nie przeszedł walidacji, nie kasuje pomiarów.
+    func testReplaceWithNoValidMetricRowsKeepsExistingMeasurements() async throws {
+        let context = ModelContext(try makeContainer())
+        context.insert(MetricSample(kind: .weight, value: 90.0, date: .now))
+        try context.save()
+
+        let csv = "\(metricsHeader)\nweight,Weight,abc,kg,abc,kg,2025-01-01T08:00:00.000Z"
+        let url = makeTempFile(name: "measureme-metrics-invalid-\(UUID()).csv", content: csv)
+
+        _ = try await SettingsImporter.importData(urls: [url], strategy: .replace, context: context)
+
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<MetricSample>()), 1, "Nic do wstawienia, więc nic do zastąpienia")
     }
 }

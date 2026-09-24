@@ -253,6 +253,8 @@
 "compare.ghost.opacity.label" = "Opacidad de la superposición";
 "compare.ghost.hint" = "Arrastrar para reposicionar · Pellizcar para escalar · El control deslizante ajusta la opacidad";
 "Could not access iCloud backup right now." = "No se pudo acceder a la copia de seguridad de iCloud en este momento.";
+"There is nothing to back up yet, so your existing iCloud backups were left as they are." = "Todavía no hay nada que respaldar, así que tus copias de seguridad de iCloud existentes no se han modificado.";
+"The key that unlocks your backups has not reached this device yet. Make sure iCloud Keychain is on, wait a few minutes and try again." = "La clave de tus copias de seguridad aún no ha llegado a este dispositivo. Comprueba que el Llavero de iCloud esté activado, espera unos minutos y vuelve a intentarlo.";
 "iCloud storage is full. Free up space in Settings → iCloud to continue backups." = "El almacenamiento de iCloud está lleno. Libera espacio en Configuración → iCloud para seguir con las copias de seguridad.";
 "Encrypted backup. Premium only." = "Copia de seguridad cifrada. Solo Premium.";
 "Unlock in Premium" = "Desbloquear con Premium";

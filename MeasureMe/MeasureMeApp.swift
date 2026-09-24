@@ -52,17 +52,6 @@ struct MeasureMeApp: App {
         var statusKey: String
     }
 
-    private enum StartupStorageError: LocalizedError {
-        case applicationSupportDirectoryUnavailable
-
-        var errorDescription: String? {
-            switch self {
-            case .applicationSupportDirectoryUnavailable:
-                return "Application Support directory is unavailable."
-            }
-        }
-    }
-
     private struct StartupStorageContextError: LocalizedError {
         let step: String
         let underlying: Error
@@ -320,28 +309,13 @@ struct MeasureMeApp: App {
             )
         }
 
-        let fileManager = FileManager.default
-        guard let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            throw StartupStorageError.applicationSupportDirectoryUnavailable
-        }
-        try fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
-
-        let schema = Schema([
-            MetricSample.self,
-            MetricGoal.self,
-            PhotoEntry.self,
-            CustomMetricDefinition.self
-        ])
-        // App uses custom iCloud backup flow; disable SwiftData CloudKit sync to avoid
-        // CloudKit schema constraints on local-only models.
-        let configuration = ModelConfiguration(schema: schema, cloudKitDatabase: .none)
         do {
-            return try ModelContainer(for: schema, configurations: [configuration])
+            return try MeasureMeModelContainer.makePersistent()
         } catch {
             guard shouldAttemptStoreResetAfterContainerFailure else { throw error }
             AppLog.debug("⚠️ SwiftData container init failed. Attempting one-time store reset. Error: \(error)")
             try purgePersistentStoreFiles()
-            return try ModelContainer(for: schema, configurations: [configuration])
+            return try MeasureMeModelContainer.makePersistent()
         }
     }
 

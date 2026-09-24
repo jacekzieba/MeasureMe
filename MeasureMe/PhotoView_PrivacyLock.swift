@@ -38,3 +38,59 @@ struct PhotoPrivacyLockedView: View {
         }
     }
 }
+
+// MARK: - Privacy guard for presented photo screens
+
+/// Covers a presented photo screen (detail, full screen, compare, chooser, transformation card)
+/// while the photo lock is on and the gate is locked.
+///
+/// The grid and the Home card blur their own tiles, but these screens are opened from them and
+/// showed photos regardless: Home's Compare button sat outside the blurred area, and a sheet left
+/// open when the app went to the background came back — and appeared in the app switcher — unlocked.
+private struct PhotoPrivacyGuardModifier: ViewModifier {
+    @ObservedObject private var photoPrivacyGate = PhotoPrivacyGate.shared
+    @AppSetting(\.privacy.requireBiometricForPhotos) private var requireBiometricForPhotos: Bool = false
+    @Environment(\.dismiss) private var dismiss
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                if !photoPrivacyGate.canDisplayPhotos(requireBiometric: requireBiometricForPhotos) {
+                    ZStack(alignment: .topTrailing) {
+                        AppColorRoles.surfaceCanvas
+                            .ignoresSafeArea()
+
+                        PhotoPrivacyLockedView {
+                            Task { await photoPrivacyGate.unlock() }
+                        }
+                        .padding(24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                        // A full-screen cover cannot be swiped away, so there must be a way out
+                        // that does not depend on unlocking.
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 17, weight: .semibold))
+                                .frame(width: 44, height: 44)
+                        }
+                        .accessibilityLabel(AppLocalization.string("Close"))
+                        .padding(8)
+                    }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+                photoPrivacyGate.lock()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+                photoPrivacyGate.lock()
+            }
+    }
+}
+
+extension View {
+    func photoPrivacyGuard() -> some View {
+        modifier(PhotoPrivacyGuardModifier())
+    }
+}

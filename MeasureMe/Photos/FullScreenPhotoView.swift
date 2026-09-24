@@ -12,6 +12,11 @@ struct FullScreenPhotoView: View {
     @State private var lastOffset: CGSize = .zero
     
     var body: some View {
+        unguardedBody.photoPrivacyGuard()
+    }
+
+    @ViewBuilder
+    private var unguardedBody: some View {
         ZStack {
             Color.black.ignoresSafeArea()
             
@@ -98,8 +103,7 @@ struct FullScreenPhotoView: View {
 }
 
 #Preview {
-    let sampleImage = UIImage(systemName: "photo.fill")!
-    let imageData = sampleImage.pngData()!
+    let imageData = UIImage(systemName: "photo.fill")?.pngData() ?? Data()
     
     return FullScreenPhotoView(imageData: imageData)
 }

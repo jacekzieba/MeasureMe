@@ -62,6 +62,13 @@ enum AppLifecycleCoordinator {
         var submitBackgroundTaskRequest: (BGTaskRequest) throws -> Void = { request in
             try BGTaskScheduler.shared.submit(request)
         }
+        /// Asks for extra time to finish work after the app leaves the foreground.
+        var beginBackgroundTask: (@escaping @MainActor () -> Void) -> UIBackgroundTaskIdentifier = { expirationHandler in
+            UIApplication.shared.beginBackgroundTask(withName: "icloud-backup", expirationHandler: expirationHandler)
+        }
+        var endBackgroundTask: (UIBackgroundTaskIdentifier) -> Void = { identifier in
+            UIApplication.shared.endBackgroundTask(identifier)
+        }
     }
 
     /// Process-wide dependency overrides. Reset by `resetDependencies()` in test setUp/tearDown.
@@ -70,19 +77,6 @@ enum AppLifecycleCoordinator {
     /// Restores `dependencies` to production defaults. Call from test tearDown.
     static func resetDependencies() {
         dependencies = Dependencies()
-    }
-
-    // MARK: - Errors
-
-    private enum LifecycleStorageError: LocalizedError {
-        case applicationSupportDirectoryUnavailable
-
-        var errorDescription: String? {
-            switch self {
-            case .applicationSupportDirectoryUnavailable:
-                return "Application Support directory is unavailable."
-            }
-        }
     }
 
     // MARK: - Deferred Startup
@@ -234,10 +228,7 @@ enum AppLifecycleCoordinator {
         Task(priority: .utility) {
             try? await Task.sleep(for: .milliseconds(500))
             await MainActor.run {
-                WatchSessionManager.shared.configure(
-                    container: container,
-                    healthKit: HealthKitManager.shared
-                )
+                WatchSessionManager.shared.configure(container: container)
                 WatchSessionManager.shared.activate()
             }
         }
@@ -255,8 +246,37 @@ enum AppLifecycleCoordinator {
 
         // Skip scheduled backup in tests and when the model container is unavailable.
         guard !isRunningXCTest, let container else { return }
-        Task(priority: .utility) {
+        // Without a background task the app is suspended seconds from now, halfway through writing to
+        // iCloud. Requested here, synchronously, while the app is still allowed to ask.
+        let dependencies = dependencies
+        let backgroundTask = BackgroundTaskHandle(end: dependencies.endBackgroundTask)
+        let backup = Task(priority: .utility) {
             await dependencies.runScheduledBackup(container)
+        }
+        backgroundTask.identifier = dependencies.beginBackgroundTask {
+            backup.cancel()
+            backgroundTask.end()
+        }
+        Task {
+            await backup.value
+            backgroundTask.end()
+        }
+    }
+
+    /// Ends a background task exactly once, from whichever comes first: the work finishing or the
+    /// system's expiration handler.
+    private final class BackgroundTaskHandle {
+        var identifier: UIBackgroundTaskIdentifier = .invalid
+        private let endTask: (UIBackgroundTaskIdentifier) -> Void
+
+        init(end: @escaping (UIBackgroundTaskIdentifier) -> Void) {
+            endTask = end
+        }
+
+        func end() {
+            guard identifier != .invalid else { return }
+            endTask(identifier)
+            identifier = .invalid
         }
     }
 
@@ -361,22 +381,9 @@ enum AppLifecycleCoordinator {
 
     /// Builds a fresh `ModelContainer` for use inside a background `BGProcessingTask`.
     ///
-    /// Background tasks run without the app's main `ModelContainer` instance, so we
-    /// build a minimal container scoped to the SwiftData models needed for backup
-    /// and notification generation. CloudKit sync is explicitly disabled — the app
-    /// uses its own iCloud backup flow instead.
-    ///
-    /// - Throws: `LifecycleStorageError.applicationSupportDirectoryUnavailable` when
-    ///   the system cannot provide a writable Application Support directory.
+    /// Background tasks run without the app's main `ModelContainer` instance, so they open
+    /// the store themselves — through the shared factory, so the schema cannot drift.
     private static func createBackgroundModelContainer() throws -> ModelContainer {
-        let fileManager = FileManager.default
-        guard let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            throw LifecycleStorageError.applicationSupportDirectoryUnavailable
-        }
-        try fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
-
-        let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self, CustomMetricDefinition.self])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
-        return try ModelContainer(for: schema, configurations: [configuration])
+        try MeasureMeModelContainer.makePersistent()
     }
 }
