@@ -1578,3 +1578,8 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 /* Home — body model discovery card */
 "home.bodyModel.title" = "Modelo corporal";
 "home.bodyModel.subtitle" = "Convierte tus medidas en una silueta 3D y compara dos fechas cualesquiera.";
+"Importing data..." = "Importando datos...";
+"Checking iCloud backup..." = "Comprobando la copia de seguridad de iCloud...";
+"Restoring from iCloud backup..." = "Restaurando desde la copia de seguridad de iCloud...";
+"Rate MeasureMe" = "Valorar MeasureMe";
+"settings.summary.rate" = "Solo lleva un momento y ayuda a otros a encontrar la app";

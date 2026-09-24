@@ -1,4 +1,5 @@
 import XCTest
+import Combine
 import SwiftData
 @testable import MeasureMe
 
@@ -147,7 +148,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
 
     func testCompletion_RemovesSpoolAndEmitsCompletedEvent() async throws {
         let container = try makeContainer()
-        let store = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory)
+        let store = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, onPhotoSaved: { _ in })
         store.configure(container: container)
 
         let id = try await store.enqueueSingle(
@@ -209,6 +210,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
         let container = try makeContainer()
         let store = PendingPhotoSaveStore(
             baseDirectoryURL: tempDirectory,
+            onPhotoSaved: { _ in },
             encodeSourceData: { sourceData in
                 Thread.sleep(forTimeInterval: 0.9)
                 guard let image = UIImage(data: sourceData) else { return nil }
@@ -278,7 +280,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
             unitsSystem: "metric"
         )
 
-        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory)
+        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, onPhotoSaved: { _ in })
         processor.configure(container: container)
         processor.restoreAndResume()
 
@@ -322,7 +324,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
         queuer.cancelPending(batchIDs: [batchToCancel])
         XCTAssertEqual(queuer.pendingItems.count, keptIDs.count)
 
-        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory)
+        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, onPhotoSaved: { _ in })
         processor.configure(container: container)
         processor.restoreAndResume()
 
@@ -430,7 +432,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
         )
 
         // Stage 3: a fresh store restores the queued item from disk and starts processing.
-        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory)
+        let processor = PendingPhotoSaveStore(baseDirectoryURL: tempDirectory, onPhotoSaved: { _ in })
         processor.configure(container: container)
         processor.restoreAndResume()
 
@@ -447,6 +449,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
     func testFailure_RemovesPendingAndSetsFailureMessage() async throws {
         let store = PendingPhotoSaveStore(
             baseDirectoryURL: tempDirectory,
+            onPhotoSaved: { _ in },
             encodeSourceData: { _ in nil }
         )
         store.configure(container: try makeContainer())
@@ -470,6 +473,7 @@ final class PendingPhotoSaveStoreTests: XCTestCase {
     func testProgress_IsMonotonicAndCompletes() async throws {
         let store = PendingPhotoSaveStore(
             baseDirectoryURL: tempDirectory,
+            onPhotoSaved: { _ in },
             encodeSourceData: { sourceData in
                 Thread.sleep(forTimeInterval: 0.35)
                 guard let image = UIImage(data: sourceData) else { return nil }
@@ -543,27 +547,35 @@ private extension PendingPhotoSaveStoreTests {
         XCTFail("Condition was not met before timeout")
     }
 
+    /// Subscribes to every completion instead of polling `completedEvent`: it holds only the latest event,
+    /// so with fast encoding two jobs finishing inside one poll interval overwrote each other.
     func collectCompletedIDs(
         from store: PendingPhotoSaveStore,
         expectedCount: Int,
         timeout: TimeInterval
     ) async throws -> [UUID] {
-        let deadline = Date.now.addingTimeInterval(timeout)
-        var ids: [UUID] = []
-        var seenEventIDs: Set<UUID> = []
-
-        while Date.now < deadline {
-            if let event = store.completedEvent, !seenEventIDs.contains(event.eventID) {
-                seenEventIDs.insert(event.eventID)
-                ids.append(event.id)
-                if ids.count == expectedCount {
-                    return ids
+        final class Collected {
+            var ids: [UUID] = []
+            var seenEventIDs: Set<UUID> = []
+        }
+        let collected = Collected()
+        let subscription = store.$completedEvent
+            .compactMap { $0 }
+            .sink { event in
+                if collected.seenEventIDs.insert(event.eventID).inserted {
+                    collected.ids.append(event.id)
                 }
             }
+        defer { subscription.cancel() }
+
+        let deadline = Date.now.addingTimeInterval(timeout)
+        while collected.ids.count < expectedCount, Date.now < deadline {
             try? await Task.sleep(for: .milliseconds(40))
         }
 
-        XCTFail("Expected \(expectedCount) completed events, got \(ids.count)")
-        return ids
+        if collected.ids.count < expectedCount {
+            XCTFail("Expected \(expectedCount) completed events, got \(collected.ids.count)")
+        }
+        return collected.ids
     }
 }

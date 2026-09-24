@@ -13,6 +13,10 @@ private final class MockPremiumBillingClient: PremiumBillingClient {
     var purchaseError: Error?
     var restoreError: Error?
     var customerInfoError: Error?
+    var customerInfoResult: CustomerInfo?
+    /// Answers for `refreshCustomerInfo()`, consumed in order; the call throws once they run out.
+    var refreshResults: [CustomerInfo] = []
+    private(set) var refreshCallCount: Int = 0
     private(set) var offeringsCallCount: Int = 0
     private(set) var customerInfoCallCount: Int = 0
 
@@ -43,7 +47,18 @@ private final class MockPremiumBillingClient: PremiumBillingClient {
         if let customerInfoError {
             throw customerInfoError
         }
+        if let customerInfoResult {
+            return customerInfoResult
+        }
         throw NSError(domain: "test.customerInfo.unmocked", code: 4)
+    }
+
+    func refreshCustomerInfo() async throws -> CustomerInfo {
+        refreshCallCount += 1
+        guard !refreshResults.isEmpty else {
+            throw NSError(domain: "test.refreshCustomerInfo.exhausted", code: 5)
+        }
+        return refreshResults.removeFirst()
     }
 
     var customerInfoStream: AsyncStream<CustomerInfo> {
@@ -217,6 +232,32 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertTrue(isActive)
     }
 
+    /// Co sprawdza: Pytanie o przypomnienie przed koncem triala pojawia sie po zamknieciu arkusza konfiguracji, i tylko raz.
+    /// Dlaczego: Wywolane od razu kolidowalo z zamykajacym sie paywallem i otwierajacym arkuszem, wiec SwiftUI je gubil i uzytkownik nigdy go nie widzial.
+    /// Kryteria: Po handlePostPurchaseSetupDismissed prompt jest true; kolejne zamkniecie go nie wznawia.
+    func testTrialReminderPromptFollowsTheSetupSheetOnce() async {
+        let store = makeStore(billing: MockPremiumBillingClient())
+
+        await store.handleTrialActivated()
+        store.handlePostPurchaseSetupDismissed()
+        XCTAssertTrue(store.showTrialReminderOptInPrompt)
+
+        store.showTrialReminderOptInPrompt = false
+        store.handlePostPurchaseSetupDismissed()
+        XCTAssertFalse(store.showTrialReminderOptInPrompt, "The question is asked once per trial")
+    }
+
+    /// Co sprawdza: Zamkniecie arkusza konfiguracji po zwyklym zakupie (bez triala) nie wywoluje pytania o przypomnienie.
+    /// Dlaczego: Pytanie dotyczy wylacznie triala.
+    /// Kryteria: Prompt zostaje false.
+    func testClosingTheSetupSheetWithoutATrialRaisesNoReminderPrompt() {
+        let store = makeStore(billing: MockPremiumBillingClient())
+
+        store.handlePostPurchaseSetupDismissed()
+
+        XCTAssertFalse(store.showTrialReminderOptInPrompt)
+    }
+
     /// Co sprawdza: Sprawdza scenariusz: LoadProductsErrorSetsFailureState.
     /// Dlaczego: Zapewnia przewidywalne zachowanie i latwiejsze diagnozowanie bledow.
     /// Kryteria: Wszystkie asercje XCTest sa spelnione, a test konczy sie bez bledu.
@@ -273,7 +314,10 @@ final class PremiumStoreTests: XCTestCase {
 
         await store.handleTrialActivated()
 
-        XCTAssertTrue(store.showTrialReminderOptInPrompt)
+        // Raised now, the prompt lands while the paywall is closing and the setup sheet is opening,
+        // and SwiftUI drops it - so it waits for the sheet (see the next test).
+        XCTAssertFalse(store.showTrialReminderOptInPrompt)
+        XCTAssertTrue(store.showPostPurchaseSetup)
         XCTAssertFalse(store.showTrialNotificationPermissionPrompt)
         XCTAssertEqual(notifications.requestAuthorizationCallCount, 0)
         XCTAssertTrue(notifications.scheduledTrialReminderDays.isEmpty)
@@ -570,9 +614,149 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertTrue(muchLater.shouldShow(.postMeasurement))
     }
 
+    /// Co sprawdza: Spozniona, starsza odpowiedz z RevenueCat nie odbiera premium przyznanego przez swiezy zakup.
+    /// Dlaczego: Zakup zatwierdzony w App Store nie odblokowywal aplikacji do restartu, bo starszy fetch nadpisywal wynik zakupu.
+    /// Kryteria: Po zakupie i pozniejszym syncEntitlements ze starszym stanem isPremium nadal jest true.
+    func testStaleCustomerInfoDoesNotRevokePremiumGrantedByPurchase() async throws {
+        let billing = MockPremiumBillingClient()
+        let purchaseTime = Date(timeIntervalSince1970: 2_000)
+        // The in-flight fetch was answered by the server before the purchase was processed.
+        billing.customerInfoResult = makeCustomerInfo(entitled: false, requestDate: purchaseTime.addingTimeInterval(-30))
+        let store = makeStore(billing: billing)
+
+        await store.handlePurchaseResultForTests(
+            (transaction: nil, customerInfo: makeCustomerInfo(entitled: true, requestDate: purchaseTime), userCancelled: false),
+            purchasedProduct: try makeProduct()
+        )
+        XCTAssertTrue(store.isPremium, "Purchase result should unlock premium")
+
+        await store.syncEntitlements()
+
+        XCTAssertTrue(store.isPremium, "An older entitlement snapshot must not lock the app again")
+    }
+
+    /// Co sprawdza: Diagnostyka zakupu odroznia entitlement aktywny tylko w innym srodowisku (sandbox/produkcja) od aktywnego tutaj.
+    /// Dlaczego: To najbardziej prawdopodobna przyczyna zakupu, ktory sie udal, a premium sie nie wlaczylo - na TestFlight trzeba to zobaczyc w logu.
+    /// Kryteria: Opis zawiera flagi srodowiska, a brak entitlementu jest opisany jako present=false.
+    func testEntitlementDiagnosticsShowWhichEnvironmentTheEntitlementIsActiveIn() {
+        let now = Date(timeIntervalSince1970: 3_000)
+
+        let here = PremiumStore.entitlementDiagnostics(for: makeCustomerInfo(entitled: true, requestDate: now))
+        XCTAssertTrue(here.contains("present=true"))
+        XCTAssertTrue(here.contains("activeAnyEnvironment=true"))
+        XCTAssertTrue(here.contains("activeThisEnvironment=true"))
+
+        // The simulator counts as sandbox, so a production entitlement is active elsewhere only.
+        let elsewhere = PremiumStore.entitlementDiagnostics(for: makeCustomerInfo(entitled: true, requestDate: now, sandbox: false))
+        XCTAssertTrue(elsewhere.contains("activeAnyEnvironment=true"))
+        XCTAssertTrue(elsewhere.contains("activeThisEnvironment=false"))
+        XCTAssertTrue(elsewhere.contains("sandbox=false"))
+
+        let none = PremiumStore.entitlementDiagnostics(for: makeCustomerInfo(entitled: false, requestDate: now))
+        XCTAssertTrue(none.contains("present=false"))
+    }
+
+    /// Co sprawdza: Zakup, po ktorym wynik nie zawiera jeszcze entitlementu, jest weryfikowany ponownie i odblokowuje premium.
+    /// Dlaczego: Wczesniej brak entitlementu w wyniku konczyl sie komunikatem "pending" i premium pojawialo sie dopiero po restarcie.
+    /// Kryteria: Po ponownym pobraniu z entitlementem isPremium = true, komunikat sukcesu, dalsze proby sie nie wykonuja.
+    func testPurchaseWithoutEntitlementInResultRechecksAndUnlocksPremium() async throws {
+        let billing = MockPremiumBillingClient()
+        let purchaseTime = Date(timeIntervalSince1970: 2_000)
+        billing.refreshResults = [makeCustomerInfo(entitled: true, requestDate: purchaseTime.addingTimeInterval(5))]
+        let store = makeStore(billing: billing, entitlementRecheckDelays: [.zero, .zero])
+
+        await store.handlePurchaseResultForTests(
+            (transaction: nil, customerInfo: makeCustomerInfo(entitled: false, requestDate: purchaseTime), userCancelled: false),
+            purchasedProduct: try makeProduct()
+        )
+
+        XCTAssertTrue(store.isPremium)
+        XCTAssertEqual(billing.refreshCallCount, 1, "Rechecking should stop as soon as premium is confirmed")
+        XCTAssertEqual(store.actionMessage, AppLocalization.string("premium.purchase.success"))
+    }
+
+    /// Co sprawdza: Gdy entitlement nie pojawia sie mimo ponownych prob, store konczy je i pokazuje "pending".
+    /// Dlaczego: Ponowne sprawdzanie nie moze trwac w nieskonczonosc ani oszukiwac uzytkownika.
+    /// Kryteria: Liczba prob rowna liczbie opoznien, isPremium = false, komunikat "pending".
+    func testPurchaseThatNeverBecomesEntitledReportsPendingAfterBoundedRechecks() async throws {
+        let billing = MockPremiumBillingClient()
+        let purchaseTime = Date(timeIntervalSince1970: 2_000)
+        billing.refreshResults = [
+            makeCustomerInfo(entitled: false, requestDate: purchaseTime.addingTimeInterval(1)),
+            makeCustomerInfo(entitled: false, requestDate: purchaseTime.addingTimeInterval(2))
+        ]
+        let store = makeStore(billing: billing, entitlementRecheckDelays: [.zero, .zero])
+
+        await store.handlePurchaseResultForTests(
+            (transaction: nil, customerInfo: makeCustomerInfo(entitled: false, requestDate: purchaseTime), userCancelled: false),
+            purchasedProduct: try makeProduct()
+        )
+
+        XCTAssertFalse(store.isPremium)
+        XCTAssertEqual(billing.refreshCallCount, 2)
+        XCTAssertEqual(store.actionMessage, AppLocalization.string("premium.purchase.pending"))
+    }
+
+    private func makeStore(
+        billing: MockPremiumBillingClient,
+        notifications: MockPremiumNotificationManager = MockPremiumNotificationManager(),
+        entitlementRecheckDelays: [Duration] = []
+    ) -> PremiumStore {
+        PremiumStore(
+            billingClient: billing,
+            notificationManager: notifications,
+            settings: AppSettingsStore(defaults: makeIsolatedDefaults()),
+            analytics: MockPremiumAnalyticsClient(),
+            startListener: false,
+            entitlementRecheckDelays: entitlementRecheckDelays
+        )
+    }
+
+    private func makeCustomerInfo(entitled: Bool, requestDate: Date, sandbox: Bool = true) -> CustomerInfo {
+        let entitlements: [String: EntitlementInfo] = entitled
+            ? [PremiumConstants.entitlementID: EntitlementInfo(
+                identifier: PremiumConstants.entitlementID,
+                isActive: true,
+                willRenew: true,
+                periodType: .normal,
+                store: .appStore,
+                productIdentifier: PremiumConstants.monthlyProductID,
+                isSandbox: sandbox, // the simulator reports a sandbox environment
+                ownershipType: .purchased
+            )]
+            : [:]
+        return CustomerInfo(
+            entitlements: EntitlementInfos(entitlements: entitlements),
+            requestDate: requestDate,
+            firstSeen: Date(timeIntervalSince1970: 1_000),
+            originalAppUserId: "test-user"
+        )
+    }
+
+    private func makeProduct() throws -> PremiumProduct {
+        let storeProduct = TestStoreProduct(
+            localizedTitle: "Monthly",
+            price: 4.99,
+            localizedPriceString: "$4.99",
+            productIdentifier: PremiumConstants.monthlyProductID,
+            productType: .autoRenewableSubscription,
+            localizedDescription: "Monthly premium"
+        ).toStoreProduct()
+        let package = Package(
+            identifier: PremiumConstants.monthlyPackageID,
+            packageType: .monthly,
+            storeProduct: storeProduct,
+            offeringIdentifier: "default",
+            webCheckoutUrl: nil
+        )
+        return PremiumProduct(package: package)
+    }
+
     private func makeIsolatedDefaults() -> UserDefaults {
         let suiteName = "PremiumStoreTests-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            preconditionFailure("Could not create the isolated defaults suite \(suiteName)")
+        }
         defaults.removePersistentDomain(forName: suiteName)
         return defaults
     }

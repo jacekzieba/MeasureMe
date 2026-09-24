@@ -285,8 +285,15 @@ enum PhotoUtilities {
     }
 
     private nonisolated static func supportsHEICEncoding() -> Bool {
+        #if targetEnvironment(simulator)
+        // The simulator lists HEIC as supported, but on a virtual machine (CI runners) there is no
+        // hardware encoder and the call blocks in the kernel forever. Nothing is lost by storing JPEG
+        // in a simulator; devices keep HEIC.
+        return false
+        #else
         let supported = CGImageDestinationCopyTypeIdentifiers() as? [String] ?? []
         return supported.contains(UTType.heic.identifier)
+        #endif
     }
 
     private nonisolated static func encodeBestFit(

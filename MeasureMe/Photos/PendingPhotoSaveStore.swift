@@ -122,6 +122,9 @@ final class PendingPhotoSaveStore: ObservableObject {
     private let fileManager: FileManager
     private let baseDirectoryURL: URL?
     private let autoStartProcessing: Bool
+    /// What a saved photo sets in motion elsewhere (reminder cycle, streak). Injected so tests do not
+    /// reach the real notification, widget and watch singletons.
+    private let onPhotoSaved: @MainActor (Date) -> Void
     private let encodeSourceData: @Sendable (Data) -> PhotoUtilities.EncodedPhoto?
 
     private var modelContainer: ModelContainer?
@@ -138,6 +141,10 @@ final class PendingPhotoSaveStore: ObservableObject {
         fileManager: FileManager = .default,
         baseDirectoryURL: URL? = nil,
         autoStartProcessing: Bool = true,
+        onPhotoSaved: @escaping @MainActor (Date) -> Void = { date in
+            NotificationManager.shared.recordPhotoAdded(date: date)
+            StreakManager.shared.recordPhotoSaved(date: date)
+        },
         encodeSourceData: @escaping @Sendable (Data) -> PhotoUtilities.EncodedPhoto? = { sourceData in
             guard let image = UIImage(data: sourceData) else { return nil }
             let prepared: UIImage
@@ -152,6 +159,7 @@ final class PendingPhotoSaveStore: ObservableObject {
         self.fileManager = fileManager
         self.baseDirectoryURL = baseDirectoryURL
         self.autoStartProcessing = autoStartProcessing
+        self.onPhotoSaved = onPhotoSaved
         self.encodeSourceData = encodeSourceData
     }
 
@@ -531,8 +539,7 @@ final class PendingPhotoSaveStore: ObservableObject {
                 )
             }
 
-            NotificationManager.shared.recordPhotoAdded(date: record.date)
-            StreakManager.shared.recordPhotoSaved(date: record.date)
+            onPhotoSaved(record.date)
         } catch {
             progressAnimationTasks[id]?.cancel()
             progressAnimationTasks[id] = nil

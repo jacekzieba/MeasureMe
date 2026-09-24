@@ -173,6 +173,7 @@ struct SettingsActionRow: View {
     let subtitle: String?
     let systemImage: String?
     var trailingText: String? = nil
+    var trailingSymbol: String? = "chevron.right"
     var accessibilityIdentifier: String? = nil
     let action: () -> Void
 
@@ -182,7 +183,8 @@ struct SettingsActionRow: View {
                 title: title,
                 subtitle: subtitle,
                 systemImage: systemImage,
-                trailingText: trailingText
+                trailingText: trailingText,
+                trailingSymbol: trailingSymbol
             )
             .accessibilityIdentifier(accessibilityIdentifier ?? "")
         }

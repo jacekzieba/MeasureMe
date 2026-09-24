@@ -68,6 +68,89 @@ final class SettingsViewUITests: XCTestCase {
         XCTAssertTrue(restoreLatestButton.exists, "Expected restore-latest control")
     }
 
+    /// Alerts are owned by SettingsView but triggered on the pushed Data screen (delete, backup, restore,
+    /// import results). They must show right away, not only after the person navigates back.
+    @MainActor
+    func testAlertTriggeredFromDataSettingsAppearsWithoutGoingBack() {
+        app.launch()
+        waitForAppShell()
+        openDataSettings()
+        XCTAssertTrue(app.navigationBars.staticTexts["Data"].firstMatch.waitForExistence(timeout: 5), "Data detail should open")
+
+        let deleteAll = app.buttons["Delete all data"].firstMatch
+        scrollToReveal(deleteAll)
+        XCTAssertTrue(deleteAll.waitForExistence(timeout: 5), "Data screen should offer Delete all data")
+        deleteAll.tap()
+
+        XCTAssertTrue(
+            app.alerts.firstMatch.waitForExistence(timeout: 3),
+            "Confirmation alert should appear while the Data screen is still visible"
+        )
+        XCTAssertTrue(app.navigationBars.staticTexts["Data"].firstMatch.exists, "Person should still be on the Data screen")
+        app.alerts.buttons["Cancel"].firstMatch.tap()
+    }
+
+    /// Identifiers inside the account card are not always exposed, so fall back to the visible label
+    /// the same way the premium CTA lookup does.
+    private func rateRow() -> XCUIElement {
+        let byIdentifier = app.descendants(matching: .any)["settings.row.rateApp"].firstMatch
+        if byIdentifier.exists { return byIdentifier }
+        return app.staticTexts["Rate MeasureMe"].firstMatch
+    }
+
+    /// The rate row sits at the top of Settings, in the account card right below the premium block.
+    @MainActor
+    func testRateRowSitsUnderThePremiumBlockAtTheTopOfSettings() {
+        app.launchArguments = ["-uiTestMode", "-uiTestForceNonPremium", "-uiTestOpenSettingsTab"]
+        app.launch()
+        waitForAppShell()
+        tapSettingsTab()
+
+        let premiumCTA = app.buttons["Explore Premium"].firstMatch.exists
+            ? app.buttons["Explore Premium"].firstMatch
+            : app.descendants(matching: .any)["settings.action.explorePremium"].firstMatch
+        XCTAssertTrue(premiumCTA.waitForExistence(timeout: 5), "Free users see the premium CTA")
+        let rateRow = rateRow()
+        XCTAssertTrue(rateRow.waitForExistence(timeout: 5), "Settings should offer a rate row")
+        XCTAssertGreaterThanOrEqual(rateRow.frame.minY, premiumCTA.frame.maxY, "Rate row goes below the premium CTA")
+
+        let homeRow = app.descendants(matching: .any)["settings.row.home"].firstMatch
+        if homeRow.exists {
+            XCTAssertLessThanOrEqual(rateRow.frame.maxY, homeRow.frame.minY, "Rate row stays above the Setup section")
+        }
+    }
+
+    /// The row leaves the app for the App Store, so it carries the external-link arrow the other outbound rows use.
+    @MainActor
+    func testRateRowShowsAnExternalLinkArrowInsteadOfAChevron() {
+        app.launchArguments = ["-uiTestMode", "-uiTestForceNonPremium", "-uiTestOpenSettingsTab"]
+        app.launch()
+        waitForAppShell()
+        tapSettingsTab()
+
+        let rateRow = rateRow()
+        XCTAssertTrue(rateRow.waitForExistence(timeout: 5), "Settings should offer a rate row")
+        let arrows = app.images.matching(identifier: "arrow.up.right.square").allElementsBoundByIndex
+        XCTAssertTrue(
+            arrows.contains { abs($0.frame.midY - rateRow.frame.midY) < 60 },
+            "Rate row should end in the external-link arrow"
+        )
+    }
+
+    @MainActor
+    func testRateRowSitsUnderThePremiumBlockForSubscribers() {
+        app.launchArguments = ["-uiTestMode", "-uiTestForcePremium", "-uiTestOpenSettingsTab"]
+        app.launch()
+        waitForAppShell()
+        tapSettingsTab()
+
+        let benefits = app.descendants(matching: .any)["settings.row.premiumBenefits"].firstMatch
+        XCTAssertTrue(benefits.waitForExistence(timeout: 5), "Subscribers see the premium benefits row")
+        let rateRow = rateRow()
+        XCTAssertTrue(rateRow.waitForExistence(timeout: 5), "Settings should offer a rate row")
+        XCTAssertGreaterThanOrEqual(rateRow.frame.minY, benefits.frame.maxY, "Rate row goes below the premium rows")
+    }
+
     @MainActor
     func testICloudBackupActionsArePremiumGated() {
         app.launchArguments = ["-uiTestMode", "-uiTestForceNonPremium"]

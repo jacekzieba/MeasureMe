@@ -303,6 +303,16 @@ final class NotificationManager: ObservableObject {
         }
     }
 
+    /// After a backup restore: the restored switches and reminder list only matter if this device lets the
+    /// app notify. Permission is per device, so a first restore onto a new phone asks once, and only when the
+    /// backup had notifications on and nobody has answered yet - a denial is never asked again.
+    func rescheduleAfterRestore() async {
+        if notificationsEnabled, await center.authorizationStatus() == .notDetermined {
+            _ = await requestAuthorization()
+        }
+        rescheduleLocalizedNotifications()
+    }
+
     /// Rebuilds the recurring notifications whose copy is frozen at scheduling time.
     ///
     /// Call after the in-app language changes. Deliberately excludes the trial-ending reminder

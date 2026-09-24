@@ -1576,3 +1576,8 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 /* Home — body model discovery card */
 "home.bodyModel.title" = "Körpermodell";
 "home.bodyModel.subtitle" = "Mach aus deinen Maßen eine 3D-Silhouette und vergleiche zwei beliebige Daten.";
+"Importing data..." = "Daten werden importiert...";
+"Checking iCloud backup..." = "iCloud-Sicherung wird geprüft...";
+"Restoring from iCloud backup..." = "Wiederherstellung aus iCloud-Sicherung...";
+"Rate MeasureMe" = "MeasureMe bewerten";
+"settings.summary.rate" = "Es dauert nur einen Moment und hilft anderen, die App zu finden";

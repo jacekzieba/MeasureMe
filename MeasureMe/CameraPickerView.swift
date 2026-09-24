@@ -157,8 +157,8 @@ struct GuidedCameraView: View {
     @Binding var selectedPose: PhotoTag?
     let overlayCandidates: [PhotoTag: Data]
 
-    @AppStorage("photos.overlayPose") private var storedOverlayPose: String = ""
-    @AppStorage("photos.overlayOpacity") private var storedOverlayOpacity: Double = CameraOverlayOpacity.defaultValue
+    @AppStorage(AppSettingsKeys.Photos.overlayPose) private var storedOverlayPose: String = ""
+    @AppStorage(AppSettingsKeys.Photos.overlayOpacity) private var storedOverlayOpacity: Double = CameraOverlayOpacity.defaultValue
 
     @StateObject private var camera = GuidedCameraController()
 

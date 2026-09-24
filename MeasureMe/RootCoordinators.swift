@@ -203,7 +203,7 @@ struct RootPresentationModifier: ViewModifier {
                 guard !isPresented else { return }
                 premiumStore.handlePaywallDismissed()
             }
-            .sheet(isPresented: showPostPurchaseSetup) {
+            .sheet(isPresented: showPostPurchaseSetup, onDismiss: premiumStore.handlePostPurchaseSetupDismissed) {
                 PostPurchaseSetupView()
                     .presentationDetents([.fraction(0.72)])
                     .presentationDragIndicator(.visible)

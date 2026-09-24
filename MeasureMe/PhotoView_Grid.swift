@@ -359,7 +359,7 @@ struct PhotoGridView: View {
     let hasMore: Bool
     let loadMoreToken: Int
     let onLoadMore: () -> Void
-    @AppStorage("photos.gridLayoutMode") private var gridLayoutModeRaw: String = PhotoGridLayoutMode.review.rawValue
+    @AppStorage(AppSettingsKeys.Photos.gridLayoutMode) private var gridLayoutModeRaw: String = PhotoGridLayoutMode.review.rawValue
 
     private var gridLayoutMode: PhotoGridLayoutMode {
         PhotoGridLayoutMode(rawValue: gridLayoutModeRaw) ?? .review

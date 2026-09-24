@@ -35,7 +35,7 @@ private final class StubOnboardingNotifications: OnboardingNotificationManaging 
 // MARK: -
 
 @MainActor
-final class OnboardingSnapshotTests: XCTestCase {
+final class OnboardingSnapshotTests: IsolatedPreferencesSnapshotTestCase {
 
     // MARK: - Environment guard
 

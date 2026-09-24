@@ -24,8 +24,8 @@ final class ActiveMetricsStore: ObservableObject {
     
     private let defaults: AppSettingsStore
     private var defaultsObserver: AnyCancellable?
-    private let activeOrderKey = "metrics_active_order"
-    private let keyMetricsKey = "home_key_metrics"
+    private let activeOrderKey = AppSettingsKeys.Metrics.activeOrder
+    private let keyMetricsKey = AppSettingsKeys.Home.keyMetrics
     private let maxKeyMetrics = 5
     private var lastPublishedStateSignature: String
     
@@ -102,9 +102,9 @@ final class ActiveMetricsStore: ObservableObject {
             .sorted()
             .map { key in "\(key)=\(settings.bool(forKey: key) ? 1 : 0)" }
             .joined(separator: "|")
-        let activeOrder = (settings.stringArray(forKey: "metrics_active_order") ?? []).joined(separator: ",")
-        let keyMetrics = (settings.stringArray(forKey: "home_key_metrics") ?? []).joined(separator: ",")
-        let customOrder = (settings.stringArray(forKey: "custom_metrics_order") ?? []).joined(separator: ",")
+        let activeOrder = (settings.stringArray(forKey: AppSettingsKeys.Metrics.activeOrder) ?? []).joined(separator: ",")
+        let keyMetrics = (settings.stringArray(forKey: AppSettingsKeys.Home.keyMetrics) ?? []).joined(separator: ",")
+        let customOrder = (settings.stringArray(forKey: AppSettingsKeys.Metrics.customOrder) ?? []).joined(separator: ",")
 
         return [
             builtInMetricFlags,
@@ -327,11 +327,11 @@ final class ActiveMetricsStore: ObservableObject {
 
     // MARK: - Custom Metrics
 
-    private let customOrderKey = "custom_metrics_order"
+    private let customOrderKey = AppSettingsKeys.Metrics.customOrder
 
     /// Returns the UserDefaults key for a custom metric
     private func customKey(for identifier: String) -> String {
-        "custom_metric_\(identifier)_enabled"
+        AppSettingsKeys.Metrics.customEnabled(identifier)
     }
 
     /// Checks whether a custom metric is enabled
