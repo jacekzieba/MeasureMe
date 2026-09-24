@@ -11,16 +11,14 @@ final class WatchSessionManager: NSObject, ObservableObject {
     static let shared = WatchSessionManager()
 
     private var modelContainer: ModelContainer?
-    private var healthKitSyncing: HealthKitSyncing?
     private var settingsObserver: AnyCancellable?
 
     private override init() {
         super.init()
     }
 
-    func configure(container: ModelContainer, healthKit: HealthKitSyncing?) {
+    func configure(container: ModelContainer) {
         self.modelContainer = container
-        self.healthKitSyncing = healthKit
     }
 
     func activate() {
@@ -113,9 +111,10 @@ final class WatchSessionManager: NSObject, ObservableObject {
             guard let self, let container = self.modelContainer else { return }
 
             let context = ModelContext(container)
+            // No HealthKit here: the watch writes these entries to Health itself before sending them,
+            // so writing them again from the phone put every watch measurement into Health twice.
             let saveService = QuickAddSaveService(
                 context: context,
-                healthKit: self.healthKitSyncing,
                 widgetWriter: LiveWidgetDataWriter()
             )
 
@@ -140,7 +139,6 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
             do {
                 try saveService.save(entries: saveEntries, date: date, unitsSystem: units, source: .watch)
-                await saveService.syncHealthKit(entries: saveEntries, date: date)
             } catch {
                 AppLog.debug("⚠️ Watch measurement save failed: \(error.localizedDescription)")
             }

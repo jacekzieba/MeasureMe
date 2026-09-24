@@ -1,5 +1,6 @@
 import BackgroundTasks
 import SwiftData
+import UIKit
 import XCTest
 @testable import MeasureMe
 
@@ -73,6 +74,32 @@ final class AppLifecycleCoordinatorTests: XCTestCase {
         await fulfillment(of: [backupRan], timeout: 1)
         XCTAssertEqual(flushCount, 1)
         XCTAssertEqual(persistCount, 1)
+    }
+
+    /// Without a background task the app is suspended seconds after leaving the foreground, cutting the
+    /// backup off halfway through writing to iCloud.
+    func testHandleWillResignActiveHoldsBackgroundTaskUntilBackupFinishes() async {
+        var events: [String] = []
+        let ended = expectation(description: "background task ended")
+        AppLifecycleCoordinator.dependencies = AppLifecycleCoordinator.Dependencies(
+            flushPendingWidgetWrites: {},
+            persistCrashLogBuffer: {},
+            runScheduledBackup: { _ in events.append("backup") },
+            submitBackgroundTaskRequest: { _ in },
+            beginBackgroundTask: { _ in
+                events.append("begin")
+                return UIBackgroundTaskIdentifier(rawValue: 42)
+            },
+            endBackgroundTask: { identifier in
+                events.append("end \(identifier.rawValue)")
+                ended.fulfill()
+            }
+        )
+
+        AppLifecycleCoordinator.handleWillResignActive(container: container, isRunningXCTest: false)
+
+        await fulfillment(of: [ended], timeout: 1)
+        XCTAssertEqual(events, ["begin", "backup", "end 42"])
     }
 
     func testScheduleBackgroundBackupSubmitsExpectedProcessingRequest() throws {

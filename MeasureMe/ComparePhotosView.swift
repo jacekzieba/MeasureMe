@@ -88,6 +88,11 @@ struct ComparePhotosView: View {
     }
     
     var body: some View {
+        unguardedBody.photoPrivacyGuard()
+    }
+
+    @ViewBuilder
+    private var unguardedBody: some View {
         NavigationStack {
             ZStack {
                 AppScreenBackground(
@@ -1027,17 +1032,13 @@ private struct BeforeAfterSlider: View {
     @State private var cachedBeforeImage: UIImage?
     @State private var cachedAfterImage: UIImage?
     
-    private var bothImagesReady: Bool {
-        cachedBeforeImage != nil && cachedAfterImage != nil
-    }
-
     var body: some View {
         let clampedSlider = sliderPosition.isFinite ? min(max(sliderPosition, 0), 1) : 0.5
 
         ZStack {
-            if bothImagesReady {
+            if let cachedAfterImage, let cachedBeforeImage {
                 // Obraz "po" (tlo po prawej stronie slidera)
-                Image(uiImage: cachedAfterImage!)
+                Image(uiImage: cachedAfterImage)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFill()
@@ -1046,7 +1047,7 @@ private struct BeforeAfterSlider: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 // Obraz "przed" (maska po lewej stronie slidera)
-                Image(uiImage: cachedBeforeImage!)
+                Image(uiImage: cachedBeforeImage)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFill()

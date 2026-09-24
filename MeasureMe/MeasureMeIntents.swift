@@ -156,20 +156,14 @@ struct ActiveMetricIntentOptionsProvider: DynamicOptionsProvider {
 }
 
 enum AppIntentModelContainerProvider {
+    /// Goes through the shared factory: this container used to list three of the four models, and
+    /// opening the store with it deleted every custom metric definition.
     static func makePersistentContainer() throws -> ModelContainer {
-        let fileManager = FileManager.default
-        guard let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+        do {
+            return try MeasureMeModelContainer.makePersistent()
+        } catch MeasureMeModelContainer.StorageError.applicationSupportDirectoryUnavailable {
             throw AddMeasurementIntentError.storageFailure
         }
-        try fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
-
-        let schema = Schema([
-            MetricSample.self,
-            MetricGoal.self,
-            PhotoEntry.self
-        ])
-        let configuration = ModelConfiguration(schema: schema, cloudKitDatabase: .none)
-        return try ModelContainer(for: schema, configurations: [configuration])
     }
 }
 

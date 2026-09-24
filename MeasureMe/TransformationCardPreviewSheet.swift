@@ -16,6 +16,11 @@ struct TransformationCardPreviewSheet: View {
     private let photosTheme = FeatureTheme.photos
 
     var body: some View {
+        unguardedBody.photoPrivacyGuard()
+    }
+
+    @ViewBuilder
+    private var unguardedBody: some View {
         NavigationStack {
             ZStack {
                 AppScreenBackground(topHeight: 280, tint: photosTheme.strongTint, showsSpotlight: true)

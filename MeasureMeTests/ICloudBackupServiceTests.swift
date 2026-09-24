@@ -941,12 +941,271 @@ final class ICloudBackupServiceTests: XCTestCase {
         XCTAssertEqual(Set(manifestObject.keys), ["schemaVersion", "createdAt", "isEncrypted"])
     }
 
+    // MARK: - Restore safety
+
+    /// A photo file that cannot be read (missing, corrupt, not downloaded) used to surface only after
+    /// every local photo had been deleted and the measurements replaced.
+    func testRestoreWithUnreadablePhotoLeavesLocalDataUntouched() async throws {
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_010_000) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+        let package = try XCTUnwrap(try backupPackages().first)
+        try FileManager.default.removeItem(at: try XCTUnwrap(try firstPhotoDataFile(in: package)))
+
+        let targetContext = ModelContext(try makeContainer())
+        targetContext.insert(MetricSample(kind: .waist, value: 90, date: Date(timeIntervalSince1970: 100)))
+        targetContext.insert(PhotoEntry(imageData: Data([7, 7, 7]), date: Date(timeIntervalSince1970: 200), tags: []))
+        try targetContext.save()
+
+        let result = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: true)
+
+        guard case .failure = result else { return XCTFail("Expected the restore to fail") }
+        let samples = try targetContext.fetch(FetchDescriptor<MetricSample>())
+        XCTAssertEqual(samples.map(\.kindRaw), [MetricKind.waist.rawValue])
+        let photos = try targetContext.fetch(FetchDescriptor<PhotoEntry>())
+        XCTAssertEqual(photos.map(\.imageData), [Data([7, 7, 7])])
+    }
+
+    /// On a new phone the key may not have arrived through iCloud Keychain yet. A restore that made a
+    /// key of its own would sync it and leave every existing backup undecryptable.
+    func testRestoreNeverCreatesAnEncryptionKey() async throws {
+        let keyStore = InMemoryBackupKeyStore()
+        ICloudBackupService.testEncryptionKeyOverride = nil
+        ICloudBackupService.testKeyStoreOverride = keyStore
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_010_100) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+        XCTAssertNotNil(keyStore.keyData, "A backup creates the key when there is none")
+
+        keyStore.keyData = nil
+        let targetContext = ModelContext(try makeContainer())
+
+        let preflight = await ICloudBackupService.preflightRestore(context: targetContext, isPremium: true)
+        let restore = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: true)
+        let autoRestored = await ICloudBackupService.restoreLatestBackupIfNeededOnStartup(context: targetContext)
+
+        guard case .failure(let preflightError) = preflight else { return XCTFail("Expected preflight to fail") }
+        guard case .failure(let restoreError) = restore else { return XCTFail("Expected restore to fail") }
+        XCTAssertEqual(preflightError, .encryptionKeyUnavailable)
+        XCTAssertEqual(restoreError, .encryptionKeyUnavailable)
+        XCTAssertFalse(autoRestored)
+        XCTAssertNil(keyStore.keyData, "Restore must not create a key")
+    }
+
+    /// iCloud keeps a backup that has not been downloaded yet as a hidden `.<name>.icloud` placeholder,
+    /// which the directory listing used to skip — a new device reported "no backup".
+    func testBackupThatIsNotDownloadedYetIsStillFound() async throws {
+        let placeholder = backupRootURL.appendingPathComponent(".backup-1700010200.measuremebackup.icloud")
+        try Data().write(to: placeholder)
+
+        let result = await ICloudBackupService.preflightRestore(
+            context: ModelContext(try makeContainer()),
+            isPremium: true
+        )
+
+        guard case .failure(let error) = result else { return XCTFail("A placeholder cannot be read here") }
+        XCTAssertNotEqual(error, .noBackupFound)
+    }
+
+    /// An optional file that exists only as a placeholder used to count as absent, so the restore went
+    /// ahead and silently skipped it.
+    func testOptionalFileThatIsNotDownloadedYetIsNotTreatedAsAbsent() async throws {
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_010_300) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+        let package = try XCTUnwrap(try backupPackages().first)
+        try FileManager.default.moveItem(
+            at: package.appendingPathComponent("custom_metrics.json"),
+            to: package.appendingPathComponent(".custom_metrics.json.icloud")
+        )
+
+        let targetContext = ModelContext(try makeContainer())
+        targetContext.insert(MetricSample(kind: .waist, value: 90, date: Date(timeIntervalSince1970: 100)))
+        try targetContext.save()
+
+        let result = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: true)
+
+        guard case .failure = result else { return XCTFail("Expected the restore to fail") }
+        XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<MetricSample>()), 1)
+    }
+
+    // MARK: - Empty store
+
+    /// A new device that was never restored has an empty store. Backing it up made an empty backup the
+    /// latest one — the one the next restore picks.
+    func testBackupOfEmptyStoreDoesNotReplaceExistingBackups() async throws {
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_030_000) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_030_100) }
+        let result = await ICloudBackupService.createBackupNow(context: ModelContext(try makeContainer()), isPremium: true)
+
+        guard case .failure(let error) = result else { return XCTFail("Expected the empty backup to be refused") }
+        XCTAssertEqual(error, .nothingToBackUp)
+        XCTAssertEqual(try backupPackages().map(\.lastPathComponent), ["backup-1700030000.measuremebackup"])
+    }
+
+    func testScheduledBackupOfEmptyStoreDoesNotReplaceExistingBackups() async throws {
+        let sourceContext = ModelContext(try makeContainer())
+        seedSampleData(in: sourceContext)
+        try sourceContext.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_030_200) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_030_200 + 2 * 86_400) }
+        await ICloudBackupService.runScheduledBackupIfNeeded(context: ModelContext(try makeContainer()), isPremium: true)
+
+        XCTAssertEqual(try backupPackages().count, 1)
+    }
+
+    /// The very first backup may be empty: there is nothing it could hide.
+    func testFirstBackupOfEmptyStoreIsAllowed() async throws {
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_030_300) }
+
+        let result = await ICloudBackupService.createBackupNow(context: ModelContext(try makeContainer()), isPremium: true)
+
+        guard case .success = result else { return XCTFail("Expected the first backup to succeed") }
+        XCTAssertEqual(try backupPackages().count, 1)
+    }
+
+    // MARK: - Main thread
+
+    /// Encrypting and writing every photo ran on the main actor without a single suspension, so the UI
+    /// froze for the whole photo pass — at launch too, where the scheduled backup starts.
+    func testBackupKeepsTheMainThreadResponsive() async throws {
+        let context = ModelContext(try makeOnDiskContainer())
+        seedLargePhotos(in: context)
+        try context.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_040_000) }
+
+        let monitor = MainThreadStallMonitor()
+        monitor.start()
+        let result = await ICloudBackupService.createBackupNow(context: context, isPremium: true)
+        let longestStall = monitor.stop()
+
+        guard case .success = result else { return XCTFail("Expected the backup to succeed") }
+        print("Longest main-thread stall during backup: \(Int(longestStall * 1000)) ms")
+        XCTAssertLessThan(longestStall, Self.maxAcceptableStall)
+    }
+
+    func testRestoreKeepsTheMainThreadResponsive() async throws {
+        let sourceContext = ModelContext(try makeOnDiskContainer())
+        seedLargePhotos(in: sourceContext)
+        try sourceContext.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_040_100) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+        let targetContext = ModelContext(try makeOnDiskContainer())
+
+        let monitor = MainThreadStallMonitor()
+        monitor.start()
+        let result = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: true)
+        let longestStall = monitor.stop()
+
+        guard case .success = result else { return XCTFail("Expected the restore to succeed") }
+        XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<PhotoEntry>()), Self.largePhotoCount)
+        print("Longest main-thread stall during restore: \(Int(longestStall * 1000)) ms")
+        XCTAssertLessThan(longestStall, Self.maxAcceptableStall)
+    }
+
+    private static let largePhotoCount = 40
+    private static let maxAcceptableStall: TimeInterval = 0.1
+
+    private func seedLargePhotos(in context: ModelContext) {
+        for index in 0..<Self.largePhotoCount {
+            context.insert(PhotoEntry(
+                imageData: Data(repeating: UInt8(index), count: 2_000_000),
+                thumbnailData: Data(repeating: UInt8(index), count: 30_000),
+                date: Date(timeIntervalSince1970: 1_700_040_000 + TimeInterval(index)),
+                tags: []
+            ))
+        }
+    }
+
+    // MARK: - Backup housekeeping
+
+    /// An interrupted backup leaves a `-wip` folder that retention never matched, so they piled up in
+    /// the person's iCloud Drive. Recent ones stay: another device may be writing one right now.
+    func testBackupRemovesStaleWorkInProgressFolders() async throws {
+        let now = Date(timeIntervalSince1970: 1_700_020_000)
+        ICloudBackupService.testNowOverride = { now }
+        let stale = backupRootURL.appendingPathComponent("backup-\(Int(now.timeIntervalSince1970) - 7_200).measuremebackup-wip")
+        let fresh = backupRootURL.appendingPathComponent("backup-\(Int(now.timeIntervalSince1970) - 60).measuremebackup-wip")
+        try FileManager.default.createDirectory(at: stale, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: fresh, withIntermediateDirectories: true)
+        let context = ModelContext(try makeContainer())
+        seedSampleData(in: context)
+        try context.save()
+
+        _ = await ICloudBackupService.createBackupNow(context: context, isPremium: true)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: stale.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fresh.path))
+    }
+
+    /// The background-task expiration handler cancels the backup; it must stop instead of writing on.
+    func testCancelledBackupWritesNothing() async throws {
+        let context = ModelContext(try makeContainer())
+        seedSampleData(in: context)
+        try context.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_020_100) }
+
+        let task = Task { await ICloudBackupService.createBackupNow(context: context, isPremium: true) }
+        task.cancel()
+        let result = await task.value
+
+        guard case .failure = result else { return XCTFail("Expected a cancelled backup to fail") }
+        XCTAssertEqual(try backupPackages().count, 0)
+        XCTAssertEqual(AppSettingsStore.shared.snapshot.iCloudBackup.lastErrorMessage, "", "Cancelling is not an error to show")
+    }
+
+    /// Backups and restores started from launch, backgrounding, the scheduler and Settings could run at
+    /// the same time — a backup could capture a half-restored store.
+    func testBackupOperationsRunOneAtATime() async {
+        var events: [String] = []
+        async let first: Void = ICloudBackupService.serialized {
+            events.append("first start")
+            try? await Task.sleep(for: .milliseconds(100))
+            events.append("first end")
+        }
+        async let second: Void = ICloudBackupService.serialized {
+            events.append("second start")
+            try? await Task.sleep(for: .milliseconds(10))
+            events.append("second end")
+        }
+        _ = await (first, second)
+
+        XCTAssertTrue(
+            events == ["first start", "first end", "second start", "second end"]
+                || events == ["second start", "second end", "first start", "first end"],
+            "Operations overlapped: \(events)"
+        )
+    }
+
     // MARK: - Helpers
 
     private func makeContainer() throws -> ModelContainer {
         let schema = Schema([MetricSample.self, MetricGoal.self, PhotoEntry.self, CustomMetricDefinition.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         return try ModelContainer(for: schema, configurations: [config])
+    }
+
+    /// A store on disk, like the app's: an in-memory store keeps photo data inside its rows, so every
+    /// fetch copies it and timings stop resembling a real device.
+    private func makeOnDiskContainer() throws -> ModelContainer {
+        let directory = backupRootURL.deletingLastPathComponent()
+            .appendingPathComponent("ICloudBackupServiceTests-store-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        return try MeasureMeModelContainer.makePersistent(url: directory.appendingPathComponent("default.store"))
     }
 
     private func seedSampleData(in context: ModelContext) {
@@ -993,6 +1252,48 @@ final class ICloudBackupServiceTests: XCTestCase {
 }
 
 // MARK: - Test-only stubs matching the Codable shape used by ICloudBackupService
+
+/// Measures how long the main thread goes without answering: a background thread keeps posting to it
+/// and records the longest wait.
+private final class MainThreadStallMonitor: @unchecked Sendable {
+    private let lock = NSLock()
+    private var isRunning = true
+    private var longest: TimeInterval = 0
+
+    func start() {
+        Thread.detachNewThread { [self] in
+            while lock.withLock({ isRunning }) {
+                let sent = Date()
+                let answered = DispatchSemaphore(value: 0)
+                DispatchQueue.main.async { answered.signal() }
+                answered.wait()
+                let wait = Date().timeIntervalSince(sent)
+                lock.withLock { longest = max(longest, wait) }
+                Thread.sleep(forTimeInterval: 0.005)
+            }
+        }
+    }
+
+    func stop() -> TimeInterval {
+        lock.withLock {
+            isRunning = false
+            return longest
+        }
+    }
+}
+
+/// Stands in for the keychain, which unsigned test builds cannot use.
+private final class InMemoryBackupKeyStore: BackupKeyStore, @unchecked Sendable {
+    var keyData: Data?
+
+    func readKey() -> Data? { keyData }
+
+    func addKey(_ data: Data) -> Bool {
+        guard keyData == nil else { return false }
+        keyData = data
+        return true
+    }
+}
 
 /// Records what would be handed to the system notification center.
 private final class RecordingNotificationCenter: NotificationCenterClient {
