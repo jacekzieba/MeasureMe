@@ -103,6 +103,7 @@ enum AppLifecycleCoordinator {
         guard !isRunningXCTest else { return }
 
         scheduleDeferredStorageProtection()
+        scheduleCustomMetricRecovery(container: container)
         scheduleLegacyInsightCachePurge()
         scheduleDiskImageCacheTrim()
         scheduleDeferredHealthSetup(container: container)
@@ -111,6 +112,19 @@ enum AppLifecycleCoordinator {
         scheduleBodyModelPrewarm(container: container, settingsStore: settingsStore)
         scheduleDeferredBackupMaintenance(container: container)
         scheduleDeferredWatchConnectivity(container: container)
+    }
+
+    /// Brings back custom metric definitions that Shortcuts used to delete (see `CustomMetricRecovery`).
+    /// Main context, so the recreated metrics appear in open screens at once. A fetch with nothing to do
+    /// on almost every launch.
+    private static func scheduleCustomMetricRecovery(container: ModelContainer) {
+        Task { @MainActor in
+            do {
+                try CustomMetricRecovery.recoverOrphanedDefinitions(in: container.mainContext, settings: .shared)
+            } catch {
+                AppLog.debug("⚠️ Custom metric recovery failed: \(error)")
+            }
+        }
     }
 
     /// Drops the insight cache that older builds wrote into the App Group container, where its

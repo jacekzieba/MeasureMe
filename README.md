@@ -6,9 +6,10 @@ The app is built around fast daily or weekly check-ins, long-term progress revie
 
 ## Current App Version
 
-- iOS app: `1.4` (`15`)
-- Widget extension: `1.4` (`14`)
-- watchOS app and complications: `1.4` (`14`)
+- iOS app: `1.6` (`22`)
+- Widget extension: `1.6` (`22`)
+- watchOS app: `1.6` (`22`)
+- watchOS complications: `1.6` (`21`)
 
 ## Features
 
@@ -30,13 +31,13 @@ The app is built around fast daily or weekly check-ins, long-term progress revie
 - iOS deployment target: `18.0`
 - watchOS deployment target: `26.2`
 - CI Xcode version: `26.2`
-- CI simulator lanes: iOS `18.0` and `26.1` with runtime fallback/skip handling
+- CI simulator lane: iOS `26.4.1` on an iPhone simulator (the job fails rather than passing if that runtime is missing)
 - AI/Apple Intelligence-facing features require supported OS and device capabilities
 
 ## Tech Stack
 
 - Swift and SwiftUI
-- SwiftData
+- SwiftData with a versioned schema and migration plan (`MeasureMe/MeasureMeSchema.swift`)
 - HealthKit
 - WidgetKit
 - App Intents / App Shortcuts
@@ -59,6 +60,7 @@ Shared schemes live in `MeasureMe.xcodeproj/xcshareddata/xcschemes`.
 ## Repository Structure
 
 - `MeasureMe/` - main iOS app source, SwiftData models, feature views, settings, services, App Intents, and localization files
+- `MeasureMe/MeasureMeSchema.swift` - the versioned SwiftData schema and the only factory for opening the store; every container (app, background tasks, App Intents) must go through it, because opening the store with a schema that leaves out a model deletes that model's data
 - `MeasureMe/DesignSystem/` - shared UI tokens, control styles, state components, and design-system notes
 - `MeasureMeWidget/` - WidgetKit providers, intents, views, and localized widget strings
 - `MeasureMeWatch Watch App/` - watchOS app entry point, quick-add UI, WatchConnectivity, HealthKit writer, and localized watch strings
@@ -68,8 +70,10 @@ Shared schemes live in `MeasureMe.xcodeproj/xcshareddata/xcschemes`.
 - `MeasureMeWatch Watch AppTests/` and `MeasureMeWatch Watch AppUITests/` - watchOS test targets
 - `Config/` - app and widget Info.plist files
 - `TestPlans/` - release validation XCTest plan
-- `scripts/` - local release-validation automation
-- `.github/workflows/ios-ci.yml` - GitHub Actions CI pipeline
+- `scripts/` - local release-validation and accessibility-matrix automation
+- `tools/bodymesh/` - tooling that bakes the body-model mesh used by the body model screen
+- `docs/` - design briefs, analytics notes, and implementation plans
+- `.github/workflows/` - GitHub Actions: CI, release archive/upload, and the weekly SwiftLint analyzer
 - `Assets.xcassets/` and target-specific asset catalogs - app icons, brand assets, widget/watch assets, and metric imagery
 
 ## Quick Start
@@ -108,7 +112,7 @@ Build the iOS app:
 xcodebuild \
   -project MeasureMe.xcodeproj \
   -scheme MeasureMe \
-  -destination 'platform=iOS Simulator,name=iPhone 16,OS=26.1' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -configuration Debug \
   CODE_SIGNING_ALLOWED=NO \
   build
@@ -120,7 +124,7 @@ Run tests:
 xcodebuild \
   -project MeasureMe.xcodeproj \
   -scheme MeasureMe \
-  -destination 'platform=iOS Simulator,name=iPhone 16,OS=26.1' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -configuration Debug \
   CODE_SIGNING_ALLOWED=NO \
   test
@@ -132,11 +136,13 @@ Run static analysis:
 xcodebuild \
   -project MeasureMe.xcodeproj \
   -scheme MeasureMe \
-  -destination 'platform=iOS Simulator,name=iPhone 16,OS=26.1' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -configuration Debug \
   CODE_SIGNING_ALLOWED=NO \
   analyze
 ```
+
+Snapshot tests are skipped unless `MEASUREME_SNAPSHOT_TESTS=1` is set in the test environment: their baselines are recorded on CI's toolchain (Xcode `26.2`, iOS `26.4.1`), and other toolchains render controls differently. To record new baselines, run the CI workflow manually with `record_snapshots` enabled and download the uploaded artifact.
 
 Lint:
 
@@ -150,7 +156,7 @@ Build the widget:
 xcodebuild \
   -project MeasureMe.xcodeproj \
   -scheme MeasureMeWidget \
-  -destination 'platform=iOS Simulator,name=iPhone 16,OS=26.1' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -configuration Debug \
   CODE_SIGNING_ALLOWED=NO \
   build
@@ -201,23 +207,27 @@ StoreKit configuration files:
 
 ## CI
 
-GitHub Actions workflow: `.github/workflows/ios-ci.yml`
+`.github/workflows/ios-ci.yml` runs on pushes to `main`, on pull requests, nightly, and on demand:
 
-The CI pipeline runs:
-
-- SwiftLint on changed Swift files as a blocking check
+- SwiftLint `--strict` on every changed Swift file (whole files, not just changed lines) as a blocking check
 - Full SwiftLint report as a non-blocking report
-- Xcode setup for Xcode `26.2`
-- Simulator destination resolution with runtime fallback
+- Xcode `26.2`, iPhone simulator on iOS `26.4.1`
 - Debug build
 - Static analysis as a non-blocking check
-- XCTest test run
+- Unit tests (`MeasureMeTests`)
+- UI tests (`MeasureMeUITests`) only on the nightly and manual runs
+- On manual runs with `record_snapshots`, records snapshot baselines and uploads them as an artifact instead of testing
+
+Other workflows:
+
+- `.github/workflows/ios-release.yml` - manual: archives the app and, when `upload` is set, uploads it to App Store Connect
+- `.github/workflows/swiftlint-analyze.yml` - weekly and on demand: SwiftLint analyzer rules (`unused_declaration`, `unused_import`), whose output is a list to triage
 
 ## Privacy
 
 - Measurement and photo data are stored on-device by default.
 - HealthKit access is optional and user-controlled.
-- iCloud backup is optional and handled by the app's custom backup flow.
+- iCloud backup is optional and handled by the app's custom backup flow. Backups are encrypted with a key kept in iCloud Keychain, so restoring on another device needs iCloud Keychain turned on.
 - Exporting, sharing, and photo-library writes are user-initiated.
 - The app disables SwiftData CloudKit sync and uses its own backup path instead.
 

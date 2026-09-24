@@ -87,7 +87,9 @@ enum ICloudBackupService {
     private nonisolated static let maxRetainedBackups = 7
     private nonisolated static let scheduledBackupInterval: TimeInterval = 86_400 // 24 hours
     private nonisolated static let backupExtension = "measuremebackup"
-    private nonisolated static let photoBackupBatchSize = 100
+    /// Photos fetched and handed to a background task at a time: few enough to keep memory flat and
+    /// the main actor free, since each hand-off gives it back to the UI.
+    private nonisolated static let photoTransferChunkSize = 10
     private nonisolated static let staleWorkInProgressAge: TimeInterval = 3_600
     private static let restoreCoordinator = RestoreCoordinator()
 
@@ -156,14 +158,15 @@ enum ICloudBackupService {
                 var photoDescriptor = FetchDescriptor<PhotoEntry>(
                     sortBy: [SortDescriptor(\.date, order: .forward)]
                 )
-                photoDescriptor.fetchLimit = Self.photoBackupBatchSize
+                photoDescriptor.fetchLimit = Self.photoTransferChunkSize
                 photoDescriptor.fetchOffset = photosOffset
                 let photosBatch = try context.fetch(photoDescriptor)
                 guard !photosBatch.isEmpty else { break }
 
+                // The background-task expiration handler cancels a backup that ran out of time.
+                try Task.checkCancellation()
+                var files: [PhotoFilePayload] = []
                 for photo in photosBatch {
-                    // The background-task expiration handler cancels a backup that ran out of time.
-                    try Task.checkCancellation()
                     let fileID = UUID().uuidString
                     codablePhotos.append(CodablePhotoEntry(
                         fileID: fileID,
@@ -174,11 +177,18 @@ enum ICloudBackupService {
                         },
                         hasThumbnail: photo.thumbnailData != nil
                     ))
-                    try Self.writeEncryptedData(photo.imageData, to: tempPhotosDir.appendingPathComponent("\(fileID).dat"), key: key)
-                    if let thumb = photo.thumbnailData {
-                        try Self.writeEncryptedData(thumb, to: tempPhotosDir.appendingPathComponent("\(fileID)_thumb.dat"), key: key)
-                    }
+                    files.append(PhotoFilePayload(fileID: fileID, imageData: photo.imageData, thumbnailData: photo.thumbnailData))
                 }
+                // Encrypting and writing ran on the main actor with no suspension, freezing the UI for the
+                // whole photo pass. Off the main actor, a batch at a time, the UI runs in between.
+                try await Task.detached(priority: .utility) {
+                    for file in files {
+                        try Self.writeEncryptedData(file.imageData, to: tempPhotosDir.appendingPathComponent("\(file.fileID).dat"), key: key)
+                        if let thumbnail = file.thumbnailData {
+                            try Self.writeEncryptedData(thumbnail, to: tempPhotosDir.appendingPathComponent("\(file.fileID)_thumb.dat"), key: key)
+                        }
+                    }
+                }.value
                 photosCount += photosBatch.count
                 photosOffset += photosBatch.count
             }
@@ -555,46 +565,48 @@ enum ICloudBackupService {
 
             // Phase 2: Restore photos in batches to limit memory usage
             let photosDir = packageURL.appendingPathComponent("photos", isDirectory: true)
-            let photoBatchSize = 10
-            let photoChunks = stride(from: 0, to: payload.photoEntries.count, by: photoBatchSize).map {
-                Array(payload.photoEntries[$0 ..< min($0 + photoBatchSize, payload.photoEntries.count)])
+            let photoChunks = stride(from: 0, to: payload.photoEntries.count, by: Self.photoTransferChunkSize).map {
+                Array(payload.photoEntries[$0 ..< min($0 + Self.photoTransferChunkSize, payload.photoEntries.count)])
             }
 
             for batch in photoChunks {
-                try autoreleasepool {
-                    let restoredBatch: [RestoredPhotoEntry] = try batch.map { entry in
-                        let imageURL = photosDir.appendingPathComponent("\(entry.fileID).dat")
-                        let imageData = try Self.readEncryptedData(from: imageURL, key: key)
+                // Reading and decrypting off the main actor; only inserting and saving stay on it.
+                let restoredBatch = try await Task.detached(priority: .utility) { () -> [RestoredPhotoEntry] in
+                    try autoreleasepool {
+                        try batch.map { entry in
+                            let imageURL = photosDir.appendingPathComponent("\(entry.fileID).dat")
+                            let imageData = try Self.readEncryptedData(from: imageURL, key: key)
 
-                        var thumbnailData: Data?
-                        if entry.hasThumbnail {
-                            let thumbURL = photosDir.appendingPathComponent("\(entry.fileID)_thumb.dat")
-                            thumbnailData = try Self.readEncryptedData(from: thumbURL, key: key)
-                        }
-
-                        return RestoredPhotoEntry(
-                            imageData: imageData,
-                            thumbnailData: thumbnailData,
-                            date: entry.date,
-                            tagRawValues: entry.tags,
-                            linkedMetrics: entry.linkedMetrics
-                        )
-                    }
-
-                    for photo in restoredBatch {
-                        context.insert(PhotoEntry(
-                            imageData: photo.imageData,
-                            thumbnailData: photo.thumbnailData,
-                            date: photo.date,
-                            tags: photo.tagRawValues.compactMap(PhotoTag.init(rawValue:)),
-                            linkedMetrics: photo.linkedMetrics.map {
-                                MetricValueSnapshot(metricRawValue: $0.metricRawValue, value: $0.value, unit: $0.unit)
+                            var thumbnailData: Data?
+                            if entry.hasThumbnail {
+                                let thumbURL = photosDir.appendingPathComponent("\(entry.fileID)_thumb.dat")
+                                thumbnailData = try Self.readEncryptedData(from: thumbURL, key: key)
                             }
-                        ))
-                    }
 
-                    try context.save()
+                            return RestoredPhotoEntry(
+                                imageData: imageData,
+                                thumbnailData: thumbnailData,
+                                date: entry.date,
+                                tagRawValues: entry.tags,
+                                linkedMetrics: entry.linkedMetrics
+                            )
+                        }
+                    }
+                }.value
+
+                for photo in restoredBatch {
+                    context.insert(PhotoEntry(
+                        imageData: photo.imageData,
+                        thumbnailData: photo.thumbnailData,
+                        date: photo.date,
+                        tags: photo.tagRawValues.compactMap(PhotoTag.init(rawValue:)),
+                        linkedMetrics: photo.linkedMetrics.map {
+                            MetricValueSnapshot(metricRawValue: $0.metricRawValue, value: $0.value, unit: $0.unit)
+                        }
+                    ))
                 }
+
+                try context.save()
             }
 
             await MainActor.run { restoreSettings(payload.settingsEntries) }
@@ -1014,6 +1026,12 @@ enum ICloudBackupService {
         let metricRawValue: String
         let value: Double
         let unit: String
+    }
+
+    private struct PhotoFilePayload: Sendable {
+        let fileID: String
+        let imageData: Data
+        let thumbnailData: Data?
     }
 
     private struct RestoredPhotoEntry: Sendable {

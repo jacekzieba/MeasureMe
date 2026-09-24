@@ -1077,6 +1077,59 @@ final class ICloudBackupServiceTests: XCTestCase {
         XCTAssertEqual(try backupPackages().count, 1)
     }
 
+    // MARK: - Main thread
+
+    /// Encrypting and writing every photo ran on the main actor without a single suspension, so the UI
+    /// froze for the whole photo pass — at launch too, where the scheduled backup starts.
+    func testBackupKeepsTheMainThreadResponsive() async throws {
+        let context = ModelContext(try makeOnDiskContainer())
+        seedLargePhotos(in: context)
+        try context.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_040_000) }
+
+        let monitor = MainThreadStallMonitor()
+        monitor.start()
+        let result = await ICloudBackupService.createBackupNow(context: context, isPremium: true)
+        let longestStall = monitor.stop()
+
+        guard case .success = result else { return XCTFail("Expected the backup to succeed") }
+        print("Longest main-thread stall during backup: \(Int(longestStall * 1000)) ms")
+        XCTAssertLessThan(longestStall, Self.maxAcceptableStall)
+    }
+
+    func testRestoreKeepsTheMainThreadResponsive() async throws {
+        let sourceContext = ModelContext(try makeOnDiskContainer())
+        seedLargePhotos(in: sourceContext)
+        try sourceContext.save()
+        ICloudBackupService.testNowOverride = { Date(timeIntervalSince1970: 1_700_040_100) }
+        _ = await ICloudBackupService.createBackupNow(context: sourceContext, isPremium: true)
+        let targetContext = ModelContext(try makeOnDiskContainer())
+
+        let monitor = MainThreadStallMonitor()
+        monitor.start()
+        let result = await ICloudBackupService.restoreLatestBackupManually(context: targetContext, isPremium: true)
+        let longestStall = monitor.stop()
+
+        guard case .success = result else { return XCTFail("Expected the restore to succeed") }
+        XCTAssertEqual(try targetContext.fetchCount(FetchDescriptor<PhotoEntry>()), Self.largePhotoCount)
+        print("Longest main-thread stall during restore: \(Int(longestStall * 1000)) ms")
+        XCTAssertLessThan(longestStall, Self.maxAcceptableStall)
+    }
+
+    private static let largePhotoCount = 40
+    private static let maxAcceptableStall: TimeInterval = 0.1
+
+    private func seedLargePhotos(in context: ModelContext) {
+        for index in 0..<Self.largePhotoCount {
+            context.insert(PhotoEntry(
+                imageData: Data(repeating: UInt8(index), count: 2_000_000),
+                thumbnailData: Data(repeating: UInt8(index), count: 30_000),
+                date: Date(timeIntervalSince1970: 1_700_040_000 + TimeInterval(index)),
+                tags: []
+            ))
+        }
+    }
+
     // MARK: - Backup housekeeping
 
     /// An interrupted backup leaves a `-wip` folder that retention never matched, so they piled up in
@@ -1145,6 +1198,16 @@ final class ICloudBackupServiceTests: XCTestCase {
         return try ModelContainer(for: schema, configurations: [config])
     }
 
+    /// A store on disk, like the app's: an in-memory store keeps photo data inside its rows, so every
+    /// fetch copies it and timings stop resembling a real device.
+    private func makeOnDiskContainer() throws -> ModelContainer {
+        let directory = backupRootURL.deletingLastPathComponent()
+            .appendingPathComponent("ICloudBackupServiceTests-store-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        return try MeasureMeModelContainer.makePersistent(url: directory.appendingPathComponent("default.store"))
+    }
+
     private func seedSampleData(in context: ModelContext) {
         context.insert(MetricSample(kind: .weight, value: 82.4, date: Date(timeIntervalSince1970: 1_700_000_001)))
         context.insert(
@@ -1189,6 +1252,35 @@ final class ICloudBackupServiceTests: XCTestCase {
 }
 
 // MARK: - Test-only stubs matching the Codable shape used by ICloudBackupService
+
+/// Measures how long the main thread goes without answering: a background thread keeps posting to it
+/// and records the longest wait.
+private final class MainThreadStallMonitor: @unchecked Sendable {
+    private let lock = NSLock()
+    private var isRunning = true
+    private var longest: TimeInterval = 0
+
+    func start() {
+        Thread.detachNewThread { [self] in
+            while lock.withLock({ isRunning }) {
+                let sent = Date()
+                let answered = DispatchSemaphore(value: 0)
+                DispatchQueue.main.async { answered.signal() }
+                answered.wait()
+                let wait = Date().timeIntervalSince(sent)
+                lock.withLock { longest = max(longest, wait) }
+                Thread.sleep(forTimeInterval: 0.005)
+            }
+        }
+    }
+
+    func stop() -> TimeInterval {
+        lock.withLock {
+            isRunning = false
+            return longest
+        }
+    }
+}
 
 /// Stands in for the keychain, which unsigned test builds cannot use.
 private final class InMemoryBackupKeyStore: BackupKeyStore, @unchecked Sendable {

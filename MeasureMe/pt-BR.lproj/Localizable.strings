@@ -253,6 +253,7 @@
 "compare.ghost.opacity.label" = "Após a sobreposição de opacidade";
 "compare.ghost.hint" = "Arraste para reposicionar · Aperte para dimensionar · O controle deslizante ajusta a opacidade";
 "Could not access iCloud backup right now." = "Não foi possível acessar o backup do iCloud no momento.";
+"Recovered metric %d" = "Métrica recuperada %d";
 "There is nothing to back up yet, so your existing iCloud backups were left as they are." = "Ainda não há nada para fazer backup, então seus backups do iCloud existentes foram mantidos como estavam.";
 "The key that unlocks your backups has not reached this device yet. Make sure iCloud Keychain is on, wait a few minutes and try again." = "A chave dos seus backups ainda não chegou a este dispositivo. Verifique se as Chaves do iCloud estão ativadas, aguarde alguns minutos e tente novamente.";
 "iCloud storage is full. Free up space in Settings → iCloud to continue backups." = "O armazenamento do iCloud está cheio. Libere espaço em Ajustes → iCloud para continuar os backups.";

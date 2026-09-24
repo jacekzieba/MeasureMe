@@ -458,11 +458,13 @@ final class HealthKitManager {
                 continue
             }
             guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else { continue }
-            let query = HKObserverQuery(sampleType: type, predicate: nil) { [weak self] _, completion, error in
-                defer { completion() }
-                guard error == nil else { return }
-                Task { await self?.importNewQuantities(identifier: identifier, kind: kind, unit: unit, percent01: isPercent01) }
-            }
+            let query = HKObserverQuery(
+                sampleType: type,
+                predicate: nil,
+                updateHandler: Self.observerUpdateHandler { [weak self] in
+                    await self?.importNewQuantities(identifier: identifier, kind: kind, unit: unit, percent01: isPercent01)
+                }
+            )
             realStore.store.execute(query)
             observerQueries.append(query)
             realStore.store.enableBackgroundDelivery(for: type, frequency: .immediate) { _, _ in }
@@ -472,6 +474,24 @@ final class HealthKitManager {
                 Task(priority: .utility) {
                     await self.importNewQuantities(identifier: identifier, kind: kind, unit: unit, percent01: isPercent01)
                 }
+            }
+        }
+    }
+
+    /// With background delivery, the system may suspend the app as soon as `completion` is called.
+    /// Calling it before the import ran (as a `defer` did) let the app be suspended mid-import, so new
+    /// Health samples often never arrived while the app was in the background.
+    nonisolated static func observerUpdateHandler(
+        importUpdates: @escaping @Sendable () async -> Void
+    ) -> @Sendable (HKObserverQuery, @escaping HKObserverQueryCompletionHandler, (any Error)?) -> Void {
+        { _, completion, error in
+            guard error == nil else {
+                completion()
+                return
+            }
+            Task {
+                await importUpdates()
+                completion()
             }
         }
     }

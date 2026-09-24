@@ -259,6 +259,7 @@
 "accessibility.opens.measurements" = "Otwiera zakładkę Pomiary";
 "accessibility.open.photos" = "Otwórz wszystkie zdjęcia";
 "Could not access iCloud backup right now." = "Nie można teraz uzyskać dostępu do kopii zapasowej iCloud. Spróbuj ponownie za chwilę.";
+"Recovered metric %d" = "Odtworzona metryka %d";
 "There is nothing to back up yet, so your existing iCloud backups were left as they are." = "Nie ma jeszcze czego zapisać, więc Twoje dotychczasowe kopie w iCloud zostały bez zmian.";
 "The key that unlocks your backups has not reached this device yet. Make sure iCloud Keychain is on, wait a few minutes and try again." = "Klucz do Twoich kopii zapasowych jeszcze nie dotarł na to urządzenie. Sprawdź, czy pęk kluczy iCloud jest włączony, odczekaj kilka minut i spróbuj ponownie.";
 "iCloud storage is full. Free up space in Settings → iCloud to continue backups." = "Pamięć iCloud jest pełna. Zwolnij miejsce w Ustawienia → iCloud, aby kontynuować tworzenie kopii zapasowych.";
