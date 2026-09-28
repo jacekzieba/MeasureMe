@@ -699,12 +699,12 @@ final class PremiumStoreTests: XCTestCase {
 
     private func makeStore(
         billing: MockPremiumBillingClient,
-        notifications: MockPremiumNotificationManager = MockPremiumNotificationManager(),
+        notifications: MockPremiumNotificationManager? = nil,
         entitlementRecheckDelays: [Duration] = []
     ) -> PremiumStore {
         PremiumStore(
             billingClient: billing,
-            notificationManager: notifications,
+            notificationManager: notifications ?? MockPremiumNotificationManager(),
             settings: AppSettingsStore(defaults: makeIsolatedDefaults()),
             analytics: MockPremiumAnalyticsClient(),
             startListener: false,
@@ -737,10 +737,12 @@ final class PremiumStoreTests: XCTestCase {
         let storeProduct = TestStoreProduct(
             localizedTitle: "Monthly",
             price: 4.99,
+            currencyCode: "USD",
             localizedPriceString: "$4.99",
             productIdentifier: PremiumConstants.monthlyProductID,
             productType: .autoRenewableSubscription,
-            localizedDescription: "Monthly premium"
+            localizedDescription: "Monthly premium",
+            locale: Locale(identifier: "en_US")
         ).toStoreProduct()
         let package = Package(
             identifier: PremiumConstants.monthlyPackageID,

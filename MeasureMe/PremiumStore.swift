@@ -851,7 +851,7 @@ final class PremiumStore: ObservableObject {
     #endif
 }
 
-enum PremiumConstants {
+nonisolated enum PremiumConstants {
     static let entitlementID = "MeasureMe Pro"
     static let monthlyPackageID = "monthly"
     static let yearlyPackageID = "yearly"
