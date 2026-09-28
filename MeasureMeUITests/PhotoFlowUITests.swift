@@ -23,6 +23,11 @@ final class PhotoFlowUITests: XCTestCase {
             closeCompareSheet()
         }
 
+        allowPhotoPermissionAlerts()
+        XCTAssertFalse(
+            XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch.exists,
+            "No system alert may outlive this test."
+        )
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5))
     }
 
@@ -84,17 +89,26 @@ final class PhotoFlowUITests: XCTestCase {
         XCTAssertTrue(exportButton.waitForExistence(timeout: 5), "Expected export button.")
         exportButton.tap()
 
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        let permissionButtons = [
-            "Allow Full Access", "Allow", "OK",
-            "Zezwól na pełny dostęp", "Zezwól", "Dobrze"
-        ]
-        for label in permissionButtons {
-            let button = springboard.buttons[label]
-            if button.waitForExistence(timeout: 1) {
-                button.tap()
-                break
-            }
+        // Export asks for add-only access, then full access for the album.
+        allowPhotoPermissionAlerts()
+    }
+
+    /// Answers every photo-library permission alert SpringBoard shows. An alert
+    /// left on screen outlives this test and swallows every tap in the suites
+    /// that run after it, so none may remain. Button labels depend on the
+    /// simulator language ("Allow", "Pozwól", …), so the button is picked by
+    /// position: the second one allows, both in the add-only alert
+    /// (Don't Allow, Allow) and in the full-access one
+    /// (Select Photos, Allow Full Access, Keep Add Only). The full-access alert
+    /// replaces the add-only one right away, so each pass answers whichever
+    /// alert is showing; the test's closing assertion catches one that stays.
+    private func allowPhotoPermissionAlerts() {
+        let alert = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch
+        var timeout: TimeInterval = 3
+        for _ in 0..<3 {
+            guard alert.waitForExistence(timeout: timeout) else { return }
+            alert.buttons.element(boundBy: 1).tap()
+            timeout = 2
         }
     }
 
