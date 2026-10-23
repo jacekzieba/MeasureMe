@@ -241,10 +241,11 @@ struct MeasurementsTabView: View {
             // Both columns stay on screen, and no fixed column widths: the system sizes the split
             // around the fold on the Duo's inner display.
             NavigationSplitView(columnVisibility: .constant(.all)) {
+                // Tiles select instead of linking: a value link in the list column would push the
+                // detail over the list rather than into the detail column.
                 measurementsList
-                    .navigationDestination(for: MetricKind.self) { kind in
-                        MetricDetailView(kind: kind)
-                            .onAppear { metricDetailPath = [kind] }
+                    .environment(\.selectMetricDetail) { kind in
+                        metricDetailPath = [kind]
                     }
             } detail: {
                 NavigationStack {

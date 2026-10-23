@@ -3,6 +3,36 @@ import Charts
 import SwiftData
 import Accessibility
 
+// MARK: - MetricDetailLink
+
+extension EnvironmentValues {
+    /// Set by the Measurements split view (regular width): opening a metric selects it for the
+    /// detail column instead of pushing onto the column the tile sits in.
+    @Entry var selectMetricDetail: (@MainActor (MetricKind) -> Void)?
+}
+
+/// Opens a metric's detail: selects it when a split view provides `selectMetricDetail`,
+/// otherwise pushes it onto the enclosing `NavigationStack` by value.
+struct MetricDetailLink<Label: View>: View {
+    let kind: MetricKind
+    @ViewBuilder let label: () -> Label
+    @Environment(\.selectMetricDetail) private var selectMetricDetail
+
+    var body: some View {
+        if let selectMetricDetail {
+            Button {
+                selectMetricDetail(kind)
+            } label: {
+                label()
+            }
+        } else {
+            NavigationLink(value: kind) {
+                label()
+            }
+        }
+    }
+}
+
 // MARK: - MetricChartTile
 
 struct MetricChartTile: View {
@@ -123,7 +153,7 @@ struct MetricChartTile: View {
 
                             Spacer(minLength: 0)
 
-                            NavigationLink(value: kind) {
+                            MetricDetailLink(kind: kind) {
                                 Image(systemName: "chevron.right")
                                     .font(.title3)
                                     .foregroundStyle(AppColorRoles.textTertiary)
@@ -161,7 +191,7 @@ struct MetricChartTile: View {
                         }
                         .buttonStyle(LiquidCapsuleButtonStyle())
 
-                        NavigationLink(value: kind) {
+                        MetricDetailLink(kind: kind) {
                             Image(systemName: "chevron.right")
                                 .font(.title3)
                                 .foregroundStyle(AppColorRoles.textTertiary)
@@ -207,7 +237,7 @@ struct MetricChartTile: View {
                             )
                         }
 
-                        NavigationLink(value: kind) {
+                        MetricDetailLink(kind: kind) {
                             Image(systemName: "chevron.right")
                                 .font(AppTypography.iconMedium)
                                 .foregroundStyle(AppColorRoles.textTertiary)
