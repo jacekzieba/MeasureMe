@@ -54,6 +54,7 @@ struct SettingsView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @EnvironmentObject private var premiumStore: PremiumStore
     @ObservedObject private var settingsStore = AppSettingsStore.shared
     @ObservedObject private var notificationManager = NotificationManager.shared
@@ -392,157 +393,192 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack(alignment: .top) {
-                SettingsBackdrop(
-                    topHeight: 380,
-                    tint: Color.cyan.opacity(0.22)
+        settingsNavigation
+            // Sheets: shared by the overview (Share app) and pushed screens (export, diagnostics).
+            .sheet(isPresented: $isPresentingShareSheet) {
+                ShareSheet(items: shareItems, subject: shareSubject)
+            }
+            .sheet(isPresented: $isPresentingMailComposer) {
+                MailComposerSheet(
+                    toRecipient: "measureme.approve254@passmail.net",
+                    subject: AppLocalization.string("MeasureMe diagnostics"),
+                    body: "",
+                    attachmentData: mailAttachmentData,
+                    attachmentFileName: mailAttachmentFileName
                 )
-                .ignoresSafeArea(edges: .top)
-                
-                // Content
-                List {
-                ScreenTitleHeader(title: AppLocalization.string("Settings"), topPadding: 0, bottomPadding: 4)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
+            }
+    }
 
-                SettingsSearchSection(query: $settingsSearchQuery)
-
-                if isSearchingSettings {
-                    SettingsSearchResultsSection(
-                        items: filteredSettingsSearchItems,
-                        onOpenRoute: openSettingsRoute
-                    )
-                } else {
-                    SettingsOverviewSections(
-                        snapshot: overviewSnapshot,
-                        onOpenRoute: openSettingsRoute,
-                        onRestorePurchases: { Task { await premiumStore.restorePurchases() } },
-                        onShareApp: shareApp,
-                        onTerms: { openURL(LegalLinks.termsOfUse) },
-                        onPrivacy: { openURL(LegalLinks.privacyPolicy) },
-                        onAccessibility: { openURL(LegalLinks.accessibility) },
-                        onExplorePremium: { premiumStore.presentPaywall(reason: .settings) },
-                        onManageSubscription: { premiumStore.openManageSubscriptions() },
-                        onRateApp: { openURL(LegalLinks.writeReview) }
-                    )
+    /// At regular width (an open iPhone Duo) the section list and the open section sit side by side,
+    /// like Settings on iPad. The selection is the same `selectedSettingsRoute` the compact stack
+    /// pushes, so deep links and search work in both layouts.
+    @ViewBuilder
+    private var settingsNavigation: some View {
+        if horizontalSizeClass == .regular {
+            NavigationSplitView(columnVisibility: .constant(.all)) {
+                settingsList
+            } detail: {
+                NavigationStack {
+                    let route = selectedSettingsRoute ?? Self.defaultRegularRoute
+                    routeDestination(route)
+                        .id(route)
                 }
             }
-            .tint(settingsTheme.accent)
-            .scrollContentBackground(.hidden) // Hide default List background
-            .fabBarBottomInsetIfNeeded()
-            .onAppear {
-                schedulePendingDeepLinksHandling()
-                refreshHomeModuleSummary()
-                refreshNotificationsSummary()
-            }
-            .onChange(of: settingsStore.snapshot.homeLayout.layoutData) { _, _ in
-                refreshHomeModuleSummary()
-            }
-            .onReceive(notificationManager.objectWillChange) { _ in
-                // Delay slightly so the new values are committed.
-                DispatchQueue.main.async { refreshNotificationsSummary() }
-            }
-            .onChange(of: settingsOpenTrackedMeasurements) { _, _ in
-                schedulePendingDeepLinksHandling()
-            }
-            .onChange(of: settingsOpenReminders) { _, _ in
-                schedulePendingDeepLinksHandling()
-            }
-            .onChange(of: settingsOpenHomeSettings) { _, _ in
-                schedulePendingDeepLinksHandling()
-            }
-            .onChange(of: settingsOpenProfile) { _, _ in
-                schedulePendingDeepLinksHandling()
-            }
-            .onChange(of: settingsOpenHealth) { _, _ in
-                schedulePendingDeepLinksHandling()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .settingsOpenHomeSettingsRequested)) { _ in
-                openSettingsRoute(.home)
-            }
-            .listSectionSpacing(24)
-            .listRowSeparator(.hidden)
-            .listSectionSeparator(.hidden)
-            .listRowSeparatorTint(.clear)
-            .listSectionSeparatorTint(.clear)
-            .scrollDismissesKeyboard(.interactively)
-            .applyNoScrollContentInsetsIfAvailable()
-                .navigationTitle("")
-                .navigationBarTitleDisplayMode(.inline)
-                // Keep the navigation bar chrome stable during push transitions.
-                .toolbarBackground(.hidden, for: .navigationBar)
-                .accessibilityIdentifier("settings.root")
-            }
-            .navigationDestination(item: $selectedSettingsRoute) { route in
-                presentingDataFlows(SettingsRouteDestinationView(
-                    route: route,
-                    userName: $userName,
-                    userGender: $userGender,
-                    userAge: $userAge,
-                    manualHeight: $manualHeight,
-                    unitsSystem: $unitsSystem,
-                    profilePhotoData: $profilePhotoData,
-                    showWHtROnHome: $showWHtROnHome,
-                    showRFMOnHome: $showRFMOnHome,
-                    showBMIOnHome: $showBMIOnHome,
-                    showBodyFatOnHome: $showBodyFatOnHome,
-                    showLeanMassOnHome: $showLeanMassOnHome,
-                    showWHROnHome: $showWHROnHome,
-                    showWaistRiskOnHome: $showWaistRiskOnHome,
-                    showABSIOnHome: $showABSIOnHome,
-                    showBodyShapeScoreOnHome: $showBodyShapeScoreOnHome,
-                    showCentralFatRiskOnHome: $showCentralFatRiskOnHome,
-                    showPhysiqueSWR: $showPhysiqueSWR,
-                    showPhysiqueCWR: $showPhysiqueCWR,
-                    showPhysiqueSHR: $showPhysiqueSHR,
-                    showPhysiqueHWR: $showPhysiqueHWR,
-                    showPhysiqueBWR: $showPhysiqueBWR,
-                    showPhysiqueWHtR: $showPhysiqueWHtR,
-                    showPhysiqueBodyFat: $showPhysiqueBodyFat,
-                    showPhysiqueRFM: $showPhysiqueRFM,
-                    isSyncEnabled: $isSyncEnabled,
-                    hkWeight: $hkWeight,
-                    hkBodyFat: $hkBodyFat,
-                    hkHeight: $hkHeight,
-                    hkLeanMass: $hkLeanMass,
-                    hkWaist: $hkWaist,
-                    appAppearance: $appAppearance,
-                    animationsEnabled: $animationsEnabled,
-                    hapticsEnabled: $hapticsEnabled,
-                    appLanguage: $appLanguage,
-                    appleIntelligenceEnabled: $appleIntelligenceEnabled,
-                    iCloudBackupEnabled: $iCloudBackupEnabled,
-                    isBackingUp: $isBackingUp,
-                    lastImportText: lastImportText,
-                    isPremium: premiumStore.isPremium,
-                    iCloudBackupLastSuccessText: iCloudBackupLastSuccessText,
-                    iCloudBackupLastErrorText: iCloudBackupErrorText,
-                    onExport: exportData,
-                    onImport: { showImportPicker = true },
-                    onBackupNow: performBackupNow,
-                    onRestoreLatestBackup: initiateRestore,
-                    onPresentPremiumFeature: { premiumStore.presentPaywall(reason: .feature($0)) },
-                    onSeedDummyData: { activeAlert = .seedDummyDataConfirm },
-                    onDeleteAll: { activeAlert = .deleteAllDataConfirm },
-                    onReportBug: exportDiagnosticsJSON
-                ))
+            .navigationSplitViewStyle(.balanced)
+        } else {
+            NavigationStack {
+                settingsList
+                    .navigationDestination(item: $selectedSettingsRoute) { route in
+                        routeDestination(route)
+                    }
             }
         }
-        // Sheets: shared by the overview (Share app) and pushed screens (export, diagnostics).
-        .sheet(isPresented: $isPresentingShareSheet) {
-            ShareSheet(items: shareItems, subject: shareSubject)
-        }
-        .sheet(isPresented: $isPresentingMailComposer) {
-            MailComposerSheet(
-                toRecipient: "measureme.approve254@passmail.net",
-                subject: AppLocalization.string("MeasureMe diagnostics"),
-                body: "",
-                attachmentData: mailAttachmentData,
-                attachmentFileName: mailAttachmentFileName
+    }
+
+    /// The first section in the list, shown before anything is picked so the detail column is never empty.
+    private static let defaultRegularRoute: SettingsSearchRoute = .home
+
+    private var settingsList: some View {
+        ZStack(alignment: .top) {
+            SettingsBackdrop(
+                topHeight: 380,
+                tint: Color.cyan.opacity(0.22)
             )
+            .ignoresSafeArea(edges: .top)
+        
+            // Content
+            List {
+            ScreenTitleHeader(title: AppLocalization.string("Settings"), topPadding: 0, bottomPadding: 4)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
+            SettingsSearchSection(query: $settingsSearchQuery)
+
+            if isSearchingSettings {
+                SettingsSearchResultsSection(
+                    items: filteredSettingsSearchItems,
+                    onOpenRoute: openSettingsRoute
+                )
+            } else {
+                SettingsOverviewSections(
+                    snapshot: overviewSnapshot,
+                    onOpenRoute: openSettingsRoute,
+                    onRestorePurchases: { Task { await premiumStore.restorePurchases() } },
+                    onShareApp: shareApp,
+                    onTerms: { openURL(LegalLinks.termsOfUse) },
+                    onPrivacy: { openURL(LegalLinks.privacyPolicy) },
+                    onAccessibility: { openURL(LegalLinks.accessibility) },
+                    onExplorePremium: { premiumStore.presentPaywall(reason: .settings) },
+                    onManageSubscription: { premiumStore.openManageSubscriptions() },
+                    onRateApp: { openURL(LegalLinks.writeReview) },
+                    selectedRoute: horizontalSizeClass == .regular
+                        ? (selectedSettingsRoute ?? Self.defaultRegularRoute)
+                        : nil
+                )
+            }
         }
+        .tint(settingsTheme.accent)
+        .scrollContentBackground(.hidden) // Hide default List background
+        .fabBarBottomInsetIfNeeded()
+        .onAppear {
+            schedulePendingDeepLinksHandling()
+            refreshHomeModuleSummary()
+            refreshNotificationsSummary()
+        }
+        .onChange(of: settingsStore.snapshot.homeLayout.layoutData) { _, _ in
+            refreshHomeModuleSummary()
+        }
+        .onReceive(notificationManager.objectWillChange) { _ in
+            // Delay slightly so the new values are committed.
+            DispatchQueue.main.async { refreshNotificationsSummary() }
+        }
+        .onChange(of: settingsOpenTrackedMeasurements) { _, _ in
+            schedulePendingDeepLinksHandling()
+        }
+        .onChange(of: settingsOpenReminders) { _, _ in
+            schedulePendingDeepLinksHandling()
+        }
+        .onChange(of: settingsOpenHomeSettings) { _, _ in
+            schedulePendingDeepLinksHandling()
+        }
+        .onChange(of: settingsOpenProfile) { _, _ in
+            schedulePendingDeepLinksHandling()
+        }
+        .onChange(of: settingsOpenHealth) { _, _ in
+            schedulePendingDeepLinksHandling()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .settingsOpenHomeSettingsRequested)) { _ in
+            openSettingsRoute(.home)
+        }
+        .listSectionSpacing(24)
+        .listRowSeparator(.hidden)
+        .listSectionSeparator(.hidden)
+        .listRowSeparatorTint(.clear)
+        .listSectionSeparatorTint(.clear)
+        .scrollDismissesKeyboard(.interactively)
+        .applyNoScrollContentInsetsIfAvailable()
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            // Keep the navigation bar chrome stable during push transitions.
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .accessibilityIdentifier("settings.root")
+        }
+    }
+
+    private func routeDestination(_ route: SettingsSearchRoute) -> some View {
+        presentingDataFlows(SettingsRouteDestinationView(
+            route: route,
+            userName: $userName,
+            userGender: $userGender,
+            userAge: $userAge,
+            manualHeight: $manualHeight,
+            unitsSystem: $unitsSystem,
+            profilePhotoData: $profilePhotoData,
+            showWHtROnHome: $showWHtROnHome,
+            showRFMOnHome: $showRFMOnHome,
+            showBMIOnHome: $showBMIOnHome,
+            showBodyFatOnHome: $showBodyFatOnHome,
+            showLeanMassOnHome: $showLeanMassOnHome,
+            showWHROnHome: $showWHROnHome,
+            showWaistRiskOnHome: $showWaistRiskOnHome,
+            showABSIOnHome: $showABSIOnHome,
+            showBodyShapeScoreOnHome: $showBodyShapeScoreOnHome,
+            showCentralFatRiskOnHome: $showCentralFatRiskOnHome,
+            showPhysiqueSWR: $showPhysiqueSWR,
+            showPhysiqueCWR: $showPhysiqueCWR,
+            showPhysiqueSHR: $showPhysiqueSHR,
+            showPhysiqueHWR: $showPhysiqueHWR,
+            showPhysiqueBWR: $showPhysiqueBWR,
+            showPhysiqueWHtR: $showPhysiqueWHtR,
+            showPhysiqueBodyFat: $showPhysiqueBodyFat,
+            showPhysiqueRFM: $showPhysiqueRFM,
+            isSyncEnabled: $isSyncEnabled,
+            hkWeight: $hkWeight,
+            hkBodyFat: $hkBodyFat,
+            hkHeight: $hkHeight,
+            hkLeanMass: $hkLeanMass,
+            hkWaist: $hkWaist,
+            appAppearance: $appAppearance,
+            animationsEnabled: $animationsEnabled,
+            hapticsEnabled: $hapticsEnabled,
+            appLanguage: $appLanguage,
+            appleIntelligenceEnabled: $appleIntelligenceEnabled,
+            iCloudBackupEnabled: $iCloudBackupEnabled,
+            isBackingUp: $isBackingUp,
+            lastImportText: lastImportText,
+            isPremium: premiumStore.isPremium,
+            iCloudBackupLastSuccessText: iCloudBackupLastSuccessText,
+            iCloudBackupLastErrorText: iCloudBackupErrorText,
+            onExport: exportData,
+            onImport: { showImportPicker = true },
+            onBackupNow: performBackupNow,
+            onRestoreLatestBackup: initiateRestore,
+            onPresentPremiumFeature: { premiumStore.presentPaywall(reason: .feature($0)) },
+            onSeedDummyData: { activeAlert = .seedDummyDataConfirm },
+            onDeleteAll: { activeAlert = .deleteAllDataConfirm },
+            onReportBug: exportDiagnosticsJSON
+        ))
     }
 
     /// Alerts, the import picker and the busy overlay are triggered from pushed screens (Data). SwiftUI

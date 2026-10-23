@@ -142,32 +142,6 @@ struct SettingsSummaryRowLabel: View {
     }
 }
 
-struct SettingsNavigationRow<Destination: View>: View {
-    let title: String
-    let subtitle: String?
-    let systemImage: String?
-    var trailingText: String? = nil
-    var accessibilityIdentifier: String? = nil
-    @ViewBuilder let destination: Destination
-
-    var body: some View {
-        NavigationLink {
-            destination
-        } label: {
-            SettingsSummaryRowLabel(
-                title: title,
-                subtitle: subtitle,
-                systemImage: systemImage,
-                trailingText: trailingText,
-                trailingSymbol: nil
-            )
-            .accessibilityIdentifier(accessibilityIdentifier ?? "")
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(accessibilityIdentifier ?? "")
-    }
-}
-
 struct SettingsActionRow: View {
     let title: String
     let subtitle: String?

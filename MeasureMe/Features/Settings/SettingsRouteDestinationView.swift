@@ -153,6 +153,8 @@ struct SettingsRouteDestinationView: View {
             FAQView()
         case .about:
             SettingsAboutDestinationView(onReportBug: onReportBug)
+        case .premiumBenefits:
+            PremiumBenefitsInfoView()
         }
     }
 }

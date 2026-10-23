@@ -15,6 +15,7 @@ enum SettingsSearchRoute: String, Hashable, Identifiable {
     case data
     case faq
     case about
+    case premiumBenefits
 
     var id: String { rawValue }
 }
