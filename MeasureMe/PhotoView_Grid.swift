@@ -40,6 +40,12 @@ enum PhotoGridLayoutMode: String {
         }
     }
 
+    /// Regular width (an open iPhone Duo) doubles the columns, which keeps the count even so the
+    /// grid splits cleanly around the fold, as the HIG recommends.
+    func columnCount(for horizontalSizeClass: UserInterfaceSizeClass?) -> Int {
+        horizontalSizeClass == .regular ? columnCount * 2 : columnCount
+    }
+
     var toggleTitle: String {
         switch self {
         case .review: return AppLocalization.string("Compact")
@@ -360,9 +366,15 @@ struct PhotoGridView: View {
     let loadMoreToken: Int
     let onLoadMore: () -> Void
     @AppStorage(AppSettingsKeys.Photos.gridLayoutMode) private var gridLayoutModeRaw: String = PhotoGridLayoutMode.review.rawValue
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var gridWidth: CGFloat = 0
 
     private var gridLayoutMode: PhotoGridLayoutMode {
         PhotoGridLayoutMode(rawValue: gridLayoutModeRaw) ?? .review
+    }
+
+    private var gridColumnCount: Int {
+        gridLayoutMode.columnCount(for: horizontalSizeClass)
     }
 
     private var monthSections: [PhotoMonthSection] {
@@ -540,26 +552,32 @@ struct PhotoGridView: View {
                     LazyVGrid(
                         columns: Array(
                             repeating: GridItem(.flexible(), spacing: 8),
-                            count: gridLayoutMode.columnCount
+                            count: gridColumnCount
                         ),
                         spacing: 8
                     ) {
-                        ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
-                            let globalIndex = archiveItems.firstIndex(where: { $0.id == item.id }) ?? index
-                            renderGridItem(item, index: globalIndex)
+                        // Cells are sized from the measured width, so wait for the first measurement
+                        // rather than requesting thumbnails at a placeholder size.
+                        if gridWidth > 0 {
+                            ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
+                                let globalIndex = archiveItems.firstIndex(where: { $0.id == item.id }) ?? index
+                                renderGridItem(item, index: globalIndex)
+                            }
                         }
                     }
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // The grid's own width, not the screen's: on iPhone Duo the window changes size with the pose.
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { gridWidth = $0 }
         .padding(.bottom, isSelecting && !selectedPhotos.isEmpty ? 80 : 0)
     }
 
     @ViewBuilder
     private func renderGridItem(_ item: PhotoGridRenderItem, index: Int) -> some View {
-        let availableWidth = max(UIScreen.main.bounds.width - 24, 1)
-        let spacing = CGFloat(gridLayoutMode.columnCount - 1) * 8
-        let cellSize = floor((availableWidth - spacing) / CGFloat(gridLayoutMode.columnCount))
+        let spacing = CGFloat(gridColumnCount - 1) * 8
+        let cellSize = max(floor((gridWidth - spacing) / CGFloat(gridColumnCount)), 1)
 
         switch item {
         case .persisted(let photo):

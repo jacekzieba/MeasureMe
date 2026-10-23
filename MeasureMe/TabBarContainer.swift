@@ -14,6 +14,9 @@ struct TabBarContainer: View {
     /// Non-nil while the release-notes sheet is up. Lives here rather than in `RootView`
     /// because `AppRouter` — which the sheet's "open it" button drives — is created here.
     @State private var whatsNewRelease: WhatsNewRelease?
+    /// `true`, gdy system kładzie paski pionowo (iPhone Duo). Wtedy FabBar ustępuje systemowemu
+    /// `TabView`, bo tylko systemowy pasek umie przejść na prawą krawędź.
+    @State private var usesVerticalBars = false
     @AppSetting(\.onboarding.hasCompletedOnboarding) private var hasCompletedOnboarding: Bool = false
     @AppSetting(\.experience.lastSeenWhatsNewVersion) private var lastSeenWhatsNewVersion: String = ""
 
@@ -46,9 +49,9 @@ struct TabBarContainer: View {
                 .accessibilityIdentifier("tab.measurements")
 
                 // COMPOSE
-                // Zakładka zostaje dla przypadków, w których pasek rysuje system: iOS 18–25
-                // oraz iPad (FabBar chowa się przy regular size class). Na iPhonie z iOS 26
-                // systemowy pasek jest ukryty, więc widoczne jest „+” z FabBara.
+                // Zakładka zostaje dla przypadków, w których pasek rysuje system: iOS 18–25,
+                // regular size class (FabBar sam się wtedy chowa) i pionowe paski na iPhonie Duo.
+                // Na zwykłym iPhonie z iOS 26 systemowy pasek jest ukryty, więc widoczne jest „+” z FabBara.
                 Tab(value: AppTab.compose, role: .search) {
                     Color.clear
                 } label: {
@@ -81,7 +84,8 @@ struct TabBarContainer: View {
             .toolbarBackground(.visible, for: .tabBar)
             .toolbarBackground(AppColorRoles.surfaceChrome, for: .tabBar)
             .applyTabBarMinimizeBehaviorIfAvailable()
-            .applyFabBarIfAvailable(selection: $router.selectedTab) {
+            .environment(\.usesVerticalBars, usesVerticalBars)
+            .applyFabBarIfAvailable(selection: $router.selectedTab, isVisible: !usesVerticalBars) {
                 router.presentComposer()
             }
             // `.tint` musi być NAD `.applyFabBarIfAvailable`: FabBar dokłada pasek jako
@@ -92,6 +96,7 @@ struct TabBarContainer: View {
                 handleSelectedTabChange(oldTab: oldTab, newTab: newTab)
             }
         }
+        .readVerticalBarPlacement(into: $usesVerticalBars)
         .overlay(alignment: .bottom) {
             if shouldForceUITestPendingAddPhotoChooser {
                 VStack(spacing: 0) {
@@ -344,20 +349,49 @@ struct TabBarContainer: View {
     }
 }
 
+extension EnvironmentValues {
+    /// Czy system kładzie paski pionowo przy krawędzi ekranu (iPhone Duo). Ustawia `TabBarContainer`.
+    @Entry var usesVerticalBars: Bool = false
+}
+
 /// Chowa systemowy pasek tylko tam, gdzie FabBar faktycznie się rysuje.
 ///
 /// FabBar wyświetla się wyłącznie przy compact horizontal size class (iPhone) — na iPadzie sam
-/// się chowa. Bez tego warunku iPad zostałby bez jakiegokolwiek paska zakładek.
+/// się chowa. Bez tego warunku iPad zostałby bez jakiegokolwiek paska zakładek. Przy pionowych
+/// paskach (iPhone Duo) FabBar też jest wyłączony, więc systemowy pasek musi zostać.
 @available(iOS 26.0, *)
 private struct SystemTabBarVisibility: ViewModifier {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.usesVerticalBars) private var usesVerticalBars
 
     func body(content: Content) -> some View {
         content
             .fabBarSafeAreaPadding()
-            .toolbarVisibility(horizontalSizeClass == .compact ? .hidden : .automatic, for: .tabBar)
+            .toolbarVisibility(
+                horizontalSizeClass == .compact && !usesVerticalBars ? .hidden : .automatic,
+                for: .tabBar
+            )
     }
 }
+
+// `toolbarVerticalEdge` istnieje dopiero w SDK iOS 27.1 (Swift 6.4), a CI buduje jeszcze
+// na Xcode 26 — stąd `#if compiler`, a nie samo `#available`.
+#if compiler(>=6.4)
+/// Przepisuje `toolbarVerticalEdge` (iOS 27.1+) do zwykłego `Bool`, który da się trzymać
+/// w `@State` widoku z deployment targetem 18.
+@available(iOS 27.1, *)
+private struct VerticalBarPlacementReader: ViewModifier {
+    @Environment(\.toolbarVerticalEdge) private var toolbarVerticalEdge
+    @Binding var usesVerticalBars: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: toolbarVerticalEdge != nil, initial: true) { _, isVertical in
+                usesVerticalBars = isVertical
+            }
+    }
+}
+#endif
 
 private extension View {
     @ViewBuilder
@@ -367,6 +401,19 @@ private extension View {
         } else {
             self
         }
+    }
+
+    @ViewBuilder
+    func readVerticalBarPlacement(into usesVerticalBars: Binding<Bool>) -> some View {
+        #if compiler(>=6.4)
+        if #available(iOS 27.1, *) {
+            self.modifier(VerticalBarPlacementReader(usesVerticalBars: usesVerticalBars))
+        } else {
+            self
+        }
+        #else
+        self
+        #endif
     }
 
     /// Od iOS 26 pasek rysuje FabBar, więc systemowy trzeba schować — inaczej byłyby dwa.
@@ -384,9 +431,13 @@ private extension View {
     /// Systemowy `Tab(role: .search)` rysował „+” osobno tylko do iOS 26 — na iOS 27 trzyma go
     /// w pasku, na końcu rzędu. FabBar składa pasek z segmentowanego kontrolek i przycisku FAB
     /// w jednym `UIGlassContainerEffect`, więc wygląd nie zależy już od wersji systemu.
+    ///
+    /// `isVisible: false` przy pionowych paskach (iPhone Duo): HIG wymaga tam systemowego paska
+    /// przy krawędzi, a FabBar umie tylko dół ekranu.
     @ViewBuilder
     func applyFabBarIfAvailable(
         selection: Binding<AppTab>,
+        isVisible: Bool,
         onCompose: @escaping () -> Void
     ) -> some View {
         if #available(iOS 26.0, *) {
@@ -402,7 +453,8 @@ private extension View {
                     systemImage: "plus",
                     accessibilityLabel: AppLocalization.string("Add"),
                     action: onCompose
-                )
+                ),
+                isVisible: isVisible
             )
         } else {
             self

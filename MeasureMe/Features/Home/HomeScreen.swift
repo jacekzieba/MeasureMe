@@ -26,6 +26,7 @@ struct HomeView: View {
     @Environment(\.accessibilityDifferentiateWithoutColor) var differentiateWithoutColor
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @Environment(\.usesVerticalBars) var usesVerticalBars
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     @Environment(\.modelContext) var modelContext
     @AppSetting(\.experience.animationsEnabled) var animationsEnabled: Bool = true
@@ -456,8 +457,24 @@ struct HomeView: View {
         viewModel.rebuildNextFocusInsightCache(nextFocusComputer: { computeNextFocusInsight() })
     }
 
+    /// Beside the trend charts the dashboard pane is only about half the screen, so it keeps
+    /// the compact two-column grid.
     var dashboardColumns: Int {
-        UIDevice.current.userInterfaceIdiom == .pad || horizontalSizeClass == .regular ? 4 : 2
+        horizontalSizeClass == .regular && !showsTrendChartsColumn ? 4 : 2
+    }
+
+    /// The trend-chart column needs regular width (an open iPhone Duo) and `ArrangementView`,
+    /// and only makes sense when there are key metrics to chart.
+    var showsTrendChartsColumn: Bool {
+        // `ArrangementView` needs the iOS 27.1 SDK (Swift 6.4); CI still builds with Xcode 26.
+        #if compiler(>=6.4)
+        guard #available(iOS 27.1, *) else { return false }
+        return horizontalSizeClass == .regular
+            && shouldRenderModule(.keyMetrics)
+            && keyMetricsState == .content
+        #else
+        return false
+        #endif
     }
 
     var renderedDashboardItems: [HomeModuleLayoutItem] {
@@ -520,27 +537,7 @@ struct HomeView: View {
                 tint: Color.cyan.opacity(0.22)
             )
 
-            ScrollView {
-                VStack(spacing: 0) {
-                    GeometryReader { proxy in
-                        Color.clear
-                            .preference(
-                                key: HomeScrollOffsetKey.self,
-                                value: proxy.frame(in: .named("homeScroll")).minY
-                            )
-                    }
-                    .frame(height: 0)
-
-                    dashboardBoard
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 96)
-            }
-            .coordinateSpace(name: "homeScroll")
-            .onPreferenceChange(HomeScrollOffsetKey.self) { value in
-                handleHomeScrollOffsetChange(value)
-            }
+            homeContent
 
             if isUITestMode {
                 homeUITestHooks
@@ -550,6 +547,62 @@ struct HomeView: View {
         .toolbarBackground(viewModel.scrollOffset < -16 ? .visible : .hidden, for: .navigationBar)
         .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: viewModel.isLastPhotosSectionMounted)
         .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: viewModel.isHealthSectionMounted)
+    }
+
+    /// 96 to miejsce pod FabBar; przy pionowych paskach dołu nic nie zasłania.
+    var homeBottomPadding: CGFloat {
+        usesVerticalBars ? AppSpacing.lg : 96
+    }
+
+    /// Each pane scrolls on its own: Apple's guidance is not to put an `ArrangementView` inside
+    /// a scroll view. The open Duo's inner display is wider than tall, so the split puts the
+    /// charts beside the dashboard and moves the panes to either side of the fold; were the area
+    /// ever taller than wide, the horizontal-only split shows the dashboard alone.
+    @ViewBuilder
+    var homeContent: some View {
+        #if compiler(>=6.4)
+        if showsTrendChartsColumn, #available(iOS 27.1, *) {
+            ArrangementView {
+                dashboardScroll
+            } secondary: {
+                HomeTrendChartsColumn(
+                    identifiers: dashboardKeyIdentifiers,
+                    customDefinitions: customDefinitionsMap,
+                    unitsSystem: unitsSystem,
+                    bottomPadding: homeBottomPadding
+                )
+            }
+            .arrangementViewStyle(.split.axes(.horizontal))
+        } else {
+            dashboardScroll
+        }
+        #else
+        dashboardScroll
+        #endif
+    }
+
+    var dashboardScroll: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                GeometryReader { proxy in
+                    Color.clear
+                        .preference(
+                            key: HomeScrollOffsetKey.self,
+                            value: proxy.frame(in: .named("homeScroll")).minY
+                        )
+                }
+                .frame(height: 0)
+
+                dashboardBoard
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, homeBottomPadding)
+        }
+        .coordinateSpace(name: "homeScroll")
+        .onPreferenceChange(HomeScrollOffsetKey.self) { value in
+            handleHomeScrollOffsetChange(value)
+        }
     }
 
     func lifecycleObservedHomeRoot<Content: View>(

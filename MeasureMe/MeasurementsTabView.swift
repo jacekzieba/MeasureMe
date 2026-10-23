@@ -13,6 +13,8 @@ struct MeasurementsTabView: View {
     @EnvironmentObject private var premiumStore: PremiumStore
     @EnvironmentObject private var router: AppRouter
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.usesVerticalBars) private var usesVerticalBars
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppSetting(\.experience.animationsEnabled) private var animationsEnabled: Bool = true
     @AppSetting(\.profile.userName) private var userName: String = ""
     @AppSetting(\.profile.userGender) private var userGenderRaw: String = "notSpecified"
@@ -184,238 +186,40 @@ struct MeasurementsTabView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $metricDetailPath) {
-            ZStack(alignment: .top) {
-                AppScreenBackground(
-                    topHeight: 380,
-                    tint: sectionTint
-                )
-
-                ScrollView {
-                    LazyVStack(spacing: 16) {
-                        headerSection
-
-                        if selectedTab == .metrics {
-                            AISectionSummaryCard(
-                                input: metricsSummaryInput,
-                                    missingDataMessage: AppLocalization.aiString("AI summary needs metric data. Add measurements to generate insights."),
-                                tint: measurementsTheme.softTint,
-                                accessibilityIdentifier: "measurements.metrics.ai.summary"
-                            )
-                            .padding(.horizontal, AppSpacing.md)
-
-                            if samples.isEmpty {
-                                // MARK: - Hero empty state
-                                EmptyStateCard(
-                                    title: AppLocalization.string("measurements.empty.title"),
-                                    message: AppLocalization.string("measurements.empty.body"),
-                                    systemImage: "chart.line.uptrend.xyaxis",
-                                    actionTitle: AppLocalization.string("Add measurement"),
-                                    action: {
-                                        Haptics.light()
-                                        router.presentedSheet = .composer(mode: .newPost)
-                                    },
-                                    accessibilityIdentifier: "measurements.empty.state"
-                                )
-                                .padding(.horizontal, AppSpacing.md)
-                            }
-
-                            // MARK: - Quick Add hint strip
-                            if !quickAddHintDismissed {
-                                AppGlassCard(
-                                    depth: .base,
-                                    cornerRadius: AppRadius.md,
-                                    tint: measurementsTheme.softTint,
-                                    contentPadding: AppSpacing.sm
-                                ) {
-                                    HStack(spacing: AppSpacing.xs) {
-                                        Image(systemName: "plus.circle.fill")
-                                            .font(.body)
-                                            .foregroundStyle(measurementsTheme.accent)
-
-                                        Text(AppLocalization.string("measurements.quickadd.hint"))
-                                            .font(AppTypography.caption)
-                                            .foregroundStyle(AppColorRoles.textSecondary)
-
-                                        Spacer(minLength: 4)
-
-                                        Button {
-                                            withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
-                                                quickAddHintDismissed = true
-                                            }
-                                        } label: {
-                                            Image(systemName: "xmark")
-                                                .font(.caption2.weight(.semibold))
-                                                .foregroundStyle(AppColorRoles.textTertiary)
-                                                .frame(width: 28, height: 28)
-                                                .contentShape(Rectangle())
-                                        }
-                                        .buttonStyle(.plain)
-                                        .appHitTarget()
-                                    }
-                                }
-                                .padding(.horizontal, AppSpacing.md)
-                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                            }
-
-                            // MARK: - Metrics discovery banner
-                            if !hasCustomizedMetrics {
-                                AppGlassCard(
-                                    depth: .base,
-                                    cornerRadius: AppRadius.md,
-                                    tint: measurementsTheme.softTint,
-                                    contentPadding: AppSpacing.xs
-                                ) {
-                                    HStack(alignment: .center, spacing: AppSpacing.xs) {
-                                        HStack(spacing: AppSpacing.xs) {
-                                            Image(systemName: "sparkles")
-                                                .font(.body)
-                                                .foregroundStyle(measurementsTheme.accent)
-
-                                            Text(AppLocalization.string("measurements.discovery.hint", metricsStore.activeKinds.count, metricsStore.allKindsInOrder.count))
-                                                .font(AppTypography.caption)
-                                                .foregroundStyle(AppColorRoles.textSecondary)
-                                                .lineLimit(2)
-                                                .fixedSize(horizontal: false, vertical: true)
-                                        }
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                                        Spacer(minLength: AppSpacing.xxs)
-                                        Button {
-                                            Haptics.selection()
-                                            settingsOpenTrackedMeasurements = true
-                                            router.selectedTab = .settings
-                                        } label: {
-                                            HStack(spacing: 4) {
-                                                Text(AppLocalization.string("measurements.discovery.cta"))
-                                                Image(systemName: "chevron.right")
-                                                    .font(.caption.weight(.semibold))
-                                            }
-                                            .font(AppTypography.captionEmphasis)
-                                            .foregroundStyle(measurementsTheme.accent)
-                                            .frame(minHeight: 44)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .contentShape(Rectangle())
-                                    }
-                                }
-                                .padding(.horizontal, AppSpacing.md)
-                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                                .accessibilityIdentifier("measurements.discovery.banner")
-                            }
-
-                            ForEach(metricsStore.activeKinds, id: \.self) { kind in
-                                MetricChartTile(
-                                    kind: kind,
-                                    unitsSystem: unitsSystem
-                                )
-                                .padding(.horizontal, AppSpacing.md)
-                            }
-
-                            ForEach(activeCustomDefinitions) { def in
-                                CustomMetricChartTile(
-                                    definition: def,
-                                    theme: measurementsTheme
-                                )
-                                .padding(.horizontal, AppSpacing.md)
-                            }
-
-                            trackedMetricsFooter
-                                .padding(.horizontal, AppSpacing.md)
-                        } else if selectedTab == .health {
-                            if premiumStore.isPremium {
-                                AISectionSummaryCard(
-                                    input: healthSummaryInput,
-                                    missingDataMessage: AppLocalization.aiString("AI summary needs health indicator data. Add required measurements first."),
-                                    tint: healthTheme.softTint,
-                                    accessibilityIdentifier: "measurements.health.ai.summary"
-                                )
-                                .padding(.horizontal, AppSpacing.md)
-
-                                HealthMetricsSection(
-                                    latestWaist: latestWaist,
-                                    latestHeight: latestHeight,
-                                    latestWeight: latestWeight,
-                                    latestHips: latestHips,
-                                    latestBodyFat: latestBodyFat,
-                                    latestLeanMass: latestLeanMass,
-                                    displayMode: .indicatorsOnly,
-                                    title: ""
-                                )
-                                .padding(.horizontal, AppSpacing.md)
-                                .accessibilityIdentifier("measurements.ai.container")
-                            } else {
-                                PremiumLockedCard(
-                                    title: AppLocalization.string("Health indicators"),
-                                    message: AppLocalization.string("Upgrade to Premium Edition to unlock Health Indicators.")
-                                ) {
-                                    premiumStore.presentPaywall(reason: .premiumMetric)
-                                }
-                                .padding(.horizontal, AppSpacing.md)
-                            }
-                        } else {
-                            if premiumStore.isPremium {
-                                AISectionSummaryCard(
-                                    input: physiqueSummaryInput,
-                                    missingDataMessage: AppLocalization.aiString("AI summary needs physique indicator data. Add required measurements first."),
-                                    tint: AppColorRoles.accentPhysique.opacity(0.18),
-                                    accessibilityIdentifier: "measurements.physique.ai.summary"
-                                )
-                                .padding(.horizontal, AppSpacing.md)
-
-                                PhysiqueIndicatorsSection(
-                                    latestWaist: latestWaist,
-                                    latestHeight: latestHeight,
-                                    latestWeight: latestWeight,
-                                    latestBodyFat: latestBodyFat,
-                                    latestShoulders: latestShoulders,
-                                    latestChest: latestChest,
-                                    latestBust: latestBust,
-                                    latestHips: latestHips
-                                )
-                                .padding(.horizontal, AppSpacing.md)
-                                .accessibilityIdentifier("measurements.physique.container")
-                            } else {
-                                PremiumLockedCard(
-                                    title: AppLocalization.string("Physique indicators"),
-                                    message: AppLocalization.string("Upgrade to Premium Edition to unlock Physique indicators.")
-                                ) {
-                                    premiumStore.presentPaywall(reason: .premiumMetric)
-                                }
-                                .padding(.horizontal, AppSpacing.md)
-                            }
-                        }
+        measurementsNavigation
+            .onAppear {
+                rebuildSamplesCache()
+                if let requestID = router.metricDetailRequestID,
+                   let kind = router.requestedMetricDetailKind {
+                    scheduleMetricDetailPresentation(kind, requestID: requestID)
+                }
+                if let requestID = router.measurementsSectionRequestID,
+                   let section = router.requestedMeasurementsSection {
+                    switch section {
+                    case "health":
+                        selectedTab = .health
+                    case "physique":
+                        selectedTab = .physique
+                    default:
+                        selectedTab = .metrics
                     }
-                    .padding(.top, AppSpacing.sm)
-                    .padding(.bottom, AppSpacing.lg)
-                }
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    Color.clear
-                        .frame(height: Self.bottomTabBarClearance)
-                        .accessibilityHidden(true)
-                }
-                .id(viewModel.refreshToken)
-                .accessibilityIdentifier("measurements.scroll")
-                .refreshable {
-                    rebuildSamplesCache()
-                    viewModel.refreshToken = UUID()
+                    router.consumeMeasurementsSectionRequest(requestID)
                 }
             }
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .navigationDestination(for: MetricKind.self) { kind in
-                MetricDetailView(kind: kind)
+            .onChange(of: samplesSignature) { _, _ in
+                rebuildSamplesCache()
             }
-        }
-        .onAppear {
-            rebuildSamplesCache()
-            if let requestID = router.metricDetailRequestID,
-               let kind = router.requestedMetricDetailKind {
+            .onChange(of: router.metricDetailRequestID) { _, requestID in
+                guard let requestID, let kind = router.requestedMetricDetailKind else { return }
                 scheduleMetricDetailPresentation(kind, requestID: requestID)
             }
-            if let requestID = router.measurementsSectionRequestID,
-               let section = router.requestedMeasurementsSection {
+            .onChange(of: metricDetailPath) { _, path in
+                if path.isEmpty {
+                    requestedMetricDetailKind = nil
+                }
+            }
+            .onChange(of: router.measurementsSectionRequestID) { _, requestID in
+                guard let requestID, let section = router.requestedMeasurementsSection else { return }
                 switch section {
                 case "health":
                     selectedTab = .health
@@ -426,31 +230,273 @@ struct MeasurementsTabView: View {
                 }
                 router.consumeMeasurementsSectionRequest(requestID)
             }
-        }
-        .onChange(of: samplesSignature) { _, _ in
-            rebuildSamplesCache()
-        }
-        .onChange(of: router.metricDetailRequestID) { _, requestID in
-            guard let requestID, let kind = router.requestedMetricDetailKind else { return }
-            scheduleMetricDetailPresentation(kind, requestID: requestID)
-        }
-        .onChange(of: metricDetailPath) { _, path in
-            if path.isEmpty {
-                requestedMetricDetailKind = nil
+    }
+
+    /// At regular width (an open iPhone Duo) the metric list and the detail sit side by side, like Mail.
+    /// `metricDetailPath` holds the selected metric in both modes, so folding or unfolding the
+    /// device keeps it.
+    @ViewBuilder
+    private var measurementsNavigation: some View {
+        if horizontalSizeClass == .regular {
+            // Both columns stay on screen, and no fixed column widths: the system sizes the split
+            // around the fold on the Duo's inner display.
+            NavigationSplitView(columnVisibility: .constant(.all)) {
+                measurementsList
+                    .navigationDestination(for: MetricKind.self) { kind in
+                        MetricDetailView(kind: kind)
+                            .onAppear { metricDetailPath = [kind] }
+                    }
+            } detail: {
+                NavigationStack {
+                    regularDetail
+                }
+            }
+            .navigationSplitViewStyle(.balanced)
+        } else {
+            NavigationStack(path: $metricDetailPath) {
+                measurementsList
+                    .navigationDestination(for: MetricKind.self) { kind in
+                        MetricDetailView(kind: kind)
+                    }
             }
         }
-        .onChange(of: router.measurementsSectionRequestID) { _, requestID in
-            guard let requestID, let section = router.requestedMeasurementsSection else { return }
-            switch section {
-            case "health":
-                selectedTab = .health
-            case "physique":
-                selectedTab = .physique
-            default:
-                selectedTab = .metrics
-            }
-            router.consumeMeasurementsSectionRequest(requestID)
+    }
+
+    /// Before anything is selected the detail column shows the first active metric rather than
+    /// an empty pane.
+    @ViewBuilder
+    private var regularDetail: some View {
+        if let kind = metricDetailPath.last ?? metricsStore.activeKinds.first {
+            MetricDetailView(kind: kind)
+                .id(kind)
+        } else {
+            ContentUnavailableView(
+                AppLocalization.string("measurements.empty.title"),
+                systemImage: "chart.line.uptrend.xyaxis"
+            )
         }
+    }
+
+    private var measurementsList: some View {
+        ZStack(alignment: .top) {
+            AppScreenBackground(
+                topHeight: 380,
+                tint: sectionTint
+            )
+
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    headerSection
+
+                    if selectedTab == .metrics {
+                        AISectionSummaryCard(
+                            input: metricsSummaryInput,
+                                missingDataMessage: AppLocalization.aiString("AI summary needs metric data. Add measurements to generate insights."),
+                            tint: measurementsTheme.softTint,
+                            accessibilityIdentifier: "measurements.metrics.ai.summary"
+                        )
+                        .padding(.horizontal, AppSpacing.md)
+
+                        if samples.isEmpty {
+                            // MARK: - Hero empty state
+                            EmptyStateCard(
+                                title: AppLocalization.string("measurements.empty.title"),
+                                message: AppLocalization.string("measurements.empty.body"),
+                                systemImage: "chart.line.uptrend.xyaxis",
+                                actionTitle: AppLocalization.string("Add measurement"),
+                                action: {
+                                    Haptics.light()
+                                    router.presentedSheet = .composer(mode: .newPost)
+                                },
+                                accessibilityIdentifier: "measurements.empty.state"
+                            )
+                            .padding(.horizontal, AppSpacing.md)
+                        }
+
+                        // MARK: - Quick Add hint strip
+                        if !quickAddHintDismissed {
+                            AppGlassCard(
+                                depth: .base,
+                                cornerRadius: AppRadius.md,
+                                tint: measurementsTheme.softTint,
+                                contentPadding: AppSpacing.sm
+                            ) {
+                                HStack(spacing: AppSpacing.xs) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.body)
+                                        .foregroundStyle(measurementsTheme.accent)
+
+                                    Text(AppLocalization.string("measurements.quickadd.hint"))
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(AppColorRoles.textSecondary)
+
+                                    Spacer(minLength: 4)
+
+                                    Button {
+                                        withAnimation(AppMotion.animation(AppMotion.standard, enabled: shouldAnimate)) {
+                                            quickAddHintDismissed = true
+                                        }
+                                    } label: {
+                                        Image(systemName: "xmark")
+                                            .font(.caption2.weight(.semibold))
+                                            .foregroundStyle(AppColorRoles.textTertiary)
+                                            .frame(width: 28, height: 28)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .appHitTarget()
+                                }
+                            }
+                            .padding(.horizontal, AppSpacing.md)
+                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                        }
+
+                        // MARK: - Metrics discovery banner
+                        if !hasCustomizedMetrics {
+                            AppGlassCard(
+                                depth: .base,
+                                cornerRadius: AppRadius.md,
+                                tint: measurementsTheme.softTint,
+                                contentPadding: AppSpacing.xs
+                            ) {
+                                HStack(alignment: .center, spacing: AppSpacing.xs) {
+                                    HStack(spacing: AppSpacing.xs) {
+                                        Image(systemName: "sparkles")
+                                            .font(.body)
+                                            .foregroundStyle(measurementsTheme.accent)
+
+                                        Text(AppLocalization.string("measurements.discovery.hint", metricsStore.activeKinds.count, metricsStore.allKindsInOrder.count))
+                                            .font(AppTypography.caption)
+                                            .foregroundStyle(AppColorRoles.textSecondary)
+                                            .lineLimit(2)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                    Spacer(minLength: AppSpacing.xxs)
+                                    Button {
+                                        Haptics.selection()
+                                        settingsOpenTrackedMeasurements = true
+                                        router.selectedTab = .settings
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Text(AppLocalization.string("measurements.discovery.cta"))
+                                            Image(systemName: "chevron.right")
+                                                .font(.caption.weight(.semibold))
+                                        }
+                                        .font(AppTypography.captionEmphasis)
+                                        .foregroundStyle(measurementsTheme.accent)
+                                        .frame(minHeight: 44)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .contentShape(Rectangle())
+                                }
+                            }
+                            .padding(.horizontal, AppSpacing.md)
+                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                            .accessibilityIdentifier("measurements.discovery.banner")
+                        }
+
+                        ForEach(metricsStore.activeKinds, id: \.self) { kind in
+                            MetricChartTile(
+                                kind: kind,
+                                unitsSystem: unitsSystem
+                            )
+                            .padding(.horizontal, AppSpacing.md)
+                        }
+
+                        ForEach(activeCustomDefinitions) { def in
+                            CustomMetricChartTile(
+                                definition: def,
+                                theme: measurementsTheme
+                            )
+                            .padding(.horizontal, AppSpacing.md)
+                        }
+
+                        trackedMetricsFooter
+                            .padding(.horizontal, AppSpacing.md)
+                    } else if selectedTab == .health {
+                        if premiumStore.isPremium {
+                            AISectionSummaryCard(
+                                input: healthSummaryInput,
+                                missingDataMessage: AppLocalization.aiString("AI summary needs health indicator data. Add required measurements first."),
+                                tint: healthTheme.softTint,
+                                accessibilityIdentifier: "measurements.health.ai.summary"
+                            )
+                            .padding(.horizontal, AppSpacing.md)
+
+                            HealthMetricsSection(
+                                latestWaist: latestWaist,
+                                latestHeight: latestHeight,
+                                latestWeight: latestWeight,
+                                latestHips: latestHips,
+                                latestBodyFat: latestBodyFat,
+                                latestLeanMass: latestLeanMass,
+                                displayMode: .indicatorsOnly,
+                                title: ""
+                            )
+                            .padding(.horizontal, AppSpacing.md)
+                            .accessibilityIdentifier("measurements.ai.container")
+                        } else {
+                            PremiumLockedCard(
+                                title: AppLocalization.string("Health indicators"),
+                                message: AppLocalization.string("Upgrade to Premium Edition to unlock Health Indicators.")
+                            ) {
+                                premiumStore.presentPaywall(reason: .premiumMetric)
+                            }
+                            .padding(.horizontal, AppSpacing.md)
+                        }
+                    } else {
+                        if premiumStore.isPremium {
+                            AISectionSummaryCard(
+                                input: physiqueSummaryInput,
+                                missingDataMessage: AppLocalization.aiString("AI summary needs physique indicator data. Add required measurements first."),
+                                tint: AppColorRoles.accentPhysique.opacity(0.18),
+                                accessibilityIdentifier: "measurements.physique.ai.summary"
+                            )
+                            .padding(.horizontal, AppSpacing.md)
+
+                            PhysiqueIndicatorsSection(
+                                latestWaist: latestWaist,
+                                latestHeight: latestHeight,
+                                latestWeight: latestWeight,
+                                latestBodyFat: latestBodyFat,
+                                latestShoulders: latestShoulders,
+                                latestChest: latestChest,
+                                latestBust: latestBust,
+                                latestHips: latestHips
+                            )
+                            .padding(.horizontal, AppSpacing.md)
+                            .accessibilityIdentifier("measurements.physique.container")
+                        } else {
+                            PremiumLockedCard(
+                                title: AppLocalization.string("Physique indicators"),
+                                message: AppLocalization.string("Upgrade to Premium Edition to unlock Physique indicators.")
+                            ) {
+                                premiumStore.presentPaywall(reason: .premiumMetric)
+                            }
+                            .padding(.horizontal, AppSpacing.md)
+                        }
+                    }
+                }
+                .padding(.top, AppSpacing.sm)
+                .padding(.bottom, AppSpacing.lg)
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear
+                    .frame(height: usesVerticalBars ? 0 : Self.bottomTabBarClearance)
+                    .accessibilityHidden(true)
+            }
+            .id(viewModel.refreshToken)
+            .accessibilityIdentifier("measurements.scroll")
+            .refreshable {
+                rebuildSamplesCache()
+                viewModel.refreshToken = UUID()
+            }
+        }
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
 
     private var headerSection: some View {

@@ -8,6 +8,7 @@ struct CustomMetricDetailView: View {
     let definition: CustomMetricDefinition
 
     @Environment(\.modelContext) private var context
+    @Environment(\.usesVerticalBars) private var usesVerticalBars
     @Query private var samples: [MetricSample]
     @Query private var goals: [MetricGoal]
     @State private var viewModel = CustomMetricDetailViewModel()
@@ -116,7 +117,7 @@ struct CustomMetricDetailView: View {
                 }
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.top, AppSpacing.sm)
-                .padding(.bottom, 80)
+                .padding(.bottom, usesVerticalBars ? AppSpacing.lg : 80)
             }
         }
         .navigationTitle(definition.name)

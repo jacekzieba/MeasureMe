@@ -1584,3 +1584,5 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "Restoring from iCloud backup..." = "Wiederherstellung aus iCloud-Sicherung...";
 "Rate MeasureMe" = "MeasureMe bewerten";
 "settings.summary.rate" = "Es dauert nur einen Moment und hilft anderen, die App zu finden";
+
+"home.trends.title" = "Trends";

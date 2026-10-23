@@ -24,7 +24,8 @@ extension HomeView {
             .onChange(of: settingsStore.snapshot.homeLayout.layoutData) { _, _ in
                 rebuildDashboardItemsCache()
             }
-            .onChange(of: horizontalSizeClass) { _, _ in
+            // Size class alone is not enough: the trend-chart column also changes the column count.
+            .onChange(of: dashboardColumns) { _, _ in
                 rebuildDashboardItemsCache()
             }
             .onChange(of: isSyncEnabled) { _, _ in

@@ -836,10 +836,8 @@ private extension PhotoView {
                         selectFirstTwoPhotosForUITest()
                     }
                 } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark.circle")
-                        Text(AppLocalization.string("Select"))
-                    }
+                    Label(AppLocalization.string("Select"), systemImage: "checkmark.circle")
+                        .labelStyle(.titleAndIcon)
                 }
                 .foregroundStyle(Color.appAccent)
                 .accessibilityIdentifier("photos.select.mode.toggle")
@@ -855,42 +853,37 @@ private extension PhotoView {
             }
         }
 
-        ToolbarItem(placement: .topBarTrailing) {
-            HStack(spacing: 16) {
-                // Filter button with badge
+        // A group of plain Buttons with Labels, not an HStack: on iPhone Duo the system can only
+        // move standard bar items onto the vertical bar, and it uses the titles in the overflow menu.
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            // Filter button with badge
+            Button {
+                Haptics.selection()
+                showFilters = true
+            } label: {
+                Label(
+                    AppLocalization.string("Open photo filters"),
+                    systemImage: filters.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle"
+                )
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(filters.isActive ? Color.appAccent : .primary)
+            }
+
+            if !viewModel.isSelecting {
                 Button {
                     Haptics.selection()
-                    showFilters = true
+                    showBodyModel = true
                 } label: {
-                    Image(systemName: filters.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(filters.isActive ? Color.appAccent : .primary)
+                    Label(AppLocalization.string("bodyModel.title"), systemImage: "figure.stand")
                 }
-                .accessibilityLabel(AppLocalization.string("Open photo filters"))
+                .accessibilityIdentifier("photos.bodyModel.open")
 
-                if !viewModel.isSelecting {
-                    Button {
-                        Haptics.selection()
-                        showBodyModel = true
-                    } label: {
-                        Image(systemName: "figure.stand")
-                            // The standing-figure glyph is narrower than the other two, which
-                            // left the tap target under the 44pt minimum.
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .accessibilityIdentifier("photos.bodyModel.open")
-                    .accessibilityLabel(AppLocalization.string("bodyModel.title"))
-
-                    Button {
-                        handleAddPhotoTap()
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityIdentifier("photos.add.button")
-                    .accessibilityLabel(AppLocalization.string("Add Photo"))
-
+                Button {
+                    handleAddPhotoTap()
+                } label: {
+                    Label(AppLocalization.string("Add Photo"), systemImage: "plus")
                 }
+                .accessibilityIdentifier("photos.add.button")
             }
         }
     }

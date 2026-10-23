@@ -1586,3 +1586,5 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 "Restoring from iCloud backup..." = "Restaurando desde la copia de seguridad de iCloud...";
 "Rate MeasureMe" = "Valorar MeasureMe";
 "settings.summary.rate" = "Solo lleva un momento y ayuda a otros a encontrar la app";
+
+"home.trends.title" = "Tendencias";

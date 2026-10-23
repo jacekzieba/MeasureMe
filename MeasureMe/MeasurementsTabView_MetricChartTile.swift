@@ -123,9 +123,7 @@ struct MetricChartTile: View {
 
                             Spacer(minLength: 0)
 
-                            NavigationLink {
-                                MetricDetailView(kind: kind)
-                            } label: {
+                            NavigationLink(value: kind) {
                                 Image(systemName: "chevron.right")
                                     .font(.title3)
                                     .foregroundStyle(AppColorRoles.textTertiary)
@@ -163,9 +161,7 @@ struct MetricChartTile: View {
                         }
                         .buttonStyle(LiquidCapsuleButtonStyle())
 
-                        NavigationLink {
-                            MetricDetailView(kind: kind)
-                        } label: {
+                        NavigationLink(value: kind) {
                             Image(systemName: "chevron.right")
                                 .font(.title3)
                                 .foregroundStyle(AppColorRoles.textTertiary)
@@ -211,9 +207,7 @@ struct MetricChartTile: View {
                             )
                         }
 
-                        NavigationLink {
-                            MetricDetailView(kind: kind)
-                        } label: {
+                        NavigationLink(value: kind) {
                             Image(systemName: "chevron.right")
                                 .font(AppTypography.iconMedium)
                                 .foregroundStyle(AppColorRoles.textTertiary)

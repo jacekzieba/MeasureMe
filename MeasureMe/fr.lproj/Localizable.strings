@@ -1584,3 +1584,5 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 "Restoring from iCloud backup..." = "Restauration depuis la sauvegarde iCloud...";
 "Rate MeasureMe" = "Noter MeasureMe";
 "settings.summary.rate" = "Cela prend un instant et aide les autres à trouver l'application";
+
+"home.trends.title" = "Tendances";

@@ -7,28 +7,38 @@ import XCTest
 /// - `app.tabBars` jest puste — pasek zgłasza się jako `segmentedControl`,
 /// - segmenty i „+” nie mają identyfikatorów, wystawiają tylko etykiety, więc dawne
 ///   identyfikatory `tab.*` mapujemy tutaj na etykiety zamiast rozsypywać je po testach.
+///
+/// Na iPhonie Duo (pionowe paski) i przy regular width FabBara nie ma, a pasek jest systemowy —
+/// wtedy te same etykiety szukamy w `app.tabBars`.
 extension XCUIApplication {
     /// Pasek zakładek jako element (dawniej `app.tabBars` + `firstMatch`).
     var appTabBar: XCUIElement {
-        segmentedControls.firstMatch
+        tabBarContainer.firstMatch
     }
 
     /// Przycisk zakładki po dawnym identyfikatorze, np. `tab.home` albo `tab.add`.
     func tabButton(_ identifier: String) -> XCUIElement {
         switch identifier {
         case "tab.home":
-            return segmentedControls.buttons["Home"].firstMatch
+            return tabBarContainer.buttons["Home"].firstMatch
         case "tab.measurements":
-            return segmentedControls.buttons["Measurements"].firstMatch
+            return tabBarContainer.buttons["Measurements"].firstMatch
         case "tab.photos":
-            return segmentedControls.buttons["Photos"].firstMatch
+            return tabBarContainer.buttons["Photos"].firstMatch
         case "tab.settings":
-            return segmentedControls.buttons["Settings"].firstMatch
+            return tabBarContainer.buttons["Settings"].firstMatch
         case "tab.add":
             // „+” jest rodzeństwem segmentów, poza kontrolką — stąd zapytanie po całej aplikacji.
             return buttons["Add"].firstMatch
         default:
             return buttons[identifier].firstMatch
         }
+    }
+
+    private var tabBarContainer: XCUIElementQuery {
+        if !segmentedControls.firstMatch.exists && tabBars.firstMatch.exists {
+            return tabBars
+        }
+        return segmentedControls
     }
 }
