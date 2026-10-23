@@ -866,6 +866,15 @@ struct HomeView: View {
         EmptyView()
     }
 
+    /// Width of one key-metric tile: as many whole tiles as fit at 156 pt or more (at least two),
+    /// sized to fill the carousel exactly. A fixed cap left a sliver of the next tile showing at
+    /// the edge on wider carousels — next to the trend charts on iPhone Duo, or on a Pro Max.
+    static func keyMetricTileWidth(forCarouselWidth width: CGFloat) -> CGFloat {
+        let spacing: CGFloat = 12
+        let count = max(2, Int((width + spacing) / (156 + spacing)))
+        return (width - CGFloat(count - 1) * spacing) / CGFloat(count)
+    }
+
     var keyMetricsModule: some View {
         HomeKeyMetricsCard(
             snapshot: HomeKeyMetricsSnapshot(
@@ -883,8 +892,9 @@ struct HomeView: View {
                 LazyHStack(spacing: 12) {
                     ForEach(ids, id: \.self) { id in
                         keyMetricTile(for: id, definitions: defMap)
-                            .containerRelativeFrame(.horizontal, count: 2, spacing: 12)
-                            .frame(minWidth: 156, maxWidth: 188)
+                            .containerRelativeFrame(.horizontal) { length, _ in
+                                Self.keyMetricTileWidth(forCarouselWidth: length)
+                            }
                     }
                 }
                 .scrollTargetLayout()
