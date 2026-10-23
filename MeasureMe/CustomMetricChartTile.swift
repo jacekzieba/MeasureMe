@@ -2,6 +2,36 @@ import SwiftUI
 import Charts
 import SwiftData
 
+extension EnvironmentValues {
+    /// Set by the Measurements split view (regular width), like `selectMetricDetail`: opening a
+    /// custom metric selects it for the detail column instead of pushing onto the list column.
+    @Entry var selectCustomMetricDetail: (@MainActor (CustomMetricDefinition) -> Void)?
+}
+
+/// Opens a custom metric's detail: selects it when a split view provides
+/// `selectCustomMetricDetail`, otherwise pushes `CustomMetricDetailView`.
+struct CustomMetricDetailLink<Label: View>: View {
+    let definition: CustomMetricDefinition
+    @ViewBuilder let label: () -> Label
+    @Environment(\.selectCustomMetricDetail) private var selectCustomMetricDetail
+
+    var body: some View {
+        if let selectCustomMetricDetail {
+            Button {
+                selectCustomMetricDetail(definition)
+            } label: {
+                label()
+            }
+        } else {
+            NavigationLink {
+                CustomMetricDetailView(definition: definition)
+            } label: {
+                label()
+            }
+        }
+    }
+}
+
 struct CustomMetricChartTile: View {
     let definition: CustomMetricDefinition
     let theme: FeatureTheme
@@ -119,9 +149,7 @@ struct CustomMetricChartTile: View {
 
             Spacer(minLength: 8)
 
-            NavigationLink {
-                CustomMetricDetailView(definition: definition)
-            } label: {
+            CustomMetricDetailLink(definition: definition) {
                 Image(systemName: "chevron.right")
                     .font(.title3)
                     .foregroundStyle(AppColorRoles.textTertiary)
@@ -166,9 +194,7 @@ struct CustomMetricChartTile: View {
                         )
                     }
 
-                    NavigationLink {
-                        CustomMetricDetailView(definition: definition)
-                    } label: {
+                    CustomMetricDetailLink(definition: definition) {
                         Image(systemName: "chevron.right")
                             .font(AppTypography.iconMedium)
                             .foregroundStyle(AppColorRoles.textTertiary)

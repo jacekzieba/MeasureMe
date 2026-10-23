@@ -32,6 +32,8 @@ struct MeasurementsTabView: View {
     @State private var selectedTab: MeasurementsTab = .metrics
     @State private var requestedMetricDetailKind: MetricKind?
     @State private var metricDetailPath: [MetricKind] = []
+    /// A custom metric picked in the split layout; it takes the detail column over `metricDetailPath`.
+    @State private var selectedCustomMetricIdentifier: String?
 
     private let healthAccent = HealthIndicatorPalette.accent
 
@@ -245,7 +247,11 @@ struct MeasurementsTabView: View {
                 // detail over the list rather than into the detail column.
                 measurementsList
                     .environment(\.selectMetricDetail) { kind in
+                        selectedCustomMetricIdentifier = nil
                         metricDetailPath = [kind]
+                    }
+                    .environment(\.selectCustomMetricDetail) { definition in
+                        selectedCustomMetricIdentifier = definition.identifier
                     }
             } detail: {
                 NavigationStack {
@@ -267,7 +273,11 @@ struct MeasurementsTabView: View {
     /// an empty pane.
     @ViewBuilder
     private var regularDetail: some View {
-        if let kind = metricDetailPath.last ?? metricsStore.activeKinds.first {
+        if let identifier = selectedCustomMetricIdentifier,
+           let definition = activeCustomDefinitions.first(where: { $0.identifier == identifier }) {
+            CustomMetricDetailView(definition: definition)
+                .id(identifier)
+        } else if let kind = metricDetailPath.last ?? metricsStore.activeKinds.first {
             MetricDetailView(kind: kind)
                 .id(kind)
         } else {
@@ -610,6 +620,7 @@ struct MeasurementsTabView: View {
 
     private func presentMetricDetail(_ kind: MetricKind, requestID: UUID) {
         requestedMetricDetailKind = kind
+        selectedCustomMetricIdentifier = nil
         metricDetailPath = [kind]
         router.consumeMetricDetailRequest(requestID)
     }
