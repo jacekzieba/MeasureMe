@@ -235,8 +235,9 @@ struct MeasurementsTabView: View {
     }
 
     /// At regular width (an open iPhone Duo) the metric list and the detail sit side by side, like Mail.
-    /// `metricDetailPath` holds the selected metric in both modes, so folding or unfolding the
-    /// device keeps it.
+    /// Both layouts read the same selection — `metricDetailPath` for built-in metrics,
+    /// `selectedCustomMetricIdentifier` for custom ones — so folding or unfolding the device keeps
+    /// the open detail.
     @ViewBuilder
     private var measurementsNavigation: some View {
         if horizontalSizeClass == .regular {
@@ -250,9 +251,7 @@ struct MeasurementsTabView: View {
                         selectedCustomMetricIdentifier = nil
                         metricDetailPath = [kind]
                     }
-                    .environment(\.selectCustomMetricDetail) { definition in
-                        selectedCustomMetricIdentifier = definition.identifier
-                    }
+                    .environment(\.selectCustomMetricDetail, selectCustomMetric)
             } detail: {
                 NavigationStack {
                     regularDetail
@@ -265,18 +264,44 @@ struct MeasurementsTabView: View {
                     .navigationDestination(for: MetricKind.self) { kind in
                         MetricDetailView(kind: kind)
                     }
+                    // Custom metrics go through the shared selection here too, so one picked in
+                    // the split layout is still open after folding.
+                    .environment(\.selectCustomMetricDetail, selectCustomMetric)
+                    .navigationDestination(isPresented: customMetricDetailIsPresented) {
+                        if let definition = selectedCustomDefinition {
+                            CustomMetricDetailView(definition: definition)
+                        }
+                    }
             }
         }
+    }
+
+    private func selectCustomMetric(_ definition: CustomMetricDefinition) {
+        metricDetailPath = []
+        selectedCustomMetricIdentifier = definition.identifier
+    }
+
+    private var selectedCustomDefinition: CustomMetricDefinition? {
+        guard let identifier = selectedCustomMetricIdentifier else { return nil }
+        return activeCustomDefinitions.first { $0.identifier == identifier }
+    }
+
+    private var customMetricDetailIsPresented: Binding<Bool> {
+        Binding(
+            get: { selectedCustomDefinition != nil },
+            set: { isPresented in
+                if !isPresented { selectedCustomMetricIdentifier = nil }
+            }
+        )
     }
 
     /// Before anything is selected the detail column shows the first active metric rather than
     /// an empty pane.
     @ViewBuilder
     private var regularDetail: some View {
-        if let identifier = selectedCustomMetricIdentifier,
-           let definition = activeCustomDefinitions.first(where: { $0.identifier == identifier }) {
+        if let definition = selectedCustomDefinition {
             CustomMetricDetailView(definition: definition)
-                .id(identifier)
+                .id(definition.identifier)
         } else if let kind = metricDetailPath.last ?? metricsStore.activeKinds.first {
             MetricDetailView(kind: kind)
                 .id(kind)
