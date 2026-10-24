@@ -295,8 +295,8 @@ struct MeasurementsTabView: View {
         )
     }
 
-    /// Before anything is selected the detail column shows the first active metric rather than
-    /// an empty pane.
+    /// Before anything is selected the detail column shows the first active metric — built-in,
+    /// or custom when only custom metrics are tracked — rather than an empty pane.
     @ViewBuilder
     private var regularDetail: some View {
         if let definition = selectedCustomDefinition {
@@ -305,6 +305,9 @@ struct MeasurementsTabView: View {
         } else if let kind = metricDetailPath.last ?? metricsStore.activeKinds.first {
             MetricDetailView(kind: kind)
                 .id(kind)
+        } else if let definition = activeCustomDefinitions.first {
+            CustomMetricDetailView(definition: definition)
+                .id(definition.identifier)
         } else {
             ContentUnavailableView(
                 AppLocalization.string("measurements.empty.title"),
