@@ -14,9 +14,6 @@ struct TabBarContainer: View {
     /// Non-nil while the release-notes sheet is up. Lives here rather than in `RootView`
     /// because `AppRouter` — which the sheet's "open it" button drives — is created here.
     @State private var whatsNewRelease: WhatsNewRelease?
-    /// `true`, gdy system kładzie paski pionowo (iPhone Duo). Wtedy FabBar ustępuje systemowemu
-    /// `TabView`, bo tylko systemowy pasek umie przejść na prawą krawędź.
-    @State private var usesVerticalBars = false
     @AppSetting(\.onboarding.hasCompletedOnboarding) private var hasCompletedOnboarding: Bool = false
     @AppSetting(\.experience.lastSeenWhatsNewVersion) private var lastSeenWhatsNewVersion: String = ""
 
@@ -84,19 +81,19 @@ struct TabBarContainer: View {
             .toolbarBackground(.visible, for: .tabBar)
             .toolbarBackground(AppColorRoles.surfaceChrome, for: .tabBar)
             .applyTabBarMinimizeBehaviorIfAvailable()
-            .environment(\.usesVerticalBars, usesVerticalBars)
-            .applyFabBarIfAvailable(selection: $router.selectedTab, isVisible: !usesVerticalBars) {
+            .applyFabBarIfAvailable(selection: $router.selectedTab) {
                 router.presentComposer()
             }
             // `.tint` musi być NAD `.applyFabBarIfAvailable`: FabBar dokłada pasek jako
             // rodzeństwo modyfikowanego widoku, więc tint nałożony pod spodem by go ominął
             // i przycisk „+” zostałby systemowo niebieski.
             .tint(Color.appAccent)
+            // Nad FabBarem i zakładkami: oba czytają `usesVerticalBars` ze środowiska.
+            .provideVerticalBarPlacement()
             .onChange(of: router.selectedTab) { oldTab, newTab in
                 handleSelectedTabChange(oldTab: oldTab, newTab: newTab)
             }
         }
-        .readVerticalBarPlacement(into: $usesVerticalBars)
         .overlay(alignment: .bottom) {
             if shouldForceUITestPendingAddPhotoChooser {
                 VStack(spacing: 0) {
@@ -350,7 +347,9 @@ struct TabBarContainer: View {
 }
 
 extension EnvironmentValues {
-    /// Czy system kładzie paski pionowo przy krawędzi ekranu (iPhone Duo). Ustawia `TabBarContainer`.
+    /// Czy system kładzie paski pionowo przy krawędzi ekranu (iPhone Duo). Wtedy FabBar ustępuje
+    /// systemowemu `TabView`, bo tylko systemowy pasek umie przejść na prawą krawędź.
+    /// Ustawia `TabBarContainer`.
     @Entry var usesVerticalBars: Bool = false
 }
 
@@ -377,17 +376,27 @@ private struct SystemTabBarVisibility: ViewModifier {
 // `toolbarVerticalEdge` istnieje dopiero w SDK iOS 27.1 (Swift 6.4), a CI buduje jeszcze
 // na Xcode 26 — stąd `#if compiler`, a nie samo `#available`.
 #if compiler(>=6.4)
-/// Przepisuje `toolbarVerticalEdge` (iOS 27.1+) do zwykłego `Bool`, który da się trzymać
-/// w `@State` widoku z deployment targetem 18.
+/// Przepisuje `toolbarVerticalEdge` (iOS 27.1+) na `usesVerticalBars` w środowisku.
+///
+/// Wartość liczona jest w `body`, a nie w `onChange` do `@State`: inaczej pierwsza klatka
+/// widziała `false`, zakładki ustawiały systemowy pasek na `.hidden`, a zakładka zamontowana
+/// w tle (np. Ustawienia przy starcie prosto na nich) zostawała potem bez paska.
+///
+/// Po pierwszym pokazaniu pionowych pasków wartość już nie wraca do `false`: przy składaniu
+/// i rozkładaniu Duo `toolbarVerticalEdge` na chwilę bywa `nil`, a przełączanie wtedy FabBara
+/// i widoczności paska w środku przejścia też potrafiło zgubić pasek.
 @available(iOS 27.1, *)
-private struct VerticalBarPlacementReader: ViewModifier {
+private struct VerticalBarPlacementProvider: ViewModifier {
     @Environment(\.toolbarVerticalEdge) private var toolbarVerticalEdge
-    @Binding var usesVerticalBars: Bool
+    @State private var hasShownVerticalBars = false
 
     func body(content: Content) -> some View {
         content
+            .environment(\.usesVerticalBars, toolbarVerticalEdge != nil || hasShownVerticalBars)
             .onChange(of: toolbarVerticalEdge != nil, initial: true) { _, isVertical in
-                usesVerticalBars = isVertical
+                if isVertical {
+                    hasShownVerticalBars = true
+                }
             }
     }
 }
@@ -404,10 +413,10 @@ private extension View {
     }
 
     @ViewBuilder
-    func readVerticalBarPlacement(into usesVerticalBars: Binding<Bool>) -> some View {
+    func provideVerticalBarPlacement() -> some View {
         #if compiler(>=6.4)
         if #available(iOS 27.1, *) {
-            self.modifier(VerticalBarPlacementReader(usesVerticalBars: usesVerticalBars))
+            self.modifier(VerticalBarPlacementProvider())
         } else {
             self
         }
@@ -432,17 +441,33 @@ private extension View {
     /// w pasku, na końcu rzędu. FabBar składa pasek z segmentowanego kontrolek i przycisku FAB
     /// w jednym `UIGlassContainerEffect`, więc wygląd nie zależy już od wersji systemu.
     ///
-    /// `isVisible: false` przy pionowych paskach (iPhone Duo): HIG wymaga tam systemowego paska
+    /// Przy pionowych paskach (iPhone Duo) FabBar się chowa: HIG wymaga tam systemowego paska
     /// przy krawędzi, a FabBar umie tylko dół ekranu.
     @ViewBuilder
     func applyFabBarIfAvailable(
         selection: Binding<AppTab>,
-        isVisible: Bool,
         onCompose: @escaping () -> Void
     ) -> some View {
         if #available(iOS 26.0, *) {
-            self.fabBar(
-                selection: selection,
+            self.modifier(FabBarHost(selection: selection, onCompose: onCompose))
+        } else {
+            self
+        }
+    }
+}
+
+/// FabBar czytający `usesVerticalBars` ze środowiska, żeby od pierwszej klatki wiedział,
+/// czy ma się pokazać.
+@available(iOS 26.0, *)
+private struct FabBarHost: ViewModifier {
+    @Binding var selection: AppTab
+    let onCompose: () -> Void
+    @Environment(\.usesVerticalBars) private var usesVerticalBars
+
+    func body(content: Content) -> some View {
+        content
+            .fabBar(
+                selection: $selection,
                 tabs: [
                     FabBarTab(value: AppTab.home, title: AppLocalization.string("Home"), systemImage: "house.fill"),
                     FabBarTab(value: AppTab.measurements, title: AppLocalization.string("Measurements"), systemImage: "ruler"),
@@ -454,11 +479,8 @@ private extension View {
                     accessibilityLabel: AppLocalization.string("Add"),
                     action: onCompose
                 ),
-                isVisible: isVisible
+                isVisible: !usesVerticalBars
             )
-        } else {
-            self
-        }
     }
 }
 
