@@ -17,4 +17,9 @@ final class HomeKeyMetricTileWidthTests: XCTestCase {
     func testA390PointIPhoneKeepsTwo173PointTiles() {
         XCTAssertEqual(HomeView.keyMetricTileWidth(forCarouselWidth: 358), 173)
     }
+
+    /// Layout passes a zero width before the carousel is sized; a negative frame logs "Invalid frame dimension".
+    func testAZeroWidthCarouselNeverGivesANegativeTile() {
+        XCTAssertEqual(HomeView.keyMetricTileWidth(forCarouselWidth: 0), 0)
+    }
 }

@@ -586,7 +586,8 @@ struct MeasureMeApp: App {
             && !forceNoActiveMetrics
         let requestedPhotoCount = requestedUITestPhotoSeedCount(from: args)
         let effectivePhotoCount = requestedPhotoCount > 0 ? requestedPhotoCount : (isAuditMockMode ? 24 : 0)
-        guard shouldSeedMeasurements || effectivePhotoCount > 0 else { return }
+        let shouldSeedCustomMetric = args.contains(UITestArgument.seedCustomMetric.rawValue)
+        guard shouldSeedMeasurements || effectivePhotoCount > 0 || shouldSeedCustomMetric else { return }
 
         let context = ModelContext(container)
         if args.contains(UITestArgument.activationHub.rawValue) {
@@ -608,6 +609,20 @@ struct MeasureMeApp: App {
                 }
                 context.insert(MetricSample(kind: .weight, value: 80, date: now))
             }
+        }
+
+        if shouldSeedCustomMetric {
+            // A fixed identifier so UI tests can find the tile; enabled the way the Settings toggle does.
+            let identifier = UITestArgument.seededCustomMetricIdentifier
+            let existing = try context.fetchCount(FetchDescriptor<CustomMetricDefinition>(
+                predicate: #Predicate { $0.identifier == identifier }
+            ))
+            if existing == 0 {
+                let definition = CustomMetricDefinition(name: "UI Test Neck", unitLabel: "cm", sfSymbolName: "ruler")
+                definition.identifier = identifier
+                context.insert(definition)
+            }
+            ActiveMetricsStore().setCustomEnabled(true, for: identifier)
         }
 
         if effectivePhotoCount > 0 {

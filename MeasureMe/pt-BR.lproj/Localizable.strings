@@ -1260,7 +1260,7 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 "Visible modules" = "Módulos visíveis";
 "Waist circumference is a direct marker of central fat distribution." = "A circunferência da cintura é um marcador direto da distribuição central da gordura.";
 "Waist-Height Ratio" = "Relação cintura-altura";
-"Weight is total body mass. Body fat % estimates fat as a portion of total weight. Lean body mass is everything except fat." = "Peso é a massa corporal total. A gordura corporal % e estima a gordura como uma porção do peso total. Massa corporal magra é tudo menos gordura.";
+"Weight is total body mass. Body fat % estimates fat as a portion of total weight. Lean body mass is everything except fat." = "Peso é a massa corporal total. O percentual de gordura corporal estima a gordura como uma porção do peso total. Massa corporal magra é tudo menos gordura.";
 "What happens if I set the wrong goal?" = "O que acontece se eu definir a meta errada?";
 "What happens to my data?" = "O que acontece com meus dados?";
 "What is Body Fat Percentage?" = "O que é porcentagem de gordura corporal?";
@@ -1588,3 +1588,10 @@ Os limites diferem entre homens e mulheres devido às diferenças de composiçã
 "settings.summary.rate" = "Leva só um instante e ajuda outras pessoas a encontrar o aplicativo";
 
 "home.trends.title" = "Tendências";
+
+/* Previously missing keys (release check 1.6) */
+"Next milestone" = "Próximo marco";
+"Save entered measurements" = "Salva as medidas inseridas";
+"Open tracked measurements settings" = "Abre os ajustes das medidas acompanhadas";
+"Saved! — %@" = "Salvo! — %@";
+"Send diagnostics to measureme.approve254@passmail.net" = "Enviar diagnóstico para measureme.approve254@passmail.net";

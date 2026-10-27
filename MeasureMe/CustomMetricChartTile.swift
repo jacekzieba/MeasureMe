@@ -3,9 +3,10 @@ import Charts
 import SwiftData
 
 extension EnvironmentValues {
-    /// Set by the Measurements split view (regular width), like `selectMetricDetail`: opening a
-    /// custom metric selects it for the detail column instead of pushing onto the list column.
-    @Entry var selectCustomMetricDetail: (@MainActor (CustomMetricDefinition) -> Void)?
+    /// Set by Measurements (both layouts) and Home's trend column, like `selectMetricDetail`: opening
+    /// a custom metric goes through state the screen owns instead of pushing `CustomMetricDetailView`
+    /// from the tile, whose push would vanish with the tile.
+    @Entry var selectCustomMetricDetail: DetailOpenAction<CustomMetricDefinition>?
 }
 
 /// Opens a custom metric's detail: selects it when a split view provides
@@ -156,6 +157,7 @@ struct CustomMetricChartTile: View {
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("custom.metric.tile.open.\(definition.identifier)")
         }
         .padding(AppSpacing.smmd)
         .background(
@@ -201,6 +203,7 @@ struct CustomMetricChartTile: View {
                             .frame(width: 32, height: 32)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("custom.metric.tile.open.\(definition.identifier)")
                 }
 
                 HStack(alignment: .center, spacing: 14) {

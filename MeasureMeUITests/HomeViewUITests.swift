@@ -189,6 +189,9 @@ final class HomeViewUITests: XCTestCase {
 
         let compareButton = app.buttons["home.recentPhotos.compare.button"].firstMatch
         XCTAssertTrue(compareButton.waitForExistence(timeout: 5), "Recent photos compare card should exist")
+        // Compare stays disabled until the seeded photos have loaded; a tap before that does nothing.
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: compareButton)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 10), .completed, "Compare should enable once photos load")
         scrollToReveal(compareButton, maxSwipes: 8)
         tapVisibleElement(compareButton)
 
@@ -371,13 +374,23 @@ final class HomeViewUITests: XCTestCase {
         return firstFrame.intersection(secondFrame).isNull
     }
 
+    /// Stops once the element is wholly on screen above the bottom tab bar area. `isHittable` alone
+    /// is not enough: the FabBar is a separate layer, so an element under it still reports hittable
+    /// while a tap lands on the bar. Swiping on to the end instead pushed the element off the top of
+    /// short screens such as the folded iPhone Duo.
     private func scrollToReveal(_ element: XCUIElement, maxSwipes: Int) {
         let window = app.windows.element(boundBy: 0)
-        if isPartiallyVisible(element, in: window), element.isHittable { return }
+        func isRevealed() -> Bool {
+            guard element.exists else { return false }
+            var clearArea = window.frame
+            clearArea.size.height -= 120
+            return clearArea.contains(element.frame)
+        }
+        if isRevealed() { return }
 
         for _ in 0..<maxSwipes {
             app.swipeUp()
-            if isPartiallyVisible(element, in: window), element.isHittable {
+            if isRevealed() {
                 return
             }
         }

@@ -1544,3 +1544,10 @@ BMI does not distinguish between muscle and fat mass, so athletes or people with
 "settings.summary.rate" = "Zajmie chwilę i pomoże innym znaleźć aplikację";
 
 "home.trends.title" = "Trendy";
+
+/* Previously missing keys (release check 1.6) */
+"Next milestone" = "Następny kamień milowy";
+"Save entered measurements" = "Zapisuje wprowadzone pomiary";
+"Open tracked measurements settings" = "Otwiera ustawienia śledzonych pomiarów";
+"Saved! — %@" = "Zapisano! — %@";
+"Send diagnostics to measureme.approve254@passmail.net" = "Wyślij diagnostykę na adres measureme.approve254@passmail.net";

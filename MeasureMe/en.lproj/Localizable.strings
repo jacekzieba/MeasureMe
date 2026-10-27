@@ -1592,3 +1592,10 @@ The thresholds differ between males and females due to different body compositio
 "settings.summary.rate" = "It takes a moment and helps others find the app";
 
 "home.trends.title" = "Trends";
+
+/* Previously missing keys (release check 1.6) */
+"Next milestone" = "Next milestone";
+"Save entered measurements" = "Save entered measurements";
+"Open tracked measurements settings" = "Open tracked measurements settings";
+"Saved! — %@" = "Saved! — %@";
+"Send diagnostics to measureme.approve254@passmail.net" = "Send diagnostics to measureme.approve254@passmail.net";

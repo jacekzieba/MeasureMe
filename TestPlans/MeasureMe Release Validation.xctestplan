@@ -49,6 +49,8 @@
     }
   ],
   "defaultOptions" : {
+    "language" : "en",
+    "region" : "US",
     "targetForVariableExpansion" : {
       "containerPath" : "container:MeasureMe.xcodeproj",
       "identifier" : "A3BAF7BB2F27B74C00269A9A",

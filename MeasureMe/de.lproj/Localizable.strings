@@ -1287,7 +1287,7 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "Your data is stored on device and encrypted. MeasureMe works offline by default." = "Deine Daten werden auf dem Gerät gespeichert und verschlüsselt. MeasureMe funktioniert standardmäßig offline.";
 "Your data stays on device. If you choose to export or share, you control where it goes." = "Deine Daten bleiben auf dem Gerät. Wenn du exportierst oder teilst, entscheidest du, wohin sie gehen.";
 "Your top tracked measurements" = "Deine am häufigsten erfassten Messungen";
-"compare.days.apart.one" = "%d Tage auseinander";
+"compare.days.apart.one" = "%d Tag auseinander";
 "compare.days.apart.few" = "%d Tage auseinander";
 "compare.days.apart.many" = "%d Tage auseinander";
 "import.photos.count.one" = "%d Foto";
@@ -1586,3 +1586,10 @@ Die Grenzwerte unterscheiden sich zwischen Männern und Frauen aufgrund ihrer un
 "settings.summary.rate" = "Es dauert nur einen Moment und hilft anderen, die App zu finden";
 
 "home.trends.title" = "Trends";
+
+/* Previously missing keys (release check 1.6) */
+"Next milestone" = "Nächster Meilenstein";
+"Save entered measurements" = "Speichert die eingegebenen Messungen";
+"Open tracked measurements settings" = "Öffnet die Einstellungen der erfassten Messungen";
+"Saved! — %@" = "Gespeichert! — %@";
+"Send diagnostics to measureme.approve254@passmail.net" = "Diagnose an measureme.approve254@passmail.net senden";

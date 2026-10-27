@@ -31,9 +31,7 @@ struct MeasurementsTabView: View {
     // Binding-required state (must stay in View)
     @State private var selectedTab: MeasurementsTab = .metrics
     @State private var requestedMetricDetailKind: MetricKind?
-    @State private var metricDetailPath: [MetricKind] = []
-    /// A custom metric picked in the split layout; it takes the detail column over `metricDetailPath`.
-    @State private var selectedCustomMetricIdentifier: String?
+    @State private var detailSelection = MeasurementsDetailSelection()
 
     private let healthAccent = HealthIndicatorPalette.accent
 
@@ -215,10 +213,13 @@ struct MeasurementsTabView: View {
                 guard let requestID, let kind = router.requestedMetricDetailKind else { return }
                 scheduleMetricDetailPresentation(kind, requestID: requestID)
             }
-            .onChange(of: metricDetailPath) { _, path in
+            .onChange(of: detailSelection.path) { _, path in
                 if path.isEmpty {
                     requestedMetricDetailKind = nil
                 }
+            }
+            .onChange(of: activeCustomIdentifiers) { _, identifiers in
+                detailSelection.dropUntrackedCustomMetrics(activeCustomIdentifiers: identifiers)
             }
             .onChange(of: router.measurementsSectionRequestID) { _, requestID in
                 guard let requestID, let section = router.requestedMeasurementsSection else { return }
@@ -235,23 +236,18 @@ struct MeasurementsTabView: View {
     }
 
     /// At regular width (an open iPhone Duo) the metric list and the detail sit side by side, like Mail.
-    /// Both layouts read the same selection — `metricDetailPath` for built-in metrics,
-    /// `selectedCustomMetricIdentifier` for custom ones — so folding or unfolding the device keeps
-    /// the open detail.
+    /// Both layouts read the same `detailSelection`, so folding or unfolding the device keeps the
+    /// open detail. In both, tiles open details through the environment actions below rather than
+    /// value links: a value link in the split's list column would push over the list, and the
+    /// compact stack's path holds both built-in and custom metrics.
     @ViewBuilder
     private var measurementsNavigation: some View {
         if horizontalSizeClass == .regular {
             // Both columns stay on screen, and no fixed column widths: the system sizes the split
             // around the fold on the Duo's inner display.
             NavigationSplitView(columnVisibility: .constant(.all)) {
-                // Tiles select instead of linking: a value link in the list column would push the
-                // detail over the list rather than into the detail column.
                 measurementsList
-                    .environment(\.selectMetricDetail) { kind in
-                        selectedCustomMetricIdentifier = nil
-                        metricDetailPath = [kind]
-                    }
-                    .environment(\.selectCustomMetricDetail, selectCustomMetric)
+                    .modifier(detailActions)
             } detail: {
                 NavigationStack {
                     regularDetail
@@ -259,55 +255,47 @@ struct MeasurementsTabView: View {
             }
             .navigationSplitViewStyle(.balanced)
         } else {
-            NavigationStack(path: $metricDetailPath) {
+            NavigationStack(path: $detailSelection.path) {
                 measurementsList
-                    .navigationDestination(for: MetricKind.self) { kind in
-                        MetricDetailView(kind: kind)
-                    }
-                    // Custom metrics go through the shared selection here too, so one picked in
-                    // the split layout is still open after folding.
-                    .environment(\.selectCustomMetricDetail, selectCustomMetric)
-                    .navigationDestination(isPresented: customMetricDetailIsPresented) {
-                        if let definition = selectedCustomDefinition {
-                            CustomMetricDetailView(definition: definition)
-                        }
+                    .modifier(detailActions)
+                    .navigationDestination(for: MeasurementsDetailSelection.Route.self) { route in
+                        routeDestination(route)
                     }
             }
         }
     }
 
-    private func selectCustomMetric(_ definition: CustomMetricDefinition) {
-        metricDetailPath = []
-        selectedCustomMetricIdentifier = definition.identifier
-    }
-
-    private var selectedCustomDefinition: CustomMetricDefinition? {
-        guard let identifier = selectedCustomMetricIdentifier else { return nil }
-        return activeCustomDefinitions.first { $0.identifier == identifier }
-    }
-
-    private var customMetricDetailIsPresented: Binding<Bool> {
-        Binding(
-            get: { selectedCustomDefinition != nil },
-            set: { isPresented in
-                if !isPresented { selectedCustomMetricIdentifier = nil }
-            }
+    private var detailActions: MeasurementsDetailActions {
+        MeasurementsDetailActions(
+            openMetric: { detailSelection.openMetric($0) },
+            openCustomMetric: { detailSelection.openCustomMetric($0.identifier) }
         )
     }
 
-    /// Before anything is selected the detail column shows the first active metric — built-in,
-    /// or custom when only custom metrics are tracked — rather than an empty pane.
+    private var activeCustomIdentifiers: [String] {
+        activeCustomDefinitions.map(\.identifier)
+    }
+
+    @ViewBuilder
+    private func routeDestination(_ route: MeasurementsDetailSelection.Route) -> some View {
+        switch route {
+        case .metric(let kind):
+            MetricDetailView(kind: kind)
+        case .customMetric(let identifier):
+            if let definition = activeCustomDefinitions.first(where: { $0.identifier == identifier }) {
+                CustomMetricDetailView(definition: definition)
+            }
+        }
+    }
+
     @ViewBuilder
     private var regularDetail: some View {
-        if let definition = selectedCustomDefinition {
-            CustomMetricDetailView(definition: definition)
-                .id(definition.identifier)
-        } else if let kind = metricDetailPath.last ?? metricsStore.activeKinds.first {
-            MetricDetailView(kind: kind)
-                .id(kind)
-        } else if let definition = activeCustomDefinitions.first {
-            CustomMetricDetailView(definition: definition)
-                .id(definition.identifier)
+        if let route = detailSelection.splitDetail(
+            activeKinds: metricsStore.activeKinds,
+            activeCustomIdentifiers: activeCustomIdentifiers
+        ) {
+            routeDestination(route)
+                .id(route)
         } else {
             ContentUnavailableView(
                 AppLocalization.string("measurements.empty.title"),
@@ -648,8 +636,7 @@ struct MeasurementsTabView: View {
 
     private func presentMetricDetail(_ kind: MetricKind, requestID: UUID) {
         requestedMetricDetailKind = kind
-        selectedCustomMetricIdentifier = nil
-        metricDetailPath = [kind]
+        detailSelection.openMetric(kind)
         router.consumeMetricDetailRequest(requestID)
     }
 
@@ -659,5 +646,17 @@ struct MeasurementsTabView: View {
             guard router.metricDetailRequestID == requestID else { return }
             presentMetricDetail(kind, requestID: requestID)
         }
+    }
+}
+
+/// Hands the tiles the actions that open a metric's detail in the Measurements selection.
+private struct MeasurementsDetailActions: ViewModifier {
+    let openMetric: (MetricKind) -> Void
+    let openCustomMetric: (CustomMetricDefinition) -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\.selectMetricDetail, DetailOpenAction(openMetric))
+            .environment(\.selectCustomMetricDetail, DetailOpenAction(openCustomMetric))
     }
 }

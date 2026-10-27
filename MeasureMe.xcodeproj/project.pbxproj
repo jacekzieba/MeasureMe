@@ -746,7 +746,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = MeasureMe;
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "MeasureMe reads your weight, body fat, height, lean body mass, and waist measurements to display trends and track progress.\n\n";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "MeasureMe reads your weight, body fat, height, lean body mass, and waist measurements to display trends and track progress.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "MeasureMe saves weight, body fat, height, lean body mass, and waist measurements you log on Apple Watch so they stay in sync with Health.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jacek.measureme;
@@ -781,7 +781,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = MeasureMe;
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "MeasureMe reads your weight, body fat, height, lean body mass, and waist measurements to display trends and track progress.\n\n";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "MeasureMe reads your weight, body fat, height, lean body mass, and waist measurements to display trends and track progress.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "MeasureMe saves weight, body fat, height, lean body mass, and waist measurements you log on Apple Watch so they stay in sync with Health.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jacek.measureme;
@@ -1129,7 +1129,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = MeasureMeWatchComplications/MeasureMeWatchComplications.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MeasureMeWatchComplications/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MeasureMeWatchComplications;
@@ -1162,7 +1162,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = MeasureMeWatchComplications/MeasureMeWatchComplications.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MeasureMeWatchComplications/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MeasureMeWatchComplications;

@@ -30,9 +30,7 @@ struct HomeTrendChartsColumn: View {
             .padding(.bottom, bottomPadding)
         }
         .accessibilityIdentifier("home.trendCharts")
-        // `MetricChartTile` links by value; Measurements registers the same destination on its stack.
-        .navigationDestination(for: MetricKind.self) { kind in
-            MetricDetailView(kind: kind)
-        }
+        // `MetricChartTile` links by value and custom tiles open through `selectCustomMetricDetail`;
+        // Home registers both destinations on its root.
     }
 }

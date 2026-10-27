@@ -28,6 +28,7 @@ enum UITestArgument: String {
     case seedMeasurements = "-uiTestSeedMeasurements"
     case seedPhotos = "-uiTestSeedPhotos"
     case seedPhotoMetrics = "-uiTestSeedPhotoMetrics"
+    case seedCustomMetric = "-uiTestSeedCustomMetric"
     case skipMeasurementSeeding = "-uiTestSkipMeasurementSeeding"
     case noActiveMetrics = "-uiTestNoActiveMetrics"
     case profileName = "-uiTestProfileName"
@@ -139,6 +140,9 @@ extension UITestArgument {
     nonisolated static var shouldSimulateTrialActivation: Bool {
         isPresent(.simulateTrialActivation) || environmentFlag("UI_TEST_SIMULATE_TRIAL_ACTIVATION")
     }
+
+    /// Identifier of the custom metric `-uiTestSeedCustomMetric` creates, so UI tests can find its tile.
+    nonisolated static let seededCustomMetricIdentifier = "custom_uitest_neck"
 
     /// Returns the string value following the given flag, e.g. `-uiTestSeedPhotos 24` → `"24"`.
     ///

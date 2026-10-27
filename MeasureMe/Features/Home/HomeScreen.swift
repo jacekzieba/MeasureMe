@@ -86,6 +86,9 @@ struct HomeView: View {
     @State var shouldPromptToOpenHealthSettings: Bool = false
     @State var selectedPhotoForFullScreen: PhotoEntry?
     @State var selectedHomeComparePair: HomeComparePair?
+    /// A custom metric opened from the trend column. Kept on Home, not in the column, so the detail
+    /// stays open when the column disappears (folding iPhone Duo).
+    @State var trendCustomMetricDetail: CustomMetricDefinition?
 
     // Dane HealthKit / pomiarów oraz pochodne flagi zdjęć – teraz w HomeViewModel.
     var latestBodyFat: Double? {
@@ -545,6 +548,14 @@ struct HomeView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(viewModel.scrollOffset < -16 ? .visible : .hidden, for: .navigationBar)
+        // Trend chart tiles link by value. Registered on the root, not on the trend column, so an
+        // open detail survives the column disappearing (Duo folding, key metrics changing).
+        .navigationDestination(for: MetricKind.self) { kind in
+            MetricDetailView(kind: kind)
+        }
+        .navigationDestination(item: $trendCustomMetricDetail) { definition in
+            CustomMetricDetailView(definition: definition)
+        }
         .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: viewModel.isLastPhotosSectionMounted)
         .animation(AppMotion.animation(AppMotion.sectionEnter, enabled: shouldAnimate), value: viewModel.isHealthSectionMounted)
     }
@@ -571,6 +582,7 @@ struct HomeView: View {
                     unitsSystem: unitsSystem,
                     bottomPadding: homeBottomPadding
                 )
+                .environment(\.selectCustomMetricDetail, DetailOpenAction { trendCustomMetricDetail = $0 })
             }
             .arrangementViewStyle(.split.axes(.horizontal))
         } else {
@@ -872,7 +884,7 @@ struct HomeView: View {
     static func keyMetricTileWidth(forCarouselWidth width: CGFloat) -> CGFloat {
         let spacing: CGFloat = 12
         let count = max(2, Int((width + spacing) / (156 + spacing)))
-        return (width - CGFloat(count - 1) * spacing) / CGFloat(count)
+        return max(0, (width - CGFloat(count - 1) * spacing) / CGFloat(count))
     }
 
     var keyMetricsModule: some View {

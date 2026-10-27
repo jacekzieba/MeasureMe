@@ -1,0 +1,3 @@
+/* HealthKit permission prompts on Apple Watch */
+"NSHealthShareUsageDescription" = "MeasureMe lê seu peso, gordura corporal, altura, massa magra e cintura para mostrar tendências e acompanhar seu progresso.";
+"NSHealthUpdateUsageDescription" = "MeasureMe salva no Saúde o peso, a gordura corporal, a altura, a massa magra e a cintura que você registra no Apple Watch para mantê-los sincronizados.";

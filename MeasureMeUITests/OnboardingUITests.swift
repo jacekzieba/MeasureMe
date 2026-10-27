@@ -165,7 +165,13 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertTrue(skipButton.exists, "Boosters step should still allow skipping")
     }
 
-    func testBoostersContentFitsAboveContinueButton() {
+    func testBoostersContentFitsAboveContinueButton() throws {
+        // Screens under 700 pt tall (iPhone SE, the folded iPhone Duo) cannot fit the whole boosters
+        // card above Continue; there the card scrolls and the privacy card is reached by scrolling.
+        try XCTSkipIf(
+            app.windows.firstMatch.frame.height < 700,
+            "Short screens scroll the boosters card instead of fitting it above Continue"
+        )
         advanceToBoostersStep()
 
         let privacyCard = app.descendants(matching: .any)["onboarding.privacy.card"].firstMatch

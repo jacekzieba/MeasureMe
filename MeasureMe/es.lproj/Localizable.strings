@@ -1260,7 +1260,7 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 "Visible modules" = "Módulos visibles";
 "Waist circumference is a direct marker of central fat distribution." = "La circunferencia de la cintura es un marcador directo de la distribución central de la grasa.";
 "Waist-Height Ratio" = "Relación cintura-altura";
-"Weight is total body mass. Body fat % estimates fat as a portion of total weight. Lean body mass is everything except fat." = "El peso es la masa corporal total. Grasa corporal % eestima la grasa como una porción del peso total. La masa corporal magra es todo menos grasa.";
+"Weight is total body mass. Body fat % estimates fat as a portion of total weight. Lean body mass is everything except fat." = "El peso es la masa corporal total. El porcentaje de grasa corporal estima la grasa como una porción del peso total. La masa corporal magra es todo menos grasa.";
 "What happens if I set the wrong goal?" = "¿Qué pasa si establezco el objetivo equivocado?";
 "What happens to my data?" = "¿Qué pasa con mis datos?";
 "What is Body Fat Percentage?" = "¿Qué es el porcentaje de grasa corporal?";
@@ -1588,3 +1588,10 @@ Los umbrales difieren entre hombres y mujeres debido a las distintas composicion
 "settings.summary.rate" = "Solo lleva un momento y ayuda a otros a encontrar la app";
 
 "home.trends.title" = "Tendencias";
+
+/* Previously missing keys (release check 1.6) */
+"Next milestone" = "Próximo hito";
+"Save entered measurements" = "Guarda las mediciones introducidas";
+"Open tracked measurements settings" = "Abre los ajustes de las mediciones registradas";
+"Saved! — %@" = "¡Guardado! — %@";
+"Send diagnostics to measureme.approve254@passmail.net" = "Enviar el diagnóstico a measureme.approve254@passmail.net";

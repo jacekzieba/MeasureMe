@@ -8,8 +8,9 @@ import XCTest
 /// - segmenty i „+” nie mają identyfikatorów, wystawiają tylko etykiety, więc dawne
 ///   identyfikatory `tab.*` mapujemy tutaj na etykiety zamiast rozsypywać je po testach.
 ///
-/// Na iPhonie Duo (pionowe paski) i przy regular width FabBara nie ma, a pasek jest systemowy —
-/// wtedy te same etykiety szukamy w `app.tabBars`.
+/// Przy regular width FabBara nie ma, a pasek jest systemowy — wtedy te same etykiety szukamy
+/// w `app.tabBars`. Na iPhonie Duo systemowy pasek stoi pionowo i zgłasza się jako część
+/// `toolbar`, nie `tabBar`. Który z tych przypadków zachodzi, mówi marker układu aplikacji.
 extension XCUIApplication {
     /// Pasek zakładek jako element (dawniej `app.tabBars` + `firstMatch`).
     var appTabBar: XCUIElement {
@@ -36,8 +37,26 @@ extension XCUIApplication {
     }
 
     private var tabBarContainer: XCUIElementQuery {
-        if !segmentedControls.firstMatch.exists && tabBars.firstMatch.exists {
-            return tabBars
+        // From iOS 26 the app reports its layout (`uitest.layout.<regular|compact>.<verticalBars|bottomBar>`).
+        // Trusting it avoids picking a segmented control from the screen's content (e.g. a chart range
+        // picker) as the FabBar, and does not depend on the app language.
+        let marker = descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH 'uitest.layout.'"))
+            .firstMatch
+        if marker.exists {
+            let layout = marker.identifier
+            if layout.hasSuffix(".verticalBars") {
+                return toolbars
+            }
+            return layout.contains(".regular.") ? tabBars : segmentedControls
+        }
+        if !segmentedControls.firstMatch.exists {
+            if tabBars.firstMatch.exists {
+                return tabBars
+            }
+            if toolbars.buttons["Home"].exists {
+                return toolbars
+            }
         }
         return segmentedControls
     }

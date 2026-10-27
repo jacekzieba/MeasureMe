@@ -316,6 +316,7 @@ struct MetricDetailView: View {
 
     private var detailListNavigation: some View {
         detailListBase
+        .uiTestMarker("metric.detail.\(kind.rawValue)")
         .navigationTitle(kind.title)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {

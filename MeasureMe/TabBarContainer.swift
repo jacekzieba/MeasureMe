@@ -370,6 +370,11 @@ private struct SystemTabBarVisibility: ViewModifier {
                 horizontalSizeClass == .compact && !usesVerticalBars ? .hidden : .automatic,
                 for: .tabBar
             )
+            // UI testy nie zmienią pozycji Duo, więc czytają stąd, w jakim układzie działają.
+            .uiTestMarker(
+                "uitest.layout.\(horizontalSizeClass == .regular ? "regular" : "compact")"
+                    + ".\(usesVerticalBars ? "verticalBars" : "bottomBar")"
+            )
     }
 }
 

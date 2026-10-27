@@ -37,7 +37,7 @@ final class SettingsViewUITests: XCTestCase {
         homeRow.tap()
         XCTAssertTrue(app.navigationBars.staticTexts["Home"].firstMatch.waitForExistence(timeout: 5), "Home detail should open")
 
-        app.navigationBars.buttons.firstMatch.tap()
+        tapBack()
         let metricsRow = app.staticTexts["Metrics"].firstMatch
         scrollToReveal(metricsRow)
         XCTAssertTrue(metricsRow.waitForExistence(timeout: 5), "Back from Home should return to Settings overview")
@@ -45,7 +45,7 @@ final class SettingsViewUITests: XCTestCase {
         metricsRow.tap()
         XCTAssertTrue(app.navigationBars.staticTexts["Tracked measurements"].firstMatch.waitForExistence(timeout: 5), "Tracked measurements should open")
 
-        app.navigationBars.buttons.firstMatch.tap()
+        tapBack()
         scrollToReveal(metricsRow)
         XCTAssertTrue(app.staticTexts["Metrics"].firstMatch.waitForExistence(timeout: 5), "Settings overview should remain visible after returning from Metrics")
         XCTAssertFalse(app.navigationBars.staticTexts["Tracked measurements"].firstMatch.exists, "Tracked measurements detail should be dismissed after going back")
@@ -86,7 +86,8 @@ final class SettingsViewUITests: XCTestCase {
             app.alerts.firstMatch.waitForExistence(timeout: 3),
             "Confirmation alert should appear while the Data screen is still visible"
         )
-        XCTAssertTrue(app.navigationBars.staticTexts["Data"].firstMatch.exists, "Person should still be on the Data screen")
+        // The row that raised the alert, not the title: on a short screen scrolling collapses the title.
+        XCTAssertTrue(deleteAll.exists, "Person should still be on the Data screen")
         app.alerts.buttons["Cancel"].firstMatch.tap()
     }
 
@@ -236,7 +237,7 @@ final class SettingsViewUITests: XCTestCase {
         healthRow.tap()
 
         XCTAssertTrue(app.navigationBars.staticTexts["Health"].firstMatch.waitForExistence(timeout: 5), "Health detail should open from search")
-        app.navigationBars.buttons.firstMatch.tap()
+        tapBack()
 
         XCTAssertTrue(searchField.waitForExistence(timeout: 5), "Back from searched detail should return to Settings overview")
         XCTAssertTrue(app.staticTexts["Home"].firstMatch.waitForExistence(timeout: 5), "Settings overview should be visible after returning from searched detail")
@@ -379,6 +380,16 @@ final class SettingsViewUITests: XCTestCase {
         XCTFail("Settings overview should become ready before interacting with the screen. Debug tree: \(app.debugDescription)")
     }
 
+    /// On iPhone Duo the system Back button sits on the vertical toolbar, not in the navigation bar.
+    private func tapBack() {
+        let verticalBack = app.buttons["BackButton"].firstMatch
+        if verticalBack.exists {
+            verticalBack.tap()
+        } else {
+            app.navigationBars.buttons.firstMatch.tap()
+        }
+    }
+
     private func openDataSettings() {
         tapSettingsTab()
         let dataRowLabel = app.staticTexts["Data"].firstMatch
@@ -393,7 +404,7 @@ final class SettingsViewUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 5), "\(rowTitle) row should exist in Settings")
         row.tap()
         XCTAssertTrue(app.navigationBars.staticTexts[navigationTitle].firstMatch.waitForExistence(timeout: 5), "\(navigationTitle) detail should open")
-        app.navigationBars.buttons.firstMatch.tap()
+        tapBack()
         XCTAssertTrue(app.staticTexts[rowTitle].firstMatch.waitForExistence(timeout: 5), "Back from \(navigationTitle) should return to Settings overview")
     }
 

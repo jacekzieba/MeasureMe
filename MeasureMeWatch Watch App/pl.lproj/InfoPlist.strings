@@ -1,0 +1,3 @@
+/* HealthKit permission prompts on Apple Watch */
+"NSHealthShareUsageDescription" = "MeasureMe odczytuje wagę, tkankę tłuszczową, wzrost, beztłuszczową masę ciała i obwód talii, aby pokazywać trendy i śledzić postępy.";
+"NSHealthUpdateUsageDescription" = "MeasureMe zapisuje w aplikacji Zdrowie wagę, tkankę tłuszczową, wzrost, beztłuszczową masę ciała i obwód talii dodane na Apple Watch, aby dane były zsynchronizowane.";

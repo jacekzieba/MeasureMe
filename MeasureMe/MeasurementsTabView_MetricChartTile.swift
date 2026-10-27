@@ -5,10 +5,30 @@ import Accessibility
 
 // MARK: - MetricDetailLink
 
+/// An action stored in the environment, compared as always equal so that a closure rebuilt on
+/// every `body` does not invalidate every view reading it. Sound only while each instance does
+/// the same thing — here, writing to the same `@State` of the screen that provides it.
+struct DetailOpenAction<Value>: Equatable {
+    private let open: @MainActor (Value) -> Void
+
+    init(_ open: @escaping @MainActor (Value) -> Void) {
+        self.open = open
+    }
+
+    @MainActor
+    func callAsFunction(_ value: Value) {
+        open(value)
+    }
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        true
+    }
+}
+
 extension EnvironmentValues {
-    /// Set by the Measurements split view (regular width): opening a metric selects it for the
-    /// detail column instead of pushing onto the column the tile sits in.
-    @Entry var selectMetricDetail: (@MainActor (MetricKind) -> Void)?
+    /// Set by Measurements (both layouts): opening a metric goes through its shared selection
+    /// instead of pushing onto the column the tile sits in.
+    @Entry var selectMetricDetail: DetailOpenAction<MetricKind>?
 }
 
 /// Opens a metric's detail: selects it when a split view provides `selectMetricDetail`,

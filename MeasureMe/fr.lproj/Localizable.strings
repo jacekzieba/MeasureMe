@@ -1586,3 +1586,10 @@ Les seuils diffèrent entre les hommes et les femmes en raison de différences d
 "settings.summary.rate" = "Cela prend un instant et aide les autres à trouver l'application";
 
 "home.trends.title" = "Tendances";
+
+/* Previously missing keys (release check 1.6) */
+"Next milestone" = "Prochain palier";
+"Save entered measurements" = "Enregistre les mesures saisies";
+"Open tracked measurements settings" = "Ouvre les réglages des mesures suivies";
+"Saved! — %@" = "Enregistré ! — %@";
+"Send diagnostics to measureme.approve254@passmail.net" = "Envoyer le diagnostic à measureme.approve254@passmail.net";

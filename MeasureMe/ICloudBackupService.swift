@@ -90,6 +90,8 @@ enum ICloudBackupService {
     /// Photos fetched and handed to a background task at a time: few enough to keep memory flat and
     /// the main actor free, since each hand-off gives it back to the UI.
     private nonisolated static let photoTransferChunkSize = 10
+    /// How much restored photo data is saved at once on the main actor.
+    private nonisolated static let restoreSaveThresholdBytes = 4_000_000
     private nonisolated static let staleWorkInProgressAge: TimeInterval = 3_600
     private static let restoreCoordinator = RestoreCoordinator()
 
@@ -594,6 +596,11 @@ enum ICloudBackupService {
                     }
                 }.value
 
+                // SwiftData models live on the main actor here, so inserting stays on it. Saving about
+                // 4 MB at a time and yielding in between keeps each main-thread slice short (a whole
+                // batch of full-size photos froze the UI for up to a second and a half) without
+                // refreshing every photo query after each single photo.
+                var unsavedBytes = 0
                 for photo in restoredBatch {
                     context.insert(PhotoEntry(
                         imageData: photo.imageData,
@@ -604,9 +611,17 @@ enum ICloudBackupService {
                             MetricValueSnapshot(metricRawValue: $0.metricRawValue, value: $0.value, unit: $0.unit)
                         }
                     ))
+                    unsavedBytes += photo.imageData.count + (photo.thumbnailData?.count ?? 0)
+                    if unsavedBytes >= Self.restoreSaveThresholdBytes {
+                        try context.save()
+                        unsavedBytes = 0
+                        await Task.yield()
+                    }
                 }
-
-                try context.save()
+                if unsavedBytes > 0 {
+                    try context.save()
+                    await Task.yield()
+                }
             }
 
             await MainActor.run { restoreSettings(payload.settingsEntries) }

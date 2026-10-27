@@ -120,6 +120,7 @@ struct CustomMetricDetailView: View {
                 .padding(.bottom, usesVerticalBars ? AppSpacing.lg : 80)
             }
         }
+        .uiTestMarker("custom.metric.detail.\(definition.identifier)")
         .navigationTitle(definition.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)

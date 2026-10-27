@@ -196,14 +196,7 @@ struct HomeRecentPhotosCard: View {
             return AppLocalization.string("home.photos.first.title")
         }
         let days = max(Calendar.current.dateComponents([.day], from: olderDate, to: latestDate).day ?? 0, 0)
-        return FlowLocalization.app(
-            "\(days) days apart",
-            "\(days) dni roznicy",
-            "\(days) dias de diferencia",
-            "\(days) Tage Abstand",
-            "\(days) jours d'ecart",
-            "\(days) dias de intervalo"
-        )
+        return AppLocalization.plural("compare.days.apart", days)
     }
 
     private var progressDateRangeText: String {

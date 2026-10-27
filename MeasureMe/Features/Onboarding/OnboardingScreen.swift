@@ -1116,15 +1116,20 @@ struct OnboardingView: View {
                         Haptics.selection()
                         rhythmWeekday = weekday
                     } label: {
-                        Text(symbols[(weekday - 1) % symbols.count])
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundStyle(isSelected ? AppColorRoles.textOnAccent : AppColorRoles.textSecondary)
-                            .frame(width: 38, height: 38)
-                            .background(
-                                Circle()
-                                    .fill(isSelected ? Color.appAccent : AppColorRoles.surfaceInteractive)
-                                    .overlay(Circle().stroke(isSelected ? Color.clear : AppColorRoles.borderSubtle, lineWidth: 1))
+                        // The circle sets the size and the letter sits on it. Up to 38 pt, smaller on
+                        // narrow cards (iPhone SE, folded iPhone Duo): seven fixed 38 pt circles
+                        // widened the whole step past the screen edge.
+                        Circle()
+                            .fill(isSelected ? Color.appAccent : AppColorRoles.surfaceInteractive)
+                            .overlay(Circle().stroke(isSelected ? Color.clear : AppColorRoles.borderSubtle, lineWidth: 1))
+                            .aspectRatio(1, contentMode: .fit)
+                            .frame(minWidth: 28, maxWidth: 38)
+                            .overlay(
+                                Text(symbols[(weekday - 1) % symbols.count])
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .foregroundStyle(isSelected ? AppColorRoles.textOnAccent : AppColorRoles.textSecondary)
                             )
+                            .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity)
@@ -1145,32 +1150,46 @@ struct OnboardingView: View {
                 .font(AppTypography.captionEmphasis)
                 .foregroundStyle(AppColorRoles.textSecondary)
 
-            HStack(spacing: 8) {
-                ForEach(options, id: \.hour) { option in
-                    let isSelected = rhythmHour == option.hour
-                    Button {
-                        Haptics.selection()
-                        rhythmHour = option.hour
-                    } label: {
-                        Text(option.label)
-                            .font(AppTypography.captionEmphasis)
-                            .foregroundStyle(isSelected ? AppColorRoles.textOnAccent : AppColorRoles.textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                Capsule(style: .continuous)
-                                    .fill(isSelected ? Color.appAccent : AppColorRoles.surfaceInteractive)
-                                    .overlay(Capsule().stroke(isSelected ? Color.clear : AppColorRoles.borderSubtle, lineWidth: 1))
-                            )
+            // Three chips in a row when their labels fit, otherwise stacked: on narrow cards (iPhone SE,
+            // folded iPhone Duo) a row cut "Morning 9:00" down to "Morning 9:…".
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    ForEach(options, id: \.hour) { option in
+                        rhythmTimeChip(hour: option.hour, label: option.label)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("onboarding.rhythm.time.\(option.hour)")
+                }
+                VStack(spacing: 8) {
+                    ForEach(options, id: \.hour) { option in
+                        rhythmTimeChip(hour: option.hour, label: option.label)
+                    }
                 }
             }
         }
+    }
+
+    private func rhythmTimeChip(hour: Int, label: String) -> some View {
+        let isSelected = rhythmHour == hour
+        return Button {
+            Haptics.selection()
+            rhythmHour = hour
+        } label: {
+            Text(label)
+                .font(AppTypography.captionEmphasis)
+                .foregroundStyle(isSelected ? AppColorRoles.textOnAccent : AppColorRoles.textPrimary)
+                .lineLimit(1)
+                // Never squeezed: the row only wins `ViewThatFits` when every label fits whole.
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(isSelected ? Color.appAccent : AppColorRoles.surfaceInteractive)
+                        .overlay(Capsule().stroke(isSelected ? Color.clear : AppColorRoles.borderSubtle, lineWidth: 1))
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("onboarding.rhythm.time.\(hour)")
     }
 
     private var rhythmPrePromptCard: some View {

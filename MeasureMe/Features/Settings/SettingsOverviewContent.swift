@@ -197,6 +197,9 @@ struct SettingsOverviewSections: View {
                     onRateApp()
                 }
             }
+            // A container keeps the rows' own identifiers; without it the card's identifier
+            // replaced every row's (`settings.row.*`) in UI tests on iOS 27.
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("settings.section.account")
         }
         .settingsOverviewListStyle()
@@ -217,6 +220,7 @@ struct SettingsOverviewSections: View {
                 SettingsRowDivider()
                 SettingsOverviewRouteRow(route: .experience, title: AppLocalization.string("Appearance, animations and haptics"), subtitle: snapshot.experienceSummary, systemImage: "circle.lefthalf.filled.inverse", accessibilityIdentifier: "settings.row.experience", selectedRoute: selectedRoute, onOpenRoute: onOpenRoute)
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("settings.section.setup")
         }
         .settingsOverviewListStyle()
@@ -233,6 +237,7 @@ struct SettingsOverviewSections: View {
                 SettingsRowDivider()
                 SettingsOverviewRouteRow(route: .indicators, title: AppLocalization.string("Indicators"), subtitle: snapshot.indicatorsSummary, systemImage: "slider.horizontal.3", accessibilityIdentifier: "settings.row.indicators", selectedRoute: selectedRoute, onOpenRoute: onOpenRoute)
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("settings.section.measurements")
         }
         .settingsOverviewListStyle()
@@ -245,6 +250,7 @@ struct SettingsOverviewSections: View {
             SettingsCard(tint: FeatureTheme.premium.softTint) {
                 SettingsOverviewRouteRow(route: .aiInsights, title: AppLocalization.string("AI Insights"), subtitle: snapshot.aiSummary, systemImage: "sparkles", accessibilityIdentifier: "settings.row.ai", selectedRoute: selectedRoute, onOpenRoute: onOpenRoute)
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("settings.section.insights")
         }
         .settingsOverviewListStyle()
@@ -257,6 +263,7 @@ struct SettingsOverviewSections: View {
             SettingsCard(tint: healthTheme.softTint) {
                 SettingsOverviewRouteRow(route: .health, title: AppLocalization.string("Health"), subtitle: snapshot.healthSummary, systemImage: "heart.fill", accessibilityIdentifier: "settings.row.health", selectedRoute: selectedRoute, onOpenRoute: onOpenRoute)
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("settings.section.health")
         }
         .settingsOverviewListStyle()
@@ -273,6 +280,7 @@ struct SettingsOverviewSections: View {
                 SettingsRowDivider()
                 SettingsOverviewRouteRow(route: .about, title: AppLocalization.string("About"), subtitle: AppLocalization.string("About MeasureMe"), systemImage: "info.circle", accessibilityIdentifier: "settings.row.about", selectedRoute: selectedRoute, onOpenRoute: onOpenRoute)
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("settings.section.support")
         }
         .settingsOverviewListStyle()
@@ -339,6 +347,7 @@ struct SettingsOverviewSections: View {
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("settings.section.app")
         }
         .settingsOverviewListStyle()

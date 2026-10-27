@@ -19,57 +19,69 @@ extension MetricDetailView {
 
             chartLegendRow
 
-            HStack(spacing: 12) {
-                Button {
-                    showGoalSheet = true
-                } label: {
-                    secondaryActionCard(
-                        title: AppLocalization.string("Goal"),
-                        subtitle: currentGoal.map { valueString($0.targetValue) },
-                        icon: "target",
-                        color: measurementsTheme.accent
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("metric.detail.goal")
-                .accessibilityLabel(currentGoal == nil ? AppLocalization.string("accessibility.goal.set") : AppLocalization.string("accessibility.goal.update"))
-                .accessibilityHint(AppLocalization.string("accessibility.goal.define"))
-
-                Button {
-                    withAnimation(.easeInOut(duration: 0.18)) {
-                        showTrendline.toggle()
-                    }
-                    Haptics.selection()
-                } label: {
-                    secondaryActionCard(
-                        title: AppLocalization.string("Trend"),
-                        icon: "chart.line.uptrend.xyaxis",
-                        color: AppColorRoles.stateSuccess,
-                        isActive: showTrendline
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("metric.detail.trend")
-                .accessibilityLabel(AppLocalization.string("accessibility.trendline"))
-                .accessibilityValue(showTrendline ? AppLocalization.string("accessibility.visible") : AppLocalization.string("accessibility.hidden"))
-                .accessibilityHint(AppLocalization.string("accessibility.trendline.toggle"))
-
-                Button {
-                    showCompareSheet = true
-                } label: {
-                    secondaryActionCard(
-                        title: AppLocalization.string("metric.compare.title"),
-                        icon: "square.stack.3d.up",
-                        color: AppColorRoles.compareAfter,
-                        isActive: isComparisonActive
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("metric.detail.compare")
-                .accessibilityLabel(AppLocalization.string("metric.compare.button"))
-                .accessibilityValue(compareActionValueText)
-                .accessibilityHint(AppLocalization.string("metric.compare.button.hint"))
+            // When three cards side by side would truncate their titles (the narrower detail
+            // column of the split view on iPhone Duo), all three put the icon above the title.
+            ViewThatFits(in: .horizontal) {
+                secondaryActions(stacked: false)
+                secondaryActions(stacked: true)
             }
+        }
+    }
+
+    func secondaryActions(stacked: Bool) -> some View {
+        HStack(spacing: 12) {
+            Button {
+                showGoalSheet = true
+            } label: {
+                secondaryActionCard(
+                    title: AppLocalization.string("Goal"),
+                    subtitle: currentGoal.map { valueString($0.targetValue) },
+                    icon: "target",
+                    color: measurementsTheme.accent,
+                    stacked: stacked
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("metric.detail.goal")
+            .accessibilityLabel(currentGoal == nil ? AppLocalization.string("accessibility.goal.set") : AppLocalization.string("accessibility.goal.update"))
+            .accessibilityHint(AppLocalization.string("accessibility.goal.define"))
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    showTrendline.toggle()
+                }
+                Haptics.selection()
+            } label: {
+                secondaryActionCard(
+                    title: AppLocalization.string("Trend"),
+                    icon: "chart.line.uptrend.xyaxis",
+                    color: AppColorRoles.stateSuccess,
+                    isActive: showTrendline,
+                    stacked: stacked
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("metric.detail.trend")
+            .accessibilityLabel(AppLocalization.string("accessibility.trendline"))
+            .accessibilityValue(showTrendline ? AppLocalization.string("accessibility.visible") : AppLocalization.string("accessibility.hidden"))
+            .accessibilityHint(AppLocalization.string("accessibility.trendline.toggle"))
+
+            Button {
+                showCompareSheet = true
+            } label: {
+                secondaryActionCard(
+                    title: AppLocalization.string("metric.compare.title"),
+                    icon: "square.stack.3d.up",
+                    color: AppColorRoles.compareAfter,
+                    isActive: isComparisonActive,
+                    stacked: stacked
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("metric.detail.compare")
+            .accessibilityLabel(AppLocalization.string("metric.compare.button"))
+            .accessibilityValue(compareActionValueText)
+            .accessibilityHint(AppLocalization.string("metric.compare.button.hint"))
         }
     }
 
@@ -79,31 +91,33 @@ extension MetricDetailView {
         icon: String,
         color: Color,
         isActive: Bool = true,
-        showsChevron: Bool = false
+        showsChevron: Bool = false,
+        stacked: Bool = false
     ) -> some View {
-        HStack(spacing: 7) {
-            Image(systemName: icon)
-                .font(AppTypography.iconMedium)
-                .foregroundStyle(isActive ? color : AppColorRoles.textSecondary)
-                .frame(width: 30, height: 30)
-                .background(
-                    Circle()
-                        .fill(
-                            isActive
-                                ? color.opacity(colorScheme == .dark ? 0.18 : 0.12)
-                                : AppColorRoles.surfacePrimary.opacity(colorScheme == .dark ? 0.82 : 0.96)
-                        )
-                )
-                .overlay(
-                    Circle()
-                        .stroke(
-                            isActive
-                                ? color.opacity(colorScheme == .dark ? 0.34 : 0.16)
-                                : AppColorRoles.borderSubtle.opacity(colorScheme == .dark ? 0.72 : 0.9),
-                            lineWidth: 1
-                        )
-                )
-            VStack(alignment: .leading, spacing: 2) {
+        let iconBadge = Image(systemName: icon)
+            .font(AppTypography.iconMedium)
+            .foregroundStyle(isActive ? color : AppColorRoles.textSecondary)
+            .frame(width: 30, height: 30)
+            .background(
+                Circle()
+                    .fill(
+                        isActive
+                            ? color.opacity(colorScheme == .dark ? 0.18 : 0.12)
+                            : AppColorRoles.surfacePrimary.opacity(colorScheme == .dark ? 0.82 : 0.96)
+                    )
+            )
+            .overlay(
+                Circle()
+                    .stroke(
+                        isActive
+                            ? color.opacity(colorScheme == .dark ? 0.34 : 0.16)
+                            : AppColorRoles.borderSubtle.opacity(colorScheme == .dark ? 0.72 : 0.9),
+                        lineWidth: 1
+                    )
+            )
+
+        func labels(alignment: HorizontalAlignment) -> some View {
+            VStack(alignment: alignment, spacing: 2) {
                 Text(title)
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColorRoles.textPrimary)
@@ -120,11 +134,25 @@ extension MetricDetailView {
                         .allowsTightening(true)
                 }
             }
-            .layoutPriority(1)
-            if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(AppTypography.micro)
-                    .foregroundStyle(AppColorRoles.textTertiary)
+        }
+
+        return Group {
+            if stacked {
+                VStack(spacing: 4) {
+                    iconBadge
+                    labels(alignment: .center)
+                }
+            } else {
+                HStack(spacing: 7) {
+                    iconBadge
+                    labels(alignment: .leading)
+                        .layoutPriority(1)
+                    if showsChevron {
+                        Image(systemName: "chevron.right")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColorRoles.textTertiary)
+                    }
+                }
             }
         }
         .frame(maxWidth: .infinity, minHeight: 44)
