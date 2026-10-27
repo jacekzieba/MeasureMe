@@ -377,6 +377,22 @@ struct PhotoGridView: View {
         gridLayoutMode.columnCount(for: horizontalSizeClass)
     }
 
+    /// At regular width the hero card's Compare joins Add Photo in one row under the card.
+    private var comparesBesideAddPhoto: Bool {
+        guard horizontalSizeClass == .regular, case .pair = heroState else { return false }
+        return true
+    }
+
+    private var addPhotoButton: some View {
+        Button {
+            onAddPhoto()
+        } label: {
+            Label(AppLocalization.string("Add Photo"), systemImage: "plus")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+    }
+
     private var monthSections: [PhotoMonthSection] {
         let calendar = Calendar.current
         let formatter = DateFormatter()
@@ -437,18 +453,26 @@ struct PhotoGridView: View {
                             onChooseOlderPhoto: chooseOlderHeroPhoto,
                             onChooseNewerPhoto: chooseNewerHeroPhoto,
                             onCompare: openHeroSuggestedCompare,
-                            onAddPhoto: onAddPhoto
+                            onAddPhoto: onAddPhoto,
+                            showsCompareButton: !comparesBesideAddPhoto
                         )
 
-                        if case .onboarding = heroState { } else {
-                            Button {
-                                onAddPhoto()
-                            } label: {
-                                Label(AppLocalization.string("Add Photo"), systemImage: "plus")
-                                    .frame(maxWidth: .infinity)
+                        if comparesBesideAddPhoto {
+                            // Wide screen (open iPhone Duo): one row instead of two full-width bars.
+                            HStack(spacing: 12) {
+                                Button {
+                                    openHeroSuggestedCompare()
+                                } label: {
+                                    Label(AppLocalization.string("Compare"), systemImage: "arrow.left.and.right")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
+
+                                addPhotoButton
                             }
-                            .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
-                            .appAdaptiveButtonWidth()
+                        } else if case .onboarding = heroState { } else {
+                            addPhotoButton
+                                .appAdaptiveButtonWidth()
                         }
 
                         archiveSection

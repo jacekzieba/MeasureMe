@@ -44,6 +44,8 @@ struct PhotoCompareHeroCard: View {
     let onChooseNewerPhoto: () -> Void
     let onCompare: () -> Void
     let onAddPhoto: () -> Void
+    /// Off when the screen puts Compare beside Add Photo under the card instead (wide screens).
+    var showsCompareButton: Bool = true
 
     var body: some View {
         AppGlassCard(
@@ -97,14 +99,15 @@ struct PhotoCompareHeroCard: View {
                         .foregroundStyle(photosTheme.accent)
                     }
 
-                    Button {
-                        onCompare()
-                    } label: {
-                        Label(AppLocalization.string("Compare"), systemImage: "arrow.left.and.right")
-                            .frame(maxWidth: .infinity)
+                    if showsCompareButton {
+                        Button {
+                            onCompare()
+                        } label: {
+                            Label(AppLocalization.string("Compare"), systemImage: "arrow.left.and.right")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
                     }
-                    .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
-                    .appAdaptiveButtonWidth()
                 case .manualOnly:
                     VStack(alignment: .leading, spacing: 12) {
                         Text(AppLocalization.string("Too early for an automatic comparison. Choose photos manually."))
