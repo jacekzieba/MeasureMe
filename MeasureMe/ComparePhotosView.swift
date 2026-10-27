@@ -627,6 +627,7 @@ struct ComparePhotosView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(AppAccentButtonStyle())
+                .appAdaptiveButtonWidth()
                 .accessibilityIdentifier("photos.compare.transformation.prominent")
             }
         }

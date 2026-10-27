@@ -100,6 +100,7 @@ struct HomeActivationCard: View {
                             .frame(minHeight: 48)
                     }
                     .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                    .appAdaptiveButtonWidth()
                     .accessibilityIdentifier("home.activation.primary")
 
                     Button(action: onSkip) {
@@ -214,6 +215,7 @@ struct ActivationPremiumExplainerView: View {
                         .frame(minHeight: 52)
                 }
                 .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                .appAdaptiveButtonWidth()
 
                 Button {
                     onContinueFree()

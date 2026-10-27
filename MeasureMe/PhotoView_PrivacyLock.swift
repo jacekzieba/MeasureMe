@@ -33,6 +33,7 @@ struct PhotoPrivacyLockedView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                .appAdaptiveButtonWidth()
                 .accessibilityIdentifier("photos.privacy.unlock")
             }
         }

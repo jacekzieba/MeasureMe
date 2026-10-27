@@ -77,6 +77,7 @@ struct TransformationCardPreviewSheet: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
+                        .appAdaptiveButtonWidth()
                         .disabled(renderedImage == nil || isRendering)
 
                         Button {
@@ -87,6 +88,7 @@ struct TransformationCardPreviewSheet: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                        .appAdaptiveButtonWidth()
                         .disabled(renderedImage == nil || isRendering)
                     }
                     .padding(.horizontal)

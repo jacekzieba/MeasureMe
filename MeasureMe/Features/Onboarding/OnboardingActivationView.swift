@@ -107,6 +107,7 @@ struct OnboardingActivationView: View {
                         .frame(minHeight: 50)
                 }
                 .buttonStyle(AppCTAButtonStyle(size: .large, cornerRadius: AppRadius.md))
+                .appAdaptiveButtonWidth()
                 .transition(.opacity)
 
             } else {
@@ -168,6 +169,7 @@ struct OnboardingActivationView: View {
                         .frame(minHeight: 50)
                 }
                 .buttonStyle(AppCTAButtonStyle(size: .large, cornerRadius: AppRadius.md))
+                .appAdaptiveButtonWidth()
 
                 Button {
                     Analytics.shared.track(

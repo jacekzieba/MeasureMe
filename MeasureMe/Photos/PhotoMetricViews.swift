@@ -127,6 +127,7 @@ struct MetricSnapshotsEditor: View {
                 .background(Color.appAccent)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
+        .appAdaptiveButtonWidth()
     }
 }
 

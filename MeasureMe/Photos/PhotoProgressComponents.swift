@@ -104,6 +104,7 @@ struct PhotoCompareHeroCard: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
+                    .appAdaptiveButtonWidth()
                 case .manualOnly:
                     VStack(alignment: .leading, spacing: 12) {
                         Text(AppLocalization.string("Too early for an automatic comparison. Choose photos manually."))
@@ -117,6 +118,7 @@ struct PhotoCompareHeroCard: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(AppAccentButtonStyle())
+                        .appAdaptiveButtonWidth()
                     }
                 case .onboarding:
                     VStack(alignment: .leading, spacing: 12) {
@@ -131,6 +133,7 @@ struct PhotoCompareHeroCard: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(AppAccentButtonStyle())
+                        .appAdaptiveButtonWidth()
                     }
                 }
             }

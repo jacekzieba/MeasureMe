@@ -20,6 +20,24 @@ private struct AppHitTargetModifier: ViewModifier {
     }
 }
 
+/// A button that spans the width of a phone would stretch into a bar across a wide screen (an
+/// open iPhone Duo), so at regular width it keeps a phone-like width, centred in its row.
+private struct AppAdaptiveButtonWidthModifier: ViewModifier {
+    static let maxRegularWidth: CGFloat = 360
+
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    func body(content: Content) -> some View {
+        if horizontalSizeClass == .regular {
+            content
+                .frame(maxWidth: Self.maxRegularWidth)
+                .frame(maxWidth: .infinity)
+        } else {
+            content
+        }
+    }
+}
+
 private struct AppUntruncatedTextModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
@@ -40,6 +58,11 @@ extension View {
 
     func appHitTarget() -> some View {
         modifier(AppHitTargetModifier())
+    }
+
+    /// Apply to a full-width button (one whose label uses `.frame(maxWidth: .infinity)`).
+    func appAdaptiveButtonWidth() -> some View {
+        modifier(AppAdaptiveButtonWidthModifier())
     }
 
     /// Use for generated or user-provided copy whose full value must remain visible.

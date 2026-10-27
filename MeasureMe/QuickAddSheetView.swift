@@ -495,6 +495,7 @@ struct QuickAddSheetView: View {
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(AppCTAButtonStyle(size: dynamicTypeSize.isAccessibilitySize ? .large : .regular, cornerRadius: AppRadius.md))
+            .appAdaptiveButtonWidth()
             .frame(minHeight: 44)
             .contentShape(Rectangle())
             .disabled(isSaving)

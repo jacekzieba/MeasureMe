@@ -448,6 +448,7 @@ struct PhotoGridView: View {
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                            .appAdaptiveButtonWidth()
                         }
 
                         archiveSection

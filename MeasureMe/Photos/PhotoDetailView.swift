@@ -146,6 +146,7 @@ private extension PhotoDetailView {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+            .appAdaptiveButtonWidth()
         }
     }
     
@@ -186,6 +187,7 @@ private extension PhotoDetailView {
                 .background(Color.red)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
         }
+        .appAdaptiveButtonWidth()
         .padding(.top, 20)
         .alert(
             AppLocalization.string("Delete Photo"),
