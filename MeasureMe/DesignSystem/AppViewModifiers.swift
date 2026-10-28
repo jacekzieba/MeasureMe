@@ -21,25 +21,26 @@ private struct AppHitTargetModifier: ViewModifier {
 }
 
 /// A button that spans the width of a phone would stretch into a bar across a wide screen (an
-/// open iPhone Duo), so at regular width it keeps a phone-like width, centred in its row. A row of
-/// `buttons` side by side gets that width per button, so the row stays together.
+/// open iPhone Duo), so in a wide row it keeps a phone-like width, centred in the row. A row of
+/// `buttons` side by side gets that width per button, so the row stays together. The row's width is
+/// measured rather than read from the size class: a sheet on the open Duo is ~650 pt wide yet
+/// reports a compact width.
 private struct AppAdaptiveButtonWidthModifier: ViewModifier {
     static let maxRegularWidth: CGFloat = 360
+    static let minimumCappedRowWidth: CGFloat = 600
 
     let buttons: Int
     let spacing: CGFloat
 
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var rowWidth: CGFloat = 0
 
     func body(content: Content) -> some View {
-        if horizontalSizeClass == .regular {
-            let count = CGFloat(max(buttons, 1))
-            content
-                .frame(maxWidth: Self.maxRegularWidth * count + spacing * (count - 1))
-                .frame(maxWidth: .infinity)
-        } else {
-            content
-        }
+        let count = CGFloat(max(buttons, 1))
+        let cap = Self.maxRegularWidth * count + spacing * (count - 1)
+        content
+            .frame(maxWidth: rowWidth >= Self.minimumCappedRowWidth ? cap : .infinity)
+            .frame(maxWidth: .infinity)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
     }
 }
 
