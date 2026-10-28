@@ -44,6 +44,7 @@ struct MetricDetailView: View {
     @State var showGoalSheet = false
     @State var showCompareSheet = false
     @State var showTrendline = true
+    @State private var detailContentWidth: CGFloat = 0
     @State var showAllHistory = false
     @State var insightState: InsightState = .loading
     @State var isLoadingInsight = false
@@ -450,12 +451,34 @@ struct MetricDetailView: View {
         }
     }
 
+    /// Two columns need about two phone widths; narrower detail areas (an iPhone, the Measurements
+    /// split's detail column) keep one.
+    private static let twoColumnMinimumWidth: CGFloat = 700
+
     @ViewBuilder
     private var detailContent: some View {
         VStack(alignment: .leading, spacing: 20) {
             if detailViewModel.samples.isEmpty {
                 emptyStateSection
                 howToMeasureSection
+            } else if detailContentWidth >= Self.twoColumnMinimumWidth {
+                // Full width on a wide screen (open iPhone Duo): the chart beside the rest,
+                // instead of every section stretched across the display.
+                HStack(alignment: .top, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        heroSection
+                        goalPredictionSection
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    VStack(alignment: .leading, spacing: 20) {
+                        insightSection
+                        trendsSection
+                        historySection
+                        howToMeasureSection
+                    }
+                    .frame(maxWidth: .infinity)
+                }
             } else {
                 heroSection
                 goalPredictionSection
@@ -468,6 +491,7 @@ struct MetricDetailView: View {
         .padding(.horizontal, 16)
         .padding(.top, 12)
         .padding(.bottom, 24)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { detailContentWidth = $0 }
     }
 
     private func rebuildComparisonCache() {

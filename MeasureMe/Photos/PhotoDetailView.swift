@@ -19,6 +19,10 @@ struct PhotoDetailView: View {
     @State private var saveAlertMessage = ""
     @State private var isSavingToPhotos = false
     @State private var showDeleteConfirmation = false
+    @State private var containerWidth: CGFloat = 0
+    /// Measured rather than read from the size class: as a sheet on the open iPhone Duo this view
+    /// is ~650 pt wide yet reports a compact width.
+    private static let twoColumnMinimumWidth: CGFloat = 600
     
     // Edit mode state
     @State private var editedDate: Date
@@ -48,17 +52,40 @@ struct PhotoDetailView: View {
     private var unguardedBody: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
-                    photoSection
-                    sessionSummarySection
-                    primaryActionsSection
-                    dateSection
-                    tagsSection
-                    metricsSection
-                    deleteButton
+                if containerWidth >= Self.twoColumnMinimumWidth {
+                    // Wide screen (open iPhone Duo): the photo beside its details, instead of the
+                    // photo and every section stretched across the whole display.
+                    HStack(alignment: .top, spacing: 20) {
+                        VStack(spacing: 20) {
+                            photoSection
+                            sessionSummarySection
+                            primaryActionsSection
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        VStack(spacing: 20) {
+                            dateSection
+                            tagsSection
+                            metricsSection
+                            deleteButton
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .padding()
+                } else {
+                    VStack(spacing: 20) {
+                        photoSection
+                        sessionSummarySection
+                        primaryActionsSection
+                        dateSection
+                        tagsSection
+                        metricsSection
+                        deleteButton
+                    }
+                    .padding()
                 }
-                .padding()
             }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
             .navigationTitle(AppLocalization.string("Photo Details"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

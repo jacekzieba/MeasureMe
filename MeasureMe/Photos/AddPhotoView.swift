@@ -34,6 +34,10 @@ struct AddPhotoView: View {
     /// Widoczne dla testów (AddPhotoPoseHandoffTests) — poza tym traktuj jak prywatne.
     @State var didUserChoosePose = false
     @AppSetting(\.profile.unitsSystem) private var unitsSystem: String = "metric"
+    @State private var containerWidth: CGFloat = 0
+    /// Measured rather than read from the size class: as a sheet on the open iPhone Duo this view
+    /// is ~650 pt wide yet reports a compact width.
+    private static let twoColumnMinimumWidth: CGFloat = 600
 
     private var shouldStartExpandedForUITests: Bool {
         #if DEBUG
@@ -73,11 +77,30 @@ struct AddPhotoView: View {
 
             ScrollView {
                 VStack(spacing: 16) {
-                    photoSelectionCard
-                    photoPreviewCard
-                    tagsCard
-                    dateCard
-                    measurementsCard
+                    if containerWidth >= Self.twoColumnMinimumWidth {
+                        // Wide screen (open iPhone Duo): the photo beside its details, instead of
+                        // the photo and every card stretched across the whole display.
+                        HStack(alignment: .top, spacing: 16) {
+                            VStack(spacing: 16) {
+                                photoSelectionCard
+                                photoPreviewCard
+                            }
+                            .frame(maxWidth: .infinity)
+
+                            VStack(spacing: 16) {
+                                tagsCard
+                                dateCard
+                                measurementsCard
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    } else {
+                        photoSelectionCard
+                        photoPreviewCard
+                        tagsCard
+                        dateCard
+                        measurementsCard
+                    }
                     #if DEBUG
                     if UITestArgument.isPresent(.mode) {
                         // 1×1 pt fixer view: on appear it traverses the full UIKit window
@@ -94,6 +117,7 @@ struct AddPhotoView: View {
                 .padding(.top, 16)
             }
             .accessibilityIdentifier("addPhoto.scrollView")
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
         }
         .navigationTitle(AppLocalization.string("Add Photo"))
         .navigationBarTitleDisplayMode(.inline)
