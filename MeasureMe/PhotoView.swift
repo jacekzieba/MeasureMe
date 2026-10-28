@@ -581,8 +581,8 @@ private extension PhotoView {
                 .accessibilityHint(AppLocalization.string("accessibility.compare.opens"))
             }
         }
-        // The pair keeps a phone-like width together on a wide screen.
-        .appAdaptiveButtonWidth()
+        // A phone-like width per button on a wide screen, the buttons kept together.
+        .appAdaptiveButtonWidth(buttons: selectedPhotos.count == 2 ? 2 : 1, spacing: AppSpacing.sm)
         .padding(.horizontal, AppSpacing.md)
         .appElevation(AppElevation.card)
     }

@@ -470,6 +470,7 @@ struct PhotoGridView: View {
 
                                 addPhotoButton
                             }
+                            .appAdaptiveButtonWidth(buttons: 2, spacing: 12)
                         } else if case .onboarding = heroState { } else {
                             addPhotoButton
                                 .appAdaptiveButtonWidth()
