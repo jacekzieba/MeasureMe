@@ -119,6 +119,16 @@ final class HomeViewSnapshotTests: XCTestCase {
         AppLocalization.reloadLanguage()
     }
 
+    /// HomeView schedules deferred startup work (phases B and C, ~1 s after it appears) that reads its
+    /// `@Query`s. On a slow runner that work can fire after the test has ended; with the window and
+    /// container already released it trapped inside SwiftData and crashed the test process. The app keeps
+    /// Home and its container for its whole life, so the tests do the same.
+    private static var deferredStartupHosts: [(window: UIWindow, container: ModelContainer)] = []
+
+    private static func keepAliveForDeferredStartup(window: UIWindow, container: ModelContainer) {
+        deferredStartupHosts.append((window, container))
+    }
+
     private func makeContainer() throws -> ModelContainer {
         let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         return try ModelContainer(
@@ -173,6 +183,7 @@ final class HomeViewSnapshotTests: XCTestCase {
         let window = UIWindow(frame: vc.view.frame)
         window.rootViewController = vc
         window.makeKeyAndVisible()
+        Self.keepAliveForDeferredStartup(window: window, container: container)
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(1800))
@@ -200,6 +211,7 @@ final class HomeViewSnapshotTests: XCTestCase {
         let window = UIWindow(frame: vc.view.frame)
         window.rootViewController = vc
         window.makeKeyAndVisible()
+        Self.keepAliveForDeferredStartup(window: window, container: container)
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(1800))
@@ -228,7 +240,7 @@ final class HomeViewSnapshotTests: XCTestCase {
         let today = AppClock.now
         let cal = Calendar.current
         for offset in 0..<7 {
-            let date = cal.date(byAdding: .day, value: -offset, to: today)!
+            let date = try XCTUnwrap(cal.date(byAdding: .day, value: -offset, to: today))
             let weight = MetricSample(kind: .weight, value: 82.0 - Double(offset) * 0.1, date: date)
             context.insert(weight)
         }
@@ -239,6 +251,7 @@ final class HomeViewSnapshotTests: XCTestCase {
         let window = UIWindow(frame: vc.view.frame)
         window.rootViewController = vc
         window.makeKeyAndVisible()
+        Self.keepAliveForDeferredStartup(window: window, container: container)
         vc.view.setNeedsLayout()
         vc.view.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(1800))
