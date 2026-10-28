@@ -47,6 +47,19 @@ struct PhotoCompareHeroCard: View {
     /// Off when the screen puts Compare beside Add Photo under the card instead (wide screens).
     var showsCompareButton: Bool = true
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var slotWidth: CGFloat = 0
+    private static let compactThumbSize: CGFloat = 112
+    private static let maxRegularThumbSize: CGFloat = 240
+
+    /// On a wide screen (open iPhone Duo) the thumbnails grow with their slot instead of sitting
+    /// small in the middle of it; phones keep the compact size.
+    private var thumbSize: CGFloat {
+        guard horizontalSizeClass == .regular else { return Self.compactThumbSize }
+        // The slot's 10 pt padding on each side.
+        return min(max(slotWidth - 20, Self.compactThumbSize), Self.maxRegularThumbSize)
+    }
+
     var body: some View {
         AppGlassCard(
             depth: .floating,
@@ -153,12 +166,26 @@ struct PhotoCompareHeroCard: View {
                     Spacer()
                 }
 
-                PhotoGridThumb(
-                    photo: photo,
-                    size: 112,
-                    cacheID: String(describing: photo.persistentModelID)
-                )
-                .frame(maxWidth: .infinity, alignment: .center)
+                if thumbSize > Self.compactThumbSize {
+                    // The stored grid thumbnail is too small to show this large without blurring.
+                    DownsampledImageView(
+                        imageData: photo.imageData,
+                        targetSize: CGSize(width: thumbSize, height: thumbSize),
+                        cornerRadius: 12,
+                        showsProgress: false,
+                        cacheID: String(describing: photo.persistentModelID) + "-hero-\(Int(thumbSize))"
+                    )
+                    .frame(width: thumbSize, height: thumbSize)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .frame(maxWidth: .infinity, alignment: .center)
+                } else {
+                    PhotoGridThumb(
+                        photo: photo,
+                        size: Self.compactThumbSize,
+                        cacheID: String(describing: photo.persistentModelID)
+                    )
+                    .frame(maxWidth: .infinity, alignment: .center)
+                }
 
                 HStack {
                     Text(photo.date.formatted(date: .abbreviated, time: .omitted))
@@ -173,6 +200,7 @@ struct PhotoCompareHeroCard: View {
                 RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                     .fill(AppColorRoles.surfaceInteractive)
             )
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { slotWidth = $0 }
         }
         .buttonStyle(.plain)
     }

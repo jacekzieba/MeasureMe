@@ -368,6 +368,8 @@ struct PhotoGridView: View {
     @AppStorage(AppSettingsKeys.Photos.gridLayoutMode) private var gridLayoutModeRaw: String = PhotoGridLayoutMode.review.rawValue
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var gridWidth: CGFloat = 0
+    /// Where the fold crosses the grid (iPhone Duo in book pose), in the grid's own coordinates.
+    @State private var foldSpan: ClosedRange<CGFloat>?
 
     private var gridLayoutMode: PhotoGridLayoutMode {
         PhotoGridLayoutMode(rawValue: gridLayoutModeRaw) ?? .review
@@ -575,13 +577,7 @@ struct PhotoGridView: View {
                         .padding(.horizontal, 2)
                         .accessibilityIdentifier("photos.grid.monthHeader")
 
-                    LazyVGrid(
-                        columns: Array(
-                            repeating: GridItem(.flexible(), spacing: 8),
-                            count: gridColumnCount
-                        ),
-                        spacing: 8
-                    ) {
+                    LazyVGrid(columns: gridColumns, spacing: 8) {
                         // Cells are sized from the measured width, so wait for the first measurement
                         // rather than requesting thumbnails at a placeholder size.
                         if gridWidth > 0 {
@@ -591,19 +587,58 @@ struct PhotoGridView: View {
                             }
                         }
                     }
+                    .padding(.leading, foldLayout?.leadingInset ?? 0)
+                    .padding(.trailing, foldLayout?.trailingInset ?? 0)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         // The grid's own width, not the screen's: on iPhone Duo the window changes size with the pose.
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { gridWidth = $0 }
+        .onGeometryChange(for: ClosedRange<CGFloat>?.self) { Self.foldSpan(in: $0) } action: { foldSpan = $0 }
         .padding(.bottom, isSelecting && !selectedPhotos.isEmpty ? 80 : 0)
+    }
+
+    /// Keeps the fold in the gap between the two halves of the grid rather than through a column of
+    /// photos: the grid is inset so it is symmetric about the fold, and the middle gap spans the fold.
+    private var foldLayout: (leadingInset: CGFloat, trailingInset: CGFloat, gap: CGFloat)? {
+        guard let foldSpan, gridColumnCount.isMultiple(of: 2) else { return nil }
+        let leading = foldSpan.lowerBound
+        let trailing = gridWidth - foldSpan.upperBound
+        guard leading > 0, trailing > 0 else { return nil }
+        let side = min(leading, trailing)
+        return (leading - side, trailing - side, max(foldSpan.upperBound - foldSpan.lowerBound, 8))
+    }
+
+    private var gridColumns: [GridItem] {
+        let middleGap = foldLayout?.gap ?? 8
+        return (0..<gridColumnCount).map { column in
+            GridItem(.flexible(), spacing: column == gridColumnCount / 2 - 1 ? middleGap : 8)
+        }
+    }
+
+    private static func foldSpan(in proxy: GeometryProxy) -> ClosedRange<CGFloat>? {
+        #if compiler(>=6.4)
+        if #available(iOS 27.1, *) {
+            let fold = proxy.reservedRegions(kind: .division).first { region in
+                region.isActive
+                    && region.frame.height > region.frame.width
+                    && region.frame.maxX > 0
+                    && region.frame.minX < proxy.size.width
+            }
+            guard let fold else { return nil }
+            return (fold.frame.minX - fold.margins.leading)...(fold.frame.maxX + fold.margins.trailing)
+        }
+        #endif
+        return nil
     }
 
     @ViewBuilder
     private func renderGridItem(_ item: PhotoGridRenderItem, index: Int) -> some View {
-        let spacing = CGFloat(gridColumnCount - 1) * 8
-        let cellSize = max(floor((gridWidth - spacing) / CGFloat(gridColumnCount)), 1)
+        let fold = foldLayout
+        let contentWidth = gridWidth - (fold.map { $0.leadingInset + $0.trailingInset } ?? 0)
+        let spacing = CGFloat(gridColumnCount - 2) * 8 + (fold?.gap ?? 8)
+        let cellSize = max(floor((contentWidth - spacing) / CGFloat(gridColumnCount)), 1)
 
         switch item {
         case .persisted(let photo):
