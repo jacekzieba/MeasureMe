@@ -79,6 +79,7 @@ struct TrackedMeasurementsView: View {
                 .listRowSeparator(.hidden)
                 .listSectionSeparator(.hidden)
                 .padding(.top, -8)
+                .fabBarBottomInsetIfNeeded()
             }
         }
         .overlay(alignment: .bottom) {

@@ -3,7 +3,32 @@ import Charts
 import SwiftData
 import Accessibility
 
+/// A custom metric's detail, looked up by identifier. The definition can be deleted in Settings
+/// while this detail stays pushed in another tab; reading a deleted model crashes, so the query
+/// lets the detail notice the deletion and close instead.
 struct CustomMetricDetailView: View {
+    @Query private var definitions: [CustomMetricDefinition]
+    @Environment(\.dismiss) private var dismiss
+
+    init(identifier: String) {
+        _definitions = Query(filter: #Predicate<CustomMetricDefinition> { $0.identifier == identifier })
+    }
+
+    init(definition: CustomMetricDefinition) {
+        self.init(identifier: definition.identifier)
+    }
+
+    var body: some View {
+        if let definition = definitions.first, !definition.isDeleted {
+            CustomMetricDetailContent(definition: definition)
+        } else {
+            Color.clear
+                .onAppear { dismiss() }
+        }
+    }
+}
+
+private struct CustomMetricDetailContent: View {
     private let measurementsTheme = FeatureTheme.measurements
     let definition: CustomMetricDefinition
 

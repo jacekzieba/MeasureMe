@@ -724,18 +724,17 @@ struct OnboardingView: View {
                     .fixedSize(horizontal: true, vertical: false)
                     .layoutPriority(1)
 
-                    Spacer(minLength: 0)
-
-                    if !showMoreMetrics {
-                        ForEach(additionalStartingPointKinds.prefix(2), id: \.self) { kind in
-                            Text(kind.title)
-                                .font(AppTypography.micro)
-                                .foregroundStyle(AppColorRoles.textSecondary)
-                                .lineLimit(1)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Capsule(style: .continuous).fill(AppColorRoles.surfaceElevated))
+                    if showMoreMetrics {
+                        Spacer(minLength: 0)
+                    } else {
+                        // As many preview chips as fit whole: on narrow cards (iPhone SE, the folded
+                        // iPhone Duo) squeezing two chips cut their names down to a single letter.
+                        ViewThatFits(in: .horizontal) {
+                            addMorePreviewChips(count: 2)
+                            addMorePreviewChips(count: 1)
+                            Color.clear.frame(width: 0, height: 0)
                         }
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                     }
 
                     Image(systemName: showMoreMetrics ? "chevron.up" : "chevron.down")
@@ -762,6 +761,21 @@ struct OnboardingView: View {
                         additionalMetricRow(kind: kind)
                     }
                 }
+            }
+        }
+    }
+
+    private func addMorePreviewChips(count: Int) -> some View {
+        HStack(spacing: 10) {
+            ForEach(additionalStartingPointKinds.prefix(count), id: \.self) { kind in
+                Text(kind.title)
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppColorRoles.textSecondary)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule(style: .continuous).fill(AppColorRoles.surfaceElevated))
             }
         }
     }
