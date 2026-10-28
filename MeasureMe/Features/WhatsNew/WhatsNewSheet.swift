@@ -108,6 +108,7 @@ struct WhatsNewSheet: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(AppAccentButtonStyle())
+                .appAdaptiveButtonWidth()
                 .accessibilityIdentifier("whatsNew.open")
             }
 

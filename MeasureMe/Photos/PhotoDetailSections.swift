@@ -60,12 +60,28 @@ struct PhotoDateSection: View {
                 .foregroundStyle(.primary)
             
             if isEditing {
-                DatePicker(
-                    AppLocalization.string("Photo Date"),
-                    selection: $editedDate,
-                    displayedComponents: [.date, .hourAndMinute]
-                )
-                .datePickerStyle(.compact)
+                // In a column of the wide two-column detail the label beside the pickers was
+                // squeezed to "Pho-/to/Date"; there it goes above them instead.
+                ViewThatFits(in: .horizontal) {
+                    DatePicker(
+                        AppLocalization.string("Photo Date"),
+                        selection: $editedDate,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .datePickerStyle(.compact)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(AppLocalization.string("Photo Date"))
+                        DatePicker(
+                            AppLocalization.string("Photo Date"),
+                            selection: $editedDate,
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
+                        .labelsHidden()
+                        .datePickerStyle(.compact)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
             } else {
                 HStack {
                     Text(date.formatted(date: .long, time: .shortened))

@@ -141,6 +141,7 @@ struct HomeCompareChooserSheet: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                        .appAdaptiveButtonWidth()
                         .disabled(!compareEnabled)
                         .accessibilityIdentifier("home.compare.confirm")
 

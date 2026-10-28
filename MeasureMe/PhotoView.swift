@@ -27,9 +27,7 @@ struct PhotoView: View {
     @State private var showCamera = false
     @State private var cameraPickerImage: UIImage? = nil
     @State private var cameraPickerPose: PhotoTag? = nil
-    @State private var capturedImportImage: UIImage? = nil
-    @State private var capturedImportPose: PhotoTag? = nil
-    @State private var showCapturedImportSheet = false
+    @State private var capturedImport: CapturedImport?
     @State private var showLibraryPicker = false   // PHPicker (1 and multiple)
     @State private var showSingleImportFlow = false
     @State private var showMultiImportFlow = false
@@ -265,9 +263,7 @@ struct PhotoView: View {
             // Camera → AddPhotoView with preview (onDismiss after dismiss, which follows onSelect)
             .sheet(isPresented: $showCamera, onDismiss: {
                 if let img = cameraPickerImage {
-                    capturedImportImage = img
-                    capturedImportPose = cameraPickerPose
-                    showCapturedImportSheet = true
+                    capturedImport = CapturedImport(image: img, pose: cameraPickerPose)
                     cameraPickerImage = nil
                 }
                 cameraPickerPose = nil
@@ -282,15 +278,14 @@ struct PhotoView: View {
                     CameraPickerView(selectedImage: $cameraPickerImage)
                 }
             }
-            .sheet(isPresented: $showCapturedImportSheet, onDismiss: {
-                capturedImportImage = nil
-                capturedImportPose = nil
-            }) {
+            // `item:` rather than `isPresented:` — the latter built AddPhotoView from a stale nil image,
+            // so the photo just taken never reached the form.
+            .sheet(item: $capturedImport) { captured in
                 NavigationStack {
                     AddPhotoView(
-                        previewImage: capturedImportImage,
-                        initialTags: capturedImportPose.map { [$0] },
-                        poseIsUserChosen: capturedImportPose != nil,
+                        previewImage: captured.image,
+                        initialTags: captured.pose.map { [$0] },
+                        poseIsUserChosen: captured.pose != nil,
                         telemetrySource: .photos
                     )
                         .environmentObject(metricsStore)
@@ -539,6 +534,12 @@ struct TemporaryHeroPairOverride: Identifiable {
     }
 }
 
+private struct CapturedImport: Identifiable {
+    let id = UUID()
+    let image: UIImage
+    let pose: PhotoTag?
+}
+
 private struct CompareChooserContext: Identifiable {
     let olderPhoto: PhotoEntry?
     let newerPhoto: PhotoEntry?
@@ -581,6 +582,8 @@ private extension PhotoView {
                 .accessibilityHint(AppLocalization.string("accessibility.compare.opens"))
             }
         }
+        // A phone-like width per button on a wide screen, the buttons kept together.
+        .appAdaptiveButtonWidth(buttons: selectedPhotos.count == 2 ? 2 : 1, spacing: AppSpacing.sm)
         .padding(.horizontal, AppSpacing.md)
         .appElevation(AppElevation.card)
     }

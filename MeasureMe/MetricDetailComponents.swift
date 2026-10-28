@@ -1824,6 +1824,7 @@ struct SetGoalView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(AppDestructiveButtonStyle())
+                            .appAdaptiveButtonWidth()
                             .padding(.top, 8)
                         }
                     }

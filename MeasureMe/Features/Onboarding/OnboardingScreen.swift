@@ -1109,32 +1109,39 @@ struct OnboardingView: View {
             .font(AppTypography.captionEmphasis)
             .foregroundStyle(AppColorRoles.textSecondary)
 
-            HStack(spacing: 6) {
-                ForEach(order, id: \.self) { weekday in
-                    let isSelected = rhythmWeekday == weekday
-                    Button {
-                        Haptics.selection()
-                        rhythmWeekday = weekday
-                    } label: {
-                        // The circle sets the size and the letter sits on it. Up to 38 pt, smaller on
-                        // narrow cards (iPhone SE, folded iPhone Duo): seven fixed 38 pt circles
-                        // widened the whole step past the screen edge.
-                        Circle()
-                            .fill(isSelected ? Color.appAccent : AppColorRoles.surfaceInteractive)
-                            .overlay(Circle().stroke(isSelected ? Color.clear : AppColorRoles.borderSubtle, lineWidth: 1))
-                            .aspectRatio(1, contentMode: .fit)
-                            .frame(minWidth: 28, maxWidth: 38)
-                            .overlay(
-                                Text(symbols[(weekday - 1) % symbols.count])
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .foregroundStyle(isSelected ? AppColorRoles.textOnAccent : AppColorRoles.textSecondary)
-                            )
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityIdentifier("onboarding.rhythm.day.\(weekday)")
+            // 38 pt circles wherever seven of them fit, as on an iPhone. Only narrower cards (iPhone SE,
+            // folded iPhone Duo) get circles that shrink, down to 28 pt: seven fixed 38 pt circles
+            // widened the whole step past the screen edge there.
+            ViewThatFits(in: .horizontal) {
+                rhythmWeekdayRow(order: order, symbols: symbols, shrinks: false)
+                rhythmWeekdayRow(order: order, symbols: symbols, shrinks: true)
+            }
+        }
+    }
+
+    private func rhythmWeekdayRow(order: [Int], symbols: [String], shrinks: Bool) -> some View {
+        HStack(spacing: 6) {
+            ForEach(order, id: \.self) { weekday in
+                let isSelected = rhythmWeekday == weekday
+                Button {
+                    Haptics.selection()
+                    rhythmWeekday = weekday
+                } label: {
+                    // The circle sets the size and the letter sits on it.
+                    Circle()
+                        .fill(isSelected ? Color.appAccent : AppColorRoles.surfaceInteractive)
+                        .overlay(Circle().stroke(isSelected ? Color.clear : AppColorRoles.borderSubtle, lineWidth: 1))
+                        .rhythmWeekdayCircleSize(shrinks: shrinks)
+                        .overlay(
+                            Text(symbols[(weekday - 1) % symbols.count])
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .foregroundStyle(isSelected ? AppColorRoles.textOnAccent : AppColorRoles.textSecondary)
+                        )
+                        .contentShape(Circle())
                 }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
+                .accessibilityIdentifier("onboarding.rhythm.day.\(weekday)")
             }
         }
     }
@@ -1150,18 +1157,12 @@ struct OnboardingView: View {
                 .font(AppTypography.captionEmphasis)
                 .foregroundStyle(AppColorRoles.textSecondary)
 
-            // Three chips in a row when their labels fit, otherwise stacked: on narrow cards (iPhone SE,
-            // folded iPhone Duo) a row cut "Morning 9:00" down to "Morning 9:…".
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) {
-                    ForEach(options, id: \.hour) { option in
-                        rhythmTimeChip(hour: option.hour, label: option.label)
-                    }
-                }
-                VStack(spacing: 8) {
-                    ForEach(options, id: \.hour) { option in
-                        rhythmTimeChip(hour: option.hour, label: option.label)
-                    }
+            // Three chips in a row, as on an iPhone, unless a label would have to shrink past its
+            // minimum scale; then stacked, so a narrow card (iPhone SE, folded iPhone Duo) never cuts
+            // "Morning 9:00" down to "Morning 9:…".
+            RhythmTimeChipsLayout(spacing: 8, labelPadding: 24, minimumScale: 0.8, fittedMinimumScale: 0.9) {
+                ForEach(options, id: \.hour) { option in
+                    rhythmTimeChip(hour: option.hour, label: option.label)
                 }
             }
         }
@@ -1177,8 +1178,8 @@ struct OnboardingView: View {
                 .font(AppTypography.captionEmphasis)
                 .foregroundStyle(isSelected ? AppColorRoles.textOnAccent : AppColorRoles.textPrimary)
                 .lineLimit(1)
-                // Never squeezed: the row only wins `ViewThatFits` when every label fits whole.
-                .fixedSize(horizontal: true, vertical: false)
+                // `RhythmTimeChipsLayout` stacks the chips before this would truncate.
+                .minimumScaleFactor(0.8)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
@@ -2595,6 +2596,88 @@ struct OnboardingView: View {
                 AmbientBlobSpec(color: .appAccent, innerOpacity: 0.15, outerOpacity: 0.0, size: 260, blurRadius: 30, startRadius: 14, endRadius: 130, offsetA: CGSize(width: 32, height: 28), offsetB: CGSize(width: -25, height: -18)),
                 AmbientBlobSpec(color: .appCyan, innerOpacity: 0.10, outerOpacity: 0.0, size: 200, blurRadius: 24, startRadius: 8, endRadius: 100, offsetA: CGSize(width: -15, height: -25), offsetB: CGSize(width: 28, height: 22)),
             ]
+        }
+    }
+}
+
+private extension View {
+    /// Weekday circle: a fixed 38 pt, or (`shrinks`) up to 38 pt and down to 28 pt with the row.
+    @ViewBuilder
+    func rhythmWeekdayCircleSize(shrinks: Bool) -> some View {
+        if shrinks {
+            aspectRatio(1, contentMode: .fit)
+                .frame(minWidth: 28, maxWidth: 38)
+        } else {
+            frame(width: 38, height: 38)
+        }
+    }
+}
+
+/// The rhythm step's time chips in one row: equal widths while every label reads at `minimumScale`
+/// or larger, else widths in proportion to the labels while they read at `fittedMinimumScale` (an
+/// iPhone's card is a little too narrow for three equal chips). A narrower card (iPhone SE, folded
+/// iPhone Duo) stacks them, one per row. `ViewThatFits` can't make that call: it measures labels
+/// unscaled and so stacked the chips on every iPhone.
+private struct RhythmTimeChipsLayout: Layout {
+    let spacing: CGFloat
+    /// Horizontal padding inside a chip, around its label.
+    let labelPadding: CGFloat
+    let minimumScale: CGFloat
+    let fittedMinimumScale: CGFloat
+
+    private enum Arrangement {
+        case row(widths: [CGFloat])
+        case column
+    }
+
+    private func arrangement(width: CGFloat, subviews: Subviews) -> Arrangement {
+        guard !subviews.isEmpty else { return .column }
+        let count = CGFloat(subviews.count)
+        let labels = subviews.map { max($0.sizeThatFits(.unspecified).width - labelPadding, 0) }
+        let rowWidth = width - spacing * (count - 1)
+
+        let equalChip = rowWidth / count
+        if (labels.max() ?? 0) * minimumScale <= equalChip - labelPadding {
+            return .row(widths: Array(repeating: equalChip, count: subviews.count))
+        }
+
+        let totalLabels = labels.reduce(0, +)
+        guard totalLabels > 0 else { return .column }
+        let scale = (rowWidth - labelPadding * count) / totalLabels
+        guard scale >= fittedMinimumScale else { return .column }
+        return .row(widths: labels.map { $0 * scale + labelPadding })
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let gaps = spacing * CGFloat(max(subviews.count - 1, 0))
+        let width = proposal.width ?? subviews.map { $0.sizeThatFits(.unspecified).width }.reduce(0, +) + gaps
+        switch arrangement(width: width, subviews: subviews) {
+        case .row(let widths):
+            let height = zip(subviews, widths)
+                .map { $0.sizeThatFits(ProposedViewSize(width: $1, height: nil)).height }
+                .max() ?? 0
+            return CGSize(width: width, height: height)
+        case .column:
+            let heights = subviews.map { $0.sizeThatFits(ProposedViewSize(width: width, height: nil)).height }
+            return CGSize(width: width, height: heights.reduce(0, +) + gaps)
+        }
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        switch arrangement(width: bounds.width, subviews: subviews) {
+        case .row(let widths):
+            var x = bounds.minX
+            for (subview, chipWidth) in zip(subviews, widths) {
+                subview.place(at: CGPoint(x: x, y: bounds.minY), proposal: ProposedViewSize(width: chipWidth, height: bounds.height))
+                x += chipWidth + spacing
+            }
+        case .column:
+            var y = bounds.minY
+            for subview in subviews {
+                let height = subview.sizeThatFits(ProposedViewSize(width: bounds.width, height: nil)).height
+                subview.place(at: CGPoint(x: bounds.minX, y: y), proposal: ProposedViewSize(width: bounds.width, height: height))
+                y += height + spacing
+            }
         }
     }
 }

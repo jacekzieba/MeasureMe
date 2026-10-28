@@ -31,6 +31,7 @@ struct StartupErrorView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(AppAccentButtonStyle(cornerRadius: 12))
+                .appAdaptiveButtonWidth()
             }
             .padding(18)
             .background(

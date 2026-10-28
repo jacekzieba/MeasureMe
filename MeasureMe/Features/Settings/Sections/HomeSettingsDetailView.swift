@@ -141,6 +141,7 @@ struct HomeSettingsDetailView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(AppSecondaryButtonStyle(cornerRadius: AppRadius.md))
+                .appAdaptiveButtonWidth()
             }
         }
         .listRowSeparator(.hidden)

@@ -2670,6 +2670,7 @@ struct HomeView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(AppCTAButtonStyle(size: .compact, cornerRadius: AppRadius.md))
+            .appAdaptiveButtonWidth()
         }
         .padding(AppSpacing.smmd)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -3159,6 +3160,7 @@ struct HomeView: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                        .appAdaptiveButtonWidth()
                         .accessibilityIdentifier("home.quickadd.button")
                     }
                     .padding(AppSpacing.sm)
@@ -3313,6 +3315,7 @@ struct HomeView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(AppCTAButtonStyle(size: .regular, cornerRadius: AppRadius.md))
+                .appAdaptiveButtonWidth()
             }
         }
     }

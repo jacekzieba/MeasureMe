@@ -73,6 +73,9 @@ extension MetricDetailView {
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .minimumScaleFactor(0.7)
+                // Wrap rather than truncate: inside a column of the wide two-column detail the label
+                // was offered a single line and cut to "Lost…".
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)

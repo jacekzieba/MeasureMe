@@ -39,6 +39,7 @@ struct PostPurchaseSetupView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(AppAccentButtonStyle())
+                .appAdaptiveButtonWidth()
                 .accessibilityIdentifier("postpurchase.getstarted")
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)
