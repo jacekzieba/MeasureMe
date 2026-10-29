@@ -62,7 +62,8 @@ final class AccessibilityQualityUITests: XCTestCase {
             context: "Settings",
             types: [.hitRegion, .sufficientElementDescription, .trait],
             swipes: 3,
-            collector: collector
+            collector: collector,
+            ignoring: isHitRegionClippedByTabBar
         )
 
         assertNoAuditIssues(collector, category: "VoiceOver and hit-region")
@@ -212,6 +213,19 @@ final class AccessibilityQualityUITests: XCTestCase {
             return false
         }
         return true
+    }
+
+    /// Settings rows are 44 pt tall (`minHeight: 44` in the row label), but while the list scrolls a
+    /// row can sit half under the floating tab bar, and the audit measures only the part left
+    /// visible. Restore purchases, Terms of Use and Privacy Policy were reported as "too small"
+    /// this way, at the moment they crossed the bar.
+    ///
+    /// Deliberately narrow: hit regions only, and only for an element whose frame crosses the
+    /// top edge of the tab bar. A row that is fully visible and too small still fails.
+    private func isHitRegionClippedByTabBar(_ issue: XCUIAccessibilityAuditIssue) -> Bool {
+        guard issue.auditType == .hitRegion, let element = issue.element else { return false }
+        let barTop = app.appTabBar.frame.minY
+        return element.frame.minY < barTop && element.frame.maxY > barTop
     }
 
     @MainActor
